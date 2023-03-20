@@ -17,7 +17,7 @@ jobs:
     - uses: abbbi/github-actions-tune@v1
     - run: sudo apt-get -y install gearman-job-server
     - name: Install Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go-version }}
     - uses: actions/checkout@v3
