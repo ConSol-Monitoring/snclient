@@ -9,22 +9,22 @@ import (
 type RequestHandler interface {
 	Type() string
 	Defaults() map[string]string
-	Init(*SNClientInstance) error
+	Init(*Agent) error
 }
 
 // RequestHandlerTCP handles a single client connection.
 type RequestHandlerTCP interface {
 	RequestHandler
-	ServeOne(*SNClientInstance, net.Conn)
+	ServeTCP(*Agent, net.Conn)
 }
 
-type UrlMapping struct {
-	Url     string
-	Handler *http.Handler
+type URLMapping struct {
+	URL     string
+	Handler http.Handler
 }
 
 // RequestHandlerHTTP handles a single client connection using http(s).
 type RequestHandlerHTTP interface {
 	RequestHandler
-	GetMappings(*SNClientInstance) []UrlMapping
+	GetMappings(*Agent) []URLMapping
 }

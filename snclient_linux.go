@@ -15,15 +15,13 @@ func setupUsrSignalChannel(osSignalUsrChannel chan os.Signal) {
 	signal.Notify(osSignalUsrChannel, syscall.SIGUSR2)
 }
 
-func mainSignalHandler(sig os.Signal, snc *SNClientInstance) MainStateType {
+func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 	switch sig {
 	case syscall.SIGTERM:
 		log.Infof("got sigterm, quiting gracefully")
 
 		return ShutdownGraceFully
-	case syscall.SIGINT:
-		fallthrough
-	case os.Interrupt:
+	case os.Interrupt, syscall.SIGINT:
 		log.Infof("got sigint, quitting")
 
 		return Shutdown

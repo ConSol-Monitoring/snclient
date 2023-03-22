@@ -15,18 +15,16 @@ func (c *configFiles) String() string {
 }
 
 // Set appends a config file to the list of config files.
-func (c *configFiles) Set(value string) (err error) {
+func (c *configFiles) Set(value string) error {
 	// check if the file exists but skip errors for file globs
-	_, err = os.Stat(value)
+	_, err := os.Stat(value)
 	if err != nil && !strings.ContainsAny(value, "?*") {
-		return
+		return fmt.Errorf("failed to read config file: %s", err.Error())
 	}
-
-	err = nil
 
 	*c = append(*c, value)
 
-	return
+	return nil
 }
 
 type Config map[string]map[string]string
@@ -59,8 +57,10 @@ func (config *Config) readSettingsFile(path string) error {
 		if line[0] == '[' {
 			currentBlock = strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")
 
-			block := make(map[string]string, 0)
-			(*config)[currentBlock] = block
+			if _, ok := (*config)[currentBlock]; !ok {
+				block := make(map[string]string, 0)
+				(*config)[currentBlock] = block
+			}
 
 			continue
 		}

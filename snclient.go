@@ -34,6 +34,9 @@ const (
 
 	// BlockProfileRateInterval sets the profiling interval when started with -profile.
 	BlockProfileRateInterval = 10
+
+	// DefaulSocketTimeout sets the default timeout for tcp sockets
+	DefaulSocketTimeout = 30
 )
 
 // MainStateType is used to set different states of the main loop.
@@ -73,7 +76,7 @@ func (i *arrayFlags) Set(value string) error {
 	return nil
 }
 
-type SNClientInstance struct {
+type Agent struct {
 	Config    Config               // reference to global config object
 	Listeners map[string]*Listener // Listeners stores if we started a listener
 	flags     struct {             // command line flags
@@ -93,13 +96,12 @@ type SNClientInstance struct {
 		flagDeadlock     int
 	}
 	cpuProfileHandler *os.File
-	mainSignalChannel chan os.Signal
 	Build             string
 	daemonMode        bool
 }
 
 func SNClient(build string) {
-	snc := SNClientInstance{
+	snc := Agent{
 		Build:     build,
 		Listeners: make(map[string]*Listener),
 	}
@@ -108,13 +110,14 @@ func SNClient(build string) {
 	snc.checkFlags()
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
-	config, err := snc.initConfiguration()
+	config, listeners, err := snc.initConfiguration()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s", err.Error())
 		snc.CleanExit(ExitCodeError)
 	}
 
 	snc.Config = config
+	snc.Listeners = listeners
 
 	defer snc.logPanicExit()
 
@@ -155,11 +158,12 @@ func SNClient(build string) {
 	}
 }
 
-func (snc *SNClientInstance) mainLoop() MainStateType {
+func (snc *Agent) mainLoop() MainStateType {
 	log.Infof("snclient v%s (Build: %s), pid: %d\n", VERSION, snc.Build, os.Getpid())
 
-	snc.startListener("Prometheus", NewHandlerPrometheus())
-	snc.startListener("NRPE", NewHandlerNRPE())
+	for name := range snc.Listeners {
+		snc.startListener(name)
+	}
 
 	osSignalChannel := make(chan os.Signal, 1)
 	signal.Notify(osSignalChannel, syscall.SIGHUP)
@@ -180,7 +184,7 @@ func (snc *SNClientInstance) mainLoop() MainStateType {
 			case Resume:
 				continue
 			case Reload:
-				newConfig, err := snc.initConfiguration()
+				newConfig, listeners, err := snc.initConfiguration()
 				if err != nil {
 					log.Errorf("reloading configuration failed: %w_ %s", err, err.Error())
 
@@ -188,6 +192,8 @@ func (snc *SNClientInstance) mainLoop() MainStateType {
 				}
 
 				snc.Config = newConfig
+				// TODO: close old ones?
+				snc.Listeners = listeners
 
 				fallthrough
 			case Shutdown, ShutdownGraceFully:
@@ -204,26 +210,52 @@ func (snc *SNClientInstance) mainLoop() MainStateType {
 	}
 }
 
-func (snc *SNClientInstance) initConfiguration() (Config, error) {
+func (snc *Agent) initConfiguration() (Config, map[string]*Listener, error) {
 	config := NewConfig()
 
 	err := config.readSettingsFile("snclient.ini") // TODO: ...
 	if err != nil {
-		return nil, fmt.Errorf("%s", err.Error())
+		return nil, nil, fmt.Errorf("%s", err.Error())
 	}
 
-	// TODO: ...
+	// TODO: ... use other logger
 	log.SetFormatter(&log.TextFormatter{
 		PadLevelText:    true,
 		FullTimestamp:   true,
 		TimestampFormat: "2006-01-02 15:04:05.000",
 	})
 	log.SetLevel(log.TraceLevel)
+	log.SetReportCaller(true)
 
-	return config, nil
+	listen := make(map[string]*Listener)
+
+	availableListeners := []struct {
+		ConfigKey string
+		Init      RequestHandler
+	}{
+		{"Prometheus", NewHandlerPrometheus()},
+		{"NRPE", NewHandlerNRPE()},
+	}
+
+	for _, entry := range availableListeners {
+		conConf, ok := config[entry.ConfigKey]
+		if !ok {
+			continue
+		}
+
+		listener, err := snc.initListener(conConf, entry.Init)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s", err.Error())
+		}
+
+		// TODO: check for dups
+		listen[listener.handler.Type()] = listener
+	}
+
+	return config, listen, nil
 }
 
-func (snc *SNClientInstance) cleanExit(exitCode int) {
+func (snc *Agent) cleanExit(exitCode int) {
 	snc.deletePidFile()
 	os.Exit(exitCode)
 }
@@ -238,7 +270,7 @@ func logThreaddump() {
 	log.Errorf("threaddump:\n%s", buf)
 }
 
-func (snc *SNClientInstance) createPidFile() {
+func (snc *Agent) createPidFile() {
 	// write the pid id if file path is defined
 	if snc.flags.flagPidfile == "" {
 		return
@@ -255,7 +287,7 @@ func (snc *SNClientInstance) createPidFile() {
 	}
 }
 
-func (snc *SNClientInstance) checkStalePidFile() bool {
+func (snc *Agent) checkStalePidFile() bool {
 	dat, err := os.ReadFile(snc.flags.flagPidfile)
 	if err != nil {
 		return false
@@ -280,18 +312,18 @@ func (snc *SNClientInstance) checkStalePidFile() bool {
 	return true
 }
 
-func (snc *SNClientInstance) deletePidFile() {
+func (snc *Agent) deletePidFile() {
 	if snc.flags.flagPidfile != "" {
 		os.Remove(snc.flags.flagPidfile)
 	}
 }
 
 // printVersion prints the version.
-func (snc *SNClientInstance) printVersion() {
+func (snc *Agent) printVersion() {
 	fmt.Fprintf(os.Stdout, "snclient+ v%s (Build: %s)\n", VERSION, snc.Build)
 }
 
-func (snc *SNClientInstance) printUsage(full bool) {
+func (snc *Agent) printUsage(full bool) {
 	// TODO: rework
 	fmt.Fprintf(os.Stdout, "Usage: snclient [OPTION]...\n")
 	fmt.Fprintf(os.Stdout, "\n")
@@ -315,7 +347,7 @@ func (snc *SNClientInstance) printUsage(full bool) {
 	os.Exit(ExitCodeUnknown)
 }
 
-func (snc *SNClientInstance) setFlags() {
+func (snc *Agent) setFlags() {
 	flag.Var(&snc.flags.flagConfigFile, "c", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
 	flag.Var(&snc.flags.flagConfigFile, "config", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
 	flag.StringVar(&snc.flags.flagPidfile, "pidfile", "", "set path to pidfile")
@@ -335,7 +367,7 @@ func (snc *SNClientInstance) setFlags() {
 	flag.Var(&snc.flags.flagCfgOption, "o", "override settings, ex.: -o Listen=:3333 -o Connections=name,address")
 }
 
-func (snc *SNClientInstance) checkFlags() {
+func (snc *Agent) checkFlags() {
 	flag.Parse()
 
 	if snc.flags.flagVersion {
@@ -394,7 +426,7 @@ func (snc *SNClientInstance) checkFlags() {
 	}
 }
 
-func (snc *SNClientInstance) CleanExit(exitCode int) {
+func (snc *Agent) CleanExit(exitCode int) {
 	snc.deletePidFile()
 
 	if snc.flags.flagCPUProfile != "" {
@@ -406,7 +438,7 @@ func (snc *SNClientInstance) CleanExit(exitCode int) {
 	os.Exit(exitCode)
 }
 
-func (snc *SNClientInstance) logPanicExit() {
+func (snc *Agent) logPanicExit() {
 	if r := recover(); r != nil {
 		log.Errorf("********* PANIC *********")
 		log.Errorf("Panic: %s", r)
@@ -418,14 +450,10 @@ func (snc *SNClientInstance) logPanicExit() {
 	}
 }
 
-func (snc *SNClientInstance) startListener(configKey string, handler RequestHandler) {
-	conConf, ok := snc.Config[configKey]
-	if !ok {
-		return
-	}
-
+func (snc *Agent) initListener(conConf map[string]string, handler RequestHandler) (*Listener, error) {
 	name := handler.Type()
 	defaults := handler.Defaults()
+	// TODO: apply defaults from "Settings" as well
 
 	// apply default values.
 	for key, value := range defaults {
@@ -436,20 +464,28 @@ func (snc *SNClientInstance) startListener(configKey string, handler RequestHand
 
 	listener, err := NewListener(snc, conConf, handler)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s", err.Error())
-		snc.CleanExit(ExitCodeError)
+		return nil, fmt.Errorf("creating listener %s failed: %s", name, err.Error())
 	}
-
-	snc.Listeners[name] = listener
 
 	err = handler.Init(snc)
 	if err != nil {
-		log.Errorf("failed to init %s listener: %w: %s", err, err.Error())
 		listener.Stop()
-		delete(snc.Listeners, name)
+
+		return nil, fmt.Errorf("failed to init %s listener: %w: %s", err, err.Error())
 	}
 
-	err = snc.Listeners[name].Start()
+	return listener, nil
+}
+
+func (snc *Agent) startListener(name string) {
+	listener, ok := snc.Listeners[name]
+	if !ok {
+		log.Errorf("no listener with name: %s", name)
+
+		return
+	}
+
+	err := snc.Listeners[name].Start()
 	if err != nil {
 		log.Errorf("failed to start %s listener: %w: %s", err, err.Error())
 		listener.Stop()

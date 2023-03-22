@@ -25,7 +25,7 @@ type HandlerPrometheus struct {
 }
 
 func NewHandlerPrometheus() *HandlerPrometheus {
-	l := &HandlerPrometheus{
+	handler := &HandlerPrometheus{
 		handler: promhttp.InstrumentMetricHandler(
 			prometheus.DefaultRegisterer,
 			promhttp.HandlerFor(
@@ -35,7 +35,7 @@ func NewHandlerPrometheus() *HandlerPrometheus {
 		),
 	}
 
-	return l
+	return handler
 }
 
 func (l *HandlerPrometheus) Type() string {
@@ -44,23 +44,22 @@ func (l *HandlerPrometheus) Type() string {
 
 func (l *HandlerPrometheus) Defaults() map[string]string {
 	defaults := map[string]string{
-		"port":           "9999",
-		"socket_timeout": "30",
+		"port": "9999",
 	}
 
 	return defaults
 }
 
-func (l *HandlerPrometheus) Init(snc *SNClientInstance) error {
+func (l *HandlerPrometheus) Init(snc *Agent) error {
 	registerMetrics()
 	infoCount.WithLabelValues(VERSION, snc.Build).Set(1)
 
 	return nil
 }
 
-func (l *HandlerPrometheus) GetMappings(*SNClientInstance) []UrlMapping {
-	return []UrlMapping{
-		{Url: "/metrics", Handler: &l.handler},
+func (l *HandlerPrometheus) GetMappings(*Agent) []URLMapping {
+	return []URLMapping{
+		{URL: "/metrics", Handler: l.handler},
 	}
 }
 

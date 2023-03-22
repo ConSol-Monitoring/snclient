@@ -22,3 +22,4 @@ issues:
     - "Build is a global variable"
     - "prometheusRegistered is a global variable"
     - "infoCount is a global variable"
+    - "noCopy is missing in"

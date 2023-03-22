@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -14,19 +16,19 @@ import (
 // Listener is a generic tcp listener and handles all incoming connections.
 type Listener struct {
 	noCopy        noCopy
-	snc           *SNClientInstance
+	snc           *Agent
 	connType      string
 	port          int64
 	bindAddress   string
-	tlsConfig     *tls.Config   // TODO: ...
-	allowedHosts  []string      // TODO: ...
-	socketTimeout time.Duration // TODO:...
+	tlsConfig     *tls.Config // TODO: ...
+	allowedHosts  []*netip.Prefix
+	socketTimeout time.Duration
 	listen        net.Listener
 	handler       RequestHandler
 }
 
 // NewListener creates a new Listener object.
-func NewListener(snc *SNClientInstance, conf map[string]string, r RequestHandler) (*Listener, error) {
+func NewListener(snc *Agent, conf map[string]string, r RequestHandler) (*Listener, error) {
 	l := Listener{
 		snc:      snc,
 		listen:   nil,
@@ -34,6 +36,7 @@ func NewListener(snc *SNClientInstance, conf map[string]string, r RequestHandler
 		connType: r.Type(),
 	}
 
+	// parse/set port.
 	if port, ok := conf["port"]; ok {
 		num, err := strconv.ParseInt(port, 10, 64)
 		if err != nil {
@@ -43,7 +46,37 @@ func NewListener(snc *SNClientInstance, conf map[string]string, r RequestHandler
 		l.port = num
 	}
 
+	// set bind address (can be empty)
 	l.bindAddress = conf["bind_to_address"]
+
+	// parse / set socket timeout.
+	l.socketTimeout = DefaulSocketTimeout * time.Second
+
+	if socketTimeout, ok := conf["socket_timeout"]; ok {
+		num, err := strconv.ParseInt(socketTimeout, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid socket_timeout specification for %s: %w: %s", l.connType, err, err.Error())
+		}
+
+		l.socketTimeout = time.Duration(num) * time.Second
+	}
+
+	// parse / set allowed hosts
+	if allowed, ok := conf["allowed_hosts"]; ok {
+		for _, allow := range strings.Split(allowed, ",") {
+			allow = strings.TrimSpace(allow)
+			if allow == "" {
+				continue
+			}
+
+			netrange, err := netip.ParsePrefix(allow)
+			if err != nil {
+				return nil, fmt.Errorf("invalid allowed_hosts specification for %s: %w: %s", l.connType, err, err.Error())
+			}
+
+			l.allowedHosts = append(l.allowedHosts, &netrange)
+		}
+	}
 
 	return &l, nil
 }
@@ -51,6 +84,16 @@ func NewListener(snc *SNClientInstance, conf map[string]string, r RequestHandler
 // Start listening.
 func (l *Listener) Start() error {
 	log.Infof("starting %s listener on %s:%d", l.connType, l.bindAddress, l.port)
+	log.Debugf("ssl: %v", l.tlsConfig != nil)
+
+	if len(l.allowedHosts) == 0 {
+		log.Debugf("allowed_hosts: all")
+	} else {
+		log.Debugf("allowed_hosts:")
+		for _, allow := range l.allowedHosts {
+			log.Debugf("    - %s", allow.String())
+		}
+	}
 
 	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", l.bindAddress, l.port))
 	if err != nil {
@@ -66,22 +109,22 @@ func (l *Listener) Start() error {
 		go func() {
 			defer l.snc.logPanicExit()
 
-			l.startListenerHTTP(&handler)
+			l.startListenerHTTP(handler)
 		}()
 	case RequestHandlerTCP:
 		go func() {
 			defer l.snc.logPanicExit()
 
-			l.startListenerTCP(&handler)
+			l.startListenerTCP(handler)
 		}()
 	default:
-		log.Panicf("unsupported type: %v", l.handler)
+		return fmt.Errorf("unsupported type: %T (does not implement any known request handler)", l.handler)
 	}
 
 	return nil
 }
 
-func (l *Listener) startListenerTCP(handler *RequestHandlerTCP) {
+func (l *Listener) startListenerTCP(handler RequestHandlerTCP) {
 	for {
 		con, err := l.listen.Accept()
 		if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
@@ -96,28 +139,87 @@ func (l *Listener) startListenerTCP(handler *RequestHandlerTCP) {
 			return
 		}
 
-		/* TODO: ...
-		if timeout > 0 {
-			con.SetReadDeadline(time.Now().Add(timeout))
+		err = con.SetReadDeadline(time.Now().Add(l.socketTimeout))
+		if err != nil {
+			log.Warnf("setting timeout on %s listener failed: %s", err.Error())
 		}
-		*/
 
-		// TODO: netfilter
-
-		log.Debugf("incoming %s connection from %s", l.connType, con.RemoteAddr())
-		(*handler).ServeOne(l.snc, con)
+		l.ServeOne(con.RemoteAddr().String(), func() {
+			handler.ServeTCP(l.snc, con)
+		})
 	}
 }
 
-func (l *Listener) startListenerHTTP(handler *RequestHandlerHTTP) {
+func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
 	mux := http.NewServeMux()
 
-	mappings := (*handler).GetMappings(l.snc)
+	// Wrap handler to apply netfilter and logger.
+	mappings := handler.GetMappings(l.snc)
 	for _, mapping := range mappings {
-		mux.Handle(mapping.Url, *mapping.Handler)
+		mux.Handle(mapping.URL, l.WrapHTTPHandler(mapping.Handler))
 	}
 
-	http.Serve(l.listen, mux)
+	err := http.Serve(l.listen, mux)
+	if err != nil {
+		log.Tracef("http server finished: %s", err.Error())
+	}
+}
+
+func (l *Listener) ServeOne(remoteAddr string, serveCB func()) {
+	log.Debugf("incoming %s connection from %s", l.connType, remoteAddr)
+
+	if !l.CheckAllowedHosts(remoteAddr) {
+		log.Warnf("%s connection from %s prohibited by allowed_hosts", l.connType, remoteAddr)
+
+		return
+	}
+
+	serveCB()
+	log.Debugf("%s connection from %s finished", l.connType, remoteAddr)
+}
+
+func (l *Listener) CheckAllowedHosts(remoteAddr string) bool {
+	if len(l.allowedHosts) == 0 {
+		return true
+	}
+
+	idx := strings.LastIndex(remoteAddr, ":")
+	if idx != -1 {
+		remoteAddr = remoteAddr[:idx]
+	}
+
+	addr, err := netip.ParseAddr(remoteAddr)
+	if err != nil {
+		log.Warnf("cannot parse remote address: %s: %s", remoteAddr, err.Error())
+
+		return false
+	}
+
+	for _, netrange := range l.allowedHosts {
+		if netrange.Contains(addr) {
+			return true
+		}
+	}
+
+	return false
+}
+
+type WrappedHTTPHandler struct {
+	listener *Listener
+	handle   http.Handler
+}
+
+func (w *WrappedHTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	w.listener.ServeOne(req.RemoteAddr, func() {
+		w.handle.ServeHTTP(res, req)
+	})
+}
+
+func (l *Listener) WrapHTTPHandler(handle http.Handler) http.Handler {
+	return (&WrappedHTTPHandler{
+		listener: l,
+		handle:   handle,
+	})
 }
 
 // Stop shuts down current listener.
