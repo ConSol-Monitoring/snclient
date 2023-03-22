@@ -90,7 +90,7 @@ func (l *HandlerNRPE) Init(snc *SNClientInstance) error {
 	return nil
 }
 
-func (l *HandlerNRPE) Handle(snc *SNClientInstance, con net.Conn) {
+func (l *HandlerNRPE) ServeOne(snc *SNClientInstance, con net.Conn) {
 	defer con.Close()
 
 	request := l.createPacket()

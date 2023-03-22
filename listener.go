@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -60,35 +61,63 @@ func (l *Listener) Start() error {
 
 	l.listen = listen
 
-	go func() {
-		for {
-			con, err := listen.Accept()
-			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
-				log.Warnf("accept failed: %w: %s", err, err.Error())
+	switch handler := l.handler.(type) {
+	case RequestHandlerHTTP:
+		go func() {
+			defer l.snc.logPanicExit()
 
-				continue
-			}
+			l.startListenerHTTP(&handler)
+		}()
+	case RequestHandlerTCP:
+		go func() {
+			defer l.snc.logPanicExit()
 
-			if err != nil {
-				log.Infof("stopping %s listener on %s:%d", l.connType, l.bindAddress, l.port)
-
-				return
-			}
-
-			/* TODO: ...
-			if timeout > 0 {
-				con.SetReadDeadline(time.Now().Add(timeout))
-			}
-			*/
-
-			// TODO: netfilter
-
-			log.Debugf("incoming %s connection from %s", l.connType, con.RemoteAddr())
-			l.handler.Handle(l.snc, con)
-		}
-	}()
+			l.startListenerTCP(&handler)
+		}()
+	default:
+		log.Panicf("unsupported type: %v", l.handler)
+	}
 
 	return nil
+}
+
+func (l *Listener) startListenerTCP(handler *RequestHandlerTCP) {
+	for {
+		con, err := l.listen.Accept()
+		if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
+			log.Warnf("accept failed: %w: %s", err, err.Error())
+
+			continue
+		}
+
+		if err != nil {
+			log.Infof("stopping %s listener on %s:%d", l.connType, l.bindAddress, l.port)
+
+			return
+		}
+
+		/* TODO: ...
+		if timeout > 0 {
+			con.SetReadDeadline(time.Now().Add(timeout))
+		}
+		*/
+
+		// TODO: netfilter
+
+		log.Debugf("incoming %s connection from %s", l.connType, con.RemoteAddr())
+		(*handler).ServeOne(l.snc, con)
+	}
+}
+
+func (l *Listener) startListenerHTTP(handler *RequestHandlerHTTP) {
+	mux := http.NewServeMux()
+
+	mappings := (*handler).GetMappings(l.snc)
+	for _, mapping := range mappings {
+		mux.Handle(mapping.Url, *mapping.Handler)
+	}
+
+	http.Serve(l.listen, mux)
 }
 
 // Stop shuts down current listener.
