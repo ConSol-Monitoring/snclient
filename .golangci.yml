@@ -1,0 +1,24 @@
+linters-settings:
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - experimental
+  lll:
+    line-length: 140
+linters:
+  enable-all: true
+  fast: false
+issues:
+  max-same-issues: 0
+  exclude-use-default: true
+  exclude:
+    - "`noCopy` is unused"
+    - "mnd: Magic number: 2, in"
+    - "mnd: Magic number: 10, in"
+    - "mnd: Magic number: 16, in"
+    - "mnd: Magic number: 64, in"
+    - "mnd: Magic number: 0o644, in"
+    - "Build is a global variable"
+    - "prometheusRegistered is a global variable"
+    - "infoCount is a global variable"

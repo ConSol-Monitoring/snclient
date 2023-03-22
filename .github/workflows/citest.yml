@@ -1,0 +1,37 @@
+name: citest
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '30 4 * * 1'
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version:
+          - 1.19.x
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: abbbi/github-actions-tune@v1
+    - run: sudo apt-get -y install gearman-job-server
+    - name: Install Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+    - uses: actions/checkout@v3
+    - run: make clean
+    #- run: make updatedeps
+    #  if: github.event_name != 'pull_request'
+    - run: make citest
+    - run: make
+    - name: extract built binary
+      uses: actions/upload-artifact@v3
+      with:
+        name: mod_gearman_worker-go${{ matrix.go-version }}
+        path: mod_gearman_worker
+    - run: make clean
+    - run: make build
+    - run: make clean
+    - run: make debugbuild

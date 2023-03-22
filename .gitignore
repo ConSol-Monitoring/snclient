@@ -1,0 +1,8 @@
+snclient
+*.exe
+*.linux.amd64
+.vscode
+.vstags
+coverage.txt
+vendor/
+tools/
