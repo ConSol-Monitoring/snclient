@@ -139,7 +139,7 @@ jobs:
 
   build-msi:
 
-    needs: [get-commit-sha, get-version-number, build-release]
+    needs: [get-version-number, build-release]
 
     strategy:
       matrix:
@@ -201,7 +201,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    needs: [get-commit-sha, get-version-number, build-release]
+    needs: [get-version-number, build-release]
 
     steps:
 
