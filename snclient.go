@@ -212,9 +212,15 @@ func (snc *Agent) mainLoop() MainStateType {
 func (snc *Agent) initConfiguration() (Config, map[string]*Listener, error) {
 	config := NewConfig()
 
-	err := config.readSettingsFile("snclient.ini") // TODO: ...
-	if err != nil {
-		return nil, nil, fmt.Errorf("%s", err.Error())
+	if len(snc.flags.flagConfigFile) == 0 {
+		snc.flags.flagConfigFile = append(snc.flags.flagConfigFile, "snclient.ini")
+	}
+
+	for _, path := range snc.flags.flagConfigFile {
+		err := config.readSettingsFile(path)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%w: %s", err, err.Error())
+		}
 	}
 
 	CreateLogger(snc)
@@ -237,7 +243,7 @@ func (snc *Agent) initConfiguration() (Config, map[string]*Listener, error) {
 
 		listener, err := snc.initListener(conConf, entry.Init)
 		if err != nil {
-			return nil, nil, fmt.Errorf("%s", err.Error())
+			return nil, nil, fmt.Errorf("%w: %s", err, err.Error())
 		}
 
 		// TODO: check for dups
@@ -456,14 +462,14 @@ func (snc *Agent) initListener(conConf map[string]string, handler RequestHandler
 
 	listener, err := NewListener(snc, conConf, handler)
 	if err != nil {
-		return nil, fmt.Errorf("creating listener %s failed: %s", name, err.Error())
+		return nil, fmt.Errorf("creating listener %s failed: %w: %s", name, err, err.Error())
 	}
 
 	err = handler.Init(snc)
 	if err != nil {
 		listener.Stop()
 
-		return nil, fmt.Errorf("failed to init %s listener: %w: %s", err, err.Error())
+		return nil, fmt.Errorf("failed to init %s listener: %w: %s", name, err, err.Error())
 	}
 
 	return listener, nil

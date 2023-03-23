@@ -93,10 +93,10 @@ func (l *Listener) Start() error {
 		}
 	}
 
+	l.listen = nil
+
 	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", l.bindAddress, l.port))
 	if err != nil {
-		l.listen = nil
-
 		return fmt.Errorf("listen failed: %w: %s", err, err.Error())
 	}
 
