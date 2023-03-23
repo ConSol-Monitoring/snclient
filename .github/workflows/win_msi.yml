@@ -24,7 +24,7 @@ jobs:
           choco install make
           choco install go-msi
           refreshenv
-          go-msi make --msi snclient.msi --version 0.0.1
+          C:\Program Files (x86)\Microsoft\EdgeWebView\Application\go-msi make --msi snclient.msi --version 0.0.1
 
       - name: build exe file
         run: |
