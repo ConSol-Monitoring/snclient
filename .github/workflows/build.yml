@@ -67,7 +67,7 @@ jobs:
           - os: windows
             arch: arm64
 
-    needs: [test, get-commit-sha, get-version-number]
+    needs: [test, get-version-number]
 
     runs-on: ubuntu-latest
 
@@ -90,7 +90,7 @@ jobs:
         if: ${{ matrix.os == 'windows' }}
         uses: actions/upload-artifact@v3
         with:
-          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-wix-wxs"
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-version-number.outputs.short-sha }}-wix-wxs"
           path: "${{ env.SRCPATH }}/snclient.wxs"
           if-no-files-found: error
 
@@ -98,7 +98,7 @@ jobs:
         if: ${{ matrix.os == 'linux' }}
         uses: actions/upload-artifact@v3
         with:
-          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-DEBIAN"
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-version-number.outputs.short-sha }}-DEBIAN"
           path: "${{ env.SRCPATH }}/DEBIAN"
           if-no-files-found: error
 
@@ -106,7 +106,7 @@ jobs:
         if: ${{ matrix.os == 'linux' }}
         uses: actions/upload-artifact@v3
         with:
-          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-systemd-unit-file"
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-version-number.outputs.short-sha }}-systemd-unit-file"
           path: "${{ env.SRCPATH }}/snclient.service"
           if-no-files-found: error
 
@@ -166,7 +166,7 @@ jobs:
       - id: download-wix-definition-file
         uses: actions/download-artifact@v3
         with:
-          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-wix-wxs"
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-version-number.outputs.short-sha }}-wix-wxs"
 
       - id: build-msi
         run: |
@@ -179,7 +179,7 @@ jobs:
 
           Write-Host "Building snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.msi"
 
-          & 'C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe' .\snclient.wxs -arch $win_arch -dPlatform="$($win_arch)" -dMajorVersion="${{needs.get-version-number.outputs.major}}" -dMinorVersion="${{needs.get-version-number.outputs.minor}}" -dRevisionNumber="${{needs.get-version-number.outputs.revision}}" -dGitSha="${{ needs.get-commit-sha.outputs.short-sha }}"
+          & 'C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe' .\snclient.wxs -arch $win_arch -dPlatform="$($win_arch)" -dMajorVersion="${{needs.get-version-number.outputs.major}}" -dMinorVersion="${{needs.get-version-number.outputs.minor}}" -dRevisionNumber="${{needs.get-version-number.outputs.revision}}" -dGitSha="${{ needs.get-version-number.outputs.short-sha }}"
           & "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" ".\snclient.wixobj"
 
           Move-Item -Path ./snclient.msi -Destination "./release/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.msi"
@@ -213,13 +213,13 @@ jobs:
       - id: download-deb-build-files
         uses: actions/download-artifact@v3
         with:
-          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-DEBIAN"
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-version-number.outputs.short-sha }}-DEBIAN"
           path: "DEBIAN"
 
       - id: download-systemd-unit-file
         uses: actions/download-artifact@v3
         with:
-          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-systemd-unit-file"
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-version-number.outputs.short-sha }}-systemd-unit-file"
 
       - id: build-dotdeb
         run: |
