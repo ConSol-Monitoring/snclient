@@ -41,6 +41,9 @@ jobs:
     steps:
       - id: checkout-code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
 
       - id: short-sha
         uses: benjlevesque/short-sha@v2.1
@@ -55,12 +58,6 @@ jobs:
         run: echo "revision=$( git rev-list --all --count )" >> $GITHUB_OUTPUT
       - id: get-version
         run: echo "version=${{steps.get-major-version.outputs.major}}.${{steps.get-minor-version.outputs.minor}}.${{steps.get-revision.outputs.revision}}-${{ steps.short-sha.outputs.sha }}"
-      - id: test
-        run: |
-          pwd
-          ls
-          git rev-list --all --count
-          git log -3
 
   build-release:
 
