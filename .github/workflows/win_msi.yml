@@ -22,11 +22,6 @@ jobs:
       - name: Build exe file
         run: |
           choco install make
-          go get github.com/mh-cbon/go-msi
+          choco install go-msi
           make build-windows-amd64
           go-msi make --msi snclient.msi --version 0.0.1
-
-      - name: Build Windows Installer MSI from exe file
-        uses: AliceOh/CreateWindowsInstaller@1.0.0
-        with:
-          exefile: 'snclient.exe'
