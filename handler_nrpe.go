@@ -7,8 +7,6 @@ import (
 	"hash/crc32"
 	"net"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (

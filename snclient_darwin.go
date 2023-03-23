@@ -6,8 +6,6 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"syscall"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func setupUsrSignalChannel(osSignalUsrChannel chan os.Signal) {

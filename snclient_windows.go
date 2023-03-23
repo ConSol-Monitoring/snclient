@@ -3,8 +3,6 @@ package snclient
 import (
 	"os"
 	"syscall"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func setupUsrSignalChannel(osSignalUsrChannel chan os.Signal) {
