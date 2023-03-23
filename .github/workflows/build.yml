@@ -1,4 +1,4 @@
-name: Test, Build, Package and Optionally Release
+name: Test, Build, Package, Release
 
 on:
   push:
@@ -120,14 +120,14 @@ jobs:
           goversion=${{ matrix.go-version }}
           echo "Building $os-$arch-$goversion"
 
-          suffix=$([ "$os" == "windows" ] && echo ".exe" || echo "")
           mkdir -p ./release/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}
           cp ${{ env.SRCPATH }}/snclient.ini ${{ env.SRCPATH }}/LICENSE ${{ env.SRCPATH }}/server.crt ${{ env.SRCPATH }}/server.key ${{ env.SRCPATH }}/README.md ${{ env.SRCPATH }}/cacert.pem ./release/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}/.
 
           pushd ${{ env.SRCPATH }}
 
-          GO111MODULE=on GOOS=$os GOARCH=$arch go get ./...
-          GO111MODULE=on GOOS=$os GOARCH=$arch go build -ldflags "-X main.maVersion=${{needs.get-version-number.outputs.version}} -X main.operatingSystem=${{ matrix.os }} -X main.arch=${{ matrix.arch }} -X main.goVersion=Go${{ matrix.go-version }}" -o ${{ env.SRCPATH }}/snclient$suffix
+          GOOS=$os GOARCH=$arch make
+          suffix=$([ "$os" == "windows" ] && echo ".exe" || echo "")
+          [ "$os" == "windows" ] && mv snclient snclient$suffix
           popd
           cp ${{ env.SRCPATH }}/snclient$suffix ./release/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}/snclient$suffix
 
