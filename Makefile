@@ -106,6 +106,10 @@ citest: vendor
 	#
 	if grep -rn Dump *.go ./cmd/*/*.go | grep -v dump.go; then exit 1; fi
 	#
+	# Darwin and Linux should be handled equal
+	#
+	diff snclient_linux.go snclient_darwin.go
+	#
 	# Run other subtests
 	#
 	$(MAKE) golangci

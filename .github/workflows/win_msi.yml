@@ -1,4 +1,4 @@
-name: Windows Installers Creation and Publication
+name: create windows installer
 
 on: [push]
 
@@ -16,20 +16,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install go-msi
-        run: choco install -y "go-msi"
-
       - name: Get short SHA
         run: echo "SHORT_SHA=$("${{ github.sha }}".SubString(0, 8))" >> $env:GITHUB_ENV
 
-      - name: Print short SHA
-        run: echo "Short SHA is ${{ env.SHORT_SHA }}"
-
       - name: Build exe file
         run: |
-          mkdir application
-          cd cmd/snclient/
-          CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=${{ env.SHORT_SHA }}" -o ../../application/snclient.exe
+          choco install make
+          go get github.com/mh-cbon/go-msi
+          make build-windows-amd64
+          go-msi make --msi snclient.msi --version 0.0.1
 
       - name: Build Windows Installer MSI from exe file
         uses: AliceOh/CreateWindowsInstaller@1.0.0

@@ -29,8 +29,8 @@ jobs:
     - name: extract built binary
       uses: actions/upload-artifact@v3
       with:
-        name: mod_gearman_worker-go${{ matrix.go-version }}
-        path: mod_gearman_worker
+        name: snclient-go${{ matrix.go-version }}
+        path: snclient
     - run: make clean
     - run: make build
     - run: make clean
