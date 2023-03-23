@@ -57,7 +57,7 @@ jobs:
       - id: get-revision
         run: echo "revision=$( git rev-list --all --count )" >> $GITHUB_OUTPUT
       - id: get-version
-        run: echo "version=${{steps.get-major-version.outputs.major}}.${{steps.get-minor-version.outputs.minor}}.${{steps.get-revision.outputs.revision}}-${{ steps.short-sha.outputs.sha }}"
+        run: echo "version=${{steps.get-major-version.outputs.major}}.${{steps.get-minor-version.outputs.minor}}.${{steps.get-revision.outputs.revision}}-${{ steps.short-sha.outputs.sha }}" >> $GITHUB_OUTPUT
 
   build-release:
 
@@ -227,7 +227,7 @@ jobs:
       - id: build-dotdeb
         run: |
           echo "Building .deb Installer For ${{ matrix.os }}-${{ matrix.arch }}"
-          echo ".deb version is: ${{needs.get-version-number.outputs.major}}.${{needs.get-version-number.outputs.minor}}.${{needs.get-version-number.outputs.revision}}"
+          echo ".deb version is: ${{needs.get-version-number.outputs.version}}"
 
           mkdir -p deb-package/etc/snclient deb-package/usr/bin deb-package/lib/systemd/system
 
