@@ -240,7 +240,7 @@ jobs:
           sed -i 's|"LogFilePath": "output.log",|"LogFilePath": "/var/log/snclient/snclient.log",|' deb-package/etc/snclient/snclient.ini
           sed -i 's|Architecture: UPDATEME|Architecture: ${{ matrix.arch }}|' deb-package/DEBIAN/control
           sed -i 's|Architecture: 386|Architecture: i386|' deb-package/DEBIAN/control
-          sed -i 's|Version: UPDATEME|Version: ${{ needs.get-version-number.outputs.version }}|' deb-package/DEBIAN/control
+          sed -i 's|Version: UPDATEME|Version: ${{needs.get-version-number.outputs.major}}.${{needs.get-version-number.outputs.minor}}.${{needs.get-version-number.outputs.revision}}|' deb-package/DEBIAN/control
 
           chmod 600 deb-package/etc/snclient/*
           chmod 755 deb-package/DEBIAN/postinst
