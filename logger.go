@@ -56,6 +56,7 @@ func getSeverity(input int) string {
 	if input > LogLevelTrace2 {
 		input = LogLevelTrace2
 	}
+
 	switch input {
 	case LogLevelInfo:
 		return "INFO"
@@ -64,6 +65,7 @@ func getSeverity(input int) string {
 	case LogLevelTrace, LogLevelTrace2:
 		return "TRACE"
 	}
+
 	return "ERROR"
 }
 

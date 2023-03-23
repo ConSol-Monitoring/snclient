@@ -109,6 +109,7 @@ citest: vendor
 	# Darwin and Linux should be handled equal
 	#
 	diff snclient_linux.go snclient_darwin.go
+	diff snclient_linux.go snclient_freebsd.go
 	#
 	# Run other subtests
 	#

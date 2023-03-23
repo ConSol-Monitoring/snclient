@@ -1,0 +1,11 @@
+Package: snclient
+Version: UPDATEME
+Section: net
+Priority: optional
+Architecture: UPDATEME
+Installed-Size: 11264
+Depends:
+Recommends:
+Suggests: monitoring-plugins-basic
+Maintainer: Sven Nierlein <sven@consol.de>
+Description: Cross platform general purpose monitoring agent

@@ -1,0 +1,403 @@
+name: Test, Build, Package and Optionally Release
+
+on:
+  push:
+    branches:
+      - "*"
+    tags:
+      - "*"
+
+jobs:
+
+  test:
+    strategy:
+      matrix:
+        go-version: [1.19.x]
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+        SRCPATH: ${{ github.workspace }}/go/src/snclient
+
+    steps:
+
+      - id: install-go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - id: checkout-code
+        uses: actions/checkout@v3
+        with:
+          path: ${{ env.SRCPATH }}
+
+      - id: run-tests
+        run: |
+          pushd ${{ env.SRCPATH }}
+          GO111MODULE=on GOOS=$os GOARCH=$arch go get ./...
+          GO111MODULE=on go test -cover ./...
+
+  get-commit-sha:
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      short-sha: ${{ steps.short-sha.outputs.sha }}
+
+    steps:
+
+      - id: short-sha
+        uses: benjlevesque/short-sha@v2.1
+        with:
+          length: 7
+
+  get-version-number:
+
+    runs-on: windows-latest
+
+    needs: get-commit-sha
+
+    outputs:
+      revision: ${{ steps.get-revision.outputs.revision }}
+      minor: ${{ steps.get-minor-version.outputs.minor }}
+      major: ${{ steps.get-major-version.outputs.major }}
+      version: ${{ steps.get-version.outputs.version }}
+
+    steps:
+      - id: get-revision
+        run: |
+          $firstCommitSha = "5ca3b0c29a970eccb8bdbd3d9d46e8fdb795e0df"
+          $lastCommitSha = ((Invoke-WebRequest -uri https://api.github.com/repos/sni/snclient/git/refs/heads/master -UseBasicParsing).Content | ConvertFrom-Json).object.sha
+          $response = Invoke-WebRequest -uri https://api.github.com/repos/sni/snclient/compare/${firstCommitSha}...${lastCommitSha} -UseBasicParsing
+          echo "::set-output name=revision::$( ($response.Content | ConvertFrom-Json).total_commits )"
+
+      - id: get-minor-version
+        run: echo "::set-output name=minor::1"
+
+      - id: get-major-version
+        run: echo "::set-output name=major::0"
+
+      - id: get-version
+        run: echo "::set-output name=version::${{steps.get-major-version.outputs.major}}.${{steps.get-minor-version.outputs.minor}}.${{steps.get-revision.outputs.revision}}-${{ needs.get-commit-sha.outputs.short-sha }}"
+
+  build-release:
+
+    strategy:
+      matrix:
+        go-version: [1.19.x]
+        os: [linux, windows, freebsd]
+        arch: [386, amd64, arm64]
+        exclude:
+          - os: windows
+            arch: arm64
+
+    needs: [test, get-commit-sha, get-version-number]
+
+    runs-on: ubuntu-latest
+
+    env:
+        SRCPATH: ${{ github.workspace }}/go/src/snclient
+
+    steps:
+
+      - id: install-go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - id: checkout-code
+        uses: actions/checkout@v3
+        with:
+          path: ${{ env.SRCPATH }}
+
+      - id: upload-wix-definition-file
+        if: ${{ matrix.os == 'windows' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-wix-wxs"
+          path: "${{ env.SRCPATH }}/snclient.wxs"
+          if-no-files-found: error
+
+      - id: upload-deb-build-files
+        if: ${{ matrix.os == 'linux' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-DEBIAN"
+          path: "${{ env.SRCPATH }}/DEBIAN"
+          if-no-files-found: error
+
+      - id: upload-systemd-unit-file
+        if: ${{ matrix.os == 'linux' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-systemd-unit-file"
+          path: "${{ env.SRCPATH }}/snclient.service"
+          if-no-files-found: error
+
+      - id: dependencies-and-build
+        run: |
+          os=${{ matrix.os }}
+          arch=${{ matrix.arch }}
+          goversion=${{ matrix.go-version }}
+          echo "Building $os-$arch-$goversion"
+
+          suffix=$([ "$os" == "windows" ] && echo ".exe" || echo "")
+          mkdir -p ./release/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}
+          cp ${{ env.SRCPATH }}/snclient.ini ${{ env.SRCPATH }}/LICENSE ${{ env.SRCPATH }}/server.crt ${{ env.SRCPATH }}/server.key ${{ env.SRCPATH }}/README.md ${{ env.SRCPATH }}/cacert.pem ./release/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}/.
+
+          pushd ${{ env.SRCPATH }}
+
+          GO111MODULE=on GOOS=$os GOARCH=$arch go get ./...
+          GO111MODULE=on GOOS=$os GOARCH=$arch go build -ldflags "-X main.maVersion=${{needs.get-version-number.outputs.version}} -X main.operatingSystem=${{ matrix.os }} -X main.arch=${{ matrix.arch }} -X main.goVersion=Go${{ matrix.go-version }}" -o ${{ env.SRCPATH }}/snclient$suffix
+          popd
+          cp ${{ env.SRCPATH }}/snclient$suffix ./release/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}/snclient$suffix
+
+      - id: upload-builds
+        uses: actions/upload-artifact@v3
+        with:
+          name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}"
+          path: release/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}/
+          if-no-files-found: error
+
+
+
+  build-msi:
+
+    needs: [get-commit-sha, get-version-number, build-release]
+
+    strategy:
+      matrix:
+        go-version: [1.19.x]
+        os: [windows]
+        arch: [386, amd64]
+
+    runs-on: windows-latest
+
+    steps:
+
+      - id: install-wix-tool-set
+        run: |
+          Invoke-WebRequest -UseBasicParsing -Uri https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe -OutFile wix311.exe
+          & ".\wix311.exe" "/q"
+      - id: create-release-folder
+        run: |
+          mkdir ./release
+      - id: download-windows-build
+        uses: actions/download-artifact@v3
+        with:
+          name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}"
+
+      - id: download-wix-definition-file
+        uses: actions/download-artifact@v3
+        with:
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-wix-wxs"
+
+      - id: build-msi
+        run: |
+          $os="${{ matrix.os }}"
+          $arch="${{ matrix.arch }}"
+          $goversion="${{ matrix.go-version }}"
+
+          $win_arch = "x64"
+          if ($arch -eq "386") { $win_arch = "x86" }
+
+          Write-Host "Building snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.msi"
+
+          & 'C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe' .\snclient.wxs -arch $win_arch -dPlatform="$($win_arch)" -dMajorVersion="${{needs.get-version-number.outputs.major}}" -dMinorVersion="${{needs.get-version-number.outputs.minor}}" -dRevisionNumber="${{needs.get-version-number.outputs.revision}}" -dGitSha="${{ needs.get-commit-sha.outputs.short-sha }}"
+          & "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" ".\snclient.wixobj"
+
+          Move-Item -Path ./snclient.msi -Destination "./release/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.msi"
+
+      - id: upload-msi
+        uses: actions/upload-artifact@v3
+        with:
+          name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.msi"
+          path: release/
+          if-no-files-found: error
+
+  build-deb:
+
+    strategy:
+      matrix:
+        go-version: [1.19.x]
+        os: [linux]
+        arch: [386, amd64, arm64]
+
+    runs-on: ubuntu-latest
+
+    needs: [get-commit-sha, get-version-number, build-release]
+
+    steps:
+
+      - id: download-linux-build
+        uses: actions/download-artifact@v3
+        with:
+          name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}"
+
+      - id: download-deb-build-files
+        uses: actions/download-artifact@v3
+        with:
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-DEBIAN"
+          path: "DEBIAN"
+
+      - id: download-systemd-unit-file
+        uses: actions/download-artifact@v3
+        with:
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-commit-sha.outputs.short-sha }}-systemd-unit-file"
+
+      - id: build-dotdeb
+        run: |
+          echo "Building .deb Installer For ${{ matrix.os }}-${{ matrix.arch }}"
+          echo ".deb version is: ${{needs.get-version-number.outputs.major}}.${{needs.get-version-number.outputs.minor}}.${{needs.get-version-number.outputs.revision}}"
+
+          mkdir -p deb-package/etc/snclient deb-package/usr/bin deb-package/lib/systemd/system
+
+          cp -r ./DEBIAN ./deb-package
+          cp ./snclient.ini ./server.crt ./server.key ./cacert.pem ./deb-package/etc/snclient
+          cp ./snclient deb-package/usr/bin
+          chmod +x deb-package/usr/bin/snclient
+
+          cp ./snclient.service deb-package/lib/systemd/system
+          sed -i 's|"LogFilePath": "output.log",|"LogFilePath": "/var/log/snclient/snclient.log",|' deb-package/etc/snclient/snclient.ini
+          sed -i 's|Architecture: UPDATEME|Architecture: ${{ matrix.arch }}|' deb-package/DEBIAN/control
+          sed -i 's|Architecture: 386|Architecture: i386|' deb-package/DEBIAN/control
+          sed -i 's|Version: UPDATEME|Version: ${{ needs.get-version-number.outputs.version }}|' deb-package/DEBIAN/control
+
+          chmod 600 deb-package/etc/snclient/*
+          chmod 755 deb-package/DEBIAN/postinst
+          chmod 755 deb-package/DEBIAN/prerm
+          chmod 755 deb-package/DEBIAN/postrm
+          chmod 755 deb-package/DEBIAN/rules
+
+          sudo chown -R root:root deb-package/
+          sudo dpkg-deb --build ./deb-package ~/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.deb
+
+      - id: upload-deb
+        uses: actions/upload-artifact@v3
+        with:
+          name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.deb"
+          path: "~/snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.deb"
+          if-no-files-found: error
+
+  make-release:
+
+    runs-on: ubuntu-latest
+
+    needs: [get-commit-sha,get-version-number,build-msi,build-deb]
+
+    outputs:
+      release-upload-url: ${{ steps.create-release.outputs.upload_url }}
+
+    steps:
+      - id: create-release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        with:
+          draft: true
+          prerelease: false
+          release_name: "${{needs.get-version-number.outputs.major}}.${{needs.get-version-number.outputs.minor}}.${{needs.get-version-number.outputs.revision}}"
+          tag_name: "${{needs.get-version-number.outputs.major}}.${{needs.get-version-number.outputs.minor}}.${{needs.get-version-number.outputs.revision}}"
+
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  upload-windows-release-assets:
+
+    strategy:
+      matrix:
+        go-version: [1.19.x]
+        os: [windows]
+        arch: [386, amd64]
+
+    runs-on: ubuntu-latest
+
+    needs: [get-commit-sha,get-version-number,make-release]
+
+    steps:
+
+      - id: download-release-msi
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/download-artifact@v3
+        with:
+          name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.msi"
+
+      - id: upload-windows-msi-release-asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ needs.make-release.outputs.release-upload-url }}
+          asset_path: "./snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.msi"
+          asset_name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.msi"
+          asset_content_type: application/octet-stream
+
+  upload-linux-deb-assets:
+
+    strategy:
+      matrix:
+        go-version: [1.19.x]
+        os: [linux]
+        arch: [386, amd64, arm64]
+
+    runs-on: ubuntu-latest
+
+    needs: [get-commit-sha,get-version-number,make-release]
+
+    steps:
+
+      - id: download-release-deb
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/download-artifact@v3
+        with:
+          name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.deb"
+
+      - id: upload-linux-deb-release-asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ needs.make-release.outputs.release-upload-url }}
+          asset_path: "./snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.deb"
+          asset_name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.deb"
+          asset_content_type: application/octet-stream
+
+  upload-binary-release-assets:
+
+    strategy:
+      matrix:
+        go-version: [1.19.x]
+        os: [linux, windows, freebsd]
+        arch: [386, amd64, arm64]
+        exclude:
+          - os: windows
+            arch: arm64
+
+    runs-on: ubuntu-latest
+
+    needs: [get-commit-sha,get-version-number,make-release]
+
+    steps:
+
+      - id: download-release-binary
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/download-artifact@v3
+        with:
+          name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}"
+
+      - id: create-release-archive
+        if: startsWith(github.ref, 'refs/tags/')
+        run: tar cvzf ./snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.tar.gz ./*
+
+      - id: upload-binary-release-asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ needs.make-release.outputs.release-upload-url }}
+          asset_path: "./snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.tar.gz"
+          asset_name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.tar.gz"
+          asset_content_type: application/octet-stream

@@ -1,0 +1,38 @@
+#!/bin/bash
+set -e
+
+if [[ `id snclient -u -n` != "snclient" ]] ; then
+  adduser --system --home /nonexistent --no-create-home snclient
+fi
+
+if [[ ! -d /var/log/snclient ]]; then
+  mkdir /var/log/snclient
+fi
+
+chown snclient /etc/snclient/*
+chown snclient:adm /var/log/snclient
+
+#DEBHELPER
+
+if [[ -x "/usr/bin/deb-systemd-helper" ]]; then
+  # Manual init script handling
+  deb-systemd-helper unmask snclient.service >/dev/null || true
+  # was-enabled defaults to true, so new installations run enable.
+  if deb-systemd-helper --quiet was-enabled snclient.service; then
+    # Enables the unit on first installation, creates new
+    # symlinks on upgrades if the unit file has changed.
+    deb-systemd-helper enable snclient.service >/dev/null || true
+  else
+    # Update the statefile to add new symlinks (if any), which need to be
+    # cleaned up on purge. Also remove old symlinks.
+    deb-systemd-helper update-state snclient.service >/dev/null || true
+  fi
+fi
+
+# End automatically added section
+# Automatically added by dh_installinit
+if [[ "$1" == "configure" ]] || [[ "$1" == "abort-upgrade" ]]; then
+  systemctl --system daemon-reload >/dev/null || true
+  deb-systemd-invoke start snclient >/dev/null || true
+fi
+exit 0

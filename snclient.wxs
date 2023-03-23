@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<?if $(var.Platform) = x64 ?>
+  <?define ProductName = "SNClient (x64)" ?>
+  <?define UpgradeCode = "ebb55cd6-2ee1-4440-bc00-73d610a5998c" ?>
+  <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+  <?define Win64 = 'yes' ?>
+<?else ?>
+  <?define ProductName = "SNClient (x86)" ?>
+  <?define UpgradeCode = "76d2cc17-0aa2-4f47-bf50-07243bf1546f" ?>
+  <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+  <?define Win64 = "no" ?>
+<?endif ?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Product Name="$(var.ProductName)" Id="*" UpgradeCode="$(var.UpgradeCode)"
+	Language='1033' Codepage='1252' Version='$(var.MajorVersion).$(var.MinorVersion).$(var.RevisionNumber)' Manufacturer='Sven Nierlein'>
+
+	<Package Id='*' Keywords='Installer' Description="$(var.ProductName) Installer - $(var.GitSha)"
+	  Comments='Available under The MIT License' Manufacturer='Sven Nierlein'
+	  InstallerVersion='200' Languages='1033' Compressed='yes' SummaryCodepage='1252' InstallScope='perMachine' />
+
+	<MajorUpgrade AllowDowngrades="no" DowngradeErrorMessage="A newer version of $(var.ProductName) is already installed." />
+
+	<Media Id='1' Cabinet='Sample.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
+	<Property Id='DiskPrompt' Value="SNClient Installation [1]" />
+	<Property Id="REBOOT" Value="ReallySuppress" />
+
+	<Directory Id='TARGETDIR' Name='SourceDir'>
+	  <Directory Id="$(var.PlatformProgramFilesFolder)">
+		<Directory Id='INSTALLDIR' Name='snclient'>
+
+			<Component Id='MainExecutable' Guid='0dbe56a4-660e-4299-9232-0677a3d294a0' Win64="$(var.Win64)">
+				<File Id='SNClientExe' Name='snclient.exe' DiskId='1' Source='snclient.exe' KeyPath='yes' />
+				<ServiceInstall
+					Description='General purpose monitoring agent'
+					ErrorControl='ignore'
+					Name = 'snclient'
+					Id='SNClientService'
+					Start='auto'
+					Type='ownProcess'
+					Vital='yes'
+				/>
+				<ServiceControl Id='StartSNClientService' Start='install' Stop='both' Remove='uninstall' Name='snclient' Wait='yes' />
+			</Component>
+
+			<Component Id='SampleCaCertificate' Guid='d1d9e531-1667-4670-9d3e-d846bcc33228' Win64="$(var.Win64)" NeverOverwrite='yes' Permanent='yes'>
+			  <File Id='cacertPem' Name='cacert.pem' DiskId='1' Source='cacert.pem' KeyPath='yes' />
+			</Component>
+
+			<Component Id='SampleConfigurationIni' Guid='05002cfe-4958-495c-9c5b-ecad4e5b6050' Win64="$(var.Win64)" NeverOverwrite='yes' Permanent='yes'>
+			  <File Id='snclientIni' Name='snclient.ini' DiskId='1' Source='snclient.ini' KeyPath='yes' />
+			</Component>
+
+			<Component Id='LicenseFile' Guid='a3e21569-89a0-4683-8866-57fa11086f33' Win64="$(var.Win64)">
+			  <File Id='license' Name='LICENSE' DiskId='1' Source='LICENSE' KeyPath='yes' />
+			</Component>
+
+			<Component Id='SampleServerCertificate' Guid='ab00497a-b889-423c-9985-3d433650ffcf' Win64="$(var.Win64)" NeverOverwrite='yes' Permanent='yes'>
+			  <File Id='serverCrt' Name='server.crt' DiskId='1' Source='server.crt' KeyPath='yes' />
+			</Component>
+
+			<Component Id='SampleServerKey' Guid='7cb0dd12-517e-4096-907b-b8ac8ad8a0ee' Win64="$(var.Win64)" NeverOverwrite='yes' Permanent='yes'>
+			  <File Id='serverKey' Name='server.key' DiskId='1' Source='server.key' KeyPath='yes' />
+			</Component>
+
+		  </Directory>
+	  </Directory>
+	</Directory>
+
+	<Feature Id='Complete' Level='1'>
+	  <ComponentRef Id='MainExecutable' />
+	  <ComponentRef Id='SampleCaCertificate' />
+	  <ComponentRef Id='SampleConfigurationIni' />
+	  <ComponentRef Id='LicenseFile' />
+	  <ComponentRef Id='SampleServerCertificate' />
+	  <ComponentRef Id='SampleServerKey' />
+	</Feature>
+  </Product>
+</Wix>
