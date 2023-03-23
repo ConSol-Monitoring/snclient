@@ -1,0 +1,43 @@
+{
+  "product": "SNClient+",
+  "company": "Consol",
+  "license": "LICENSE",
+  "upgrade-code": "",
+  "files": {
+    "guid": "",
+    "items": [
+      "bin/snclient.exe"
+    ]
+  },
+  "env": {
+    "guid": "",
+    "vars": [
+      {
+        "name": "PATH",
+        "value": "[INSTALLDIR]",
+        "permanent": "no",
+        "system": "no",
+        "action": "set",
+        "part": "last"
+      }
+    ]
+  },
+  "shortcuts": {
+    "guid": "",
+    "items": [
+      {
+        "name": "Your Product MSI",
+        "description": "MSI pakage for your product",
+        "target": "[INSTALLDIR]\\snclient.exe",
+        "wdir": "INSTALLDIR",
+        "arguments": "",
+        "icon": ""
+      }
+    ]
+  },
+  "choco": {
+    "description": "generate MSI package for snclient+",
+    "tags": "snclient",
+    "license-url": "https://opensource.org/licenses/MIT"
+  }
+}

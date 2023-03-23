@@ -1,0 +1,37 @@
+name: Windows Installers Creation and Publication
+
+on: [push]
+
+
+jobs:
+  create-windows-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.19.x
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install go-msi
+        run: choco install -y "go-msi"
+
+      - name: Get short SHA
+        run: echo "SHORT_SHA=$("${{ github.sha }}".SubString(0, 8))" >> $env:GITHUB_ENV
+
+      - name: Print short SHA
+        run: echo "Short SHA is ${{ env.SHORT_SHA }}"
+
+      - name: Build exe file
+        run: |
+          mkdir application
+          cd cmd/snclient/
+          CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=${{ env.SHORT_SHA }}" -o ../../application/snclient.exe
+
+      - name: Build Windows Installer MSI from exe file
+        uses: AliceOh/CreateWindowsInstaller@1.0.0
+        with:
+          exefile: 'snclient.exe'
