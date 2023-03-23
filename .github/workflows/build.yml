@@ -50,11 +50,17 @@ jobs:
       - id: get-major-version
         run: echo "major=0" >> $GITHUB_OUTPUT
       - id: get-minor-version
-        run: echo "minor=0" >> $GITHUB_OUTPUT
+        run: echo "minor=1" >> $GITHUB_OUTPUT
       - id: get-revision
         run: echo "revision=$( git rev-list --all --count )" >> $GITHUB_OUTPUT
       - id: get-version
         run: echo "version=${{steps.get-major-version.outputs.major}}.${{steps.get-minor-version.outputs.minor}}.${{steps.get-revision.outputs.revision}}-${{ steps.short-sha.outputs.sha }}"
+      - id: test
+        run: |
+          pwd
+          ls
+          git rev-list --all --count
+          git log -3
 
   build-release:
 
