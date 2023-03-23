@@ -54,7 +54,7 @@ jobs:
 
   get-version-number:
 
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     needs: get-commit-sha
 
@@ -65,19 +65,15 @@ jobs:
       version: ${{ steps.get-version.outputs.version }}
 
     steps:
-      - id: get-revision
-        run: |
-          $firstCommitSha = "5ca3b0c29a970eccb8bdbd3d9d46e8fdb795e0df"
-          $lastCommitSha = ((Invoke-WebRequest -uri https://api.github.com/repos/sni/snclient/git/refs/heads/master -UseBasicParsing).Content | ConvertFrom-Json).object.sha
-          $response = Invoke-WebRequest -uri https://api.github.com/repos/sni/snclient/compare/${firstCommitSha}...${lastCommitSha} -UseBasicParsing
-          echo "::set-output name=revision::$( ($response.Content | ConvertFrom-Json).total_commits )"
-
-      - id: get-minor-version
-        run: echo "::set-output name=minor::1"
+      - id: checkout-code
+        uses: actions/checkout@v3
 
       - id: get-major-version
         run: echo "::set-output name=major::0"
-
+      - id: get-minor-version
+        run: echo "::set-output name=minor::1"
+      - id: get-revision
+        run: echo "::set-output name=revision::$( git rev-list --all --count )"
       - id: get-version
         run: echo "::set-output name=version::${{steps.get-major-version.outputs.major}}.${{steps.get-minor-version.outputs.minor}}.${{steps.get-revision.outputs.revision}}-${{ needs.get-commit-sha.outputs.short-sha }}"
 
