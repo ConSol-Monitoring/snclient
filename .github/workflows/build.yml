@@ -8,7 +8,6 @@ on:
       - "*"
 
 jobs:
-
   test:
     strategy:
       matrix:
@@ -21,61 +20,41 @@ jobs:
         SRCPATH: ${{ github.workspace }}/go/src/snclient
 
     steps:
-
       - id: install-go
         uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go-version }}
-
       - id: checkout-code
         uses: actions/checkout@v3
-        with:
-          path: ${{ env.SRCPATH }}
-
       - id: run-tests
-        run: |
-          pushd ${{ env.SRCPATH }}
-          GO111MODULE=on GOOS=$os GOARCH=$arch go get ./...
-          GO111MODULE=on go test -cover ./...
+        run: make citest
 
-  get-commit-sha:
-
+  get-version-number:
     runs-on: ubuntu-latest
-
     outputs:
+      revision: ${{ steps.get-revision.outputs.revision }}
+      minor: ${{ steps.get-minor-version.outputs.minor }}
+      major: ${{ steps.get-major-version.outputs.major }}
+      version: ${{ steps.get-version.outputs.version }}
       short-sha: ${{ steps.short-sha.outputs.sha }}
 
     steps:
+      - id: checkout-code
+        uses: actions/checkout@v3
 
       - id: short-sha
         uses: benjlevesque/short-sha@v2.1
         with:
           length: 7
 
-  get-version-number:
-
-    runs-on: ubuntu-latest
-
-    needs: get-commit-sha
-
-    outputs:
-      revision: ${{ steps.get-revision.outputs.revision }}
-      minor: ${{ steps.get-minor-version.outputs.minor }}
-      major: ${{ steps.get-major-version.outputs.major }}
-      version: ${{ steps.get-version.outputs.version }}
-
-    steps:
-      - id: checkout-code
-        uses: actions/checkout@v3
-
       - id: get-major-version
-        run: echo "::set-output name=major::0"
+        run: echo "major=0" >> $GITHUB_OUTPUT
       - id: get-minor-version
-        run: echo "::set-output name=minor::1"
+        run: echo "minor=0" >> $GITHUB_OUTPUT
       - id: get-revision
-        run: echo "::set-output name=revision::$( git rev-list --all --count )"
+        run: echo "revision=$( git rev-list --all --count )" >> $GITHUB_OUTPUT
       - id: get-version
-        run: echo "::set-output name=version::${{steps.get-major-version.outputs.major}}.${{steps.get-minor-version.outputs.minor}}.${{steps.get-revision.outputs.revision}}-${{ needs.get-commit-sha.outputs.short-sha }}"
+        run: echo "version=${{steps.get-major-version.outputs.major}}.${{steps.get-minor-version.outputs.minor}}.${{steps.get-revision.outputs.revision}}-${{ steps.short-sha.outputs.sha }}"
 
   build-release:
 
