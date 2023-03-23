@@ -217,16 +217,8 @@ func (snc *Agent) initConfiguration() (Config, map[string]*Listener, error) {
 		return nil, nil, fmt.Errorf("%s", err.Error())
 	}
 
-	// TODO: ... use other logger
-	/*
-		log.SetFormatter(&log.TextFormatter{
-			PadLevelText:    true,
-			FullTimestamp:   true,
-			TimestampFormat: "2006-01-02 15:04:05.000",
-		})
-		log.SetLevel(log.TraceLevel)
-		log.SetReportCaller(true)
-	*/
+	CreateLogger(snc)
+
 	listen := make(map[string]*Listener)
 
 	availableListeners := []struct {

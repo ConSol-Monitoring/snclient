@@ -15,18 +15,15 @@ const (
 	LogLevelTrace2 = 3
 )
 
-// LogFormat sets the log format
-var LogFormat string
+var log = factorlog.New(os.Stdout, factorlog.NewStdFormatter(
+	`[%{Date} %{Time "15:04:05.000"}]`+
+		`[%{Severity}]`+
+		`[pid:`+fmt.Sprintf("%d", os.Getpid())+`]`+
+		`[%{ShortFile}:%{Line}] %{Message}`))
 
-func init() {
-	LogFormat = `[%{Date} %{Time "15:04:05.000"}][%{Severity}][pid:` + fmt.Sprintf("%d", os.Getpid()) + `][%{ShortFile}:%{Line}] %{Message}`
-}
-
-var log = factorlog.New(os.Stdout, factorlog.NewStdFormatter(LogFormat))
-
-func createLogger(config *Config) {
-	// logging format
+func CreateLogger(snc *Agent) {
 	/*
+		// logging format
 		frmt := `%{Color \"yellow\" \"WARN\"}%{Color \"red\" \"ERROR\"}%{Color \"red\" \"FATAL\"}[%{Date} %{Time "15:04:05.000"}][%{Severity}][%{File}:%{Line}] %{Message}`
 
 		// check in config file if file is specified
