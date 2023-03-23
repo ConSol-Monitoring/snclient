@@ -44,7 +44,6 @@ jobs:
         with:
           fetch-depth: 0
 
-
       - id: short-sha
         uses: benjlevesque/short-sha@v2.1
         with:
@@ -379,3 +378,37 @@ jobs:
           asset_path: "./snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.tar.gz"
           asset_name: "snclient-${{ matrix.os }}-${{ matrix.arch }}-${{needs.get-version-number.outputs.version}}.tar.gz"
           asset_content_type: application/octet-stream
+
+
+  remove-temporary-assets:
+
+    strategy:
+      matrix:
+        os: [linux, windows, freebsd]
+        arch: [386, amd64, arm64]
+        exclude:
+          - os: windows
+            arch: arm64
+
+    runs-on: ubuntu-latest
+
+    needs: [get-version-number,make-release]
+
+    steps:
+      - id: remove-systemd-unit-file
+        if: ${{ matrix.os == 'linux' }}
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-version-number.outputs.short-sha }}-systemd-unit-file"
+
+      - id: remove-deb-build-files
+        if: ${{ matrix.os == 'linux' }}
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-version-number.outputs.short-sha }}-DEBIAN"
+
+      - id: remove-wix-definition-file
+        if: ${{ matrix.os == 'windows' }}
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: "${{ matrix.os }}-${{ matrix.arch }}-${{ needs.get-version-number.outputs.short-sha }}-wix-wxs"
