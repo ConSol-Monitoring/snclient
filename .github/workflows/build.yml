@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - id: install-go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
       - id: checkout-code
@@ -79,7 +79,7 @@ jobs:
     steps:
 
       - id: install-go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
 
