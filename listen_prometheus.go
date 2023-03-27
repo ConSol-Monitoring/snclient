@@ -7,6 +7,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+func init() {
+	AvailableListeners = append(AvailableListeners, ListenHandler{"PrometheusServer", "/settings/Prometheus/server", NewHandlerPrometheus()})
+}
+
 var (
 	prometheusRegistered bool
 
@@ -17,10 +21,6 @@ var (
 		},
 		[]string{"version", "build"})
 )
-
-func init() {
-	AvailableListeners = append(AvailableListeners, ListenHandler{"Prometheus", NewHandlerPrometheus()})
-}
 
 type HandlerPrometheus struct {
 	noCopy  noCopy
@@ -47,7 +47,12 @@ func (l *HandlerPrometheus) Type() string {
 
 func (l *HandlerPrometheus) Defaults() map[string]string {
 	defaults := map[string]string{
-		"port": "9999",
+		"port":          "9999",
+		"use ssl":       "0",
+		"bind to":       "",
+		"allowed hosts": "127.0.0.1",
+		"password":      "",
+		"certificate":   "${certificate-path}/cacert.pem",
 	}
 
 	return defaults
@@ -76,6 +81,6 @@ func registerMetrics() {
 
 	// register the metrics
 	if err := prometheus.Register(infoCount); err != nil {
-		log.Errorf("failed to register prometheus metric: %w: %s", err, err.Error())
+		log.Errorf("failed to register prometheus metric: %s", err.Error())
 	}
 }

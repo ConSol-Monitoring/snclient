@@ -41,14 +41,14 @@ func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 
 		memFile, err := os.Create(snc.flags.flagMemProfile)
 		if err != nil {
-			log.Errorf("could not create memory profile: %w", err)
+			log.Errorf("could not create memory profile: %s", err.Error())
 		}
 		defer memFile.Close()
 
 		runtime.GC()
 
 		if err := pprof.WriteHeapProfile(memFile); err != nil {
-			log.Errorf("could not write memory profile: %w", err)
+			log.Errorf("could not write memory profile: %s", err.Error())
 		}
 
 		log.Warnf("memory profile written to: %s", snc.flags.flagMemProfile)

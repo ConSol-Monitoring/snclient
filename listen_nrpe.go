@@ -20,7 +20,7 @@ const (
 )
 
 func init() {
-	AvailableListeners = append(AvailableListeners, ListenHandler{"NRPE", NewHandlerNRPE()})
+	AvailableListeners = append(AvailableListeners, ListenHandler{"NRPEServer", "/settings/NRPE/server", NewHandlerNRPE()})
 }
 
 type HandlerNRPE struct {
@@ -39,13 +39,16 @@ func (l *HandlerNRPE) Type() string {
 
 func (l *HandlerNRPE) Defaults() map[string]string {
 	defaults := map[string]string{
-		"port":                   "5666",
-		"command_timeout":        "60",
-		"allow_arguments":        "0",
-		"allow_nasty_meta_chars": "0",
-		"use_ssl":                "0",
-		"bind_to_address":        "",
-		"allowed_hosts":          "",
+		"allow arguments":     "0",
+		"allow nasty chars":   "0",
+		"allowed ciphers":     "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH",
+		"allowed hosts":       "127.0.0.1",
+		"bind to":             "",
+		"cache allowed hosts": "1",
+		"certificate":         "${certificate-path}/certificate.pem",
+		"port":                "5666",
+		"timeout":             "30",
+		"use ssl":             "0",
 	}
 
 	return defaults

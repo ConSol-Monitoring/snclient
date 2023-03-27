@@ -39,7 +39,7 @@ func NewConfig() Config {
 func (config *Config) readSettingsFile(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("cannot read file %s: %w", path, err)
+		return fmt.Errorf("cannot read file %s: %s", path, err.Error())
 	}
 
 	currentBlock := ""
@@ -78,4 +78,37 @@ func (config *Config) readSettingsFile(path string) error {
 	}
 
 	return nil
+}
+
+// MergeConfig merges config with default values, ex.: MergeConfig(configKey, "/settings/default").
+func (config *Config) MergeConfig(key, defaults string) map[string]string {
+	conf := make(map[string]string)
+
+	if map1, ok := (*config)[key]; ok {
+		for k, v := range map1 {
+			conf[k] = v
+		}
+	}
+
+	if map2, ok := (*config)[defaults]; ok {
+		for k, v := range map2 {
+			// only set if not already there
+			if _, ok := conf[k]; !ok {
+				conf[k] = v
+			}
+		}
+	}
+
+	return conf
+}
+
+// MergeDefaults merges config with default values, ex.: MergeDefaults(map[], "/settings/default").
+func (config *Config) MergeDefaults(conf, defaults map[string]string) map[string]string {
+	for key, value := range defaults {
+		if _, ok := conf[key]; !ok {
+			conf[key] = value
+		}
+	}
+
+	return conf
 }

@@ -110,7 +110,7 @@ func SNClient(build string) {
 	// reads the args, check if they are params, if so sends them to the configuration reader
 	config, listeners, err := snc.readConfiguration()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s", err.Error())
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		snc.CleanExit(ExitCodeError)
 	}
 
@@ -132,7 +132,7 @@ func SNClient(build string) {
 		defer func() {
 			err := ctx.Release()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: %s", err.Error())
+				fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 			}
 		}()
 	}
@@ -180,7 +180,7 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 			case Reload:
 				newConfig, listeners, err := snc.readConfiguration()
 				if err != nil {
-					log.Errorf("reloading configuration failed: %w_ %s", err, err.Error())
+					log.Errorf("reloading configuration failed: %s", err.Error())
 
 					continue
 				}
@@ -203,7 +203,8 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 }
 
 func (snc *Agent) startAll(config Config, listeners map[string]*Listener) {
-	for name, l := range snc.Listeners {
+	// stop existing listeners
+	for name, l := range listeners {
 		l.Stop()
 		delete(snc.Listeners, name)
 	}
@@ -226,29 +227,54 @@ func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
 	for _, path := range snc.flags.flagConfigFile {
 		err := config.readSettingsFile(path)
 		if err != nil {
-			return nil, nil, fmt.Errorf("%w: %s", err, err.Error())
+			return nil, nil, fmt.Errorf("reading settings failed: %s", err.Error())
 		}
 	}
 
 	CreateLogger(snc)
 
+	listen, err := snc.initListeners(config)
+	if err != nil {
+		return nil, nil, fmt.Errorf("listener initialization failed: %s", err.Error())
+	}
+
+	return config, listen, nil
+}
+
+func (snc *Agent) initListeners(conf Config) (map[string]*Listener, error) {
 	listen := make(map[string]*Listener)
 
+	modulesConf, ok := conf["/modules"]
+	if !ok {
+		modulesConf = make(map[string]string)
+	}
+
 	for _, entry := range AvailableListeners {
-		conConf, ok := config[entry.ConfigKey]
+		enabled, ok := modulesConf[entry.ModuleKey]
 		if !ok {
 			continue
 		}
 
-		listener, err := snc.initListener(conConf, entry.Init)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%w: %s", err, err.Error())
+		if enabled != "1" {
+			continue
 		}
 
-		listen[listener.handler.Type()] = listener
+		listenConf := conf.MergeDefaults(conf.MergeConfig(entry.ConfigKey, "/settings/default"), entry.Init.Defaults())
+
+		listener, err := snc.initListener(listenConf, entry.Init)
+		if err != nil {
+			return nil, err
+		}
+
+		bind := listener.BindString()
+		if existing, ok := listen[bind]; ok {
+			return nil, fmt.Errorf("bind address %s already in use by %s server", bind, existing.handler.Type())
+		}
+
+		listen[bind] = listener
 	}
 
-	return config, listen, nil
+	return listen, nil
 }
 
 func (snc *Agent) cleanExit(exitCode int) {
@@ -408,12 +434,12 @@ func (snc *Agent) checkFlags() {
 
 		cpuProfileHandler, err := os.Create(snc.flags.flagCPUProfile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not create CPU profile: %s", err.Error())
+			fmt.Fprintf(os.Stderr, "ERROR: could not create CPU profile: %s\n", err.Error())
 			os.Exit(ExitCodeError)
 		}
 
 		if err := pprof.StartCPUProfile(cpuProfileHandler); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not start CPU profile: %s", err.Error())
+			fmt.Fprintf(os.Stderr, "ERROR: could not start CPU profile: %s\n", err.Error())
 			os.Exit(ExitCodeError)
 		}
 
@@ -454,26 +480,16 @@ func (snc *Agent) logPanicExit() {
 }
 
 func (snc *Agent) initListener(conConf map[string]string, handler RequestHandler) (*Listener, error) {
-	name := handler.Type()
-	defaults := handler.Defaults()
-
-	// apply default values.
-	for key, value := range defaults {
-		if _, ok := conConf[key]; !ok {
-			conConf[key] = value
-		}
-	}
-
 	listener, err := NewListener(snc, conConf, handler)
 	if err != nil {
-		return nil, fmt.Errorf("creating listener %s failed: %w: %s", name, err, err.Error())
+		return nil, err
 	}
 
 	err = handler.Init(snc)
 	if err != nil {
 		listener.Stop()
 
-		return nil, fmt.Errorf("failed to init %s listener: %w: %s", name, err, err.Error())
+		return nil, fmt.Errorf("%s init failed on %s: %s", handler.Type(), listener.BindString(), err.Error())
 	}
 
 	return listener, nil
@@ -489,7 +505,7 @@ func (snc *Agent) startListener(name string) {
 
 	err := snc.Listeners[name].Start()
 	if err != nil {
-		log.Errorf("failed to start %s listener: %w: %s", err, err.Error())
+		log.Errorf("failed to start %s listener:  %s", err.Error())
 		listener.Stop()
 		delete(snc.Listeners, name)
 	}

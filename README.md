@@ -28,6 +28,6 @@ soon...
 	- [] NRPE protocol support v4
 	- [] add general tls support
 	- [] rework usage()
-	- [] apply defaults from "Settings" as well
 	- [] add feature comparison to readme
 	- [] add docs/
+	- [] add support for IPs and names in allowed hosts

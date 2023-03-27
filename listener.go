@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/netip"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 )
 
 type ListenHandler struct {
+	ModuleKey string
 	ConfigKey string
 	Init      RequestHandler
 }
@@ -44,43 +46,48 @@ func NewListener(snc *Agent, conf map[string]string, r RequestHandler) (*Listene
 
 	// parse/set port.
 	if port, ok := conf["port"]; ok {
+		if strings.HasSuffix(port, "s") {
+			port = strings.TrimSuffix(port, "s")
+			conf["ssl"] = "1"
+		}
+
 		num, err := strconv.ParseInt(port, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid port specification for %s: %w: %s", listen.connType, err, err.Error())
+			return nil, fmt.Errorf("invalid port specification for %s: %s", listen.connType, err.Error())
 		}
 
 		listen.port = num
 	}
 
 	// set bind address (can be empty)
-	listen.bindAddress = conf["bind_to_address"]
+	listen.bindAddress = conf["bind to"]
 
 	// parse / set socket timeout.
 	listen.socketTimeout = DefaulSocketTimeout * time.Second
 
-	if socketTimeout, ok := conf["socket_timeout"]; ok {
+	if socketTimeout, ok := conf["timeout"]; ok {
 		num, err := strconv.ParseInt(socketTimeout, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid socket_timeout specification for %s: %w: %s", listen.connType, err, err.Error())
+			return nil, fmt.Errorf("invalid socket_timeout specification for %s: %s", listen.connType, err.Error())
 		}
 
 		listen.socketTimeout = time.Duration(num) * time.Second
 	}
 
 	// parse / set allowed hosts
-	if allowed, ok := conf["allowed_hosts"]; ok {
+	if allowed, ok := conf["allowed hosts"]; ok {
 		for _, allow := range strings.Split(allowed, ",") {
 			allow = strings.TrimSpace(allow)
 			if allow == "" {
 				continue
 			}
 
-			netrange, err := netip.ParsePrefix(allow)
+			netRange, err := netip.ParsePrefix(allow)
 			if err != nil {
-				return nil, fmt.Errorf("invalid allowed_hosts specification for %s: %w: %s", listen.connType, err, err.Error())
+				return nil, fmt.Errorf("invalid allowed_hosts specification for %s: %s", listen.connType, err.Error())
 			}
 
-			listen.allowedHosts = append(listen.allowedHosts, &netrange)
+			listen.allowedHosts = append(listen.allowedHosts, &netRange)
 		}
 	}
 
@@ -89,7 +96,7 @@ func NewListener(snc *Agent, conf map[string]string, r RequestHandler) (*Listene
 
 // Start listening.
 func (l *Listener) Start() error {
-	log.Infof("starting %s listener on %s:%d", l.connType, l.bindAddress, l.port)
+	log.Infof("starting %s listener on %s", l.connType, l.BindString())
 	log.Debugf("ssl: %v", l.tlsConfig != nil)
 
 	if len(l.allowedHosts) == 0 {
@@ -103,9 +110,9 @@ func (l *Listener) Start() error {
 
 	l.listen = nil
 
-	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", l.bindAddress, l.port))
+	listen, err := net.Listen("tcp", l.BindString())
 	if err != nil {
-		return fmt.Errorf("listen failed: %w: %s", err, err.Error())
+		return fmt.Errorf("listen failed: %s", err.Error())
 	}
 
 	l.listen = listen
@@ -138,12 +145,12 @@ func (l *Listener) startListenerTCP(handler RequestHandlerTCP) {
 
 		if err != nil {
 			if errors.As(err, &opErr) && opErr.Timeout() {
-				log.Warnf("accept failed: %w: %s", err, err.Error())
+				log.Warnf("accept failed: %s", err.Error())
 
 				continue
 			}
 
-			log.Infof("stopping %s listener on %s:%d", l.connType, l.bindAddress, l.port)
+			log.Infof("stopping %s listener on %s", l.connType, l.BindString())
 
 			return
 		}
@@ -220,12 +227,23 @@ func (l *Listener) CheckAllowedHosts(remoteAddr string) bool {
 	return false
 }
 
+func (l *Listener) BindString() string {
+	return (fmt.Sprintf("%s:%d", l.bindAddress, l.port))
+}
+
 type WrappedHTTPHandler struct {
 	listener *Listener
 	handle   http.Handler
 }
 
 func (w *WrappedHTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	reqStr, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		log.Tracef("%s", err.Error())
+	} else {
+		log.Tracef("%s", string(reqStr))
+	}
+
 	w.listener.ServeOne(req.RemoteAddr, func() {
 		w.handle.ServeHTTP(res, req)
 	})
