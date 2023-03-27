@@ -12,6 +12,13 @@ import (
 	"time"
 )
 
+type ListenHandler struct {
+	ConfigKey string
+	Init      RequestHandler
+}
+
+var AvailableListeners []ListenHandler
+
 // Listener is a generic tcp listener and handles all incoming connections.
 type Listener struct {
 	noCopy        noCopy

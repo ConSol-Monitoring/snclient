@@ -20,6 +20,8 @@ linters:
     - exhaustivestruct
     - exhaustruct
     - testpackage
+    - gochecknoinits
+    - gochecknoglobals
 issues:
   max-same-issues: 0
   exclude-use-default: true
@@ -30,10 +32,6 @@ issues:
     - "mnd: Magic number: 16, in"
     - "mnd: Magic number: 64, in"
     - "mnd: Magic number: 0o600, in"
-    - "Build is a global variable"
-    - "prometheusRegistered is a global variable"
-    - "infoCount is a global variable"
-    - "log is a global variable"
     - "noCopy is missing in"
     - 'err113:'
     - 'calculated cyclomatic complexity for function checkFlags is'

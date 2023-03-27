@@ -18,6 +18,10 @@ var (
 		[]string{"version", "build"})
 )
 
+func init() {
+	AvailableListeners = append(AvailableListeners, ListenHandler{"Prometheus", NewHandlerPrometheus()})
+}
+
 type HandlerPrometheus struct {
 	noCopy  noCopy
 	handler http.Handler

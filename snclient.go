@@ -234,15 +234,7 @@ func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
 
 	listen := make(map[string]*Listener)
 
-	availableListeners := []struct {
-		ConfigKey string
-		Init      RequestHandler
-	}{
-		{"Prometheus", NewHandlerPrometheus()},
-		{"NRPE", NewHandlerNRPE()},
-	}
-
-	for _, entry := range availableListeners {
+	for _, entry := range AvailableListeners {
 		conConf, ok := config[entry.ConfigKey]
 		if !ok {
 			continue
@@ -501,4 +493,28 @@ func (snc *Agent) startListener(name string) {
 		listener.Stop()
 		delete(snc.Listeners, name)
 	}
+}
+
+func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
+	check, ok := AvailableChecks[name]
+	if !ok {
+		res := CheckResult{
+			State:  CheckExitUnknown,
+			Output: "No such check",
+		}
+
+		return &res
+	}
+
+	res, err := check.Handler.Check(args)
+	if err != nil {
+		res := CheckResult{
+			State:  CheckExitUnknown,
+			Output: err.Error(),
+		}
+
+		return &res
+	}
+
+	return res
 }

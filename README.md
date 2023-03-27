@@ -1,7 +1,7 @@
 # SNClient+
 [![CICD Pipeline](https://github.com/sni/snclient/actions/workflows/cicd.yml/badge.svg?branch=main)](https://github.com/sni/snclient/actions/workflows/cicd.yml)
 
-SNClient+ is a general purpose monitoring agent designed as NSClient++ replacement for Naemon.
+SNClient+ is a general purpose monitoring agent designed as replacement for NRPE and NSClient++.
 
 ## Supported Operating Systems
 

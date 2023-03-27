@@ -19,6 +19,10 @@ const (
 	nrpePacketVersion2 = 2
 )
 
+func init() {
+	AvailableListeners = append(AvailableListeners, ListenHandler{"NRPE", NewHandlerNRPE()})
+}
+
 type HandlerNRPE struct {
 	noCopy noCopy
 }
@@ -51,7 +55,7 @@ func (l *HandlerNRPE) Init(_ *Agent) error {
 	return nil
 }
 
-func (l *HandlerNRPE) ServeTCP(_ *Agent, con net.Conn) {
+func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 	defer con.Close()
 
 	request := NewNrpePacket()
@@ -79,10 +83,18 @@ func (l *HandlerNRPE) ServeTCP(_ *Agent, con net.Conn) {
 	data := strings.Split(string(request.data[:pos]), "!")
 	log.Tracef("nrpe v%d request: %s %s", binary.BigEndian.Uint16(request.packetVersion), data[0], data[1:])
 
-	statusCode := 0
-	statusOutput := fmt.Sprintf("OK - got nrpe request - cmd: %s args: %s", data[0], data[1:])
+	statusResult := snc.RunCheck(data[0], data[1:])
 
-	response := l.buildPacket(nrpeResponsePacketType, uint16(statusCode), []byte(statusOutput))
+	output := []byte(statusResult.Output)
+	if len(statusResult.Metrics) > 0 {
+		output = append(output, '|')
+
+		for _, m := range statusResult.Metrics {
+			output = append(output, []byte(m.BuildNaemonString())...)
+		}
+	}
+
+	response := l.buildPacket(nrpeResponsePacketType, uint16(statusResult.State), output)
 
 	if err := response.Write(con); err != nil {
 		log.Errorf("nrpe write response error: %s", err.Error())
