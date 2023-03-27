@@ -27,7 +27,11 @@ func (c *configFiles) Set(value string) error {
 	return nil
 }
 
-type Config map[string]map[string]string
+// Config contains the merged config over all config files.
+type Config map[string]ConfigSection
+
+// ConfigSection contains a single config section.
+type ConfigSection map[string]string
 
 func NewConfig() Config {
 	conf := make(Config, 0)
@@ -36,7 +40,7 @@ func NewConfig() Config {
 }
 
 // opens the config file and reads all key value pairs, separated through = and commented out with ";".
-func (config *Config) readSettingsFile(path string) error {
+func (config *Config) ReadSettingsFile(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("cannot read file %s: %s", path, err.Error())
@@ -80,35 +84,32 @@ func (config *Config) readSettingsFile(path string) error {
 	return nil
 }
 
-// MergeConfig merges config with default values, ex.: MergeConfig(configKey, "/settings/default").
-func (config *Config) MergeConfig(key, defaults string) map[string]string {
-	conf := make(map[string]string)
-
-	if map1, ok := (*config)[key]; ok {
-		for k, v := range map1 {
-			conf[k] = v
-		}
+// Section returns section by name or empty section.
+func (config *Config) Section(name string) *ConfigSection {
+	if section, ok := (*config)[name]; ok {
+		return &section
 	}
 
-	if map2, ok := (*config)[defaults]; ok {
-		for k, v := range map2 {
-			// only set if not already there
-			if _, ok := conf[k]; !ok {
-				conf[k] = v
-			}
-		}
-	}
+	section := make(ConfigSection)
 
-	return conf
+	return &section
 }
 
-// MergeDefaults merges config with default values, ex.: MergeDefaults(map[], "/settings/default").
-func (config *Config) MergeDefaults(conf, defaults map[string]string) map[string]string {
+// Merge merges defaults into ConfigSection, ex.: MergeDefaults(map[string]string).
+func (cs *ConfigSection) Merge(defaults ConfigSection) {
 	for key, value := range defaults {
-		if _, ok := conf[key]; !ok {
-			conf[key] = value
+		if _, ok := (*cs)[key]; !ok {
+			(*cs)[key] = value
 		}
 	}
+}
 
-	return conf
+// Clone merges defaults into ConfigSection, ex.: MergeDefaults(map[string]string).
+func (cs *ConfigSection) Clone() ConfigSection {
+	clone := make(ConfigSection)
+	for k, v := range *cs {
+		clone[k] = v
+	}
+
+	return clone
 }

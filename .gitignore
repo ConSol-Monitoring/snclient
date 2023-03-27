@@ -11,3 +11,4 @@ vendor/
 tools/
 dist/
 build-deb/
+snclient.ini

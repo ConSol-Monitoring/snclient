@@ -19,24 +19,43 @@ type ListenHandler struct {
 	Init      RequestHandler
 }
 
+var DefaultListenTCPConfig = ConfigSection{
+	"allowed ciphers":     "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH",
+	"allowed hosts":       "127.0.0.1, [::1]",
+	"bind to":             "",
+	"cache allowed hosts": "1",
+	"certificate":         "${certificate-path}/certificate.pem",
+	"timeout":             "30",
+	"use ssl":             "0",
+}
+
+var DefaultListenHTTPConfig = ConfigSection{
+	"password": "",
+}
+
+func init() {
+	DefaultListenHTTPConfig.Merge(DefaultListenTCPConfig)
+}
+
 var AvailableListeners []ListenHandler
 
 // Listener is a generic tcp listener and handles all incoming connections.
 type Listener struct {
-	noCopy        noCopy
-	snc           *Agent
-	connType      string
-	port          int64
-	bindAddress   string
-	tlsConfig     *tls.Config
-	allowedHosts  []*netip.Prefix
-	socketTimeout time.Duration
-	listen        net.Listener
-	handler       RequestHandler
+	noCopy            noCopy
+	snc               *Agent
+	connType          string
+	port              int64
+	bindAddress       string
+	cacheAllowedHosts bool
+	tlsConfig         *tls.Config
+	allowedHosts      []AllowedHost
+	socketTimeout     time.Duration
+	listen            net.Listener
+	handler           RequestHandler
 }
 
 // NewListener creates a new Listener object.
-func NewListener(snc *Agent, conf map[string]string, r RequestHandler) (*Listener, error) {
+func NewListener(snc *Agent, conf ConfigSection, r RequestHandler) (*Listener, error) {
 	listen := Listener{
 		snc:      snc,
 		listen:   nil,
@@ -44,6 +63,14 @@ func NewListener(snc *Agent, conf map[string]string, r RequestHandler) (*Listene
 		connType: r.Type(),
 	}
 
+	if err := listen.setListenConfig(conf); err != nil {
+		return nil, err
+	}
+
+	return &listen, nil
+}
+
+func (l *Listener) setListenConfig(conf ConfigSection) error {
 	// parse/set port.
 	if port, ok := conf["port"]; ok {
 		if strings.HasSuffix(port, "s") {
@@ -53,25 +80,25 @@ func NewListener(snc *Agent, conf map[string]string, r RequestHandler) (*Listene
 
 		num, err := strconv.ParseInt(port, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid port specification for %s: %s", listen.connType, err.Error())
+			return fmt.Errorf("invalid port specification: %s", err.Error())
 		}
 
-		listen.port = num
+		l.port = num
 	}
 
 	// set bind address (can be empty)
-	listen.bindAddress = conf["bind to"]
+	l.bindAddress = conf["bind to"]
 
 	// parse / set socket timeout.
-	listen.socketTimeout = DefaulSocketTimeout * time.Second
+	l.socketTimeout = DefaulSocketTimeout * time.Second
 
 	if socketTimeout, ok := conf["timeout"]; ok {
 		num, err := strconv.ParseInt(socketTimeout, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid socket_timeout specification for %s: %s", listen.connType, err.Error())
+			return fmt.Errorf("invalid timeout specification: %s", err.Error())
 		}
 
-		listen.socketTimeout = time.Duration(num) * time.Second
+		l.socketTimeout = time.Duration(num) * time.Second
 	}
 
 	// parse / set allowed hosts
@@ -82,16 +109,26 @@ func NewListener(snc *Agent, conf map[string]string, r RequestHandler) (*Listene
 				continue
 			}
 
-			netRange, err := netip.ParsePrefix(allow)
-			if err != nil {
-				return nil, fmt.Errorf("invalid allowed_hosts specification for %s: %s", listen.connType, err.Error())
-			}
-
-			listen.allowedHosts = append(listen.allowedHosts, &netRange)
+			l.allowedHosts = append(l.allowedHosts, NewAllowedHost(allow))
 		}
 	}
 
-	return &listen, nil
+	// parse / set cache allowed hosts
+	l.cacheAllowedHosts = true
+	if cache, ok := conf["cache allowed hosts"]; ok {
+		l.cacheAllowedHosts = cache == "1"
+	}
+
+	return nil
+}
+
+// Stop shuts down current listener.
+func (l *Listener) Stop() {
+	if l.listen != nil {
+		l.listen.Close()
+	}
+
+	l.listen = nil
 }
 
 // Start listening.
@@ -100,9 +137,9 @@ func (l *Listener) Start() error {
 	log.Debugf("ssl: %v", l.tlsConfig != nil)
 
 	if len(l.allowedHosts) == 0 {
-		log.Debugf("allowed_hosts: all")
+		log.Debugf("allowed hosts: all")
 	} else {
-		log.Debugf("allowed_hosts:")
+		log.Debugf("allowed hosts:")
 		for _, allow := range l.allowedHosts {
 			log.Debugf("    - %s", allow.String())
 		}
@@ -169,10 +206,20 @@ func (l *Listener) startListenerTCP(handler RequestHandlerTCP) {
 func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
 	mux := http.NewServeMux()
 
+	defaultAdded := false
+
 	// Wrap handler to apply netfilter and logger.
 	mappings := handler.GetMappings(l.snc)
 	for _, mapping := range mappings {
 		mux.Handle(mapping.URL, l.WrapHTTPHandler(mapping.Handler))
+
+		if mapping.URL == "/" {
+			defaultAdded = true
+		}
+	}
+
+	if !defaultAdded {
+		mux.Handle("/", l.WrapHTTPHandler(new(ErrorHTTPHandler)))
 	}
 
 	server := &http.Server{
@@ -189,16 +236,19 @@ func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
 }
 
 func (l *Listener) ServeOne(remoteAddr string, serveCB func()) {
+	startTime := time.Now()
+
 	log.Debugf("incoming %s connection from %s", l.connType, remoteAddr)
 
 	if !l.CheckAllowedHosts(remoteAddr) {
-		log.Warnf("%s connection from %s prohibited by allowed_hosts", l.connType, remoteAddr)
+		log.Warnf("%s connection from %s prohibited by allowed hosts", l.connType, remoteAddr)
 
 		return
 	}
 
 	serveCB()
-	log.Debugf("%s connection from %s finished", l.connType, remoteAddr)
+
+	log.Debugf("%s connection from %s finished in %9s", l.connType, remoteAddr, time.Since(startTime))
 }
 
 func (l *Listener) CheckAllowedHosts(remoteAddr string) bool {
@@ -211,6 +261,11 @@ func (l *Listener) CheckAllowedHosts(remoteAddr string) bool {
 		remoteAddr = remoteAddr[:idx]
 	}
 
+	if strings.HasPrefix(remoteAddr, "[") && strings.HasSuffix(remoteAddr, "]") {
+		remoteAddr = strings.TrimPrefix(remoteAddr, "[")
+		remoteAddr = strings.TrimSuffix(remoteAddr, "]")
+	}
+
 	addr, err := netip.ParseAddr(remoteAddr)
 	if err != nil {
 		log.Warnf("cannot parse remote address: %s: %s", remoteAddr, err.Error())
@@ -218,8 +273,8 @@ func (l *Listener) CheckAllowedHosts(remoteAddr string) bool {
 		return false
 	}
 
-	for _, netrange := range l.allowedHosts {
-		if netrange.Contains(addr) {
+	for _, allow := range l.allowedHosts {
+		if allow.Contains(addr, l.cacheAllowedHosts) {
 			return true
 		}
 	}
@@ -256,11 +311,104 @@ func (l *Listener) WrapHTTPHandler(handle http.Handler) http.Handler {
 	})
 }
 
-// Stop shuts down current listener.
-func (l *Listener) Stop() {
-	if l.listen != nil {
-		l.listen.Close()
+type ErrorHTTPHandler struct{}
+
+func (w *ErrorHTTPHandler) ServeHTTP(_ http.ResponseWriter, req *http.Request) {
+	log.Warnf("unknown url %s requested from %s", req.RequestURI, req.RemoteAddr)
+}
+
+type AllowedHost struct {
+	Prefix       *netip.Prefix
+	IP           *netip.Addr
+	HostName     *string
+	ResolveCache []netip.Addr
+}
+
+func NewAllowedHost(name string) AllowedHost {
+	allowed := AllowedHost{}
+
+	if strings.HasPrefix(name, "[") && strings.HasSuffix(name, "]") {
+		name = strings.TrimPrefix(name, "[")
+		name = strings.TrimSuffix(name, "]")
 	}
 
-	l.listen = nil
+	// is it a netrange?
+	netRange, err := netip.ParsePrefix(name)
+	if err == nil {
+		allowed.Prefix = &netRange
+
+		return allowed
+	}
+
+	// is it an ip address ipv4/ipv6
+	if ip, err := netip.ParseAddr(name); err == nil {
+		allowed.IP = &ip
+
+		return allowed
+	}
+
+	allowed.HostName = &name
+
+	return allowed
+}
+
+func (a *AllowedHost) String() string {
+	switch {
+	case a.Prefix != nil:
+		return a.Prefix.String()
+	case a.IP != nil:
+		return a.IP.String()
+	case a.HostName != nil:
+		return *a.HostName
+	}
+
+	return ""
+}
+
+func (a *AllowedHost) Contains(addr netip.Addr, useCaching bool) bool {
+	switch {
+	case a.Prefix != nil:
+		return a.Prefix.Contains(addr)
+	case a.IP != nil:
+		return a.IP.Compare(addr) == 0
+	case a.HostName != nil:
+		resolved := a.ResolveCache
+
+		if useCaching || len(a.ResolveCache) == 0 {
+			resolved = a.resolveCache()
+			if useCaching {
+				a.ResolveCache = resolved
+			}
+		}
+
+		for _, i := range resolved {
+			if i.Compare(addr) == 0 {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	return false
+}
+
+func (a *AllowedHost) resolveCache() []netip.Addr {
+	resolved := make([]netip.Addr, 0)
+
+	ips, err := net.LookupIP(*a.HostName)
+	if err != nil {
+		log.Debugf("dns lookup for %s failed: %s", *a.HostName, err.Error())
+
+		return resolved
+	}
+
+	for _, v := range ips {
+		i, err := netip.ParseAddr(v.String())
+		if err != nil {
+			resolved = append(resolved, i)
+		}
+	}
+
+	return resolved
 }

@@ -8,7 +8,7 @@ import (
 // RequestHandler handles a client connections.
 type RequestHandler interface {
 	Type() string
-	Defaults() map[string]string
+	Defaults() ConfigSection
 	Init(*Agent) error
 }
 

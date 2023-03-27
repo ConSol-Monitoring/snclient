@@ -45,15 +45,11 @@ func (l *HandlerPrometheus) Type() string {
 	return "prometheus"
 }
 
-func (l *HandlerPrometheus) Defaults() map[string]string {
-	defaults := map[string]string{
-		"port":          "9999",
-		"use ssl":       "0",
-		"bind to":       "",
-		"allowed hosts": "127.0.0.1",
-		"password":      "",
-		"certificate":   "${certificate-path}/cacert.pem",
+func (l *HandlerPrometheus) Defaults() ConfigSection {
+	defaults := ConfigSection{
+		"port": "9999",
 	}
+	defaults.Merge(DefaultListenHTTPConfig)
 
 	return defaults
 }

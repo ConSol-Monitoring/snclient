@@ -37,19 +37,13 @@ func (l *HandlerNRPE) Type() string {
 	return "nrpe"
 }
 
-func (l *HandlerNRPE) Defaults() map[string]string {
-	defaults := map[string]string{
-		"allow arguments":     "0",
-		"allow nasty chars":   "0",
-		"allowed ciphers":     "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH",
-		"allowed hosts":       "127.0.0.1",
-		"bind to":             "",
-		"cache allowed hosts": "1",
-		"certificate":         "${certificate-path}/certificate.pem",
-		"port":                "5666",
-		"timeout":             "30",
-		"use ssl":             "0",
+func (l *HandlerNRPE) Defaults() ConfigSection {
+	defaults := ConfigSection{
+		"allow arguments":   "0",
+		"allow nasty chars": "0",
+		"port":              "5666",
 	}
+	defaults.Merge(DefaultListenTCPConfig)
 
 	return defaults
 }

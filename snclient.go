@@ -225,7 +225,7 @@ func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
 	}
 
 	for _, path := range snc.flags.flagConfigFile {
-		err := config.readSettingsFile(path)
+		err := config.ReadSettingsFile(path)
 		if err != nil {
 			return nil, nil, fmt.Errorf("reading settings failed: %s", err.Error())
 		}
@@ -259,7 +259,9 @@ func (snc *Agent) initListeners(conf Config) (map[string]*Listener, error) {
 			continue
 		}
 
-		listenConf := conf.MergeDefaults(conf.MergeConfig(entry.ConfigKey, "/settings/default"), entry.Init.Defaults())
+		listenConf := conf.Section(entry.ConfigKey).Clone()
+		listenConf.Merge(*conf.Section("/settings/default"))
+		listenConf.Merge(entry.Init.Defaults())
 
 		listener, err := snc.initListener(listenConf, entry.Init)
 		if err != nil {
@@ -479,7 +481,7 @@ func (snc *Agent) logPanicExit() {
 	}
 }
 
-func (snc *Agent) initListener(conConf map[string]string, handler RequestHandler) (*Listener, error) {
+func (snc *Agent) initListener(conConf ConfigSection, handler RequestHandler) (*Listener, error) {
 	listener, err := NewListener(snc, conConf, handler)
 	if err != nil {
 		return nil, err

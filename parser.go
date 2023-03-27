@@ -1,4 +1,4 @@
-﻿package snclient
+package snclient
 
 import (
 	"regexp"
@@ -14,9 +14,7 @@ type Treshold struct {
 }
 
 func ParseArgs(args []string) []map[string]string {
-
 	var argList []map[string]string
-
 	for _, v := range args {
 
 		split := strings.SplitN(v, "=", 2)
@@ -25,11 +23,9 @@ func ParseArgs(args []string) []map[string]string {
 	}
 
 	return argList
-
 }
 
 func ParseTreshold(treshold string) Treshold {
-
 	operatorRe := regexp.MustCompile("[<|>|=|!=]")
 	split := operatorRe.Split(treshold, -1)
 
@@ -43,5 +39,4 @@ func ParseTreshold(treshold string) Treshold {
 		value:    value,
 		unit:     string(unitRe.Find([]byte(split[1]))),
 	}
-
 }

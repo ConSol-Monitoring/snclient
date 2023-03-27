@@ -24,15 +24,12 @@ func (l *HandlerWeb) Type() string {
 	return "web"
 }
 
-func (l *HandlerWeb) Defaults() map[string]string {
-	defaults := map[string]string{
-		"port":          "8433",
-		"use ssl":       "1",
-		"bind to":       "",
-		"allowed hosts": "127.0.0.1",
-		"password":      "",
-		"certificate":   "${certificate-path}/cacert.pem",
+func (l *HandlerWeb) Defaults() ConfigSection {
+	defaults := ConfigSection{
+		"port":    "8443",
+		"use ssl": "1",
 	}
+	defaults.Merge(DefaultListenHTTPConfig)
 
 	return defaults
 }
