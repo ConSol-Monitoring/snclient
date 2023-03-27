@@ -1,0 +1,4 @@
+/etc/snclient/snclient.ini
+/etc/snclient/server.crt
+/etc/snclient/server.key
+/etc/snclient/cacert.pem

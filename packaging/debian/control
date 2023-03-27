@@ -1,0 +1,10 @@
+Package: snclient
+Version: UNSET
+Section: net
+Priority: optional
+Architecture: UNSET
+Depends:
+Recommends:
+Suggests: monitoring-plugins-basic
+Maintainer: Sven Nierlein <sven@consol.de>
+Description: Cross platform general purpose monitoring agent

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+BASE=$(git tag -l | sort -V | sed -e 's/^v//g' | tail -n 1 | sed -e 's/[0-9]*$//')
+COMMITS=$(printf "%04d" $( git rev-list --all --count ))
+if [ -z "$BASE" ]; then BASE="0.1."; fi
+echo ${BASE}${COMMITS}

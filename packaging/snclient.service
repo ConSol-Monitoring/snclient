@@ -1,0 +1,12 @@
+[Unit]
+Description=snclient
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/snclient --config=/etc/snclient/snclient.ini
+User=snclient
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

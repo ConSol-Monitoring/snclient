@@ -1,0 +1,13 @@
+snclient
+*.exe
+*.deb
+*.rpm
+*.tar.gz
+*.linux.amd64
+.vscode
+.vstags
+coverage.txt
+vendor/
+tools/
+dist/
+build-deb/

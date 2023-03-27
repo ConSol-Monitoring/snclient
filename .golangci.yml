@@ -1,0 +1,39 @@
+linters-settings:
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - experimental
+  gocyclo:
+    min-complexity: 20
+  goconst:
+    min-len: 8
+    min-occurrences: 12
+  lll:
+    line-length: 140
+  funlen:
+    lines: 80
+linters:
+  enable-all: true
+  fast: false
+  disable:
+    - exhaustivestruct
+    - exhaustruct
+    - testpackage
+issues:
+  max-same-issues: 0
+  exclude-use-default: true
+  exclude:
+    - "`noCopy` is unused"
+    - "mnd: Magic number: 2, in"
+    - "mnd: Magic number: 10, in"
+    - "mnd: Magic number: 16, in"
+    - "mnd: Magic number: 64, in"
+    - "mnd: Magic number: 0o600, in"
+    - "Build is a global variable"
+    - "prometheusRegistered is a global variable"
+    - "infoCount is a global variable"
+    - "log is a global variable"
+    - "noCopy is missing in"
+    - 'err113:'
+    - 'calculated cyclomatic complexity for function checkFlags is'
