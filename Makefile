@@ -21,8 +21,6 @@ DEBFILE ?= snclient.deb
 RPM_TOPDIR=$(shell pwd)/rpm.top
 RPM_BUILD=$(shell pwd)/build-rpm
 
-.PHONY: vendor
-
 all: build
 
 CMDS = $(shell cd ./cmd && ls -1)
@@ -62,6 +60,9 @@ build: vendor
 	set -e; for CMD in $(CMDS); do \
 		cd ./cmd/$$CMD && go build -ldflags "-s -w -X main.Build=$(BUILD)" -o ../../$$CMD; cd ../..; \
 	done
+
+build-watch: vendor
+	ls *.go snclient.ini | entr -sr "$(MAKE) && ./snclient"
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
