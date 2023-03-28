@@ -35,10 +35,10 @@ type CheckMetric struct {
 	Name     string
 	Unit     string
 	Value    float64
-	Warning  CheckThreshold
-	Critical CheckThreshold
-	Min      float64
-	Max      float64
+	Warning  *CheckThreshold
+	Critical *CheckThreshold
+	Min      *float64
+	Max      *float64
 }
 
 func (m *CheckMetric) BuildNaemonString() string {
