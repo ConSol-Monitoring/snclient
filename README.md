@@ -26,8 +26,21 @@ soon...
 	- [] implement logging
 	- [] NRPE protocol support v3
 	- [] NRPE protocol support v4
-	- [] add general tls support
 	- [] rework usage()
 	- [] add feature comparison to readme
 	- [] add docs/
 	- [] add support for variables in ini file
+	- [] add support for includes in ini file
+	- [] add support for client certificates
+
+## Not gonna happen
+The following things will most likely not be part of snclient any time:
+
+	- CheckMK support
+	- Embedded LUA support
+	- Embedded Python support
+	- Graphite support
+	- NRDP support
+	- NSCA support
+	- SMTP support
+	- Website/Rest API (except doing checks)
