@@ -161,6 +161,8 @@ func (l *Listener) setListenConfig(conf ConfigSection) error {
 		switch {
 		case err != nil:
 			return fmt.Errorf("invalid certificate: %s", err.Error())
+		case !ok:
+			return fmt.Errorf("invalid ssl configuration, ssl enabled but no certificate set")
 		case ok:
 			_, err := os.ReadFile(certPath)
 			if err != nil {
@@ -172,6 +174,8 @@ func (l *Listener) setListenConfig(conf ConfigSection) error {
 		switch {
 		case err != nil:
 			return fmt.Errorf("invalid certificate key: %s", err.Error())
+		case !ok:
+			return fmt.Errorf("invalid ssl configuration, ssl enabled but no certificate key set")
 		case ok:
 			_, err := os.ReadFile(certKey)
 			if err != nil {

@@ -12,3 +12,5 @@ tools/
 dist/
 build-deb/
 snclient.ini
+server.crt
+server.key

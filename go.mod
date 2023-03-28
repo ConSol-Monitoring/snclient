@@ -2,6 +2,8 @@ module github.com/sni/snclient
 
 go 1.19
 
+replace pkg/nrpe => ./pkg/nrpe
+
 require (
 	github.com/daixiang0/gci v0.10.1
 	github.com/davecgh/go-spew v1.1.1
@@ -16,6 +18,7 @@ require (
 	golang.org/x/tools v0.7.0
 	golang.org/x/vuln v0.0.0-20230320143955-c17b6c9bd0e8
 	mvdan.cc/gofumpt v0.4.0
+	pkg/nrpe v0.0.0-00010101000000-000000000000
 )
 
 require (

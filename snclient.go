@@ -20,8 +20,11 @@ import (
 )
 
 const (
-	// VERSION contains the actual lmd version.
-	VERSION = "0.0.1"
+	// NAME contains the snclient full official name.
+	NAME = "SNClient+"
+
+	// VERSION contains the actual snclient version.
+	VERSION = "0.1"
 
 	// ExitCodeOK is used for normal exits.
 	ExitCodeOK = 0
@@ -96,12 +99,14 @@ type Agent struct {
 	}
 	cpuProfileHandler *os.File
 	Build             string
+	Revision          string
 	daemonMode        bool
 }
 
-func SNClient(build string) {
+func SNClient(build, revsion string) {
 	snc := Agent{
 		Build:     build,
+		Revision:  revsion,
 		Listeners: make(map[string]*Listener),
 	}
 
@@ -153,7 +158,7 @@ func SNClient(build string) {
 	signal.Notify(osSignalChannel, syscall.SIGINT)
 
 	snc.startAll(config, listeners)
-	log.Infof("snclient v%s (Build: %s), pid: %d started\n", VERSION, snc.Build, os.Getpid())
+	log.Infof("%s v%s (Build: %s), pid: %d started\n", NAME, VERSION, snc.Build, os.Getpid())
 
 	for {
 		exitState := snc.mainLoop(osSignalChannel)
@@ -245,17 +250,17 @@ func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
 
 		fallthrough
 	default:
-		ex, err := os.Executable()
+		executable, err := os.Executable()
 		if err != nil {
-			return nil, nil, fmt.Errorf("could not detect path to executable: %s", err)
+			return nil, nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
 		}
 
-		ex, err = filepath.Abs(ex)
+		executable, err = filepath.Abs(executable)
 		if err != nil {
-			return nil, nil, fmt.Errorf("could not detect abs path to executable: %s", err)
+			return nil, nil, fmt.Errorf("could not detect abs path to executable: %s", err.Error())
 		}
 
-		(*pathSection)["exe-path"] = filepath.Dir(ex)
+		(*pathSection)["exe-path"] = filepath.Dir(executable)
 	}
 
 	for _, key := range []string{"exe-path", "shared-path", "scripts", "certificate-path"} {
@@ -301,7 +306,7 @@ func (snc *Agent) initListeners(conf Config) (map[string]*Listener, error) {
 		enabled, ok, err := modulesConf.GetBool(entry.ModuleKey)
 		switch {
 		case err != nil:
-			return nil, fmt.Errorf("error in %s listener configuration: %s", entry.ModuleKey, err)
+			return nil, fmt.Errorf("error in %s listener configuration: %s", entry.ModuleKey, err.Error())
 		case !ok:
 			continue
 		case !enabled:
@@ -314,7 +319,7 @@ func (snc *Agent) initListeners(conf Config) (map[string]*Listener, error) {
 
 		listener, err := snc.initListener(listenConf, entry.Init)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err)
+			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
 		}
 
 		bind := listener.BindString()
@@ -393,7 +398,7 @@ func (snc *Agent) deletePidFile() {
 
 // printVersion prints the version.
 func (snc *Agent) printVersion() {
-	fmt.Fprintf(os.Stdout, "snclient+ v%s (Build: %s)\n", VERSION, snc.Build)
+	fmt.Fprintf(os.Stdout, "snclient+ v%s.%s (Build: %s)\n", VERSION, snc.Revision, snc.Build)
 }
 
 func (snc *Agent) printUsage(full bool) {

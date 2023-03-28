@@ -13,6 +13,8 @@ linters-settings:
     line-length: 140
   funlen:
     lines: 80
+  gomoddirectives:
+    replace-local: true
 linters:
   enable-all: true
   fast: false
@@ -49,3 +51,5 @@ issues:
     - "Function 'setListenConfig' has too many statements"
     - "complexity.*setListenConfig"
     - "complexity.*checkFlags"
+    - "Function 'readConfiguration' has too many statements"
+    - "complexity.*readConfiguration"

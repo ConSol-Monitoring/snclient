@@ -100,13 +100,13 @@ func (config *Config) Section(name string) *ConfigSection {
 	return &section
 }
 
-// ReplaceMacros replaces variables in given string
-func (c *Config) ReplaceMacros(value string) string {
+// ReplaceMacros replaces variables in given string.
+func (config *Config) ReplaceMacros(value string) string {
 	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
 		str = strings.TrimPrefix(str, "${")
 		str = strings.TrimSuffix(str, "}")
 		str = strings.TrimSpace(str)
-		repl, ok, err := c.Section("/paths").GetString(str)
+		repl, ok, err := config.Section("/paths").GetString(str)
 		if !ok {
 			log.Warnf("using undefined macro: ${%s}", str)
 		}

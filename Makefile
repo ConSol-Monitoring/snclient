@@ -9,6 +9,7 @@ GOVERSION:=$(shell \
 MINGOVERSION:=00010019
 MINGOVERSIONSTR:=1.19
 BUILD:=$(shell git rev-parse --short HEAD)
+REVISION:=$(shell printf "%04d" $$( git rev-list --all --count))
 # see https://github.com/go-modules-by-example/index/blob/master/010_tools/README.md
 # and https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
 TOOLSFOLDER=$(shell pwd)/tools
@@ -58,7 +59,7 @@ dump:
 
 build: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && go build -ldflags "-s -w -X main.Build=$(BUILD)" -o ../../$$CMD; cd ../..; \
+		cd ./cmd/$$CMD && go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD; cd ../..; \
 	done
 
 build-watch: vendor
@@ -66,52 +67,44 @@ build-watch: vendor
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.Build=$(BUILD)" -o ../../$$CMD.linux.amd64; cd ../..; \
+		cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.linux.amd64; cd ../..; \
 	done
 
 build-windows-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD)" -o ../../$$CMD.windows.i386.exe; cd ../..; \
+		cd ./cmd/$$CMD && GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.windows.i386.exe; cd ../..; \
 	done
 
 build-windows-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD)" -o ../../$$CMD.windows.amd64.exe; cd ../..; \
+		cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.windows.amd64.exe; cd ../..; \
 	done
-
-debugbuild: fmt dump vendor
-	go build -race -ldflags "-X main.Build=$(BUILD)"
-	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && go build -race -ldflags "-X main.Build=$(BUILD)"; cd ../..; \
-	done
-
-devbuild: debugbuild
 
 test: fmt dump vendor
-	go test -short -v -timeout=1m
-	if grep -rn TODO: *.go ./cmd/; then exit 1; fi
-	if grep -rn Dump *.go ./cmd/*/*.go | grep -v dump.go | grep -v DumpRequest; then exit 1; fi
+	go test -short -v -timeout=1m ./ ./pkg/*/.
+	if grep -rn TODO: *.go ./cmd/ ./pkg/; then exit 1; fi
+	if grep -rn Dump *.go ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRequest; then exit 1; fi
 
 longtest: fmt dump vendor
-	go test -v -timeout=1m
+	go test -v -timeout=1m ./ ./pkg/*/.
 
 citest: vendor
 	#
 	# Checking gofmt errors
 	#
-	if [ $$(gofmt -s -l *.go ./cmd/ | wc -l) -gt 0 ]; then \
+	if [ $$(gofmt -s -l *.go ./cmd/ ./pkg/ | wc -l) -gt 0 ]; then \
 		echo "found format errors in these files:"; \
-		gofmt -s -l *.go ./cmd/; \
+		gofmt -s -l *.go ./cmd/ ./pkg/; \
 		exit 1; \
 	fi
 	#
 	# Checking TODO items
 	#
-	if grep -rn TODO: *.go ./cmd/; then exit 1; fi
+	if grep -rn TODO: *.go ./cmd/ ./pkg/; then exit 1; fi
 	#
 	# Checking remaining debug calls
 	#
-	if grep -rn Dump *.go ./cmd/*/*.go | grep -v dump.go | grep -v DumpRequest; then exit 1; fi
+	if grep -rn Dump *.go ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRequest; then exit 1; fi
 	#
 	# Darwin and Linux should be handled equal
 	#
@@ -126,11 +119,11 @@ citest: vendor
 	#
 	# Normal test cases
 	#
-	go test -v -timeout=1m
+	go test -v -timeout=1m ./ ./pkg/*/.
 	#
 	# Benchmark tests
 	#
-	go test -v -timeout=1m -bench=B\* -run=^$$ . -benchmem
+	go test -v -timeout=1m -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/.
 	#
 	# Race rondition tests
 	#
@@ -147,18 +140,18 @@ citest: vendor
 	go mod tidy
 
 benchmark: fmt
-	go test -timeout=1m -ldflags "-s -w -X main.Build=$(BUILD)" -v -bench=B\* -run=^$$ . -benchmem
+	go test -timeout=1m -ldflags "-s -w -X main.Build=$(BUILD)" -v -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/.
 
 racetest: fmt
-	go test -race -v -timeout=3m -coverprofile=coverage.txt -covermode=atomic
+	go test -race -v -timeout=3m -coverprofile=coverage.txt -covermode=atomic ./ ./pkg/*/.
 
 covertest: fmt
-	go test -v -coverprofile=cover.out -timeout=1m
+	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/.
 	go tool cover -func=cover.out
 	go tool cover -html=cover.out -o coverage.html
 
 coverweb: fmt
-	go test -v -coverprofile=cover.out -timeout=1m
+	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/.
 	go tool cover -html=cover.out
 
 clean:
@@ -171,7 +164,6 @@ clean:
 	rm -f cover.out
 	rm -f coverage.html
 	rm -f coverage.txt
-	rm -f mod-gearman*.html
 	rm -rf vendor/
 	rm -rf $(TOOLSFOLDER)
 	rm -rf dist/
@@ -179,19 +171,22 @@ clean:
 	rm -rf build-rpm/
 
 fmt: tools
-	goimports -w *.go ./cmd/
+	goimports -w *.go ./cmd/ ./pkg/
 	go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable .
 	set -e; for CMD in $(CMDS); do \
 		go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable ./cmd/$$CMD; \
 	done
-	gofmt -w -s *.go ./cmd/
-	./tools/gofumpt -w *.go ./cmd/
-	./tools/gci write *.go ./cmd/.
+	set -e; for dir in $(shell ls -d1 pkg/*); do \
+		go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable ./$$dir; \
+	done
+	gofmt -w -s *.go ./cmd/ ./pkg/
+	./tools/gofumpt -w *.go ./cmd/ ./pkg/
+	./tools/gci write *.go ./cmd/. ./pkg/.
 
 versioncheck:
 	@[ $$( printf '%s\n' $(GOVERSION) $(MINGOVERSION) | sort | head -n 1 ) = $(MINGOVERSION) ] || { \
 		echo "**** ERROR:"; \
-		echo "**** Mod-Gearman-Worker-Go requires at least golang version $(MINGOVERSIONSTR) or higher"; \
+		echo "**** SNClient+ requires at least golang version $(MINGOVERSIONSTR) or higher"; \
 		echo "**** this is: $$(go version)"; \
 		exit 1; \
 	}
@@ -207,7 +202,7 @@ govulncheck: tools
 	govulncheck ./...
 
 version:
-	OLDVERSION="$(shell grep "VERSION =" ./mod_gearman_worker.go | awk '{print $$3}' | tr -d '"')"; \
+	OLDVERSION="$(shell grep "VERSION =" ./snclient.go | awk '{print $$3}' | tr -d '"')"; \
 	NEWVERSION=$$(dialog --stdout --inputbox "New Version:" 0 0 "v$$OLDVERSION") && \
 		NEWVERSION=$$(echo $$NEWVERSION | sed "s/^v//g"); \
 		if [ "v$$OLDVERSION" = "v$$NEWVERSION" -o "x$$NEWVERSION" = "x" ]; then echo "no changes"; exit 1; fi; \

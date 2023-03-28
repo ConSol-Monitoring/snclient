@@ -42,7 +42,7 @@ type CheckMetric struct {
 }
 
 func (m *CheckMetric) BuildNaemonString() string {
-	return (fmt.Sprintf("'%s%s'=%f;;;%f;%f", m.Name, m.Unit, m.Value, m.Min, m.Max))
+	return (fmt.Sprintf("'%s%s'=%f;;;%f;%f", m.Name, m.Unit, m.Value, *m.Min, *m.Max))
 }
 
 // CheckThreshold defines a threshold range.

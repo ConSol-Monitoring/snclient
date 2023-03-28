@@ -8,6 +8,10 @@ import (
 // compile passing -ldflags "-X main.Build <build sha1>" to set the id.
 var Build string
 
+// Revision contains the minor version number (number of commits)
+// compile passing -ldflags "-X main.Revision <commits>" to set the revsion number.
+var Revision string
+
 func main() {
-	snclient.SNClient(Build)
+	snclient.SNClient(Build, Revision)
 }
