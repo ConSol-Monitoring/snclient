@@ -23,7 +23,21 @@ var log = factorlog.New(os.Stdout, factorlog.NewStdFormatter(
 		`[pid:`+fmt.Sprintf("%d", os.Getpid())+`]`+
 		`[%{ShortFile}:%{Line}] %{Message}`))
 
-func CreateLogger(_ *Agent) {
+func CreateLogger(snc *Agent) {
+	conf := snc.Config.Section("/settings/log")
+	level, ok, err := conf.GetString("level")
+	switch {
+	case err != nil:
+		log.Errorf("failed to read log level from config: %s")
+
+		return
+	case !ok:
+		level = "info"
+
+		fallthrough
+	default:
+		log.Debugf("log level: %s", level)
+	}
 }
 
 // LogWriter implements the io.Writer interface and simply logs everything with given level.

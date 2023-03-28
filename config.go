@@ -5,9 +5,12 @@ import (
 	"crypto/tls"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
+
+var reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_]+\s*\}`)
 
 type configFiles []string
 
@@ -31,9 +34,6 @@ func (c *configFiles) Set(value string) error {
 
 // Config contains the merged config over all config files.
 type Config map[string]ConfigSection
-
-// ConfigSection contains a single config section.
-type ConfigSection map[string]string
 
 func NewConfig() Config {
 	conf := make(Config, 0)
@@ -99,6 +99,29 @@ func (config *Config) Section(name string) *ConfigSection {
 
 	return &section
 }
+
+// ReplaceMacros replaces variables in given string
+func (c *Config) ReplaceMacros(value string) string {
+	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
+		str = strings.TrimPrefix(str, "${")
+		str = strings.TrimSuffix(str, "}")
+		str = strings.TrimSpace(str)
+		repl, ok, err := c.Section("/paths").GetString(str)
+		if !ok {
+			log.Warnf("using undefined macro: ${%s}", str)
+		}
+		if err != nil {
+			log.Warnf("cannot expand macro: ${%s}", str, err.Error())
+		}
+
+		return repl
+	})
+
+	return value
+}
+
+// ConfigSection contains a single config section.
+type ConfigSection map[string]string
 
 // Merge merges defaults into ConfigSection, ex.: MergeDefaults(map[string]string).
 func (cs *ConfigSection) Merge(defaults ConfigSection) {

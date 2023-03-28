@@ -46,14 +46,15 @@ type Listener struct {
 	noCopy            noCopy
 	snc               *Agent
 	connType          string
+	listen            net.Listener
+	handler           RequestHandler
 	port              int64
 	bindAddress       string
 	cacheAllowedHosts bool
 	tlsConfig         *tls.Config
 	allowedHosts      []AllowedHost
 	socketTimeout     time.Duration
-	listen            net.Listener
-	handler           RequestHandler
+	password          string
 }
 
 // NewListener creates a new Listener object.
@@ -183,6 +184,13 @@ func (l *Listener) setListenConfig(conf ConfigSection) error {
 		}
 		l.tlsConfig.Certificates = []tls.Certificate{cer}
 	}
+
+	// set password
+	password, _, err := conf.GetString("password")
+	if err != nil {
+		return fmt.Errorf("invalid password specification: %s", err.Error())
+	}
+	l.password = password
 
 	return nil
 }

@@ -29,7 +29,6 @@ soon...
 	- [] rework usage()
 	- [] add feature comparison to readme
 	- [] add docs/
-	- [] add support for variables in ini file
 	- [] add support for includes in ini file
 	- [] add support for client certificates
 

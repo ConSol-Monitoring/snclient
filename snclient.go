@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
@@ -110,9 +111,10 @@ func SNClient(build string) {
 	// reads the args, check if they are params, if so sends them to the configuration reader
 	config, listeners, err := snc.readConfiguration()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 		snc.CleanExit(ExitCodeError)
 	}
+	CreateLogger(&snc)
 
 	defer snc.logPanicExit()
 
@@ -185,6 +187,7 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 					continue
 				}
 
+				CreateLogger(snc)
 				snc.startAll(newConfig, listeners)
 
 				return exitCode
@@ -231,11 +234,60 @@ func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
 		}
 	}
 
-	CreateLogger(snc)
+	// set paths
+	pathSection := config.Section("/paths")
+	exe, ok, err := pathSection.GetString("exe-path")
+	switch {
+	case err != nil:
+		return nil, nil, fmt.Errorf("reading exe-path settings failed: %s", err.Error())
+	case ok && exe != "":
+		log.Warnf("exe-path should not be set manually")
+
+		fallthrough
+	default:
+		ex, err := os.Executable()
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not detect path to executable: %s", err)
+		}
+
+		ex, err = filepath.Abs(ex)
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not detect abs path to executable: %s", err)
+		}
+
+		(*pathSection)["exe-path"] = filepath.Dir(ex)
+	}
+
+	for _, key := range []string{"exe-path", "shared-path", "scripts", "certificate-path"} {
+		val, ok, err := pathSection.GetString(key)
+		switch {
+		case err != nil:
+			return nil, nil, fmt.Errorf("reading %s settings failed: %s", key, err.Error())
+		case !ok || val == "":
+			(*pathSection)[key] = (*pathSection)["exe-path"]
+		}
+	}
+
+	for key, val := range *pathSection {
+		val = config.ReplaceMacros(val)
+		(*pathSection)[key] = val
+	}
+
+	// replace other sections
+	for _, section := range config {
+		for key, val := range section {
+			val = config.ReplaceMacros(val)
+			section[key] = val
+		}
+	}
 
 	listen, err := snc.initListeners(config)
 	if err != nil {
 		return nil, nil, fmt.Errorf("listener initialization failed: %s", err.Error())
+	}
+
+	if len(listen) == 0 {
+		return nil, nil, fmt.Errorf("no listener enabled, bailing out")
 	}
 
 	return config, listen, nil
@@ -244,18 +296,15 @@ func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
 func (snc *Agent) initListeners(conf Config) (map[string]*Listener, error) {
 	listen := make(map[string]*Listener)
 
-	modulesConf, ok := conf["/modules"]
-	if !ok {
-		modulesConf = make(map[string]string)
-	}
-
+	modulesConf := conf.Section("/modules")
 	for _, entry := range AvailableListeners {
-		enabled, ok := modulesConf[entry.ModuleKey]
-		if !ok {
+		enabled, ok, err := modulesConf.GetBool(entry.ModuleKey)
+		switch {
+		case err != nil:
+			return nil, fmt.Errorf("error in %s listener configuration: %s", entry.ModuleKey, err)
+		case !ok:
 			continue
-		}
-
-		if enabled != "1" {
+		case !enabled:
 			continue
 		}
 
@@ -265,7 +314,7 @@ func (snc *Agent) initListeners(conf Config) (map[string]*Listener, error) {
 
 		listener, err := snc.initListener(listenConf, entry.Init)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err)
 		}
 
 		bind := listener.BindString()
