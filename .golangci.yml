@@ -17,11 +17,22 @@ linters:
   enable-all: true
   fast: false
   disable:
+    - deadcode
     - exhaustivestruct
     - exhaustruct
-    - testpackage
-    - gochecknoinits
     - gochecknoglobals
+    - gochecknoinits
+    - golint
+    - ifshort
+    - interfacer
+    - maligned
+    - nonamedreturns
+    - nosnakecase
+    - scopelint
+    - structcheck
+    - testpackage
+    - varcheck
+    - wsl
 issues:
   max-same-issues: 0
   exclude-use-default: true
@@ -34,4 +45,7 @@ issues:
     - "mnd: Magic number: 0o600, in"
     - "noCopy is missing in"
     - 'err113:'
-    - 'calculated cyclomatic complexity for function checkFlags is'
+    - "variable name 'ok' is too short"
+    - "Function 'setListenConfig' has too many statements"
+    - "complexity.*setListenConfig"
+    - "complexity.*checkFlags"

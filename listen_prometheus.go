@@ -47,7 +47,8 @@ func (l *HandlerPrometheus) Type() string {
 
 func (l *HandlerPrometheus) Defaults() ConfigSection {
 	defaults := ConfigSection{
-		"port": "9999",
+		"port":    "9999",
+		"use ssl": "0",
 	}
 	defaults.Merge(DefaultListenHTTPConfig)
 

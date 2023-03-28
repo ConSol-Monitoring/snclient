@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/netip"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -24,7 +25,8 @@ var DefaultListenTCPConfig = ConfigSection{
 	"allowed hosts":       "127.0.0.1, [::1]",
 	"bind to":             "",
 	"cache allowed hosts": "1",
-	"certificate":         "${certificate-path}/certificate.pem",
+	"certificate":         "./server.crt",
+	"certificate key":     "./server.key",
 	"timeout":             "30",
 	"use ssl":             "0",
 }
@@ -72,10 +74,14 @@ func NewListener(snc *Agent, conf ConfigSection, r RequestHandler) (*Listener, e
 
 func (l *Listener) setListenConfig(conf ConfigSection) error {
 	// parse/set port.
-	if port, ok := conf["port"]; ok {
+	port, ok, err := conf.GetString("port")
+	switch {
+	case err != nil:
+		return fmt.Errorf("invalid timeout specification: %s", err.Error())
+	case ok:
 		if strings.HasSuffix(port, "s") {
 			port = strings.TrimSuffix(port, "s")
-			conf["ssl"] = "1"
+			conf["use ssl"] = "1"
 		}
 
 		num, err := strconv.ParseInt(port, 10, 64)
@@ -87,18 +93,21 @@ func (l *Listener) setListenConfig(conf ConfigSection) error {
 	}
 
 	// set bind address (can be empty)
-	l.bindAddress = conf["bind to"]
+	bindAddress, _, err := conf.GetString("bind to")
+	if err != nil {
+		return fmt.Errorf("invalid bind to specification: %s", err.Error())
+	}
+	l.bindAddress = bindAddress
 
 	// parse / set socket timeout.
-	l.socketTimeout = DefaulSocketTimeout * time.Second
-
-	if socketTimeout, ok := conf["timeout"]; ok {
-		num, err := strconv.ParseInt(socketTimeout, 10, 64)
-		if err != nil {
-			return fmt.Errorf("invalid timeout specification: %s", err.Error())
-		}
-
-		l.socketTimeout = time.Duration(num) * time.Second
+	socketTimeout, ok, err := conf.GetInt("timeout")
+	switch {
+	case err != nil:
+		return fmt.Errorf("invalid timeout specification: %s", err.Error())
+	case ok:
+		l.socketTimeout = time.Duration(socketTimeout) * time.Second
+	default:
+		l.socketTimeout = DefaulSocketTimeout * time.Second
 	}
 
 	// parse / set allowed hosts
@@ -108,15 +117,71 @@ func (l *Listener) setListenConfig(conf ConfigSection) error {
 			if allow == "" {
 				continue
 			}
-
 			l.allowedHosts = append(l.allowedHosts, NewAllowedHost(allow))
 		}
 	}
 
 	// parse / set cache allowed hosts
-	l.cacheAllowedHosts = true
-	if cache, ok := conf["cache allowed hosts"]; ok {
-		l.cacheAllowedHosts = cache == "1"
+	cacheAllowedHosts, ok, err := conf.GetBool("cache allowed hosts")
+	switch {
+	case err != nil:
+		return fmt.Errorf("invalid cache allowed hosts specification: %s", err.Error())
+	case ok:
+		l.cacheAllowedHosts = cacheAllowedHosts
+	default:
+		l.cacheAllowedHosts = true
+	}
+
+	// parse / set ssl config
+	useSsl, _, err := conf.GetBool("use ssl")
+	switch {
+	case err != nil:
+		return fmt.Errorf("invalid use ssl specification: %s", err.Error())
+	case useSsl:
+		l.tlsConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+
+		// tls minimum version
+		tlsMin, ok, err := conf.GetString("tls min version")
+		switch {
+		case err != nil:
+			return fmt.Errorf("invalid tls min version: %s", err.Error())
+		case ok:
+			min, err := parseTLSMinVersion(tlsMin)
+			if err != nil {
+				return fmt.Errorf("invalid tls min version: %s", err.Error())
+			}
+			l.tlsConfig.MinVersion = min
+		}
+
+		// certificate
+		certPath, ok, err := conf.GetString("certificate")
+		switch {
+		case err != nil:
+			return fmt.Errorf("invalid certificate: %s", err.Error())
+		case ok:
+			_, err := os.ReadFile(certPath)
+			if err != nil {
+				return fmt.Errorf("cannot read certificate: %s", err.Error())
+			}
+		}
+
+		certKey, ok, err := conf.GetString("certificate key")
+		switch {
+		case err != nil:
+			return fmt.Errorf("invalid certificate key: %s", err.Error())
+		case ok:
+			_, err := os.ReadFile(certKey)
+			if err != nil {
+				return fmt.Errorf("cannot read certificate key: %s", err.Error())
+			}
+		}
+		cer, err := tls.LoadX509KeyPair(certPath, certKey)
+		if err != nil {
+			return fmt.Errorf("tls.LoadX509KeyPair: %s / %s: %s", certPath, certKey, err.Error())
+		}
+		l.tlsConfig.Certificates = []tls.Certificate{cer}
 	}
 
 	return nil
@@ -147,12 +212,19 @@ func (l *Listener) Start() error {
 
 	l.listen = nil
 
-	listen, err := net.Listen("tcp", l.BindString())
-	if err != nil {
-		return fmt.Errorf("listen failed: %s", err.Error())
+	if l.tlsConfig != nil {
+		listen, err := tls.Listen("tcp", l.BindString(), l.tlsConfig)
+		if err != nil {
+			return fmt.Errorf("tls listen failed: %s", err.Error())
+		}
+		l.listen = listen
+	} else {
+		listen, err := net.Listen("tcp", l.BindString())
+		if err != nil {
+			return fmt.Errorf("listen failed: %s", err.Error())
+		}
+		l.listen = listen
 	}
-
-	l.listen = listen
 
 	switch handler := l.handler.(type) {
 	case RequestHandlerHTTP:
@@ -192,15 +264,28 @@ func (l *Listener) startListenerTCP(handler RequestHandlerTCP) {
 			return
 		}
 
-		err = con.SetReadDeadline(time.Now().Add(l.socketTimeout))
-		if err != nil {
-			log.Warnf("setting timeout on %s listener failed: %s", err.Error())
-		}
-
-		l.ServeOne(con.RemoteAddr().String(), func() {
-			handler.ServeTCP(l.snc, con)
-		})
+		l.handleTCPCon(con, handler)
 	}
+}
+
+func (l *Listener) handleTCPCon(con net.Conn, handler RequestHandlerTCP) {
+	startTime := time.Now()
+
+	log.Tracef("incoming %s connection from %s", l.connType, con.RemoteAddr().String())
+
+	if !l.CheckConnection(con) {
+		con.Close()
+
+		return
+	}
+
+	if err := con.SetReadDeadline(time.Now().Add(l.socketTimeout)); err != nil {
+		log.Warnf("setting timeout on %s listener failed: %s", err.Error())
+	}
+
+	handler.ServeTCP(l.snc, con)
+
+	log.Debugf("%s connection from %s finished in %9s", l.connType, con.RemoteAddr().String(), time.Since(startTime))
 }
 
 func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
@@ -228,6 +313,19 @@ func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
 		WriteTimeout:      DefaulSocketTimeout * time.Second,
 		IdleTimeout:       DefaulSocketTimeout * time.Second,
 		Handler:           mux,
+		ConnState: func(con net.Conn, state http.ConnState) {
+			if state != http.StateNew {
+				return
+			}
+
+			log.Tracef("incoming %s connection from %s", l.connType, con.RemoteAddr().String())
+
+			if !l.CheckConnection(con) {
+				con.Close()
+
+				return
+			}
+		},
 	}
 
 	if err := server.Serve(l.listen); err != nil {
@@ -235,20 +333,14 @@ func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
 	}
 }
 
-func (l *Listener) ServeOne(remoteAddr string, serveCB func()) {
-	startTime := time.Now()
+func (l *Listener) CheckConnection(con net.Conn) bool {
+	if !l.CheckAllowedHosts(con.RemoteAddr().String()) {
+		log.Warnf("%s connection from %s not allowed", l.handler.Type(), con.RemoteAddr().String())
 
-	log.Debugf("incoming %s connection from %s", l.connType, remoteAddr)
-
-	if !l.CheckAllowedHosts(remoteAddr) {
-		log.Warnf("%s connection from %s prohibited by allowed hosts", l.connType, remoteAddr)
-
-		return
+		return false
 	}
 
-	serveCB()
-
-	log.Debugf("%s connection from %s finished in %9s", l.connType, remoteAddr, time.Since(startTime))
+	return true
 }
 
 func (l *Listener) CheckAllowedHosts(remoteAddr string) bool {
@@ -292,6 +384,8 @@ type WrappedHTTPHandler struct {
 }
 
 func (w *WrappedHTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	startTime := time.Now()
+
 	reqStr, err := httputil.DumpRequest(req, true)
 	if err != nil {
 		log.Tracef("%s", err.Error())
@@ -299,9 +393,9 @@ func (w *WrappedHTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Reques
 		log.Tracef("%s", string(reqStr))
 	}
 
-	w.listener.ServeOne(req.RemoteAddr, func() {
-		w.handle.ServeHTTP(res, req)
-	})
+	w.handle.ServeHTTP(res, req)
+
+	log.Debugf("%s connection from %s finished in %9s", w.listener.connType, req.RemoteAddr, time.Since(startTime))
 }
 
 func (l *Listener) WrapHTTPHandler(handle http.Handler) http.Handler {
@@ -315,100 +409,4 @@ type ErrorHTTPHandler struct{}
 
 func (w *ErrorHTTPHandler) ServeHTTP(_ http.ResponseWriter, req *http.Request) {
 	log.Warnf("unknown url %s requested from %s", req.RequestURI, req.RemoteAddr)
-}
-
-type AllowedHost struct {
-	Prefix       *netip.Prefix
-	IP           *netip.Addr
-	HostName     *string
-	ResolveCache []netip.Addr
-}
-
-func NewAllowedHost(name string) AllowedHost {
-	allowed := AllowedHost{}
-
-	if strings.HasPrefix(name, "[") && strings.HasSuffix(name, "]") {
-		name = strings.TrimPrefix(name, "[")
-		name = strings.TrimSuffix(name, "]")
-	}
-
-	// is it a netrange?
-	netRange, err := netip.ParsePrefix(name)
-	if err == nil {
-		allowed.Prefix = &netRange
-
-		return allowed
-	}
-
-	// is it an ip address ipv4/ipv6
-	if ip, err := netip.ParseAddr(name); err == nil {
-		allowed.IP = &ip
-
-		return allowed
-	}
-
-	allowed.HostName = &name
-
-	return allowed
-}
-
-func (a *AllowedHost) String() string {
-	switch {
-	case a.Prefix != nil:
-		return a.Prefix.String()
-	case a.IP != nil:
-		return a.IP.String()
-	case a.HostName != nil:
-		return *a.HostName
-	}
-
-	return ""
-}
-
-func (a *AllowedHost) Contains(addr netip.Addr, useCaching bool) bool {
-	switch {
-	case a.Prefix != nil:
-		return a.Prefix.Contains(addr)
-	case a.IP != nil:
-		return a.IP.Compare(addr) == 0
-	case a.HostName != nil:
-		resolved := a.ResolveCache
-
-		if useCaching || len(a.ResolveCache) == 0 {
-			resolved = a.resolveCache()
-			if useCaching {
-				a.ResolveCache = resolved
-			}
-		}
-
-		for _, i := range resolved {
-			if i.Compare(addr) == 0 {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	return false
-}
-
-func (a *AllowedHost) resolveCache() []netip.Addr {
-	resolved := make([]netip.Addr, 0)
-
-	ips, err := net.LookupIP(*a.HostName)
-	if err != nil {
-		log.Debugf("dns lookup for %s failed: %s", *a.HostName, err.Error())
-
-		return resolved
-	}
-
-	for _, v := range ips {
-		i, err := netip.ParseAddr(v.String())
-		if err != nil {
-			resolved = append(resolved, i)
-		}
-	}
-
-	return resolved
 }

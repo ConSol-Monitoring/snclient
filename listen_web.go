@@ -11,11 +11,15 @@ func init() {
 }
 
 type HandlerWeb struct {
-	noCopy noCopy
+	noCopy        noCopy
+	handlerLegacy http.Handler
+	handlerV1     http.Handler
 }
 
 func NewHandlerWeb() *HandlerWeb {
 	l := &HandlerWeb{}
+	l.handlerLegacy = &HandlerWebLegacy{Handler: l}
+	l.handlerV1 = &HandlerWebV1{Handler: l}
 
 	return l
 }
@@ -40,10 +44,25 @@ func (l *HandlerWeb) Init(_ *Agent) error {
 
 func (l *HandlerWeb) GetMappings(*Agent) []URLMapping {
 	return []URLMapping{
-		{URL: "*", Handler: l},
+		{URL: "/query/", Handler: l.handlerLegacy},
+		{URL: "/api/v1/queries/", Handler: l.handlerV1},
 	}
 }
 
-func (l *HandlerWeb) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(res, "Hello, %q", html.EscapeString(req.URL.Path))
+type HandlerWebLegacy struct {
+	noCopy  noCopy
+	Handler *HandlerWeb
+}
+
+func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(res, "Hello from Legacy, %q\n", html.EscapeString(req.URL.Path))
+}
+
+type HandlerWebV1 struct {
+	noCopy  noCopy
+	Handler *HandlerWeb
+}
+
+func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(res, "Hello from V1, %q\n", html.EscapeString(req.URL.Path))
 }

@@ -30,4 +30,4 @@ soon...
 	- [] rework usage()
 	- [] add feature comparison to readme
 	- [] add docs/
-	- [] add support for IPs and names in allowed hosts
+	- [] add support for variables in ini file
