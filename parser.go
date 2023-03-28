@@ -1,42 +1,62 @@
-package snclient
+﻿package snclient
 
 import (
 	"regexp"
-	"strconv"
 	"strings"
 )
+
+type Argument struct {
+	key   string
+	value string
+}
 
 type Treshold struct {
 	name     string
 	operator string
-	value    int
+	value    string
 	unit     string
 }
 
-func ParseArgs(args []string) []map[string]string {
-	var argList []map[string]string
+func ParseArgs(args []string) []Argument {
+
+	var argList []Argument
+
 	for _, v := range args {
 
 		split := strings.SplitN(v, "=", 2)
-		argList = append(argList, map[string]string{"key": split[0], "value": split[1]})
+		argList = append(argList, Argument{key: split[0], value: split[1]})
 
 	}
 
 	return argList
+
 }
 
 func ParseTreshold(treshold string) Treshold {
-	operatorRe := regexp.MustCompile("[<|>|=|!=]")
-	split := operatorRe.Split(treshold, -1)
 
-	valueRe := regexp.MustCompile("[0-9]+")
-	unitRe := regexp.MustCompile("\\D+")
-	value, _ := strconv.Atoi(string(valueRe.Find([]byte(split[1]))))
+	re := regexp.MustCompile("([A-Za-z]+)\\s*(<=|>=|<|>|=|\\!=)\\s*(\\d+|\\d+\\.\\d+|) *([A-Za-z%]+)?")
+	match := re.FindStringSubmatch(treshold)
+
+	name := match[1]
+	value := ""
+	unit := ""
+
+	if match[3] != "" {
+		value = match[3]
+		unit = match[4]
+	} else {
+		value = match[4]
+	}
+
+	if unit == "%" {
+		name += "_pct"
+	}
 
 	return Treshold{
-		name:     strings.TrimSpace(split[0]),
-		operator: string(operatorRe.Find([]byte(treshold))),
+		name:     name,
+		operator: match[2],
 		value:    value,
-		unit:     string(unitRe.Find([]byte(split[1]))),
+		unit:     unit,
 	}
+
 }
