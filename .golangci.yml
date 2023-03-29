@@ -20,6 +20,7 @@ linters:
   fast: false
   disable:
     - gci
+    - gofumpt
     - cyclop
     - deadcode
     - exhaustivestruct
