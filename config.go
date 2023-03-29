@@ -108,11 +108,11 @@ func (config *Config) ReplaceMacros(value string) string {
 		str = strings.TrimSuffix(str, "}")
 		str = strings.TrimSpace(str)
 		repl, ok, err := config.Section("/paths").GetString(str)
-		if !ok {
-			log.Warnf("using undefined macro: ${%s}", str)
-		}
-		if err != nil {
+		switch {
+		case err != nil:
 			log.Warnf("cannot expand macro: ${%s}", str, err.Error())
+		case !ok:
+			log.Warnf("using undefined macro: ${%s}", str)
 		}
 
 		return repl
