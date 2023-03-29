@@ -1,12 +1,18 @@
 [Unit]
-Description=snclient
+Description=SNClient+ Agent
 After=network.target
 
 [Service]
+Type=simple
+User=root
+
+Restart=on-failure
+RestartSec=10
+startLimitIntervalSec=60
+
+WorkingDirectory=/
 ExecStart=/usr/bin/snclient --config=/etc/snclient/snclient.ini
-User=snclient
-StandardOutput=syslog
-StandardError=syslog
+ExecStartPre=/bin/mkdir -p /var/log/snclient
 
 [Install]
 WantedBy=multi-user.target

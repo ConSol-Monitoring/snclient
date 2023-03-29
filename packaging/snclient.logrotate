@@ -1,0 +1,8 @@
+/var/log/snclient/snclient.log {
+    missingok
+    notifempty
+    copytruncate
+    compress
+    daily
+}
+

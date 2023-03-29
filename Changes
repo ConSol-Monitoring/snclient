@@ -1,0 +1,10 @@
+This file documents the revision history for the SNClient+ agent.
+
+0.1      Wed Mar 29 10:26:35 CEST 2023
+          - add packaging
+            - windows
+            - rpm
+            - deb
+          - add nrpe support
+          - add check_nsc_web rest api support
+          - add basic checks

@@ -18,9 +18,8 @@ export PATH := $(GOBIN):$(PATH)
 
 VERSION ?= $(shell ./buildtools/get_version)
 ARCH    ?= $(shell go env GOARCH)
-DEBFILE ?= snclient.deb
+DEBFILE ?= snclient-$(VERSION)-$(BUILD)-$(ARCH).deb
 RPM_TOPDIR=$(shell pwd)/rpm.top
-RPM_BUILD=$(shell pwd)/build-rpm
 
 all: build
 
@@ -59,7 +58,7 @@ dump:
 
 build: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD; cd ../..; \
+		cd ./cmd/$$CMD && CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD; cd ../..; \
 	done
 
 build-watch: vendor
@@ -67,7 +66,7 @@ build-watch: vendor
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.linux.amd64; cd ../..; \
+		cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.linux.amd64; cd ../..; \
 	done
 
 build-windows-i386: vendor
@@ -196,7 +195,7 @@ golangci: tools
 	# golangci combines a few static code analyzer
 	# See https://github.com/golangci/golangci-lint
 	#
-	golangci-lint run ./...; \
+	golangci-lint run ./...
 
 govulncheck: tools
 	govulncheck ./...
@@ -219,9 +218,15 @@ dist:
 		./README.md \
 		./LICENSE \
 		./packaging/snclient.ini \
+		./packaging/snclient.logrotate \
 		./dist/
 	[ -f snclient ] || $(MAKE) build
 	if [ "$(GOOS)" = "windows" ]; then cp ./snclient -p ./dist/snclient.exe; else cp -p ./snclient ./dist/snclient; fi
+	help2man --no-info --section=8 --version-string="snclient $(VERSION)" \
+		--help-option=-h --include=./packaging/help2man.include \
+		-n "Agent that runs provides system checks." \
+		./snclient \
+		> dist/snclient.8
 
 snclient: build
 
@@ -229,23 +234,28 @@ deb: | dist
 	mkdir -p \
 		build-deb/etc/snclient \
 		build-deb/usr/bin \
-		build-deb/lib/systemd/system
+		build-deb/lib/systemd/system \
+		build-deb/etc/logrotate.d \
+		build-deb/usr/share/doc/snclient
 
+	rm -rf ./build-deb/DEBIAN
 	cp -r ./packaging/debian ./build-deb/DEBIAN
 	cp ./dist/snclient.ini ./dist/server.crt ./dist/server.key ./dist/cacert.pem ./build-deb/etc/snclient
 	cp -p ./dist/snclient build-deb/usr/bin/snclient
-
 	cp ./packaging/snclient.service build-deb/lib/systemd/system/
+	cp ./packaging/snclient.logrotate build-deb/etc/logrotate.d/snclient
+	rm -f build-deb/usr/share/doc/snclient/changelog.gz
+	cp Changes build-deb/usr/share/doc/snclient/changelog
+	gzip -9 build-deb/usr/share/doc/snclient/changelog
 
-	sed -i 's|"LogFilePath": "output.log",|"LogFilePath": "/var/log/snclient/snclient.log",|' build-deb/etc/snclient/snclient.ini
 	sed -i build-deb/DEBIAN/control -e 's|^Architecture: .*|Architecture: $(ARCH)|'
 	sed -i build-deb/DEBIAN/control -e 's|^Architecture: 386|Architecture: i386|'
 	sed -i build-deb/DEBIAN/control -e 's|^Version: .*|Version: $(VERSION)|'
 
 	chmod 600 build-deb/etc/snclient/*
 
-	-chown -R root:root build-deb/
-	dpkg-deb --build ./build-deb ./$(DEBFILE)
+	dpkg-deb --build --root-owner-group ./build-deb ./$(DEBFILE)
+	-lintian ./$(DEBFILE)
 
 rpm: | dist
 	rm -rf snclient-$(VERSION)
@@ -270,5 +280,6 @@ rpm: | dist
 		--define "_topdir $(RPM_TOPDIR)" \
 		--buildroot=$(shell pwd)/build-rpm \
 		-bb dist/snclient.spec; \
-	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm snclient-$(VERSION)-$$RPM_ARCH.rpm
+	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm snclient-$(VERSION)-$(BUILD)-$$RPM_ARCH.rpm
 	rm -rf $(RPM_TOPDIR) build-rpm
+	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$$RPM_ARCH.rpm

@@ -6,15 +6,13 @@ Packager:      Sven Nierlein <sven.nierlein@consol.de>
 Vendor:        Labs Consol
 URL:           https://github.com/sni/snclient/
 Source0:       snclient-%{version}.tar.gz
-Group:         Applications/Monitoring
+Group:         Applications/System
 Summary:       Monitoring Agent
-%if 0%{?systemd_requires}
-%systemd_requires
-%endif
+Requires:      logrotate
 
 %description
-SNClient is a Cross platform general purpose monitoring agent mainly for Naemon
-as replacement for NSClient++.
+SNClient is a Cross platform general purpose monitoring agent designed
+as replacement for NRPE and NSClient++.
 It supports Prometheus, NRPE and a REST API HTTP(s) protocol to run checks.
 
 %prep
@@ -24,11 +22,67 @@ It supports Prometheus, NRPE and a REST API HTTP(s) protocol to run checks.
 
 %install
 %{__mkdir_p} -m 0755 %{buildroot}/usr/bin
+%{__install} -D -m 0644 -p snclient %{buildroot}/usr/bin/snclient
+
 %{__mkdir_p} -m 0755 %{buildroot}/etc/snclient
+%{__install} -D -m 0644 -p snclient.ini cacert.pem server.crt server.key %{buildroot}/etc/snclient
+
+%{__mkdir_p} -m 0755 %{buildroot}/etc/logrotate.d
+%{__install} -D -m 0644 -p snclient.logrotate %{buildroot}/etc/logrotate.d/snclient
+
 %{__mkdir_p} -m 0755 %{buildroot}/lib/systemd/system
 %{__install} -D -m 0644 -p snclient.service %{buildroot}/lib/systemd/system/snclient.service
-%{__install} -D -m 0644 -p snclient %{buildroot}/usr/bin/snclient
-%{__install} -D -m 0644 -p snclient.ini cacert.pem server.crt server.key %{buildroot}/etc/snclient
+
+%{__mkdir_p} -m 0755 %{buildroot}/usr/share/snclient
+%{__install} -D -m 0644 -p README.md LICENSE %{buildroot}/usr/share/snclient
+
+%{__mkdir_p} -m 0755 %{buildroot}/usr/share/man/man8
+%{__install} -D -m 0644 -p snclient.8 %{buildroot}/usr/share/man/man8/snclient
+gzip -9 %{buildroot}/usr/share/man/man8/snclient
+
+%{__mkdir_p} -m 0755 %{buildroot}/usr/share/man/man1
+%{__install} -D -m 0644 -p %{buildroot}/usr/share/man/man8/snclient.gz %{buildroot}/usr/share/man/man1/snclient.gz
+
+%post
+case "$*" in
+  1)
+    # First installation
+    systemctl daemon-reload &>/dev/null || true
+    systemctl start snclient.service &>/dev/null || true
+  ;;
+  2)
+    # Upgrading
+    systemctl daemon-reload &>/dev/null || true
+    systemctl condrestart snclient.service &>/dev/null || true
+  ;;
+  *) echo case "$*" not handled in post
+esac
+
+%preun
+case "$*" in
+  0)
+    # Uninstall
+    systemctl stop snclient.service &>/dev/null || true
+  ;;
+  1)
+    # Upgrade, don't do anything
+  ;;
+  *) echo case "$*" not handled in preun
+esac
+exit 0
+
+%postun
+case "$*" in
+  0)
+    # post uninstall
+    systemctl daemon-reload &>/dev/null || true
+    ;;
+  1)
+    # post update
+    ;;
+  *) echo case "$*" not handled in postun
+esac
+exit 0
 
 %clean
 %{__rm} -rf %{buildroot}
@@ -38,5 +92,10 @@ It supports Prometheus, NRPE and a REST API HTTP(s) protocol to run checks.
 %attr(0755,root,root) /usr/bin/snclient
 %attr(0644,root,root) /lib/systemd/system/snclient.service
 %config(noreplace) /etc/snclient
+%config(noreplace) /etc/logrotate.d/snclient
+%doc /usr/share/snclient/README.md
+%doc /usr/share/snclient/LICENSE
+%doc /usr/share/man/man8/snclient.gz
+%doc /usr/share/man/man1/snclient.gz
 
 %changelog
