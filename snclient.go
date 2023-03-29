@@ -402,22 +402,24 @@ func (snc *Agent) printVersion() {
 }
 
 func (snc *Agent) printUsage(full bool) {
-	fmt.Fprintf(os.Stdout, "Usage: snclient [OPTION]...\n")
-	fmt.Fprintf(os.Stdout, "\n")
-	fmt.Fprintf(os.Stdout, "snclient+ agent runs checks on various platforms.\n")
-	fmt.Fprintf(os.Stdout, "\n")
-	fmt.Fprintf(os.Stdout, "Basic Settings:\n")
-	fmt.Fprintf(os.Stdout, "       --daemon                                     \n")
-	fmt.Fprintf(os.Stdout, "       --debug=<lvl>                                \n")
-	fmt.Fprintf(os.Stdout, "       --logmode=<automatic|stdout|syslog|file>     \n")
-	fmt.Fprintf(os.Stdout, "       --logfile=<path>                             \n")
-	fmt.Fprintf(os.Stdout, "       --help|-h                                    \n")
-	fmt.Fprintf(os.Stdout, "       --config=<configfile>                        \n")
-	fmt.Fprintf(os.Stdout, "\n")
-	fmt.Fprintf(os.Stdout, "see README for a detailed explanation of all options.\n")
-	fmt.Fprintf(os.Stdout, "\n")
+	usageOutput := os.Stdout
+	fmt.Fprintf(usageOutput, "Usage: snclient [OPTION]...\n")
+	fmt.Fprintf(usageOutput, "\n")
+	fmt.Fprintf(usageOutput, "snclient+ agent runs checks on various platforms.\n")
+	fmt.Fprintf(usageOutput, "\n")
+	fmt.Fprintf(usageOutput, "Basic Settings:\n")
+	fmt.Fprintf(usageOutput, "       --daemon                                     \n")
+	fmt.Fprintf(usageOutput, "       --debug=<lvl>                                \n")
+	fmt.Fprintf(usageOutput, "       --logmode=<automatic|stdout|syslog|file>     \n")
+	fmt.Fprintf(usageOutput, "       --logfile=<path>                             \n")
+	fmt.Fprintf(usageOutput, "       --help|-h                                    \n")
+	fmt.Fprintf(usageOutput, "       --config=<configfile>                        \n")
+	fmt.Fprintf(usageOutput, "\n")
+	fmt.Fprintf(usageOutput, "see README for a detailed explanation of all options.\n")
+	fmt.Fprintf(usageOutput, "\n")
 
 	if full {
+		flag.CommandLine.SetOutput(usageOutput)
 		flag.Usage()
 	}
 
