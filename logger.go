@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/kdar/factorlog"
 )
@@ -23,6 +25,8 @@ const (
 	// LogVerbosityTrace sets trace log level.
 	LogVerbosityTrace = 3
 )
+
+var doOnce sync.Once
 
 var log = factorlog.New(os.Stdout, factorlog.NewStdFormatter(
 	`[%{Date} %{Time "15:04:05.000"}]`+
@@ -96,6 +100,18 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 
 		return
 	}
+
+	o, _ := os.Stdout.Stat()
+	// check if attached to terminal.
+	if (o.Mode() & os.ModeCharDevice) == os.ModeCharDevice {
+		if targetWriter != os.Stdout && targetWriter != os.Stderr {
+			doOnce.Do(func() {
+				abs, _ := filepath.Abs(file)
+				fmt.Fprintf(os.Stdout, "further logs will go into: %s\n", abs)
+			})
+		}
+	}
+
 	log.SetOutput(targetWriter)
 }
 
