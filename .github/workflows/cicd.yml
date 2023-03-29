@@ -130,6 +130,7 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
+      - run: sudo apt-get install help2man
       - run: |
           echo "Creating dist folder for windows"
           make dist
@@ -208,9 +209,10 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}"
+      - run: sudo apt-get install help2man
       - run: |
           echo "Building ${{ env.BIN }}.deb"
-          sudo make VERSION=${{needs.get-version.outputs.version}} ARCH=${{ matrix.go-arch }} DEBFILE=${{ env.BIN }}.deb deb
+          make VERSION=${{needs.get-version.outputs.version}} ARCH=${{ matrix.go-arch }} DEBFILE=${{ env.BIN }}.deb deb
       - uses: actions/upload-artifact@v3
         with:
           name: "${{ env.BIN }}.deb"
@@ -234,6 +236,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}"
+      - run: sudo apt-get install help2man
       - run: |
           echo "Building ${{ env.BIN }}.rpm"
           make rpm
