@@ -32,7 +32,7 @@ soon...
 ## Roadmap
 
 - [] check usr signal handler
-- [] implement logging
+- [] implement log rotation for file logger
 - [] NRPE protocol support v3
 - [] NRPE protocol support v4
 - [] rework usage()

@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -31,6 +32,12 @@ var log = factorlog.New(os.Stdout, factorlog.NewStdFormatter(
 
 func CreateLogger(snc *Agent) {
 	conf := snc.Config.Section("/settings/log")
+
+	setLogLevel(snc, conf)
+	setLogFile(snc, conf)
+}
+
+func setLogLevel(snc *Agent, conf *ConfigSection) {
 	level, ok, err := conf.GetString("level")
 	switch {
 	case err != nil:
@@ -62,6 +69,34 @@ func CreateLogger(snc *Agent) {
 		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
 		log.SetVerbosity(LogVerbosityTrace)
 	}
+}
+
+func setLogFile(snc *Agent, conf *ConfigSection) {
+	file, _, err := conf.GetString("file name")
+	switch {
+	case err != nil:
+		log.Errorf("failed to log file name from config: %s")
+
+		return
+	case snc.flags.flagLogFile != "":
+		file = snc.flags.flagLogFile
+	}
+
+	var targetWriter io.Writer
+	switch file {
+	case "stdout", "":
+		targetWriter = os.Stdout
+	case "stderr":
+		targetWriter = os.Stderr
+	default:
+		targetWriter, err = os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
+	}
+	if err != nil {
+		log.Errorf(fmt.Sprintf("failed to initialize logger: %s", err.Error()))
+
+		return
+	}
+	log.SetOutput(targetWriter)
 }
 
 // LogWriter implements the io.Writer interface and simply logs everything with given level.
