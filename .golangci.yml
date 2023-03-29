@@ -19,6 +19,8 @@ linters:
   enable-all: true
   fast: false
   disable:
+    - gci
+    - cyclop
     - deadcode
     - exhaustivestruct
     - exhaustruct

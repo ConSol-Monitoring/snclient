@@ -180,7 +180,7 @@ fmt: tools
 	done
 	gofmt -w -s *.go ./cmd/ ./pkg/
 	./tools/gofumpt -w *.go ./cmd/ ./pkg/
-	./tools/gci write *.go ./cmd/. ./pkg/.
+	./tools/gci write *.go ./cmd/. ./pkg/. --skip-generated
 
 versioncheck:
 	@[ $$( printf '%s\n' $(GOVERSION) $(MINGOVERSION) | sort | head -n 1 ) = $(MINGOVERSION) ] || { \
