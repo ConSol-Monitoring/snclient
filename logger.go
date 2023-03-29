@@ -10,11 +10,17 @@ import (
 
 // define all available log level.
 const (
-	LogLevelError  = 0
-	LogLevelInfo   = 1
-	LogLevelDebug  = 2
-	LogLevelTrace  = 3
-	LogLevelTrace2 = 4
+	// LogVerbosityNone disables logging.
+	LogVerbosityNone = 0
+
+	// LogVerbosityDefault sets the default log level.
+	LogVerbosityDefault = 1
+
+	// LogVerbosityDebug sets the debug log level.
+	LogVerbosityDebug = 2
+
+	// LogVerbosityTrace sets trace log level.
+	LogVerbosityTrace = 3
 )
 
 var log = factorlog.New(os.Stdout, factorlog.NewStdFormatter(
@@ -33,10 +39,28 @@ func CreateLogger(snc *Agent) {
 		return
 	case !ok:
 		level = "info"
+	}
 
-		fallthrough
-	default:
-		log.Debugf("log level: %s", level)
+	switch {
+	case snc.flags.flagVeryVerbose, snc.flags.flagTraceVerbose:
+		level = "trace"
+	case snc.flags.flagVerbose:
+		level = "debug"
+	}
+
+	switch strings.ToLower(level) {
+	case "off":
+		log.SetMinMaxSeverity(factorlog.StringToSeverity("PANIC"), factorlog.StringToSeverity("PANIC"))
+		log.SetVerbosity(LogVerbosityNone)
+	case "info":
+		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
+		log.SetVerbosity(LogVerbosityDefault)
+	case "debug":
+		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
+		log.SetVerbosity(LogVerbosityDebug)
+	case "trace":
+		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
+		log.SetVerbosity(LogVerbosityTrace)
 	}
 }
 

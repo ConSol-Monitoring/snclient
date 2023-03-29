@@ -43,6 +43,7 @@ func NewConfig() Config {
 
 // opens the config file and reads all key value pairs, separated through = and commented out with ";".
 func (config *Config) ReadSettingsFile(path string) error {
+	log.Debugf("reading config: %s", path)
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("cannot read file %s: %s", path, err.Error())

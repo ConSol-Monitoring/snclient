@@ -65,20 +65,6 @@ type noCopy struct{}
 func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
-type arrayFlags struct {
-	list []string
-}
-
-func (i *arrayFlags) String() string {
-	return strings.Join(i.list, ", ")
-}
-
-func (i *arrayFlags) Set(value string) error {
-	i.list = append(i.list, value)
-
-	return nil
-}
-
 type Agent struct {
 	Config    Config               // reference to global config object
 	Listeners map[string]*Listener // Listeners stores if we started a listener
@@ -89,7 +75,6 @@ type Agent struct {
 		flagVersion      bool
 		flagHelp         bool
 		flagConfigFile   configFiles
-		flagCfgOption    arrayFlags
 		flagPidfile      string
 		flagMemProfile   string
 		flagProfile      string
@@ -112,6 +97,7 @@ func SNClient(build, revsion string) {
 
 	snc.setFlags()
 	snc.checkFlags()
+	CreateLogger(&snc)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
 	config, listeners, err := snc.readConfiguration()
@@ -286,6 +272,10 @@ func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
 		}
 	}
 
+	for key, val := range *pathSection {
+		log.Tracef("conf macro: %s -> %s", key, val)
+	}
+
 	listen, err := snc.initListeners(config)
 	if err != nil {
 		return nil, nil, fmt.Errorf("listener initialization failed: %s", err.Error())
@@ -443,7 +433,6 @@ func (snc *Agent) setFlags() {
 	flag.StringVar(&snc.flags.flagCPUProfile, "cpuprofile", "", "write cpu profile to `file`")
 	flag.StringVar(&snc.flags.flagMemProfile, "memprofile", "", "write memory profile to `file`")
 	flag.IntVar(&snc.flags.flagDeadlock, "debug-deadlock", 0, "enable deadlock detection with given timeout")
-	flag.Var(&snc.flags.flagCfgOption, "o", "override settings, ex.: -o Listen=:3333 -o Connections=name,address")
 }
 
 func (snc *Agent) checkFlags() {
