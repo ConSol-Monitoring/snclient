@@ -1,4 +1,4 @@
-﻿package snclient
+package snclient
 
 import (
 	"fmt"
@@ -9,18 +9,17 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_memory"] = CheckEntry{"check_memory", new(check_memory)}
+	AvailableChecks["check_memory"] = CheckEntry{"check_memory", new(CheckMemory)}
 }
 
-type check_memory struct {
+type CheckMemory struct {
 	noCopy noCopy
 }
 
 /* check_memory todo
- * todo
+ * todo .
  */
-func (l *check_memory) Check(args []string) (*CheckResult, error) {
-
+func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	argList := ParseArgs(args)
@@ -38,21 +37,21 @@ func (l *check_memory) Check(args []string) (*CheckResult, error) {
 	}
 
 	// collect ram metrics (physical + committed)
-	v, _ := mem.VirtualMemory()
-	s, _ := mem.SwapMemory()
+	physical, _ := mem.VirtualMemory()
+	committed, _ := mem.SwapMemory()
 
 	physicalM := []MetricData{
-		MetricData{name: "used", value: strconv.FormatUint(v.Used, 10)},
-		MetricData{name: "free", value: strconv.FormatUint(v.Free, 10)},
-		MetricData{name: "used_pct", value: strconv.FormatFloat(v.UsedPercent, 'f', 0, 64)},
-		MetricData{name: "free_pct", value: strconv.FormatUint(v.Free*100/v.Total, 10)},
+		{name: "used", value: strconv.FormatUint(physical.Used, 10)},
+		{name: "free", value: strconv.FormatUint(physical.Free, 10)},
+		{name: "used_pct", value: strconv.FormatFloat(physical.UsedPercent, 'f', 0, 64)},
+		{name: "free_pct", value: strconv.FormatUint(physical.Free*100/physical.Total, 10)},
 	}
 
 	committedM := []MetricData{
-		MetricData{name: "used", value: strconv.FormatUint(s.Used, 10)},
-		MetricData{name: "free", value: strconv.FormatUint(s.Free, 10)},
-		MetricData{name: "used_pct", value: strconv.FormatFloat(s.UsedPercent, 'f', 0, 64)},
-		MetricData{name: "free_pct", value: strconv.FormatUint(s.Free*100/s.Total, 10)},
+		{name: "used", value: strconv.FormatUint(committed.Used, 10)},
+		{name: "free", value: strconv.FormatUint(committed.Free, 10)},
+		{name: "used_pct", value: strconv.FormatFloat(committed.UsedPercent, 'f', 0, 64)},
+		{name: "free_pct", value: strconv.FormatUint(committed.Free*100/committed.Total, 10)},
 	}
 
 	// compare ram metrics to tresholds
@@ -64,7 +63,7 @@ func (l *check_memory) Check(args []string) (*CheckResult, error) {
 		state = CheckExitCritical
 	}
 
-	output := fmt.Sprintf("committed = %v, physical = %v", humanize.Bytes(s.Used), humanize.Bytes(v.Used))
+	output := fmt.Sprintf("committed = %v, physical = %v", humanize.Bytes(committed.Used), humanize.Bytes(physical.Used))
 
 	// build perfdata
 	metrics := []*CheckMetric{}

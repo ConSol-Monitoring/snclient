@@ -1,4 +1,4 @@
-﻿package snclient
+package snclient
 
 import (
 	"regexp"
@@ -18,45 +18,34 @@ type Treshold struct {
 }
 
 func ParseArgs(args []string) []Argument {
-
-	var argList []Argument
-
+	argList := make([]Argument, 0, len(args))
 	for _, v := range args {
-
 		split := strings.SplitN(v, "=", 2)
 		argList = append(argList, Argument{key: split[0], value: split[1]})
-
 	}
 
 	return argList
-
 }
 
 func ParseTreshold(treshold string) Treshold {
-
-	re := regexp.MustCompile("([A-Za-z]+)\\s*(<=|>=|<|>|=|\\!=)\\s*(\\d+|\\d+\\.\\d+|) *([A-Za-z%]+)?")
+	re := regexp.MustCompile(`([A-Za-z]+)\s*(<=|>=|<|>|=|\!=)\s*(\d+|\d+\.\d+|) *([A-Za-z%]+)?`)
 	match := re.FindStringSubmatch(treshold)
 
-	name := match[1]
-	value := ""
-	unit := ""
+	ret := Treshold{
+		name:     match[1],
+		operator: match[2],
+	}
 
 	if match[3] != "" {
-		value = match[3]
-		unit = match[4]
+		ret.value = match[3]
+		ret.unit = match[4]
 	} else {
-		value = match[4]
+		ret.value = match[4]
 	}
 
-	if unit == "%" {
-		name += "_pct"
+	if ret.unit == "%" {
+		ret.name += "_pct"
 	}
 
-	return Treshold{
-		name:     name,
-		operator: match[2],
-		value:    value,
-		unit:     unit,
-	}
-
+	return ret
 }

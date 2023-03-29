@@ -1,4 +1,4 @@
-﻿package snclient
+package snclient
 
 import (
 	"fmt"
@@ -9,18 +9,17 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_uptime"] = CheckEntry{"check_uptime", new(check_uptime)}
+	AvailableChecks["check_uptime"] = CheckEntry{"check_uptime", new(CheckUptime)}
 }
 
-type check_uptime struct {
+type CheckUptime struct {
 	noCopy noCopy
 }
 
 /* check_uptime todo
- * todo
+ * todo .
  */
-func (l *check_uptime) Check(args []string) (*CheckResult, error) {
-
+func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	argList := ParseArgs(args)
@@ -43,7 +42,7 @@ func (l *check_uptime) Check(args []string) (*CheckResult, error) {
 
 	uptime := now.Sub(time.Unix(int64(bootTime), 0))
 
-	mdata := []MetricData{MetricData{name: "uptime", value: strconv.FormatInt(int64(uptime.Seconds()), 10)}}
+	mdata := []MetricData{{name: "uptime", value: strconv.FormatInt(int64(uptime.Seconds()), 10)}}
 
 	// compare ram metrics to tresholds
 	if CompareMetrics(mdata, warnTreshold) {
@@ -54,17 +53,19 @@ func (l *check_uptime) Check(args []string) (*CheckResult, error) {
 		state = CheckExitCritical
 	}
 
+	var days string
 	day := int(uptime.Hours() / 24)
-	days := ""
-	hours := int(int(uptime.Hours()) - day*24)
-	minutes := int(int(uptime.Minutes()) - hours*60)
+	hours := int(uptime.Hours()) - day*24
+	minutes := int(uptime.Minutes()) - (hours*60 + day*24*60)
 	if day > 7 {
-		days = fmt.Sprintf("%vw %vd", int(day/7), day-int(day/7))
+		days = fmt.Sprintf("%vw %vd", day/7, day-day/7*7)
 	} else {
 		days = fmt.Sprintf("%vd", day)
 	}
 
-	output := fmt.Sprintf("uptime: %v %v:%vh, boot: %v (UTC)", days, hours, minutes, time.Unix(int64(bootTime), 0).Format("2006-01-02 15:04:05"))
+	bootTimeF := time.Unix(int64(bootTime), 0).Format("2006-01-02 15:04:05")
+
+	output := fmt.Sprintf("uptime: %v %v:%vh, boot: %v (UTC)", days, hours, minutes, bootTimeF)
 
 	min, _ := strconv.ParseFloat(warnTreshold.value, 64)
 	max, _ := strconv.ParseFloat(critTreshold.value, 64)
@@ -73,7 +74,7 @@ func (l *check_uptime) Check(args []string) (*CheckResult, error) {
 		State:  state,
 		Output: output,
 		Metrics: []*CheckMetric{
-			&CheckMetric{
+			{
 				Name:  "uptime",
 				Unit:  "s",
 				Value: float64(int(uptime.Seconds())),

@@ -1,4 +1,4 @@
-﻿package snclient
+package snclient
 
 import (
 	"strconv"
@@ -12,55 +12,43 @@ type MetricData struct {
 }
 
 func CompareMetrics(metrics []MetricData, treshold Treshold) bool {
-
 	for _, data := range metrics {
-
-		if data.name == treshold.name {
-
-			if treshold.unit != "" && treshold.unit != "%" {
-				value, _ := strconv.ParseFloat(treshold.value, 64)
-				treshold.value = strconv.FormatFloat(value*bUnits[treshold.unit], 'f', 0, 64)
-			}
-
-			switch treshold.operator {
-			case "<":
-				m, _ := strconv.ParseFloat(data.value, 64)
-				t, _ := strconv.ParseFloat(treshold.value, 64)
-				if m < t {
-					return true
-				}
-			case ">":
-				m, _ := strconv.ParseFloat(data.value, 64)
-				t, _ := strconv.ParseFloat(treshold.value, 64)
-				if m > t {
-					return true
-				}
-			case "<=":
-				m, _ := strconv.ParseFloat(data.value, 64)
-				t, _ := strconv.ParseFloat(treshold.value, 64)
-				if m <= t {
-					return true
-				}
-			case ">=":
-				m, _ := strconv.ParseFloat(data.value, 64)
-				t, _ := strconv.ParseFloat(treshold.value, 64)
-				if m >= t {
-					return true
-				}
-			case "=":
-				if data.value == treshold.value {
-					return true
-				}
-			case "!=":
-				if data.value != treshold.value {
-					return true
-				}
-			}
-
+		if data.name != treshold.name {
+			continue
 		}
 
+		if treshold.unit != "" && treshold.unit != "%" {
+			value, _ := strconv.ParseFloat(treshold.value, 64)
+			treshold.value = strconv.FormatFloat(value*bUnits[treshold.unit], 'f', 0, 64)
+		}
+
+		switch treshold.operator {
+		case "<":
+			m, _ := strconv.ParseFloat(data.value, 64)
+			t, _ := strconv.ParseFloat(treshold.value, 64)
+
+			return m < t
+		case ">":
+			m, _ := strconv.ParseFloat(data.value, 64)
+			t, _ := strconv.ParseFloat(treshold.value, 64)
+
+			return m > t
+		case "<=":
+			m, _ := strconv.ParseFloat(data.value, 64)
+			t, _ := strconv.ParseFloat(treshold.value, 64)
+
+			return m <= t
+		case ">=":
+			m, _ := strconv.ParseFloat(data.value, 64)
+			t, _ := strconv.ParseFloat(treshold.value, 64)
+
+			return m >= t
+		case "=":
+			return data.value == treshold.value
+		case "!=":
+			return data.value != treshold.value
+		}
 	}
 
 	return false
-
 }

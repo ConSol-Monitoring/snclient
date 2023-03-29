@@ -41,9 +41,16 @@ issues:
   exclude:
     - "`noCopy` is unused"
     - "mnd: Magic number: 2, in"
+    - "mnd: Magic number: 7, in"
     - "mnd: Magic number: 10, in"
     - "mnd: Magic number: 16, in"
+    - "mnd: Magic number: 24, in"
     - "mnd: Magic number: 64, in"
+    - "mnd: Magic number: 1e3, in"
+    - "mnd: Magic number: 1e6, in"
+    - "mnd: Magic number: 1e9, in"
+    - "mnd: Magic number: 1e12, in"
+    - "mnd: Magic number: 1e15, in"
     - "mnd: Magic number: 0o600, in"
     - "noCopy is missing in"
     - 'err113:'
