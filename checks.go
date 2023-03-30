@@ -30,6 +30,19 @@ type CheckResult struct {
 	Metrics []*CheckMetric
 }
 
+func (cr *CheckResult) StateString() string {
+	switch cr.State {
+	case 0:
+		return "OK"
+	case 1:
+		return "WARNING"
+	case 2:
+		return "CRITICAL"
+	}
+
+	return "UNKNOWN"
+}
+
 // CheckMetric contains a single performance value.
 type CheckMetric struct {
 	Name     string

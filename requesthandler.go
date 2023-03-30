@@ -9,7 +9,7 @@ import (
 type RequestHandler interface {
 	Type() string
 	Defaults() ConfigSection
-	Init(*Agent) error
+	Init(*Agent, ConfigSection) error
 }
 
 // RequestHandlerTCP handles a single client connection.

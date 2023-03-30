@@ -1,6 +1,8 @@
 package snclient
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -12,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type ListenHandler struct {
@@ -31,9 +35,7 @@ var DefaultListenTCPConfig = ConfigSection{
 	"use ssl":             "0",
 }
 
-var DefaultListenHTTPConfig = ConfigSection{
-	"password": "",
-}
+var DefaultListenHTTPConfig = ConfigSection{}
 
 func init() {
 	DefaultListenHTTPConfig.Merge(DefaultListenTCPConfig)
@@ -54,7 +56,6 @@ type Listener struct {
 	tlsConfig         *tls.Config
 	allowedHosts      []AllowedHost
 	socketTimeout     time.Duration
-	password          string
 }
 
 // NewListener creates a new Listener object.
@@ -189,13 +190,6 @@ func (l *Listener) setListenConfig(conf ConfigSection) error {
 		l.tlsConfig.Certificates = []tls.Certificate{cer}
 	}
 
-	// set password
-	password, _, err := conf.GetString("password")
-	if err != nil {
-		return fmt.Errorf("invalid password specification: %s", err.Error())
-	}
-	l.password = password
-
 	return nil
 }
 
@@ -301,22 +295,17 @@ func (l *Listener) handleTCPCon(con net.Conn, handler RequestHandlerTCP) {
 }
 
 func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
-	mux := http.NewServeMux()
+	mux := chi.NewRouter()
 
-	defaultAdded := false
-
-	// Wrap handler to apply netfilter and logger.
+	// Add generic logger.
 	mappings := handler.GetMappings(l.snc)
+	mux.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			l.WrappedHTTPHandler(next, w, r)
+		})
+	})
 	for _, mapping := range mappings {
-		mux.Handle(mapping.URL, l.WrapHTTPHandler(mapping.Handler))
-
-		if mapping.URL == "/" {
-			defaultAdded = true
-		}
-	}
-
-	if !defaultAdded {
-		mux.Handle("/", l.WrapHTTPHandler(new(ErrorHTTPHandler)))
+		mux.Handle(mapping.URL, mapping.Handler)
 	}
 
 	server := &http.Server{
@@ -390,35 +379,83 @@ func (l *Listener) BindString() string {
 	return (fmt.Sprintf("%s:%d", l.bindAddress, l.port))
 }
 
-type WrappedHTTPHandler struct {
-	listener *Listener
-	handle   http.Handler
-}
-
-func (w *WrappedHTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+func (l *Listener) WrappedHTTPHandler(next http.Handler, res http.ResponseWriter, req *http.Request) {
 	startTime := time.Now()
 
-	reqStr, err := httputil.DumpRequest(req, true)
-	if err != nil {
-		log.Tracef("%s", err.Error())
-	} else {
-		log.Tracef("%s", string(reqStr))
+	if log.IsV(LogVerbosityTrace) {
+		reqStr, err := httputil.DumpRequest(req, true)
+		if err != nil {
+			log.Tracef("%s", err.Error())
+		} else {
+			log.Tracef("http request:\n%s", string(reqStr))
+		}
 	}
 
-	w.handle.ServeHTTP(res, req)
+	if log.IsV(LogVerbosityTrace) {
+		resCapture := &ResponseWriterCapture{
+			w: res,
+		}
+		res = resCapture
+	}
+	next.ServeHTTP(res, req)
 
-	log.Debugf("%s connection from %s finished in %9s", w.listener.connType, req.RemoteAddr, time.Since(startTime))
+	if capture, ok := res.(*ResponseWriterCapture); ok {
+		log.Tracef("http response:\n%s", capture.String(req, true))
+	}
+
+	log.Debugf("%s connection from %s finished in %9s", l.connType, req.RemoteAddr, time.Since(startTime))
 }
 
-func (l *Listener) WrapHTTPHandler(handle http.Handler) http.Handler {
-	return (&WrappedHTTPHandler{
-		listener: l,
-		handle:   handle,
-	})
+type ResponseWriterCapture struct {
+	w          http.ResponseWriter
+	body       bytes.Buffer
+	statusCode int
 }
 
-type ErrorHTTPHandler struct{}
+func (i *ResponseWriterCapture) Write(buf []byte) (int, error) {
+	_, err := i.body.Write(buf)
+	LogError(err)
 
-func (w *ErrorHTTPHandler) ServeHTTP(_ http.ResponseWriter, req *http.Request) {
-	log.Warnf("unknown url %s requested from %s", req.RequestURI, req.RemoteAddr)
+	n, err := i.w.Write(buf)
+	if err != nil {
+		return n, fmt.Errorf("response write failed: %s", err.Error())
+	}
+
+	return n, nil
+}
+
+func (i *ResponseWriterCapture) WriteHeader(statusCode int) {
+	i.statusCode = statusCode
+	i.w.WriteHeader(statusCode)
+}
+
+func (i ResponseWriterCapture) Header() http.Header {
+	return i.w.Header()
+}
+
+func (i *ResponseWriterCapture) String(req *http.Request, body bool) string {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\n", i.statusCode, http.StatusText(i.statusCode)))
+	for k, val := range i.w.Header() {
+		for _, v := range val {
+			buf.WriteString(fmt.Sprintf("%s: %v\n", k, v))
+		}
+	}
+	buf.WriteString("\n")
+	buf.WriteString(i.body.String())
+
+	reader := bufio.NewReader(strings.NewReader(buf.String()))
+	resp, err := http.ReadResponse(reader, req)
+	if err != nil {
+		log.Errorf("response error: %s", err.Error())
+
+		return ""
+	}
+
+	str, err := httputil.DumpResponse(resp, body)
+	LogError(err)
+
+	resp.Body.Close()
+
+	return string(str)
 }

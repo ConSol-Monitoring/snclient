@@ -33,13 +33,21 @@ soon...
 
 - [] check usr signal handler
 - [] implement log rotation for file logger
-- [] NRPE protocol support v3
-- [] NRPE protocol support v4
-- [] rework usage()
-- [] add feature comparison to readme
-- [] add docs/
-- [] add support for includes in ini file
+- [] NRPE
+  - [] NRPE protocol support v3
+  - [] NRPE protocol support v4
+- [] Rest API
+  - [] add performance data support
 - [] add support for client certificates
+- [] improve configuration
+  - [] check for parse errors on startup
+  - [] add config validator
+  - [] use strong typed config items
+  - [] add support for includes in ini file
+- [] improve documentation
+  - [] rework usage()
+  - [] add feature comparison to readme
+  - [] add docs/
 
 ## Not gonna happen
 The following things will most likely not be part of snclient any time:

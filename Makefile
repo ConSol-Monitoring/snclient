@@ -49,7 +49,7 @@ vendor:
 	go mod vendor
 
 dump:
-	if [ $(shell grep -r Dump *.go ./cmd/*/*.go | grep -v DumpRequest | grep -v dump.go | wc -l) -ne 0 ]; then \
+	if [ $(shell grep -r Dump *.go ./cmd/*/*.go | grep -v DumpRe | grep -v dump.go | wc -l) -ne 0 ]; then \
 		sed -i.bak -e 's/\/\/go:build.*/\/\/ :build with debug functions/' -e 's/\/\/ +build.*/\/\/ build with debug functions/' dump.go; \
 	else \
 		sed -i.bak -e 's/\/\/ :build.*/\/\/go:build ignore/' -e 's/\/\/ build.*/\/\/ +build ignore/' dump.go; \
@@ -61,8 +61,9 @@ build: vendor
 		cd ./cmd/$$CMD && CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD; cd ../..; \
 	done
 
+# run build watch, ex. with tracing: make build-watch -- -vv
 build-watch: vendor
-	ls *.go snclient.ini | entr -sr "$(MAKE) && ./snclient"
+	ls *.go snclient.ini | entr -sr "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
@@ -82,7 +83,7 @@ build-windows-amd64: vendor
 test: fmt dump vendor
 	go test -short -v -timeout=1m ./ ./pkg/*/.
 	if grep -rn TODO: *.go ./cmd/ ./pkg/; then exit 1; fi
-	if grep -rn Dump *.go ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRequest; then exit 1; fi
+	if grep -rn Dump *.go ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe; then exit 1; fi
 
 longtest: fmt dump vendor
 	go test -v -timeout=1m ./ ./pkg/*/.
@@ -103,7 +104,7 @@ citest: vendor
 	#
 	# Checking remaining debug calls
 	#
-	if grep -rn Dump *.go ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRequest; then exit 1; fi
+	if grep -rn Dump *.go ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe; then exit 1; fi
 	#
 	# Darwin and Linux should be handled equal
 	#
@@ -223,11 +224,9 @@ dist:
 	[ -f snclient ] || $(MAKE) build
 	if [ "$(GOOS)" = "windows" ]; then cp ./snclient -p ./dist/snclient.exe; else cp -p ./snclient ./dist/snclient; fi
 	chmod u+x ./snclient
-	ls -la ./snclient
-	./snclient -h
 	help2man --no-info --section=8 --version-string="snclient $(VERSION)" \
 		--help-option=-h --include=./packaging/help2man.include \
-		-n "Agent that runs provides system checks." \
+		-n "Agent that runs and provides system checks and metrics." \
 		./snclient \
 		> dist/snclient.8
 
