@@ -55,7 +55,7 @@ func (l *HandlerPrometheus) Defaults() ConfigSection {
 	return defaults
 }
 
-func (l *HandlerPrometheus) Init(snc *Agent) error {
+func (l *HandlerPrometheus) Init(snc *Agent, _ ConfigSection) error {
 	registerMetrics()
 	infoCount.WithLabelValues(VERSION, snc.Build).Set(1)
 

@@ -532,7 +532,7 @@ func (snc *Agent) initListener(conConf ConfigSection, handler RequestHandler) (*
 		return nil, err
 	}
 
-	err = handler.Init(snc)
+	err = handler.Init(snc, conConf)
 	if err != nil {
 		listener.Stop()
 

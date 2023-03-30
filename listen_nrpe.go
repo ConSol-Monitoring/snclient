@@ -42,7 +42,7 @@ func (l *HandlerNRPE) Defaults() ConfigSection {
 	return defaults
 }
 
-func (l *HandlerNRPE) Init(snc *Agent) error {
+func (l *HandlerNRPE) Init(snc *Agent, _ ConfigSection) error {
 	l.snc = snc
 
 	return nil

@@ -115,6 +115,15 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 	log.SetOutput(targetWriter)
 }
 
+func LogError(err error) {
+	if err != nil {
+		logErr := log.Output(factorlog.ERROR, 2, err.Error())
+		if logErr != nil {
+			fmt.Fprintf(os.Stderr, "failed to log: %s (%s)", err.Error(), logErr.Error())
+		}
+	}
+}
+
 // LogWriter implements the io.Writer interface and simply logs everything with given level.
 type LogWriter struct {
 	level string

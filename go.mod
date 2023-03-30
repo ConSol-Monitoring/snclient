@@ -8,6 +8,7 @@ require (
 	github.com/daixiang0/gci v0.10.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dustin/go-humanize v1.0.1
+	github.com/go-chi/chi/v5 v5.0.8
 	github.com/golangci/golangci-lint v1.52.0
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/prometheus/client_golang v1.12.1
