@@ -3,10 +3,9 @@
 import (
 	"fmt"
 	"strconv"
+	"regexp"
 
 	"golang.org/x/exp/slices"
-	"golang.org/x/sys/windows/svc"
-	"golang.org/x/sys/windows/svc/mgr"
 )
 
 func init() {
@@ -19,6 +18,7 @@ type CheckService struct {
 
 var SERVICE_STATE = map[string]string{
 	"stopped":      "1",
+	"dead":         "1",
 	"startpending": "2",
 	"stoppending":  "3",
 	"running":      "4",
@@ -35,7 +35,6 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	var warnTreshold Treshold
 	var critTreshold Treshold
 	var service string
-	var statusCode svc.Status
 
 	// parse treshold args
 	for _, arg := range argList {
@@ -50,39 +49,21 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	}
 
 	// collect service state
-	m, err := mgr.Connect()
+	out, err := exec.Command("systemctl", "status", fmt.Sprintf("%s.service", service).Output()
 	if err != nil {
 		return &CheckResult{
 			State:  int64(3),
-			Output: fmt.Sprintf("Failed to open service handler: %s", err),
+			Output: fmt.Sprintf("Service %s not found: %s", service, err),
 		}, nil
 	}
 
-	services, _ := m.ListServices()
-	if slices.Contains(services, service) {
-
-		s, err := m.OpenService(service)
-		if err != nil {
-			return &CheckResult{
-				State:  int64(3),
-				Output: fmt.Sprintf("Failed to open service %s: %s", service, err),
-			}, nil
-		}
-		defer s.Close()
-
-		statusCode, _ = s.Query()
-
-	} else {
-		return &CheckResult{
-			State:  int64(3),
-			Output: fmt.Sprintf("Service '%s' not found!", service),
-		}, nil
-	}
-
+	re := regexp.MustCompile(`Active:\s*[A-Za-z]+\s*\(([A-Za-z]+)\)`)
+	match := re.FindStringSubmatch(string(out))
+	
 	warnTreshold.value = SERVICE_STATE[warnTreshold.value]
 	critTreshold.value = SERVICE_STATE[critTreshold.value]
 
-	mdata := []MetricData{{name: "state", value: strconv.FormatInt(int64(statusCode.State), 10)}}
+	mdata := []MetricData{{name: "state", value: SERVICE_STATE[match[1]], 10)}}
 
 	// compare ram metrics to tresholds
 	if CompareMetrics(mdata, warnTreshold) {
