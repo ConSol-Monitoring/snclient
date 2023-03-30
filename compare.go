@@ -43,9 +43,9 @@ func CompareMetrics(metrics []MetricData, treshold Treshold) bool {
 			t, _ := strconv.ParseFloat(treshold.value, 64)
 
 			return m >= t
-		case "=":
+		case "=", "is":
 			return data.value == treshold.value
-		case "!=":
+		case "!=", "not":
 			return data.value != treshold.value
 		}
 	}
