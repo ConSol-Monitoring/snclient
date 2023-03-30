@@ -69,7 +69,7 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	metrics := []*CheckMetric{}
 
 	for _, m := range committedM {
-		if m.name == warnTreshold.name {
+		if m.name == warnTreshold.name || m.name == critTreshold.name {
 			value, _ := strconv.ParseFloat(m.value, 64)
 			metrics = append(metrics, &CheckMetric{
 				Name:  fmt.Sprintf("committed_%v", warnTreshold.name),
@@ -80,7 +80,7 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	}
 
 	for _, m := range physicalM {
-		if m.name == warnTreshold.name {
+		if m.name == warnTreshold.name || m.name == critTreshold.name {
 			value, _ := strconv.ParseFloat(m.value, 64)
 			metrics = append(metrics, &CheckMetric{
 				Name:  fmt.Sprintf("physical_%v", warnTreshold.name),

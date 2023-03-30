@@ -44,6 +44,7 @@ issues:
   exclude:
     - "`noCopy` is unused"
     - "mnd: Magic number: 2, in"
+    - "mnd: Magic number: 3, in"
     - "mnd: Magic number: 7, in"
     - "mnd: Magic number: 10, in"
     - "mnd: Magic number: 16, in"

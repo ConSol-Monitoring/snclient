@@ -1,4 +1,4 @@
-﻿package snclient
+package snclient
 
 import (
 	"fmt"
@@ -31,6 +31,7 @@ var SERVICE_STATE = map[string]string{
 func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
+	output := "Service is ok."
 	argList := ParseArgs(args)
 	var warnTreshold Treshold
 	var critTreshold Treshold
@@ -87,13 +88,13 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	// compare ram metrics to tresholds
 	if CompareMetrics(mdata, warnTreshold) {
 		state = CheckExitWarning
+		output = "Service is warning!"
 	}
 
 	if CompareMetrics(mdata, critTreshold) {
 		state = CheckExitCritical
+		output = "Service is critical!"
 	}
-
-	output := "Service is ok."
 
 	return &CheckResult{
 		State:  state,

@@ -2,10 +2,9 @@
 
 import (
 	"fmt"
-	"strconv"
+	"os/exec"
 	"regexp"
-
-	"golang.org/x/exp/slices"
+	"strconv"
 )
 
 func init() {
@@ -16,7 +15,7 @@ type CheckService struct {
 	noCopy noCopy
 }
 
-var SERVICE_STATE = map[string]string{
+var ServiceStates = map[string]string{
 	"stopped":      "1",
 	"dead":         "1",
 	"startpending": "2",
@@ -26,12 +25,13 @@ var SERVICE_STATE = map[string]string{
 }
 
 /* check_service todo
- * todo
+ * todo .
  */
 func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	argList := ParseArgs(args)
+	output := "Service is ok."
 	var warnTreshold Treshold
 	var critTreshold Treshold
 	var service string
@@ -49,7 +49,7 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	}
 
 	// collect service state
-	out, err := exec.Command("systemctl", "status", fmt.Sprintf("%s.service", service).Output()
+	out, err := exec.Command("systemctl", "status", fmt.Sprintf("%s.service", service)).Output()
 	if err != nil {
 		return &CheckResult{
 			State:  int64(3),
@@ -59,22 +59,25 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 
 	re := regexp.MustCompile(`Active:\s*[A-Za-z]+\s*\(([A-Za-z]+)\)`)
 	match := re.FindStringSubmatch(string(out))
-	
-	warnTreshold.value = SERVICE_STATE[warnTreshold.value]
-	critTreshold.value = SERVICE_STATE[critTreshold.value]
 
-	mdata := []MetricData{{name: "state", value: SERVICE_STATE[match[1]], 10)}}
+	stateStr := ServiceStates[match[1]]
+	stateFloat, _ := strconv.ParseFloat(stateStr, 64)
+
+	warnTreshold.value = ServiceStates[warnTreshold.value]
+	critTreshold.value = ServiceStates[critTreshold.value]
+
+	mdata := []MetricData{{name: "state", value: stateStr}}
 
 	// compare ram metrics to tresholds
 	if CompareMetrics(mdata, warnTreshold) {
 		state = CheckExitWarning
+		output = "Service is warning!"
 	}
 
 	if CompareMetrics(mdata, critTreshold) {
 		state = CheckExitCritical
+		output = "Service is critical!"
 	}
-
-	output := "Service is ok."
 
 	return &CheckResult{
 		State:  state,
@@ -82,7 +85,7 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 		Metrics: []*CheckMetric{
 			{
 				Name:  service,
-				Value: float64(statusCode.State),
+				Value: stateFloat,
 			},
 		},
 	}, nil
