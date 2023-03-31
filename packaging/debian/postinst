@@ -12,7 +12,7 @@ case "$1" in
         /etc/snclient/server.key \
         /etc/snclient/server.crt \
         /etc/snclient/cacert.pem \
-        > /dev/null || :
+        || :
       if [ -x "/usr/bin/deb-systemd-helper" ]; then
         deb-systemd-helper unmask snclient.service
         if deb-systemd-helper --quiet was-enabled snclient.service; then
