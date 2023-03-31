@@ -49,12 +49,12 @@ vendor:
 	go mod vendor
 
 dump:
-	if [ $(shell grep -r Dump *.go ./cmd/*/*.go | grep -v DumpRe | grep -v dump.go | wc -l) -ne 0 ]; then \
-		sed -i.bak -e 's/\/\/go:build.*/\/\/ :build with debug functions/' -e 's/\/\/ +build.*/\/\/ build with debug functions/' dump.go; \
+	if [ $(shell grep -r Dump *.go ./pkg/*/*.go ./internal/*/*.go ./cmd/*/*.go | grep -v DumpRe | grep -v dump.go | wc -l) -ne 0 ]; then \
+		sed -i.bak -e 's/\/\/go:build.*/\/\/ :build with debug functions/' -e 's/\/\/ +build.*/\/\/ build with debug functions/' internal/dump/dump.go; \
 	else \
-		sed -i.bak -e 's/\/\/ :build.*/\/\/go:build ignore/' -e 's/\/\/ build.*/\/\/ +build ignore/' dump.go; \
+		sed -i.bak -e 's/\/\/ :build.*/\/\/go:build ignore/' -e 's/\/\/ build.*/\/\/ +build ignore/' internal/dump/dump.go; \
 	fi
-	rm -f dump.go.bak
+	rm -f internal/dump/dump.go.bak
 
 build: vendor
 	set -e; for CMD in $(CMDS); do \
@@ -63,7 +63,7 @@ build: vendor
 
 # run build watch, ex. with tracing: make build-watch -- -vv
 build-watch: vendor
-	ls *.go snclient.ini | entr -sr "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"
+	ls *.go cmd/*/*.go pkg/*/*.go ./internal/*/*.go snclient.ini | entr -sr "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
@@ -81,30 +81,30 @@ build-windows-amd64: vendor
 	done
 
 test: fmt dump vendor
-	go test -short -v -timeout=1m ./ ./pkg/*/.
-	if grep -rn TODO: *.go ./cmd/ ./pkg/; then exit 1; fi
-	if grep -rn Dump *.go ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe; then exit 1; fi
+	go test -short -v -timeout=1m ./ ./pkg/*/. ./internal/*/.
+	if grep -rn TODO: *.go ./cmd/ ./pkg/ ./internal/; then exit 1; fi
+	if grep -rn Dump *.go ./cmd/ ./pkg/ ./internal/ | grep -v dump.go | grep -v DumpRe; then exit 1; fi
 
 longtest: fmt dump vendor
-	go test -v -timeout=1m ./ ./pkg/*/.
+	go test -v -timeout=1m ./ ./pkg/*/. ./internal/*/.
 
 citest: vendor
 	#
 	# Checking gofmt errors
 	#
-	if [ $$(gofmt -s -l *.go ./cmd/ ./pkg/ | wc -l) -gt 0 ]; then \
+	if [ $$(gofmt -s -l *.go ./cmd/ ./pkg/ ./internal/  | wc -l) -gt 0 ]; then \
 		echo "found format errors in these files:"; \
-		gofmt -s -l *.go ./cmd/ ./pkg/; \
+		gofmt -s -l *.go ./cmd/ ./pkg/ ./internal/; \
 		exit 1; \
 	fi
 	#
 	# Checking TODO items
 	#
-	if grep -rn TODO: *.go ./cmd/ ./pkg/; then exit 1; fi
+	if grep -rn TODO: *.go ./cmd/ ./pkg/ ./internal/; then exit 1; fi
 	#
 	# Checking remaining debug calls
 	#
-	if grep -rn Dump *.go ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe; then exit 1; fi
+	if grep -rn Dump *.go ./cmd/ ./pkg/ ./internal/ | grep -v dump.go | grep -v DumpRe; then exit 1; fi
 	#
 	# Darwin and Linux should be handled equal
 	#
@@ -119,11 +119,11 @@ citest: vendor
 	#
 	# Normal test cases
 	#
-	go test -v -timeout=1m ./ ./pkg/*/.
+	go test -v -timeout=1m ./ ./pkg/*/. ./internal/*/.
 	#
 	# Benchmark tests
 	#
-	go test -v -timeout=1m -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/.
+	go test -v -timeout=1m -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/. ./internal/*/.
 	#
 	# Race rondition tests
 	#
@@ -140,18 +140,18 @@ citest: vendor
 	go mod tidy
 
 benchmark: fmt
-	go test -timeout=1m -ldflags "-s -w -X main.Build=$(BUILD)" -v -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/.
+	go test -timeout=1m -ldflags "-s -w -X main.Build=$(BUILD)" -v -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/. ./internal/*/.
 
 racetest: fmt
-	go test -race -v -timeout=3m -coverprofile=coverage.txt -covermode=atomic ./ ./pkg/*/.
+	go test -race -v -timeout=3m -coverprofile=coverage.txt -covermode=atomic ./ ./pkg/*/. ./internal/*/.
 
 covertest: fmt
-	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/.
+	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/. ./internal/*/.
 	go tool cover -func=cover.out
 	go tool cover -html=cover.out -o coverage.html
 
 coverweb: fmt
-	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/.
+	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/. ./internal/*/.
 	go tool cover -html=cover.out
 
 clean:
@@ -171,7 +171,7 @@ clean:
 	rm -rf build-rpm/
 
 fmt: tools
-	goimports -w *.go ./cmd/ ./pkg/
+	goimports -w *.go ./cmd/ ./pkg/ ./internal/
 	go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable .
 	set -e; for CMD in $(CMDS); do \
 		go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable ./cmd/$$CMD; \
@@ -179,9 +179,12 @@ fmt: tools
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
 		go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable ./$$dir; \
 	done
-	gofmt -w -s *.go ./cmd/ ./pkg/
-	./tools/gofumpt -w *.go ./cmd/ ./pkg/
-	./tools/gci write *.go ./cmd/. ./pkg/. --skip-generated
+	set -e; for dir in $(shell ls -d1 internal/*); do \
+		go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable ./$$dir; \
+	done
+	gofmt -w -s *.go ./cmd/ ./pkg/ ./internal/
+	./tools/gofumpt -w *.go ./cmd/ ./pkg/ ./internal/
+	./tools/gci write *.go ./cmd/. ./pkg/. ./internal/.  --skip-generated
 
 versioncheck:
 	@[ $$( printf '%s\n' $(GOVERSION) $(MINGOVERSION) | sort | head -n 1 ) = $(MINGOVERSION) ] || { \
@@ -196,7 +199,7 @@ golangci: tools
 	# golangci combines a few static code analyzer
 	# See https://github.com/golangci/golangci-lint
 	#
-	golangci-lint run ./...
+	golangci-lint run ./... ./pkg/*/. ./internal/*/.
 
 govulncheck: tools
 	govulncheck ./...

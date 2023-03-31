@@ -34,8 +34,8 @@ soon...
 - [] check usr signal handler
 - [] implement log rotation for file logger
 - [] NRPE
-  - [] NRPE protocol support v3
-  - [] NRPE protocol support v4
+  - [] implement nasty chars
+  - [] implement allow arguments
 - [] Rest API
   - [] add performance data support
 - [] add support for client certificates

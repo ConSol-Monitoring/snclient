@@ -4,9 +4,10 @@ go 1.19
 
 replace pkg/nrpe => ./pkg/nrpe
 
+replace internal/dump => ./internal/dump
+
 require (
 	github.com/daixiang0/gci v0.10.1
-	github.com/davecgh/go-spew v1.1.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/golangci/golangci-lint v1.52.0
@@ -50,6 +51,7 @@ require (
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.0.0-20230227094218-b8c73b2037b8 // indirect
 	github.com/curioswitch/go-reassign v0.2.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denis-tingaikin/go-header v0.4.3 // indirect
 	github.com/esimonov/ifshort v1.0.4 // indirect
 	github.com/ettle/strcase v0.1.1 // indirect
