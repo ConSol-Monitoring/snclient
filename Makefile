@@ -241,6 +241,7 @@ deb: | dist
 		build-deb/usr/bin \
 		build-deb/lib/systemd/system \
 		build-deb/etc/logrotate.d \
+		build-deb/usr/share/doc/snclient \
 		build-deb/usr/share/doc/snclient
 
 	rm -rf ./build-deb/DEBIAN
@@ -251,13 +252,16 @@ deb: | dist
 	cp ./packaging/snclient.logrotate build-deb/etc/logrotate.d/snclient
 	rm -f build-deb/usr/share/doc/snclient/changelog.gz
 	cp Changes build-deb/usr/share/doc/snclient/changelog
-	gzip -9 build-deb/usr/share/doc/snclient/changelog
+	gzip -n -9 build-deb/usr/share/doc/snclient/changelog
+
+	cp ./dist/LICENSE build-deb//usr/share/doc/snclient/copyright
+	cp ./dist/README.md build-deb//usr/share/doc/snclient/README
 
 	sed -i build-deb/DEBIAN/control -e 's|^Architecture: .*|Architecture: $(ARCH)|'
 	sed -i build-deb/DEBIAN/control -e 's|^Architecture: 386|Architecture: i386|'
 	sed -i build-deb/DEBIAN/control -e 's|^Version: .*|Version: $(VERSION)|'
 
-	chmod 600 build-deb/etc/snclient/*
+	chmod 644 build-deb/etc/snclient/*
 
 	dpkg-deb --build --root-owner-group ./build-deb ./$(DEBFILE)
 	-lintian ./$(DEBFILE)

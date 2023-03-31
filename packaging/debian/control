@@ -3,7 +3,14 @@ Version: UNSET
 Section: net
 Priority: optional
 Architecture: UNSET
-Build-Depends: golang help2man
 Suggests: monitoring-plugins-basic
 Maintainer: Sven Nierlein <sven@consol.de>
-Description: Cross platform general purpose monitoring agent designed as replacement for NRPE and NSClient++.
+Homepage: https://github.com/sni/snclient/
+Bugs: https://github.com/sni/snclient/issues
+Description: Monitoring agent designed as replacement for NRPE and NSClient++.
+ SNClient+ is a cross-platform monitoring agent providing nrpe/nscp like system
+ checks and prometheus metrics.
+ .
+ Protocols:
+  * NRPE: v2/v4
+  * nscp rest api: legacy / v1
