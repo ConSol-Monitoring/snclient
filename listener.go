@@ -29,8 +29,8 @@ var DefaultListenTCPConfig = ConfigSection{
 	"allowed hosts":       "127.0.0.1, [::1]",
 	"bind to":             "",
 	"cache allowed hosts": "1",
-	"certificate":         "./server.crt",
-	"certificate key":     "./server.key",
+	"certificate":         "${certificate-path}/server.crt",
+	"certificate key":     "${certificate-path}/server.key",
 	"timeout":             "30",
 	"use ssl":             "0",
 }
