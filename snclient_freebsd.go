@@ -29,7 +29,7 @@ func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 		return Reload
 	case syscall.SIGUSR1:
 		log.Errorf("requested thread dump via signal %s", sig)
-		logThreaddump()
+		logThreadDump()
 
 		return Resume
 	case syscall.SIGUSR2:
