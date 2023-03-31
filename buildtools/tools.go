@@ -9,7 +9,6 @@ package tools
  */
 
 import (
-	_ "github.com/davecgh/go-spew/spew"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "golang.org/x/tools/cmd/goimports"
 	_ "golang.org/x/vuln/cmd/govulncheck"

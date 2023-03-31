@@ -63,3 +63,8 @@ issues:
     - "complexity.*checkFlags"
     - "Function 'readConfiguration' has too many statements"
     - "complexity.*readConfiguration"
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - dupword

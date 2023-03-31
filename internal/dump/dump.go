@@ -1,7 +1,4 @@
-//go:build ignore
-// +build ignore
-
-package snclient
+package dump
 
 import (
 	"fmt"
@@ -15,5 +12,6 @@ func Dump(v interface{}) {
 	spew.Config.Indent = "\t"
 	spew.Config.MaxDepth = 20
 	spew.Config.DisableMethods = true
-	fmt.Fprintf(os.Stderr, spew.Sdump(v))
+	spew.Config.SortKeys = true
+	fmt.Fprintf(os.Stderr, "%s", spew.Sdump(v))
 }

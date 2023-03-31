@@ -7,11 +7,6 @@ import (
 	"pkg/nrpe"
 )
 
-const (
-	nrpeQueryPacketType    = 1
-	nrpeResponsePacketType = 2
-)
-
 func init() {
 	AvailableListeners = append(AvailableListeners, ListenHandler{"NRPEServer", "/settings/NRPE/server", NewHandlerNRPE()})
 }
@@ -51,15 +46,14 @@ func (l *HandlerNRPE) Init(snc *Agent, _ ConfigSection) error {
 func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 	defer con.Close()
 
-	request := nrpe.NewNrpePacket()
-
-	if err := request.Read(con); err != nil {
+	request, err := nrpe.ReadNrpePacket(con)
+	if err != nil {
 		log.Errorf("nrpe protocol error: %s", err.Error())
 
 		return
 	}
 
-	if err := request.Verify(nrpeQueryPacketType); err != nil {
+	if err := request.Verify(nrpe.NrpeQueryPacket); err != nil {
 		log.Errorf("nrpe protocol error: %s", err.Error())
 
 		return
@@ -67,6 +61,12 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 
 	cmd, args := request.Data()
 	log.Tracef("nrpe v%d request: %s %s", request.Version(), cmd, args)
+
+	if request.Version() == nrpe.NrpeV3PacketVersion {
+		log.Errorf("nrpe protocol version 3 is deprecated, use v2 or v4")
+
+		return
+	}
 
 	var statusResult *CheckResult
 
@@ -89,7 +89,7 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 		}
 	}
 
-	response := nrpe.BuildPacketV2(nrpeResponsePacketType, uint16(statusResult.State), output)
+	response := nrpe.BuildPacket(request.Version(), nrpe.NrpeResponsePacket, uint16(statusResult.State), output)
 
 	if err := response.Write(con); err != nil {
 		log.Errorf("nrpe write response error: %s", err.Error())
