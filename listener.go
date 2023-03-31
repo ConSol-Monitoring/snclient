@@ -109,7 +109,7 @@ func (l *Listener) setListenConfig(conf ConfigSection) error {
 	case ok:
 		l.socketTimeout = time.Duration(socketTimeout) * time.Second
 	default:
-		l.socketTimeout = DefaulSocketTimeout * time.Second
+		l.socketTimeout = DefaultSocketTimeout * time.Second
 	}
 
 	// parse / set allowed hosts
@@ -309,10 +309,10 @@ func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
 	}
 
 	server := &http.Server{
-		ReadTimeout:       DefaulSocketTimeout * time.Second,
-		ReadHeaderTimeout: DefaulSocketTimeout * time.Second,
-		WriteTimeout:      DefaulSocketTimeout * time.Second,
-		IdleTimeout:       DefaulSocketTimeout * time.Second,
+		ReadTimeout:       DefaultSocketTimeout * time.Second,
+		ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
+		WriteTimeout:      DefaultSocketTimeout * time.Second,
+		IdleTimeout:       DefaultSocketTimeout * time.Second,
 		Handler:           mux,
 		ConnState: func(con net.Conn, state http.ConnState) {
 			if state != http.StateNew {

@@ -34,8 +34,11 @@ var log = factorlog.New(os.Stdout, factorlog.NewStdFormatter(
 		`[pid:`+fmt.Sprintf("%d", os.Getpid())+`]`+
 		`[%{ShortFile}:%{Line}] %{Message}`))
 
-func CreateLogger(snc *Agent) {
+func CreateLogger(snc *Agent, config *Config) {
 	conf := snc.Config.Section("/settings/log")
+	if config != nil {
+		conf = config.Section("/settings/log")
+	}
 
 	setLogLevel(snc, conf)
 	setLogFile(snc, conf)

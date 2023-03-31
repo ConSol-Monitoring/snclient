@@ -38,8 +38,8 @@ const (
 	// BlockProfileRateInterval sets the profiling interval when started with -profile.
 	BlockProfileRateInterval = 10
 
-	// DefaulSocketTimeout sets the default timeout for tcp sockets.
-	DefaulSocketTimeout = 30
+	// DefaultSocketTimeout sets the default timeout for tcp sockets.
+	DefaultSocketTimeout = 30
 )
 
 // MainStateType is used to set different states of the main loop.
@@ -88,16 +88,16 @@ type Agent struct {
 	daemonMode        bool
 }
 
-func SNClient(build, revsion string) {
+func SNClient(build, revision string) {
 	snc := Agent{
 		Build:     build,
-		Revision:  revsion,
+		Revision:  revision,
 		Listeners: make(map[string]*Listener),
 	}
 
 	snc.setFlags()
 	snc.checkFlags()
-	CreateLogger(&snc)
+	CreateLogger(&snc, nil)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
 	config, listeners, err := snc.readConfiguration()
@@ -105,7 +105,7 @@ func SNClient(build, revsion string) {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 		snc.CleanExit(ExitCodeError)
 	}
-	CreateLogger(&snc)
+	CreateLogger(&snc, &config)
 
 	defer snc.logPanicExit()
 
@@ -144,7 +144,7 @@ func SNClient(build, revsion string) {
 	signal.Notify(osSignalChannel, syscall.SIGINT)
 
 	snc.startAll(config, listeners)
-	log.Infof("%s v%s.%s (Build: %s), pid: %d started\n", NAME, VERSION, revsion, snc.Build, os.Getpid())
+	log.Infof("%s v%s.%s (Build: %s), pid: %d started\n", NAME, VERSION, revision, snc.Build, os.Getpid())
 
 	for {
 		exitState := snc.mainLoop(osSignalChannel)
@@ -178,7 +178,7 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 					continue
 				}
 
-				CreateLogger(snc)
+				CreateLogger(snc, &newConfig)
 				snc.startAll(newConfig, listeners)
 
 				return exitCode
@@ -328,14 +328,14 @@ func (snc *Agent) cleanExit(exitCode int) {
 	os.Exit(exitCode)
 }
 
-func logThreaddump() {
+func logThreadDump() {
 	buf := make([]byte, 1<<16)
 
 	if n := runtime.Stack(buf, true); n < len(buf) {
 		buf = buf[:n]
 	}
 
-	log.Errorf("threaddump:\n%s", buf)
+	log.Errorf("ThreadDump:\n%s", buf)
 }
 
 func (snc *Agent) createPidFile() {
@@ -463,10 +463,10 @@ func (snc *Agent) checkFlags() {
 
 			server := &http.Server{
 				Addr:              snc.flags.flagProfile,
-				ReadTimeout:       DefaulSocketTimeout * time.Second,
-				ReadHeaderTimeout: DefaulSocketTimeout * time.Second,
-				WriteTimeout:      DefaulSocketTimeout * time.Second,
-				IdleTimeout:       DefaulSocketTimeout * time.Second,
+				ReadTimeout:       DefaultSocketTimeout * time.Second,
+				ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
+				WriteTimeout:      DefaultSocketTimeout * time.Second,
+				IdleTimeout:       DefaultSocketTimeout * time.Second,
 			}
 
 			err := server.ListenAndServe()
