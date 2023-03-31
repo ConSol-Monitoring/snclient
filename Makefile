@@ -25,7 +25,7 @@ all: build
 
 CMDS = $(shell cd ./cmd && ls -1)
 
-tools: versioncheck vendor dump
+tools: versioncheck vendor
 	go mod download
 	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }'); do \
 		go install $$DEP; \
@@ -47,14 +47,6 @@ vendor:
 	go mod download
 	go mod tidy
 	go mod vendor
-
-dump:
-	if [ $(shell grep -r Dump *.go ./pkg/*/*.go ./internal/*/*.go ./cmd/*/*.go | grep -v DumpRe | grep -v dump.go | wc -l) -ne 0 ]; then \
-		sed -i.bak -e 's/\/\/go:build.*/\/\/ :build with debug functions/' -e 's/\/\/ +build.*/\/\/ build with debug functions/' internal/dump/dump.go; \
-	else \
-		sed -i.bak -e 's/\/\/ :build.*/\/\/go:build ignore/' -e 's/\/\/ build.*/\/\/ +build ignore/' internal/dump/dump.go; \
-	fi
-	rm -f internal/dump/dump.go.bak
 
 build: vendor
 	set -e; for CMD in $(CMDS); do \
@@ -80,12 +72,12 @@ build-windows-amd64: vendor
 		cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.windows.amd64.exe; cd ../..; \
 	done
 
-test: fmt dump vendor
+test: fmt vendor
 	go test -short -v -timeout=1m ./ ./pkg/*/. ./internal/*/.
 	if grep -rn TODO: *.go ./cmd/ ./pkg/ ./internal/; then exit 1; fi
-	if grep -rn Dump *.go ./cmd/ ./pkg/ ./internal/ | grep -v dump.go | grep -v DumpRe; then exit 1; fi
+	if grep -rn Dump *.go ./cmd/ ./pkg/ ./internal/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 
-longtest: fmt dump vendor
+longtest: fmt vendor
 	go test -v -timeout=1m ./ ./pkg/*/. ./internal/*/.
 
 citest: vendor
@@ -104,7 +96,7 @@ citest: vendor
 	#
 	# Checking remaining debug calls
 	#
-	if grep -rn Dump *.go ./cmd/ ./pkg/ ./internal/ | grep -v dump.go | grep -v DumpRe; then exit 1; fi
+	if grep -rn Dump *.go ./cmd/ ./pkg/ ./internal/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 	#
 	# Darwin and Linux should be handled equal
 	#
