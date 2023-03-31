@@ -22,7 +22,7 @@ type CheckWebResponse struct {
 
 type CheckWebLine struct {
 	Message string        `json:"message"`
-	Perf    []interface{} `json:"perf"`
+	Perf    []interface{} `json:"perf,omitempty"`
 }
 type CheckWebPayload struct {
 	Command string         `json:"command"`
