@@ -227,6 +227,11 @@ dist:
 	[ -f snclient ] || $(MAKE) build
 	if [ "$(GOOS)" = "windows" ]; then cp ./snclient -p ./dist/snclient.exe; else cp -p ./snclient ./dist/snclient; fi
 	chmod u+x ./snclient
+	-help2man --no-info --section=1 --version-string="snclient $(VERSION)" \
+		--help-option=-h --include=./packaging/help2man.include \
+		-n "Agent that runs and provides system checks and metrics." \
+		./snclient \
+		> dist/snclient.1
 	-help2man --no-info --section=8 --version-string="snclient $(VERSION)" \
 		--help-option=-h --include=./packaging/help2man.include \
 		-n "Agent that runs and provides system checks and metrics." \
@@ -242,7 +247,9 @@ deb: | dist
 		build-deb/lib/systemd/system \
 		build-deb/etc/logrotate.d \
 		build-deb/usr/share/doc/snclient \
-		build-deb/usr/share/doc/snclient
+		build-deb/usr/share/doc/snclient \
+		build-deb/usr/share/man/man1 \
+		build-deb/usr/share/man/man8
 
 	rm -rf ./build-deb/DEBIAN
 	cp -r ./packaging/debian ./build-deb/DEBIAN
@@ -262,6 +269,11 @@ deb: | dist
 	sed -i build-deb/DEBIAN/control -e 's|^Version: .*|Version: $(VERSION)|'
 
 	chmod 644 build-deb/etc/snclient/*
+
+	cp -p dist/snclient.1 build-deb/usr/share/man/man1/snclient.1
+	gzip -n -9 build-deb/usr/share/man/man1/snclient.1
+	cp -p dist/snclient.8 build-deb/usr/share/man/man8/snclient.8
+	gzip -n -9 build-deb/usr/share/man/man8/snclient.8
 
 	dpkg-deb --build --root-owner-group ./build-deb ./$(DEBFILE)
 	-lintian ./$(DEBFILE)

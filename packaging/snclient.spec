@@ -37,11 +37,13 @@ It supports Prometheus, NRPE and a REST API HTTP(s) protocol to run checks.
 %{__install} -D -m 0644 -p README.md LICENSE %{buildroot}/usr/share/snclient
 
 %{__mkdir_p} -m 0755 %{buildroot}/usr/share/man/man8
-%{__install} -D -m 0644 -p snclient.8 %{buildroot}/usr/share/man/man8/snclient
-gzip -n -9 %{buildroot}/usr/share/man/man8/snclient
+%{__install} -D -m 0644 -p snclient.8 %{buildroot}/usr/share/man/man8/snclient.8
+gzip -n -9 %{buildroot}/usr/share/man/man8/snclient.8
 
 %{__mkdir_p} -m 0755 %{buildroot}/usr/share/man/man1
-%{__install} -D -m 0644 -p %{buildroot}/usr/share/man/man8/snclient.gz %{buildroot}/usr/share/man/man1/snclient.gz
+%{__install} -D -m 0644 -p snclient.1 %{buildroot}/usr/share/man/man8/snclient.1
+gzip -n -9 %{buildroot}/usr/share/man/man1/snclient.1
+
 
 %post
 case "$*" in
