@@ -227,7 +227,7 @@ dist:
 	[ -f snclient ] || $(MAKE) build
 	if [ "$(GOOS)" = "windows" ]; then cp ./snclient -p ./dist/snclient.exe; else cp -p ./snclient ./dist/snclient; fi
 	chmod u+x ./snclient
-	help2man --no-info --section=8 --version-string="snclient $(VERSION)" \
+	-help2man --no-info --section=8 --version-string="snclient $(VERSION)" \
 		--help-option=-h --include=./packaging/help2man.include \
 		-n "Agent that runs and provides system checks and metrics." \
 		./snclient \

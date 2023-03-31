@@ -144,7 +144,7 @@ func SNClient(build, revsion string) {
 	signal.Notify(osSignalChannel, syscall.SIGINT)
 
 	snc.startAll(config, listeners)
-	log.Infof("%s v%s (Build: %s), pid: %d started\n", NAME, VERSION, snc.Build, os.Getpid())
+	log.Infof("%s v%s.%s (Build: %s), pid: %d started\n", NAME, VERSION, revsion, snc.Build, os.Getpid())
 
 	for {
 		exitState := snc.mainLoop(osSignalChannel)
@@ -388,7 +388,7 @@ func (snc *Agent) deletePidFile() {
 
 // printVersion prints the version.
 func (snc *Agent) printVersion() {
-	fmt.Fprintf(os.Stdout, "snclient+ v%s.%s (Build: %s)\n", VERSION, snc.Revision, snc.Build)
+	fmt.Fprintf(os.Stdout, "%s v%s.%s (Build: %s)\n", NAME, VERSION, snc.Revision, snc.Build)
 }
 
 func (snc *Agent) printUsage(full bool) {

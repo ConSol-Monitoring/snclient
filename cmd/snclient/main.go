@@ -13,5 +13,11 @@ var Build string
 var Revision string
 
 func main() {
+	if Revision == "" {
+		Revision = "0"
+	}
+	if Build == "" {
+		Build = "unknown"
+	}
 	snclient.SNClient(Build, Revision)
 }
