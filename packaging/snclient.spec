@@ -38,7 +38,7 @@ It supports Prometheus, NRPE and a REST API HTTP(s) protocol to run checks.
 
 %{__mkdir_p} -m 0755 %{buildroot}/usr/share/man/man8
 %{__install} -D -m 0644 -p snclient.8 %{buildroot}/usr/share/man/man8/snclient
-gzip -9 %{buildroot}/usr/share/man/man8/snclient
+gzip -n -9 %{buildroot}/usr/share/man/man8/snclient
 
 %{__mkdir_p} -m 0755 %{buildroot}/usr/share/man/man1
 %{__install} -D -m 0644 -p %{buildroot}/usr/share/man/man8/snclient.gz %{buildroot}/usr/share/man/man1/snclient.gz
