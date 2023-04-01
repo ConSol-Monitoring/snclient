@@ -42,7 +42,6 @@ soon...
 - [] improve configuration
   - [] add config validator
   - [] use strong typed config items
-  - [] add support for includes in ini file
 - [] improve documentation
   - [] add feature comparison to readme
   - [] add docs/
