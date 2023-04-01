@@ -69,6 +69,7 @@ type Agent struct {
 	Config    Config               // reference to global config object
 	Listeners map[string]*Listener // Listeners stores if we started a listener
 	flags     struct {             // command line flags
+		flagDaemon       bool
 		flagVerbose      bool
 		flagVeryVerbose  bool
 		flagTraceVerbose bool
@@ -419,6 +420,8 @@ func (snc *Agent) printUsage(full bool) {
 func (snc *Agent) setFlags() {
 	flag.Var(&snc.flags.flagConfigFile, "c", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
 	flag.Var(&snc.flags.flagConfigFile, "config", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
+	flag.BoolVar(&snc.flags.flagDaemon, "d", false, "start snclient as daemon in background")
+	flag.BoolVar(&snc.flags.flagDaemon, "daemon", false, "start snclient as daemon in background")
 	flag.StringVar(&snc.flags.flagPidfile, "pidfile", "", "set path to pidfile")
 	flag.StringVar(&snc.flags.flagLogFile, "logfile", "", "override logfile from the configuration file")
 	flag.BoolVar(&snc.flags.flagVerbose, "v", false, "enable verbose output")

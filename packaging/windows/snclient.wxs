@@ -33,11 +33,12 @@
 				<ServiceInstall
 					Description='General purpose monitoring agent'
 					ErrorControl='ignore'
+					Arguments="--daemon"
 					Name = 'snclient'
 					Id='SNClientService'
 					Start='auto'
 					Type='ownProcess'
-					Vital='yes'
+					Vital='no'
 				/>
 				<ServiceControl Id='StartSNClientService' Start='install' Stop='both' Remove='uninstall' Name='snclient' Wait='yes' />
 			</Component>
