@@ -76,11 +76,8 @@ func NewListener(snc *Agent, conf *ConfigSection, r RequestHandler) (*Listener, 
 
 func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	// parse/set port.
-	port, ok, err := conf.GetString("port")
-	switch {
-	case err != nil:
-		return fmt.Errorf("invalid timeout specification: %s", err.Error())
-	case ok:
+	port, ok := conf.GetString("port")
+	if ok {
 		if strings.HasSuffix(port, "s") {
 			port = strings.TrimSuffix(port, "s")
 			conf.Set("use ssl", "1")
@@ -95,10 +92,7 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	}
 
 	// set bind address (can be empty)
-	bindAddress, _, err := conf.GetString("bind to")
-	if err != nil {
-		return fmt.Errorf("invalid bind to specification: %s", err.Error())
-	}
+	bindAddress, _ := conf.GetString("bind to")
 	l.bindAddress = bindAddress
 
 	// parse / set socket timeout.
@@ -113,11 +107,8 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	}
 
 	// parse / set allowed hosts
-	allowed, _, err := conf.GetString("allowed hosts")
-	switch {
-	case err != nil:
-		return fmt.Errorf("invalid allowed hosts specification: %s", err.Error())
-	case allowed != "":
+	allowed, _ := conf.GetString("allowed hosts")
+	if allowed != "" {
 		for _, allow := range strings.Split(allowed, ",") {
 			allow = strings.TrimSpace(allow)
 			if allow == "" {
@@ -149,11 +140,7 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 		}
 
 		// tls minimum version
-		tlsMin, ok, err := conf.GetString("tls min version")
-		switch {
-		case err != nil:
-			return fmt.Errorf("invalid tls min version: %s", err.Error())
-		case ok:
+		if tlsMin, ok := conf.GetString("tls min version"); ok {
 			min, err := parseTLSMinVersion(tlsMin)
 			if err != nil {
 				return fmt.Errorf("invalid tls min version: %s", err.Error())
@@ -162,10 +149,8 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 		}
 
 		// certificate
-		certPath, ok, err := conf.GetString("certificate")
+		certPath, ok := conf.GetString("certificate")
 		switch {
-		case err != nil:
-			return fmt.Errorf("invalid certificate: %s", err.Error())
 		case !ok:
 			return fmt.Errorf("invalid ssl configuration, ssl enabled but no certificate set")
 		case ok:
@@ -175,10 +160,8 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 			}
 		}
 
-		certKey, ok, err := conf.GetString("certificate key")
+		certKey, ok := conf.GetString("certificate key")
 		switch {
-		case err != nil:
-			return fmt.Errorf("invalid certificate key: %s", err.Error())
 		case !ok:
 			return fmt.Errorf("invalid ssl configuration, ssl enabled but no certificate key set")
 		case ok:

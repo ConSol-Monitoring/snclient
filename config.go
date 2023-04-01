@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strconv"
@@ -45,14 +46,18 @@ func NewConfig() *Config {
 	return conf
 }
 
-// opens the config file and reads all key value pairs, separated through = and commented out with ";".
-func (config *Config) ReadSettingsFile(path string) error {
+// ReadINI opens the config file and reads all key value pairs, separated through = and commented out with ";" and "#".
+func (config *Config) ReadINI(path string) error {
 	log.Debugf("reading config: %s", path)
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("cannot read file %s: %s", path, err.Error())
 	}
 
+	return (config.parseINI(file, path))
+}
+
+func (config *Config) parseINI(file io.Reader, path string) error {
 	currentBlock := ""
 	var currentSection *ConfigSection
 	lineNr := 0
@@ -74,7 +79,7 @@ func (config *Config) ReadSettingsFile(path string) error {
 		}
 
 		if currentBlock == "" {
-			return fmt.Errorf("parse error in %s:%d: found key=value outside of block", path, lineNr)
+			return fmt.Errorf("parse error in %s:%d: found key=value pair outside of ini block", path, lineNr)
 		}
 
 		// get both values
@@ -85,7 +90,11 @@ func (config *Config) ReadSettingsFile(path string) error {
 		val[0] = strings.TrimSpace(val[0])
 		val[1] = strings.TrimSpace(val[1])
 
-		currentSection.Set(val[0], val[1])
+		value, err := config.ParseString(val[1])
+		if err != nil {
+			return fmt.Errorf("config error in %s:%d: %s", path, lineNr, err.Error())
+		}
+		currentSection.Set(val[0], value)
 	}
 
 	return nil
@@ -110,13 +119,8 @@ func (config *Config) ReplaceMacros(value string) string {
 		str = strings.TrimPrefix(str, "${")
 		str = strings.TrimSuffix(str, "}")
 		str = strings.TrimSpace(str)
-		repl, ok, err := config.Section("/paths").GetString(str)
-		switch {
-		case err != nil:
-			log.Warnf("cannot expand macro: ${%s}", str, err.Error())
-
-			return orig
-		case !ok:
+		repl, ok := config.Section("/paths").GetString(str)
+		if !ok {
 			log.Warnf("using undefined macro: ${%s}", str)
 
 			return orig
@@ -126,6 +130,29 @@ func (config *Config) ReplaceMacros(value string) string {
 	})
 
 	return value
+}
+
+// ParseString parses string from config section.
+func (config *Config) ParseString(val string) (string, error) {
+	val = strings.TrimSpace(val)
+
+	switch {
+	case strings.HasPrefix(val, `"`):
+		if !strings.HasSuffix(val, `"`) {
+			return "", fmt.Errorf("unclosed quotes")
+		}
+		val = strings.TrimPrefix(val, `"`)
+		val = strings.TrimSuffix(val, `"`)
+
+	case strings.HasPrefix(val, `'`):
+		if !strings.HasSuffix(val, `'`) {
+			return "", fmt.Errorf("unclosed quotes")
+		}
+		val = strings.TrimPrefix(val, `'`)
+		val = strings.TrimSuffix(val, `'`)
+	}
+
+	return val, nil
 }
 
 // ConfigSection contains a single config section.
@@ -175,40 +202,19 @@ func (cs *ConfigSection) Clone() *ConfigSection {
 
 // GetString parses string from config section, it returns the value if found and sets ok to true.
 // If value is found but cannot be parsed, error is set.
-func (cs *ConfigSection) GetString(key string) (val string, ok bool, err error) {
+func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	val, ok = cs.data[key]
-	if !ok {
-		return "", false, nil
-	}
-	val = strings.TrimSpace(val)
-	val = cs.cfg.ReplaceMacros(val)
-
-	switch {
-	case strings.HasPrefix(val, `"`):
-		if !strings.HasSuffix(val, `"`) {
-			return "", true, fmt.Errorf("unclosed quotes in %s: ", val)
-		}
-		val = strings.TrimPrefix(val, `"`)
-		val = strings.TrimSuffix(val, `"`)
-
-	case strings.HasPrefix(val, `'`):
-		if !strings.HasSuffix(val, `'`) {
-			return "", true, fmt.Errorf("unclosed quotes in %s: ", val)
-		}
-		val = strings.TrimPrefix(val, `'`)
-		val = strings.TrimSuffix(val, `'`)
+	if ok {
+		val = cs.cfg.ReplaceMacros(val)
 	}
 
-	return val, true, nil
+	return val, ok
 }
 
 // GetInt parses int64 from config section, it returns the value if found and sets ok to true.
 // If value is found but cannot be parsed, error is set.
 func (cs *ConfigSection) GetInt(key string) (num int64, ok bool, err error) {
-	val, ok, err := cs.GetString(key)
-	if err != nil {
-		return 0, ok, fmt.Errorf("ParseInt: %s", err.Error())
-	}
+	val, ok := cs.GetString(key)
 	if !ok {
 		return 0, false, nil
 	}
@@ -223,10 +229,7 @@ func (cs *ConfigSection) GetInt(key string) (num int64, ok bool, err error) {
 // GetBool parses bool from config section, it returns the value if found and sets ok to true.
 // If value is found but cannot be parsed, error is set.
 func (cs *ConfigSection) GetBool(key string) (val, ok bool, err error) {
-	raw, ok, err := cs.GetString(key)
-	if err != nil {
-		return false, ok, fmt.Errorf("cannot parse bool: %s", err.Error())
-	}
+	raw, ok := cs.GetString(key)
 	if !ok {
 		return false, false, nil
 	}

@@ -45,13 +45,8 @@ func CreateLogger(snc *Agent, config *Config) {
 }
 
 func setLogLevel(snc *Agent, conf *ConfigSection) {
-	level, ok, err := conf.GetString("level")
-	switch {
-	case err != nil:
-		log.Errorf("failed to read log level from config: %s")
-
-		return
-	case !ok:
+	level, ok := conf.GetString("level")
+	if !ok {
 		level = "info"
 	}
 
@@ -79,13 +74,9 @@ func setLogLevel(snc *Agent, conf *ConfigSection) {
 }
 
 func setLogFile(snc *Agent, conf *ConfigSection) {
-	file, _, err := conf.GetString("file name")
-	switch {
-	case err != nil:
-		log.Errorf("failed to log file name from config: %s")
-
-		return
-	case snc.flags.flagLogFile != "":
+	file, _ := conf.GetString("file name")
+	// override from cmd flags
+	if snc.flags.flagLogFile != "" {
 		file = snc.flags.flagLogFile
 	}
 
@@ -96,12 +87,13 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 	case "stderr":
 		targetWriter = os.Stderr
 	default:
-		targetWriter, err = os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
-	}
-	if err != nil {
-		log.Errorf(fmt.Sprintf("failed to initialize logger: %s", err.Error()))
+		fHandle, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
+		if err != nil {
+			log.Errorf(fmt.Sprintf("failed to open logfile %s: %s", file, err.Error()))
 
-		return
+			return
+		}
+		targetWriter = fHandle
 	}
 
 	o, _ := os.Stdout.Stat()
