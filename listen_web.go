@@ -2,7 +2,6 @@ package snclient
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -68,11 +67,7 @@ func (l *HandlerWeb) Defaults() ConfigData {
 func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection) error {
 	l.snc = snc
 
-	password, ok, err := conf.GetString("password")
-	switch {
-	case err != nil:
-		return fmt.Errorf("failed to read password: %s", err.Error())
-	case ok:
+	if password, ok := conf.GetString("password"); ok {
 		l.password = password
 	}
 

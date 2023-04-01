@@ -221,7 +221,7 @@ func (snc *Agent) readConfiguration() (*Config, map[string]*Listener, error) {
 	}
 
 	for _, path := range snc.flags.flagConfigFile {
-		err := config.ReadSettingsFile(path)
+		err := config.ReadINI(path)
 		if err != nil {
 			return nil, nil, fmt.Errorf("reading settings failed: %s", err.Error())
 		}
@@ -229,10 +229,8 @@ func (snc *Agent) readConfiguration() (*Config, map[string]*Listener, error) {
 
 	// set paths
 	pathSection := config.Section("/paths")
-	exe, ok, err := pathSection.GetString("exe-path")
+	exe, ok := pathSection.GetString("exe-path")
 	switch {
-	case err != nil:
-		return nil, nil, fmt.Errorf("reading exe-path settings failed: %s", err.Error())
 	case ok && exe != "":
 		log.Warnf("exe-path should not be set manually")
 
@@ -252,11 +250,8 @@ func (snc *Agent) readConfiguration() (*Config, map[string]*Listener, error) {
 	}
 
 	for _, key := range []string{"exe-path", "shared-path", "scripts", "certificate-path"} {
-		val, ok, err := pathSection.GetString(key)
-		switch {
-		case err != nil:
-			return nil, nil, fmt.Errorf("reading %s settings failed: %s", key, err.Error())
-		case !ok || val == "":
+		val, ok := pathSection.GetString(key)
+		if !ok || val == "" {
 			pathSection.Set(key, pathSection.data["exe-path"])
 		}
 	}

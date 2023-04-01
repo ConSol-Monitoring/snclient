@@ -40,7 +40,6 @@ soon...
   - [] add performance data support
 - [] add support for client certificates
 - [] improve configuration
-  - [] check for parse errors on startup
   - [] add config validator
   - [] use strong typed config items
   - [] add support for includes in ini file
