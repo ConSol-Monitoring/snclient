@@ -142,7 +142,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: "windist"
-          path: "windist"
+          path: "dist"
           if-no-files-found: error
 
 
