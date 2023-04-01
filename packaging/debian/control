@@ -3,6 +3,7 @@ Version: UNSET
 Section: net
 Priority: optional
 Architecture: UNSET
+Depends: logrotate
 Suggests: monitoring-plugins-basic
 Maintainer: Sven Nierlein <sven@consol.de>
 Homepage: https://github.com/sni/snclient/
