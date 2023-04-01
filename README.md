@@ -45,7 +45,6 @@ soon...
   - [] use strong typed config items
   - [] add support for includes in ini file
 - [] improve documentation
-  - [] rework usage()
   - [] add feature comparison to readme
   - [] add docs/
 
