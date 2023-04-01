@@ -54,8 +54,8 @@ func (l *HandlerWeb) Type() string {
 	return "web"
 }
 
-func (l *HandlerWeb) Defaults() ConfigSection {
-	defaults := ConfigSection{
+func (l *HandlerWeb) Defaults() ConfigData {
+	defaults := ConfigData{
 		"port":     "8443",
 		"use ssl":  "1",
 		"password": DefaultPassword,
@@ -65,7 +65,7 @@ func (l *HandlerWeb) Defaults() ConfigSection {
 	return defaults
 }
 
-func (l *HandlerWeb) Init(snc *Agent, conf ConfigSection) error {
+func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection) error {
 	l.snc = snc
 
 	password, ok, err := conf.GetString("password")

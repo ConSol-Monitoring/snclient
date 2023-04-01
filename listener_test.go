@@ -10,11 +10,13 @@ import (
 func TestListenerConfig(t *testing.T) {
 	t.Parallel()
 
-	conf := ConfigSection{
-		"port":          "8080",
-		"bind to":       "*",
-		"allowed hosts": "localhost, [::1], 127.0.0.1, 192.168.123.0/24",
-		"use ssl":       "false",
+	conf := &ConfigSection{
+		data: ConfigData{
+			"port":          "8080",
+			"bind to":       "*",
+			"allowed hosts": "localhost, [::1], 127.0.0.1, 192.168.123.0/24",
+			"use ssl":       "false",
+		},
 	}
 
 	listen := Listener{}

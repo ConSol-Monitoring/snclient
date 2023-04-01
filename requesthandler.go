@@ -8,8 +8,8 @@ import (
 // RequestHandler handles a client connections.
 type RequestHandler interface {
 	Type() string
-	Defaults() ConfigSection
-	Init(*Agent, ConfigSection) error
+	Defaults() ConfigData
+	Init(*Agent, *ConfigSection) error
 }
 
 // RequestHandlerTCP handles a single client connection.

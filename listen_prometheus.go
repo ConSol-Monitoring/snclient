@@ -45,8 +45,8 @@ func (l *HandlerPrometheus) Type() string {
 	return "prometheus"
 }
 
-func (l *HandlerPrometheus) Defaults() ConfigSection {
-	defaults := ConfigSection{
+func (l *HandlerPrometheus) Defaults() ConfigData {
+	defaults := ConfigData{
 		"port":    "9999",
 		"use ssl": "0",
 	}
@@ -55,7 +55,7 @@ func (l *HandlerPrometheus) Defaults() ConfigSection {
 	return defaults
 }
 
-func (l *HandlerPrometheus) Init(snc *Agent, _ ConfigSection) error {
+func (l *HandlerPrometheus) Init(snc *Agent, _ *ConfigSection) error {
 	registerMetrics()
 	infoCount.WithLabelValues(VERSION, snc.Build).Set(1)
 

@@ -24,7 +24,7 @@ type ListenHandler struct {
 	Init      RequestHandler
 }
 
-var DefaultListenTCPConfig = ConfigSection{
+var DefaultListenTCPConfig = ConfigData{
 	"allowed ciphers":     "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH",
 	"allowed hosts":       "127.0.0.1, [::1]",
 	"bind to":             "",
@@ -35,7 +35,7 @@ var DefaultListenTCPConfig = ConfigSection{
 	"use ssl":             "0",
 }
 
-var DefaultListenHTTPConfig = ConfigSection{}
+var DefaultListenHTTPConfig = ConfigData{}
 
 func init() {
 	DefaultListenHTTPConfig.Merge(DefaultListenTCPConfig)
@@ -59,7 +59,7 @@ type Listener struct {
 }
 
 // NewListener creates a new Listener object.
-func NewListener(snc *Agent, conf ConfigSection, r RequestHandler) (*Listener, error) {
+func NewListener(snc *Agent, conf *ConfigSection, r RequestHandler) (*Listener, error) {
 	listen := Listener{
 		snc:      snc,
 		listen:   nil,
@@ -74,7 +74,7 @@ func NewListener(snc *Agent, conf ConfigSection, r RequestHandler) (*Listener, e
 	return &listen, nil
 }
 
-func (l *Listener) setListenConfig(conf ConfigSection) error {
+func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	// parse/set port.
 	port, ok, err := conf.GetString("port")
 	switch {
@@ -83,7 +83,7 @@ func (l *Listener) setListenConfig(conf ConfigSection) error {
 	case ok:
 		if strings.HasSuffix(port, "s") {
 			port = strings.TrimSuffix(port, "s")
-			conf["use ssl"] = "1"
+			conf.Set("use ssl", "1")
 		}
 
 		num, err := strconv.ParseInt(port, 10, 64)
@@ -113,7 +113,11 @@ func (l *Listener) setListenConfig(conf ConfigSection) error {
 	}
 
 	// parse / set allowed hosts
-	if allowed, ok := conf["allowed hosts"]; ok {
+	allowed, _, err := conf.GetString("allowed hosts")
+	switch {
+	case err != nil:
+		return fmt.Errorf("invalid allowed hosts specification: %s", err.Error())
+	case allowed != "":
 		for _, allow := range strings.Split(allowed, ",") {
 			allow = strings.TrimSpace(allow)
 			if allow == "" {
