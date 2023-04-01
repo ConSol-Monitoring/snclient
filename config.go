@@ -35,12 +35,14 @@ func (c *configFiles) Set(value string) error {
 
 // Config contains the merged config over all config files.
 type Config struct {
-	sections map[string]ConfigSection
+	sections        map[string]ConfigSection
+	alreadyIncluded map[string]string
 }
 
 func NewConfig() *Config {
 	conf := &Config{
-		sections: make(map[string]ConfigSection, 0),
+		sections:        make(map[string]ConfigSection, 0),
+		alreadyIncluded: make(map[string]string, 0),
 	}
 
 	return conf
@@ -48,17 +50,39 @@ func NewConfig() *Config {
 
 // ReadINI opens the config file and reads all key value pairs, separated through = and commented out with ";" and "#".
 func (config *Config) ReadINI(path string) error {
+	if prev, ok := config.alreadyIncluded[path]; ok {
+		return fmt.Errorf("duplicate config file found: %s, already included from %s", path, prev)
+	}
+	config.alreadyIncluded[path] = "command args"
 	log.Debugf("reading config: %s", path)
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("cannot read file %s: %s", path, err.Error())
 	}
 
-	return (config.parseINI(file, path))
+	err = config.parseINI(file, path)
+	if err != nil {
+		return fmt.Errorf("config error in file %s: %s", path, err.Error())
+	}
+
+	// import includes
+	inclSection := config.Section("/includes")
+	for name, incl := range inclSection.data {
+		log.Tracef("reading config include: %s", incl)
+		delete(inclSection.data, name)
+		if _, ok := config.alreadyIncluded[incl]; !ok {
+			err := config.ReadINI(incl)
+			if err != nil {
+				return fmt.Errorf("reading settings failed: %s", err.Error())
+			}
+			config.alreadyIncluded[incl] = path
+		}
+	}
+
+	return nil
 }
 
 func (config *Config) parseINI(file io.Reader, path string) error {
-	currentBlock := ""
 	var currentSection *ConfigSection
 	lineNr := 0
 
@@ -72,13 +96,13 @@ func (config *Config) parseINI(file io.Reader, path string) error {
 		}
 
 		if line[0] == '[' {
-			currentBlock = strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")
+			currentBlock := strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")
 			currentSection = config.Section(currentBlock)
 
 			continue
 		}
 
-		if currentBlock == "" {
+		if currentSection == nil {
 			return fmt.Errorf("parse error in %s:%d: found key=value pair outside of ini block", path, lineNr)
 		}
 
@@ -90,11 +114,17 @@ func (config *Config) parseINI(file io.Reader, path string) error {
 		val[0] = strings.TrimSpace(val[0])
 		val[1] = strings.TrimSpace(val[1])
 
-		value, err := config.ParseString(val[1])
+		value, err := config.parseString(val[1])
 		if err != nil {
 			return fmt.Errorf("config error in %s:%d: %s", path, lineNr, err.Error())
 		}
-		currentSection.Set(val[0], value)
+
+		// on duplicate entries the first one wins
+		if _, ok := currentSection.data[val[0]]; ok {
+			log.Warnf("tried to redefine %s/%s in %s:%d", currentSection.name, val[0], path, lineNr)
+		} else {
+			currentSection.Set(val[0], value)
+		}
 	}
 
 	return nil
@@ -112,8 +142,8 @@ func (config *Config) Section(name string) *ConfigSection {
 	return section
 }
 
-// ReplaceMacros replaces variables in given string.
-func (config *Config) ReplaceMacros(value string) string {
+// replaceMacros replaces variables in given string.
+func (config *Config) replaceMacros(value string) string {
 	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
 		orig := str
 		str = strings.TrimPrefix(str, "${")
@@ -132,8 +162,8 @@ func (config *Config) ReplaceMacros(value string) string {
 	return value
 }
 
-// ParseString parses string from config section.
-func (config *Config) ParseString(val string) (string, error) {
+// parseString parses string from config section.
+func (config *Config) parseString(val string) (string, error) {
 	val = strings.TrimSpace(val)
 
 	switch {
@@ -205,7 +235,7 @@ func (cs *ConfigSection) Clone() *ConfigSection {
 func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	val, ok = cs.data[key]
 	if ok {
-		val = cs.cfg.ReplaceMacros(val)
+		val = cs.cfg.replaceMacros(val)
 	}
 
 	return val, ok

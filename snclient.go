@@ -102,7 +102,7 @@ func SNClient(build, revision string) {
 	CreateLogger(&snc, nil)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
-	config, listeners, err := snc.readConfiguration()
+	config, listeners, err := snc.initConfiguration()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 		snc.CleanExit(ExitCodeError)
@@ -173,7 +173,7 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 			case Resume:
 				continue
 			case Reload:
-				newConfig, listeners, err := snc.readConfiguration()
+				newConfig, listeners, err := snc.initConfiguration()
 				if err != nil {
 					log.Errorf("reloading configuration failed: %s", err.Error())
 
@@ -213,14 +213,36 @@ func (snc *Agent) startAll(config *Config, listeners map[string]*Listener) {
 	}
 }
 
-func (snc *Agent) readConfiguration() (*Config, map[string]*Listener, error) {
-	config := NewConfig()
+func (snc *Agent) initConfiguration() (*Config, map[string]*Listener, error) {
+	var files configFiles
+	files = snc.flags.flagConfigFile
 
-	if len(snc.flags.flagConfigFile) == 0 {
-		snc.flags.flagConfigFile = append(snc.flags.flagConfigFile, "snclient.ini")
+	defaultLocations := []string{"./snclient.ini", "/etc/snclient/snclient.ini"}
+	// no config supplied, check default locations
+	if len(files) == 0 {
+		for _, f := range defaultLocations {
+			_, err := os.Stat(f)
+			if os.IsNotExist(err) {
+				continue
+			}
+			files = append(files, f)
+
+			break
+		}
 	}
 
-	for _, path := range snc.flags.flagConfigFile {
+	// still empty
+	if len(files) == 0 {
+		return nil, nil, fmt.Errorf("no config file supplied (--config=..) and no config file found in default locations (%s)",
+			strings.Join(defaultLocations, ", "))
+	}
+
+	return snc.readConfiguration(files)
+}
+
+func (snc *Agent) readConfiguration(file []string) (*Config, map[string]*Listener, error) {
+	config := NewConfig()
+	for _, path := range file {
 		err := config.ReadINI(path)
 		if err != nil {
 			return nil, nil, fmt.Errorf("reading settings failed: %s", err.Error())
@@ -257,14 +279,14 @@ func (snc *Agent) readConfiguration() (*Config, map[string]*Listener, error) {
 	}
 
 	for key, val := range pathSection.data {
-		val = config.ReplaceMacros(val)
+		val = config.replaceMacros(val)
 		pathSection.Set(key, val)
 	}
 
 	// replace other sections
 	for _, section := range config.sections {
 		for key, val := range section.data {
-			val = config.ReplaceMacros(val)
+			val = config.replaceMacros(val)
 			section.data[key] = val
 		}
 	}
