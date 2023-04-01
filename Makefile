@@ -280,7 +280,7 @@ rpm: | dist
 	tar cfz snclient-$(VERSION).tar.gz snclient-$(VERSION)
 	rm -rf snclient-$(VERSION)
 	mkdir -p $(RPM_TOPDIR)/{SOURCES,BUILD,RPMS,SRPMS,SPECS}
-	cp snclient-$(VERSION).tar.gz $(RPM_TOPDIR)/SOURCES
+	mv snclient-$(VERSION).tar.gz $(RPM_TOPDIR)/SOURCES
 	if [ $(ARCH) = "386" ]; then \
 		RPM_ARCH=i386; \
 	elif [ $(ARCH) = "amd64" ]; then \

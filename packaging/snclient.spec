@@ -49,13 +49,13 @@ gzip -n -9 %{buildroot}/usr/share/man/man8/snclient.8
 case "$*" in
   1)
     # First installation
-    systemctl daemon-reload &>/dev/null || true
-    systemctl start snclient.service &>/dev/null || true
+    systemctl --system daemon-reload >/dev/null || true
+    systemctl start snclient.service >/dev/null || true
   ;;
   2)
     # Upgrading
-    systemctl daemon-reload &>/dev/null || true
-    systemctl condrestart snclient.service &>/dev/null || true
+    systemctl --system daemon-reload >/dev/null || true
+    systemctl condrestart snclient.service >/dev/null || true
   ;;
   *) echo case "$*" not handled in post
 esac
@@ -64,7 +64,7 @@ esac
 case "$*" in
   0)
     # Uninstall
-    systemctl stop snclient.service &>/dev/null || true
+    systemctl stop snclient.service >/dev/null || true
   ;;
   1)
     # Upgrade, don't do anything
@@ -77,7 +77,7 @@ exit 0
 case "$*" in
   0)
     # post uninstall
-    systemctl daemon-reload &>/dev/null || true
+    systemctl --system daemon-reload >/dev/null || true
     ;;
   1)
     # post update
@@ -93,7 +93,11 @@ exit 0
 %defattr(-,root,root)
 %attr(0755,root,root) /usr/bin/snclient
 %attr(0644,root,root) /lib/systemd/system/snclient.service
-%config(noreplace) /etc/snclient
+%dir %config(noreplace) /etc/snclient
+%config(noreplace) %attr(0600,root,root) /etc/snclient/snclient.ini
+%config(noreplace) %attr(0600,root,root) /etc/snclient/server.key
+%config(noreplace) %attr(0600,root,root) /etc/snclient/server.crt
+%config(noreplace) %attr(0600,root,root) /etc/snclient/cacert.pem
 %config(noreplace) /etc/logrotate.d/snclient
 %doc /usr/share/snclient/README.md
 %doc /usr/share/snclient/LICENSE
