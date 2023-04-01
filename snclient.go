@@ -66,7 +66,7 @@ func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
 type Agent struct {
-	Config    Config               // reference to global config object
+	Config    *Config              // reference to global config object
 	Listeners map[string]*Listener // Listeners stores if we started a listener
 	flags     struct {             // command line flags
 		flagDaemon       bool
@@ -94,6 +94,7 @@ func SNClient(build, revision string) {
 		Build:     build,
 		Revision:  revision,
 		Listeners: make(map[string]*Listener),
+		Config:    NewConfig(),
 	}
 
 	snc.setFlags()
@@ -106,7 +107,7 @@ func SNClient(build, revision string) {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 		snc.CleanExit(ExitCodeError)
 	}
-	CreateLogger(&snc, &config)
+	CreateLogger(&snc, config)
 
 	defer snc.logPanicExit()
 
@@ -179,7 +180,7 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 					continue
 				}
 
-				CreateLogger(snc, &newConfig)
+				CreateLogger(snc, newConfig)
 				snc.startAll(newConfig, listeners)
 
 				return exitCode
@@ -197,7 +198,7 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 	}
 }
 
-func (snc *Agent) startAll(config Config, listeners map[string]*Listener) {
+func (snc *Agent) startAll(config *Config, listeners map[string]*Listener) {
 	// stop existing listeners
 	for name, l := range listeners {
 		l.Stop()
@@ -212,7 +213,7 @@ func (snc *Agent) startAll(config Config, listeners map[string]*Listener) {
 	}
 }
 
-func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
+func (snc *Agent) readConfiguration() (*Config, map[string]*Listener, error) {
 	config := NewConfig()
 
 	if len(snc.flags.flagConfigFile) == 0 {
@@ -247,7 +248,7 @@ func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
 			return nil, nil, fmt.Errorf("could not detect abs path to executable: %s", err.Error())
 		}
 
-		(*pathSection)["exe-path"] = filepath.Dir(executable)
+		pathSection.Set("exe-path", filepath.Dir(executable))
 	}
 
 	for _, key := range []string{"exe-path", "shared-path", "scripts", "certificate-path"} {
@@ -256,24 +257,24 @@ func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
 		case err != nil:
 			return nil, nil, fmt.Errorf("reading %s settings failed: %s", key, err.Error())
 		case !ok || val == "":
-			(*pathSection)[key] = (*pathSection)["exe-path"]
+			pathSection.Set(key, pathSection.data["exe-path"])
 		}
 	}
 
-	for key, val := range *pathSection {
+	for key, val := range pathSection.data {
 		val = config.ReplaceMacros(val)
-		(*pathSection)[key] = val
+		pathSection.Set(key, val)
 	}
 
 	// replace other sections
-	for _, section := range config {
-		for key, val := range section {
+	for _, section := range config.sections {
+		for key, val := range section.data {
 			val = config.ReplaceMacros(val)
-			section[key] = val
+			section.data[key] = val
 		}
 	}
 
-	for key, val := range *pathSection {
+	for key, val := range pathSection.data {
 		log.Tracef("conf macro: %s -> %s", key, val)
 	}
 
@@ -289,7 +290,7 @@ func (snc *Agent) readConfiguration() (Config, map[string]*Listener, error) {
 	return config, listen, nil
 }
 
-func (snc *Agent) initListeners(conf Config) (map[string]*Listener, error) {
+func (snc *Agent) initListeners(conf *Config) (map[string]*Listener, error) {
 	listen := make(map[string]*Listener)
 
 	modulesConf := conf.Section("/modules")
@@ -305,8 +306,8 @@ func (snc *Agent) initListeners(conf Config) (map[string]*Listener, error) {
 		}
 
 		listenConf := conf.Section(entry.ConfigKey).Clone()
-		listenConf.Merge(*conf.Section("/settings/default"))
-		listenConf.Merge(entry.Init.Defaults())
+		listenConf.data.Merge(conf.Section("/settings/default").data)
+		listenConf.data.Merge(entry.Init.Defaults())
 
 		listener, err := snc.initListener(listenConf, entry.Init)
 		if err != nil {
@@ -528,7 +529,7 @@ func (snc *Agent) logPanicExit() {
 	}
 }
 
-func (snc *Agent) initListener(conConf ConfigSection, handler RequestHandler) (*Listener, error) {
+func (snc *Agent) initListener(conConf *ConfigSection, handler RequestHandler) (*Listener, error) {
 	listener, err := NewListener(snc, conConf, handler)
 	if err != nil {
 		return nil, err

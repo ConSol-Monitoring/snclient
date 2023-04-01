@@ -26,8 +26,8 @@ func (l *HandlerNRPE) Type() string {
 	return "nrpe"
 }
 
-func (l *HandlerNRPE) Defaults() ConfigSection {
-	defaults := ConfigSection{
+func (l *HandlerNRPE) Defaults() ConfigData {
+	defaults := ConfigData{
 		"allow arguments":   "0",
 		"allow nasty chars": "0",
 		"port":              "5666",
@@ -37,7 +37,7 @@ func (l *HandlerNRPE) Defaults() ConfigSection {
 	return defaults
 }
 
-func (l *HandlerNRPE) Init(snc *Agent, _ ConfigSection) error {
+func (l *HandlerNRPE) Init(snc *Agent, _ *ConfigSection) error {
 	l.snc = snc
 
 	return nil

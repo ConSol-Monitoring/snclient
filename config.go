@@ -33,10 +33,14 @@ func (c *configFiles) Set(value string) error {
 }
 
 // Config contains the merged config over all config files.
-type Config map[string]ConfigSection
+type Config struct {
+	sections map[string]ConfigSection
+}
 
-func NewConfig() Config {
-	conf := make(Config, 0)
+func NewConfig() *Config {
+	conf := &Config{
+		sections: make(map[string]ConfigSection, 0),
+	}
 
 	return conf
 }
@@ -50,6 +54,7 @@ func (config *Config) ReadSettingsFile(path string) error {
 	}
 
 	currentBlock := ""
+	var currentSection *ConfigSection
 	lineNr := 0
 
 	scanner := bufio.NewScanner(file)
@@ -63,11 +68,7 @@ func (config *Config) ReadSettingsFile(path string) error {
 
 		if line[0] == '[' {
 			currentBlock = strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")
-
-			if _, ok := (*config)[currentBlock]; !ok {
-				block := make(map[string]string, 0)
-				(*config)[currentBlock] = block
-			}
+			currentSection = config.Section(currentBlock)
 
 			continue
 		}
@@ -84,7 +85,7 @@ func (config *Config) ReadSettingsFile(path string) error {
 		val[0] = strings.TrimSpace(val[0])
 		val[1] = strings.TrimSpace(val[1])
 
-		(*config)[currentBlock][val[0]] = val[1]
+		currentSection.Set(val[0], val[1])
 	}
 
 	return nil
@@ -92,18 +93,20 @@ func (config *Config) ReadSettingsFile(path string) error {
 
 // Section returns section by name or empty section.
 func (config *Config) Section(name string) *ConfigSection {
-	if section, ok := (*config)[name]; ok {
+	if section, ok := config.sections[name]; ok {
 		return &section
 	}
 
-	section := make(ConfigSection)
+	section := NewConfigSection(config, name)
+	config.sections[name] = *section
 
-	return &section
+	return section
 }
 
 // ReplaceMacros replaces variables in given string.
 func (config *Config) ReplaceMacros(value string) string {
 	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
+		orig := str
 		str = strings.TrimPrefix(str, "${")
 		str = strings.TrimSuffix(str, "}")
 		str = strings.TrimSpace(str)
@@ -111,8 +114,12 @@ func (config *Config) ReplaceMacros(value string) string {
 		switch {
 		case err != nil:
 			log.Warnf("cannot expand macro: ${%s}", str, err.Error())
+
+			return orig
 		case !ok:
 			log.Warnf("using undefined macro: ${%s}", str)
+
+			return orig
 		}
 
 		return repl
@@ -122,22 +129,45 @@ func (config *Config) ReplaceMacros(value string) string {
 }
 
 // ConfigSection contains a single config section.
-type ConfigSection map[string]string
+type ConfigSection struct {
+	cfg  *Config
+	name string
+	data ConfigData
+}
 
-// Merge merges defaults into ConfigSection, ex.: MergeDefaults(map[string]string).
-func (cs *ConfigSection) Merge(defaults ConfigSection) {
+// NewConfigSection creates a new ConfigSection.
+func NewConfigSection(cfg *Config, name string) *ConfigSection {
+	section := &ConfigSection{
+		cfg:  cfg,
+		name: name,
+		data: make(map[string]string, 0),
+	}
+
+	return section
+}
+
+// Set sets a single key/value pair. Existing keys will be overwritten.
+func (cs *ConfigSection) Set(key, value string) {
+	cs.data[key] = value
+}
+
+// ConfigData contains data for a section.
+type ConfigData map[string]string
+
+// Merge merges defaults into ConfigSection.
+func (d *ConfigData) Merge(defaults ConfigData) {
 	for key, value := range defaults {
-		if _, ok := (*cs)[key]; !ok {
-			(*cs)[key] = value
+		if _, ok := (*d)[key]; !ok {
+			(*d)[key] = value
 		}
 	}
 }
 
-// Clone merges defaults into ConfigSection, ex.: MergeDefaults(map[string]string).
-func (cs *ConfigSection) Clone() ConfigSection {
-	clone := make(ConfigSection)
-	for k, v := range *cs {
-		clone[k] = v
+// Clone creates a copy.
+func (cs *ConfigSection) Clone() *ConfigSection {
+	clone := NewConfigSection(cs.cfg, cs.name)
+	for k, v := range cs.data {
+		clone.data[k] = v
 	}
 
 	return clone
@@ -146,11 +176,12 @@ func (cs *ConfigSection) Clone() ConfigSection {
 // GetString parses string from config section, it returns the value if found and sets ok to true.
 // If value is found but cannot be parsed, error is set.
 func (cs *ConfigSection) GetString(key string) (val string, ok bool, err error) {
-	val, ok = (*cs)[key]
+	val, ok = cs.data[key]
 	if !ok {
 		return "", false, nil
 	}
 	val = strings.TrimSpace(val)
+	val = cs.cfg.ReplaceMacros(val)
 
 	switch {
 	case strings.HasPrefix(val, `"`):
