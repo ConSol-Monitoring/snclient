@@ -12,11 +12,11 @@ jobs:
   get-version:
     runs-on: ubuntu-latest
     outputs:
-      commits: ${{ steps.get-total-commits.outputs.commits }}
-      minor:   ${{ steps.get-minor-version.outputs.minor }}
-      major:   ${{ steps.get-major-version.outputs.major }}
-      sha:     ${{ steps.get-short-sha.outputs.sha }}
-      version: ${{ steps.get-version.outputs.version }}
+      minor:    ${{ steps.get-minor-version.outputs.minor }}
+      major:    ${{ steps.get-major-version.outputs.major }}
+      revision: ${{ steps.get-total-revision.outputs.revision }}
+      sha:      ${{ steps.get-short-sha.outputs.sha }}
+      version:  ${{ steps.get-version.outputs.version }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -25,12 +25,12 @@ jobs:
         run: echo "major=$(./buildtools/get_version | cut -d . -f 1)" >> $GITHUB_OUTPUT
       - id: get-minor-version
         run: echo "minor=$(./buildtools/get_version | cut -d . -f 2)" >> $GITHUB_OUTPUT
-      - id: get-total-commits
-        run: echo "commits=$(./buildtools/get_version | cut -d . -f 3)" >> $GITHUB_OUTPUT
+      - id: get-total-revision
+        run: revision=$(git rev-list --all --count)" >> $GITHUB_OUTPUT
       - id: get-short-sha
         run: echo "sha=$( git rev-parse --short HEAD )" >> $GITHUB_OUTPUT
       - id: get-version
-        run: echo "version=${{steps.get-major-version.outputs.major}}.${{steps.get-minor-version.outputs.minor}}.${{steps.get-total-commits.outputs.commits}}" >> $GITHUB_OUTPUT
+        run: echo "version=$(./buildtools/get_version)" >> $GITHUB_OUTPUT
 
 
   test:
@@ -179,7 +179,7 @@ jobs:
             -dPlatform="$($win_arch)" `
             -dMajorVersion="${{needs.get-version.outputs.major}}" `
             -dMinorVersion="${{needs.get-version.outputs.minor}}" `
-            -dRevisionNumber="${{needs.get-version.outputs.commits}}" `
+            -dRevisionNumber="${{needs.get-version.outputs.revision}}" `
             -dGitSha="${{ needs.get-version.outputs.sha }}"
           & "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" ".\snclient.wixobj"
 
@@ -193,6 +193,7 @@ jobs:
       - uses: geekyeggo/delete-artifact@v2
         with:
             name: ${{ env.BIN }}
+
 
   pkg-deb:
     strategy:
@@ -218,6 +219,7 @@ jobs:
           name: "${{ env.BIN }}.deb"
           path: "${{ env.BIN }}.deb"
           if-no-files-found: error
+
 
   pkg-rpm:
     strategy:
@@ -250,6 +252,7 @@ jobs:
         with:
             name: "${{ env.BIN }}"
 
+
   # remove those artifacts which have been converted to .deb or .rpm files
   clean-tmp-files:
     strategy:
@@ -266,7 +269,8 @@ jobs:
         with:
             name: "${{ env.BIN }}"
 
-  # remove those artifacts which have been converted to .deb or .rpm files
+
+  # remove those artifacts use for msi files
   clean-tmp-windist:
     runs-on: ubuntu-latest
     needs: [pkg-msi]
@@ -275,23 +279,23 @@ jobs:
         with:
             name: "windist"
 
+
   make-release:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     needs: [get-version,pkg-msi,pkg-deb,pkg-rpm]
-
     outputs:
       release-upload-url: ${{ steps.create-release.outputs.upload_url }}
-
     steps:
-      - uses: actions/create-release@v1
+      - uses: actions/checkout@v3
+      - run: make release_notes.txt
+      - uses: softprops/action-gh-release@v1
         with:
+          name: "v${{needs.get-version.outputs.version}}"
+          tag_name: "v${{needs.get-version.outputs.version}}"
           draft: true
-          prerelease: false
-          release_name: "${{needs.get-version.outputs.version}}"
-          tag_name: "${{needs.get-version.outputs.version}}"
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+          prerelease: true
+          body_path: "release_notes.txt"
 
 
   upload-windows-release-assets:
@@ -310,8 +314,6 @@ jobs:
         with:
           name: "${{ env.BIN }}.msi"
       - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.make-release.outputs.release-upload-url }}
           asset_path: "./${{ env.BIN }}.msi"
@@ -335,8 +337,6 @@ jobs:
         with:
           name: "${{ env.BIN }}.deb"
       - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.make-release.outputs.release-upload-url }}
           asset_path: "./${{ env.BIN }}.deb"
@@ -360,8 +360,6 @@ jobs:
         with:
           name: "${{ env.BIN }}.rpm"
       - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.make-release.outputs.release-upload-url }}
           asset_path: "./${{ env.BIN }}.rpm"
@@ -389,8 +387,6 @@ jobs:
           name: "${{ env.BIN }}"
       - run: tar cvzf ./${{ env.BIN }}.tar.gz ./*
       - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.make-release.outputs.release-upload-url }}
           asset_path: "./${{ env.BIN }}.tar.gz"

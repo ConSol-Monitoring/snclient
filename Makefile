@@ -19,7 +19,22 @@ export PATH := $(GOBIN):$(PATH)
 VERSION ?= $(shell ./buildtools/get_version)
 ARCH    ?= $(shell go env GOARCH)
 DEBFILE ?= snclient-$(VERSION)-$(BUILD)-$(ARCH).deb
+DEB_ARCH=$(ARCH)
+ifeq ($(DEB_ARCH),386)
+	DEB_ARCH=i386
+endif
 RPM_TOPDIR=$(shell pwd)/rpm.top
+RPM_ARCH=$(ARCH)
+ifeq ($(RPM_ARCH),386)
+	RPM_ARCH=i386
+endif
+ifeq ($(RPM_ARCH),amd64)
+	RPM_ARCH=x86_64
+endif
+ifeq ($(RPM_ARCH),arm64)
+	RPM_ARCH=aarch64
+endif
+
 
 all: build
 
@@ -161,6 +176,7 @@ clean:
 	rm -rf dist/
 	rm -rf build-deb/
 	rm -rf build-rpm/
+	rm -f release_notes.txt
 
 fmt: tools
 	goimports -w *.go ./cmd/ ./pkg/ ./internal/
@@ -256,8 +272,7 @@ deb: | dist
 	cp ./dist/LICENSE build-deb//usr/share/doc/snclient/copyright
 	cp ./dist/README.md build-deb//usr/share/doc/snclient/README
 
-	sed -i build-deb/DEBIAN/control -e 's|^Architecture: .*|Architecture: $(ARCH)|'
-	sed -i build-deb/DEBIAN/control -e 's|^Architecture: 386|Architecture: i386|'
+	sed -i build-deb/DEBIAN/control -e 's|^Architecture: .*|Architecture: $(DEB_ARCH)|'
 	sed -i build-deb/DEBIAN/control -e 's|^Version: .*|Version: $(VERSION)|'
 
 	chmod 644 build-deb/etc/snclient/*
@@ -268,6 +283,7 @@ deb: | dist
 	gzip -n -9 build-deb/usr/share/man/man8/snclient.8
 
 	dpkg-deb --build --root-owner-group ./build-deb ./$(DEBFILE)
+	rm -rf ./build-deb
 	-lintian ./$(DEBFILE)
 
 rpm: | dist
@@ -275,24 +291,29 @@ rpm: | dist
 	cp ./packaging/snclient.service dist/
 	cp ./packaging/snclient.spec dist/
 	sed -i dist/snclient.spec -e 's|^Version: .*|Version: $(VERSION)|'
-	sed -i dist/snclient.spec -e 's|^BuildArch: .*|BuildArch: $(ARCH)|'
+	sed -i dist/snclient.spec -e 's|^BuildArch: .*|BuildArch: $(RPM_ARCH)|'
 	cp -rp dist snclient-$(VERSION)
 	tar cfz snclient-$(VERSION).tar.gz snclient-$(VERSION)
 	rm -rf snclient-$(VERSION)
 	mkdir -p $(RPM_TOPDIR)/{SOURCES,BUILD,RPMS,SRPMS,SPECS}
 	mv snclient-$(VERSION).tar.gz $(RPM_TOPDIR)/SOURCES
-	if [ $(ARCH) = "386" ]; then \
-		RPM_ARCH=i386; \
-	elif [ $(ARCH) = "amd64" ]; then \
-		RPM_ARCH=x86_64; \
-	elif [ $(ARCH) = "arm64" ]; then \
-		RPM_ARCH=aarch64; \
-	fi; \
 	rpmbuild \
-		--target $$RPM_ARCH \
+		--target $(RPM_ARCH) \
 		--define "_topdir $(RPM_TOPDIR)" \
 		--buildroot=$(shell pwd)/build-rpm \
-		-bb dist/snclient.spec; \
-	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm snclient-$(VERSION)-$(BUILD)-$$RPM_ARCH.rpm
+		-bb dist/snclient.spec
+	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
 	rm -rf $(RPM_TOPDIR) build-rpm
-	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$$RPM_ARCH.rpm
+	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
+
+release:
+	./buildtools/release.sh
+
+release_notes.txt: Changes
+	echo -e "# v$$(sed '3q;d' Changes)\n" > release_notes.txt
+
+	echo "Changes:" >> release_notes.txt
+	echo '```' >> release_notes.txt
+	# changes start with 4rd line until first empty line
+	tail -n +4 Changes | sed '/^$$/,$$d' | sed -e 's/^         //g' >> release_notes.txt
+	echo '```' >> release_notes.txt

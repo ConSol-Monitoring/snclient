@@ -14,3 +14,4 @@ build-deb/
 snclient.ini
 server.crt
 server.key
+release_notes.txt
