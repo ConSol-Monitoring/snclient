@@ -73,7 +73,7 @@ jobs:
         exclude:
           - go-os: darwin
             go-arch: 386
-    needs: [test, get-version]
+    needs: [test, test-win, get-version]
     runs-on: ubuntu-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -99,7 +99,7 @@ jobs:
         go-version: [1.20.x]
         go-os: [windows]
         go-arch: [386, amd64]
-    needs: [test-win, get-version]
+    needs: [test, test-win, get-version]
     runs-on: ubuntu-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -123,7 +123,7 @@ jobs:
     strategy:
       matrix:
         go-version: [1.20.x]
-    needs: [test, get-version]
+    needs: [test, test-win, get-version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
