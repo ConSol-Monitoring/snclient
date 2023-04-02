@@ -26,7 +26,7 @@ jobs:
       - id: get-minor-version
         run: echo "minor=$(./buildtools/get_version | cut -d . -f 2)" >> $GITHUB_OUTPUT
       - id: get-total-revision
-        run: revision=$(git rev-list --all --count)" >> $GITHUB_OUTPUT
+        run: echo "revision=$(git rev-list --all --count)" >> $GITHUB_OUTPUT
       - id: get-short-sha
         run: echo "sha=$( git rev-parse --short HEAD )" >> $GITHUB_OUTPUT
       - id: get-version
