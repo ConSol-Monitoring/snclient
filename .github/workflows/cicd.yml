@@ -294,6 +294,7 @@ jobs:
         with:
           name: "v${{needs.get-version.outputs.version}}"
           tag_name: "v${{needs.get-version.outputs.version}}"
+          draft: true
           body_path: "release_notes.txt"
 
 
@@ -308,14 +309,13 @@ jobs:
     needs: [get-version,make-release]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}.msi"
-      - uses: softprops/action-gh-release@v1
-        with:
-          name: "v${{needs.get-version.outputs.version}}"
-          files: "./${{ env.BIN }}.msi"
+      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.msi
 
 
   upload-linux-deb-assets:
@@ -329,14 +329,13 @@ jobs:
     needs: [get-version,make-release]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}.deb"
-      - uses: softprops/action-gh-release@v1
-        with:
-          name: "v${{needs.get-version.outputs.version}}"
-          files: "${{ env.BIN }}.deb"
+      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.deb
 
 
   upload-linux-rpm-assets:
@@ -350,14 +349,13 @@ jobs:
     needs: [get-version,make-release]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}.rpm"
-      - uses: softprops/action-gh-release@v1
-        with:
-          name: "v${{needs.get-version.outputs.version}}"
-          files: "${{ env.BIN }}.rpm"
+      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.rpm
 
 
   upload-binary-release-assets:
@@ -374,12 +372,11 @@ jobs:
     needs: [get-version,make-release]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}"
       - run: tar cvzf ./${{ env.BIN }}.tar.gz ./*
-      - uses: softprops/action-gh-release@v1
-        with:
-          name: "v${{needs.get-version.outputs.version}}"
-          files: "${{ env.BIN }}.tar.gz"
+      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.tar.gz
