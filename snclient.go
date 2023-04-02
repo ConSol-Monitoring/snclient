@@ -24,7 +24,7 @@ const (
 	NAME = "SNClient+"
 
 	// VERSION contains the actual snclient version.
-	VERSION = "0.1"
+	VERSION = "0.01"
 
 	// ExitCodeOK is used for normal exits.
 	ExitCodeOK = 0
