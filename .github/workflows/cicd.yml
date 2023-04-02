@@ -289,7 +289,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: make release_notes.txt
-      - uses: softprops/action-gh-release@v1
+      - id: create-release
+        uses: softprops/action-gh-release@v1
         with:
           name: "v${{needs.get-version.outputs.version}}"
           tag_name: "v${{needs.get-version.outputs.version}}"
