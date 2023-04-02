@@ -294,8 +294,6 @@ jobs:
         with:
           name: "v${{needs.get-version.outputs.version}}"
           tag_name: "v${{needs.get-version.outputs.version}}"
-          draft: true
-          prerelease: true
           body_path: "release_notes.txt"
 
 
@@ -310,17 +308,14 @@ jobs:
     needs: [get-version,make-release]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}.msi"
-      - uses: actions/upload-release-asset@v1
+      - uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.make-release.outputs.release-upload-url }}
-          asset_path: "./${{ env.BIN }}.msi"
-          asset_name: "${{ env.BIN }}.msi"
-          asset_content_type: application/octet-stream
+          name: "v${{needs.get-version.outputs.version}}"
+          files: "./${{ env.BIN }}.msi"
 
 
   upload-linux-deb-assets:
@@ -334,17 +329,14 @@ jobs:
     needs: [get-version,make-release]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}.deb"
-      - uses: actions/upload-release-asset@v1
+      - uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.make-release.outputs.release-upload-url }}
-          asset_path: "./${{ env.BIN }}.deb"
-          asset_name: "${{ env.BIN }}.deb"
-          asset_content_type: application/octet-stream
+          name: "v${{needs.get-version.outputs.version}}"
+          files: "${{ env.BIN }}.deb"
 
 
   upload-linux-rpm-assets:
@@ -358,17 +350,14 @@ jobs:
     needs: [get-version,make-release]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}.rpm"
-      - uses: actions/upload-release-asset@v1
+      - uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.make-release.outputs.release-upload-url }}
-          asset_path: "./${{ env.BIN }}.rpm"
-          asset_name: "${{ env.BIN }}.rpm"
-          asset_content_type: application/octet-stream
+          name: "v${{needs.get-version.outputs.version}}"
+          files: "${{ env.BIN }}.rpm"
 
 
   upload-binary-release-assets:
@@ -385,15 +374,12 @@ jobs:
     needs: [get-version,make-release]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}"
       - run: tar cvzf ./${{ env.BIN }}.tar.gz ./*
-      - uses: actions/upload-release-asset@v1
+      - uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.make-release.outputs.release-upload-url }}
-          asset_path: "./${{ env.BIN }}.tar.gz"
-          asset_name: "${{ env.BIN }}.tar.gz"
-          asset_content_type: application/octet-stream
+          name: "v${{needs.get-version.outputs.version}}"
+          files: "${{ env.BIN }}.tar.gz"
