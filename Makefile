@@ -310,8 +310,6 @@ release:
 	./buildtools/release.sh
 
 release_notes.txt: Changes
-	echo -e "# v$$(sed '3q;d' Changes)\n" > release_notes.txt
-
 	echo "Changes:" >> release_notes.txt
 	echo '```' >> release_notes.txt
 	# changes start with 4rd line until first empty line
