@@ -3,6 +3,7 @@ package snclient
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"golang.org/x/exp/slices"
 	"golang.org/x/sys/windows/svc"
@@ -17,26 +18,37 @@ type CheckService struct {
 	noCopy noCopy
 }
 
-var SERVICE_STATE = map[string]string{
+var ServiceStates = map[string]string{
 	"stopped":      "1",
+	"dead":         "1",
 	"startpending": "2",
 	"stoppending":  "3",
 	"running":      "4",
 	"started":      "4",
 }
 
-/* check_service todo
- * todo
+/* check_service_windows
+ * Description: Checks the state of a service on the host.
+ * Tresholds: status
+ * Units: stopped, dead, startpending, stoppedpending, running, started
  */
 func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
-	output := "Service is ok."
+	var output string
 	argList := ParseArgs(args)
 	var warnTreshold Treshold
 	var critTreshold Treshold
-	var service string
+	var services []string
 	var statusCode svc.Status
+	detailSyntax := "%(service)=%(state)"
+	topSyntax := "%(crit_list), delayed (%(warn_list))"
+	okSyntax := "All %(count) service(s) are ok."
+	var okList []string
+	var warnList []string
+	var critList []string
+	var checkData map[string]string
+	var metrics []*CheckMetric
 
 	// parse treshold args
 	for _, arg := range argList {
@@ -46,9 +58,18 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 		case "crit", "critical":
 			critTreshold = ParseTreshold(arg.value)
 		case "service":
-			service = arg.value
+			services = append(services, arg.value)
+		case "detail-syntax":
+			detailSyntax = arg.value
+		case "top-syntax":
+			topSyntax = arg.value
+		case "ok-syntax":
+			okSyntax = arg.value
 		}
 	}
+
+	warnTreshold.value = ServiceStates[warnTreshold.value]
+	critTreshold.value = ServiceStates[critTreshold.value]
 
 	// collect service state
 	m, err := mgr.Connect()
@@ -59,51 +80,79 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 		}, nil
 	}
 
-	services, _ := m.ListServices()
-	if slices.Contains(services, service) {
+	serviceList, _ := m.ListServices()
 
-		s, err := m.OpenService(service)
-		if err != nil {
+	for _, service := range services {
+
+		if slices.Contains(serviceList, service) {
+
+			s, err := m.OpenService(service)
+			if err != nil {
+				return &CheckResult{
+					State:  int64(3),
+					Output: fmt.Sprintf("Failed to open service %s: %s", service, err),
+				}, nil
+			}
+			defer s.Close()
+
+			statusCode, _ = s.Query()
+
+		} else {
 			return &CheckResult{
 				State:  int64(3),
-				Output: fmt.Sprintf("Failed to open service %s: %s", service, err),
+				Output: fmt.Sprintf("Service '%s' not found!", service),
 			}, nil
 		}
-		defer s.Close()
 
-		statusCode, _ = s.Query()
+		metrics = append(metrics, &CheckMetric{Name: service, Value: float64(statusCode.State)})
 
-	} else {
-		return &CheckResult{
-			State:  int64(3),
-			Output: fmt.Sprintf("Service '%s' not found!", service),
-		}, nil
+		mdata := []MetricData{{name: "state", value: strconv.FormatInt(int64(statusCode.State), 10)}}
+		sdata := map[string]string{
+			"service": service,
+			"state":   strconv.FormatInt(int64(statusCode.State), 10),
+		}
+
+		// compare ram metrics to tresholds
+		if CompareMetrics(mdata, critTreshold) {
+			critList = append(critList, ParseSyntax(detailSyntax, sdata))
+
+			continue
+		}
+
+		if CompareMetrics(mdata, warnTreshold) {
+			warnList = append(warnList, ParseSyntax(detailSyntax, sdata))
+
+			continue
+		}
+
+		okList = append(okList, ParseSyntax(detailSyntax, sdata))
 	}
 
-	warnTreshold.value = SERVICE_STATE[warnTreshold.value]
-	critTreshold.value = SERVICE_STATE[critTreshold.value]
-
-	mdata := []MetricData{{name: "state", value: strconv.FormatInt(int64(statusCode.State), 10)}}
-
-	// compare ram metrics to tresholds
-	if CompareMetrics(mdata, warnTreshold) {
-		state = CheckExitWarning
-		output = "Service is warning!"
-	}
-
-	if CompareMetrics(mdata, critTreshold) {
+	if len(critList) > 0 {
 		state = CheckExitCritical
-		output = "Service is critical!"
+	} else if len(warnList) > 0 {
+		state = CheckExitWarning
+	} else {
+		state = CheckExitOK
+	}
+
+	checkData = map[string]string{
+		"status":    strconv.FormatInt(state, 10),
+		"count":     strconv.FormatInt(int64(len(services)), 10),
+		"ok_list":   strings.Join(okList, ", "),
+		"warn_list": strings.Join(warnList, ", "),
+		"crit_list": strings.Join(critList, ", "),
+	}
+
+	if state == CheckExitOK {
+		output = ParseSyntax(okSyntax, checkData)
+	} else {
+		output = ParseSyntax(topSyntax, checkData)
 	}
 
 	return &CheckResult{
-		State:  state,
-		Output: output,
-		Metrics: []*CheckMetric{
-			{
-				Name:  service,
-				Value: float64(statusCode.State),
-			},
-		},
+		State:   state,
+		Output:  output,
+		Metrics: metrics,
 	}, nil
 }

@@ -1,6 +1,8 @@
-package snclient
+﻿package snclient
 
 import (
+	"fmt"
+	"regexp"
 	"strconv"
 )
 
@@ -47,6 +49,14 @@ func CompareMetrics(metrics []MetricData, treshold Treshold) bool {
 			return data.value == treshold.value
 		case "!=", "not":
 			return data.value != treshold.value
+		case "like":
+			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(treshold.value)), data.value)
+
+			return res
+		case "not like":
+			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(treshold.value)), data.value)
+
+			return !res
 		}
 	}
 

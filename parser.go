@@ -28,7 +28,7 @@ func ParseArgs(args []string) []Argument {
 }
 
 func ParseTreshold(treshold string) Treshold {
-	re := regexp.MustCompile(`([A-Za-z_]+)\s*(<=|>=|<|>|=|\!=|not|is)\s*(\d+|\d+\.\d+|) *([A-Za-z%]+)?`)
+	re := regexp.MustCompile(`([A-Za-z_]+)\s*(<=|>=|<|>|=|\!=|not like|not|is|like)\s*(\d+\.\d+|\d+|) *([A-Za-z0-9.%']+)?`)
 	match := re.FindStringSubmatch(treshold)
 
 	ret := Treshold{
@@ -48,4 +48,17 @@ func ParseTreshold(treshold string) Treshold {
 	}
 
 	return ret
+}
+
+func ParseSyntax(syntax string, data map[string]string) string {
+	re := regexp.MustCompile(`[$%][{(](\w+)[})]`)
+
+	matches := re.FindAllStringSubmatch(syntax, -1)
+
+	for _, match := range matches {
+		r := regexp.MustCompile(regexp.QuoteMeta(match[0]))
+		syntax = r.ReplaceAllString(syntax, data[match[1]])
+	}
+
+	return syntax
 }
