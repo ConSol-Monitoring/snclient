@@ -34,18 +34,14 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	argList := ParseArgs(args)
-	output := "Service is ok."
+	var output string
 	var warnTreshold Treshold
 	var critTreshold Treshold
 	var services []string
 	detailSyntax := "%(service)=%(state)"
 	topSyntax := "%(crit_list), delayed (%(warn_list))"
 	okSyntax := "All %(count) service(s) are ok."
-	var okList []string
-	var warnList []string
-	var critList []string
 	var checkData map[string]string
-	var metrics []*CheckMetric
 
 	// parse treshold args
 	for _, arg := range argList {
@@ -64,6 +60,11 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 			okSyntax = arg.value
 		}
 	}
+
+	metrics := make([]*CheckMetric, 0, len(services))
+	okList := make([]string, 0, len(services))
+	warnList := make([]string, 0, len(services))
+	critList := make([]string, 0, len(services))
 
 	warnTreshold.value = ServiceStates[warnTreshold.value]
 	critTreshold.value = ServiceStates[critTreshold.value]
@@ -112,8 +113,6 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 		state = CheckExitCritical
 	} else if len(warnList) > 0 {
 		state = CheckExitWarning
-	} else {
-		state = CheckExitOK
 	}
 
 	checkData = map[string]string{

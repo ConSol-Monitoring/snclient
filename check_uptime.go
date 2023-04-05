@@ -69,9 +69,6 @@ func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
 
 	output := fmt.Sprintf("uptime: %v %v:%vh, boot: %v (UTC)", days, hours, minutes, bootTimeF)
 
-	min, _ := strconv.ParseFloat(warnTreshold.value, 64)
-	max, _ := strconv.ParseFloat(critTreshold.value, 64)
-
 	return &CheckResult{
 		State:  state,
 		Output: output,
@@ -80,8 +77,6 @@ func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
 				Name:  "uptime",
 				Unit:  "s",
 				Value: float64(int(uptime.Seconds())),
-				Min:   &min,
-				Max:   &max,
 			},
 		},
 	}, nil

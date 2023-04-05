@@ -8,6 +8,8 @@ import (
 )
 
 func TestArgumentParser(t *testing.T) {
+	t.Parallel()
+
 	for _, check := range []struct {
 		args   []string
 		expect []Argument
@@ -26,6 +28,8 @@ func TestArgumentParser(t *testing.T) {
 }
 
 func TestTresholdParser(t *testing.T) {
+	t.Parallel()
+
 	for _, check := range []struct {
 		treshold string
 		expect   Treshold

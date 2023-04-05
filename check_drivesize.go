@@ -28,9 +28,14 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(CheckExitOK)
 	argList := ParseArgs(args)
+	var output string
 	var warnTreshold Treshold
 	var critTreshold Treshold
 	drives := []string{}
+	detailSyntax := "%(drive_or_name)\\: %(used)/%(size) used"
+	okSyntax := "All %(count) drive(s) are ok"
+	topSyntax := "%(problem_list)"
+	var checkData map[string]string
 
 	// parse treshold args
 	for _, arg := range argList {
@@ -41,6 +46,12 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 			critTreshold = ParseTreshold(arg.value)
 		case "drive":
 			drives = strings.Split(strings.ToUpper(arg.value), ",")
+		case "detail-syntax":
+			detailSyntax = arg.value
+		case "top-syntax":
+			topSyntax = arg.value
+		case "ok-syntax":
+			okSyntax = arg.value
 		}
 	}
 
@@ -54,18 +65,27 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 	disksCritical := make([]string, 0, len(disks))
 
 	for _, drive := range disks {
-		if len(drives) > 0 && !slices.Contains(drives, "*") && !slices.Contains(drives, drive.Mountpoint) {
+		if len(drives) > 0 && !slices.Contains(drives, "*") &&
+			!slices.Contains(drives, drive.Mountpoint) && !slices.Contains(drives, "all-drives") {
 			continue
 		}
 
 		usage, _ := disk.Usage(drive.Mountpoint)
-		info := fmt.Sprintf("%v\\: %v/%v used", drive.Mountpoint, humanize.Bytes(usage.Used), humanize.Bytes(usage.Total))
 
 		metrics := []MetricData{
 			{name: "used", value: strconv.FormatUint(usage.Used, 10)},
 			{name: "free", value: strconv.FormatUint(usage.Free, 10)},
 			{name: "used_pct", value: strconv.FormatUint(uint64(usage.UsedPercent), 10)},
 			{name: "free_pct", value: strconv.FormatUint(usage.Free*100/usage.Total, 10)},
+		}
+
+		sdata := map[string]string{
+			"drive_or_name":  drive.Mountpoint,
+			"total_used_pct": strconv.FormatUint(uint64(usage.UsedPercent), 10),
+			"total free_pct": strconv.FormatUint(usage.Free*100/usage.Total, 10),
+			"used":           humanize.Bytes(usage.Used),
+			"free":           humanize.Bytes(usage.Free),
+			"size":           humanize.Bytes(usage.Total),
 		}
 
 		for _, metric := range metrics {
@@ -87,40 +107,40 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 		}
 
 		if CompareMetrics(metrics, critTreshold) {
-			disksCritical = append(disksCritical, info)
+			disksCritical = append(disksCritical, ParseSyntax(detailSyntax, sdata))
 
 			continue
 		}
 
 		if CompareMetrics(metrics, warnTreshold) {
-			disksWarning = append(disksWarning, info)
+			disksWarning = append(disksWarning, ParseSyntax(detailSyntax, sdata))
 
 			continue
 		}
 
-		disksOk = append(disksOk, info)
+		disksOk = append(disksOk, ParseSyntax(detailSyntax, sdata))
 	}
 
-	output := ""
-
 	if len(disksCritical) > 0 {
-		output += fmt.Sprintf("critical(%v)", strings.Join(disksCritical, ", "))
-		if len(disksWarning) > 0 {
-			output += fmt.Sprintf(", warning(%v)", strings.Join(disksWarning, ", "))
-		}
-		if len(disksOk) > 0 {
-			output += ", "
-		}
 		state = CheckExitCritical
 	} else if len(disksWarning) > 0 {
-		output += fmt.Sprintf("warning(%v)", strings.Join(disksWarning, ", "))
-		if len(disksOk) > 0 {
-			output += ", "
-		}
 		state = CheckExitWarning
 	}
 
-	output += strings.Join(disksOk, ", ")
+	checkData = map[string]string{
+		"status":       strconv.FormatInt(state, 10),
+		"count":        strconv.FormatInt(int64(len(drives)), 10),
+		"ok_list":      strings.Join(disksOk, ", "),
+		"warn_list":    strings.Join(disksWarning, ", "),
+		"crit_list":    strings.Join(disksCritical, ", "),
+		"problem_list": strings.Join(append(disksCritical, disksWarning...), ", "),
+	}
+
+	if state == CheckExitOK {
+		output = ParseSyntax(okSyntax, checkData)
+	} else {
+		output = ParseSyntax(topSyntax, checkData)
+	}
 
 	return &CheckResult{
 		State:   state,

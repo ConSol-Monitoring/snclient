@@ -8,6 +8,8 @@ import (
 )
 
 func TestCompareMetrics(t *testing.T) {
+	t.Parallel()
+
 	for _, check := range []struct {
 		metrics  []MetricData
 		treshold Treshold
@@ -34,6 +36,7 @@ func TestCompareMetrics(t *testing.T) {
 			false,
 		},
 	} {
-		assert.Equal(t, check.expect, CompareMetrics(check.metrics, check.treshold), fmt.Sprintf("CompareMetrics(%v, %v) -> %v", check.metrics, check.treshold, check.expect))
+		assert.Equal(t, check.expect, CompareMetrics(check.metrics, check.treshold),
+			fmt.Sprintf("CompareMetrics(%v, %v) -> %v", check.metrics, check.treshold, check.expect))
 	}
 }
