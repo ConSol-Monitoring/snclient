@@ -1,4 +1,4 @@
-﻿package snclient
+package snclient
 
 import (
 	"regexp"
@@ -22,12 +22,14 @@ type WMI struct {
 	value string
 }
 
-func QueryWMI(query string) ([]WMI, string) {
-
+func QueryWMI(query string) (querydata []WMI, out string) {
 	var ret []WMI
 	var output []string
 
-	ole.CoInitialize(0)
+	err := ole.CoInitialize(0)
+	if err != nil {
+		log.Debugf("check_service: couldnt initialize COM connection: %s\n", err)
+	}
 	defer ole.CoUninitialize()
 
 	unknown, _ := oleutil.CreateObject("WbemScripting.SWbemLocator")
@@ -54,24 +56,26 @@ func QueryWMI(query string) ([]WMI, string) {
 
 	for i := 0; i < count; i++ {
 		// item is a SWbemObject, but really a Win32_Process
-		itemRaw, _ := oleutil.CallMethod(result, "ItemIndex", i)
-		item := itemRaw.ToIDispatch()
-		defer item.Release()
+		func() {
+			itemRaw, _ := oleutil.CallMethod(result, "ItemIndex", i)
+			item := itemRaw.ToIDispatch()
+			defer item.Release()
 
-		for _, v := range values {
-			s, _ := oleutil.GetProperty(item, strings.TrimSpace(v))
-			ret = append(ret, WMI{key: v, value: s.ToString()})
-			output = append(output, s.ToString())
-		}
-
+			for _, v := range values {
+				s, _ := oleutil.GetProperty(item, strings.TrimSpace(v))
+				ret = append(ret, WMI{key: v, value: s.ToString()})
+				output = append(output, s.ToString())
+			}
+		}()
 	}
 
 	return ret, strings.Join(output, ", ")
-
 }
 
-/* check_service todo
- * todo
+/* check_wmi
+ * Description: Querys the WMI for several metrics.
+ * Tresholds: keys of the query
+ * Units: none
  */
 func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 	// default state: OK
@@ -110,7 +114,7 @@ func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 		}
 	}
 
-	// compare ram metrics to tresholds
+	// compare metrics to tresholds
 	if CompareMetrics(mdata, warnTreshold) {
 		state = CheckExitWarning
 	}

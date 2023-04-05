@@ -16,8 +16,10 @@ type CheckUptime struct {
 	noCopy noCopy
 }
 
-/* check_uptime todo
- * todo .
+/* check_uptime
+ * Description: Checks the uptime of the host.
+ * Tresholds: uptime
+ * Units: s
  */
 func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
 	// default state: OK

@@ -19,8 +19,10 @@ type CheckDrivesize struct {
 	noCopy noCopy
 }
 
-/* check_memory todo
-* todo .
+/* check_drivesize
+ * Description: Checks the drive usage on the host.
+ * Tresholds: used, free, used_pct, free_pct
+ * Units: B, KB, MB, GB, TB, %
  */
 func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 	// default state: OK
