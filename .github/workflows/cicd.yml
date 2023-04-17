@@ -227,7 +227,7 @@ jobs:
         go-version: [1.20.x]
         go-os: [darwin]
         go-arch: [amd64, arm64]
-    runs-on: osx-latest
+    runs-on: macos-latest
     needs: [get-version, build]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
