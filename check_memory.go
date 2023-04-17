@@ -16,8 +16,10 @@ type CheckMemory struct {
 	noCopy noCopy
 }
 
-/* check_memory todo
- * todo .
+/* check_memory
+ * Description: Checks the memory usage on the host.
+ * Tresholds: used, free, used_pct, free_pct
+ * Units: B, KB, MB, GB, TB, %
  */
 func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	// default state: OK
@@ -25,6 +27,8 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	argList := ParseArgs(args)
 	var warnTreshold Treshold
 	var critTreshold Treshold
+	detailSyntax := "%(type) = %(used)"
+	var checkData []map[string]string
 
 	// parse treshold args
 	for _, arg := range argList {
@@ -33,6 +37,8 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 			warnTreshold = ParseTreshold(arg.value)
 		case "crit", "critical":
 			critTreshold = ParseTreshold(arg.value)
+		case "detail-syntax":
+			detailSyntax = arg.value
 		}
 	}
 
@@ -47,12 +53,30 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 		{name: "free_pct", value: strconv.FormatUint(physical.Free*100/physical.Total, 10)},
 	}
 
+	checkData = append(checkData, map[string]string{
+		"type":     "physical",
+		"used":     humanize.Bytes(physical.Used),
+		"free":     humanize.Bytes(physical.Free),
+		"size":     humanize.Bytes(physical.Total),
+		"used_pct": strconv.FormatFloat(physical.UsedPercent, 'f', 0, 64),
+		"free_pct": strconv.FormatUint(physical.Free*100/physical.Total, 10),
+	})
+
 	committedM := []MetricData{
 		{name: "used", value: strconv.FormatUint(committed.Used, 10)},
 		{name: "free", value: strconv.FormatUint(committed.Free, 10)},
 		{name: "used_pct", value: strconv.FormatFloat(committed.UsedPercent, 'f', 0, 64)},
 		{name: "free_pct", value: strconv.FormatUint(committed.Free*100/committed.Total, 10)},
 	}
+
+	checkData = append(checkData, map[string]string{
+		"type":     "committed",
+		"used":     humanize.Bytes(committed.Used),
+		"free":     humanize.Bytes(committed.Free),
+		"size":     humanize.Bytes(committed.Total),
+		"used_pct": strconv.FormatFloat(committed.UsedPercent, 'f', 0, 64),
+		"free_pct": strconv.FormatUint(committed.Free*100/committed.Total, 10),
+	})
 
 	// compare ram metrics to tresholds
 	if CompareMetrics(physicalM, warnTreshold) || CompareMetrics(committedM, warnTreshold) {
@@ -63,13 +87,19 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 		state = CheckExitCritical
 	}
 
-	output := fmt.Sprintf("committed = %v, physical = %v", humanize.Bytes(committed.Used), humanize.Bytes(physical.Used))
+	output := ""
+	for i, d := range checkData {
+		output += ParseSyntax(detailSyntax, d)
+		if i != len(checkData)-1 {
+			output += ", "
+		}
+	}
 
 	// build perfdata
 	metrics := []*CheckMetric{}
 
 	for _, m := range committedM {
-		if m.name == warnTreshold.name {
+		if m.name == warnTreshold.name || m.name == critTreshold.name {
 			value, _ := strconv.ParseFloat(m.value, 64)
 			metrics = append(metrics, &CheckMetric{
 				Name:  fmt.Sprintf("committed_%v", warnTreshold.name),
@@ -80,7 +110,7 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	}
 
 	for _, m := range physicalM {
-		if m.name == warnTreshold.name {
+		if m.name == warnTreshold.name || m.name == critTreshold.name {
 			value, _ := strconv.ParseFloat(m.value, 64)
 			metrics = append(metrics, &CheckMetric{
 				Name:  fmt.Sprintf("physical_%v", warnTreshold.name),

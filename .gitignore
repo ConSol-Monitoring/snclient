@@ -1,4 +1,5 @@
 snclient
+*.log
 *.exe
 *.deb
 *.rpm

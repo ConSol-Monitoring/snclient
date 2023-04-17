@@ -64,7 +64,7 @@ func (m *CheckMetric) BuildNaemonString() string {
 		max = fmt.Sprintf("%f", *m.Max)
 	}
 
-	return (fmt.Sprintf("'%s%s'=%f;;;%s;%s", m.Name, m.Unit, m.Value, min, max))
+	return (fmt.Sprintf("'%s'=%f%s;;;%s;%s", m.Name, m.Value, m.Unit, min, max))
 }
 
 // CheckThreshold defines a threshold range.

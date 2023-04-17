@@ -2,12 +2,10 @@ package snclient
 
 import (
 	"fmt"
+	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
-
-	"golang.org/x/exp/slices"
-	"golang.org/x/sys/windows/svc"
-	"golang.org/x/sys/windows/svc/mgr"
 )
 
 func init() {
@@ -27,7 +25,7 @@ var ServiceStates = map[string]string{
 	"started":      "4",
 }
 
-/* check_service_windows
+/* check_service_linux
  * Description: Checks the state of a service on the host.
  * Tresholds: status
  * Units: stopped, dead, startpending, stoppedpending, running, started
@@ -35,12 +33,11 @@ var ServiceStates = map[string]string{
 func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
-	var output string
 	argList := ParseArgs(args)
+	var output string
 	var warnTreshold Treshold
 	var critTreshold Treshold
 	var services []string
-	var statusCode svc.Status
 	detailSyntax := "%(service)=%(state)"
 	topSyntax := "%(crit_list), delayed (%(warn_list))"
 	okSyntax := "All %(count) service(s) are ok."
@@ -72,45 +69,28 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	warnTreshold.value = ServiceStates[warnTreshold.value]
 	critTreshold.value = ServiceStates[critTreshold.value]
 
-	// collect service state
-	m, err := mgr.Connect()
-	if err != nil {
-		return &CheckResult{
-			State:  int64(3),
-			Output: fmt.Sprintf("Failed to open service handler: %s", err),
-		}, nil
-	}
-
-	serviceList, _ := m.ListServices()
-
 	for _, service := range services {
-
-		if slices.Contains(serviceList, service) {
-
-			s, err := m.OpenService(service)
-			if err != nil {
-				return &CheckResult{
-					State:  int64(3),
-					Output: fmt.Sprintf("Failed to open service %s: %s", service, err),
-				}, nil
-			}
-			defer s.Close()
-
-			statusCode, _ = s.Query()
-
-		} else {
+		// collect service state
+		out, err := exec.Command("systemctl", "status", fmt.Sprintf("%s.service", service)).Output()
+		if err != nil {
 			return &CheckResult{
 				State:  int64(3),
-				Output: fmt.Sprintf("Service '%s' not found!", service),
+				Output: fmt.Sprintf("Service %s not found: %s", service, err),
 			}, nil
 		}
 
-		metrics = append(metrics, &CheckMetric{Name: service, Value: float64(statusCode.State)})
+		re := regexp.MustCompile(`Active:\s*[A-Za-z]+\s*\(([A-Za-z]+)\)`)
+		match := re.FindStringSubmatch(string(out))
 
-		mdata := []MetricData{{name: "state", value: strconv.FormatInt(int64(statusCode.State), 10)}}
+		stateStr := ServiceStates[match[1]]
+		stateFloat, _ := strconv.ParseFloat(stateStr, 64)
+
+		metrics = append(metrics, &CheckMetric{Name: service, Value: stateFloat})
+
+		mdata := []MetricData{{name: "state", value: stateStr}}
 		sdata := map[string]string{
 			"service": service,
-			"state":   strconv.FormatInt(int64(statusCode.State), 10),
+			"state":   stateStr,
 		}
 
 		// compare ram metrics to tresholds
