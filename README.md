@@ -42,6 +42,9 @@ soon...
 - [] improve documentation
   - [] add feature comparison to readme
   - [] add docs/
+- [] osx
+  - [] check logrotation
+  - [] check pkg uninstall
 
 ## Not gonna happen
 The following things will most likely not be part of snclient any time:
