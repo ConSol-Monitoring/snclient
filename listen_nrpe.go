@@ -3,6 +3,7 @@ package snclient
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"pkg/nrpe"
 )
@@ -11,9 +12,12 @@ func init() {
 	AvailableListeners = append(AvailableListeners, ListenHandler{"NRPEServer", "/settings/NRPE/server", NewHandlerNRPE()})
 }
 
+const NastyCharacters = "|`&><'\"\\[]{}"
+
 type HandlerNRPE struct {
 	noCopy noCopy
 	snc    *Agent
+	conf   *ConfigSection
 }
 
 func NewHandlerNRPE() *HandlerNRPE {
@@ -28,17 +32,18 @@ func (l *HandlerNRPE) Type() string {
 
 func (l *HandlerNRPE) Defaults() ConfigData {
 	defaults := ConfigData{
-		"allow arguments":   "0",
-		"allow nasty chars": "0",
-		"port":              "5666",
+		"allow arguments":        "0",
+		"allow nasty characters": "0",
+		"port":                   "5666",
 	}
 	defaults.Merge(DefaultListenTCPConfig)
 
 	return defaults
 }
 
-func (l *HandlerNRPE) Init(snc *Agent, _ *ConfigSection) error {
+func (l *HandlerNRPE) Init(snc *Agent, conf *ConfigSection) error {
 	l.snc = snc
+	l.conf = conf
 
 	return nil
 }
@@ -70,13 +75,24 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 
 	var statusResult *CheckResult
 
-	// version check
-	if cmd == "_NRPE_CHECK" {
+	switch {
+	case !checkAllowArguments(l.conf, args):
+		statusResult = &CheckResult{
+			State:  CheckExitUnknown,
+			Output: "Exception processing request: Request contained arguments (check the allow arguments option).",
+		}
+	case !checkNastyCharacters(l.conf, cmd, args):
+		statusResult = &CheckResult{
+			State:  CheckExitUnknown,
+			Output: "Exception processing request: Request contained illegal characters (check the allow nasty characters option).",
+		}
+	case cmd == "_NRPE_CHECK":
+		// version check
 		statusResult = &CheckResult{
 			State:  0,
 			Output: fmt.Sprintf("%s v%s.%s", NAME, VERSION, snc.Revision),
 		}
-	} else {
+	default:
 		statusResult = snc.RunCheck(cmd, args)
 	}
 
@@ -96,4 +112,44 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 
 		return
 	}
+}
+
+func checkAllowArguments(conf *ConfigSection, args []string) bool {
+	allowed, _, err := conf.GetBool("allow arguments")
+	if err != nil {
+		log.Errorf("config error: %s", err.Error())
+
+		return false
+	}
+
+	if allowed {
+		return true
+	}
+
+	return len(args) == 0
+}
+
+func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
+	allowed, _, err := conf.GetBool("allow nasty characters")
+	if err != nil {
+		log.Errorf("config error: %s", err.Error())
+
+		return false
+	}
+
+	if allowed {
+		return true
+	}
+
+	if strings.ContainsAny(cmd, NastyCharacters) {
+		return false
+	}
+
+	for _, arg := range args {
+		if strings.ContainsAny(arg, NastyCharacters) {
+			return false
+		}
+	}
+
+	return false
 }

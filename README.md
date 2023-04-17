@@ -33,9 +33,6 @@ soon...
 
 - [] check usr signal handler
 - [] implement log rotation for file logger
-- [] NRPE
-  - [] implement nasty chars
-  - [] implement allow arguments
 - [] Rest API
   - [] add performance data support
 - [] add support for client certificates
