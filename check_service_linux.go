@@ -27,7 +27,7 @@ var ServiceStates = map[string]string{
 
 /* check_service_linux
  * Description: Checks the state of a service on the host.
- * Tresholds: status
+ * Thresholds: status
  * Units: stopped, dead, startpending, stoppedpending, running, started
  */
 func (l *CheckService) Check(args []string) (*CheckResult, error) {
@@ -74,7 +74,7 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 		out, err := exec.Command("systemctl", "status", fmt.Sprintf("%s.service", service)).Output()
 		if err != nil {
 			return &CheckResult{
-				State:  int64(3),
+				State:  CheckExitUnknown,
 				Output: fmt.Sprintf("Service %s not found: %s", service, err),
 			}, nil
 		}
