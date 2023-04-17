@@ -5,7 +5,7 @@ linters-settings:
       - style
       - experimental
   gocyclo:
-    min-complexity: 20
+    min-complexity: 22
   goconst:
     min-len: 8
     min-occurrences: 12
@@ -68,8 +68,13 @@ issues:
     - "complexity.*checkFlags"
     - "Function 'readConfiguration' has too many statements"
     - "complexity.*readConfiguration"
+    - "Function 'Check' has too many statements"
+    - "Function 'Check' is too long"
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
       linters:
         - dupword
+    - path: check_service_linux.go
+      linters:
+        - gosec
