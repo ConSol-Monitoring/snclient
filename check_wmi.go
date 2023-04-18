@@ -15,6 +15,7 @@ func init() {
 
 type CheckWMI struct {
 	noCopy noCopy
+	data   CheckData
 }
 
 type WMI struct {
@@ -80,18 +81,12 @@ func QueryWMI(query string) (querydata []WMI, out string) {
 func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
-	argList := ParseArgs(args)
-	var warnTreshold Treshold
-	var critTreshold Treshold
+	argList := ParseArgs(args, &l.data)
 	var query string
 
 	// parse treshold args
 	for _, arg := range argList {
 		switch arg.key {
-		case "warn", "warning":
-			warnTreshold = ParseTreshold(arg.value)
-		case "crit", "critical":
-			critTreshold = ParseTreshold(arg.value)
 		case "query":
 			query = arg.value
 		}
@@ -105,7 +100,7 @@ func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 
 	for _, d := range querydata {
 		mdata = append(mdata, MetricData{name: d.key, value: d.value})
-		if d.key == warnTreshold.name || d.key == critTreshold.name {
+		if d.key == l.data.warnTreshold.name || d.key == l.data.critTreshold.name {
 			value, _ := strconv.ParseFloat(d.value, 64)
 			perfMetrics = append(perfMetrics, &CheckMetric{
 				Name:  d.key,
@@ -115,11 +110,11 @@ func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 	}
 
 	// compare metrics to tresholds
-	if CompareMetrics(mdata, warnTreshold) {
+	if CompareMetrics(mdata, l.data.warnTreshold) {
 		state = CheckExitWarning
 	}
 
-	if CompareMetrics(mdata, critTreshold) {
+	if CompareMetrics(mdata, l.data.critTreshold) {
 		state = CheckExitCritical
 	}
 

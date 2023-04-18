@@ -17,6 +17,7 @@ func init() {
 
 type CheckDrivesize struct {
 	noCopy noCopy
+	data   CheckData
 }
 
 /* check_drivesize
@@ -27,31 +28,19 @@ type CheckDrivesize struct {
 func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(CheckExitOK)
-	argList := ParseArgs(args)
+	l.data.detailSyntax = "%(drive_or_name)\\: %(used)/%(size) used"
+	l.data.okSyntax = "All %(count) drive(s) are ok"
+	l.data.topSyntax = "%(problem_list)"
+	argList := ParseArgs(args, &l.data)
 	var output string
-	var warnTreshold Treshold
-	var critTreshold Treshold
 	drives := []string{}
-	detailSyntax := "%(drive_or_name)\\: %(used)/%(size) used"
-	okSyntax := "All %(count) drive(s) are ok"
-	topSyntax := "%(problem_list)"
 	var checkData map[string]string
 
 	// parse treshold args
 	for _, arg := range argList {
 		switch arg.key {
-		case "warn", "warning":
-			warnTreshold = ParseTreshold(arg.value)
-		case "crit", "critical":
-			critTreshold = ParseTreshold(arg.value)
 		case "drive":
 			drives = strings.Split(strings.ToUpper(arg.value), ",")
-		case "detail-syntax":
-			detailSyntax = arg.value
-		case "top-syntax":
-			topSyntax = arg.value
-		case "ok-syntax":
-			okSyntax = arg.value
 		}
 	}
 
@@ -89,10 +78,10 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 		}
 
 		for _, metric := range metrics {
-			if metric.name == warnTreshold.name || metric.name == critTreshold.name {
+			if metric.name == l.data.warnTreshold.name || metric.name == l.data.critTreshold.name {
 				var value float64
 				unit := ""
-				if warnTreshold.unit == "%" {
+				if l.data.warnTreshold.unit == "%" {
 					value, _ = strconv.ParseFloat(metric.value, 64)
 				} else {
 					f, _ := strconv.ParseFloat(metric.value, 64)
@@ -106,19 +95,19 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 			}
 		}
 
-		if CompareMetrics(metrics, critTreshold) {
-			disksCritical = append(disksCritical, ParseSyntax(detailSyntax, sdata))
+		if CompareMetrics(metrics, l.data.critTreshold) {
+			disksCritical = append(disksCritical, ParseSyntax(l.data.detailSyntax, sdata))
 
 			continue
 		}
 
-		if CompareMetrics(metrics, warnTreshold) {
-			disksWarning = append(disksWarning, ParseSyntax(detailSyntax, sdata))
+		if CompareMetrics(metrics, l.data.warnTreshold) {
+			disksWarning = append(disksWarning, ParseSyntax(l.data.detailSyntax, sdata))
 
 			continue
 		}
 
-		disksOk = append(disksOk, ParseSyntax(detailSyntax, sdata))
+		disksOk = append(disksOk, ParseSyntax(l.data.detailSyntax, sdata))
 	}
 
 	if len(disksCritical) > 0 {
@@ -137,9 +126,9 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 	}
 
 	if state == CheckExitOK {
-		output = ParseSyntax(okSyntax, checkData)
+		output = ParseSyntax(l.data.okSyntax, checkData)
 	} else {
-		output = ParseSyntax(topSyntax, checkData)
+		output = ParseSyntax(l.data.topSyntax, checkData)
 	}
 
 	return &CheckResult{

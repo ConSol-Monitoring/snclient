@@ -1,4 +1,4 @@
-package snclient
+﻿package snclient
 
 import (
 	"regexp"
@@ -17,11 +17,32 @@ type Treshold struct {
 	unit     string
 }
 
-func ParseArgs(args []string) []Argument {
+type CheckData struct {
+	warnTreshold Treshold
+	critTreshold Treshold
+	detailSyntax string
+	topSyntax    string
+	okSyntax     string
+}
+
+func ParseArgs(args []string, data *CheckData) []Argument {
 	argList := make([]Argument, 0, len(args))
 	for _, v := range args {
 		split := strings.SplitN(v, "=", 2)
-		argList = append(argList, Argument{key: split[0], value: split[1]})
+		switch split[0] {
+		case "warn", "warning":
+			data.warnTreshold = ParseTreshold(split[1])
+		case "crit", "critical":
+			data.critTreshold = ParseTreshold(split[1])
+		case "detail-syntax":
+			data.detailSyntax = split[1]
+		case "top-syntax":
+			data.topSyntax = split[1]
+		case "ok-syntax":
+			data.okSyntax = split[1]
+		default:
+			argList = append(argList, Argument{key: split[0], value: split[1]})
+		}
 	}
 
 	return argList

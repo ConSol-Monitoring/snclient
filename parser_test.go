@@ -12,10 +12,12 @@ func TestArgumentParser(t *testing.T) {
 
 	for _, check := range []struct {
 		args   []string
+		data   CheckData
 		expect []Argument
 	}{
 		{
 			[]string{"service=Dhcp", "warn=load > 95%", "crit=load > 98%"},
+			CheckData{},
 			[]Argument{
 				{key: "service", value: "Dhcp"},
 				{key: "warn", value: "load > 95%"},
@@ -23,7 +25,7 @@ func TestArgumentParser(t *testing.T) {
 			},
 		},
 	} {
-		assert.Equal(t, check.expect, ParseArgs(check.args), fmt.Sprintf("ParseArgs(%s) -> %v", check.args, check.expect))
+		assert.Equal(t, check.expect, ParseArgs(check.args, &check.data), fmt.Sprintf("ParseArgs(%s) -> %v", check.args, check.expect))
 	}
 }
 
