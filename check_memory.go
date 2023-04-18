@@ -14,6 +14,7 @@ func init() {
 
 type CheckMemory struct {
 	noCopy noCopy
+	data   CheckData
 }
 
 /* check_memory
@@ -24,23 +25,9 @@ type CheckMemory struct {
 func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
-	argList := ParseArgs(args)
-	var warnTreshold Treshold
-	var critTreshold Treshold
-	detailSyntax := "%(type) = %(used)"
+	l.data.detailSyntax = "%(type) = %(used)"
+	ParseArgs(args, &l.data)
 	var checkData []map[string]string
-
-	// parse treshold args
-	for _, arg := range argList {
-		switch arg.key {
-		case "warn", "warning":
-			warnTreshold = ParseTreshold(arg.value)
-		case "crit", "critical":
-			critTreshold = ParseTreshold(arg.value)
-		case "detail-syntax":
-			detailSyntax = arg.value
-		}
-	}
 
 	// collect ram metrics (physical + committed)
 	physical, _ := mem.VirtualMemory()
@@ -79,17 +66,17 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	})
 
 	// compare ram metrics to tresholds
-	if CompareMetrics(physicalM, warnTreshold) || CompareMetrics(committedM, warnTreshold) {
+	if CompareMetrics(physicalM, l.data.warnTreshold) || CompareMetrics(committedM, l.data.warnTreshold) {
 		state = CheckExitWarning
 	}
 
-	if CompareMetrics(physicalM, critTreshold) || CompareMetrics(committedM, critTreshold) {
+	if CompareMetrics(physicalM, l.data.critTreshold) || CompareMetrics(committedM, l.data.critTreshold) {
 		state = CheckExitCritical
 	}
 
 	output := ""
 	for i, d := range checkData {
-		output += ParseSyntax(detailSyntax, d)
+		output += ParseSyntax(l.data.detailSyntax, d)
 		if i != len(checkData)-1 {
 			output += ", "
 		}
@@ -99,10 +86,10 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	metrics := []*CheckMetric{}
 
 	for _, m := range committedM {
-		if m.name == warnTreshold.name || m.name == critTreshold.name {
+		if m.name == l.data.warnTreshold.name || m.name == l.data.critTreshold.name {
 			value, _ := strconv.ParseFloat(m.value, 64)
 			metrics = append(metrics, &CheckMetric{
-				Name:  fmt.Sprintf("committed_%v", warnTreshold.name),
+				Name:  fmt.Sprintf("committed_%v", l.data.warnTreshold.name),
 				Unit:  "",
 				Value: value,
 			})
@@ -110,10 +97,10 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	}
 
 	for _, m := range physicalM {
-		if m.name == warnTreshold.name || m.name == critTreshold.name {
+		if m.name == l.data.warnTreshold.name || m.name == l.data.critTreshold.name {
 			value, _ := strconv.ParseFloat(m.value, 64)
 			metrics = append(metrics, &CheckMetric{
-				Name:  fmt.Sprintf("physical_%v", warnTreshold.name),
+				Name:  fmt.Sprintf("physical_%v", l.data.warnTreshold.name),
 				Unit:  "",
 				Value: value,
 			})

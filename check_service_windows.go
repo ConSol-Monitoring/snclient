@@ -16,6 +16,7 @@ func init() {
 
 type CheckService struct {
 	noCopy noCopy
+	data   CheckData
 }
 
 var ServiceStates = map[string]string{
@@ -36,31 +37,19 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	var output string
-	argList := ParseArgs(args)
-	var warnTreshold Treshold
-	var critTreshold Treshold
+	l.data.detailSyntax = "%(service)=%(state)"
+	l.data.topSyntax = "%(crit_list), delayed (%(warn_list))"
+	l.data.okSyntax = "All %(count) service(s) are ok."
+	argList := ParseArgs(args, &l.data)
 	var services []string
 	var statusCode svc.Status
-	detailSyntax := "%(service)=%(state)"
-	topSyntax := "%(crit_list), delayed (%(warn_list))"
-	okSyntax := "All %(count) service(s) are ok."
 	var checkData map[string]string
 
 	// parse treshold args
 	for _, arg := range argList {
 		switch arg.key {
-		case "warn", "warning":
-			warnTreshold = ParseTreshold(arg.value)
-		case "crit", "critical":
-			critTreshold = ParseTreshold(arg.value)
 		case "service":
 			services = append(services, arg.value)
-		case "detail-syntax":
-			detailSyntax = arg.value
-		case "top-syntax":
-			topSyntax = arg.value
-		case "ok-syntax":
-			okSyntax = arg.value
 		}
 	}
 
@@ -69,8 +58,8 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	warnList := make([]string, 0, len(services))
 	critList := make([]string, 0, len(services))
 
-	warnTreshold.value = ServiceStates[warnTreshold.value]
-	critTreshold.value = ServiceStates[critTreshold.value]
+	l.data.warnTreshold.value = ServiceStates[l.data.warnTreshold.value]
+	l.data.critTreshold.value = ServiceStates[l.data.critTreshold.value]
 
 	// collect service state
 	m, err := mgr.Connect()
@@ -114,19 +103,19 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 		}
 
 		// compare ram metrics to tresholds
-		if CompareMetrics(mdata, critTreshold) {
-			critList = append(critList, ParseSyntax(detailSyntax, sdata))
+		if CompareMetrics(mdata, l.data.critTreshold) {
+			critList = append(critList, ParseSyntax(l.data.detailSyntax, sdata))
 
 			continue
 		}
 
-		if CompareMetrics(mdata, warnTreshold) {
-			warnList = append(warnList, ParseSyntax(detailSyntax, sdata))
+		if CompareMetrics(mdata, l.data.warnTreshold) {
+			warnList = append(warnList, ParseSyntax(l.data.detailSyntax, sdata))
 
 			continue
 		}
 
-		okList = append(okList, ParseSyntax(detailSyntax, sdata))
+		okList = append(okList, ParseSyntax(l.data.detailSyntax, sdata))
 	}
 
 	if len(critList) > 0 {
@@ -144,9 +133,9 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	}
 
 	if state == CheckExitOK {
-		output = ParseSyntax(okSyntax, checkData)
+		output = ParseSyntax(l.data.okSyntax, checkData)
 	} else {
-		output = ParseSyntax(topSyntax, checkData)
+		output = ParseSyntax(l.data.topSyntax, checkData)
 	}
 
 	return &CheckResult{

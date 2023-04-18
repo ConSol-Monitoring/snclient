@@ -13,6 +13,7 @@ func init() {
 
 type CheckWrap struct {
 	noCopy noCopy
+	data   CheckData
 }
 
 /* check_service todo
@@ -21,7 +22,7 @@ type CheckWrap struct {
 func (l *CheckWrap) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
-	argList := ParseArgs(args)
+	argList := ParseArgs(args, &l.data)
 	var script string
 
 	// parse treshold args

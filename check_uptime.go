@@ -1,4 +1,4 @@
-package snclient
+﻿package snclient
 
 import (
 	"fmt"
@@ -14,6 +14,7 @@ func init() {
 
 type CheckUptime struct {
 	noCopy noCopy
+	data   CheckData
 }
 
 /* check_uptime
@@ -24,19 +25,7 @@ type CheckUptime struct {
 func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
-	argList := ParseArgs(args)
-	var warnTreshold Treshold
-	var critTreshold Treshold
-
-	// parse treshold args
-	for _, arg := range argList {
-		switch arg.key {
-		case "warn", "warning":
-			warnTreshold = ParseTreshold(arg.value)
-		case "crit", "critical":
-			critTreshold = ParseTreshold(arg.value)
-		}
-	}
+	ParseArgs(args, &l.data)
 
 	// collect time metrics (boot + now)
 	bootTime, _ := host.BootTime()
@@ -47,11 +36,11 @@ func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
 	mdata := []MetricData{{name: "uptime", value: strconv.FormatInt(int64(uptime.Seconds()), 10)}}
 
 	// compare ram metrics to tresholds
-	if CompareMetrics(mdata, warnTreshold) {
+	if CompareMetrics(mdata, l.data.warnTreshold) {
 		state = CheckExitWarning
 	}
 
-	if CompareMetrics(mdata, critTreshold) {
+	if CompareMetrics(mdata, l.data.critTreshold) {
 		state = CheckExitCritical
 	}
 
