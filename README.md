@@ -17,7 +17,7 @@ SNClient+ is a secure general purpose monitoring agent designed as replacement f
 ## Supported Protocols
 
  - Prometheus HTTP(s)
- - NRPE (v2)
+ - NRPE (v2/v4)
 
 ## Installation
 There are prebuild binaries and packages for the all supported systems (see above) on the

@@ -7,32 +7,42 @@
 - go >= 1.19
 - make
 
-## Building
+## Building Binary
 
 	%> git clone https://github.com/sni/snclient
 	%> cd snclient
-	%> make
+	%> make snclient
 
 ## Building RPMs
 
-Building RPM packages is available with the rpm make target:
+Building RPM packages is available with the `make rpm` target:
 
 	%> make rpm
 
 You will need those extra requirements:
 
 - rpm-build
-- rpmlint
 - help2man
+- (rpmlint)
 
 ## Building DEBs
 
-Building Debian packages is available with the deb make target:
+Building Debian packages is available with the `make deb` target:
 
 	%> make deb
 
 You will need those extra requirements:
 
 - dpkg
-- lintian
 - help2man
+- (lintian)
+
+## Building OSX PKG
+
+Building OSX packages is available with the `make osx` target:
+
+	%> make osx
+
+You will need those extra requirements:
+
+- Xcode

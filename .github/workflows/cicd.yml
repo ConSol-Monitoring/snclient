@@ -231,6 +231,7 @@ jobs:
     needs: [get-version, build]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      DIST: "snclient-${{needs.get-version.outputs.version}}-osx-${{ matrix.go-arch }}"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -239,14 +240,13 @@ jobs:
         with:
           name: "${{ env.BIN }}"
       - run: |
-          echo "Building ${{ env.BIN }}.pkg"
-          cd packaging/osx
-          ./build.sh
-          mv snclient*.pkg ../../${{ env.BIN }}.pkg
+          echo "Building ${{ env.DIST }}.pkg"
+          make osx
+          mv snclient*.pkg ${{ env.DIST }}.pkg
       - uses: actions/upload-artifact@v3
         with:
-          name: "${{ env.BIN }}.pkg"
-          path: "${{ env.BIN }}.pkg"
+          name: "${{ env.DIST }}.pkg"
+          path: "${{ env.DIST }}.pkg"
           if-no-files-found: error
       - uses: geekyeggo/delete-artifact@v2
         with:
@@ -400,7 +400,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
     env:
-      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      BIN:  "snclient-${{needs.get-version.outputs.version}}-osx-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3

@@ -306,6 +306,26 @@ rpm: | dist
 	rm -rf $(RPM_TOPDIR) build-rpm
 	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
 
+osx: | dist
+	rm -rf build-pkg
+	mkdir -p build-pkg/Library/LaunchDaemons
+	cp packaging/osx/com.snclient.snclient.plist build-pkg/Library/LaunchDaemons/
+
+	mkdir -p build-pkg/usr/local/bin
+	cp dist/snclient build-pkg/usr/local/bin/
+
+	mkdir -p build-pkg/etc/snclient
+	cp dist/snclient.ini dist/server.crt dist/server.key dist/cacert.pem build-pkg/etc/snclient
+
+	pkgbuild --root "build-pkg" \
+			--identifier com.snclient.snclient \
+			--version $(VERSION) \
+			--install-location / \
+			--scripts . \
+			"snclient-$(VERSION).pkg"
+	rm -rf build-pkg
+
+
 release:
 	./buildtools/release.sh
 
