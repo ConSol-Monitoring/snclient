@@ -17,6 +17,7 @@ import (
 
 	deadlock "github.com/sasha-s/go-deadlock"
 	daemon "github.com/sevlyar/go-daemon"
+	"github.com/shirou/gopsutil/v3/host"
 )
 
 const (
@@ -132,6 +133,8 @@ func SNClient(build, revision string) {
 		}()
 	}
 
+	log.Infof("%s", snc.BuildStartupMsg())
+
 	snc.createPidFile()
 	defer snc.deletePidFile()
 
@@ -146,7 +149,6 @@ func SNClient(build, revision string) {
 	signal.Notify(osSignalChannel, syscall.SIGINT)
 
 	snc.startAll(config, listeners)
-	log.Infof("%s v%s.%s (Build: %s), pid: %d started\n", NAME, VERSION, revision, snc.Build, os.Getpid())
 
 	for {
 		exitState := snc.mainLoop(osSignalChannel)
@@ -572,7 +574,7 @@ func (snc *Agent) startListener(name string) {
 
 	err := snc.Listeners[name].Start()
 	if err != nil {
-		log.Errorf("failed to start %s listener:  %s", err.Error())
+		log.Errorf("failed to start %s listener:  %s", name, err.Error())
 		listener.Stop()
 		delete(snc.Listeners, name)
 	}
@@ -600,4 +602,19 @@ func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 	}
 
 	return res
+}
+
+func (snc *Agent) BuildStartupMsg() string {
+	platform, _, pversion, err := host.PlatformInformation()
+	if err != nil {
+		log.Debugf("failed to get platform information: %s", err.Error())
+	}
+	hostid, err := os.Hostname()
+	if err != nil {
+		log.Debugf("failed to get platform host id: %s", err.Error())
+	}
+	msg := fmt.Sprintf("%s starting (version:v%s.%s - build:%s - host:%s - pid:%d - os:%s %s - arch:%s)\n",
+		NAME, VERSION, snc.Revision, snc.Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH)
+
+	return msg
 }
