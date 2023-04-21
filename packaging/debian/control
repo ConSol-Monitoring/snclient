@@ -6,8 +6,8 @@ Architecture: UNSET
 Depends: logrotate
 Suggests: monitoring-plugins-basic
 Maintainer: Sven Nierlein <sven@consol.de>
-Homepage: https://github.com/sni/snclient/
-Bugs: https://github.com/sni/snclient/issues
+Homepage: https://github.com/Consol-Monitoring/snclient/
+Bugs: https://github.com/Consol-Monitoring/snclient/issues
 Description: Monitoring agent designed as replacement for NRPE and NSClient++.
  SNClient+ is a cross-platform monitoring agent providing nrpe/nscp like system
  checks and prometheus metrics.

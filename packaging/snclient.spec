@@ -4,7 +4,7 @@ Release:       0
 License:       MIT
 Packager:      Sven Nierlein <sven.nierlein@consol.de>
 Vendor:        Labs Consol
-URL:           https://github.com/sni/snclient/
+URL:           https://github.com/Consol-Monitoring/snclient/
 Source0:       snclient-%{version}.tar.gz
 Group:         Applications/System
 Summary:       Monitoring Agent

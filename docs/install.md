@@ -9,7 +9,7 @@
 
 ## Building Binary
 
-	%> git clone https://github.com/sni/snclient
+	%> git clone https://github.com/Consol-Monitoring/snclient
 	%> cd snclient
 	%> make snclient
 
