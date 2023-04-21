@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?if $(var.Platform) = x64 ?>
-  <?define ProductName = "SNClient (x64)" ?>
+  <?define ProductName = "SNClient+ (x86_64)" ?>
   <?define UpgradeCode = "3735798C-3EB6-4185-9776-B25F7C605564" ?>
   <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
   <?define Win64 = 'yes' ?>
 <?else ?>
-  <?define ProductName = "SNClient (x86)" ?>
+  <?define ProductName = "SNClient+ (i386)" ?>
   <?define UpgradeCode = "B928D64B-DC01-495B-B922-47EC901C8F9A" ?>
   <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
   <?define Win64 = "no" ?>
@@ -21,7 +21,7 @@
 	<MajorUpgrade AllowDowngrades="yes" />
 
 	<Media Id='1' Cabinet='Sample.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
-	<Property Id='DiskPrompt' Value="SNClient Installation [1]" />
+	<Property Id='DiskPrompt' Value="SNClient+ Installation [1]" />
 	<Property Id="REBOOT" Value="ReallySuppress" />
 
 	<Directory Id='TARGETDIR' Name='SourceDir'>

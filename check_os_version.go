@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"fmt"
+	"runtime"
 	"strconv"
 
 	"github.com/shirou/gopsutil/v3/host"
@@ -38,7 +39,7 @@ func (l *CheckOSVersion) Check(_ []string) (*CheckResult, error) {
 
 	return &CheckResult{
 		State:   0,
-		Output:  fmt.Sprintf("OK - %s %s", platform, version),
+		Output:  fmt.Sprintf("OK - %s %s (arch:%s)", platform, version, runtime.GOARCH),
 		Metrics: metrics,
 	}, nil
 }

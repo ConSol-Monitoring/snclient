@@ -84,6 +84,7 @@ Find a brief overview of what is planned and what is done already:
 - [ ] osx
   - [ ] check logrotation
   - [ ] check pkg uninstall
+- [ ] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, amd64 -> aarch64
 
 ## Not gonna happen
 The following things will most likely not be part of snclient any time:

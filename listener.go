@@ -25,7 +25,6 @@ type ListenHandler struct {
 }
 
 var DefaultListenTCPConfig = ConfigData{
-	"allowed ciphers":     "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH",
 	"allowed hosts":       "127.0.0.1, [::1]",
 	"bind to":             "",
 	"cache allowed hosts": "1",
