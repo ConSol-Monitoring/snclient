@@ -18,22 +18,22 @@ type CheckOSVersion struct {
 /* check_os_version
  * Description: Checks the os version
  */
-func (l *CheckOSVersion) Check(args []string) (*CheckResult, error) {
+func (l *CheckOSVersion) Check(_ []string) (*CheckResult, error) {
 	metrics := []*CheckMetric{}
 
 	platform, _, version, err := host.PlatformInformation()
 	if err != nil {
-		return &CheckResult{
-			State:   ExitCodeUnknown,
-			Output:  err.Error(),
-			Metrics: metrics,
-		}, nil
+		return nil, fmt.Errorf("failed to get platform information: %s", err.Error())
 	}
 
-	v, err := strconv.ParseFloat(version, 64)
+	versionFloat, err := strconv.ParseFloat(version, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse platform version to float: %s", err.Error())
+	}
+
 	metrics = append(metrics, &CheckMetric{
 		Name:  "version",
-		Value: v,
+		Value: versionFloat,
 	})
 
 	return &CheckResult{
