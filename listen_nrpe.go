@@ -3,9 +3,8 @@ package snclient
 import (
 	"fmt"
 	"net"
-	"strings"
-
 	"pkg/nrpe"
+	"strings"
 )
 
 func init() {
@@ -142,14 +141,18 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	}
 
 	if strings.ContainsAny(cmd, NastyCharacters) {
+		log.Debugf("command string contained nasty character", cmd)
+
 		return false
 	}
 
-	for _, arg := range args {
+	for i, arg := range args {
 		if strings.ContainsAny(arg, NastyCharacters) {
+			log.Debugf("cmd arg (#%d) contained nasty character", i)
+
 			return false
 		}
 	}
 
-	return false
+	return true
 }
