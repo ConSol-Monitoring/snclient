@@ -34,13 +34,16 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 	argList := ParseArgs(args, &l.data)
 	var output string
 	drives := []string{}
+	excludes := []string{}
 	var checkData map[string]string
 
 	// parse treshold args
 	for _, arg := range argList {
 		switch arg.key {
 		case "drive":
-			drives = strings.Split(strings.ToUpper(arg.value), ",")
+			drives = append(drives, strings.Split(strings.ToUpper(arg.value), ",")...)
+		case "exclude":
+			excludes = append(excludes, strings.Split(strings.ToUpper(arg.value), ",")...)
 		}
 	}
 
@@ -56,6 +59,10 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 	for _, drive := range disks {
 		if len(drives) > 0 && !slices.Contains(drives, "*") &&
 			!slices.Contains(drives, drive.Mountpoint) && !slices.Contains(drives, "all-drives") {
+			continue
+		}
+
+		if slices.Contains(excludes, drive.Mountpoint) {
 			continue
 		}
 

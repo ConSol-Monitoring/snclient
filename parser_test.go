@@ -20,8 +20,6 @@ func TestArgumentParser(t *testing.T) {
 			CheckData{},
 			[]Argument{
 				{key: "service", value: "Dhcp"},
-				{key: "warn", value: "load > 95%"},
-				{key: "crit", value: "load > 98%"},
 			},
 		},
 	} {

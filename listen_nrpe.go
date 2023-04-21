@@ -3,8 +3,9 @@ package snclient
 import (
 	"fmt"
 	"net"
-	"pkg/nrpe"
 	"strings"
+
+	"pkg/nrpe"
 )
 
 func init() {

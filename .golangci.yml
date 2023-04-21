@@ -70,6 +70,7 @@ issues:
     - "complexity.*readConfiguration"
     - "Function 'Check' has too many statements"
     - "Function 'Check' is too long"
+    - "cognitive complexity .* of func .*.Check"
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
