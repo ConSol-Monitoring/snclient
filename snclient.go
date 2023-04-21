@@ -82,6 +82,7 @@ type Agent struct {
 		flagProfile      string
 		flagCPUProfile   string
 		flagLogFile      string
+		flagLogFormat    string
 		flagDeadlock     int
 	}
 	cpuProfileHandler *os.File
@@ -443,6 +444,7 @@ func (snc *Agent) setFlags() {
 	flag.BoolVar(&snc.flags.flagDaemon, "daemon", false, "start snclient as daemon in background")
 	flag.StringVar(&snc.flags.flagPidfile, "pidfile", "", "set path to pidfile")
 	flag.StringVar(&snc.flags.flagLogFile, "logfile", "", "override logfile from the configuration file")
+	flag.StringVar(&snc.flags.flagLogFormat, "logformat", "", "override logformat, see https://pkg.go.dev/github.com/kdar/factorlog")
 	flag.BoolVar(&snc.flags.flagVerbose, "v", false, "enable verbose output")
 	flag.BoolVar(&snc.flags.flagVerbose, "verbose", false, "enable verbose output")
 	flag.BoolVar(&snc.flags.flagVeryVerbose, "vv", false, "enable very verbose output")
@@ -613,7 +615,7 @@ func (snc *Agent) BuildStartupMsg() string {
 	if err != nil {
 		log.Debugf("failed to get platform host id: %s", err.Error())
 	}
-	msg := fmt.Sprintf("%s starting (version:v%s.%s - build:%s - host:%s - pid:%d - os:%s %s - arch:%s)\n",
+	msg := fmt.Sprintf("%s starting (version:v%s.%s - build:%s - host:%s - pid:%d - os:%s %s - arch:%s)",
 		NAME, VERSION, snc.Revision, snc.Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH)
 
 	return msg

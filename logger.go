@@ -24,15 +24,26 @@ const (
 
 	// LogVerbosityTrace sets trace log level.
 	LogVerbosityTrace = 3
+
+	// LogColors sets colors for some log levels
+	LogColors = `%{Color "yellow+b" "WARN"}` +
+		`%{Color "red+b" "ERROR"}` +
+		`%{Color "red+b" "FATAL"}` +
+		`%{Color "white+b" "INFO"}` +
+		`%{Color "white" "DEBUG"}` +
+		`%{Color "white" "TRACE"}`
+
+	// LogColorReset resets colors from LogColors
+	LogColorReset = `%{Color "reset"}`
 )
 
 var doOnce sync.Once
 
-var log = factorlog.New(os.Stdout, factorlog.NewStdFormatter(
-	`[%{Date} %{Time "15:04:05.000"}]`+
-		`[%{Severity}]`+
-		`[pid:`+fmt.Sprintf("%d", os.Getpid())+`]`+
-		`[%{ShortFile}:%{Line}] %{Message}`))
+var (
+	DateTimeLogFormat = `[%{Date} %{Time "15:04:05.000"}]`
+	LogFormat         = `[%{Severity}][pid:%{Pid}][%{ShortFile}:%{Line}] %{Message}`
+	log               = factorlog.New(os.Stdout, BuildFormatter(DateTimeLogFormat+LogFormat))
+)
 
 func CreateLogger(snc *Agent, config *Config) {
 	conf := snc.Config.Section("/settings/log")
@@ -80,13 +91,20 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 		file = snc.flags.flagLogFile
 	}
 
+	var logFormatter factorlog.Formatter
 	var targetWriter io.Writer
 	switch file {
 	case "stdout", "":
+		logFormatter = BuildFormatter(LogColors + DateTimeLogFormat + LogFormat + LogColorReset)
 		targetWriter = os.Stdout
 	case "stderr":
+		logFormatter = BuildFormatter(LogColors + DateTimeLogFormat + LogFormat + LogColorReset)
 		targetWriter = os.Stderr
+	case "stdout-journal":
+		logFormatter = BuildFormatter(LogFormat)
+		targetWriter = os.Stdout
 	default:
+		logFormatter = BuildFormatter(DateTimeLogFormat + LogFormat)
 		fHandle, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
 		if err != nil {
 			log.Errorf(fmt.Sprintf("failed to open logfile %s: %s", file, err.Error()))
@@ -102,13 +120,28 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 		if targetWriter != os.Stdout && targetWriter != os.Stderr {
 			doOnce.Do(func() {
 				abs, _ := filepath.Abs(file)
-				fmt.Fprintf(os.Stdout, snc.BuildStartupMsg())
+				fmt.Fprintf(os.Stdout, snc.BuildStartupMsg()+"\n")
 				fmt.Fprintf(os.Stdout, "further logs will go into: %s\n", abs)
 			})
 		}
 	}
 
+	format, _ := conf.GetString("format")
+	switch {
+	case format != "":
+		logFormatter = BuildFormatter(format)
+	case snc.flags.flagLogFormat != "":
+		logFormatter = BuildFormatter(snc.flags.flagLogFormat)
+	}
+
+	log.SetFormatter(logFormatter)
 	log.SetOutput(targetWriter)
+}
+
+func BuildFormatter(format string) *factorlog.StdFormatter {
+	format = strings.ReplaceAll(format, "%{Pid}", fmt.Sprintf("%d", os.Getpid()))
+
+	return (factorlog.NewStdFormatter(format))
 }
 
 func LogError(err error) {
