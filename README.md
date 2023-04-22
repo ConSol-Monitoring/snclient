@@ -1,7 +1,8 @@
 # SNClient+
 [![CICD Pipeline](https://github.com/sni/snclient/actions/workflows/cicd.yml/badge.svg?branch=main)](https://github.com/sni/snclient/actions/workflows/cicd.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Consol-Monitoring/snclient)](https://goreportcard.com/report/github.com/Consol-Monitoring/snclient)
 [![Latest Release](https://img.shields.io/github/v/release/sni/snclient?sort=semver)](https://github.com/sni/snclient/releases)
-[![GitHub](https://img.shields.io/github/license/sni/snclient)](https://github.com/sni/snclient/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/sni/snclient)](https://github.com/sni/snclient/blob/main/LICENSE)
 
 SNClient+ is a secure general purpose monitoring agent designed as replacement for NRPE and NSClient++.
 
@@ -57,3 +58,4 @@ The following things will most likely not be part of snclient any time:
 - NSCA support
 - SMTP support
 - Website/Rest API (except doing checks)
+
