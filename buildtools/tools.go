@@ -9,9 +9,9 @@ package tools
  */
 
 import (
+	_ "github.com/daixiang0/gci"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "golang.org/x/tools/cmd/goimports"
 	_ "golang.org/x/vuln/cmd/govulncheck"
-	_ "github.com/daixiang0/gci"
 	_ "mvdan.cc/gofumpt"
 )
