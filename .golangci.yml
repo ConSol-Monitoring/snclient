@@ -71,6 +71,7 @@ issues:
     - "Function 'Check' has too many statements"
     - "Function 'Check' is too long"
     - "cognitive complexity .* of func .*.Check"
+    - "appendAssign: append result not assigned to the same slice"
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
