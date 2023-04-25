@@ -36,6 +36,7 @@ linters:
     - nosnakecase
     - scopelint
     - structcheck
+    - tagliatelle
     - testpackage
     - varcheck
     - wsl

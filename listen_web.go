@@ -20,9 +20,22 @@ type CheckWebResponse struct {
 }
 
 type CheckWebLine struct {
-	Message string        `json:"message"`
-	Perf    []interface{} `json:"perf,omitempty"`
+	Message string         `json:"message"`
+	Perf    []CheckWebPerf `json:"perf,omitempty"`
 }
+
+type CheckWebPerf struct {
+	Alias  string             `json:"alias"`
+	IntVal CheckWebPerfIntVal `json:"int_value,omitempty"`
+}
+
+type CheckWebPerfIntVal struct {
+	Value    int64  `json:"value"`
+	Unit     string `json:"unit"`
+	Warning  string `json:"warning"`
+	Critical string `json:"critical"`
+}
+
 type CheckWebPayload struct {
 	Command string         `json:"command"`
 	Result  string         `json:"result"`
@@ -93,6 +106,7 @@ func (l *HandlerWeb) Check(res http.ResponseWriter, command string, args []strin
 				Lines: []CheckWebLine{
 					{
 						Message: result.Output,
+						Perf:    l.metrics2Perf(result.Metrics),
 					},
 				},
 			},
@@ -136,6 +150,26 @@ func queryParam2CommandArgs(req *http.Request) []string {
 	}
 
 	return args
+}
+
+func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
+	if len(metrics) == 0 {
+		return nil
+	}
+	result := make([]CheckWebPerf, 0)
+
+	for _, m := range metrics {
+		perf := CheckWebPerf{
+			Alias: m.Name,
+			IntVal: CheckWebPerfIntVal{
+				Value: int64(m.Value),
+				Unit:  m.Unit,
+			},
+		}
+		result = append(result, perf)
+	}
+
+	return result
 }
 
 type HandlerWebLegacy struct {
