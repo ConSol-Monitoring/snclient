@@ -71,12 +71,12 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 		metrics := map[string]string{
 			"drive_or_name":  drive.Mountpoint,
 			"total_used_pct": strconv.FormatUint(uint64(usage.UsedPercent), 10),
-			"total free_pct": strconv.FormatUint(usage.Free*100/usage.Total, 10),
+			"total free_pct": strconv.FormatUint(usage.Free*100/(usage.Total+1), 10),
 			"used":           humanize.Bytes(usage.Used),
 			"free":           humanize.Bytes(usage.Free),
 			"size":           humanize.Bytes(usage.Total),
 			"used_pct":       strconv.FormatUint(uint64(usage.UsedPercent), 10),
-			"free_pct":       strconv.FormatUint(usage.Free*100/usage.Total, 10),
+			"free_pct":       strconv.FormatUint(usage.Free*100/(usage.Total+1), 10),
 		}
 
 		for key, val := range metrics {

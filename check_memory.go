@@ -1,4 +1,4 @@
-package snclient
+﻿package snclient
 
 import (
 	"fmt"
@@ -39,7 +39,7 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 		"free":     humanize.Bytes(physical.Free),
 		"size":     humanize.Bytes(physical.Total),
 		"used_pct": strconv.FormatFloat(physical.UsedPercent, 'f', 0, 64),
-		"free_pct": strconv.FormatUint(physical.Free*100/physical.Total, 10),
+		"free_pct": strconv.FormatUint(physical.Free*100/(physical.Total+1), 10),
 	}
 
 	checkData = append(checkData, physicalM)
@@ -50,7 +50,7 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 		"free":     humanize.Bytes(committed.Free),
 		"size":     humanize.Bytes(committed.Total),
 		"used_pct": strconv.FormatFloat(committed.UsedPercent, 'f', 0, 64),
-		"free_pct": strconv.FormatUint(committed.Free*100/committed.Total, 10),
+		"free_pct": strconv.FormatUint(committed.Free*100/(committed.Total+1), 10),
 	}
 
 	checkData = append(checkData, committedM)
