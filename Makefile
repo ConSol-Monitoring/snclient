@@ -207,7 +207,8 @@ golangci: tools
 	# golangci combines a few static code analyzer
 	# See https://github.com/golangci/golangci-lint
 	#
-	golangci-lint run ./... ./pkg/*/. ./internal/*/.
+	for dir in $$(ls -1d internal/*); do echo $$dir; ( golangci-lint run $$dir/*.go ) ; done
+	golangci-lint run ./... ./pkg/*/.
 
 govulncheck: tools
 	govulncheck ./...

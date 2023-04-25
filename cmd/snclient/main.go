@@ -1,7 +1,7 @@
 package main
 
 import (
-	snclient "github.com/sni/snclient"
+	snclient "github.com/consol-monitoring/snclient"
 )
 
 // Build contains the current git commit id

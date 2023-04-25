@@ -1,4 +1,4 @@
-module github.com/sni/snclient
+module github.com/consol-monitoring/snclient
 
 go 1.19
 
