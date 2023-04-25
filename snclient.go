@@ -106,7 +106,7 @@ func SNClient(build, revision string) {
 	// reads the args, check if they are params, if so sends them to the configuration reader
 	config, listeners, err := snc.initConfiguration()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
+		LogStderrf("ERROR: %s", err.Error())
 		snc.CleanExit(ExitCodeError)
 	}
 	CreateLogger(&snc, config)
@@ -119,7 +119,7 @@ func SNClient(build, revision string) {
 
 		d, err := ctx.Reborn()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: unable to start daemon mode")
+			LogStderrf("ERROR: unable to start daemon mode")
 		}
 
 		if d != nil {
@@ -129,7 +129,7 @@ func SNClient(build, revision string) {
 		defer func() {
 			err := ctx.Release()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
+				LogStderrf("ERROR: %s", err.Error())
 			}
 		}()
 	}
@@ -367,12 +367,12 @@ func (snc *Agent) createPidFile() {
 	}
 	// check existing pid
 	if snc.checkStalePidFile() {
-		fmt.Fprintf(os.Stderr, "Warning: removing stale pidfile %s\n", snc.flags.flagPidfile)
+		LogStderrf("WARNING: removing stale pidfile %s", snc.flags.flagPidfile)
 	}
 
 	err := os.WriteFile(snc.flags.flagPidfile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0o600)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Could not write pidfile: %s\n", err.Error())
+		LogStderrf("ERROR: Could not write pidfile: %s", err.Error())
 		snc.cleanExit(ExitCodeError)
 	}
 }
@@ -395,7 +395,7 @@ func (snc *Agent) checkStalePidFile() bool {
 
 	err = process.Signal(syscall.Signal(0))
 	if err == nil {
-		fmt.Fprintf(os.Stderr, "Error: worker already running: %d\n", pid)
+		LogStderrf("ERROR: worker already running: %d", pid)
 		snc.cleanExit(ExitCodeError)
 	}
 
@@ -474,7 +474,7 @@ func (snc *Agent) checkFlags() {
 
 	if snc.flags.flagProfile != "" {
 		if snc.flags.flagCPUProfile != "" || snc.flags.flagMemProfile != "" {
-			fmt.Fprintf(os.Stderr, "ERROR: either use -debug-profile or -cpu/memprofile, not both\n")
+			LogStderrf("ERROR: either use -debug-profile or -cpu/memprofile, not both")
 			os.Exit(ExitCodeError)
 		}
 
@@ -505,12 +505,12 @@ func (snc *Agent) checkFlags() {
 
 		cpuProfileHandler, err := os.Create(snc.flags.flagCPUProfile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not create CPU profile: %s\n", err.Error())
+			LogStderrf("ERROR: could not create CPU profile: %s", err.Error())
 			os.Exit(ExitCodeError)
 		}
 
 		if err := pprof.StartCPUProfile(cpuProfileHandler); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not start CPU profile: %s\n", err.Error())
+			LogStderrf("ERROR: could not start CPU profile: %s", err.Error())
 			os.Exit(ExitCodeError)
 		}
 

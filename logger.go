@@ -43,6 +43,7 @@ var (
 	DateTimeLogFormat = `[%{Date} %{Time "15:04:05.000"}]`
 	LogFormat         = `[%{Severity}][pid:%{Pid}][%{ShortFile}:%{Line}] %{Message}`
 	log               = factorlog.New(os.Stdout, BuildFormatter(DateTimeLogFormat+LogFormat))
+	targetWriter      io.Writer
 )
 
 func CreateLogger(snc *Agent, config *Config) {
@@ -92,7 +93,6 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 	}
 
 	var logFormatter factorlog.Formatter
-	var targetWriter io.Writer
 	switch file {
 	case "stdout", "":
 		logFormatter = BuildFormatter(LogColors + DateTimeLogFormat + LogFormat + LogColorReset)
@@ -148,9 +148,18 @@ func LogError(err error) {
 	if err != nil {
 		logErr := log.Output(factorlog.ERROR, 2, err.Error())
 		if logErr != nil {
-			fmt.Fprintf(os.Stderr, "failed to log: %s (%s)", err.Error(), logErr.Error())
+			LogStderrf("failed to log: %s (%s)", err.Error(), logErr.Error())
 		}
 	}
+}
+
+func LogStderrf(format string, args ...interface{}) {
+	log.SetOutput(os.Stderr)
+	logErr := log.Output(factorlog.ERROR, 2, fmt.Sprintf(format, args...))
+	if logErr != nil {
+		LogStderrf("failed to log: %s", logErr.Error())
+	}
+	log.SetOutput(targetWriter)
 }
 
 // LogWriter implements the io.Writer interface and simply logs everything with given level.

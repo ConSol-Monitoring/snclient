@@ -57,7 +57,7 @@ func (config *Config) ReadINI(path string) error {
 	log.Debugf("reading config: %s", path)
 	file, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("cannot read file %s: %s", path, err.Error())
+		return fmt.Errorf("%s: %s", path, err.Error())
 	}
 
 	err = config.parseINI(file, path)
@@ -73,7 +73,7 @@ func (config *Config) ReadINI(path string) error {
 		if _, ok := config.alreadyIncluded[incl]; !ok {
 			err := config.ReadINI(incl)
 			if err != nil {
-				return fmt.Errorf("reading settings failed: %s", err.Error())
+				return fmt.Errorf("readini failed: %s", err.Error())
 			}
 			config.alreadyIncluded[incl] = path
 		}
