@@ -28,7 +28,8 @@ func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 
 	// parse treshold args
 	for _, arg := range argList {
-		if arg.key == "query" {
+		switch arg.key {
+		case "query":
 			query = arg.value
 		default:
 			log.Debugf("unknown argument: %s", arg.key)
