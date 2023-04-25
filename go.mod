@@ -6,11 +6,12 @@ replace pkg/nrpe => ./pkg/nrpe
 
 replace internal/dump => ./internal/dump
 
+replace internal/wmi => ./internal/wmi
+
 require (
 	github.com/daixiang0/gci v0.10.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-chi/chi/v5 v5.0.8
-	github.com/go-ole/go-ole v1.2.6
 	github.com/golangci/golangci-lint v1.52.0
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/prometheus/client_golang v1.12.1
@@ -22,6 +23,7 @@ require (
 	golang.org/x/sys v0.6.0
 	golang.org/x/tools v0.7.0
 	golang.org/x/vuln v0.0.0-20230320143955-c17b6c9bd0e8
+	internal/wmi v0.0.0-00010101000000-000000000000
 	mvdan.cc/gofumpt v0.4.0
 	pkg/nrpe v0.0.0-00010101000000-000000000000
 )
@@ -62,6 +64,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/fzipp/gocyclo v0.6.0 // indirect
 	github.com/go-critic/go-critic v0.7.0 // indirect
+	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-toolsmith/astcast v1.1.0 // indirect
 	github.com/go-toolsmith/astcopy v1.1.0 // indirect
 	github.com/go-toolsmith/astequal v1.1.0 // indirect
