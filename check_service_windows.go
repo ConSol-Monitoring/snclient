@@ -47,8 +47,7 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 
 	// parse treshold args
 	for _, arg := range argList {
-		switch arg.key {
-		case "service":
+		if arg.key == "service" {
 			services = append(services, arg.value)
 		}
 	}
@@ -96,26 +95,25 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 
 		metrics = append(metrics, &CheckMetric{Name: service, Value: float64(statusCode.State)})
 
-		mdata := []MetricData{{name: "state", value: strconv.FormatInt(int64(statusCode.State), 10)}}
-		sdata := map[string]string{
+		mdata := map[string]string{
 			"service": service,
 			"state":   strconv.FormatInt(int64(statusCode.State), 10),
 		}
 
 		// compare ram metrics to tresholds
 		if CompareMetrics(mdata, l.data.critTreshold) {
-			critList = append(critList, ParseSyntax(l.data.detailSyntax, sdata))
+			critList = append(critList, ParseSyntax(l.data.detailSyntax, mdata))
 
 			continue
 		}
 
 		if CompareMetrics(mdata, l.data.warnTreshold) {
-			warnList = append(warnList, ParseSyntax(l.data.detailSyntax, sdata))
+			warnList = append(warnList, ParseSyntax(l.data.detailSyntax, mdata))
 
 			continue
 		}
 
-		okList = append(okList, ParseSyntax(l.data.detailSyntax, sdata))
+		okList = append(okList, ParseSyntax(l.data.detailSyntax, mdata))
 	}
 
 	if len(critList) > 0 {

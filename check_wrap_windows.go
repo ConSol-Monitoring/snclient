@@ -27,8 +27,7 @@ func (l *CheckWrap) Check(args []string) (*CheckResult, error) {
 
 	// parse treshold args
 	for _, arg := range argList {
-		switch arg.key {
-		case "script":
+		if arg.key == "script" {
 			script = arg.value
 		}
 	}

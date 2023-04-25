@@ -11,27 +11,27 @@ func TestCompareMetrics(t *testing.T) {
 	t.Parallel()
 
 	for _, check := range []struct {
-		metrics  []MetricData
+		metrics  map[string]string
 		treshold Treshold
 		expect   bool
 	}{
 		{
-			[]MetricData{{name: "used", value: "13958643712"}},
+			map[string]string{"used": "13958643712"},
 			Treshold{name: "used", operator: ">", value: "13", unit: "GB"},
 			true,
 		},
 		{
-			[]MetricData{{name: "used_pct", value: "13"}},
+			map[string]string{"used_pct": "13"},
 			Treshold{name: "used_pct", operator: ">", value: "80", unit: "%"},
 			false,
 		},
 		{
-			[]MetricData{{name: "status", value: "4"}},
+			map[string]string{"status": "4"},
 			Treshold{name: "status", operator: "!=", value: "4", unit: ""},
 			false,
 		},
 		{
-			[]MetricData{{name: "uptime", value: "428173"}},
+			map[string]string{"uptime": "428173"},
 			Treshold{name: "uptime", operator: "<", value: "180", unit: "s"},
 			false,
 		},

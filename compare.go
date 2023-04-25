@@ -11,14 +11,9 @@ var (
 	tUnits = map[string]float64{"m": 60, "h": 3600, "d": 86400}
 )
 
-type MetricData struct {
-	name  string
-	value string
-}
-
-func CompareMetrics(metrics []MetricData, treshold Treshold) bool {
-	for _, data := range metrics {
-		if data.name != treshold.name {
+func CompareMetrics(metrics map[string]string, treshold Treshold) bool {
+	for key, val := range metrics {
+		if key != treshold.name {
 			continue
 		}
 
@@ -33,35 +28,35 @@ func CompareMetrics(metrics []MetricData, treshold Treshold) bool {
 
 		switch treshold.operator {
 		case "<":
-			m, _ := strconv.ParseFloat(data.value, 64)
+			m, _ := strconv.ParseFloat(val, 64)
 			t, _ := strconv.ParseFloat(treshold.value, 64)
 
 			return m < t
 		case ">":
-			m, _ := strconv.ParseFloat(data.value, 64)
+			m, _ := strconv.ParseFloat(val, 64)
 			t, _ := strconv.ParseFloat(treshold.value, 64)
 
 			return m > t
 		case "<=":
-			m, _ := strconv.ParseFloat(data.value, 64)
+			m, _ := strconv.ParseFloat(val, 64)
 			t, _ := strconv.ParseFloat(treshold.value, 64)
 
 			return m <= t
 		case ">=":
-			m, _ := strconv.ParseFloat(data.value, 64)
+			m, _ := strconv.ParseFloat(val, 64)
 			t, _ := strconv.ParseFloat(treshold.value, 64)
 
 			return m >= t
 		case "=", "is":
-			return data.value == treshold.value
+			return val == treshold.value
 		case "!=", "not":
-			return data.value != treshold.value
+			return val != treshold.value
 		case "like":
-			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(treshold.value)), data.value)
+			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(treshold.value)), val)
 
 			return res
 		case "not like":
-			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(treshold.value)), data.value)
+			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(treshold.value)), val)
 
 			return !res
 		}

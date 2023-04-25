@@ -68,53 +68,46 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 
 		usage, _ := disk.Usage(drive.Mountpoint)
 
-		metrics := []MetricData{
-			{name: "used", value: strconv.FormatUint(usage.Used, 10)},
-			{name: "free", value: strconv.FormatUint(usage.Free, 10)},
-			{name: "used_pct", value: strconv.FormatUint(uint64(usage.UsedPercent), 10)},
-			{name: "free_pct", value: strconv.FormatUint(usage.Free*100/usage.Total, 10)},
-		}
-
-		sdata := map[string]string{
+		metrics := map[string]string{
 			"drive_or_name":  drive.Mountpoint,
 			"total_used_pct": strconv.FormatUint(uint64(usage.UsedPercent), 10),
 			"total free_pct": strconv.FormatUint(usage.Free*100/usage.Total, 10),
 			"used":           humanize.Bytes(usage.Used),
 			"free":           humanize.Bytes(usage.Free),
 			"size":           humanize.Bytes(usage.Total),
+			"used_pct":       strconv.FormatUint(uint64(usage.UsedPercent), 10),
+			"free_pct":       strconv.FormatUint(usage.Free*100/usage.Total, 10),
 		}
 
-		for _, metric := range metrics {
-			if metric.name == l.data.warnTreshold.name || metric.name == l.data.critTreshold.name {
-				var value float64
-				unit := ""
-				if l.data.warnTreshold.unit == "%" {
-					value, _ = strconv.ParseFloat(metric.value, 64)
-				} else {
-					f, _ := strconv.ParseFloat(metric.value, 64)
-					value, unit = humanize.ComputeSI(f)
-				}
-				perfMetrics = append(perfMetrics, &CheckMetric{
-					Name:  fmt.Sprintf("%v %v", drive.Mountpoint, metric.name),
-					Unit:  unit,
-					Value: math.Round(value * 1e3 / 1e3),
-				})
+		for key, val := range metrics {
+			var value float64
+			unit := ""
+			if l.data.warnTreshold.unit == "%" {
+				value, _ = strconv.ParseFloat(val, 64)
+			} else {
+				f, _ := strconv.ParseFloat(val, 64)
+				value, unit = humanize.ComputeSI(f)
 			}
+			perfMetrics = append(perfMetrics, &CheckMetric{
+				Name:  fmt.Sprintf("%v %v", drive.Mountpoint, key),
+				Unit:  unit,
+				Value: math.Round(value * 1e3 / 1e3),
+			})
 		}
 
 		if CompareMetrics(metrics, l.data.critTreshold) {
-			disksCritical = append(disksCritical, ParseSyntax(l.data.detailSyntax, sdata))
+			disksCritical = append(disksCritical, ParseSyntax(l.data.detailSyntax, metrics))
 
 			continue
 		}
 
 		if CompareMetrics(metrics, l.data.warnTreshold) {
-			disksWarning = append(disksWarning, ParseSyntax(l.data.detailSyntax, sdata))
+			disksWarning = append(disksWarning, ParseSyntax(l.data.detailSyntax, metrics))
 
 			continue
 		}
 
-		disksOk = append(disksOk, ParseSyntax(l.data.detailSyntax, sdata))
+		disksOk = append(disksOk, ParseSyntax(l.data.detailSyntax, metrics))
 	}
 
 	if len(disksCritical) > 0 {

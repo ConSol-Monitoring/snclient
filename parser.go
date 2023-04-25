@@ -23,6 +23,21 @@ type CheckData struct {
 	detailSyntax string
 	topSyntax    string
 	okSyntax     string
+	emptySyntax  string
+	emptyState   int64
+}
+
+func ParseStateString(state string) int64 {
+	switch state {
+	case "ok":
+		return 0
+	case "warn", "warning":
+		return 1
+	case "crit", "critical":
+		return 2
+	}
+
+	return 3
 }
 
 func ParseArgs(args []string, data *CheckData) []Argument {
@@ -40,6 +55,10 @@ func ParseArgs(args []string, data *CheckData) []Argument {
 			data.topSyntax = split[1]
 		case "ok-syntax":
 			data.okSyntax = split[1]
+		case "empty-syntax":
+			data.emptySyntax = split[1]
+		case "empty-state":
+			data.emptyState = ParseStateString(split[1])
 		default:
 			argList = append(argList, Argument{key: split[0], value: split[1]})
 		}
@@ -49,7 +68,11 @@ func ParseArgs(args []string, data *CheckData) []Argument {
 }
 
 func ParseTreshold(treshold string) Treshold {
-	re := regexp.MustCompile(`([A-Za-z_]+)\s*(<=|>=|<|>|=|\!=|not like|not|is|like)\s*(\d+\.\d+|\d+|) *([A-Za-z0-9.%']+)?`)
+	if treshold == "none" {
+		return Treshold{name: "none"}
+	}
+
+	re := regexp.MustCompile(`([A-Za-z_]+)\s*(<=|>=|<|>|=|\!=|not like|not|is|like)\s*(\d+\.\d+|\d+|) *'?([A-Za-z0-9.%']+)?`)
 	match := re.FindStringSubmatch(treshold)
 
 	ret := Treshold{

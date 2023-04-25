@@ -33,7 +33,9 @@ func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
 
 	uptime := now.Sub(time.Unix(int64(bootTime), 0))
 
-	mdata := []MetricData{{name: "uptime", value: strconv.FormatInt(int64(uptime.Seconds()), 10)}}
+	mdata := map[string]string{
+		"uptime": strconv.FormatInt(int64(uptime.Seconds()), 10),
+	}
 
 	// compare ram metrics to tresholds
 	if CompareMetrics(mdata, l.data.warnTreshold) {
