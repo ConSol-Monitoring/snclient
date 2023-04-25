@@ -1,12 +1,13 @@
 package snclient
 
 import (
-	"internal/wmi"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"golang.org/x/exp/slices"
+	"internal/wmi"
 )
 
 func init() {
@@ -54,8 +55,8 @@ func (l *CheckProcess) Check(args []string) (*CheckResult, error) {
 	okList := make([]string, 0, len(processes))
 	warnList := make([]string, 0, len(processes))
 	critList := make([]string, 0, len(processes))
-	processData, _ := wmi.Query(`Select
-									Name, 
+	processData, _, err := wmi.Query(`Select
+									Name,
 									CommandLine,
 									CreationDate,
 									ExecutablePath,
@@ -70,9 +71,12 @@ func (l *CheckProcess) Check(args []string) (*CheckResult, error) {
 									VirtualSize,
 									UserModeTime,
 									ThreadCount
-								From 
+								From
 									Win32_Process
 								`)
+	if err != nil {
+		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
+	}
 	runningProcs := map[string]map[string]string{}
 
 	// collect process state

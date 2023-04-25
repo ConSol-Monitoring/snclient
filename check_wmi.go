@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"fmt"
 	"strconv"
 
 	"internal/wmi"
@@ -37,7 +38,10 @@ func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 	}
 
 	// query wmi
-	querydata, output := wmi.Query(query)
+	querydata, output, err := wmi.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
+	}
 
 	mdata := map[string]string{}
 	perfMetrics := []*CheckMetric{}

@@ -1,4 +1,4 @@
-﻿package snclient
+package snclient
 
 import (
 	"fmt"

@@ -2,27 +2,25 @@ package wmi
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
 )
 
-type WMIData struct {
+type Data struct {
 	Key   string
 	Value string
 }
 
-func Query(query string) (querydata [][]WMIData, out string) {
-	var ret [][]WMIData
+func Query(query string) (querydata [][]Data, out string, err error) {
+	var ret [][]Data
 	var output []string
 
-	err := ole.CoInitialize(0)
+	err = ole.CoInitialize(0)
 	if err != nil {
-		fmt.Printf("check_service: couldnt initialize COM connection: %s\n", err)
+		return nil, "", fmt.Errorf("check_service: couldn't initialize COM connection: %s", err.Error())
 	}
 	defer ole.CoUninitialize()
 
@@ -50,55 +48,56 @@ func Query(query string) (querydata [][]WMIData, out string) {
 
 	for i := 0; i < count; i++ {
 		// item is a SWbemObject, but really a Win32_Process
-		func() {
+		err = func() error {
 			itemRaw, err := oleutil.CallMethod(result, "ItemIndex", i)
 			if err != nil {
-				return
+				return fmt.Errorf("wmi call failed: %s", err.Error())
 			}
 			item := itemRaw.ToIDispatch()
 			defer item.Release()
 
-			var obj []WMIData
+			var obj []Data
 
-			for _, v := range values {
+			for _, val := range values {
 				var value string
-				s, err := oleutil.GetProperty(item, strings.TrimSpace(v))
+				property, err := oleutil.GetProperty(item, strings.TrimSpace(val))
 				if err != nil {
-					fmt.Printf("WMI: error getting property from item (%v)\n", err)
-					continue
+					return fmt.Errorf("WMI: error getting property from item (%s)", err.Error())
 				}
-				if s.Value() == nil {
+				if property.Value() == nil {
 					value = ""
 				} else {
-					if reflect.TypeOf(s.Value()).String() == "int32" {
-						value = strconv.FormatInt(int64(s.Value().(int32)), 10)
-					} else {
-						value = s.ToString()
+					switch t := property.Value().(type) {
+					case int32:
+						value = fmt.Sprintf("%d", t)
+					default:
+						value = property.ToString()
 					}
 				}
-				obj = append(obj, WMIData{Key: strings.TrimSpace(v), Value: value})
-				output = append(output, s.ToString())
+				obj = append(obj, Data{Key: strings.TrimSpace(val), Value: value})
+				output = append(output, property.ToString())
 			}
 
 			ret = append(ret, obj)
 
+			return nil
 		}()
+		if err != nil {
+			return nil, "", fmt.Errorf("wmi error: %s", err.Error())
+		}
 	}
 
-	return ret, strings.Join(output, ", ")
+	return ret, strings.Join(output, ", "), nil
 }
 
-func ResultToMap(queryResult [][]WMIData) []map[string]string {
-
+func ResultToMap(queryResult [][]Data) []map[string]string {
 	ret := make([]map[string]string, 0, len(queryResult))
 
 	for _, result := range queryResult {
 		mapObj := make(map[string]string, len(result))
 
 		for _, obj := range result {
-
 			mapObj[obj.Key] = obj.Value
-
 		}
 
 		ret = append(ret, mapObj)

@@ -88,12 +88,18 @@ build-windows-amd64: vendor
 	done
 
 test: fmt vendor
-	go test -short -v -timeout=1m ./ ./pkg/*/. ./internal/*/.
+	go test -short -v -timeout=1m ./ ./pkg/*/.
+	set -ex; for dir in $$(ls -1 internal/*/*_test.go 2>/dev/null | xargs -r dirname | sort -u); do \
+		( cd $$dir && go test -short -v -timeout=1m *_test.go ) ; \
+	done
 	if grep -rn TODO: *.go ./cmd/ ./pkg/ ./internal/; then exit 1; fi
 	if grep -rn Dump *.go ./cmd/ ./pkg/ ./internal/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 
 longtest: fmt vendor
-	go test -v -timeout=1m ./ ./pkg/*/. ./internal/*/.
+	go test -v -timeout=1m ./ ./pkg/*/.
+	set -ex; for dir in $$(ls -1 internal/*/*_test.go 2>/dev/null | xargs -r dirname | sort -u); do \
+		( cd $$dir && go test -v -timeout=1m *_test.go ) ; \
+	done
 
 citest: vendor
 	#
@@ -126,11 +132,14 @@ citest: vendor
 	#
 	# Normal test cases
 	#
-	go test -v -timeout=1m ./ ./pkg/*/. ./internal/*/.
+	go test -v -timeout=1m ./ ./pkg/*/.
+	set -ex; for dir in $$(ls -1 internal/*/*_test.go 2>/dev/null | xargs -r dirname | sort -u); do \
+		( cd $$dir && go test -v -timeout=1m *_test.go ) ; \
+	done
 	#
 	# Benchmark tests
 	#
-	go test -v -timeout=1m -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/. ./internal/*/.
+	go test -v -timeout=1m -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/.
 	#
 	# Race rondition tests
 	#
@@ -147,10 +156,10 @@ citest: vendor
 	go mod tidy
 
 benchmark: fmt
-	go test -timeout=1m -ldflags "-s -w -X main.Build=$(BUILD)" -v -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/. ./internal/*/.
+	go test -timeout=1m -ldflags "-s -w -X main.Build=$(BUILD)" -v -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/.
 
 racetest: fmt
-	go test -race -v -timeout=3m -coverprofile=coverage.txt -covermode=atomic ./ ./pkg/*/. ./internal/*/.
+	go test -race -v -timeout=3m -coverprofile=coverage.txt -covermode=atomic ./ ./pkg/*/.
 
 covertest: fmt
 	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/. ./internal/*/.
@@ -158,7 +167,7 @@ covertest: fmt
 	go tool cover -html=cover.out -o coverage.html
 
 coverweb: fmt
-	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/. ./internal/*/.
+	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/.
 	go tool cover -html=cover.out
 
 clean:
@@ -188,7 +197,7 @@ fmt: tools
 		go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable ./$$dir; \
 	done
 	set -e; for dir in $(shell ls -d1 internal/*); do \
-		go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable ./$$dir; \
+		( cd $$dir && go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable *.go ) ; \
 	done
 	gofmt -w -s *.go ./cmd/ ./pkg/ ./internal/
 	./tools/gofumpt -w *.go ./cmd/ ./pkg/ ./internal/
