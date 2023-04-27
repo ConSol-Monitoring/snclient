@@ -4,7 +4,7 @@
 [![Latest Release](https://img.shields.io/github/v/release/Consol-Monitoring/snclient?sort=semver)](https://github.com/Consol-Monitoring/snclient/releases)
 [![License](https://img.shields.io/github/license/Consol-Monitoring/snclient)](https://github.com/Consol-Monitoring/snclient/blob/main/LICENSE)
 
-SNClient+ is a secure general purpose monitoring agent designed as replacement for NRPE and NSClient++.
+SNClient+ (Secure Naemon Client) is a secure general purpose monitoring agent designed as replacement for NRPE and NSClient++.
 
 ## Supported Operating Systems
 
