@@ -231,7 +231,6 @@ func (cs *ConfigSection) Clone() *ConfigSection {
 }
 
 // GetString parses string from config section, it returns the value if found and sets ok to true.
-// If value is found but cannot be parsed, error is set.
 func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	val, ok = cs.data[key]
 	if ok {
@@ -271,6 +270,21 @@ func (cs *ConfigSection) GetBool(key string) (val, ok bool, err error) {
 	}
 
 	return false, true, fmt.Errorf("cannot parse boolean value from %s", raw)
+}
+
+// GetDuration parses duration value from config section, it returns the value if found and sets ok to true.
+// If value is found but cannot be parsed, error is set.
+func (cs *ConfigSection) GetDuration(key string) (val float64, ok bool, err error) {
+	raw, ok := cs.GetString(key)
+	if !ok {
+		return 0, false, nil
+	}
+	num, err := ExpandDuration(raw)
+	if err != nil {
+		return 0, true, fmt.Errorf("GetDuration: %s", err.Error())
+	}
+
+	return num, true, nil
 }
 
 func parseTLSMinVersion(version string) (uint16, error) {

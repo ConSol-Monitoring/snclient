@@ -68,7 +68,9 @@ func (*noCopy) Unlock() {}
 
 type Agent struct {
 	Config    *Config              // reference to global config object
-	Listeners map[string]*Listener // Listeners stores if we started a listener
+	Listeners map[string]*Listener // Listeners stores if we started listeners
+	Tasks     *TaskSet             // Tasks stores if we started task runners
+	Counter   *CounterSet          // Counter stores collected counters from tasks
 	flags     struct {             // command line flags
 		flagDaemon       bool
 		flagVerbose      bool
@@ -91,20 +93,25 @@ type Agent struct {
 	daemonMode        bool
 }
 
+var agent *Agent
+
 func SNClient(build, revision string) {
 	snc := Agent{
 		Build:     build,
 		Revision:  revision,
 		Listeners: make(map[string]*Listener),
+		Tasks:     NewTaskSet(),
+		Counter:   NewCounerSet(),
 		Config:    NewConfig(),
 	}
+	agent = &snc
 
 	snc.setFlags()
 	snc.checkFlags()
 	CreateLogger(&snc, nil)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
-	config, listeners, err := snc.initConfiguration()
+	config, listeners, tasks, err := snc.initConfiguration()
 	if err != nil {
 		LogStderrf("ERROR: %s", err.Error())
 		snc.CleanExit(ExitCodeError)
@@ -149,7 +156,7 @@ func SNClient(build, revision string) {
 	signal.Notify(osSignalChannel, os.Interrupt)
 	signal.Notify(osSignalChannel, syscall.SIGINT)
 
-	snc.startAll(config, listeners)
+	snc.startAll(config, listeners, tasks)
 
 	for {
 		exitState := snc.mainLoop(osSignalChannel)
@@ -176,7 +183,7 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 			case Resume:
 				continue
 			case Reload:
-				newConfig, listeners, err := snc.initConfiguration()
+				newConfig, listeners, tasks, err := snc.initConfiguration()
 				if err != nil {
 					log.Errorf("reloading configuration failed: %s", err.Error())
 
@@ -184,11 +191,12 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 				}
 
 				CreateLogger(snc, newConfig)
-				snc.startAll(newConfig, listeners)
+				snc.startAll(newConfig, listeners, tasks)
 
 				return exitCode
 			case Shutdown, ShutdownGraceFully:
 				ticker.Stop()
+				snc.Tasks.StopRemove()
 
 				for name, l := range snc.Listeners {
 					l.Stop()
@@ -201,7 +209,10 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 	}
 }
 
-func (snc *Agent) startAll(config *Config, listeners map[string]*Listener) {
+func (snc *Agent) startAll(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
+	// stop existing tasks
+	snc.Tasks.StopRemove()
+
 	// stop existing listeners
 	for name, l := range listeners {
 		l.Stop()
@@ -210,13 +221,15 @@ func (snc *Agent) startAll(config *Config, listeners map[string]*Listener) {
 
 	snc.Config = config
 	snc.Listeners = listeners
+	snc.Tasks = tasks
 
+	snc.Tasks.Start()
 	for name := range snc.Listeners {
 		snc.startListener(name)
 	}
 }
 
-func (snc *Agent) initConfiguration() (*Config, map[string]*Listener, error) {
+func (snc *Agent) initConfiguration() (config *Config, listeners map[string]*Listener, tasks *TaskSet, err error) {
 	var files configFiles
 	files = snc.flags.flagConfigFile
 
@@ -236,19 +249,19 @@ func (snc *Agent) initConfiguration() (*Config, map[string]*Listener, error) {
 
 	// still empty
 	if len(files) == 0 {
-		return nil, nil, fmt.Errorf("no config file supplied (--config=..) and no config file found in default locations (%s)",
+		return nil, nil, nil, fmt.Errorf("no config file supplied (--config=..) and no config file found in default locations (%s)",
 			strings.Join(defaultLocations, ", "))
 	}
 
 	return snc.readConfiguration(files)
 }
 
-func (snc *Agent) readConfiguration(file []string) (*Config, map[string]*Listener, error) {
-	config := NewConfig()
+func (snc *Agent) readConfiguration(file []string) (config *Config, listen map[string]*Listener, tasks *TaskSet, err error) {
+	config = NewConfig()
 	for _, path := range file {
 		err := config.ReadINI(path)
 		if err != nil {
-			return nil, nil, fmt.Errorf("reading settings failed: %s", err.Error())
+			return nil, nil, nil, fmt.Errorf("reading settings failed: %s", err.Error())
 		}
 	}
 
@@ -263,12 +276,12 @@ func (snc *Agent) readConfiguration(file []string) (*Config, map[string]*Listene
 	default:
 		executable, err := os.Executable()
 		if err != nil {
-			return nil, nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
+			return nil, nil, nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
 		}
 
 		executable, err = filepath.Abs(executable)
 		if err != nil {
-			return nil, nil, fmt.Errorf("could not detect abs path to executable: %s", err.Error())
+			return nil, nil, nil, fmt.Errorf("could not detect abs path to executable: %s", err.Error())
 		}
 
 		pathSection.Set("exe-path", filepath.Dir(executable))
@@ -298,16 +311,51 @@ func (snc *Agent) readConfiguration(file []string) (*Config, map[string]*Listene
 		log.Tracef("conf macro: %s -> %s", key, val)
 	}
 
-	listen, err := snc.initListeners(config)
+	tasks, err = snc.initTasks(config)
 	if err != nil {
-		return nil, nil, fmt.Errorf("listener initialization failed: %s", err.Error())
+		return nil, nil, nil, fmt.Errorf("task initialization failed: %s", err.Error())
+	}
+
+	listen, err = snc.initListeners(config)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("listener initialization failed: %s", err.Error())
 	}
 
 	if len(listen) == 0 {
-		return nil, nil, fmt.Errorf("no listener enabled, bailing out")
+		return nil, nil, nil, fmt.Errorf("no listener enabled, bailing out")
 	}
 
-	return config, listen, nil
+	return config, listen, tasks, nil
+}
+
+func (snc *Agent) initTasks(conf *Config) (*TaskSet, error) {
+	tasks := NewTaskSet()
+
+	modulesConf := conf.Section("/modules")
+	for _, entry := range AvailableTasks {
+		enabled, ok, err := modulesConf.GetBool(entry.ModuleKey)
+		switch {
+		case err != nil:
+			return nil, fmt.Errorf("error in %s /modules configuration: %s", entry.Name(), err.Error())
+		case !ok:
+			log.Tracef("task %s is disabled by default config. skipping...", entry.Name())
+
+			continue
+		case !enabled:
+			log.Tracef("task %s is disabled by config. skipping...", entry.Name())
+
+			continue
+		}
+
+		task, err := entry.Init(snc, conf)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
+		}
+
+		tasks.Add(entry.Name(), task)
+	}
+
+	return tasks, nil
 }
 
 func (snc *Agent) initListeners(conf *Config) (map[string]*Listener, error) {
@@ -318,7 +366,7 @@ func (snc *Agent) initListeners(conf *Config) (map[string]*Listener, error) {
 		enabled, ok, err := modulesConf.GetBool(entry.ModuleKey)
 		switch {
 		case err != nil:
-			return nil, fmt.Errorf("error in %s listener configuration: %s", entry.ModuleKey, err.Error())
+			return nil, fmt.Errorf("error in %s /modules configuration: %s", entry.ModuleKey, err.Error())
 		case !ok:
 			continue
 		case !enabled:
@@ -576,10 +624,14 @@ func (snc *Agent) startListener(name string) {
 
 	err := snc.Listeners[name].Start()
 	if err != nil {
-		log.Errorf("failed to start %s listener:  %s", name, err.Error())
+		log.Errorf("failed to start %s listener: %s", name, err.Error())
 		listener.Stop()
 		delete(snc.Listeners, name)
+
+		return
 	}
+
+	log.Tracef("listener %s started", name)
 }
 
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {

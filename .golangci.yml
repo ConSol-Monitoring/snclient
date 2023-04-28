@@ -15,6 +15,8 @@ linters-settings:
     lines: 80
   gomoddirectives:
     replace-local: true
+  ireturn:
+    allow: "error,empty,TaskHandler"
 linters:
   enable-all: true
   fast: false
@@ -45,6 +47,7 @@ issues:
   exclude-use-default: true
   exclude:
     - "`noCopy` is unused"
+    - "mnd: Magic number: 0.001, in"
     - "mnd: Magic number: 2, in"
     - "mnd: Magic number: 3, in"
     - "mnd: Magic number: 7, in"
@@ -53,6 +56,7 @@ issues:
     - "mnd: Magic number: 24, in"
     - "mnd: Magic number: 60, in"
     - "mnd: Magic number: 64, in"
+    - "mnd: Magic number: 100, in"
     - "mnd: Magic number: 3600, in"
     - "mnd: Magic number: 86400, in"
     - "mnd: Magic number: 1e3, in"
