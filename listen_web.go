@@ -15,13 +15,9 @@ const (
 	DefaultPassword = "CHANGEME"
 )
 
-type CheckWebResponse struct {
-	Payload []CheckWebPayload `json:"payload"`
-}
-
 type CheckWebLine struct {
-	Message string         `json:"message"`
-	Perf    []CheckWebPerf `json:"perf,omitempty"`
+	Message string      `json:"message"`
+	Perf    interface{} `json:"perf,omitempty"`
 }
 
 type CheckWebPerf struct {
@@ -34,12 +30,6 @@ type CheckWebPerfIntVal struct {
 	Unit     string `json:"unit"`
 	Warning  string `json:"warning"`
 	Critical string `json:"critical"`
-}
-
-type CheckWebPayload struct {
-	Command string         `json:"command"`
-	Result  string         `json:"result"`
-	Lines   []CheckWebLine `json:"lines"`
 }
 
 func init() {
@@ -92,26 +82,6 @@ func (l *HandlerWeb) GetMappings(*Agent) []URLMapping {
 		{URL: "/query/{command}", Handler: l.handlerLegacy},
 		{URL: "/api/v1/queries/{command}/commands/execute", Handler: l.handlerV1},
 	}
-}
-
-func (l *HandlerWeb) Check(res http.ResponseWriter, command string, args []string) {
-	result := l.snc.RunCheck(command, args)
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
-	LogError(json.NewEncoder(res).Encode(CheckWebResponse{
-		Payload: []CheckWebPayload{
-			{
-				Command: command,
-				Result:  result.StateString(),
-				Lines: []CheckWebLine{
-					{
-						Message: result.Output,
-						Perf:    l.metrics2Perf(result.Metrics),
-					},
-				},
-			},
-		},
-	}))
 }
 
 func (l *HandlerWeb) verifyPassword(password string) bool {
@@ -172,6 +142,35 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 	return result
 }
 
+func (l *HandlerWeb) metrics2PerfV1(metrics []*CheckMetric) map[string]interface{} {
+	if len(metrics) == 0 {
+		return nil
+	}
+	result := make(map[string]interface{}, 0)
+
+	for _, metric := range metrics {
+		perf := map[string]interface{}{
+			"value": int64(metric.Value),
+			"unit":  metric.Unit,
+		}
+		if metric.Warning != nil {
+			perf["warning"] = "..."
+		}
+		if metric.Critical != nil {
+			perf["critical"] = "..."
+		}
+		if metric.Min != nil {
+			perf["minimum"] = *metric.Min
+		}
+		if metric.Max != nil {
+			perf["maximum"] = *metric.Max
+		}
+		result[metric.Name] = perf
+	}
+
+	return result
+}
+
 type HandlerWebLegacy struct {
 	noCopy  noCopy
 	Handler *HandlerWeb
@@ -185,7 +184,25 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	l.Handler.Check(res, chi.URLParam(req, "command"), queryParam2CommandArgs(req))
+	command := chi.URLParam(req, "command")
+	args := queryParam2CommandArgs(req)
+	result := l.Handler.snc.RunCheck(command, args)
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		"payload": []interface{}{
+			map[string]interface{}{
+				"command": command,
+				"result":  result.StateString(),
+				"lines": []CheckWebLine{
+					{
+						Message: result.Output,
+						Perf:    l.Handler.metrics2Perf(result.Metrics),
+					},
+				},
+			},
+		},
+	}))
 }
 
 type HandlerWebV1 struct {
@@ -202,5 +219,19 @@ func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	l.Handler.Check(res, chi.URLParam(req, "command"), queryParam2CommandArgs(req))
+	command := chi.URLParam(req, "command")
+	args := queryParam2CommandArgs(req)
+	result := l.Handler.snc.RunCheck(command, args)
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		"command": command,
+		"result":  result.State,
+		"lines": []CheckWebLine{
+			{
+				Message: result.Output,
+				Perf:    l.Handler.metrics2PerfV1(result.Metrics),
+			},
+		},
+	}))
 }

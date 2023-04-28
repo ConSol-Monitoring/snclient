@@ -13,14 +13,25 @@ type CheckCPU struct {
 /* check_cpu */
 func (l *CheckCPU) Check(_ []string) (*CheckResult, error) {
 	state := CheckExitUnknown
-	output := ""
+	output := "OK: CPU load is ok. "
 	metrics := make([]*CheckMetric, 0)
 
-	counter := agent.Counter.Get("cpu", "total")
-	if counter != nil {
-		dur, _ := ExpandDuration("15m")
-		avg := counter.AvgForDuration(dur)
-		output = fmt.Sprintf("OK - cpu total %1.f%%", avg)
+	times := []string{"5m", "1m", "5s"}
+	names := []string{"total"}
+
+	for _, name := range names {
+		counter := agent.Counter.Get("cpu", name)
+		if counter != nil {
+			for _, time := range times {
+				dur, _ := ExpandDuration(time)
+				avg := counter.AvgForDuration(dur)
+				metrics = append(metrics, &CheckMetric{
+					Name:  fmt.Sprintf("%s %s", name, time),
+					Value: avg,
+					Unit:  "%",
+				})
+			}
+		}
 	}
 
 	return &CheckResult{
