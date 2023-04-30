@@ -1,6 +1,9 @@
 package snclient
 
-import "fmt"
+import (
+	"fmt"
+	"pkg/utils"
+)
 
 func init() {
 	AvailableChecks["check_cpu"] = CheckEntry{"check_cpu", new(CheckCPU)}
@@ -23,7 +26,7 @@ func (l *CheckCPU) Check(_ []string) (*CheckResult, error) {
 		counter := agent.Counter.Get("cpu", name)
 		if counter != nil {
 			for _, time := range times {
-				dur, _ := ExpandDuration(time)
+				dur, _ := utils.ExpandDuration(time)
 				avg := counter.AvgForDuration(dur)
 				metrics = append(metrics, &CheckMetric{
 					Name:  fmt.Sprintf("%s %s", name, time),

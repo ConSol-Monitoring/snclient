@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"pkg/utils"
 	"regexp"
 	"strconv"
 	"strings"
@@ -279,7 +280,7 @@ func (cs *ConfigSection) GetDuration(key string) (val float64, ok bool, err erro
 	if !ok {
 		return 0, false, nil
 	}
-	num, err := ExpandDuration(raw)
+	num, err := utils.ExpandDuration(raw)
 	if err != nil {
 		return 0, true, fmt.Errorf("GetDuration: %s", err.Error())
 	}

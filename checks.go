@@ -1,6 +1,13 @@
 package snclient
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"pkg/threshold"
+)
 
 type CheckEntry struct {
 	Name    string
@@ -48,27 +55,42 @@ type CheckMetric struct {
 	Name     string
 	Unit     string
 	Value    float64
-	Warning  *CheckThreshold
-	Critical *CheckThreshold
+	Warning  *threshold.Threshold
+	Critical *threshold.Threshold
 	Min      *float64
 	Max      *float64
 }
 
-func (m *CheckMetric) BuildNaemonString() string {
-	min := ""
+func (m *CheckMetric) String() string {
+	var res bytes.Buffer
+
+	res.WriteString(fmt.Sprintf("'%s'=%s%s", m.Name, strconv.FormatFloat(m.Value, 'f', -1, 64), m.Unit))
+
+	res.WriteString(";")
+	if m.Warning != nil {
+		res.WriteString(m.Warning.String())
+	}
+
+	res.WriteString(";")
+	if m.Critical != nil {
+		res.WriteString(m.Critical.String())
+	}
+
+	res.WriteString(";")
 	if m.Min != nil {
-		min = fmt.Sprintf("%f", *m.Min)
+		res.WriteString(strconv.FormatFloat(*m.Min, 'f', -1, 64))
 	}
-	max := ""
+
+	res.WriteString(";")
 	if m.Max != nil {
-		max = fmt.Sprintf("%f", *m.Max)
+		res.WriteString(strconv.FormatFloat(*m.Max, 'f', -1, 64))
 	}
 
-	return (fmt.Sprintf("'%s'=%f%s;;;%s;%s", m.Name, m.Value, m.Unit, min, max))
-}
+	resStr := res.String()
+	// strip trailing semicolons
+	for strings.HasSuffix(resStr, ";") {
+		resStr = strings.TrimSuffix(resStr, ";")
+	}
 
-// CheckThreshold defines a threshold range.
-type CheckThreshold struct {
-	Low  float64
-	High float64
+	return resStr
 }

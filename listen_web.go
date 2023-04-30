@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 
+	"pkg/utils"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -21,15 +23,16 @@ type CheckWebLine struct {
 }
 
 type CheckWebPerf struct {
-	Alias  string             `json:"alias"`
-	IntVal CheckWebPerfIntVal `json:"int_value,omitempty"`
+	Alias    string          `json:"alias"`
+	IntVal   CheckWebPerfVal `json:"int_value,omitempty"`
+	FloatVal CheckWebPerfVal `json:"float_value,omitempty"`
 }
 
-type CheckWebPerfIntVal struct {
-	Value    int64  `json:"value"`
-	Unit     string `json:"unit"`
-	Warning  string `json:"warning"`
-	Critical string `json:"critical"`
+type CheckWebPerfVal struct {
+	Value    interface{} `json:"value"`
+	Unit     string      `json:"unit"`
+	Warning  string      `json:"warning"`
+	Critical string      `json:"critical"`
 }
 
 func init() {
@@ -128,13 +131,25 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 	}
 	result := make([]CheckWebPerf, 0)
 
-	for _, m := range metrics {
+	for _, metric := range metrics {
 		perf := CheckWebPerf{
-			Alias: m.Name,
-			IntVal: CheckWebPerfIntVal{
-				Value: int64(m.Value),
-				Unit:  m.Unit,
-			},
+			Alias: metric.Name,
+		}
+		val := CheckWebPerfVal{
+			Unit: metric.Unit,
+		}
+		if metric.Warning != nil {
+			val.Warning = metric.Warning.String()
+		}
+		if metric.Critical != nil {
+			val.Critical = metric.Critical.String()
+		}
+		if utils.IsFloatVal(metric.Value) {
+			val.Value = metric.Value
+			perf.FloatVal = val
+		} else {
+			val.Value = int64(metric.Value)
+			perf.IntVal = val
 		}
 		result = append(result, perf)
 	}

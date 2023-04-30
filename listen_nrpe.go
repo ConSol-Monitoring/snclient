@@ -101,7 +101,7 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 		output = append(output, '|')
 
 		for _, m := range statusResult.Metrics {
-			output = append(output, []byte(m.BuildNaemonString())...)
+			output = append(output, []byte(m.String())...)
 		}
 	}
 

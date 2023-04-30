@@ -1,4 +1,4 @@
-package snclient
+package utils
 
 import (
 	"testing"
@@ -23,5 +23,23 @@ func TestUtilsExpandDuration(t *testing.T) {
 		res, err := ExpandDuration(tst.in)
 		assert.NoError(t, err)
 		assert.Equalf(t, tst.res, res, "ExpandDuration: %s", tst.in)
+	}
+}
+
+func TestUtilsIsFloatVal(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		in  float64
+		res bool
+	}{
+		{1.00, false},
+		{1.01, true},
+		{5, false},
+	}
+
+	for _, tst := range tests {
+		res := IsFloatVal(tst.in)
+		assert.Equalf(t, tst.res, res, "IsFloatVal: %s", tst.in)
 	}
 }
