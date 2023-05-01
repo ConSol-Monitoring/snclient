@@ -77,7 +77,7 @@ func NewThreshold(def string) (*Threshold, error) {
 	return nil, fmt.Errorf("threshold syntax not supported: %s", def)
 }
 
-// IsValueOK tests if the given value fulfills the Thresholds
+// CheckValue tests if the given value fulfills the thresholds
 // false: value is critical/warning
 // true: value is ok
 func (t *Threshold) CheckValue(value float64) bool {
