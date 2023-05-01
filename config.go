@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"pkg/utils"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"pkg/utils"
 )
 
 var reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_]+\s*\}`)

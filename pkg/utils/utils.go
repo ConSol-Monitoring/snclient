@@ -60,9 +60,5 @@ func IsDigitsOnly(s string) bool {
 // IsFloatVal returns true if given val is a real float64 with fractions
 // or false if value can be represented as int64
 func IsFloatVal(val float64) bool {
-	if strconv.FormatFloat(val, 'f', -1, 64) == fmt.Sprintf("%d", int64(val)) {
-		return false
-	}
-
-	return true
+	return strconv.FormatFloat(val, 'f', -1, 64) != fmt.Sprintf("%d", int64(val))
 }

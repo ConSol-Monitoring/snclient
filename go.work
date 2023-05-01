@@ -2,4 +2,6 @@ go 1.19
 
 use .
 use ./pkg/nrpe
+use ./pkg/utils
+use ./pkg/threshold
 use ./internal/dump

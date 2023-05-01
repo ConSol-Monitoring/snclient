@@ -18,15 +18,15 @@ type Threshold struct {
 }
 
 var (
-	regexDigit              = `(-?\d+(\.\d+)?)`
-	regexOutsideZeroToX     = regexp.MustCompile(fmt.Sprintf(`^%s$`, regexDigit))
-	regexOutsideXToInf      = regexp.MustCompile(fmt.Sprintf(`^%s:$`, regexDigit))
-	regexOutsideMinusInfToX = regexp.MustCompile(fmt.Sprintf(`^~:%s$`, regexDigit))
-	regexInsideOutsideXToY  = regexp.MustCompile(fmt.Sprintf(`^(@?)%s:%s$`, regexDigit, regexDigit))
-	minFloat64              = float64(math.MinInt64)
+	regexDigit                 = `(-?\d+(\.\d+)?)`
+	regexOutsideZeroToX        = regexp.MustCompile(fmt.Sprintf(`^%s$`, regexDigit))
+	regexOutsideXToInf         = regexp.MustCompile(fmt.Sprintf(`^%s:$`, regexDigit))
+	regexOutsideMinusInfToX    = regexp.MustCompile(fmt.Sprintf(`^~:%s$`, regexDigit))
+	regexInsideOutsideLow2High = regexp.MustCompile(fmt.Sprintf(`^(@?)%s:%s$`, regexDigit, regexDigit))
+	minFloat64                 = float64(math.MinInt64)
 
 	// ErrFirstBiggerThenSecond this error is thrown when the first number is bigger then the second
-	ErrFirstBiggerThenSecond = errors.New("First argument is bigger then second")
+	ErrFirstBiggerThenSecond = errors.New("first argument is bigger then second")
 )
 
 // String prints the Threshold
@@ -38,7 +38,7 @@ func (t Threshold) String() string {
 func NewThreshold(def string) (*Threshold, error) {
 	def = strings.TrimSpace(def)
 	if def == "" {
-		return nil, nil
+		return nil, fmt.Errorf("empty threshold given")
 	}
 	if outsideZeroToX := regexOutsideZeroToX.FindString(def); outsideZeroToX != "" {
 		if x, err := strconv.ParseFloat(outsideZeroToX, 64); err == nil {
@@ -55,22 +55,26 @@ func NewThreshold(def string) (*Threshold, error) {
 			return &Threshold{input: def, lower: minFloat64, upper: x, outside: true}, nil
 		}
 	}
-	if outsideXToY := regexInsideOutsideXToY.FindAllStringSubmatch(def, -1); len(outsideXToY) == 1 && len(outsideXToY[0]) == 6 {
-		if x, err := strconv.ParseFloat(outsideXToY[0][2], 64); err == nil {
-			if y, err := strconv.ParseFloat(outsideXToY[0][4], 64); err == nil {
-				if x > y {
-					return nil, ErrFirstBiggerThenSecond
-				}
-				if outsideXToY[0][1] == "@" {
-					return &Threshold{input: def, lower: x, upper: y, outside: false}, nil
-				} else {
-					return &Threshold{input: def, lower: x, upper: y, outside: true}, nil
-				}
-			}
+	if outsideLow2High := regexInsideOutsideLow2High.FindAllStringSubmatch(def, -1); len(outsideLow2High) == 1 {
+		if len(outsideLow2High[0]) != 6 {
+			return nil, fmt.Errorf("threshold parse error")
 		}
+		low, err := strconv.ParseFloat(outsideLow2High[0][2], 64)
+		if err != nil {
+			return nil, fmt.Errorf("threshold parse error: %s", err.Error())
+		}
+		high, err := strconv.ParseFloat(outsideLow2High[0][4], 64)
+		if err != nil {
+			return nil, fmt.Errorf("threshold parse error: %s", err.Error())
+		}
+		if low > high {
+			return nil, ErrFirstBiggerThenSecond
+		}
+
+		return &Threshold{input: def, lower: low, upper: high, outside: outsideLow2High[0][1] != "@"}, nil
 	}
 
-	return nil, fmt.Errorf("This threshold syntax is not supported: %s", def)
+	return nil, fmt.Errorf("threshold syntax not supported: %s", def)
 }
 
 // IsValueOK tests if the given value fulfills the Thresholds
@@ -84,5 +88,6 @@ func (t *Threshold) CheckValue(value float64) bool {
 	} else {
 		return !(value >= t.lower && value <= t.upper)
 	}
+
 	return true
 }
