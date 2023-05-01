@@ -188,7 +188,6 @@ clean:
 	rm -f release_notes.txt
 
 fmt: tools
-	goimports -w *.go ./cmd/ ./pkg/ ./internal/
 	go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable .
 	set -e; for CMD in $(CMDS); do \
 		go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable ./cmd/$$CMD; \
@@ -202,6 +201,7 @@ fmt: tools
 	gofmt -w -s *.go ./cmd/ ./pkg/ ./internal/
 	./tools/gofumpt -w *.go ./cmd/ ./pkg/ ./internal/
 	./tools/gci write *.go ./cmd/. ./pkg/. ./internal/.  --skip-generated
+	goimports -w *.go ./cmd/ ./pkg/ ./internal/
 
 versioncheck:
 	@[ $$( printf '%s\n' $(GOVERSION) $(MINGOVERSION) | sort | head -n 1 ) = $(MINGOVERSION) ] || { \
