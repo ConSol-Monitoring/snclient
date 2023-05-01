@@ -6,8 +6,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	"pkg/utils"
+
+	"github.com/go-chi/chi/v5"
 )
 
 const (

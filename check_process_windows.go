@@ -6,8 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/exp/slices"
 	"internal/wmi"
+
+	"golang.org/x/exp/slices"
 )
 
 func init() {
