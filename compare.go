@@ -11,7 +11,11 @@ var (
 	tUnits = map[string]float64{"m": 60, "h": 3600, "d": 86400}
 )
 
-func CompareMetrics(metrics map[string]string, threshold Threshold) bool {
+func CompareMetrics(metrics map[string]string, threshold *Threshold) bool {
+	if threshold == nil {
+		return true
+	}
+
 	for key, val := range metrics {
 		if key != threshold.name {
 			continue

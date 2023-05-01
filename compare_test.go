@@ -36,7 +36,7 @@ func TestCompareMetrics(t *testing.T) {
 			false,
 		},
 	} {
-		assert.Equal(t, check.expect, CompareMetrics(check.metrics, check.threshold),
+		assert.Equal(t, check.expect, CompareMetrics(check.metrics, &check.threshold),
 			fmt.Sprintf("CompareMetrics(%v, %v) -> %v", check.metrics, check.threshold, check.expect))
 	}
 }

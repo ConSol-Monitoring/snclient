@@ -32,12 +32,12 @@ func TestThresholdParser(t *testing.T) {
 
 	for _, check := range []struct {
 		threshold string
-		expect    Threshold
+		expect    *Threshold
 	}{
-		{"load > 95%", Threshold{name: "load_pct", operator: ">", value: "95", unit: "%"}},
-		{"used > 90GB", Threshold{name: "used", operator: ">", value: "90", unit: "GB"}},
-		{"state = dead", Threshold{name: "state", operator: "=", value: "dead", unit: ""}},
-		{"uptime < 180s", Threshold{name: "uptime", operator: "<", value: "180", unit: "s"}},
+		{"load > 95%", &Threshold{name: "load_pct", operator: ">", value: "95", unit: "%"}},
+		{"used > 90GB", &Threshold{name: "used", operator: ">", value: "90", unit: "GB"}},
+		{"state = dead", &Threshold{name: "state", operator: "=", value: "dead", unit: ""}},
+		{"uptime < 180s", &Threshold{name: "uptime", operator: "<", value: "180", unit: "s"}},
 	} {
 		assert.Equal(t, check.expect, ParseThreshold(check.threshold), fmt.Sprintf("ParseArgs(%s) -> %v", check.threshold, check.expect))
 	}

@@ -18,8 +18,8 @@ type Threshold struct {
 }
 
 type CheckData struct {
-	warnThreshold Threshold
-	critThreshold Threshold
+	warnThreshold *Threshold
+	critThreshold *Threshold
 	detailSyntax  string
 	topSyntax     string
 	okSyntax      string
@@ -67,9 +67,9 @@ func ParseArgs(args []string, data *CheckData) []Argument {
 	return argList
 }
 
-func ParseThreshold(threshold string) Threshold {
+func ParseThreshold(threshold string) *Threshold {
 	if threshold == "none" {
-		return Threshold{name: "none"}
+		return &Threshold{name: "none"}
 	}
 
 	re := regexp.MustCompile(`([A-Za-z_]+)\s*(<=|>=|<|>|=|\!=|not like|not|is|like)\s*(\d+\.\d+|\d+|) *'?([A-Za-z0-9.%']+)?`)
@@ -91,7 +91,7 @@ func ParseThreshold(threshold string) Threshold {
 		ret.name += "_pct"
 	}
 
-	return ret
+	return &ret
 }
 
 func ParseSyntax(syntax string, data map[string]string) string {
