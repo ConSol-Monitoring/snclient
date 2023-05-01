@@ -4,7 +4,7 @@
 
 Checks the the state of a service on the host
 
-## Tresholds
+## Thresholds
 
 - status
 

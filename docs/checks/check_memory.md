@@ -4,7 +4,7 @@
 
 Checks the hosts physical and committed memory
 
-## Tresholds
+## Thresholds
 
 - free (B, KB, MB, GB, TB, %)
 - used (B, KB, MB, GB, TB, %)

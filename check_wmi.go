@@ -18,7 +18,7 @@ type CheckWMI struct {
 
 /* check_wmi
  * Description: Querys the WMI for several metrics.
- * Tresholds: keys of the query
+ * Thresholds: keys of the query
  * Units: none
  */
 func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
@@ -27,7 +27,7 @@ func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 	argList := ParseArgs(args, &l.data)
 	var query string
 
-	// parse treshold args
+	// parse threshold args
 	for _, arg := range argList {
 		switch arg.key {
 		case "query":
@@ -48,7 +48,7 @@ func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 
 	for _, d := range querydata[0] {
 		mdata[d.Key] = d.Value
-		if d.Key == l.data.warnTreshold.name || d.Key == l.data.critTreshold.name {
+		if d.Key == l.data.warnThreshold.name || d.Key == l.data.critThreshold.name {
 			value, _ := strconv.ParseFloat(d.Value, 64)
 			perfMetrics = append(perfMetrics, &CheckMetric{
 				Name:  d.Key,
@@ -57,12 +57,12 @@ func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 		}
 	}
 
-	// compare metrics to tresholds
-	if CompareMetrics(mdata, l.data.warnTreshold) {
+	// compare metrics to thresholds
+	if CompareMetrics(mdata, l.data.warnThreshold) {
 		state = CheckExitWarning
 	}
 
-	if CompareMetrics(mdata, l.data.critTreshold) {
+	if CompareMetrics(mdata, l.data.critThreshold) {
 		state = CheckExitCritical
 	}
 

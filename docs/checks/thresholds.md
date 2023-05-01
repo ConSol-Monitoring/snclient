@@ -1,4 +1,4 @@
-﻿# Tresholds & Metrics
+﻿# Thresholds & Metrics
 
 ## Metrics and units by check
 
@@ -12,7 +12,7 @@ ___
 - B, KB, MB, GB, TB
 - %
 ___
-Ex: used_pct < 15  
+Ex: used_pct < 15
 Note: used < 15% and used_pct < 15 both work and are equal. used_pct < 15% currently doesn't work
 
 ### check_service
@@ -33,7 +33,7 @@ Ex: uptime < 180s
 
 ### check_wmi
 
-Keys of the query return  
+Keys of the query return
 Ex: Select Version, Caption from win32_OperatingSystem -> Version, Caption
 ___
 - any?

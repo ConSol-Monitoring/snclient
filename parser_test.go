@@ -27,18 +27,18 @@ func TestArgumentParser(t *testing.T) {
 	}
 }
 
-func TestTresholdParser(t *testing.T) {
+func TestThresholdParser(t *testing.T) {
 	t.Parallel()
 
 	for _, check := range []struct {
-		treshold string
-		expect   Treshold
+		threshold string
+		expect    Threshold
 	}{
-		{"load > 95%", Treshold{name: "load_pct", operator: ">", value: "95", unit: "%"}},
-		{"used > 90GB", Treshold{name: "used", operator: ">", value: "90", unit: "GB"}},
-		{"state = dead", Treshold{name: "state", operator: "=", value: "dead", unit: ""}},
-		{"uptime < 180s", Treshold{name: "uptime", operator: "<", value: "180", unit: "s"}},
+		{"load > 95%", Threshold{name: "load_pct", operator: ">", value: "95", unit: "%"}},
+		{"used > 90GB", Threshold{name: "used", operator: ">", value: "90", unit: "GB"}},
+		{"state = dead", Threshold{name: "state", operator: "=", value: "dead", unit: ""}},
+		{"uptime < 180s", Threshold{name: "uptime", operator: "<", value: "180", unit: "s"}},
 	} {
-		assert.Equal(t, check.expect, ParseTreshold(check.treshold), fmt.Sprintf("ParseArgs(%s) -> %v", check.treshold, check.expect))
+		assert.Equal(t, check.expect, ParseThreshold(check.threshold), fmt.Sprintf("ParseArgs(%s) -> %v", check.threshold, check.expect))
 	}
 }

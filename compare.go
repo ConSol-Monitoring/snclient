@@ -11,52 +11,52 @@ var (
 	tUnits = map[string]float64{"m": 60, "h": 3600, "d": 86400}
 )
 
-func CompareMetrics(metrics map[string]string, treshold Treshold) bool {
+func CompareMetrics(metrics map[string]string, threshold Threshold) bool {
 	for key, val := range metrics {
-		if key != treshold.name {
+		if key != threshold.name {
 			continue
 		}
 
-		switch treshold.unit {
+		switch threshold.unit {
 		case "KB", "MB", "GB", "TB", "PB":
-			value, _ := strconv.ParseFloat(treshold.value, 64)
-			treshold.value = strconv.FormatFloat(value*bUnits[treshold.unit], 'f', 0, 64)
+			value, _ := strconv.ParseFloat(threshold.value, 64)
+			threshold.value = strconv.FormatFloat(value*bUnits[threshold.unit], 'f', 0, 64)
 		case "m", "h", "d":
-			value, _ := strconv.ParseFloat(treshold.value, 64)
-			treshold.value = strconv.FormatFloat(value*tUnits[treshold.unit], 'f', 0, 64)
+			value, _ := strconv.ParseFloat(threshold.value, 64)
+			threshold.value = strconv.FormatFloat(value*tUnits[threshold.unit], 'f', 0, 64)
 		}
 
-		switch treshold.operator {
+		switch threshold.operator {
 		case "<":
 			m, _ := strconv.ParseFloat(val, 64)
-			t, _ := strconv.ParseFloat(treshold.value, 64)
+			t, _ := strconv.ParseFloat(threshold.value, 64)
 
 			return m < t
 		case ">":
 			m, _ := strconv.ParseFloat(val, 64)
-			t, _ := strconv.ParseFloat(treshold.value, 64)
+			t, _ := strconv.ParseFloat(threshold.value, 64)
 
 			return m > t
 		case "<=":
 			m, _ := strconv.ParseFloat(val, 64)
-			t, _ := strconv.ParseFloat(treshold.value, 64)
+			t, _ := strconv.ParseFloat(threshold.value, 64)
 
 			return m <= t
 		case ">=":
 			m, _ := strconv.ParseFloat(val, 64)
-			t, _ := strconv.ParseFloat(treshold.value, 64)
+			t, _ := strconv.ParseFloat(threshold.value, 64)
 
 			return m >= t
 		case "=", "is":
-			return val == treshold.value
+			return val == threshold.value
 		case "!=", "not":
-			return val != treshold.value
+			return val != threshold.value
 		case "like":
-			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(treshold.value)), val)
+			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(threshold.value)), val)
 
 			return res
 		case "not like":
-			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(treshold.value)), val)
+			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(threshold.value)), val)
 
 			return !res
 		}

@@ -19,7 +19,7 @@ type CheckMemory struct {
 
 /* check_memory
  * Description: Checks the memory usage on the host.
- * Tresholds: used, free, used_pct, free_pct
+ * Thresholds: used, free, used_pct, free_pct
  * Units: B, KB, MB, GB, TB, %
  */
 func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
@@ -55,12 +55,12 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 
 	checkData = append(checkData, committedM)
 
-	// compare ram metrics to tresholds
-	if CompareMetrics(physicalM, l.data.warnTreshold) || CompareMetrics(committedM, l.data.warnTreshold) {
+	// compare ram metrics to thresholds
+	if CompareMetrics(physicalM, l.data.warnThreshold) || CompareMetrics(committedM, l.data.warnThreshold) {
 		state = CheckExitWarning
 	}
 
-	if CompareMetrics(physicalM, l.data.critTreshold) || CompareMetrics(committedM, l.data.critTreshold) {
+	if CompareMetrics(physicalM, l.data.critThreshold) || CompareMetrics(committedM, l.data.critThreshold) {
 		state = CheckExitCritical
 	}
 
@@ -78,7 +78,7 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	for _, val := range committedM {
 		value, _ := strconv.ParseFloat(val, 64)
 		metrics = append(metrics, &CheckMetric{
-			Name:  fmt.Sprintf("committed_%v", l.data.warnTreshold.name),
+			Name:  fmt.Sprintf("committed_%v", l.data.warnThreshold.name),
 			Unit:  "",
 			Value: value,
 		})
@@ -87,7 +87,7 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	for _, val := range physicalM {
 		value, _ := strconv.ParseFloat(val, 64)
 		metrics = append(metrics, &CheckMetric{
-			Name:  fmt.Sprintf("physical_%v", l.data.warnTreshold.name),
+			Name:  fmt.Sprintf("physical_%v", l.data.warnThreshold.name),
 			Unit:  "",
 			Value: value,
 		})

@@ -10,7 +10,7 @@ type Argument struct {
 	value string
 }
 
-type Treshold struct {
+type Threshold struct {
 	name     string
 	operator string
 	value    string
@@ -18,13 +18,13 @@ type Treshold struct {
 }
 
 type CheckData struct {
-	warnTreshold Treshold
-	critTreshold Treshold
-	detailSyntax string
-	topSyntax    string
-	okSyntax     string
-	emptySyntax  string
-	emptyState   int64
+	warnThreshold Threshold
+	critThreshold Threshold
+	detailSyntax  string
+	topSyntax     string
+	okSyntax      string
+	emptySyntax   string
+	emptyState    int64
 }
 
 func ParseStateString(state string) int64 {
@@ -46,9 +46,9 @@ func ParseArgs(args []string, data *CheckData) []Argument {
 		split := strings.SplitN(v, "=", 2)
 		switch split[0] {
 		case "warn", "warning":
-			data.warnTreshold = ParseTreshold(split[1])
+			data.warnThreshold = ParseThreshold(split[1])
 		case "crit", "critical":
-			data.critTreshold = ParseTreshold(split[1])
+			data.critThreshold = ParseThreshold(split[1])
 		case "detail-syntax":
 			data.detailSyntax = split[1]
 		case "top-syntax":
@@ -67,15 +67,15 @@ func ParseArgs(args []string, data *CheckData) []Argument {
 	return argList
 }
 
-func ParseTreshold(treshold string) Treshold {
-	if treshold == "none" {
-		return Treshold{name: "none"}
+func ParseThreshold(threshold string) Threshold {
+	if threshold == "none" {
+		return Threshold{name: "none"}
 	}
 
 	re := regexp.MustCompile(`([A-Za-z_]+)\s*(<=|>=|<|>|=|\!=|not like|not|is|like)\s*(\d+\.\d+|\d+|) *'?([A-Za-z0-9.%']+)?`)
-	match := re.FindStringSubmatch(treshold)
+	match := re.FindStringSubmatch(threshold)
 
-	ret := Treshold{
+	ret := Threshold{
 		name:     match[1],
 		operator: match[2],
 	}

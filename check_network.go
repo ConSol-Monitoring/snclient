@@ -49,13 +49,13 @@ func (l *CheckNetwork) Check(args []string) (*CheckResult, error) {
 			"speed":             "-1",
 		}
 
-		if CompareMetrics(mdata, l.data.critTreshold) && l.data.critTreshold.value != "none" {
+		if CompareMetrics(mdata, l.data.critThreshold) && l.data.critThreshold.value != "none" {
 			critList = append(critList, ParseSyntax(l.data.detailSyntax, mdata))
 
 			continue
 		}
 
-		if CompareMetrics(mdata, l.data.warnTreshold) && l.data.warnTreshold.value != "none" {
+		if CompareMetrics(mdata, l.data.warnThreshold) && l.data.warnThreshold.value != "none" {
 			warnList = append(warnList, ParseSyntax(l.data.detailSyntax, mdata))
 
 			continue

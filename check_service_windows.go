@@ -30,7 +30,7 @@ var ServiceStates = map[string]string{
 
 /* check_service_windows
  * Description: Checks the state of a service on the host.
- * Tresholds: status
+ * Thresholds: status
  * Units: stopped, dead, startpending, stoppedpending, running, started
  */
 func (l *CheckService) Check(args []string) (*CheckResult, error) {
@@ -45,7 +45,7 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	var statusCode svc.Status
 	var checkData map[string]string
 
-	// parse treshold args
+	// parse threshold args
 	for _, arg := range argList {
 		if arg.key == "service" {
 			services = append(services, arg.value)
@@ -57,8 +57,8 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	warnList := make([]string, 0, len(services))
 	critList := make([]string, 0, len(services))
 
-	l.data.warnTreshold.value = ServiceStates[l.data.warnTreshold.value]
-	l.data.critTreshold.value = ServiceStates[l.data.critTreshold.value]
+	l.data.warnThreshold.value = ServiceStates[l.data.warnThreshold.value]
+	l.data.critThreshold.value = ServiceStates[l.data.critThreshold.value]
 
 	// collect service state
 	m, err := mgr.Connect()
@@ -100,14 +100,14 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 			"state":   strconv.FormatInt(int64(statusCode.State), 10),
 		}
 
-		// compare ram metrics to tresholds
-		if CompareMetrics(mdata, l.data.critTreshold) {
+		// compare ram metrics to thresholds
+		if CompareMetrics(mdata, l.data.critThreshold) {
 			critList = append(critList, ParseSyntax(l.data.detailSyntax, mdata))
 
 			continue
 		}
 
-		if CompareMetrics(mdata, l.data.warnTreshold) {
+		if CompareMetrics(mdata, l.data.warnThreshold) {
 			warnList = append(warnList, ParseSyntax(l.data.detailSyntax, mdata))
 
 			continue

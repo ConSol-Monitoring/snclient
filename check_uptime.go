@@ -19,7 +19,7 @@ type CheckUptime struct {
 
 /* check_uptime
  * Description: Checks the uptime of the host.
- * Tresholds: uptime
+ * Thresholds: uptime
  * Units: s
  */
 func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
@@ -37,12 +37,12 @@ func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
 		"uptime": strconv.FormatInt(int64(uptime.Seconds()), 10),
 	}
 
-	// compare ram metrics to tresholds
-	if CompareMetrics(mdata, l.data.warnTreshold) {
+	// compare ram metrics to thresholds
+	if CompareMetrics(mdata, l.data.warnThreshold) {
 		state = CheckExitWarning
 	}
 
-	if CompareMetrics(mdata, l.data.critTreshold) {
+	if CompareMetrics(mdata, l.data.critThreshold) {
 		state = CheckExitCritical
 	}
 

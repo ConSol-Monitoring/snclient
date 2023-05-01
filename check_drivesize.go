@@ -22,7 +22,7 @@ type CheckDrivesize struct {
 
 /* check_drivesize
  * Description: Checks the drive usage on the host.
- * Tresholds: used, free, used_pct, free_pct
+ * Thresholds: used, free, used_pct, free_pct
  * Units: B, KB, MB, GB, TB, %
  */
 func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
@@ -37,7 +37,7 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 	excludes := []string{}
 	var checkData map[string]string
 
-	// parse treshold args
+	// parse threshold args
 	for _, arg := range argList {
 		switch arg.key {
 		case "drive":
@@ -82,7 +82,7 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 		for key, val := range metrics {
 			var value float64
 			unit := ""
-			if l.data.warnTreshold.unit == "%" {
+			if l.data.warnThreshold.unit == "%" {
 				value, _ = strconv.ParseFloat(val, 64)
 			} else {
 				f, _ := strconv.ParseFloat(val, 64)
@@ -95,13 +95,13 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 			})
 		}
 
-		if CompareMetrics(metrics, l.data.critTreshold) {
+		if CompareMetrics(metrics, l.data.critThreshold) {
 			disksCritical = append(disksCritical, ParseSyntax(l.data.detailSyntax, metrics))
 
 			continue
 		}
 
-		if CompareMetrics(metrics, l.data.warnTreshold) {
+		if CompareMetrics(metrics, l.data.warnThreshold) {
 			disksWarning = append(disksWarning, ParseSyntax(l.data.detailSyntax, metrics))
 
 			continue

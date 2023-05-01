@@ -29,7 +29,7 @@ var ProcessStates = map[string]string{
 
 /* check_process_windows
  * Description: Checks the state of a process on the host.
- * Tresholds: status
+ * Thresholds: status
  * Units: ?
  */
 func (l *CheckProcess) Check(args []string) (*CheckResult, error) {
@@ -45,7 +45,7 @@ func (l *CheckProcess) Check(args []string) (*CheckResult, error) {
 	var processes []string
 	var checkData map[string]string
 
-	// parse treshold args
+	// parse threshold args
 	for _, arg := range argList {
 		if arg.key == "process" {
 			processes = append(processes, arg.value)
@@ -131,13 +131,13 @@ func (l *CheckProcess) Check(args []string) (*CheckResult, error) {
 			"working_set":      proc["WorkingSetSize"],
 		}
 
-		if CompareMetrics(mdata, l.data.critTreshold) && l.data.critTreshold.value != "none" {
+		if CompareMetrics(mdata, l.data.critThreshold) && l.data.critThreshold.value != "none" {
 			critList = append(critList, ParseSyntax(l.data.detailSyntax, mdata))
 
 			continue
 		}
 
-		if CompareMetrics(mdata, l.data.warnTreshold) && l.data.warnTreshold.value != "none" {
+		if CompareMetrics(mdata, l.data.warnThreshold) && l.data.warnThreshold.value != "none" {
 			warnList = append(warnList, ParseSyntax(l.data.detailSyntax, mdata))
 
 			continue

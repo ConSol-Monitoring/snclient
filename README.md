@@ -70,6 +70,7 @@ Find a brief overview of what is planned and what is done already:
 
 ### Stage 3
 - [ ] add basic prometheus exporters
+- [ ] self update (from configurable url)
 
 ### Miscellaneous
 - [ ] check usr signal handler
@@ -98,4 +99,3 @@ The following things will most likely not be part of snclient any time:
 - NSCA support
 - SMTP support
 - Website/Rest API (except doing checks)
-

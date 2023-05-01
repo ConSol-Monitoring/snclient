@@ -4,7 +4,7 @@
 
 Checks the uptime of the host.
 
-## Tresholds
+## Thresholds
 
 - uptime
 

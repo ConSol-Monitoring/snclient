@@ -25,7 +25,7 @@ func (l *CheckWrap) Check(args []string) (*CheckResult, error) {
 	argList := ParseArgs(args, &l.data)
 	var script string
 
-	// parse treshold args
+	// parse threshold args
 	for _, arg := range argList {
 		if arg.key == "script" {
 			script = arg.value
