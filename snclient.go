@@ -638,11 +638,20 @@ func (snc *Agent) startListener(name string) {
 }
 
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
+	res := snc.runCheck(name, args)
+	res.replaceOutputVariables()
+
+	return res
+}
+
+func (snc *Agent) runCheck(name string, args []string) *CheckResult {
+	log.Tracef("command: %s", name)
+	log.Tracef("args: %#v", args)
 	check, ok := AvailableChecks[name]
 	if !ok {
 		res := CheckResult{
 			State:  CheckExitUnknown,
-			Output: "No such check",
+			Output: fmt.Sprintf("${status} - No such check: %s", name),
 		}
 
 		return &res
@@ -652,7 +661,7 @@ func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 	if err != nil {
 		res := CheckResult{
 			State:  CheckExitUnknown,
-			Output: err.Error(),
+			Output: fmt.Sprintf("${status} - %s", err.Error()),
 		}
 
 		return &res

@@ -31,7 +31,10 @@ func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 	l.data.detailSyntax = "%(drive_or_name)\\: %(used)/%(size) used"
 	l.data.okSyntax = "All %(count) drive(s) are ok"
 	l.data.topSyntax = "%(problem_list)"
-	argList := ParseArgs(args, &l.data)
+	argList, err := ParseArgs(args, &l.data)
+	if err != nil {
+		return nil, fmt.Errorf("args error: %s", err.Error())
+	}
 	var output string
 	drives := []string{}
 	excludes := []string{}

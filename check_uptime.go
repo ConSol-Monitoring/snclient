@@ -25,7 +25,10 @@ type CheckUptime struct {
 func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
-	ParseArgs(args, &l.data)
+	_, err := ParseArgs(args, &l.data)
+	if err != nil {
+		return nil, fmt.Errorf("args error: %s", err.Error())
+	}
 
 	// collect time metrics (boot + now)
 	bootTime, _ := host.BootTime()

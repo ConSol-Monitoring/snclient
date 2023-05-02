@@ -3,7 +3,6 @@ package snclient
 import (
 	"fmt"
 	"runtime"
-	"strconv"
 
 	"github.com/shirou/gopsutil/v3/host"
 )
@@ -14,12 +13,18 @@ func init() {
 
 type CheckOSVersion struct {
 	noCopy noCopy
+	data   CheckData
 }
 
 /* check_os_version
  * Description: Checks the os version
  */
-func (l *CheckOSVersion) Check(_ []string) (*CheckResult, error) {
+func (l *CheckOSVersion) Check(args []string) (*CheckResult, error) {
+	state := CheckExitOK
+	_, err := ParseArgs(args, &l.data)
+	if err != nil {
+		return nil, fmt.Errorf("args error: %s", err.Error())
+	}
 	metrics := []*CheckMetric{}
 
 	platform, _, version, err := host.PlatformInformation()
@@ -27,19 +32,20 @@ func (l *CheckOSVersion) Check(_ []string) (*CheckResult, error) {
 		return nil, fmt.Errorf("failed to get platform information: %s", err.Error())
 	}
 
-	versionFloat, err := strconv.ParseFloat(version, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse platform version to float: %s", err.Error())
+	variables := map[string]string{
+		"version": fmt.Sprintf("%s %s (arch:%s)", platform, version, runtime.GOARCH),
 	}
 
-	metrics = append(metrics, &CheckMetric{
-		Name:  "version",
-		Value: versionFloat,
-	})
+	switch {
+	case CompareMetrics(variables, l.data.critThreshold):
+		state = CheckExitCritical
+	case CompareMetrics(variables, l.data.warnThreshold):
+		state = CheckExitWarning
+	}
 
 	return &CheckResult{
-		State:   0,
-		Output:  fmt.Sprintf("OK - %s %s (arch:%s)", platform, version, runtime.GOARCH),
+		State:   int64(state),
+		Output:  fmt.Sprintf("${status} - %s", variables["version"]),
 		Metrics: metrics,
 	}, nil
 }

@@ -50,6 +50,10 @@ func (cr *CheckResult) StateString() string {
 	return "UNKNOWN"
 }
 
+func (cr *CheckResult) replaceOutputVariables() {
+	cr.Output = strings.ReplaceAll(cr.Output, "${status}", cr.StateString())
+}
+
 // CheckMetric contains a single performance value.
 type CheckMetric struct {
 	Name     string

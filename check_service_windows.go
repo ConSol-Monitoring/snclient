@@ -40,7 +40,10 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	l.data.detailSyntax = "%(service)=%(state)"
 	l.data.topSyntax = "%(crit_list), delayed (%(warn_list))"
 	l.data.okSyntax = "All %(count) service(s) are ok."
-	argList := ParseArgs(args, &l.data)
+	argList, err := ParseArgs(args, &l.data)
+	if err != nil {
+		return nil, fmt.Errorf("args error: %s", err.Error())
+	}
 	var services []string
 	var statusCode svc.Status
 	var checkData map[string]string

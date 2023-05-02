@@ -41,7 +41,10 @@ func (l *CheckProcess) Check(args []string) (*CheckResult, error) {
 	l.data.okSyntax = "all processes are ok."
 	l.data.emptySyntax = "No processes found"
 	l.data.emptyState = CheckExitUnknown
-	argList := ParseArgs(args, &l.data)
+	argList, err := ParseArgs(args, &l.data)
+	if err != nil {
+		return nil, fmt.Errorf("args error: %s", err.Error())
+	}
 	var processes []string
 	var checkData map[string]string
 

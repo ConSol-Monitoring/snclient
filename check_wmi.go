@@ -24,7 +24,10 @@ type CheckWMI struct {
 func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
-	argList := ParseArgs(args, &l.data)
+	argList, err := ParseArgs(args, &l.data)
+	if err != nil {
+		return nil, fmt.Errorf("args error: %s", err.Error())
+	}
 	var query string
 
 	// parse threshold args

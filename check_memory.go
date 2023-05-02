@@ -26,7 +26,10 @@ func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	l.data.detailSyntax = "%(type) = %(used)"
-	ParseArgs(args, &l.data)
+	_, err := ParseArgs(args, &l.data)
+	if err != nil {
+		return nil, fmt.Errorf("args error: %s", err.Error())
+	}
 	var checkData []map[string]string
 
 	// collect ram metrics (physical + committed)

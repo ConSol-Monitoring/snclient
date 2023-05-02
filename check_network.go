@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -27,7 +28,10 @@ func (l *CheckNetwork) Check(args []string) (*CheckResult, error) {
 	l.data.detailSyntax = "%(name) >%(sent) <%(received) bps"
 	l.data.topSyntax = "%(list)"
 	l.data.okSyntax = "%(list)"
-	ParseArgs(args, &l.data)
+	_, err := ParseArgs(args, &l.data)
+	if err != nil {
+		return nil, fmt.Errorf("args error: %s", err.Error())
+	}
 	var checkData map[string]string
 
 	interfaceList, _ := net.Interfaces()

@@ -23,7 +23,9 @@ func TestArgumentParser(t *testing.T) {
 			},
 		},
 	} {
-		assert.Equal(t, check.expect, ParseArgs(check.args, &check.data), fmt.Sprintf("ParseArgs(%s) -> %v", check.args, check.expect))
+		args, err := ParseArgs(check.args, &check.data)
+		assert.NoErrorf(t, err, "ParseArgs")
+		assert.Equal(t, check.expect, args, fmt.Sprintf("ParseArgs(%s) -> %v", check.args, check.expect))
 	}
 }
 
@@ -38,7 +40,10 @@ func TestThresholdParser(t *testing.T) {
 		{"used > 90GB", &Threshold{name: "used", operator: ">", value: "90", unit: "GB"}},
 		{"state = dead", &Threshold{name: "state", operator: "=", value: "dead", unit: ""}},
 		{"uptime < 180s", &Threshold{name: "uptime", operator: "<", value: "180", unit: "s"}},
+		{"version not like  '1 2 3'", &Threshold{name: "version", operator: "not like", value: "1 2 3", unit: ""}},
 	} {
-		assert.Equal(t, check.expect, ParseThreshold(check.threshold), fmt.Sprintf("ParseArgs(%s) -> %v", check.threshold, check.expect))
+		thr, err := ParseThreshold(check.threshold)
+		assert.NoErrorf(t, err, "ParseThreshold")
+		assert.Equal(t, check.expect, thr, fmt.Sprintf("ParseArgs(%s) -> %v", check.threshold, check.expect))
 	}
 }

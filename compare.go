@@ -1,9 +1,8 @@
 package snclient
 
 import (
-	"fmt"
-	"regexp"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -53,16 +52,12 @@ func CompareMetrics(metrics map[string]string, threshold *Threshold) bool {
 			return m >= t
 		case "=", "is":
 			return val == threshold.value
-		case "!=", "not":
+		case "!=", "not", "is not":
 			return val != threshold.value
 		case "like":
-			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(threshold.value)), val)
-
-			return res
+			return strings.Contains(val, threshold.value)
 		case "not like":
-			res, _ := regexp.MatchString(fmt.Sprintf(".*%s.*", regexp.QuoteMeta(threshold.value)), val)
-
-			return !res
+			return !strings.Contains(val, threshold.value)
 		}
 	}
 

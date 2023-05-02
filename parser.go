@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -40,15 +41,23 @@ func ParseStateString(state string) int64 {
 	return 3
 }
 
-func ParseArgs(args []string, data *CheckData) []Argument {
+func ParseArgs(args []string, data *CheckData) ([]Argument, error) {
 	argList := make([]Argument, 0, len(args))
 	for _, v := range args {
 		split := strings.SplitN(v, "=", 2)
 		switch split[0] {
 		case "warn", "warning":
-			data.warnThreshold = ParseThreshold(split[1])
+			thr, err := ParseThreshold(split[1])
+			if err != nil {
+				return nil, fmt.Errorf("threshold error: %s", err.Error())
+			}
+			data.warnThreshold = thr
 		case "crit", "critical":
-			data.critThreshold = ParseThreshold(split[1])
+			thr, err := ParseThreshold(split[1])
+			if err != nil {
+				return nil, fmt.Errorf("threshold error: %s", err.Error())
+			}
+			data.critThreshold = thr
 		case "detail-syntax":
 			data.detailSyntax = split[1]
 		case "top-syntax":
@@ -64,34 +73,53 @@ func ParseArgs(args []string, data *CheckData) []Argument {
 		}
 	}
 
-	return argList
+	return argList, nil
 }
 
-func ParseThreshold(threshold string) *Threshold {
+func ParseThreshold(threshold string) (*Threshold, error) {
 	if threshold == "none" {
-		return &Threshold{name: "none"}
+		return &Threshold{name: "none"}, nil
 	}
 
-	re := regexp.MustCompile(`([A-Za-z_]+)\s*(<=|>=|<|>|=|\!=|not like|not|is|like)\s*(\d+\.\d+|\d+|) *'?([A-Za-z0-9.%']+)?`)
+	re := regexp.MustCompile(`^\s*([A-Za-z_]+)` +
+		`\s*` +
+		`(<=|>=|<|>|=|\!=|not like|is not|not|is|like)` +
+		`\s*` +
+		`(.*)$`)
 	match := re.FindStringSubmatch(threshold)
+
+	if len(match) == 0 {
+		return nil, fmt.Errorf("cannot parse threshold: %s", threshold)
+	}
 
 	ret := Threshold{
 		name:     match[1],
 		operator: match[2],
+		value:    strings.TrimSpace(match[3]),
 	}
 
-	if match[3] != "" {
-		ret.value = match[3]
-		ret.unit = match[4]
-	} else {
-		ret.value = match[4]
+	switch {
+	case strings.HasPrefix(ret.value, "'") && strings.HasSuffix(ret.value, "'"):
+		ret.value = strings.TrimPrefix(ret.value, "'")
+		ret.value = strings.TrimSuffix(ret.value, "'")
+	case strings.HasPrefix(ret.value, `"`) && strings.HasSuffix(ret.value, `"`):
+		ret.value = strings.TrimPrefix(ret.value, `"`)
+		ret.value = strings.TrimSuffix(ret.value, `"`)
+	}
+
+	unitRe := regexp.MustCompile(`^(\d+\.\d+|\d+)\s*(\D+)$`)
+	unitMatch := unitRe.FindStringSubmatch(ret.value)
+
+	if len(unitMatch) != 0 {
+		ret.value = unitMatch[1]
+		ret.unit = unitMatch[2]
 	}
 
 	if ret.unit == "%" {
 		ret.name += "_pct"
 	}
 
-	return &ret
+	return &ret, nil
 }
 
 func ParseSyntax(syntax string, data map[string]string) string {
