@@ -5,6 +5,8 @@ snclient
 *.rpm
 *.tar.gz
 *.linux.amd64
+*.darwin.aarch64
+*.freebsd.i386
 .vscode
 .vstags
 coverage.txt

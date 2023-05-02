@@ -87,6 +87,16 @@ build-windows-amd64: vendor
 		cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.windows.amd64.exe; cd ../..; \
 	done
 
+build-freebsd-i386: vendor
+	set -e; for CMD in $(CMDS); do \
+		cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.freebsd.i386; cd ../..; \
+	done
+
+build-darwin-aarch64: vendor
+	set -e; for CMD in $(CMDS); do \
+		cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.darwin.aarch64; cd ../..; \
+	done
+
 test: fmt vendor
 	go test -short -v -timeout=1m ./ ./pkg/*/.
 	set -ex; for dir in $$(ls -1 internal/*/*_test.go 2>/dev/null | xargs -r dirname | sort -u); do \
@@ -119,10 +129,12 @@ citest: vendor
 	#
 	if grep -rn Dump *.go ./cmd/ ./pkg/ ./internal/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 	#
-	# Darwin and Linux should be handled equal
+	# Darwin, Linux and Freebsd are handled equaly
 	#
-	diff snclient_linux.go snclient_darwin.go
-	diff snclient_linux.go snclient_freebsd.go
+	set -ex; for file in $$(find . -name \*_linux.go -not -path "./vendor/*"); do \
+		diff $$file $${file/_linux.go/_freebsd.go}; \
+		diff $$file $${file/_linux.go/_darwin.go}; \
+	done
 	#
 	# Run other subtests
 	#
@@ -150,6 +162,8 @@ citest: vendor
 	$(MAKE) build-linux-amd64
 	$(MAKE) build-windows-amd64
 	$(MAKE) build-windows-i386
+	$(MAKE) build-freebsd-i386
+	$(MAKE) build-darwin-aarch64
 	#
 	# All CI tests successful
 	#
@@ -177,6 +191,8 @@ clean:
 	rm -f $(CMDS)
 	rm -f *.windows.*.exe
 	rm -f *.linux.*
+	rm -f *.darwin.*
+	rm -f *.freebsd.*
 	rm -f cover.out
 	rm -f coverage.html
 	rm -f coverage.txt
