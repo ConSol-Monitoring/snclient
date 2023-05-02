@@ -8,10 +8,27 @@ import (
 )
 
 // Dump displays arbitrary data.
-func Dump(v interface{}) {
+func Dump(data interface{}) {
 	spew.Config.Indent = "\t"
 	spew.Config.MaxDepth = 20
 	spew.Config.DisableMethods = true
 	spew.Config.SortKeys = true
-	fmt.Fprintf(os.Stderr, "%s", spew.Sdump(v))
+	fmt.Fprintf(os.Stderr, "%s", spew.Sdump(data))
+}
+
+var dumpfile *os.File
+
+func File(data interface{}) {
+	if dumpfile == nil {
+		f, err := os.CreateTemp("", "dumpfile")
+		if err != nil {
+			panic(err.Error())
+		}
+		dumpfile = f
+	}
+	spew.Config.Indent = "\t"
+	spew.Config.MaxDepth = 20
+	spew.Config.DisableMethods = true
+	spew.Config.SortKeys = true
+	fmt.Fprintf(dumpfile, "%s", spew.Sdump(data))
 }

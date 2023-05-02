@@ -114,9 +114,7 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 		targetWriter = fHandle
 	}
 
-	o, _ := os.Stdout.Stat()
-	// check if attached to terminal.
-	if (o.Mode() & os.ModeCharDevice) == os.ModeCharDevice {
+	if isInteractive() {
 		if targetWriter != os.Stdout && targetWriter != os.Stderr {
 			doOnce.Do(func() {
 				abs, _ := filepath.Abs(file)

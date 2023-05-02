@@ -133,12 +133,7 @@ jobs:
       - run: sudo apt-get install help2man
       - run: |
           echo "Creating dist folder for windows"
-          make dist
-          rm dist/snclient
-          sed -i dist/snclient.ini \
-            -e 's/\/etc\/snclient/${exe-path}/g' \
-            -e 's/^file name =.*/file name = ${shared-path}\/snclient.log/g' \
-            -e 's/^max size =.*/max size = 10MiB/g'
+          make windist
       - uses: actions/upload-artifact@v3
         with:
           name: "windist"
@@ -172,7 +167,7 @@ jobs:
           & ".\wix311.exe" "/q"
 
           $win_arch = "x64"
-          if ($arch -eq "386") { $win_arch = "x86" }
+          if ("${{ matrix.go-arch }}" -eq "386") { $win_arch = "x86" }
 
           & 'C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe' .\packaging\windows\snclient.wxs `
             -arch $win_arch `

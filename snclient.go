@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
+	"path"
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
@@ -15,14 +15,18 @@ import (
 	"syscall"
 	"time"
 
+	"pkg/utils"
+
 	deadlock "github.com/sasha-s/go-deadlock"
-	daemon "github.com/sevlyar/go-daemon"
 	"github.com/shirou/gopsutil/v3/host"
 )
 
 const (
 	// NAME contains the snclient full official name.
 	NAME = "SNClient+"
+
+	DESCRIPTION = "SNClient+ (Secure Naemon Client) is a secure general purpose" +
+		" monitoring agent designed as replacement for NRPE and NSClient++."
 
 	// VERSION contains the actual snclient version.
 	VERSION = "0.02"
@@ -90,7 +94,6 @@ type Agent struct {
 	cpuProfileHandler *os.File
 	Build             string
 	Revision          string
-	daemonMode        bool
 }
 
 var agent *Agent
@@ -121,26 +124,16 @@ func SNClient(build, revision string) {
 	defer snc.logPanicExit()
 
 	// daemonize
-	if snc.daemonMode {
-		ctx := &daemon.Context{}
+	if snc.flags.flagDaemon {
+		snc.daemonize(config, listeners, tasks)
 
-		d, err := ctx.Reborn()
-		if err != nil {
-			LogStderrf("ERROR: unable to start daemon mode")
-		}
-
-		if d != nil {
-			return
-		}
-
-		defer func() {
-			err := ctx.Release()
-			if err != nil {
-				LogStderrf("ERROR: %s", err.Error())
-			}
-		}()
+		return
 	}
 
+	snc.run(config, listeners, tasks)
+}
+
+func (snc *Agent) run(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
 	log.Infof("%s", snc.BuildStartupMsg())
 
 	snc.createPidFile()
@@ -196,16 +189,20 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 				return exitCode
 			case Shutdown, ShutdownGraceFully:
 				ticker.Stop()
-				snc.Tasks.StopRemove()
-
-				for name, l := range snc.Listeners {
-					l.Stop()
-					delete(snc.Listeners, name)
-				}
+				snc.stop()
 
 				return exitCode
 			}
 		}
+	}
+}
+
+func (snc *Agent) stop() {
+	snc.Tasks.StopRemove()
+
+	for name, l := range snc.Listeners {
+		l.Stop()
+		delete(snc.Listeners, name)
 	}
 }
 
@@ -234,7 +231,12 @@ func (snc *Agent) initConfiguration() (config *Config, listeners map[string]*Lis
 	files = snc.flags.flagConfigFile
 
 	defaultLocations := []string{"./snclient.ini", "/etc/snclient/snclient.ini"}
-	// no config supplied, check default locations
+	execPath, err := utils.GetExecutablePath()
+	if err == nil {
+		defaultLocations = append(defaultLocations, path.Join(execPath, "snclient.ini"))
+	}
+
+	// no config supplied, check default locations, first match wins
 	if len(files) == 0 {
 		for _, f := range defaultLocations {
 			_, err := os.Stat(f)
@@ -280,17 +282,12 @@ func (snc *Agent) readConfiguration(file []string) (config *Config, listen map[s
 
 		fallthrough
 	default:
-		executable, err := os.Executable()
+		execPath, err := utils.GetExecutablePath()
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
 		}
 
-		executable, err = filepath.Abs(executable)
-		if err != nil {
-			return nil, nil, nil, fmt.Errorf("could not detect abs path to executable: %s", err.Error())
-		}
-
-		pathSection.Set("exe-path", filepath.Dir(executable))
+		pathSection.Set("exe-path", execPath)
 	}
 
 	for _, key := range []string{"exe-path", "shared-path", "scripts", "certificate-path"} {

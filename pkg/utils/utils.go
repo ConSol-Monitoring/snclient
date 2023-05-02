@@ -2,6 +2,8 @@ package utils
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
@@ -61,4 +63,19 @@ func IsDigitsOnly(s string) bool {
 // or false if value can be represented as int64
 func IsFloatVal(val float64) bool {
 	return strconv.FormatFloat(val, 'f', -1, 64) != fmt.Sprintf("%d", int64(val))
+}
+
+// GetExecutablePath returns path to executable
+func GetExecutablePath() (string, error) {
+	executable, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("executable error: %s", err.Error())
+	}
+
+	executable, err = filepath.Abs(executable)
+	if err != nil {
+		return "", fmt.Errorf("abs error: %s", err.Error())
+	}
+
+	return filepath.Dir(executable), nil
 }

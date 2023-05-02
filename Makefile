@@ -256,6 +256,13 @@ dist:
 		./snclient \
 		> dist/snclient.8
 
+windist: | dist
+	rm dist/snclient
+	sed -i dist/snclient.ini \
+		-e 's/\/etc\/snclient/${exe-path}/g' \
+		-e 's/^file name =.*/file name = $${shared-path}\/snclient.log/g' \
+		-e 's/^max size =.*/max size = 10MiB/g'
+
 snclient: build
 
 deb: | dist

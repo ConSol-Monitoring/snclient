@@ -5,3 +5,4 @@ use ./pkg/nrpe
 use ./pkg/utils
 use ./pkg/threshold
 use ./internal/dump
+use ./internal/wmi

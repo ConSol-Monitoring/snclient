@@ -43,3 +43,12 @@ func TestUtilsIsFloatVal(t *testing.T) {
 		assert.Equalf(t, tst.res, res, "IsFloatVal: %s", tst.in)
 	}
 }
+
+func TestUtilsExecPath(t *testing.T) {
+	t.Parallel()
+
+	execPath, err := GetExecutablePath()
+	assert.NoErrorf(t, err, "GetExecutablePath works")
+
+	assert.NotEmptyf(t, execPath, "GetExecutablePath")
+}
