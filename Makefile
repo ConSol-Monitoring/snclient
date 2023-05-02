@@ -332,8 +332,9 @@ osx: | dist
 
 	cp dist/snclient.ini dist/server.crt dist/server.key dist/cacert.pem build-pkg/etc/snclient
 
-	sed -i "" build-pkg/etc/snclient/snclient.ini \
-		-e 's/^max size =.*/max size = 10MiB/g'
+	sed -i "" \
+		-e 's/^max size =.*/max size = 10MiB/g' \
+		build-pkg/etc/snclient/snclient.ini
 
 	cp -p dist/snclient.1 build-pkg/usr/share/man/man1/snclient.1
 	cp -p dist/snclient.8 build-pkg/usr/share/man/man8/snclient.8
