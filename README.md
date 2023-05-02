@@ -61,6 +61,7 @@ Find a brief overview of what is planned and what is done already:
   - [X] build debian/ubuntu .deb packages
   - [X] build rhel/sles .rpm packages
   - [X] build osx .pkg packages
+- [X] implement log rotation for file logger
 
 ### Stage 2
 - [ ] add basic prometheus exporters
@@ -74,7 +75,6 @@ Find a brief overview of what is planned and what is done already:
 
 ### Miscellaneous
 - [ ] check usr signal handler
-- [ ] implement log rotation for file logger
 - [ ] Rest API
   - [ ] add performance data support
 - [ ] improve configuration

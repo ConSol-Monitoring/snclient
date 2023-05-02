@@ -265,6 +265,12 @@ func (snc *Agent) readConfiguration(file []string) (config *Config, listen map[s
 		}
 	}
 
+	// apply defaults
+	for sectionName, defaults := range DefaultConfig {
+		section := config.Section(sectionName)
+		section.data.Merge(*defaults)
+	}
+
 	// set paths
 	pathSection := config.Section("/paths")
 	exe, ok := pathSection.GetString("exe-path")

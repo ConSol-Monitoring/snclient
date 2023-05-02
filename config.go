@@ -11,7 +11,15 @@ import (
 	"strings"
 
 	"pkg/utils"
+
+	"github.com/dustin/go-humanize"
 )
+
+var DefaultConfig = map[string]*ConfigData{"/modules": {
+	"Logrotate":       "enabled",
+	"CheckSystem":     "enabled",
+	"CheckSystemUnix": "enabled",
+}}
 
 var reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_]+\s*\}`)
 
@@ -287,6 +295,21 @@ func (cs *ConfigSection) GetDuration(key string) (val float64, ok bool, err erro
 	}
 
 	return num, true, nil
+}
+
+// GetBytes parses int value with optional SI
+// If value is found but cannot be parsed, error is set.
+func (cs *ConfigSection) GetBytes(key string) (val int64, ok bool, err error) {
+	raw, ok := cs.GetString(key)
+	if !ok {
+		return 0, false, nil
+	}
+	num, err := humanize.ParseBytes(raw)
+	if err != nil {
+		return 0, true, fmt.Errorf("GetBytes: %s", err.Error())
+	}
+
+	return int64(num), true, nil
 }
 
 func parseTLSMinVersion(version string) (uint16, error) {

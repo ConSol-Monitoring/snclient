@@ -64,6 +64,7 @@ func (c *CheckSystemHandler) Stop() {
 
 func (c *CheckSystemHandler) mainLoop() {
 	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
