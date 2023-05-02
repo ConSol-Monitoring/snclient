@@ -84,7 +84,6 @@ Find a brief overview of what is planned and what is done already:
   - [ ] add feature comparison to readme
   - [ ] add docs/
 - [ ] osx
-  - [ ] check logrotation
   - [ ] check pkg uninstall
 - [ ] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, amd64 -> aarch64
 

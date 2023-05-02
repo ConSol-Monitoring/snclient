@@ -327,6 +327,9 @@ osx: | dist
 	mkdir -p build-pkg/etc/snclient
 	cp dist/snclient.ini dist/server.crt dist/server.key dist/cacert.pem build-pkg/etc/snclient
 
+	sed -i build-pkg/etc/snclient/snclient.ini \
+		-e 's/^max size =.*/max size = 10MiB/g'
+
 	pkgbuild --root "build-pkg" \
 			--identifier com.snclient.snclient \
 			--version $(VERSION) \

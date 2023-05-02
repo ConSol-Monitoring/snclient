@@ -1,4 +1,4 @@
-/var/log/snclient/snclient.log {
+/var/log/snclient.log {
     missingok
     notifempty
     copytruncate
