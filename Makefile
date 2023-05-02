@@ -316,10 +316,7 @@ rpm: | dist
 	rm -rf $(RPM_TOPDIR) build-rpm
 	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
 
-osxdeps:
-	brew install help2man
-
-osx: osxdeps | dist
+osx: | dist
 	rm -rf build-pkg
 
 	mkdir -p \
