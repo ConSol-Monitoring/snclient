@@ -45,13 +45,7 @@ func (c *CheckSystemHandler) Init(snc *Agent, conf *ConfigSection) error {
 
 func (c *CheckSystemHandler) Start() error {
 	// create counter
-	data, err := c.fetch()
-	if err != nil {
-		return fmt.Errorf("cpuinfo failed: %s", err.Error())
-	}
-	for key := range data {
-		c.snc.Counter.Create("cpu", key, c.bufferLength)
-	}
+	c.update(true)
 
 	go c.mainLoop()
 
@@ -73,19 +67,29 @@ func (c *CheckSystemHandler) mainLoop() {
 
 			return
 		case <-ticker.C:
-			data, err := c.fetch()
-			if err != nil {
-				log.Warnf("[CheckSystemUnix] reading cpu info failed: %s", err.Error())
-
-				continue
-			}
-
-			for key, val := range data {
-				c.snc.Counter.Set("cpu", key, val)
-			}
+			c.update(false)
 
 			continue
 		}
+	}
+}
+
+func (c *CheckSystemHandler) update(create bool) {
+	data, err := c.fetch()
+	if err != nil {
+		log.Warnf("[CheckSystemUnix] reading cpu info failed: %s", err.Error())
+
+		return
+	}
+
+	if create {
+		for key := range data {
+			c.snc.Counter.Create("cpu", key, c.bufferLength)
+		}
+	}
+
+	for key, val := range data {
+		c.snc.Counter.Set("cpu", key, val)
 	}
 }
 
