@@ -12,7 +12,7 @@ var (
 
 func CompareMetrics(metrics map[string]string, threshold *Threshold) bool {
 	if threshold == nil {
-		return true
+		return false
 	}
 
 	for key, val := range metrics {

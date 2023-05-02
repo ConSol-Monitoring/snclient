@@ -52,6 +52,7 @@ func (cr *CheckResult) StateString() string {
 
 func (cr *CheckResult) replaceOutputVariables() {
 	cr.Output = strings.ReplaceAll(cr.Output, "${status}", cr.StateString())
+	cr.Output = strings.ReplaceAll(cr.Output, "${status_lc}", strings.ToLower(cr.StateString()))
 }
 
 // CheckMetric contains a single performance value.
