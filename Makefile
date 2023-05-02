@@ -316,19 +316,30 @@ rpm: | dist
 	rm -rf $(RPM_TOPDIR) build-rpm
 	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
 
-osx: | dist
+osxdeps:
+	brew install help2man
+
+osx: osxdeps | dist
 	rm -rf build-pkg
-	mkdir -p build-pkg/Library/LaunchDaemons
+
+	mkdir -p \
+		build-pkg/Library/LaunchDaemons \
+		build-pkg/usr/local/bin \
+		build-pkg/etc/snclient \
+		build-pkg/usr/share/man/man1 \
+		build-pkg/usr/share/man/man8
+
 	cp packaging/osx/com.snclient.snclient.plist build-pkg/Library/LaunchDaemons/
 
-	mkdir -p build-pkg/usr/local/bin
 	cp dist/snclient build-pkg/usr/local/bin/
 
-	mkdir -p build-pkg/etc/snclient
 	cp dist/snclient.ini dist/server.crt dist/server.key dist/cacert.pem build-pkg/etc/snclient
 
-	sed -i build-pkg/etc/snclient/snclient.ini \
+	sed -i "" build-pkg/etc/snclient/snclient.ini \
 		-e 's/^max size =.*/max size = 10MiB/g'
+
+	cp -p dist/snclient.1 build-pkg/usr/share/man/man1/snclient.1
+	cp -p dist/snclient.8 build-pkg/usr/share/man/man8/snclient.8
 
 	pkgbuild --root "build-pkg" \
 			--identifier com.snclient.snclient \
