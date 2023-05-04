@@ -1,4 +1,4 @@
-﻿package eventlog
+package eventlog
 
 import (
 	"encoding/xml"
@@ -130,9 +130,7 @@ func (e *EventLog) Query() ([]*evsys.Event, error) {
 	}
 	defer iter.Close()
 
-	var (
-		events []*evsys.Event
-	)
+	var events []*evsys.Event
 
 	logger := logp.NewLogger("")
 	renderer, err := wineventlog.NewRenderer(0, logger)

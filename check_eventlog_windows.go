@@ -1,4 +1,4 @@
-﻿package snclient
+package snclient
 
 import (
 	"strconv"
@@ -33,7 +33,7 @@ func (l *CheckEventlog) Check(args []string) (*CheckResult, error) {
 	var output string
 	files := []string{}
 	var checkData map[string]string
-	//var scanRange string
+	// var scanRange string
 	events := []*winevent.Event{}
 
 	// parse args
@@ -109,5 +109,4 @@ func (l *CheckEventlog) Check(args []string) (*CheckResult, error) {
 		State:  state,
 		Output: output,
 	}, nil
-
 }

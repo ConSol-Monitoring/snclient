@@ -203,16 +203,17 @@ clean:
 	rm -rf build-rpm/
 	rm -f release_notes.txt
 
+GOVET=go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable
 fmt: tools
-	go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable .
+	$(GOVET) .
 	set -e; for CMD in $(CMDS); do \
-		go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable ./cmd/$$CMD; \
+		$(GOVET) ./cmd/$$CMD; \
 	done
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
-		go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable ./$$dir; \
+		$(GOVET) ./$$dir; \
 	done
 	set -e; for dir in $(shell ls -d1 internal/*); do \
-		( cd $$dir && go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable *.go ) ; \
+		( cd $$dir && $(GOVET) . ) ; \
 	done
 	gofmt -w -s *.go ./cmd/ ./pkg/ ./internal/
 	./tools/gofumpt -w *.go ./cmd/ ./pkg/ ./internal/
