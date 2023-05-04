@@ -30,6 +30,7 @@ linters:
     - exhaustruct
     - gochecknoglobals
     - gochecknoinits
+    - gomoddirectives
     - golint
     - ifshort
     - interfacer

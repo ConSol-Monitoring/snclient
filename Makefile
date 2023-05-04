@@ -203,7 +203,7 @@ clean:
 	rm -rf build-rpm/
 	rm -f release_notes.txt
 
-GOVET=go vet -all -assign -atomic -bool -composites -copylocks -nilfunc -rangeloops -unsafeptr -unreachable
+GOVET=go vet -all
 fmt: tools
 	$(GOVET) .
 	set -e; for CMD in $(CMDS); do \
@@ -233,8 +233,8 @@ golangci: tools
 	# golangci combines a few static code analyzer
 	# See https://github.com/golangci/golangci-lint
 	#
-	for dir in $$(ls -1d internal/*); do echo $$dir; ( golangci-lint run $$dir/*.go ) ; done
-	golangci-lint run ./... ./pkg/*/.
+	set -e; for dir in $$(ls -1d internal/* pkg/*); do echo $$dir; ( cd $$dir && golangci-lint run *.go ) ; done
+	golangci-lint run ./...
 
 govulncheck: tools
 	govulncheck ./...
