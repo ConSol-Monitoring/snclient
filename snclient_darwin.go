@@ -6,33 +6,10 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"syscall"
-
-	daemon "github.com/sevlyar/go-daemon"
 )
 
 func (snc *Agent) daemonize(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
-	ctx := &daemon.Context{}
-
-	daemonProc, err := ctx.Reborn()
-	if err != nil {
-		LogStderrf("ERROR: unable to start daemon mode")
-
-		return
-	}
-
-	// parent simply exits
-	if daemonProc != nil {
-		os.Exit(ExitCodeOK)
-	}
-
-	defer func() {
-		err := ctx.Release()
-		if err != nil {
-			LogStderrf("ERROR: %s", err.Error())
-		}
-	}()
-
-	snc.run(config, listeners, tasks)
+	snc.runBackground(config, listeners, tasks)
 }
 
 func isInteractive() bool {

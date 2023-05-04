@@ -48,6 +48,15 @@ loop:
 }
 
 func (snc *Agent) daemonize(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
+	inService, _ := svc.IsWindowsService()
+	if inService {
+		snc.runAsWinService(config, listeners, tasks)
+	} else {
+		snc.runBackground(config, listeners, tasks)
+	}
+}
+
+func (snc *Agent) runAsWinService(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
 	const svcName = "snclient"
 	inService, err := svc.IsWindowsService()
 	if err != nil {

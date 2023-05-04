@@ -18,6 +18,7 @@ import (
 	"pkg/utils"
 
 	deadlock "github.com/sasha-s/go-deadlock"
+	daemon "github.com/sevlyar/go-daemon"
 	"github.com/shirou/gopsutil/v3/host"
 )
 
@@ -160,6 +161,31 @@ func (snc *Agent) run(config *Config, listeners map[string]*Listener, tasks *Tas
 	}
 
 	log.Infof("snclient exited (pid %d)\n", os.Getpid())
+}
+
+func (snc *Agent) runBackground(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
+	ctx := &daemon.Context{}
+
+	daemonProc, err := ctx.Reborn()
+	if err != nil {
+		LogStderrf("ERROR: unable to start daemon mode")
+
+		return
+	}
+
+	// parent simply exits
+	if daemonProc != nil {
+		os.Exit(ExitCodeOK)
+	}
+
+	defer func() {
+		err := ctx.Release()
+		if err != nil {
+			LogStderrf("ERROR: %s", err.Error())
+		}
+	}()
+
+	snc.run(config, listeners, tasks)
 }
 
 func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
