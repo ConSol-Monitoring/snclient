@@ -27,7 +27,7 @@ type CheckDrivesize struct {
  */
 func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
 	// default state: OK
-	state := int64(CheckExitOK)
+	state := CheckExitOK
 	l.data.detailSyntax = "%(drive_or_name)\\: %(used)/%(size) used"
 	l.data.okSyntax = "All %(count) drive(s) are ok"
 	l.data.topSyntax = "%(problem_list)"

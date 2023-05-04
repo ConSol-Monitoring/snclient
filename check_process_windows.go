@@ -34,7 +34,7 @@ var ProcessStates = map[string]string{
  */
 func (l *CheckProcess) Check(args []string) (*CheckResult, error) {
 	// default state: OK
-	state := int64(CheckExitOK)
+	state := CheckExitOK
 	var output string
 	l.data.detailSyntax = "%(process)=%(state)"
 	l.data.topSyntax = "%(problem_list)"

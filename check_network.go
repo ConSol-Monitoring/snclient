@@ -23,7 +23,7 @@ type CheckNetwork struct {
  */
 func (l *CheckNetwork) Check(args []string) (*CheckResult, error) {
 	// default state: OK
-	state := int64(CheckExitOK)
+	state := CheckExitOK
 	var output string
 	l.data.detailSyntax = "%(name) >%(sent) <%(received) bps"
 	l.data.topSyntax = "%(list)"

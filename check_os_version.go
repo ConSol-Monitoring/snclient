@@ -44,7 +44,7 @@ func (l *CheckOSVersion) Check(args []string) (*CheckResult, error) {
 	}
 
 	return &CheckResult{
-		State:   int64(state),
+		State:   state,
 		Output:  fmt.Sprintf("${status} - %s", variables["version"]),
 		Metrics: metrics,
 	}, nil

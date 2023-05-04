@@ -23,7 +23,7 @@ type CheckEventlog struct {
  */
 
 func (l *CheckEventlog) Check(args []string) (*CheckResult, error) {
-	state := int64(CheckExitOK)
+	state := CheckExitOK
 	l.data.detailSyntax = "%(file) %(source) (%(message))"
 	l.data.okSyntax = "Event log seems fine"
 	l.data.topSyntax = "%(count) message(s) %(problem_list)"

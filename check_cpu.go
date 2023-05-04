@@ -62,7 +62,7 @@ func (l *CheckCPU) Check(args []string) (*CheckResult, error) {
 	}
 
 	return &CheckResult{
-		State:   int64(state),
+		State:   state,
 		Output:  output,
 		Metrics: metrics,
 	}, nil
