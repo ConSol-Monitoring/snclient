@@ -1,7 +1,12 @@
 package snclient
 
 import (
+	"net"
+	"regexp"
 	"testing"
+	"time"
+
+	"pkg/nrpe"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,6 +34,18 @@ use ssl = false
 `
 	sig, err := StartTestAgent(t, config, []string{})
 	assert.NoErrorf(t, err, "test agent started")
+
+	con, err := net.DialTimeout("tcp", "127.0.0.1:45666", 10*time.Second)
+	assert.NoErrorf(t, err, "connection established")
+
+	req := nrpe.BuildPacketV4(nrpe.NrpeQueryPacket, 0, []byte("check_snclient_version"))
+	err = req.Write(con)
+	assert.NoErrorf(t, err, "request send")
+
+	res, err := nrpe.ReadNrpePacket(con)
+	assert.NoErrorf(t, err, "response read")
+	cmd, _ := res.Data()
+	assert.Regexpf(t, regexp.MustCompile("^SNClient"), cmd, "response matches")
 
 	StopTestAgent(t, sig)
 }

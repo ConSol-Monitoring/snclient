@@ -184,8 +184,6 @@ func (l *Listener) Stop() {
 	if l.listen != nil {
 		l.listen.Close()
 	}
-
-	l.listen = nil
 }
 
 // Start listening.
