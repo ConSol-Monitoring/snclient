@@ -1,9 +1,11 @@
 go 1.19
 
-use .
-use ./pkg/nrpe
-use ./pkg/utils
-use ./pkg/threshold
-use ./internal/dump
-use ./internal/wmi
-use ./internal/eventlog
+use (
+	.
+	./internal/dump
+	./internal/eventlog
+	./internal/wmi
+	./pkg/nrpe
+	./pkg/threshold
+	./pkg/utils
+)

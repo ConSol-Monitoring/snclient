@@ -40,7 +40,7 @@ all: build
 
 CMDS = $(shell cd ./cmd && ls -1)
 
-tools: versioncheck vendor
+tools: versioncheck vendor go.work
 	go mod download
 	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }'); do \
 		go install $$DEP; \
@@ -58,12 +58,16 @@ updatedeps: versioncheck
 	go get -t -u ./...
 	go mod tidy
 
-vendor:
+vendor: go.work
 	go mod download
 	go mod tidy
 	go mod vendor
 
-build: vendor
+go.work: internal/* pkg/*
+	echo "go $(MINGOVERSIONSTR)" > go.work
+	go work use . pkg/* internal/*
+
+build: vendor go.work
 	set -e; for CMD in $(CMDS); do \
 		cd ./cmd/$$CMD && CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD; cd ../..; \
 	done
