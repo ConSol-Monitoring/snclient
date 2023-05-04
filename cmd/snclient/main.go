@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	snclient "github.com/consol-monitoring/snclient"
 )
 
@@ -19,5 +21,7 @@ func main() {
 	if Build == "" {
 		Build = "unknown"
 	}
-	snclient.SNClient(Build, Revision)
+
+	osSignalChannel := make(chan os.Signal, 1)
+	snclient.SNClient(Build, Revision, osSignalChannel)
 }

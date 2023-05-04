@@ -8,8 +8,8 @@ import (
 	"syscall"
 )
 
-func (snc *Agent) daemonize(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
-	snc.runBackground(config, listeners, tasks)
+func (snc *Agent) daemonize(initSet *AgentRunSet) {
+	snc.runBackground(initSet)
 }
 
 func isInteractive() bool {

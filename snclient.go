@@ -94,12 +94,18 @@ type Agent struct {
 	cpuProfileHandler *os.File
 	Build             string
 	Revision          string
-	osSignalChannel   chan os.Signal
+}
+
+type AgentRunSet struct {
+	config          *Config
+	listeners       map[string]*Listener
+	tasks           *TaskSet
+	osSignalChannel chan os.Signal
 }
 
 var agent *Agent
 
-func SNClient(build, revision string) {
+func SNClient(build, revision string, osSignalChannel chan os.Signal) {
 	snc := Agent{
 		Build:     build,
 		Revision:  revision,
@@ -115,26 +121,26 @@ func SNClient(build, revision string) {
 	CreateLogger(&snc, nil)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
-	config, listeners, tasks, err := snc.initConfiguration()
+	initSet, err := snc.initConfiguration(osSignalChannel)
 	if err != nil {
 		LogStderrf("ERROR: %s", err.Error())
 		snc.CleanExit(ExitCodeError)
 	}
-	CreateLogger(&snc, config)
+	CreateLogger(&snc, initSet.config)
 
 	defer snc.logPanicExit()
 
 	// daemonize
 	if snc.flags.flagDaemon {
-		snc.daemonize(config, listeners, tasks)
+		snc.daemonize(initSet)
 
 		return
 	}
 
-	snc.run(config, listeners, tasks)
+	snc.run(initSet)
 }
 
-func (snc *Agent) run(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
+func (snc *Agent) run(runSet *AgentRunSet) {
 	log.Infof("%s", snc.BuildStartupMsg())
 
 	snc.createPidFile()
@@ -144,17 +150,15 @@ func (snc *Agent) run(config *Config, listeners map[string]*Listener, tasks *Tas
 	osSignalUsrChannel := make(chan os.Signal, 1)
 	setupUsrSignalChannel(osSignalUsrChannel)
 
-	osSignalChannel := make(chan os.Signal, 1)
-	snc.osSignalChannel = osSignalChannel
-	signal.Notify(osSignalChannel, syscall.SIGHUP)
-	signal.Notify(osSignalChannel, syscall.SIGTERM)
-	signal.Notify(osSignalChannel, os.Interrupt)
-	signal.Notify(osSignalChannel, syscall.SIGINT)
+	signal.Notify(runSet.osSignalChannel, syscall.SIGHUP)
+	signal.Notify(runSet.osSignalChannel, syscall.SIGTERM)
+	signal.Notify(runSet.osSignalChannel, os.Interrupt)
+	signal.Notify(runSet.osSignalChannel, syscall.SIGINT)
 
-	snc.startAll(config, listeners, tasks)
+	snc.startAll(runSet)
 
 	for {
-		exitState := snc.mainLoop(osSignalChannel)
+		exitState := snc.mainLoop(runSet.osSignalChannel)
 		if exitState != Reload {
 			// make it possible to call mainLoop() from tests without exiting the tests
 			break
@@ -164,7 +168,7 @@ func (snc *Agent) run(config *Config, listeners map[string]*Listener, tasks *Tas
 	log.Infof("snclient exited (pid %d)\n", os.Getpid())
 }
 
-func (snc *Agent) runBackground(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
+func (snc *Agent) runBackground(initSet *AgentRunSet) {
 	ctx := &daemon.Context{}
 
 	daemonProc, err := ctx.Reborn()
@@ -186,7 +190,7 @@ func (snc *Agent) runBackground(config *Config, listeners map[string]*Listener, 
 		}
 	}()
 
-	snc.run(config, listeners, tasks)
+	snc.run(initSet)
 }
 
 func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
@@ -203,15 +207,15 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 			case Resume:
 				continue
 			case Reload:
-				newConfig, listeners, tasks, err := snc.initConfiguration()
+				updateSet, err := snc.initConfiguration(osSignalChannel)
 				if err != nil {
 					log.Errorf("reloading configuration failed: %s", err.Error())
 
 					continue
 				}
 
-				CreateLogger(snc, newConfig)
-				snc.startAll(newConfig, listeners, tasks)
+				CreateLogger(snc, updateSet.config)
+				snc.startAll(updateSet)
 
 				return exitCode
 			case Shutdown, ShutdownGraceFully:
@@ -233,19 +237,19 @@ func (snc *Agent) stop() {
 	}
 }
 
-func (snc *Agent) startAll(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
+func (snc *Agent) startAll(initSet *AgentRunSet) {
 	// stop existing tasks
 	snc.Tasks.StopRemove()
 
 	// stop existing listeners
-	for name, l := range listeners {
+	for name, l := range initSet.listeners {
 		l.Stop()
 		delete(snc.Listeners, name)
 	}
 
-	snc.Config = config
-	snc.Listeners = listeners
-	snc.Tasks = tasks
+	snc.Config = initSet.config
+	snc.Listeners = initSet.listeners
+	snc.Tasks = initSet.tasks
 
 	snc.Tasks.Start()
 	for name := range snc.Listeners {
@@ -253,7 +257,7 @@ func (snc *Agent) startAll(config *Config, listeners map[string]*Listener, tasks
 	}
 }
 
-func (snc *Agent) initConfiguration() (config *Config, listeners map[string]*Listener, tasks *TaskSet, err error) {
+func (snc *Agent) initConfiguration(osSignalChannel chan os.Signal) (*AgentRunSet, error) {
 	var files configFiles
 	files = snc.flags.flagConfigFile
 
@@ -278,19 +282,25 @@ func (snc *Agent) initConfiguration() (config *Config, listeners map[string]*Lis
 
 	// still empty
 	if len(files) == 0 {
-		return nil, nil, nil, fmt.Errorf("no config file supplied (--config=..) and no config file found in default locations (%s)",
+		return nil, fmt.Errorf("no config file supplied (--config=..) and no config file found in default locations (%s)",
 			strings.Join(defaultLocations, ", "))
 	}
 
-	return snc.readConfiguration(files)
+	initSet, err := snc.readConfiguration(files)
+	if err != nil {
+		return nil, err
+	}
+	initSet.osSignalChannel = osSignalChannel
+
+	return initSet, nil
 }
 
-func (snc *Agent) readConfiguration(file []string) (config *Config, listen map[string]*Listener, tasks *TaskSet, err error) {
-	config = NewConfig()
+func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
+	config := NewConfig()
 	for _, path := range file {
 		err := config.ReadINI(path)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("reading settings failed: %s", err.Error())
+			return nil, fmt.Errorf("reading settings failed: %s", err.Error())
 		}
 	}
 
@@ -311,7 +321,7 @@ func (snc *Agent) readConfiguration(file []string) (config *Config, listen map[s
 	default:
 		execPath, err := utils.GetExecutablePath()
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
+			return nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
 		}
 
 		pathSection.Set("exe-path", execPath)
@@ -341,21 +351,25 @@ func (snc *Agent) readConfiguration(file []string) (config *Config, listen map[s
 		log.Tracef("conf macro: %s -> %s", key, val)
 	}
 
-	tasks, err = snc.initTasks(config)
+	tasks, err := snc.initTasks(config)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("task initialization failed: %s", err.Error())
+		return nil, fmt.Errorf("task initialization failed: %s", err.Error())
 	}
 
-	listen, err = snc.initListeners(config)
+	listen, err := snc.initListeners(config)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("listener initialization failed: %s", err.Error())
+		return nil, fmt.Errorf("listener initialization failed: %s", err.Error())
 	}
 
 	if len(listen) == 0 {
-		return nil, nil, nil, fmt.Errorf("no listener enabled, bailing out")
+		return nil, fmt.Errorf("no listener enabled, bailing out")
 	}
 
-	return config, listen, tasks, nil
+	return &AgentRunSet{
+		config:    config,
+		listeners: listen,
+		tasks:     tasks,
+	}, nil
 }
 
 func (snc *Agent) initTasks(conf *Config) (*TaskSet, error) {

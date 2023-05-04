@@ -14,17 +14,15 @@ import (
 var elog debug.Log
 
 type winService struct {
-	snc       *Agent
-	conf      *Config
-	listeners map[string]*Listener
-	tasks     *TaskSet
+	snc     *Agent
+	initSet *AgentRunSet
 }
 
 func (m *winService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
 	changes <- svc.Status{State: svc.StartPending}
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
-	go m.snc.run(m.conf, m.listeners, m.tasks)
+	go m.snc.run(m.initSet)
 loop:
 	for {
 		select {
@@ -37,6 +35,7 @@ loop:
 				changes <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
 				m.snc.stop()
+
 				break loop
 			default:
 				elog.Error(1, fmt.Sprintf("unexpected control request #%d", c))
@@ -44,19 +43,20 @@ loop:
 		}
 	}
 	changes <- svc.Status{State: svc.StopPending}
+
 	return
 }
 
-func (snc *Agent) daemonize(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
+func (snc *Agent) daemonize(initSet *AgentRunSet) {
 	inService, _ := svc.IsWindowsService()
 	if inService {
-		snc.runAsWinService(config, listeners, tasks)
+		snc.runAsWinService(initSet)
 	} else {
-		snc.runBackground(config, listeners, tasks)
+		snc.runBackground(initSet)
 	}
 }
 
-func (snc *Agent) runAsWinService(config *Config, listeners map[string]*Listener, tasks *TaskSet) {
+func (snc *Agent) runAsWinService(initSet *AgentRunSet) {
 	const svcName = "snclient"
 	inService, err := svc.IsWindowsService()
 	if err != nil {
@@ -75,13 +75,12 @@ func (snc *Agent) runAsWinService(config *Config, listeners map[string]*Listener
 	elog.Info(1, fmt.Sprintf("starting %s service", svcName))
 	run := svc.Run
 	err = run(svcName, &winService{
-		snc:       snc,
-		conf:      config,
-		listeners: listeners,
-		tasks:     tasks,
+		snc:     snc,
+		initSet: initSet,
 	})
 	if err != nil {
 		elog.Error(1, fmt.Sprintf("%s service failed: %v", svcName, err))
+
 		return
 	}
 	elog.Info(1, fmt.Sprintf("%s service stopped", svcName))
@@ -92,6 +91,7 @@ func isInteractive() bool {
 	if inService {
 		return false
 	}
+
 	return true
 }
 

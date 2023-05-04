@@ -2,37 +2,42 @@ package snclient
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"pkg/utils"
 	"testing"
 	"time"
+
+	"pkg/utils"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func StartTestAgent(t *testing.T, config string, args []string) error {
-	tmpConfig, err := ioutil.TempFile("", "testconfig")
+func StartTestAgent(t *testing.T, config string, args []string) (chan os.Signal, error) {
+	t.Helper()
+	tmpConfig, err := os.CreateTemp("", "testconfig")
 	assert.NoErrorf(t, err, "tmp config created")
-	fmt.Fprintf(tmpConfig, config)
+	_, err = tmpConfig.WriteString(config)
+	assert.NoErrorf(t, err, "tmp config written")
 	err = tmpConfig.Close()
 	assert.NoErrorf(t, err, "tmp config created")
 	defer os.Remove(tmpConfig.Name())
 
-	tmpPidfile, err := ioutil.TempFile("", "testpid")
+	tmpPidfile, err := os.CreateTemp("", "testpid")
 	assert.NoErrorf(t, err, "tmp pidfile created")
 	tmpPidfile.Close()
 	os.Remove(tmpPidfile.Name())
 
+	osSignalChannel := make(chan os.Signal, 1)
+
 	go func() {
 		oldArgs := os.Args
 		defer func() { os.Args = oldArgs }()
-		os.Args = []string{"/usr/local/bin/snclient",
+		os.Args = []string{
+			"/usr/local/bin/snclient",
 			fmt.Sprintf("--config=%s", tmpConfig.Name()),
 			fmt.Sprintf("--pidfile=%s", tmpPidfile.Name()),
 		}
 		os.Args = append(os.Args, args...)
-		SNClient("test", VERSION)
+		SNClient("test", VERSION, osSignalChannel)
 	}()
 
 	// wait for pid file
@@ -42,7 +47,7 @@ func StartTestAgent(t *testing.T, config string, args []string) error {
 		if time.Now().After(waitMax) {
 			assert.Failf(t, "failed to start agent", "pidfile did not occur within %s", waitDur.String())
 
-			return fmt.Errorf("failed to start agent")
+			return nil, fmt.Errorf("failed to start agent")
 		}
 
 		time.Sleep(50 * time.Millisecond)
@@ -55,14 +60,15 @@ func StartTestAgent(t *testing.T, config string, args []string) error {
 		if pid > 0 {
 			assert.NotNil(t, agent, "got global agent")
 
-			return nil
+			return osSignalChannel, nil
 		}
 	}
 }
 
-func StopTestAgent(t *testing.T) {
+func StopTestAgent(t *testing.T, osSignalChannel chan os.Signal) {
+	t.Helper()
 	pidfile := agent.flags.flagPidfile
-	agent.osSignalChannel <- os.Interrupt
+	osSignalChannel <- os.Interrupt
 
 	// wait for pid file to disapear
 	waitDur := 10 * time.Second
