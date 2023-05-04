@@ -237,7 +237,12 @@ golangci: tools
 	# golangci combines a few static code analyzer
 	# See https://github.com/golangci/golangci-lint
 	#
-	set -e; for dir in $$(ls -1d internal/* pkg/*); do echo $$dir; ( cd $$dir && golangci-lint run *.go ) ; done
+	set -e; for dir in $$(ls -1d internal/* pkg/*); do \
+		echo $$dir; \
+		unset GOOS; \
+		[ $$dir == "internal/eventlog" ] && export GOOS=windows; \
+		( cd $$dir && golangci-lint run *.go ); \
+	 done
 	golangci-lint run ./...
 
 govulncheck: tools

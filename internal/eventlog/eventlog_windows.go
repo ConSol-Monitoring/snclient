@@ -7,14 +7,15 @@ import (
 	"github.com/elastic/beats/v7/libbeat/logp"
 	evsys "github.com/elastic/beats/v7/winlogbeat/sys/winevent"
 	"github.com/elastic/beats/v7/winlogbeat/sys/wineventlog"
+	"github.com/kdar/factorlog"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows"
 )
 
 type EventLog struct {
 	LogChannel string
 	TimeDiff   uint64
+	log        *factorlog.FactorLog
 
 	bookmark *evsys.Event
 }
@@ -36,12 +37,19 @@ type xmlEventList struct {
 	Query   xmlEventQuery `xml:"Query"`
 }
 
+func NewEventLog(logchan string, log *factorlog.FactorLog) *EventLog {
+	return &EventLog{
+		LogChannel: logchan,
+		log:        log,
+	}
+}
+
 func queryStringFromChannels(channels []string, timeDiffSeconds uint64) (string, error) {
 	if len(channels) < 1 {
 		return "", fmt.Errorf("missing channel for event log query")
 	}
 
-	var selects []xmlEventQuerySelect
+	selects := make([]xmlEventQuerySelect, 0)
 	for _, channel := range channels {
 		query := "*"
 		if timeDiffSeconds > 0 {
@@ -61,47 +69,50 @@ func queryStringFromChannels(channels []string, timeDiffSeconds uint64) (string,
 		},
 	})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("json error: %s", err.Error())
 	}
+
 	return string(data), nil
 }
 
-func (e *EventLog) prepare() (string, wineventlog.EvtHandle, wineventlog.EvtSubscribeFlag, error) {
+func (el *EventLog) prepare() (string, wineventlog.EvtHandle, wineventlog.EvtSubscribeFlag, error) {
 	var (
 		err      error
 		bookmark wineventlog.EvtHandle
 		flags    = wineventlog.EvtSubscribeStartAtOldestRecord
 	)
-	log.Debugln("Event Log: prepare query")
+	el.log.Debugf("Event Log: prepare query")
 
 	var timeDiff uint64 = 3600
-	if e.TimeDiff > 0 {
-		timeDiff = e.TimeDiff
+	if el.TimeDiff > 0 {
+		timeDiff = el.TimeDiff
 	}
 
-	if e.bookmark != nil {
+	if el.bookmark != nil {
 		timeDiff = 0
-		bookmark, err = wineventlog.CreateBookmarkFromRecordID(e.bookmark.Channel, e.bookmark.RecordID)
+		bookmark, err = wineventlog.CreateBookmarkFromRecordID(el.bookmark.Channel, el.bookmark.RecordID)
 		if err != nil {
-			log.Errorln(errors.Wrap(err, "could not create bookmark"))
+			el.log.Errorf("could not create bookmark: %s", err.Error())
 			bookmark = 0
 		} else {
 			flags = wineventlog.EvtSubscribeStartAfterBookmark
 		}
 	}
 
-	query, err := queryStringFromChannels([]string{e.LogChannel}, timeDiff)
+	query, err := queryStringFromChannels([]string{el.LogChannel}, timeDiff)
 	if err != nil {
 		if bookmark != 0 {
 			_ = bookmark.Close()
 		}
+
 		return "", 0, 0, errors.Wrap(err, "could not create query xml")
 	}
+
 	return query, bookmark, flags, nil
 }
 
-func (e *EventLog) Query() ([]*evsys.Event, error) {
-	query, bookmark, flags, err := e.prepare()
+func (el *EventLog) Query() ([]*evsys.Event, error) {
+	query, bookmark, flags, err := el.prepare()
 	if err != nil {
 		return nil, err
 	}
@@ -109,33 +120,42 @@ func (e *EventLog) Query() ([]*evsys.Event, error) {
 		defer bookmark.Close()
 	}
 
-	log.Debugln("Event Log: create windows event handle")
+	el.log.Debugf("Event Log: create windows event handle")
 	signalHandle, err := windows.CreateEvent(nil, 1, 1, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create windows event handle")
 	}
-	defer windows.CloseHandle(signalHandle)
+	defer func() {
+		err := windows.CloseHandle(signalHandle)
+		if err != nil {
+			el.log.Errorf("Event Log: close failed: %s", err.Error())
+		}
+	}()
 
-	log.Debugln("Event Log: subscribe to windows event log with query: ", query)
+	el.log.Debugf("Event Log: subscribe to windows event log with query: %s", query)
 	subscription, err := wineventlog.Subscribe(0, signalHandle, "", query, bookmark, flags)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not subscribe to event log")
 	}
 	defer subscription.Close()
 
-	log.Debugln("Event Log: fetch event log handles")
+	return (el.getEventFromSubscription(subscription))
+}
+
+func (el *EventLog) getEventFromSubscription(subscription wineventlog.EvtHandle) ([]*evsys.Event, error) {
+	el.log.Debugf("Event Log: fetch event log handles")
 	iter, err := wineventlog.NewEventIterator(wineventlog.WithSubscription(subscription))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create event iterator from subscription")
 	}
 	defer iter.Close()
 
-	var events []*evsys.Event
+	events := make([]*evsys.Event, 0)
 
 	logger := logp.NewLogger("")
 	renderer, err := wineventlog.NewRenderer(0, logger)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("wineventlog error: %s", err.Error())
 	}
 	defer renderer.Close()
 
@@ -146,7 +166,7 @@ func (e *EventLog) Query() ([]*evsys.Event, error) {
 		}
 
 		if event, err := renderer.Render(eventHandle); err != nil {
-			log.Errorln("Event Log: could not render event: ", err)
+			el.log.Errorf("Event Log: could not render event: %s", err.Error())
 		} else {
 			events = append(events, event)
 		}
@@ -155,15 +175,11 @@ func (e *EventLog) Query() ([]*evsys.Event, error) {
 	if err := iter.Err(); err != nil {
 		return nil, errors.Wrap(err, "could not fetch events from subscription")
 	}
-	log.Debugln("Event Log: fetched and parsed all events: ", len(events))
+	el.log.Debugln("Event Log: fetched and parsed all events: %d", len(events))
 
 	if len(events) > 0 {
-		e.bookmark = events[len(events)-1]
+		el.bookmark = events[len(events)-1]
 	}
 
 	return events, nil
-}
-
-func Available() (bool, error) {
-	return wineventlog.IsAvailable()
 }

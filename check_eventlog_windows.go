@@ -48,7 +48,7 @@ func (l *CheckEventlog) Check(args []string) (*CheckResult, error) {
 
 	for _, file := range files {
 
-		e := eventlog.EventLog{LogChannel: file}
+		e := eventlog.NewEventLog(file, log)
 		fileEvent, _ := e.Query()
 		events = append(events, fileEvent...)
 
