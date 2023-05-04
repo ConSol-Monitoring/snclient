@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/kdar/factorlog"
 )
 
 // ExpandDuration expand duration string into seconds
@@ -92,4 +95,14 @@ func ReadPid(pidfile string) (int, error) {
 	}
 
 	return pid, nil
+}
+
+func LogThreadDump(log *factorlog.FactorLog) {
+	buf := make([]byte, 1<<16)
+
+	if n := runtime.Stack(buf, true); n < len(buf) {
+		buf = buf[:n]
+	}
+
+	log.Errorf("ThreadDump:\n%s", buf)
 }

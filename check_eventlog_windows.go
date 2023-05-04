@@ -23,7 +23,6 @@ type CheckEventlog struct {
  */
 
 func (l *CheckEventlog) Check(args []string) (*CheckResult, error) {
-	// default state: OK
 	state := int64(CheckExitOK)
 	l.data.detailSyntax = "%(file) %(source) (%(message))"
 	l.data.okSyntax = "Event log seems fine"
@@ -33,7 +32,6 @@ func (l *CheckEventlog) Check(args []string) (*CheckResult, error) {
 	var output string
 	files := []string{}
 	var checkData map[string]string
-	// var scanRange string
 	events := []*winevent.Event{}
 
 	// parse args
@@ -41,17 +39,13 @@ func (l *CheckEventlog) Check(args []string) (*CheckResult, error) {
 		switch arg.key {
 		case "file", "log":
 			files = append(files, arg.value)
-			/*case "scan-range":
-			scanRange = arg.value*/
 		}
 	}
 
 	for _, file := range files {
-
 		e := eventlog.NewEventLog(file, log)
 		fileEvent, _ := e.Query()
 		events = append(events, fileEvent...)
-
 	}
 
 	okList := make([]string, 0, len(events))
@@ -59,7 +53,6 @@ func (l *CheckEventlog) Check(args []string) (*CheckResult, error) {
 	critList := make([]string, 0, len(events))
 
 	for _, event := range events {
-
 		metrics := map[string]string{
 			"computer": event.Computer,
 			"file":     event.Channel,

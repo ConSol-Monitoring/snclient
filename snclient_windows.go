@@ -1,50 +1,56 @@
 package snclient
 
 import (
-	"fmt"
 	"os"
 	"syscall"
 	"time"
 
 	"golang.org/x/sys/windows/svc"
-	"golang.org/x/sys/windows/svc/debug"
-	"golang.org/x/sys/windows/svc/eventlog"
 )
-
-var elog debug.Log
 
 type winService struct {
 	snc     *Agent
 	initSet *AgentRunSet
 }
 
-func (m *winService) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
+func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
 	changes <- svc.Status{State: svc.StartPending}
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 	go m.snc.run(m.initSet)
-loop:
-	for {
-		select {
-		case c := <-r:
-			switch c.Cmd {
-			case svc.Interrogate:
-				changes <- c.CurrentStatus
-				// Testing deadlock from https://code.google.com/p/winsvc/issues/detail?id=4
-				time.Sleep(100 * time.Millisecond)
-				changes <- c.CurrentStatus
-			case svc.Stop, svc.Shutdown:
-				m.snc.stop()
 
-				break loop
-			default:
-				elog.Error(1, fmt.Sprintf("unexpected control request #%d", c))
-			}
+	keepListening := true
+	for keepListening {
+		chg := <-changeReq
+		switch chg.Cmd {
+		case svc.Interrogate:
+			changes <- chg.CurrentStatus
+			// Testing deadlock from https://code.google.com/p/winsvc/issues/detail?id=4
+			time.Sleep(100 * time.Millisecond)
+			changes <- chg.CurrentStatus
+		case svc.Stop, svc.Shutdown:
+			m.snc.stop()
+			keepListening = false
+		case svc.Pause,
+			svc.Continue,
+			svc.ParamChange,
+			svc.NetBindAdd,
+			svc.NetBindRemove,
+			svc.NetBindEnable,
+			svc.NetBindDisable,
+			svc.DeviceEvent,
+			svc.HardwareProfileChange,
+			svc.PowerEvent,
+			svc.SessionChange,
+			svc.PreShutdown:
+			// ignored
+		default:
+			log.Errorf("unexpected control request #%d", chg)
 		}
 	}
 	changes <- svc.Status{State: svc.StopPending}
 
-	return
+	return ssec, errno
 }
 
 func (snc *Agent) daemonize(initSet *AgentRunSet) {
@@ -66,39 +72,28 @@ func (snc *Agent) runAsWinService(initSet *AgentRunSet) {
 		log.Fatalf("--daemon mode cannot run interactively")
 	}
 
-	elog, err = eventlog.Open(svcName)
-	if err != nil {
-		return
-	}
-	defer elog.Close()
-
-	elog.Info(1, fmt.Sprintf("starting %s service", svcName))
 	run := svc.Run
 	err = run(svcName, &winService{
 		snc:     snc,
 		initSet: initSet,
 	})
 	if err != nil {
-		elog.Error(1, fmt.Sprintf("%s service failed: %v", svcName, err))
+		log.Errorf("windows service %s failed: %v", svcName, err)
 
 		return
 	}
-	elog.Info(1, fmt.Sprintf("%s service stopped", svcName))
 }
 
 func isInteractive() bool {
 	inService, _ := svc.IsWindowsService()
-	if inService {
-		return false
-	}
 
-	return true
+	return !inService
 }
 
-func setupUsrSignalChannel(osSignalUsrChannel chan os.Signal) {
+func setupUsrSignalChannel(_ chan os.Signal) {
 }
 
-func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
+func mainSignalHandler(sig os.Signal, _ *Agent) MainStateType {
 	switch sig {
 	case syscall.SIGTERM:
 		log.Infof("got sigterm, quiting gracefully")

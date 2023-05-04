@@ -239,12 +239,15 @@ golangci: tools
 	#
 	set -e; for dir in $$(ls -1d internal/* pkg/*); do \
 		echo $$dir; \
-		unset GOOS; \
-		[ $$dir == "internal/eventlog" ] && export GOOS=windows; \
-		( cd $$dir && golangci-lint run *.go ); \
-	 done
+		if [ $$dir != "internal/eventlog" ]; then \
+			echo "  - GOOS=linux"; \
+			( cd $$dir && GOOS=linux golangci-lint run *.go ); \
+		fi; \
+		echo "  - GOOS=windows"; \
+		( cd $$dir && GOOS=windows golangci-lint run *.go ); \
+	done
 	GOOS=linux   golangci-lint run ./...
-	#GOOS=windows golangci-lint run ./...
+	GOOS=windows golangci-lint run ./...
 
 govulncheck: tools
 	govulncheck ./...

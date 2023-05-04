@@ -442,16 +442,6 @@ func (snc *Agent) cleanExit(exitCode int) {
 	os.Exit(exitCode)
 }
 
-func logThreadDump() {
-	buf := make([]byte, 1<<16)
-
-	if n := runtime.Stack(buf, true); n < len(buf) {
-		buf = buf[:n]
-	}
-
-	log.Errorf("ThreadDump:\n%s", buf)
-}
-
 func (snc *Agent) createPidFile() {
 	// write the pid id if file path is defined
 	if snc.flags.flagPidfile == "" {

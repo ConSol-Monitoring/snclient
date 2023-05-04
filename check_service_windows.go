@@ -64,7 +64,7 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 	l.data.critThreshold.value = ServiceStates[l.data.critThreshold.value]
 
 	// collect service state
-	m, err := mgr.Connect()
+	ctrlMgr, err := mgr.Connect()
 	if err != nil {
 		return &CheckResult{
 			State:  int64(3),
@@ -72,23 +72,18 @@ func (l *CheckService) Check(args []string) (*CheckResult, error) {
 		}, nil
 	}
 
-	serviceList, _ := m.ListServices()
-
+	serviceList, _ := ctrlMgr.ListServices()
 	for _, service := range services {
-
 		if slices.Contains(serviceList, service) {
-
-			s, err := m.OpenService(service)
+			ctlSvc, err := ctrlMgr.OpenService(service)
 			if err != nil {
 				return &CheckResult{
 					State:  int64(3),
 					Output: fmt.Sprintf("Failed to open service %s: %s", service, err),
 				}, nil
 			}
-			defer s.Close()
-
-			statusCode, _ = s.Query()
-
+			statusCode, _ = ctlSvc.Query()
+			ctlSvc.Close()
 		} else {
 			return &CheckResult{
 				State:  int64(3),
