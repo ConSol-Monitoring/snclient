@@ -73,6 +73,9 @@ func setLogLevel(snc *Agent, conf *ConfigSection) {
 	case "off":
 		log.SetMinMaxSeverity(factorlog.StringToSeverity("PANIC"), factorlog.StringToSeverity("PANIC"))
 		log.SetVerbosity(LogVerbosityNone)
+	case "error":
+		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
+		log.SetVerbosity(LogVerbosityDefault)
 	case "info":
 		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
 		log.SetVerbosity(LogVerbosityDefault)

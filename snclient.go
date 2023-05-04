@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -95,6 +94,7 @@ type Agent struct {
 	cpuProfileHandler *os.File
 	Build             string
 	Revision          string
+	osSignalChannel   chan os.Signal
 }
 
 var agent *Agent
@@ -145,6 +145,7 @@ func (snc *Agent) run(config *Config, listeners map[string]*Listener, tasks *Tas
 	setupUsrSignalChannel(osSignalUsrChannel)
 
 	osSignalChannel := make(chan os.Signal, 1)
+	snc.osSignalChannel = osSignalChannel
 	signal.Notify(osSignalChannel, syscall.SIGHUP)
 	signal.Notify(osSignalChannel, syscall.SIGTERM)
 	signal.Notify(osSignalChannel, os.Interrupt)
@@ -455,12 +456,7 @@ func (snc *Agent) createPidFile() {
 }
 
 func (snc *Agent) checkStalePidFile() bool {
-	dat, err := os.ReadFile(snc.flags.flagPidfile)
-	if err != nil {
-		return false
-	}
-
-	pid, err := strconv.Atoi(strings.TrimSpace(string(dat)))
+	pid, err := utils.ReadPid(snc.flags.flagPidfile)
 	if err != nil {
 		return false
 	}

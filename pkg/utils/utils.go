@@ -79,3 +79,17 @@ func GetExecutablePath() (string, error) {
 
 	return filepath.Dir(executable), nil
 }
+
+func ReadPid(pidfile string) (int, error) {
+	dat, err := os.ReadFile(pidfile)
+	if err != nil {
+		return 0, fmt.Errorf("read %s failed: %s", pidfile, err.Error())
+	}
+
+	pid, err := strconv.Atoi(strings.TrimSpace(string(dat)))
+	if err != nil {
+		return 0, fmt.Errorf("read %s failed: %s", pidfile, err.Error())
+	}
+
+	return pid, nil
+}
