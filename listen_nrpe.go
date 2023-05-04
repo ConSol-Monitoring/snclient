@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"fmt"
 	"net"
 	"strings"
 
@@ -88,10 +87,7 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 		}
 	case cmd == "_NRPE_CHECK":
 		// version check
-		statusResult = &CheckResult{
-			State:  0,
-			Output: fmt.Sprintf("%s v%s.%s", NAME, VERSION, snc.Revision),
-		}
+		statusResult = snc.RunCheck("check_snclient_version", args)
 	default:
 		statusResult = snc.RunCheck(cmd, args)
 	}

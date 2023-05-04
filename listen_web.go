@@ -40,15 +40,17 @@ func init() {
 }
 
 type HandlerWeb struct {
-	noCopy        noCopy
-	handlerLegacy http.Handler
-	handlerV1     http.Handler
-	snc           *Agent
-	password      string
+	noCopy         noCopy
+	handlerGeneric http.Handler
+	handlerLegacy  http.Handler
+	handlerV1      http.Handler
+	snc            *Agent
+	password       string
 }
 
 func NewHandlerWeb() *HandlerWeb {
 	l := &HandlerWeb{}
+	l.handlerGeneric = &HandlerWebGeneric{Handler: l}
 	l.handlerLegacy = &HandlerWebLegacy{Handler: l}
 	l.handlerV1 = &HandlerWebV1{Handler: l}
 
@@ -84,6 +86,8 @@ func (l *HandlerWeb) GetMappings(*Agent) []URLMapping {
 	return []URLMapping{
 		{URL: "/query/{command}", Handler: l.handlerLegacy},
 		{URL: "/api/v1/queries/{command}/commands/execute", Handler: l.handlerV1},
+		{URL: "/index.html", Handler: l.handlerGeneric},
+		{URL: "/", Handler: l.handlerGeneric},
 	}
 }
 
@@ -218,6 +222,24 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 			},
 		},
 	}))
+}
+
+type HandlerWebGeneric struct {
+	noCopy  noCopy
+	Handler *HandlerWeb
+}
+
+func (l *HandlerWebGeneric) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	switch req.URL.Path {
+	case "/":
+		http.Redirect(res, req, "/index.html", http.StatusTemporaryRedirect)
+	case "/index.html":
+		res.WriteHeader(http.StatusOK)
+		LogError2(res.Write([]byte("snclient working...")))
+	default:
+		res.WriteHeader(http.StatusNotFound)
+		LogError2(res.Write([]byte("404 - nothing here")))
+	}
 }
 
 type HandlerWebV1 struct {
