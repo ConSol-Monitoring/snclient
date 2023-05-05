@@ -8,8 +8,6 @@ import (
 )
 
 func TestCompare(t *testing.T) {
-	t.Parallel()
-
 	for _, check := range []struct {
 		threshold string
 		key       string

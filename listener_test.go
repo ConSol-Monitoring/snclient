@@ -8,8 +8,6 @@ import (
 )
 
 func TestListenerConfig(t *testing.T) {
-	t.Parallel()
-
 	conf := &ConfigSection{
 		data: ConfigData{
 			"port":          "8080",

@@ -8,8 +8,6 @@ import (
 )
 
 func TestArgumentParser(t *testing.T) {
-	t.Parallel()
-
 	for _, check := range []struct {
 		args   []string
 		data   CheckData
@@ -30,8 +28,6 @@ func TestArgumentParser(t *testing.T) {
 }
 
 func TestThresholdParser(t *testing.T) {
-	t.Parallel()
-
 	for _, check := range []struct {
 		threshold string
 		expect    *Threshold

@@ -7,6 +7,5 @@ import (
 )
 
 func TestHandlerPrometheus(t *testing.T) {
-	t.Parallel()
 	assert.Implements(t, (*RequestHandlerHTTP)(nil), new(HandlerPrometheus))
 }

@@ -8,8 +8,6 @@ import (
 )
 
 func TestConfigBasic(t *testing.T) {
-	t.Parallel()
-
 	configText := `
 [/test]
 Key1 = Value1
@@ -32,8 +30,6 @@ Key3 = 'Value3'
 }
 
 func TestConfigErrorI(t *testing.T) {
-	t.Parallel()
-
 	configText := `
 [/test]
 Key1 = "Value1

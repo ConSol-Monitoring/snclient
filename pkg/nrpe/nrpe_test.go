@@ -10,8 +10,6 @@ import (
 )
 
 func TestNRPERequestV2(t *testing.T) {
-	t.Parallel()
-
 	pkgBytes := make([]byte, 1036)
 	header, _ := hex.DecodeString("00020001823d740973455f4e5250455f434845434b213121322133")
 	copy(pkgBytes, header)
@@ -33,8 +31,6 @@ func TestNRPERequestV2(t *testing.T) {
 }
 
 func TestNRPERequestV3(t *testing.T) {
-	t.Parallel()
-
 	pkgBytes := make([]byte, 1036)
 	header, _ := hex.DecodeString("00030001135b1c7900000000000003f9636865636b5f696e6465782131213221332134")
 	copy(pkgBytes, header)
@@ -52,8 +48,6 @@ func TestNRPERequestV3(t *testing.T) {
 }
 
 func TestNRPERequestV4(t *testing.T) {
-	t.Parallel()
-
 	pkgBytes := make([]byte, 1036)
 	header, _ := hex.DecodeString("0004000158695ec800000000000003fc636865636b5f696e6465782131213221332134")
 	copy(pkgBytes, header)
@@ -71,8 +65,6 @@ func TestNRPERequestV4(t *testing.T) {
 }
 
 func TestNRPEResponseV2(t *testing.T) {
-	t.Parallel()
-
 	pkgBytes, _ := os.ReadFile("data/v2.0")
 	pkg, err := ReadNrpePacket(bytes.NewReader(pkgBytes))
 	assert.NoErrorf(t, err, "read ok")
@@ -87,8 +79,6 @@ func TestNRPEResponseV2(t *testing.T) {
 }
 
 func TestNRPEResponseV2_II(t *testing.T) {
-	t.Parallel()
-
 	pkgBytes, _ := os.ReadFile("data/v2.1")
 	pkg, err := ReadNrpePacket(bytes.NewReader(pkgBytes))
 	assert.NoErrorf(t, err, "read ok")
@@ -108,8 +98,6 @@ func TestNRPEResponseV2_II(t *testing.T) {
 }
 
 func TestNRPEResponseV4(t *testing.T) {
-	t.Parallel()
-
 	pkgBytes, _ := os.ReadFile("data/v4")
 	pkg, err := ReadNrpePacket(bytes.NewReader(pkgBytes))
 	assert.NoErrorf(t, err, "read ok")

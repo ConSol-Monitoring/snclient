@@ -12,12 +12,10 @@ import (
 )
 
 func TestHandlerNRPE(t *testing.T) {
-	t.Parallel()
 	assert.Implements(t, (*RequestHandlerTCP)(nil), new(HandlerNRPE))
 }
 
 func TestNRPE(t *testing.T) {
-	t.Parallel()
 	config := `
 [/modules]
 NRPEServer = enabled

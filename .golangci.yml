@@ -37,6 +37,7 @@ linters:
     - maligned
     - nonamedreturns
     - nosnakecase
+    - paralleltest
     - scopelint
     - structcheck
     - tagliatelle

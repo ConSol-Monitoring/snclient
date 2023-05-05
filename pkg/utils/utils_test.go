@@ -7,8 +7,6 @@ import (
 )
 
 func TestUtilsExpandDuration(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		in  string
 		res float64
@@ -27,8 +25,6 @@ func TestUtilsExpandDuration(t *testing.T) {
 }
 
 func TestUtilsIsFloatVal(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		in  float64
 		res bool
@@ -45,8 +41,6 @@ func TestUtilsIsFloatVal(t *testing.T) {
 }
 
 func TestUtilsExecPath(t *testing.T) {
-	t.Parallel()
-
 	execPath, err := GetExecutablePath()
 	assert.NoErrorf(t, err, "GetExecutablePath works")
 
