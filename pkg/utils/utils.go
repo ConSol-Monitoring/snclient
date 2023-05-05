@@ -68,6 +68,15 @@ func IsFloatVal(val float64) bool {
 	return strconv.FormatFloat(val, 'f', -1, 64) != fmt.Sprintf("%d", int64(val))
 }
 
+// ToPrecision converts float64 to given precision, ex.: 5.12345 -> 5.1
+func ToPrecision(val float64, precision int) float64 {
+	format := fmt.Sprintf("%%.%df", precision)
+	valStr := fmt.Sprintf(format, val)
+	short, _ := strconv.ParseFloat(valStr, 64)
+
+	return short
+}
+
 // GetExecutablePath returns path to executable
 func GetExecutablePath() (string, error) {
 	executable, err := os.Executable()

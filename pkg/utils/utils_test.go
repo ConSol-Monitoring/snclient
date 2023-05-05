@@ -46,3 +46,20 @@ func TestUtilsExecPath(t *testing.T) {
 
 	assert.NotEmptyf(t, execPath, "GetExecutablePath")
 }
+
+func TestToPrecision(t *testing.T) {
+	tests := []struct {
+		in        float64
+		precision int
+		res       float64
+	}{
+		{1.001, 0, 1},
+		{1.001, 3, 1.001},
+		{1.0013, 3, 1.001},
+	}
+
+	for _, tst := range tests {
+		res := ToPrecision(tst.in, tst.precision)
+		assert.Equalf(t, tst.res, res, "ToPrecision: %v (precision: %d) -> %v", tst.in, tst.precision, res)
+	}
+}

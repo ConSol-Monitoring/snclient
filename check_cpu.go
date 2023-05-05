@@ -47,7 +47,7 @@ func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 				avg := counter.AvgForDuration(dur)
 				metrics = append(metrics, &CheckMetric{
 					Name:     fmt.Sprintf("%s %s", name, time),
-					Value:    avg,
+					Value:    utils.ToPrecision(avg, 0),
 					Unit:     "%",
 					Warning:  l.data.warnThreshold,
 					Critical: l.data.critThreshold,
