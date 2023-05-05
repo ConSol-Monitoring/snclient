@@ -29,15 +29,12 @@ func StartTestAgent(t *testing.T, config string, args []string) (chan os.Signal,
 	osSignalChannel := make(chan os.Signal, 1)
 
 	go func() {
-		oldArgs := os.Args
-		defer func() { os.Args = oldArgs }()
-		os.Args = []string{
-			"/usr/local/bin/snclient",
+		osArgs := []string{
 			fmt.Sprintf("--config=%s", tmpConfig.Name()),
 			fmt.Sprintf("--pidfile=%s", tmpPidfile.Name()),
 		}
-		os.Args = append(os.Args, args...)
-		SNClient("test", VERSION, osSignalChannel)
+		osArgs = append(osArgs, args...)
+		SNClient("test", VERSION, osArgs, osSignalChannel)
 	}()
 
 	// wait for pid file

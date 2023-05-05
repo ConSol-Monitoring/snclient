@@ -23,5 +23,5 @@ func main() {
 	}
 
 	osSignalChannel := make(chan os.Signal, 1)
-	snclient.SNClient(Build, Revision, osSignalChannel)
+	snclient.SNClient(Build, Revision, os.Args[1:], osSignalChannel)
 }

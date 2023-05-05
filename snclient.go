@@ -75,7 +75,8 @@ type Agent struct {
 	Listeners map[string]*Listener // Listeners stores if we started listeners
 	Tasks     *TaskSet             // Tasks stores if we started task runners
 	Counter   *CounterSet          // Counter stores collected counters from tasks
-	flags     struct {             // command line flags
+	flagset   *flag.FlagSet
+	flags     struct { // command line flags
 		flagDaemon       bool
 		flagVerbose      bool
 		flagVeryVerbose  bool
@@ -105,7 +106,7 @@ type AgentRunSet struct {
 
 var agent *Agent
 
-func SNClient(build, revision string, osSignalChannel chan os.Signal) {
+func SNClient(build, revision string, args []string, osSignalChannel chan os.Signal) {
 	snc := Agent{
 		Build:     build,
 		Revision:  revision,
@@ -117,7 +118,7 @@ func SNClient(build, revision string, osSignalChannel chan os.Signal) {
 	agent = &snc
 
 	snc.setFlags()
-	snc.checkFlags()
+	snc.checkFlags(args)
 	CreateLogger(&snc, nil)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
@@ -503,8 +504,8 @@ func (snc *Agent) printUsage(full bool) {
 	fmt.Fprintf(usageOutput, "\n")
 
 	if full {
-		flag.CommandLine.SetOutput(usageOutput)
-		flag.Usage()
+		snc.flagset.SetOutput(usageOutput)
+		snc.flagset.PrintDefaults()
 	}
 
 	fmt.Fprintf(usageOutput, "\n")
@@ -515,29 +516,34 @@ func (snc *Agent) printUsage(full bool) {
 }
 
 func (snc *Agent) setFlags() {
-	flag.Var(&snc.flags.flagConfigFile, "c", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
-	flag.Var(&snc.flags.flagConfigFile, "config", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
-	flag.BoolVar(&snc.flags.flagDaemon, "d", false, "start snclient as daemon in background")
-	flag.BoolVar(&snc.flags.flagDaemon, "daemon", false, "start snclient as daemon in background")
-	flag.StringVar(&snc.flags.flagPidfile, "pidfile", "", "set path to pidfile")
-	flag.StringVar(&snc.flags.flagLogFile, "logfile", "", "override logfile from the configuration file")
-	flag.StringVar(&snc.flags.flagLogFormat, "logformat", "", "override logformat, see https://pkg.go.dev/github.com/kdar/factorlog")
-	flag.BoolVar(&snc.flags.flagVerbose, "v", false, "enable verbose output")
-	flag.BoolVar(&snc.flags.flagVerbose, "verbose", false, "enable verbose output")
-	flag.BoolVar(&snc.flags.flagVeryVerbose, "vv", false, "enable very verbose output")
-	flag.BoolVar(&snc.flags.flagTraceVerbose, "vvv", false, "enable trace output")
-	flag.BoolVar(&snc.flags.flagVersion, "version", false, "print version and exit")
-	flag.BoolVar(&snc.flags.flagVersion, "V", false, "print version and exit")
-	flag.BoolVar(&snc.flags.flagHelp, "help", false, "print help and exit")
-	flag.BoolVar(&snc.flags.flagHelp, "h", false, "print help and exit")
-	flag.StringVar(&snc.flags.flagProfile, "debug-profiler", "", "start pprof profiler on this port, ex. :6060")
-	flag.StringVar(&snc.flags.flagCPUProfile, "cpuprofile", "", "write cpu profile to `file`")
-	flag.StringVar(&snc.flags.flagMemProfile, "memprofile", "", "write memory profile to `file`")
-	flag.IntVar(&snc.flags.flagDeadlock, "debug-deadlock", 0, "enable deadlock detection with given timeout")
+	flags := &flag.FlagSet{}
+	snc.flagset = flags
+	flags.Var(&snc.flags.flagConfigFile, "c", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
+	flags.Var(&snc.flags.flagConfigFile, "config", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
+	flags.BoolVar(&snc.flags.flagDaemon, "d", false, "start snclient as daemon in background")
+	flags.BoolVar(&snc.flags.flagDaemon, "daemon", false, "start snclient as daemon in background")
+	flags.StringVar(&snc.flags.flagPidfile, "pidfile", "", "set path to pidfile")
+	flags.StringVar(&snc.flags.flagLogFile, "logfile", "", "override logfile from the configuration file")
+	flags.StringVar(&snc.flags.flagLogFormat, "logformat", "", "override logformat, see https://pkg.go.dev/github.com/kdar/factorlog")
+	flags.BoolVar(&snc.flags.flagVerbose, "v", false, "enable verbose output")
+	flags.BoolVar(&snc.flags.flagVerbose, "verbose", false, "enable verbose output")
+	flags.BoolVar(&snc.flags.flagVeryVerbose, "vv", false, "enable very verbose output")
+	flags.BoolVar(&snc.flags.flagTraceVerbose, "vvv", false, "enable trace output")
+	flags.BoolVar(&snc.flags.flagVersion, "version", false, "print version and exit")
+	flags.BoolVar(&snc.flags.flagVersion, "V", false, "print version and exit")
+	flags.BoolVar(&snc.flags.flagHelp, "help", false, "print help and exit")
+	flags.BoolVar(&snc.flags.flagHelp, "h", false, "print help and exit")
+	flags.StringVar(&snc.flags.flagProfile, "debug-profiler", "", "start pprof profiler on this port, ex. :6060")
+	flags.StringVar(&snc.flags.flagCPUProfile, "cpuprofile", "", "write cpu profile to `file`")
+	flags.StringVar(&snc.flags.flagMemProfile, "memprofile", "", "write memory profile to `file`")
+	flags.IntVar(&snc.flags.flagDeadlock, "debug-deadlock", 0, "enable deadlock detection with given timeout")
 }
 
-func (snc *Agent) checkFlags() {
-	flag.Parse()
+func (snc *Agent) checkFlags(osArgs []string) {
+	err := snc.flagset.Parse(osArgs)
+	if err != nil {
+		LogStderrf("ERROR: %s", err.Error())
+	}
 
 	if snc.flags.flagVersion {
 		snc.printVersion()
