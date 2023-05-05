@@ -15,10 +15,10 @@ type CheckSNClientVersion struct {
 /* check_snclient_version
  * Description: Returns SNClient version
  */
-func (l *CheckSNClientVersion) Check(_ []string) (*CheckResult, error) {
+func (l *CheckSNClientVersion) Check(snc *Agent, _ []string) (*CheckResult, error) {
 	return &CheckResult{
 		State:   CheckExitOK,
-		Output:  fmt.Sprintf("%s v%s.%s", NAME, VERSION, agent.Revision),
+		Output:  fmt.Sprintf("%s v%s.%s", NAME, VERSION, snc.Revision),
 		Metrics: nil,
 	}, nil
 }

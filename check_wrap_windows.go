@@ -19,7 +19,7 @@ type CheckWrap struct {
 /* check_service todo
  * todo .
  */
-func (l *CheckWrap) Check(args []string) (*CheckResult, error) {
+func (l *CheckWrap) Check(_ *Agent, args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	argList, err := ParseArgs(args, &l.data)

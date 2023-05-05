@@ -17,7 +17,7 @@ type CheckCPU struct {
 }
 
 /* check_cpu */
-func (l *CheckCPU) Check(args []string) (*CheckResult, error) {
+func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 	state := CheckExitOK
 	output := "CPU load is ${status_lc}. "
 	metrics := make([]*CheckMetric, 0)
@@ -39,7 +39,7 @@ func (l *CheckCPU) Check(args []string) (*CheckResult, error) {
 	names := []string{"total"}
 
 	for _, name := range names {
-		counter := agent.Counter.Get("cpu", name)
+		counter := snc.Counter.Get("cpu", name)
 		if counter != nil {
 			for _, time := range times {
 				time = strings.TrimSpace(time)

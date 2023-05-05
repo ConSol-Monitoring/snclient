@@ -25,7 +25,7 @@ type CheckDrivesize struct {
  * Thresholds: used, free, used_pct, free_pct
  * Units: B, KB, MB, GB, TB, %
  */
-func (l *CheckDrivesize) Check(args []string) (*CheckResult, error) {
+func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 	// default state: OK
 	state := CheckExitOK
 	l.data.detailSyntax = "%(drive_or_name)\\: %(used)/%(size) used"

@@ -22,7 +22,7 @@ type CheckEventlog struct {
  * Description: Checks the eventlog of the host.
  */
 
-func (l *CheckEventlog) Check(args []string) (*CheckResult, error) {
+func (l *CheckEventlog) Check(_ *Agent, args []string) (*CheckResult, error) {
 	state := CheckExitOK
 	l.data.detailSyntax = "%(file) %(source) (%(message))"
 	l.data.okSyntax = "Event log seems fine"

@@ -19,7 +19,7 @@ type CheckOSVersion struct {
 /* check_os_version
  * Description: Checks the os version
  */
-func (l *CheckOSVersion) Check(args []string) (*CheckResult, error) {
+func (l *CheckOSVersion) Check(_ *Agent, args []string) (*CheckResult, error) {
 	state := CheckExitOK
 	_, err := ParseArgs(args, &l.data)
 	if err != nil {

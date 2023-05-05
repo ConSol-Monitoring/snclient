@@ -104,8 +104,6 @@ type AgentRunSet struct {
 	osSignalChannel chan os.Signal
 }
 
-var agent *Agent
-
 func SNClient(build, revision string, args []string, osSignalChannel chan os.Signal) {
 	snc := Agent{
 		Build:     build,
@@ -115,7 +113,6 @@ func SNClient(build, revision string, args []string, osSignalChannel chan os.Sig
 		Counter:   NewCounerSet(),
 		Config:    NewConfig(),
 	}
-	agent = &snc
 
 	snc.setFlags()
 	snc.checkFlags(args)
@@ -689,7 +686,7 @@ func (snc *Agent) runCheck(name string, args []string) *CheckResult {
 		return &res
 	}
 
-	res, err := check.Handler.Check(args)
+	res, err := check.Handler.Check(snc, args)
 	if err != nil {
 		res := CheckResult{
 			State:  CheckExitUnknown,

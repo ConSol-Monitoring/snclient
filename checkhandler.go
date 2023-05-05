@@ -2,5 +2,5 @@ package snclient
 
 // CheckHandler handles a single check.
 type CheckHandler interface {
-	Check(Args []string) (*CheckResult, error)
+	Check(snc *Agent, Args []string) (*CheckResult, error)
 }

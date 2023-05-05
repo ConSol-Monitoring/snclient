@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func StartTestAgent(t *testing.T, config string, args []string) (chan os.Signal, error) {
+func StartTestAgent(t *testing.T, config string, args []string) (osSignalChannel chan os.Signal, pidfile string, err error) {
 	t.Helper()
 	tmpConfig, err := os.CreateTemp("", "testconfig")
 	assert.NoErrorf(t, err, "tmp config created")
@@ -26,7 +26,7 @@ func StartTestAgent(t *testing.T, config string, args []string) (chan os.Signal,
 	tmpPidfile.Close()
 	os.Remove(tmpPidfile.Name())
 
-	osSignalChannel := make(chan os.Signal, 1)
+	osSignalChannel = make(chan os.Signal, 1)
 
 	go func() {
 		osArgs := []string{
@@ -44,7 +44,7 @@ func StartTestAgent(t *testing.T, config string, args []string) (chan os.Signal,
 		if time.Now().After(waitMax) {
 			assert.Failf(t, "failed to start agent", "pidfile did not occur within %s", waitDur.String())
 
-			return nil, fmt.Errorf("failed to start agent")
+			return nil, "", fmt.Errorf("failed to start agent")
 		}
 
 		time.Sleep(50 * time.Millisecond)
@@ -55,16 +55,13 @@ func StartTestAgent(t *testing.T, config string, args []string) (chan os.Signal,
 		}
 
 		if pid > 0 {
-			assert.NotNil(t, agent, "got global agent")
-
-			return osSignalChannel, nil
+			return osSignalChannel, tmpPidfile.Name(), nil
 		}
 	}
 }
 
-func StopTestAgent(t *testing.T, osSignalChannel chan os.Signal) {
+func StopTestAgent(t *testing.T, pidfile string, osSignalChannel chan os.Signal) {
 	t.Helper()
-	pidfile := agent.flags.flagPidfile
 	osSignalChannel <- os.Interrupt
 
 	// wait for pid file to disapear

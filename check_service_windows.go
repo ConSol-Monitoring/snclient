@@ -33,7 +33,7 @@ var ServiceStates = map[string]string{
  * Thresholds: status
  * Units: stopped, dead, startpending, stoppedpending, running, started
  */
-func (l *CheckService) Check(args []string) (*CheckResult, error) {
+func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	var output string

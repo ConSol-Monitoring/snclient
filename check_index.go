@@ -13,7 +13,7 @@ type CheckIndex struct {
 	noCopy noCopy
 }
 
-func (l *CheckIndex) Check(_ []string) (*CheckResult, error) {
+func (l *CheckIndex) Check(_ *Agent, _ []string) (*CheckResult, error) {
 	state := int64(0)
 
 	keys := make([]string, 0, len(AvailableChecks))

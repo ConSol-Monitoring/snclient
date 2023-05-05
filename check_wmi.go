@@ -21,7 +21,7 @@ type CheckWMI struct {
  * Thresholds: keys of the query
  * Units: none
  */
-func (l *CheckWMI) Check(args []string) (*CheckResult, error) {
+func (l *CheckWMI) Check(_ *Agent, args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	argList, err := ParseArgs(args, &l.data)

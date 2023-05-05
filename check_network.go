@@ -21,7 +21,7 @@ type CheckNetwork struct {
 /* check_network
  * Description: Checks the state of network interfaces
  */
-func (l *CheckNetwork) Check(args []string) (*CheckResult, error) {
+func (l *CheckNetwork) Check(_ *Agent, args []string) (*CheckResult, error) {
 	// default state: OK
 	state := CheckExitOK
 	var output string

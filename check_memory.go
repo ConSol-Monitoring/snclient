@@ -22,7 +22,7 @@ type CheckMemory struct {
  * Thresholds: used, free, used_pct, free_pct
  * Units: B, KB, MB, GB, TB, %
  */
-func (l *CheckMemory) Check(args []string) (*CheckResult, error) {
+func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	l.data.detailSyntax = "%(type) = %(used)"

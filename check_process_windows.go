@@ -32,7 +32,7 @@ var ProcessStates = map[string]string{
  * Thresholds: status
  * Units: ?
  */
-func (l *CheckProcess) Check(args []string) (*CheckResult, error) {
+func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 	// default state: OK
 	state := CheckExitOK
 	var output string

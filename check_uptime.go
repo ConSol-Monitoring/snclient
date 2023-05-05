@@ -22,7 +22,7 @@ type CheckUptime struct {
  * Thresholds: uptime
  * Units: s
  */
-func (l *CheckUptime) Check(args []string) (*CheckResult, error) {
+func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	_, err := ParseArgs(args, &l.data)

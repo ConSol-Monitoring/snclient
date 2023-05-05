@@ -17,7 +17,7 @@ type CheckDummy struct {
 /* CheckDummy <state> <text>
  * This check simply sets the state to the given value and outputs the remaining arguments.
  */
-func (l *CheckDummy) Check(args []string) (*CheckResult, error) {
+func (l *CheckDummy) Check(_ *Agent, args []string) (*CheckResult, error) {
 	state := int64(0)
 	output := "Dummy Check"
 

@@ -32,7 +32,7 @@ port = 45666
 allow arguments = false
 use ssl = false
 `
-	sig, err := StartTestAgent(t, config, []string{})
+	sig, pidfile, err := StartTestAgent(t, config, []string{})
 	assert.NoErrorf(t, err, "test agent started")
 
 	con, err := net.DialTimeout("tcp", "127.0.0.1:45666", 10*time.Second)
@@ -47,5 +47,5 @@ use ssl = false
 	cmd, _ := res.Data()
 	assert.Regexpf(t, regexp.MustCompile("^SNClient"), cmd, "response matches")
 
-	StopTestAgent(t, sig)
+	StopTestAgent(t, pidfile, sig)
 }
