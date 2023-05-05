@@ -3,7 +3,12 @@ package snclient
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
+
+	"pkg/utils"
+
+	"github.com/dustin/go-humanize"
 )
 
 type Threshold struct {
@@ -52,7 +57,16 @@ func ThresholdParse(threshold string) (*Threshold, error) {
 		ret.unit = unitMatch[2]
 	}
 
-	if ret.unit == "%" {
+	switch ret.unit {
+	case "KB", "MB", "GB", "TB", "PB":
+		value, _ := humanize.ParseBytes(ret.value + ret.unit)
+		ret.value = strconv.FormatUint(value, 10)
+		ret.unit = "B"
+	case "m", "h", "d":
+		value, _ := utils.ExpandDuration(ret.value)
+		ret.value = strconv.FormatFloat(value, 'f', 0, 64)
+		ret.unit = "s"
+	case "%":
 		ret.name += "_pct"
 	}
 

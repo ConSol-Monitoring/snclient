@@ -99,24 +99,20 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}
 
 		// compare ram metrics to thresholds
-		if CompareMetrics(mdata, l.data.critThreshold) {
-			critList = append(critList, ParseSyntax(l.data.detailSyntax, mdata))
-
-			continue
-		}
-
-		if CompareMetrics(mdata, l.data.warnThreshold) {
+		switch {
+		case CompareMetrics(mdata, l.data.warnThreshold):
 			warnList = append(warnList, ParseSyntax(l.data.detailSyntax, mdata))
-
-			continue
+		case CompareMetrics(mdata, l.data.critThreshold):
+			critList = append(critList, ParseSyntax(l.data.detailSyntax, mdata))
+		default:
+			okList = append(okList, ParseSyntax(l.data.detailSyntax, mdata))
 		}
-
-		okList = append(okList, ParseSyntax(l.data.detailSyntax, mdata))
 	}
 
-	if len(critList) > 0 {
+	switch {
+	case len(critList) > 0:
 		state = CheckExitCritical
-	} else if len(warnList) > 0 {
+	case len(warnList) > 0:
 		state = CheckExitWarning
 	}
 
