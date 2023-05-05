@@ -33,7 +33,7 @@ func TestThresholdParser(t *testing.T) {
 		expect    *Threshold
 	}{
 		{"load > 95%", &Threshold{name: "load_pct", operator: ">", value: "95", unit: "%"}},
-		{"used > 90GB", &Threshold{name: "used", operator: ">", value: "90", unit: "GB"}},
+		{"used > 90GB", &Threshold{name: "used", operator: ">", value: "90000000000", unit: "B"}},
 		{"state = dead", &Threshold{name: "state", operator: "=", value: "dead", unit: ""}},
 		{"uptime < 180s", &Threshold{name: "uptime", operator: "<", value: "180", unit: "s"}},
 		{"version not like  '1 2 3'", &Threshold{name: "version", operator: "not like", value: "1 2 3", unit: ""}},
