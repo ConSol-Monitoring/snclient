@@ -6,6 +6,5 @@ use (
 	./internal/eventlog
 	./internal/wmi
 	./pkg/nrpe
-	./pkg/threshold
 	./pkg/utils
 )

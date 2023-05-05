@@ -6,8 +6,6 @@ replace pkg/nrpe => ./pkg/nrpe
 
 replace pkg/utils => ./pkg/utils
 
-replace pkg/threshold => ./pkg/threshold
-
 replace internal/dump => ./internal/dump
 
 replace internal/wmi => ./internal/wmi
@@ -37,7 +35,6 @@ require (
 	internal/wmi v0.0.0-00010101000000-000000000000
 	mvdan.cc/gofumpt v0.5.0
 	pkg/nrpe v0.0.0-00010101000000-000000000000
-	pkg/threshold v0.0.0-00010101000000-000000000000
 	pkg/utils v0.0.0-00010101000000-000000000000
 )
 

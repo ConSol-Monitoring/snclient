@@ -11,6 +11,7 @@ import (
 	"runtime/debug"
 	"runtime/pprof"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -95,17 +96,21 @@ type Agent struct {
 	cpuProfileHandler *os.File
 	Build             string
 	Revision          string
+	initSet           *AgentRunSet
+	osSignalChannel   chan os.Signal
+	running           atomic.Bool
 }
 
+// AgentRunSet contains the initial startup config items
 type AgentRunSet struct {
-	config          *Config
-	listeners       map[string]*Listener
-	tasks           *TaskSet
-	osSignalChannel chan os.Signal
+	config    *Config
+	listeners map[string]*Listener
+	tasks     *TaskSet
 }
 
-func SNClient(build, revision string, args []string, osSignalChannel chan os.Signal) {
-	snc := Agent{
+// NewAgent returns a new Agent object ready to be started by Run()
+func NewAgent(build, revision string, args []string) *Agent {
+	snc := &Agent{
 		Build:     build,
 		Revision:  revision,
 		Listeners: make(map[string]*Listener),
@@ -113,33 +118,45 @@ func SNClient(build, revision string, args []string, osSignalChannel chan os.Sig
 		Counter:   NewCounerSet(),
 		Config:    NewConfig(),
 	}
-
 	snc.setFlags()
 	snc.checkFlags(args)
-	CreateLogger(&snc, nil)
+	CreateLogger(snc, nil)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
-	initSet, err := snc.initConfiguration(osSignalChannel)
+	initSet, err := snc.init()
 	if err != nil {
 		LogStderrf("ERROR: %s", err.Error())
 		snc.CleanExit(ExitCodeError)
 	}
-	CreateLogger(&snc, initSet.config)
-
-	defer snc.logPanicExit()
+	snc.initSet = initSet
+	CreateLogger(snc, initSet.config)
 
 	// daemonize
 	if snc.flags.flagDaemon {
-		snc.daemonize(initSet)
+		snc.daemonize()
 
-		return
+		return nil
 	}
 
-	snc.run(initSet)
+	snc.osSignalChannel = make(chan os.Signal, 1)
+
+	return snc
 }
 
-func (snc *Agent) run(runSet *AgentRunSet) {
-	log.Infof("%s", snc.BuildStartupMsg())
+// IsRunning returns true if the agent is running
+func (snc *Agent) IsRunning() bool {
+	return snc.running.Load()
+}
+
+// Run starts the mainloop and blocks until Stop() is called
+func (snc *Agent) Run() {
+	defer snc.logPanicExit()
+
+	if snc.IsRunning() {
+		log.Panicf("agent is already running")
+	}
+
+	log.Infof("%s", snc.buildStartupMsg())
 
 	snc.createPidFile()
 	defer snc.deletePidFile()
@@ -148,25 +165,28 @@ func (snc *Agent) run(runSet *AgentRunSet) {
 	osSignalUsrChannel := make(chan os.Signal, 1)
 	setupUsrSignalChannel(osSignalUsrChannel)
 
-	signal.Notify(runSet.osSignalChannel, syscall.SIGHUP)
-	signal.Notify(runSet.osSignalChannel, syscall.SIGTERM)
-	signal.Notify(runSet.osSignalChannel, os.Interrupt)
-	signal.Notify(runSet.osSignalChannel, syscall.SIGINT)
+	signal.Notify(snc.osSignalChannel, syscall.SIGHUP)
+	signal.Notify(snc.osSignalChannel, syscall.SIGTERM)
+	signal.Notify(snc.osSignalChannel, os.Interrupt)
+	signal.Notify(snc.osSignalChannel, syscall.SIGINT)
 
-	snc.startAll(runSet)
+	snc.startTasksAndListeners(snc.initSet)
+	snc.running.Store(true)
 
 	for {
-		exitState := snc.mainLoop(runSet.osSignalChannel)
+		exitState := snc.mainLoop()
 		if exitState != Reload {
 			// make it possible to call mainLoop() from tests without exiting the tests
 			break
 		}
 	}
 
+	snc.running.Store(false)
 	log.Infof("snclient exited (pid %d)\n", os.Getpid())
 }
 
-func (snc *Agent) runBackground(initSet *AgentRunSet) {
+// RunBackground starts the agent in the background and returns immediately
+func (snc *Agent) RunBackground() {
 	ctx := &daemon.Context{}
 
 	daemonProc, err := ctx.Reborn()
@@ -188,10 +208,10 @@ func (snc *Agent) runBackground(initSet *AgentRunSet) {
 		}
 	}()
 
-	snc.run(initSet)
+	snc.Run()
 }
 
-func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
+func (snc *Agent) mainLoop() MainStateType {
 	// just wait till someone hits ctrl+c or we have to reload
 	ticker := time.NewTicker(1 * time.Second)
 
@@ -199,13 +219,13 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 		select {
 		case <-ticker.C:
 			continue
-		case sig := <-osSignalChannel:
+		case sig := <-snc.osSignalChannel:
 			exitCode := mainSignalHandler(sig, snc)
 			switch exitCode {
 			case Resume:
 				continue
 			case Reload:
-				updateSet, err := snc.initConfiguration(osSignalChannel)
+				updateSet, err := snc.init()
 				if err != nil {
 					log.Errorf("reloading configuration failed: %s", err.Error())
 
@@ -213,7 +233,7 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 				}
 
 				CreateLogger(snc, updateSet.config)
-				snc.startAll(updateSet)
+				snc.startTasksAndListeners(updateSet)
 
 				return exitCode
 			case Shutdown, ShutdownGraceFully:
@@ -226,6 +246,45 @@ func (snc *Agent) mainLoop(osSignalChannel chan os.Signal) MainStateType {
 	}
 }
 
+// StartWait calls Run() and waits till the agent is started. Returns true if start was successful
+func (snc *Agent) StartWait(maxWait time.Duration) bool {
+	go snc.Run()
+
+	waitUntil := time.Now().Add(maxWait)
+	for {
+		if snc.IsRunning() {
+			return true
+		}
+
+		if time.Now().After(waitUntil) {
+			return false
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// Stop sends the shutdown signal
+func (snc *Agent) Stop() {
+	snc.osSignalChannel <- os.Interrupt
+}
+
+// StopWait sends the shutdown signal and waits till the agent is stopped
+func (snc *Agent) StopWait(maxWait time.Duration) bool {
+	snc.Stop()
+
+	waitUntil := time.Now().Add(maxWait)
+	for {
+		if !snc.IsRunning() {
+			return true
+		}
+
+		if time.Now().After(waitUntil) {
+			return false
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 func (snc *Agent) stop() {
 	snc.Tasks.StopRemove()
 
@@ -235,7 +294,7 @@ func (snc *Agent) stop() {
 	}
 }
 
-func (snc *Agent) startAll(initSet *AgentRunSet) {
+func (snc *Agent) startTasksAndListeners(initSet *AgentRunSet) {
 	// stop existing tasks
 	snc.Tasks.StopRemove()
 
@@ -253,9 +312,11 @@ func (snc *Agent) startAll(initSet *AgentRunSet) {
 	for name := range snc.Listeners {
 		snc.startListener(name)
 	}
+
+	snc.initSet = initSet
 }
 
-func (snc *Agent) initConfiguration(osSignalChannel chan os.Signal) (*AgentRunSet, error) {
+func (snc *Agent) init() (*AgentRunSet, error) {
 	var files configFiles
 	files = snc.flags.flagConfigFile
 
@@ -288,7 +349,6 @@ func (snc *Agent) initConfiguration(osSignalChannel chan os.Signal) (*AgentRunSe
 	if err != nil {
 		return nil, err
 	}
-	initSet.osSignalChannel = osSignalChannel
 
 	return initSet, nil
 }
@@ -360,7 +420,7 @@ func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
 	}
 
 	if len(listen) == 0 {
-		return nil, fmt.Errorf("no listener enabled, bailing out")
+		log.Warnf("no listener enabled")
 	}
 
 	return &AgentRunSet{
@@ -435,11 +495,6 @@ func (snc *Agent) initListeners(conf *Config) (map[string]*Listener, error) {
 	return listen, nil
 }
 
-func (snc *Agent) cleanExit(exitCode int) {
-	snc.deletePidFile()
-	os.Exit(exitCode)
-}
-
 func (snc *Agent) createPidFile() {
 	// write the pid id if file path is defined
 	if snc.flags.flagPidfile == "" {
@@ -453,7 +508,7 @@ func (snc *Agent) createPidFile() {
 	err := os.WriteFile(snc.flags.flagPidfile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0o600)
 	if err != nil {
 		LogStderrf("ERROR: Could not write pidfile: %s", err.Error())
-		snc.cleanExit(ExitCodeError)
+		snc.CleanExit(ExitCodeError)
 	}
 }
 
@@ -471,7 +526,7 @@ func (snc *Agent) checkStalePidFile() bool {
 	err = process.Signal(syscall.Signal(0))
 	if err == nil {
 		LogStderrf("ERROR: worker already running: %d", pid)
-		snc.cleanExit(ExitCodeError)
+		snc.CleanExit(ExitCodeError)
 	}
 
 	return true
@@ -666,6 +721,7 @@ func (snc *Agent) startListener(name string) {
 	log.Tracef("listener %s started", name)
 }
 
+// RunCheck calls check by name and returns the check result
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 	res := snc.runCheck(name, args)
 	res.replaceOutputVariables()
@@ -699,7 +755,7 @@ func (snc *Agent) runCheck(name string, args []string) *CheckResult {
 	return res
 }
 
-func (snc *Agent) BuildStartupMsg() string {
+func (snc *Agent) buildStartupMsg() string {
 	platform, _, pversion, err := host.PlatformInformation()
 	if err != nil {
 		log.Debugf("failed to get platform information: %s", err.Error())

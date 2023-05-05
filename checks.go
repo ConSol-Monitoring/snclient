@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"pkg/threshold"
 )
 
 type CheckEntry struct {
@@ -55,13 +53,27 @@ func (cr *CheckResult) replaceOutputVariables() {
 	cr.Output = strings.ReplaceAll(cr.Output, "${status_lc}", strings.ToLower(cr.StateString()))
 }
 
+func (cr *CheckResult) BuildPluginOutput() []byte {
+	output := []byte(cr.Output)
+	if len(cr.Metrics) > 0 {
+		perf := make([]string, 0, len(cr.Metrics))
+		for _, m := range cr.Metrics {
+			perf = append(perf, m.String())
+		}
+		output = append(output, '|')
+		output = append(output, []byte(strings.Join(perf, " "))...)
+	}
+
+	return output
+}
+
 // CheckMetric contains a single performance value.
 type CheckMetric struct {
 	Name     string
 	Unit     string
 	Value    float64
-	Warning  *threshold.Threshold
-	Critical *threshold.Threshold
+	Warning  *Threshold
+	Critical *Threshold
 	Min      *float64
 	Max      *float64
 }

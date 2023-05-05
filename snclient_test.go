@@ -6,12 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"pkg/utils"
-
 	"github.com/stretchr/testify/assert"
 )
 
-func StartTestAgent(t *testing.T, config string, args []string) (osSignalChannel chan os.Signal, pidfile string, err error) {
+// Starts a full Agent from given config
+func StartTestAgent(t *testing.T, config string, args []string) *Agent {
 	t.Helper()
 	tmpConfig, err := os.CreateTemp("", "testconfig")
 	assert.NoErrorf(t, err, "tmp config created")
@@ -26,66 +25,27 @@ func StartTestAgent(t *testing.T, config string, args []string) (osSignalChannel
 	tmpPidfile.Close()
 	os.Remove(tmpPidfile.Name())
 
-	osSignalChannel = make(chan os.Signal, 1)
-
-	go func() {
-		osArgs := []string{
-			fmt.Sprintf("--config=%s", tmpConfig.Name()),
-			fmt.Sprintf("--pidfile=%s", tmpPidfile.Name()),
-		}
-		osArgs = append(osArgs, args...)
-		SNClient("test", VERSION, osArgs, osSignalChannel)
-	}()
-
-	// wait for pid file
-	waitDur := 10 * time.Second
-	waitMax := time.Now().Add(waitDur)
-	for {
-		if time.Now().After(waitMax) {
-			assert.Failf(t, "failed to start agent", "pidfile did not occur within %s", waitDur.String())
-
-			return nil, "", fmt.Errorf("failed to start agent")
-		}
-
-		time.Sleep(50 * time.Millisecond)
-
-		pid, err := utils.ReadPid(tmpPidfile.Name())
-		if err != nil {
-			continue
-		}
-
-		if pid > 0 {
-			return osSignalChannel, tmpPidfile.Name(), nil
-		}
+	osArgs := []string{
+		fmt.Sprintf("--config=%s", tmpConfig.Name()),
+		fmt.Sprintf("--pidfile=%s", tmpPidfile.Name()),
 	}
+	osArgs = append(osArgs, args...)
+	snc := NewAgent("test", "0", osArgs)
+	started := snc.StartWait(10 * time.Second)
+	assert.Truef(t, started, "agent is started successfully")
+	if !started {
+		t.Fatalf("agent did not start")
+	}
+
+	return snc
 }
 
-func StopTestAgent(t *testing.T, pidfile string, osSignalChannel chan os.Signal) {
+// Stops the agent started by StartTestAgent
+func StopTestAgent(t *testing.T, snc *Agent) {
 	t.Helper()
-	osSignalChannel <- os.Interrupt
-
-	// wait for pid file to disapear
-	waitDur := 10 * time.Second
-	waitMax := time.Now().Add(waitDur)
-	for {
-		if time.Now().After(waitMax) {
-			assert.Failf(t, "failed to stop agent", "pidfile still there after %s", waitDur.String())
-
-			return
-		}
-
-		time.Sleep(50 * time.Millisecond)
-
-		pid, err := utils.ReadPid(pidfile)
-		if err != nil {
-			return
-		}
-
-		_, err = os.FindProcess(pid)
-		if err == nil {
-			continue
-		}
-
-		return
+	stopped := snc.StopWait(10 * time.Second)
+	assert.Truef(t, stopped, "agent stopped successfully")
+	if !stopped {
+		t.Fatalf("agent did not stop")
 	}
 }

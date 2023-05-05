@@ -9,15 +9,14 @@ import (
 )
 
 type winService struct {
-	snc     *Agent
-	initSet *AgentRunSet
+	snc *Agent
 }
 
 func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
 	changes <- svc.Status{State: svc.StartPending}
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
-	go m.snc.run(m.initSet)
+	go m.snc.Run()
 
 	keepListening := true
 	for keepListening {
@@ -53,16 +52,16 @@ func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, cha
 	return ssec, errno
 }
 
-func (snc *Agent) daemonize(initSet *AgentRunSet) {
+func (snc *Agent) daemonize() {
 	inService, _ := svc.IsWindowsService()
 	if inService {
-		snc.runAsWinService(initSet)
+		snc.runAsWinService()
 	} else {
-		snc.runBackground(initSet)
+		snc.RunBackground()
 	}
 }
 
-func (snc *Agent) runAsWinService(initSet *AgentRunSet) {
+func (snc *Agent) runAsWinService() {
 	const svcName = "snclient"
 	inService, err := svc.IsWindowsService()
 	if err != nil {
@@ -72,10 +71,8 @@ func (snc *Agent) runAsWinService(initSet *AgentRunSet) {
 		log.Fatalf("--daemon mode cannot run interactively")
 	}
 
-	run := svc.Run
-	err = run(svcName, &winService{
-		snc:     snc,
-		initSet: initSet,
+	err = svc.Run(svcName, &winService{
+		snc: snc,
 	})
 	if err != nil {
 		log.Errorf("windows service %s failed: %v", svcName, err)

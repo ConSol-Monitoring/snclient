@@ -24,7 +24,7 @@ func TestCompare(t *testing.T) {
 		{"test like 'abc'", "test", "abcdef", true},
 		{`test like "abc"`, "test", "abcdef", true},
 	} {
-		threshold, err := ParseThreshold(check.threshold)
+		threshold, err := ThresholdParse(check.threshold)
 		assert.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
 		compare := map[string]string{check.key: check.value}

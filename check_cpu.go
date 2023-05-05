@@ -19,7 +19,7 @@ type CheckCPU struct {
 /* check_cpu */
 func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 	state := CheckExitOK
-	output := "CPU load is ${status_lc}. "
+	output := "${status}: CPU load is ${status_lc}."
 	metrics := make([]*CheckMetric, 0)
 	argList, err := ParseArgs(args, &l.data)
 	if err != nil {
@@ -46,9 +46,11 @@ func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 				dur, _ := utils.ExpandDuration(time)
 				avg := counter.AvgForDuration(dur)
 				metrics = append(metrics, &CheckMetric{
-					Name:  fmt.Sprintf("%s %s", name, time),
-					Value: avg,
-					Unit:  "%",
+					Name:     fmt.Sprintf("%s %s", name, time),
+					Value:    avg,
+					Unit:     "%",
+					Warning:  l.data.warnThreshold,
+					Critical: l.data.critThreshold,
 				})
 				compare := map[string]string{"load": fmt.Sprintf("%f", avg)}
 				switch {

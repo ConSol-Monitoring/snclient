@@ -10,8 +10,8 @@ import (
 	"pkg/utils"
 )
 
-func (snc *Agent) daemonize(initSet *AgentRunSet) {
-	snc.runBackground(initSet)
+func (snc *Agent) daemonize() {
+	snc.RunBackground()
 }
 
 func isInteractive() bool {

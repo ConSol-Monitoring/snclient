@@ -42,7 +42,7 @@ func TestThresholdParser(t *testing.T) {
 		{"uptime < 180s", &Threshold{name: "uptime", operator: "<", value: "180", unit: "s"}},
 		{"version not like  '1 2 3'", &Threshold{name: "version", operator: "not like", value: "1 2 3", unit: ""}},
 	} {
-		thr, err := ParseThreshold(check.threshold)
+		thr, err := ThresholdParse(check.threshold)
 		assert.NoErrorf(t, err, "ParseThreshold")
 		assert.Equal(t, check.expect, thr, fmt.Sprintf("ParseArgs(%s) -> %v", check.threshold, check.expect))
 	}

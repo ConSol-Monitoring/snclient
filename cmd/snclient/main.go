@@ -22,6 +22,7 @@ func main() {
 		Build = "unknown"
 	}
 
-	osSignalChannel := make(chan os.Signal, 1)
-	snclient.SNClient(Build, Revision, os.Args[1:], osSignalChannel)
+	snc := snclient.NewAgent(Build, Revision, os.Args[1:])
+	snc.Run()
+	snc.CleanExit(snclient.ExitCodeOK)
 }

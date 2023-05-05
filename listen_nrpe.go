@@ -92,15 +92,7 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 		statusResult = snc.RunCheck(cmd, args)
 	}
 
-	output := []byte(statusResult.Output)
-	if len(statusResult.Metrics) > 0 {
-		output = append(output, '|')
-
-		for _, m := range statusResult.Metrics {
-			output = append(output, []byte(m.String())...)
-		}
-	}
-
+	output := statusResult.BuildPluginOutput()
 	response := nrpe.BuildPacket(request.Version(), nrpe.NrpeResponsePacket, uint16(statusResult.State), output)
 
 	if err := response.Write(con); err != nil {

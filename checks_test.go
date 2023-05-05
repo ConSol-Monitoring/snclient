@@ -9,8 +9,24 @@ import (
 
 func TestCheckSNClientVersion(t *testing.T) {
 	t.Parallel()
-	snc := &Agent{}
+	snc := NewAgent("testbuild", "0", []string{})
 	res := snc.RunCheck("check_snclient_version", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Regexpf(t, regexp.MustCompile("^SNClient"), res.Output, "output matches")
+	assert.Regexpf(t, regexp.MustCompile(`^SNClient\+ v\d+`), res.Output, "output matches")
+}
+
+func TestCheckCPU(t *testing.T) {
+	t.Parallel()
+
+	snc := StartTestAgent(t, "", []string{})
+
+	res := snc.RunCheck("check_cpu", []string{"warn=load = 99", "crit=load = 100"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(t,
+		regexp.MustCompile(`^OK: CPU load is ok.\|'total 5m'=\d+%;99;100 'total 1m'=\d+%;99;100 'total 5s'=\d+%;99;100$`),
+		string(res.BuildPluginOutput()),
+		"output matches",
+	)
+
+	StopTestAgent(t, snc)
 }
