@@ -31,3 +31,24 @@ func TestCheckCPU(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckAlias(t *testing.T) {
+	config := `
+[/modules]
+CheckExternalScripts = enabled
+
+[/settings/external scripts/alias]
+alias_cpu = check_cpu warn=load=99 crit=load=100
+`
+	snc := StartTestAgent(t, config, []string{})
+
+	res := snc.RunCheck("alias_cpu", []string{})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(t,
+		regexp.MustCompile(`^OK: CPU load is ok.\|'total 5m'=\d+%;99;100 'total 1m'=\d+%;99;100 'total 5s'=\d+%;99;100$`),
+		string(res.BuildPluginOutput()),
+		"output matches",
+	)
+
+	StopTestAgent(t, snc)
+}

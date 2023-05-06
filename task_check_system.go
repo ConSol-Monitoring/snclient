@@ -30,11 +30,11 @@ func (c *CheckSystemHandler) Defaults() ConfigData {
 	return defaults
 }
 
-func (c *CheckSystemHandler) Init(snc *Agent, conf *ConfigSection) error {
+func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config) error {
 	c.snc = snc
 	c.stopChannel = make(chan bool)
 
-	bufferLength, _, err := conf.GetDuration("default buffer length")
+	bufferLength, _, err := section.GetDuration("default buffer length")
 	if err != nil {
 		return fmt.Errorf("default buffer length: %s", err.Error())
 	}

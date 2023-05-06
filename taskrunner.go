@@ -4,7 +4,7 @@ import "fmt"
 
 type TaskHandler interface {
 	Defaults() ConfigData
-	Init(*Agent, *ConfigSection) error
+	Init(*Agent, *ConfigSection, *Config) error
 	Start() error
 	Stop()
 }
@@ -44,7 +44,7 @@ func (tr *TaskRunner) Init(snc *Agent, conf *Config) (TaskHandler, error) {
 	taskConf.data.Merge(conf.Section("/settings/default").data)
 	taskConf.data.Merge(task.Defaults())
 
-	err := task.Init(snc, taskConf)
+	err := task.Init(snc, taskConf, conf)
 	if err != nil {
 		task.Stop()
 

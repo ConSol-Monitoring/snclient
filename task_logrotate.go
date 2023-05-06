@@ -36,11 +36,11 @@ func (l *LogrotateHandler) Defaults() ConfigData {
 	return defaults
 }
 
-func (l *LogrotateHandler) Init(snc *Agent, conf *ConfigSection) error {
+func (l *LogrotateHandler) Init(snc *Agent, section *ConfigSection, _ *Config) error {
 	l.snc = snc
 	l.stopChannel = make(chan bool)
 
-	maxSize, _, err := conf.GetBytes("max size")
+	maxSize, _, err := section.GetBytes("max size")
 	if err != nil {
 		return fmt.Errorf("max size: %s", err.Error())
 	}

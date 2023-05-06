@@ -16,9 +16,10 @@ import (
 )
 
 var DefaultConfig = map[string]*ConfigData{"/modules": {
-	"Logrotate":       "enabled",
-	"CheckSystem":     "enabled",
-	"CheckSystemUnix": "enabled",
+	"Logrotate":            "enabled",
+	"CheckSystem":          "enabled",
+	"CheckSystemUnix":      "enabled",
+	"CheckExternalScripts": "enabled",
 }}
 
 var reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_]+\s*\}`)

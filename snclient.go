@@ -411,12 +411,12 @@ func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
 
 	tasks, err := snc.initTasks(config)
 	if err != nil {
-		return nil, fmt.Errorf("task initialization failed: %s", err.Error())
+		log.Errorf("task initialization failed: %s", err.Error())
 	}
 
 	listen, err := snc.initListeners(config)
 	if err != nil {
-		return nil, fmt.Errorf("listener initialization failed: %s", err.Error())
+		log.Errorf("listener initialization failed: %s", err.Error())
 	}
 
 	if len(listen) == 0 {
