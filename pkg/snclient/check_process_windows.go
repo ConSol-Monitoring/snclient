@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"internal/wmi"
+	"pkg/wmi"
 
 	"golang.org/x/exp/slices"
 )

@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"internal/eventlog"
+	"pkg/eventlog"
 
 	"github.com/elastic/beats/v7/winlogbeat/sys/winevent"
 )

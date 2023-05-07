@@ -63,18 +63,18 @@ vendor: go.work
 	go mod tidy
 	go mod vendor
 
-go.work: internal/* pkg/*
+go.work: pkg/*
 	echo "go $(MINGOVERSIONSTR)" > go.work
-	go work use . pkg/* internal/*
+	go work use . pkg/*
 
-build: vendor go.work
-	set -e; for CMD in $(CMDS); do \
+build: vendor go.work snclient.ini
+	set -xe; for CMD in $(CMDS); do \
 		cd ./cmd/$$CMD && CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD; cd ../..; \
 	done
 
 # run build watch, ex. with tracing: make build-watch -- -vv
 build-watch: vendor
-	ls *.go cmd/*/*.go pkg/*/*.go ./internal/*/*.go snclient.ini | entr -sr "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"
+	ls cmd/*/*.go pkg/*/*.go snclient.ini | entr -sr "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
@@ -101,37 +101,31 @@ build-darwin-aarch64: vendor
 		cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.darwin.aarch64; cd ../..; \
 	done
 
-test: fmt vendor
-	go test -short -v -timeout=1m ./ ./pkg/*/.
-	set -ex; for dir in $$(ls -1 internal/*/*_test.go 2>/dev/null | xargs -r dirname | sort -u); do \
-		( cd $$dir && go test -short -v -timeout=1m *_test.go ) ; \
-	done
-	if grep -rn TODO: *.go ./cmd/ ./pkg/ ./internal/; then exit 1; fi
-	if grep -rn Dump *.go ./cmd/ ./pkg/ ./internal/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
+test: vendor
+	go test -short -v -timeout=1m pkg/*
+	if grep -rn TODO: ./cmd/ ./pkg/ ; then exit 1; fi
+	if grep -rn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 
-longtest: fmt vendor
-	go test -v -timeout=1m ./ ./pkg/*/.
-	set -ex; for dir in $$(ls -1 internal/*/*_test.go 2>/dev/null | xargs -r dirname | sort -u); do \
-		( cd $$dir && go test -v -timeout=1m *_test.go ) ; \
-	done
+longtest: vendor
+	go test -v -timeout=1m pkg/*
 
 citest: vendor
 	#
 	# Checking gofmt errors
 	#
-	if [ $$(gofmt -s -l *.go ./cmd/ ./pkg/ ./internal/  | wc -l) -gt 0 ]; then \
+	if [ $$(gofmt -s -l ./cmd/ ./pkg/ | wc -l) -gt 0 ]; then \
 		echo "found format errors in these files:"; \
-		gofmt -s -l *.go ./cmd/ ./pkg/ ./internal/; \
+		gofmt -s -l ./cmd/ ./pkg/ ; \
 		exit 1; \
 	fi
 	#
 	# Checking TODO items
 	#
-	if grep -rn TODO: *.go ./cmd/ ./pkg/ ./internal/; then exit 1; fi
+	if grep -rn TODO: ./cmd/ ./pkg/ ; then exit 1; fi
 	#
 	# Checking remaining debug calls
 	#
-	if grep -rn Dump *.go ./cmd/ ./pkg/ ./internal/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
+	if grep -rn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 	#
 	# Darwin, Linux and Freebsd are handled equaly
 	#
@@ -148,14 +142,11 @@ citest: vendor
 	#
 	# Normal test cases
 	#
-	go test -v -timeout=1m ./ ./pkg/*/.
-	set -ex; for dir in $$(ls -1 internal/*/*_test.go 2>/dev/null | xargs -r dirname | sort -u); do \
-		( cd $$dir && go test -v -timeout=1m *_test.go ) ; \
-	done
+	$(MAKE) test
 	#
 	# Benchmark tests
 	#
-	go test -v -timeout=1m -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/.
+	$(MAKE) benchmark
 	#
 	# Race rondition tests
 	#
@@ -171,21 +162,20 @@ citest: vendor
 	#
 	# All CI tests successful
 	#
-	go mod tidy
 
-benchmark: fmt
-	go test -timeout=1m -ldflags "-s -w -X main.Build=$(BUILD)" -v -bench=B\* -run=^$$ -benchmem ./ ./pkg/*/.
+benchmark:
+	go test -timeout=1m -ldflags "-s -w -X main.Build=$(BUILD)" -v -bench=B\* -run=^$$ -benchmem ./pkg/*
 
-racetest: fmt
-	go test -race -v -timeout=3m -coverprofile=coverage.txt -covermode=atomic ./ ./pkg/*/.
+racetest:
+	go test -race -timeout=3m -coverprofile=coverage.txt -covermode=atomic ./pkg/*
 
-covertest: fmt
-	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/. ./internal/*/.
+covertest:
+	go test -v -coverprofile=cover.out -timeout=1m ./pkg/*
 	go tool cover -func=cover.out
 	go tool cover -html=cover.out -o coverage.html
 
-coverweb: fmt
-	go test -v -coverprofile=cover.out -timeout=1m ./ ./pkg/*/.
+coverweb:
+	go test -v -coverprofile=cover.out -timeout=1m ./pkg/*
 	go tool cover -html=cover.out
 
 clean:
@@ -209,20 +199,16 @@ clean:
 
 GOVET=go vet -all
 fmt: tools
-	$(GOVET) .
 	set -e; for CMD in $(CMDS); do \
 		$(GOVET) ./cmd/$$CMD; \
 	done
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
 		$(GOVET) ./$$dir; \
 	done
-	set -e; for dir in $(shell ls -d1 internal/*); do \
-		( cd $$dir && $(GOVET) . ) ; \
-	done
-	gofmt -w -s *.go ./cmd/ ./pkg/ ./internal/
-	./tools/gofumpt -w *.go ./cmd/ ./pkg/ ./internal/
-	./tools/gci write *.go ./cmd/. ./pkg/. ./internal/.  --skip-generated
-	goimports -w *.go ./cmd/ ./pkg/ ./internal/
+	gofmt -w -s ./cmd/ ./pkg/
+	./tools/gofumpt -w ./cmd/ ./pkg/
+	./tools/gci write ./cmd/. ./pkg/.  --skip-generated
+	goimports -w ./cmd/ ./pkg/
 
 versioncheck:
 	@[ $$( printf '%s\n' $(GOVERSION) $(MINGOVERSION) | sort | head -n 1 ) = $(MINGOVERSION) ] || { \
@@ -237,17 +223,15 @@ golangci: tools
 	# golangci combines a few static code analyzer
 	# See https://github.com/golangci/golangci-lint
 	#
-	set -e; for dir in $$(ls -1d internal/* pkg/*); do \
+	set -e; for dir in $$(ls -1d pkg/*); do \
 		echo $$dir; \
-		if [ $$dir != "internal/eventlog" ]; then \
+		if [ $$dir != "pkg/eventlog" ]; then \
 			echo "  - GOOS=linux"; \
-			( cd $$dir && GOOS=linux golangci-lint run *.go ); \
+			( cd $$dir && GOOS=linux golangci-lint run ./... ); \
 		fi; \
 		echo "  - GOOS=windows"; \
-		( cd $$dir && GOOS=windows golangci-lint run *.go ); \
+		( cd $$dir && GOOS=windows golangci-lint run ./... ); \
 	done
-	GOOS=linux   golangci-lint run ./...
-	GOOS=windows golangci-lint run ./...
 
 govulncheck: tools
 	govulncheck ./...
@@ -257,7 +241,7 @@ version:
 	NEWVERSION=$$(dialog --stdout --inputbox "New Version:" 0 0 "v$$OLDVERSION") && \
 		NEWVERSION=$$(echo $$NEWVERSION | sed "s/^v//g"); \
 		if [ "v$$OLDVERSION" = "v$$NEWVERSION" -o "x$$NEWVERSION" = "x" ]; then echo "no changes"; exit 1; fi; \
-		sed -i -e 's/VERSION =.*/VERSION = "'$$NEWVERSION'"/g' *.go cmd/*/*.go
+		sed -i -e 's/VERSION =.*/VERSION = "'$$NEWVERSION'"/g' cmd/*/*.go pkg/snclient/*.go
 
 dist:
 	mkdir -p ./dist
@@ -293,7 +277,10 @@ windist: | dist
 		-e 's/^file name =.*/file name = $${shared-path}\/snclient.log/g' \
 		-e 's/^max size =.*/max size = 10MiB/g'
 
-snclient: build
+snclient: build snclient.ini
+
+snclient.ini:
+	cp packaging/snclient.ini .
 
 deb: | dist
 	mkdir -p \

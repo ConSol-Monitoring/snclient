@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"internal/wmi"
+	"pkg/wmi"
 )
 
 func init() {

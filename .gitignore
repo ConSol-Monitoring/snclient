@@ -1,4 +1,4 @@
-snclient
+/snclient
 *.log
 *.exe
 *.deb
@@ -18,3 +18,5 @@ snclient.ini
 server.crt
 server.key
 release_notes.txt
+go.work
+go.work.sum

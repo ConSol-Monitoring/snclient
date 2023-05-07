@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	snclient "github.com/consol-monitoring/snclient"
+	"pkg/snclient"
 )
 
 // Build contains the current git commit id
