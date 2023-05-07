@@ -1,5 +1,11 @@
 This file documents the revision history for the SNClient+ agent.
 
+next:
+         - packaging
+           - add windows service mode
+         - add command alias support
+         - add log rotation
+
 0.02       Sun Apr  2 22:48:22 CEST 2023
          - add packaging
            - windows
