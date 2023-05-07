@@ -120,7 +120,7 @@ func NewAgent(build, revision string, args []string) *Agent {
 	}
 	snc.setFlags()
 	snc.checkFlags(args)
-	CreateLogger(snc, nil)
+	snc.createLogger(nil)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
 	initSet, err := snc.init()
@@ -129,7 +129,7 @@ func NewAgent(build, revision string, args []string) *Agent {
 		snc.CleanExit(ExitCodeError)
 	}
 	snc.initSet = initSet
-	CreateLogger(snc, initSet.config)
+	snc.createLogger(initSet.config)
 
 	// daemonize
 	if snc.flags.flagDaemon {
@@ -232,7 +232,7 @@ func (snc *Agent) mainLoop() MainStateType {
 					continue
 				}
 
-				CreateLogger(snc, updateSet.config)
+				snc.createLogger(updateSet.config)
 				snc.startTasksAndListeners(updateSet)
 
 				return exitCode
@@ -768,4 +768,29 @@ func (snc *Agent) buildStartupMsg() string {
 		NAME, VERSION, snc.Revision, snc.Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH)
 
 	return msg
+}
+
+func (snc *Agent) createLogger(config *Config) {
+	conf := snc.Config.Section("/settings/log")
+	if config != nil {
+		conf = config.Section("/settings/log")
+	}
+
+	snc.applyLogLevel(conf)
+	setLogFile(snc, conf)
+}
+
+func (snc *Agent) applyLogLevel(conf *ConfigSection) {
+	level, ok := conf.GetString("level")
+	if !ok {
+		level = "info"
+	}
+
+	switch {
+	case snc.flags.flagVeryVerbose, snc.flags.flagTraceVerbose:
+		level = "trace"
+	case snc.flags.flagVerbose:
+		level = "debug"
+	}
+	setLogLevel(level)
 }

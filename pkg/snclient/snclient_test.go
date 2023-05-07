@@ -9,6 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	setLogLevel("error")
+}
+
 // Starts a full Agent from given config
 func StartTestAgent(t *testing.T, config string, args []string) *Agent {
 	t.Helper()

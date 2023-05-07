@@ -46,29 +46,7 @@ var (
 	targetWriter      io.Writer
 )
 
-func CreateLogger(snc *Agent, config *Config) {
-	conf := snc.Config.Section("/settings/log")
-	if config != nil {
-		conf = config.Section("/settings/log")
-	}
-
-	setLogLevel(snc, conf)
-	setLogFile(snc, conf)
-}
-
-func setLogLevel(snc *Agent, conf *ConfigSection) {
-	level, ok := conf.GetString("level")
-	if !ok {
-		level = "info"
-	}
-
-	switch {
-	case snc.flags.flagVeryVerbose, snc.flags.flagTraceVerbose:
-		level = "trace"
-	case snc.flags.flagVerbose:
-		level = "debug"
-	}
-
+func setLogLevel(level string) {
 	switch strings.ToLower(level) {
 	case "off":
 		log.SetMinMaxSeverity(factorlog.StringToSeverity("PANIC"), factorlog.StringToSeverity("PANIC"))
