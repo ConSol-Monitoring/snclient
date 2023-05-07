@@ -60,7 +60,7 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
-      - run: go test ; if ($LASTEXITCODE -ne 0) { exit 1 }
+      - run: go test -v pkg/... ; if ($LASTEXITCODE -ne 0) { exit 1 }
 
 
   build:
