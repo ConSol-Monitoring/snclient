@@ -67,7 +67,7 @@ go.work: pkg/*
 	echo "go $(MINGOVERSIONSTR)" > go.work
 	go work use . pkg/*
 
-build: vendor go.work snclient.ini
+build: vendor go.work snclient.ini server.crt server.key
 	set -xe; for CMD in $(CMDS); do \
 		cd ./cmd/$$CMD && CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD; cd ../..; \
 	done
@@ -281,6 +281,12 @@ snclient: build snclient.ini
 
 snclient.ini:
 	cp packaging/snclient.ini .
+
+server.crt: | dist
+	cp dist/server.crt .
+
+server.key: | dist
+	cp dist/server.key .
 
 deb: | dist
 	mkdir -p \
