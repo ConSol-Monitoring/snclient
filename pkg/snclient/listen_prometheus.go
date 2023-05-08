@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	AvailableListeners = append(AvailableListeners, ListenHandler{"PrometheusServer", "/settings/Prometheus/server", NewHandlerPrometheus()})
+	RegisterModule(&AvailableListeners, "PrometheusServer", "/settings/Prometheus/server", NewHandlerPrometheus)
 }
 
 var (
@@ -23,11 +23,12 @@ var (
 )
 
 type HandlerPrometheus struct {
-	noCopy  noCopy
-	handler http.Handler
+	noCopy   noCopy
+	handler  http.Handler
+	listener *Listener
 }
 
-func NewHandlerPrometheus() *HandlerPrometheus {
+func NewHandlerPrometheus() Module {
 	handler := &HandlerPrometheus{
 		handler: promhttp.InstrumentMetricHandler(
 			prometheus.DefaultRegisterer,
@@ -45,6 +46,14 @@ func (l *HandlerPrometheus) Type() string {
 	return "prometheus"
 }
 
+func (l *HandlerPrometheus) Start() error {
+	return l.listener.Start()
+}
+
+func (l *HandlerPrometheus) Stop() {
+	l.listener.Stop()
+}
+
 func (l *HandlerPrometheus) Defaults() ConfigData {
 	defaults := ConfigData{
 		"port":    "9999",
@@ -55,9 +64,15 @@ func (l *HandlerPrometheus) Defaults() ConfigData {
 	return defaults
 }
 
-func (l *HandlerPrometheus) Init(snc *Agent, _ *ConfigSection) error {
+func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config) error {
 	registerMetrics()
 	infoCount.WithLabelValues(VERSION, snc.Build).Set(1)
+
+	listener, err := NewListener(snc, conf, l)
+	if err != nil {
+		return err
+	}
+	l.listener = listener
 
 	return nil
 }

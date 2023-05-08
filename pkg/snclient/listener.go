@@ -18,12 +18,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type ListenHandler struct {
-	ModuleKey string
-	ConfigKey string
-	Init      RequestHandler
-}
-
 var DefaultListenTCPConfig = ConfigData{
 	"allowed hosts":       "127.0.0.1, [::1]",
 	"bind to":             "",
@@ -58,8 +52,8 @@ type Listener struct {
 // NewListener creates a new Listener object.
 func NewListener(snc *Agent, conf *ConfigSection, r RequestHandler) (*Listener, error) {
 	listen := Listener{
-		snc:      snc,
 		listen:   nil,
+		snc:      snc,
 		handler:  r,
 		connType: r.Type(),
 	}

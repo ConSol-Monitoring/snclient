@@ -65,8 +65,10 @@ const (
 	Resume
 )
 
-var AvailableTasks []*LoadableModule
-var AvailableListeners []ListenHandler
+var (
+	AvailableTasks     []*LoadableModule
+	AvailableListeners []*LoadableModule
+)
 
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
 type noCopy struct{}
@@ -75,10 +77,10 @@ func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
 type Agent struct {
-	Config    *Config              // reference to global config object
-	Listeners map[string]*Listener // Listeners stores if we started listeners
-	Tasks     *ModuleSet           // Tasks stores if we started task runners
-	Counter   *CounterSet          // Counter stores collected counters from tasks
+	Config    *Config     // reference to global config object
+	Listeners *ModuleSet  // Listeners stores if we started listeners
+	Tasks     *ModuleSet  // Tasks stores if we started task runners
+	Counter   *CounterSet // Counter stores collected counters from tasks
 	flagset   *flag.FlagSet
 	flags     struct { // command line flags
 		flagDaemon       bool
@@ -107,7 +109,7 @@ type Agent struct {
 // AgentRunSet contains the initial startup config items
 type AgentRunSet struct {
 	config    *Config
-	listeners map[string]*Listener
+	listeners *ModuleSet
 	tasks     *ModuleSet
 }
 
@@ -116,7 +118,7 @@ func NewAgent(build, revision string, args []string) *Agent {
 	snc := &Agent{
 		Build:     build,
 		Revision:  revision,
-		Listeners: make(map[string]*Listener),
+		Listeners: NewModuleSet("listener"),
 		Tasks:     NewModuleSet("task"),
 		Counter:   NewCounerSet(),
 		Config:    NewConfig(),
@@ -290,31 +292,19 @@ func (snc *Agent) StopWait(maxWait time.Duration) bool {
 
 func (snc *Agent) stop() {
 	snc.Tasks.StopRemove()
-
-	for name, l := range snc.Listeners {
-		l.Stop()
-		delete(snc.Listeners, name)
-	}
+	snc.Listeners.StopRemove()
 }
 
 func (snc *Agent) startModules(initSet *AgentRunSet) {
-	// stop existing tasks
 	snc.Tasks.StopRemove()
-
-	// stop existing listeners
-	for name, l := range initSet.listeners {
-		l.Stop()
-		delete(snc.Listeners, name)
-	}
+	snc.Listeners.StopRemove()
 
 	snc.Config = initSet.config
 	snc.Listeners = initSet.listeners
 	snc.Tasks = initSet.tasks
 
 	snc.Tasks.Start()
-	for name := range snc.Listeners {
-		snc.startListener(name)
-	}
+	snc.Listeners.Start()
 
 	snc.initSet = initSet
 }
@@ -417,12 +407,12 @@ func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
 		log.Errorf("task initialization failed: %s", err.Error())
 	}
 
-	listen, err := snc.initListeners(config)
+	listen, err := snc.initModules("listener", AvailableListeners, config)
 	if err != nil {
 		log.Errorf("listener initialization failed: %s", err.Error())
 	}
 
-	if len(listen) == 0 {
+	if len(listen.modules) == 0 {
 		log.Warnf("no listener enabled")
 	}
 
@@ -464,41 +454,6 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 	}
 
 	return modules, nil
-}
-
-func (snc *Agent) initListeners(conf *Config) (map[string]*Listener, error) {
-	listen := make(map[string]*Listener)
-
-	modulesConf := conf.Section("/modules")
-	for _, entry := range AvailableListeners {
-		enabled, ok, err := modulesConf.GetBool(entry.ModuleKey)
-		switch {
-		case err != nil:
-			return nil, fmt.Errorf("error in %s /modules configuration: %s", entry.ModuleKey, err.Error())
-		case !ok:
-			continue
-		case !enabled:
-			continue
-		}
-
-		listenConf := conf.Section(entry.ConfigKey).Clone()
-		listenConf.data.Merge(conf.Section("/settings/default").data)
-		listenConf.data.Merge(entry.Init.Defaults())
-
-		listener, err := snc.initListener(listenConf, entry.Init)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
-		}
-
-		bind := listener.BindString()
-		if existing, ok := listen[bind]; ok {
-			return nil, fmt.Errorf("bind address %s already in use by %s server", bind, existing.handler.Type())
-		}
-
-		listen[bind] = listener
-	}
-
-	return listen, nil
 }
 
 func (snc *Agent) createPidFile() {
@@ -689,42 +644,6 @@ func (snc *Agent) logPanicExit() {
 		snc.deletePidFile()
 		os.Exit(ExitCodeError)
 	}
-}
-
-func (snc *Agent) initListener(conConf *ConfigSection, handler RequestHandler) (*Listener, error) {
-	listener, err := NewListener(snc, conConf, handler)
-	if err != nil {
-		return nil, err
-	}
-
-	err = handler.Init(snc, conConf)
-	if err != nil {
-		listener.Stop()
-
-		return nil, fmt.Errorf("%s init failed on %s: %s", handler.Type(), listener.BindString(), err.Error())
-	}
-
-	return listener, nil
-}
-
-func (snc *Agent) startListener(name string) {
-	listener, ok := snc.Listeners[name]
-	if !ok {
-		log.Errorf("no listener with name: %s", name)
-
-		return
-	}
-
-	err := snc.Listeners[name].Start()
-	if err != nil {
-		log.Errorf("failed to start %s listener: %s", name, err.Error())
-		listener.Stop()
-		delete(snc.Listeners, name)
-
-		return
-	}
-
-	log.Tracef("listener %s started", name)
 }
 
 // RunCheck calls check by name and returns the check result

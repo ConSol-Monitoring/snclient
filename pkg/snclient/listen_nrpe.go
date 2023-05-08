@@ -8,25 +8,20 @@ import (
 )
 
 func init() {
-	AvailableListeners = append(AvailableListeners, ListenHandler{"NRPEServer", "/settings/NRPE/server", NewHandlerNRPE()})
+	RegisterModule(&AvailableListeners, "NRPEServer", "/settings/NRPE/server", NewHandlerNRPE)
 }
 
 const NastyCharacters = "|`&><'\"\\[]{}"
 
 type HandlerNRPE struct {
-	noCopy noCopy
-	snc    *Agent
-	conf   *ConfigSection
+	noCopy   noCopy
+	snc      *Agent
+	conf     *ConfigSection
+	listener *Listener
 }
 
-func NewHandlerNRPE() *HandlerNRPE {
-	l := &HandlerNRPE{}
-
-	return l
-}
-
-func (l *HandlerNRPE) Type() string {
-	return "nrpe"
+func NewHandlerNRPE() Module {
+	return &HandlerNRPE{}
 }
 
 func (l *HandlerNRPE) Defaults() ConfigData {
@@ -40,11 +35,28 @@ func (l *HandlerNRPE) Defaults() ConfigData {
 	return defaults
 }
 
-func (l *HandlerNRPE) Init(snc *Agent, conf *ConfigSection) error {
+func (l *HandlerNRPE) Init(snc *Agent, conf *ConfigSection, _ *Config) error {
 	l.snc = snc
 	l.conf = conf
+	listener, err := NewListener(snc, conf, l)
+	if err != nil {
+		return err
+	}
+	l.listener = listener
 
 	return nil
+}
+
+func (l *HandlerNRPE) Type() string {
+	return "nrpe"
+}
+
+func (l *HandlerNRPE) Start() error {
+	return l.listener.Start()
+}
+
+func (l *HandlerNRPE) Stop() {
+	l.listener.Stop()
 }
 
 func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {

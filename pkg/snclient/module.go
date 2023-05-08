@@ -88,8 +88,8 @@ func RegisterModule(list *[]*LoadableModule, moduleKey, confKey string, creator 
 }
 
 // Name returns name of this module
-func (tr *LoadableModule) Name() string {
-	return tr.ModuleKey
+func (lm *LoadableModule) Name() string {
+	return lm.ModuleKey
 }
 
 // Init creates the actual TaskHandler for this task

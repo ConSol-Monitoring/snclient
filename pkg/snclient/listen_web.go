@@ -36,7 +36,7 @@ type CheckWebPerfVal struct {
 }
 
 func init() {
-	AvailableListeners = append(AvailableListeners, ListenHandler{"WEBServer", "/settings/WEB/server", NewHandlerWeb()})
+	RegisterModule(&AvailableListeners, "WEBServer", "/settings/WEB/server", NewHandlerWeb)
 }
 
 type HandlerWeb struct {
@@ -44,11 +44,12 @@ type HandlerWeb struct {
 	handlerGeneric http.Handler
 	handlerLegacy  http.Handler
 	handlerV1      http.Handler
-	snc            *Agent
 	password       string
+	snc            *Agent
+	listener       *Listener
 }
 
-func NewHandlerWeb() *HandlerWeb {
+func NewHandlerWeb() Module {
 	l := &HandlerWeb{}
 	l.handlerGeneric = &HandlerWebGeneric{Handler: l}
 	l.handlerLegacy = &HandlerWebLegacy{Handler: l}
@@ -58,7 +59,19 @@ func NewHandlerWeb() *HandlerWeb {
 }
 
 func (l *HandlerWeb) Type() string {
-	return "web"
+	if l.listener != nil && l.listener.tlsConfig != nil {
+		return "https"
+	}
+
+	return "http"
+}
+
+func (l *HandlerWeb) Start() error {
+	return l.listener.Start()
+}
+
+func (l *HandlerWeb) Stop() {
+	l.listener.Stop()
 }
 
 func (l *HandlerWeb) Defaults() ConfigData {
@@ -72,12 +85,17 @@ func (l *HandlerWeb) Defaults() ConfigData {
 	return defaults
 }
 
-func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection) error {
+func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection, _ *Config) error {
 	l.snc = snc
-
 	if password, ok := conf.GetString("password"); ok {
 		l.password = password
 	}
+
+	listener, err := NewListener(snc, conf, l)
+	if err != nil {
+		return err
+	}
+	l.listener = listener
 
 	return nil
 }

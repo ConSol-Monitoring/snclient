@@ -7,9 +7,8 @@ import (
 
 // RequestHandler handles a client connections.
 type RequestHandler interface {
+	Module
 	Type() string
-	Defaults() ConfigData
-	Init(*Agent, *ConfigSection) error
 }
 
 // RequestHandlerTCP handles a single client connection.
