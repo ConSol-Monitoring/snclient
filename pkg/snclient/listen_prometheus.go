@@ -46,6 +46,10 @@ func (l *HandlerPrometheus) Type() string {
 	return "prometheus"
 }
 
+func (l *HandlerPrometheus) BindString() string {
+	return l.listener.BindString()
+}
+
 func (l *HandlerPrometheus) Start() error {
 	return l.listener.Start()
 }

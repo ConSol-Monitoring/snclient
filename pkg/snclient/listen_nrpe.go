@@ -51,6 +51,10 @@ func (l *HandlerNRPE) Type() string {
 	return "nrpe"
 }
 
+func (l *HandlerNRPE) BindString() string {
+	return l.listener.BindString()
+}
+
 func (l *HandlerNRPE) Start() error {
 	return l.listener.Start()
 }

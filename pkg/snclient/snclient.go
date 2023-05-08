@@ -447,7 +447,12 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
 		}
 
-		err = modules.Add(entry.Name(), mod)
+		name := entry.Name()
+		if listener, ok := mod.(RequestHandler); ok {
+			name = listener.BindString()
+		}
+
+		err = modules.Add(name, mod)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
 		}

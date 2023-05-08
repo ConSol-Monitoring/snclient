@@ -9,6 +9,7 @@ import (
 type RequestHandler interface {
 	Module
 	Type() string
+	BindString() string
 }
 
 // RequestHandlerTCP handles a single client connection.

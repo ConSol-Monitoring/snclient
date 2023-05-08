@@ -66,6 +66,10 @@ func (l *HandlerWeb) Type() string {
 	return "http"
 }
 
+func (l *HandlerWeb) BindString() string {
+	return l.listener.BindString()
+}
+
 func (l *HandlerWeb) Start() error {
 	return l.listener.Start()
 }
