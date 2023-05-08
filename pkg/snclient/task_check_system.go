@@ -16,10 +16,8 @@ type CheckSystemHandler struct {
 	bufferLength float64
 }
 
-func NewCheckSCheckSystemHandler() TaskHandler {
-	var h TaskHandler = &CheckSystemHandler{}
-
-	return h
+func NewCheckSCheckSystemHandler() Module {
+	return &CheckSystemHandler{}
 }
 
 func (c *CheckSystemHandler) Defaults() ConfigData {

@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	AvailableTasks = append(AvailableTasks, NewTaskRunner("CheckExternalScripts", "/settings/external scripts", NewExternalScriptsHandler))
+	RegisterModule(&AvailableTasks, "CheckExternalScripts", "/settings/external scripts", NewExternalScriptsHandler)
 }
 
 type ExternalScriptsHandler struct {
@@ -13,10 +13,8 @@ type ExternalScriptsHandler struct {
 	snc    *Agent
 }
 
-func NewExternalScriptsHandler() TaskHandler {
-	var h TaskHandler = &ExternalScriptsHandler{}
-
-	return h
+func NewExternalScriptsHandler() Module {
+	return &ExternalScriptsHandler{}
 }
 
 func (e *ExternalScriptsHandler) Defaults() ConfigData {

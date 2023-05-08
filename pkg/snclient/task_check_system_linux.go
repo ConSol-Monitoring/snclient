@@ -1,5 +1,5 @@
 package snclient
 
 func init() {
-	AvailableTasks = append(AvailableTasks, NewTaskRunner("CheckSystemUnix", "/settings/system/unix", NewCheckSCheckSystemHandler))
+	RegisterModule(&AvailableTasks, "CheckSystemUnix", "/settings/system/unix", NewCheckSCheckSystemHandler)
 }

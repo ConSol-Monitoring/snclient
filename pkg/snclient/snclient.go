@@ -65,6 +65,9 @@ const (
 	Resume
 )
 
+var AvailableTasks []*LoadableModule
+var AvailableListeners []ListenHandler
+
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
 type noCopy struct{}
 
@@ -74,7 +77,7 @@ func (*noCopy) Unlock() {}
 type Agent struct {
 	Config    *Config              // reference to global config object
 	Listeners map[string]*Listener // Listeners stores if we started listeners
-	Tasks     *TaskSet             // Tasks stores if we started task runners
+	Tasks     *ModuleSet           // Tasks stores if we started task runners
 	Counter   *CounterSet          // Counter stores collected counters from tasks
 	flagset   *flag.FlagSet
 	flags     struct { // command line flags
@@ -105,7 +108,7 @@ type Agent struct {
 type AgentRunSet struct {
 	config    *Config
 	listeners map[string]*Listener
-	tasks     *TaskSet
+	tasks     *ModuleSet
 }
 
 // NewAgent returns a new Agent object ready to be started by Run()
@@ -114,7 +117,7 @@ func NewAgent(build, revision string, args []string) *Agent {
 		Build:     build,
 		Revision:  revision,
 		Listeners: make(map[string]*Listener),
-		Tasks:     NewTaskSet(),
+		Tasks:     NewModuleSet("task"),
 		Counter:   NewCounerSet(),
 		Config:    NewConfig(),
 	}
@@ -170,7 +173,7 @@ func (snc *Agent) Run() {
 	signal.Notify(snc.osSignalChannel, os.Interrupt)
 	signal.Notify(snc.osSignalChannel, syscall.SIGINT)
 
-	snc.startTasksAndListeners(snc.initSet)
+	snc.startModules(snc.initSet)
 	snc.running.Store(true)
 
 	for {
@@ -233,7 +236,7 @@ func (snc *Agent) mainLoop() MainStateType {
 				}
 
 				snc.createLogger(updateSet.config)
-				snc.startTasksAndListeners(updateSet)
+				snc.startModules(updateSet)
 
 				return exitCode
 			case Shutdown, ShutdownGraceFully:
@@ -294,7 +297,7 @@ func (snc *Agent) stop() {
 	}
 }
 
-func (snc *Agent) startTasksAndListeners(initSet *AgentRunSet) {
+func (snc *Agent) startModules(initSet *AgentRunSet) {
 	// stop existing tasks
 	snc.Tasks.StopRemove()
 
@@ -409,7 +412,7 @@ func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
 		log.Tracef("conf macro: %s -> %s", key, val)
 	}
 
-	tasks, err := snc.initTasks(config)
+	tasks, err := snc.initModules("tasks", AvailableTasks, config)
 	if err != nil {
 		log.Errorf("task initialization failed: %s", err.Error())
 	}
@@ -430,34 +433,37 @@ func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
 	}, nil
 }
 
-func (snc *Agent) initTasks(conf *Config) (*TaskSet, error) {
-	tasks := NewTaskSet()
+func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Config) (*ModuleSet, error) {
+	modules := NewModuleSet(name)
 
 	modulesConf := conf.Section("/modules")
-	for _, entry := range AvailableTasks {
+	for _, entry := range loadable {
 		enabled, ok, err := modulesConf.GetBool(entry.ModuleKey)
 		switch {
 		case err != nil:
 			return nil, fmt.Errorf("error in %s /modules configuration: %s", entry.Name(), err.Error())
 		case !ok:
-			log.Tracef("task %s is disabled by default config. skipping...", entry.Name())
+			log.Tracef("%s %s is disabled by default config. skipping...", name, entry.Name())
 
 			continue
 		case !enabled:
-			log.Tracef("task %s is disabled by config. skipping...", entry.Name())
+			log.Tracef("%s %s is disabled by config. skipping...", name, entry.Name())
 
 			continue
 		}
 
-		task, err := entry.Init(snc, conf)
+		mod, err := entry.Init(snc, conf)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
 		}
 
-		tasks.Add(entry.Name(), task)
+		err = modules.Add(entry.Name(), mod)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
+		}
 	}
 
-	return tasks, nil
+	return modules, nil
 }
 
 func (snc *Agent) initListeners(conf *Config) (map[string]*Listener, error) {

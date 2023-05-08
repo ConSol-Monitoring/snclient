@@ -40,8 +40,6 @@ func init() {
 	DefaultListenHTTPConfig.Merge(DefaultListenTCPConfig)
 }
 
-var AvailableListeners []ListenHandler
-
 // Listener is a generic tcp listener and handles all incoming connections.
 type Listener struct {
 	noCopy            noCopy

@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	AvailableTasks = append(AvailableTasks, NewTaskRunner("Logrotate", "/settings/log/file", NewLogrotateHandler))
+	RegisterModule(&AvailableTasks, "Logrotate", "/settings/log/file", NewLogrotateHandler)
 }
 
 type LogrotateHandler struct {
@@ -22,10 +22,8 @@ type LogrotateHandler struct {
 	maxSize int64
 }
 
-func NewLogrotateHandler() TaskHandler {
-	var h TaskHandler = &LogrotateHandler{}
-
-	return h
+func NewLogrotateHandler() Module {
+	return &LogrotateHandler{}
 }
 
 func (l *LogrotateHandler) Defaults() ConfigData {
