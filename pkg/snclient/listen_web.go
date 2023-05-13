@@ -23,16 +23,16 @@ type CheckWebLine struct {
 }
 
 type CheckWebPerf struct {
-	Alias    string          `json:"alias"`
-	IntVal   CheckWebPerfVal `json:"int_value,omitempty"`
-	FloatVal CheckWebPerfVal `json:"float_value,omitempty"`
+	Alias    string           `json:"alias"`
+	IntVal   *CheckWebPerfVal `json:"int_value,omitempty"`
+	FloatVal *CheckWebPerfVal `json:"float_value,omitempty"`
 }
 
 type CheckWebPerfVal struct {
 	Value    interface{} `json:"value"`
 	Unit     string      `json:"unit"`
-	Warning  string      `json:"warning"`
-	Critical string      `json:"critical"`
+	Warning  *string     `json:"warning,omitempty"`
+	Critical *string     `json:"critical,omitempty"`
 }
 
 func init() {
@@ -165,17 +165,19 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 			Unit: metric.Unit,
 		}
 		if metric.Warning != nil {
-			val.Warning = metric.Warning.String()
+			warn := metric.Warning.String()
+			val.Warning = &warn
 		}
 		if metric.Critical != nil {
-			val.Critical = metric.Critical.String()
+			crit := metric.Critical.String()
+			val.Critical = &crit
 		}
 		if utils.IsFloatVal(metric.Value) {
 			val.Value = metric.Value
-			perf.FloatVal = val
+			perf.FloatVal = &val
 		} else {
 			val.Value = int64(metric.Value)
-			perf.IntVal = val
+			perf.IntVal = &val
 		}
 		result = append(result, perf)
 	}
