@@ -288,6 +288,7 @@ func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
 		WriteTimeout:      DefaultSocketTimeout * time.Second,
 		IdleTimeout:       DefaultSocketTimeout * time.Second,
 		Handler:           mux,
+		ErrorLog:          NewStandardLog("WARN"),
 		ConnState: func(con net.Conn, state http.ConnState) {
 			if state != http.StateNew {
 				return

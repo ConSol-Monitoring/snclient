@@ -3,6 +3,7 @@ package snclient
 import (
 	"fmt"
 	"io"
+	standardlog "log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -155,19 +156,24 @@ type LogWriter struct {
 	level string
 }
 
-func (l *LogWriter) Write(p []byte) (int, error) {
+func (l *LogWriter) Write(p []byte) (n int, err error) {
 	msg := strings.TrimSpace(string(p))
+	callLevel := 2
 
 	switch strings.ToLower(l.level) {
 	case "error":
-		log.Error(msg)
+		err = log.Output(factorlog.ERROR, callLevel, msg)
 	case "warn":
-		log.Warn(msg)
+		err = log.Output(factorlog.WARN, callLevel, msg)
 	case "info":
-		log.Info(msg)
+		err = log.Output(factorlog.INFO, callLevel, msg)
 	}
 
-	return 0, nil
+	if err != nil {
+		return 0, fmt.Errorf("log: %s", err.Error())
+	}
+
+	return len(msg), nil
 }
 
 func NewLogWriter(level string) *LogWriter {
@@ -175,4 +181,11 @@ func NewLogWriter(level string) *LogWriter {
 	l.level = level
 
 	return l
+}
+
+func NewStandardLog(level string) *standardlog.Logger {
+	writer := NewLogWriter(level)
+	logger := standardlog.New(writer, "", 0)
+
+	return logger
 }
