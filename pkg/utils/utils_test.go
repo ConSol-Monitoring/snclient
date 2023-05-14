@@ -63,3 +63,22 @@ func TestToPrecision(t *testing.T) {
 		assert.Equalf(t, tst.res, res, "ToPrecision: %v (precision: %d) -> %v", tst.in, tst.precision, res)
 	}
 }
+
+func TestTokenizer(t *testing.T) {
+	tests := []struct {
+		in  string
+		res []string
+	}{
+		{"", []string{""}},
+		{"a bc d", []string{"a", "bc", "d"}},
+		{"a 'bc' d", []string{"a", "'bc'", "d"}},
+		{"a 'b c' d", []string{"a", "'b c'", "d"}},
+		{`a "b'c" d`, []string{"a", `"b'c"`, "d"}},
+		{`a 'b""c' d`, []string{"a", `'b""c'`, "d"}},
+	}
+
+	for _, tst := range tests {
+		res := Tokenize(tst.in)
+		assert.Equalf(t, tst.res, res, "Tokenize: %v -> %v", tst.in, res)
+	}
+}

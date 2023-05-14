@@ -115,3 +115,44 @@ func LogThreadDump(log *factorlog.FactorLog) {
 
 	log.Errorf("ThreadDump:\n%s", buf)
 }
+
+// Tokenize returns list of string tokens
+func Tokenize(str string) []string {
+	return (TokenizeBy(str, " \t\n\r"))
+}
+
+// TokenizeBy returns list of string tokens separated by any char in separator
+func TokenizeBy(str string, separator string) []string {
+	var tokens []string
+
+	inQuotes := false
+	inDbl := false
+	token := make([]rune, 0)
+	for _, char := range str {
+		switch {
+		case char == '"':
+			if !inQuotes {
+				inDbl = !inDbl
+			}
+			token = append(token, char)
+		case char == '\'':
+			if !inDbl {
+				inQuotes = !inQuotes
+			}
+			token = append(token, char)
+		case strings.ContainsRune(separator, char):
+			switch {
+			case inQuotes, inDbl:
+				token = append(token, char)
+			case len(token) > 0:
+				tokens = append(tokens, string(token))
+				token = make([]rune, 0)
+			}
+		default:
+			token = append(token, char)
+		}
+	}
+	tokens = append(tokens, string(token))
+
+	return tokens
+}

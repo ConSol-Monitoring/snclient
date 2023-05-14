@@ -12,8 +12,9 @@ type Argument struct {
 }
 
 type CheckData struct {
-	warnThreshold *Threshold
-	critThreshold *Threshold
+	filter        []*Condition
+	warnThreshold *Threshold // TODO: make them list of conditions
+	critThreshold *Threshold // TODO: make them list of conditions
 	detailSyntax  string
 	topSyntax     string
 	okSyntax      string
@@ -34,6 +35,8 @@ func ParseStateString(state string) int64 {
 	return 3
 }
 
+// ParseArgs parses check arguments into the CheckData struct and returns all
+// unknown options
 func ParseArgs(args []string, data *CheckData) ([]Argument, error) {
 	argList := make([]Argument, 0, len(args))
 	for _, v := range args {
@@ -61,6 +64,12 @@ func ParseArgs(args []string, data *CheckData) ([]Argument, error) {
 			data.emptySyntax = split[1]
 		case "empty-state":
 			data.emptyState = ParseStateString(split[1])
+		case "filter":
+			cond, err := ConditionParse(split[1])
+			if err != nil {
+				return nil, err
+			}
+			data.filter = append(data.filter, cond)
 		default:
 			argList = append(argList, Argument{key: split[0], value: split[1]})
 		}

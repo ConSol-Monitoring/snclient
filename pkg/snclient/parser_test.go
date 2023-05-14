@@ -10,18 +10,18 @@ import (
 func TestArgumentParser(t *testing.T) {
 	for _, check := range []struct {
 		args   []string
-		data   CheckData
+		data   *CheckData
 		expect []Argument
 	}{
 		{
 			[]string{"service=Dhcp", "warn=load > 95%", "crit=load > 98%"},
-			CheckData{},
+			&CheckData{},
 			[]Argument{
 				{key: "service", value: "Dhcp"},
 			},
 		},
 	} {
-		args, err := ParseArgs(check.args, &check.data)
+		args, err := ParseArgs(check.args, check.data)
 		assert.NoErrorf(t, err, "ParseArgs")
 		assert.Equal(t, check.expect, args, fmt.Sprintf("ParseArgs(%s) -> %v", check.args, check.expect))
 	}
