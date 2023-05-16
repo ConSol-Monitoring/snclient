@@ -63,6 +63,14 @@ func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 		}
 	}
 
+	if len(metrics) == 0 {
+		return &CheckResult{
+			State:   CheckExitUnknown,
+			Output:  "UNKNOWN - did not find any cpu counter",
+			Metrics: metrics,
+		}, nil
+	}
+
 	return &CheckResult{
 		State:   state,
 		Output:  output,
