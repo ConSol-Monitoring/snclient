@@ -18,7 +18,7 @@ type CheckSNClientVersion struct {
 func (l *CheckSNClientVersion) Check(snc *Agent, _ []string) (*CheckResult, error) {
 	return &CheckResult{
 		State:   CheckExitOK,
-		Output:  fmt.Sprintf("%s v%s.%s", NAME, VERSION, snc.Revision),
+		Output:  fmt.Sprintf("%s %s (Build: %s)", NAME, snc.Version(), snc.Build),
 		Metrics: nil,
 	}, nil
 }
