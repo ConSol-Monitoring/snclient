@@ -136,14 +136,14 @@ func NewAgent(build, revision string, args []string) *Agent {
 	snc.initSet = initSet
 	snc.createLogger(initSet.config)
 
+	snc.osSignalChannel = make(chan os.Signal, 1)
+
 	// daemonize
 	if snc.flags.flagDaemon {
 		snc.daemonize()
 
 		return nil
 	}
-
-	snc.osSignalChannel = make(chan os.Signal, 1)
 
 	return snc
 }
