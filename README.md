@@ -63,6 +63,7 @@ Find a brief overview of what is planned and what is done already:
   - [X] build rhel/sles .rpm packages
   - [X] build osx .pkg packages
 - [X] implement log rotation for file logger
+- [X] self update (from configurable url)
 
 ### Stage 2
 - [ ] add basic prometheus exporters
@@ -72,7 +73,7 @@ Find a brief overview of what is planned and what is done already:
 
 ### Stage 3
 - [ ] add basic prometheus exporters
-- [ ] self update (from configurable url)
+- [ ] self update from github
 
 ### Miscellaneous
 - [ ] check usr signal handler

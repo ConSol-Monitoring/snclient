@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path"
 	"runtime"
@@ -136,11 +137,14 @@ func NewAgent(build, revision string, args []string) *Agent {
 	snc.initSet = initSet
 	snc.createLogger(initSet.config)
 
+	snc.checkUpdateBinary()
+
 	snc.osSignalChannel = make(chan os.Signal, 1)
 
 	// daemonize
 	if snc.flags.flagDaemon {
 		snc.daemonize()
+		snc.CleanExit(ExitCodeOK)
 
 		return nil
 	}
@@ -404,12 +408,12 @@ func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
 
 	tasks, err := snc.initModules("tasks", AvailableTasks, config)
 	if err != nil {
-		log.Errorf("task initialization failed: %s", err.Error())
+		return nil, fmt.Errorf("task initialization failed: %s", err.Error())
 	}
 
 	listen, err := snc.initModules("listener", AvailableListeners, config)
 	if err != nil {
-		log.Errorf("listener initialization failed: %s", err.Error())
+		return nil, fmt.Errorf("listener initialization failed: %s", err.Error())
 	}
 
 	if len(listen.modules) == 0 {
@@ -444,7 +448,9 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 
 		mod, err := entry.Init(snc, conf)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
+			log.Errorf("%s: %s", entry.ConfigKey, err.Error())
+
+			continue
 		}
 
 		name := entry.Name()
@@ -454,7 +460,9 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 
 		err = modules.Add(name, mod)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
+			log.Errorf("%s: %s", entry.ConfigKey, err.Error())
+
+			continue
 		}
 	}
 
@@ -504,9 +512,14 @@ func (snc *Agent) deletePidFile() {
 	}
 }
 
+// Version returns version including Revision number
+func (snc *Agent) Version() string {
+	return fmt.Sprintf("v%s.%s", VERSION, snc.Revision)
+}
+
 // printVersion prints the version.
 func (snc *Agent) printVersion() {
-	fmt.Fprintf(os.Stdout, "%s v%s.%s (Build: %s)\n", NAME, VERSION, snc.Revision, snc.Build)
+	fmt.Fprintf(os.Stdout, "%s %s (Build: %s)\n", NAME, snc.Version(), snc.Build)
 }
 
 func (snc *Agent) printUsage(full bool) {
@@ -723,4 +736,69 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 		level = "debug"
 	}
 	setLogLevel(level)
+}
+
+// checkUpdateBinary checks if we run as snclient.update.exe and if so, move that file in place and restart
+func (snc *Agent) checkUpdateBinary() {
+	executable, err := os.Executable()
+	if err != nil {
+		log.Errorf("could not detect path to executable: %s", err.Error())
+
+		return
+	}
+
+	updateFile := snc.buildUpdateFile(executable)
+
+	if !strings.Contains(executable, ".update") {
+		// remove update files, we might have started into that right now
+		os.Remove(updateFile)
+
+		return
+	}
+
+	binPath := strings.TrimSuffix(strings.TrimSuffix(executable, ".update"), ".update.exe")
+	if runtime.GOOS == "windows" {
+		binPath += ".exe"
+	}
+	log.Tracef("running as %s, moving updated file to %s", executable, binPath)
+
+	// create a copy of our update file which will be moved later
+	tmpPath := binPath + ".tmp"
+	defer os.Remove(tmpPath)
+	err = utils.CopyFile(executable, tmpPath)
+	if err != nil {
+		log.Errorf("copy: %s", err.Error())
+
+		return
+	}
+
+	if runtime.GOOS == "windows" && snc.flags.flagDaemon {
+		// stop service, so we can replace the binary
+		cmd := exec.Command("net", "stop", "snclient")
+		output, err := cmd.CombinedOutput()
+		log.Tracef("[update] net stop snclient: %s", strings.TrimSpace(string(output)))
+		if err != nil {
+			log.Debugf("net stop snclient failed: %s", err.Error())
+		}
+	}
+
+	// move the file in place
+	err = os.Rename(tmpPath, binPath)
+	if err != nil {
+		log.Errorf("move: %s", err.Error())
+
+		return
+	}
+
+	snc.stop()
+	snc.finishUpdate(binPath)
+}
+
+func (snc *Agent) buildUpdateFile(executable string) string {
+	executable = strings.TrimSuffix(executable, ".exe") + ".update"
+	if runtime.GOOS == "windows" {
+		executable += ".exe"
+	}
+
+	return executable
 }

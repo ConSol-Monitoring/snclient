@@ -82,3 +82,19 @@ func TestTokenizer(t *testing.T) {
 		assert.Equalf(t, tst.res, res, "Tokenize: %v -> %v", tst.in, res)
 	}
 }
+
+func TestParseVersion(t *testing.T) {
+	tests := []struct {
+		in  string
+		res float64
+	}{
+		{"1.0", 1.0},
+		{"0.1", 0.001},
+		{"0.1.23", 0.001023},
+	}
+
+	for _, tst := range tests {
+		res := ParseVersion(tst.in)
+		assert.Equalf(t, tst.res, res, "ParseVersion: %v -> %v", tst.in, res)
+	}
+}

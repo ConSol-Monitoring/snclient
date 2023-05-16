@@ -5,6 +5,7 @@
 *.rpm
 *.tar.gz
 *.linux.amd64
+*.linux.i386
 *.darwin.aarch64
 *.freebsd.i386
 .vscode

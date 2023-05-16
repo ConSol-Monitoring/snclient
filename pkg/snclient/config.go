@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -20,6 +21,7 @@ var DefaultConfig = map[string]*ConfigData{"/modules": {
 	"CheckSystem":          "enabled",
 	"CheckSystemUnix":      "enabled",
 	"CheckExternalScripts": "enabled",
+	"Updates":              "enabled",
 }}
 
 var reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_]+\s*\}`)
@@ -155,12 +157,22 @@ func (config *Config) Section(name string) *ConfigSection {
 
 // replaceMacros replaces variables in given string.
 func (config *Config) replaceMacros(value string) string {
+	macros := map[string]string{
+		"goos":   runtime.GOOS,
+		"goarch": runtime.GOARCH,
+	}
 	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
 		orig := str
 		str = strings.TrimPrefix(str, "${")
 		str = strings.TrimSuffix(str, "}")
 		str = strings.TrimSpace(str)
-		repl, ok := config.Section("/paths").GetString(str)
+
+		// add paths on demand to allow circular cascading macros
+		if path, ok := config.Section("/paths").GetString(str); ok {
+			macros[str] = path
+		}
+
+		repl, ok := macros[str]
 		if !ok {
 			log.Warnf("using undefined macro: ${%s}", str)
 

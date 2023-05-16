@@ -1,6 +1,8 @@
 package snclient
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Module is a generic module interface to abstract optional agent functionality
 type Module interface {

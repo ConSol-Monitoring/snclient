@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -155,4 +158,76 @@ func TokenizeBy(str string, separator string) []string {
 	tokens = append(tokens, string(token))
 
 	return tokens
+}
+
+func ParseVersion(str string) (num float64) {
+	str = strings.TrimPrefix(str, "v")
+	token := strings.Split(str, ".")
+
+	for i, t := range token {
+		x, err := strconv.ParseFloat(t, 64)
+		if err != nil {
+			continue
+		}
+		num += x * math.Pow10(-i*3)
+	}
+
+	return num
+}
+
+func Sha256Sum(path string) (hash string, err error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("open %s: %s", path, err.Error())
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", fmt.Errorf("read %s: %s", path, err.Error())
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+// Copy file from src to destination
+func CopyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("open: %s", err.Error())
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("open: %s", err.Error())
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return fmt.Errorf("write: %s", err.Error())
+	}
+
+	err = dstFile.Close()
+	if err != nil {
+		return fmt.Errorf("write: %s", err.Error())
+	}
+
+	return CopyFileMode(src, dst)
+}
+
+// Copy file modes from src to destination
+func CopyFileMode(src, dst string) error {
+	oldStat, err := os.Stat(src)
+	if err != nil {
+		return fmt.Errorf("stat %s: %s", src, err.Error())
+	}
+
+	err = os.Chmod(dst, oldStat.Mode())
+	if err != nil {
+		return fmt.Errorf("chmod %s: %s", dst, err.Error())
+	}
+
+	return nil
 }

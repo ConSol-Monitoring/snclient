@@ -81,6 +81,11 @@ build-linux-amd64: vendor
 		cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.linux.amd64; cd ../..; \
 	done
 
+build-linux-i386: vendor
+	set -e; for CMD in $(CMDS); do \
+		cd ./cmd/$$CMD && GOOS=linux GOARCH=386 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.linux.i386; cd ../..; \
+	done
+
 build-windows-i386: vendor
 	set -e; for CMD in $(CMDS); do \
 		cd ./cmd/$$CMD && GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.windows.i386.exe; cd ../..; \

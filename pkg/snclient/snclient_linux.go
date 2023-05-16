@@ -72,3 +72,12 @@ func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 
 	return Resume
 }
+
+func (snc *Agent) finishUpdate(binPath string) {
+	log.Tracef("[update] reexec into new file %s %v", binPath, os.Args[1:])
+	err := syscall.Exec(binPath, os.Args, os.Environ()) //nolint:gosec // false positive? There should be no tainted input here
+	if err != nil {
+		log.Errorf("restart failed: %s", err.Error())
+	}
+	os.Exit(ExitCodeError)
+}

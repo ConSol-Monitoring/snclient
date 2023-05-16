@@ -10,7 +10,7 @@ linters-settings:
     min-len: 8
     min-occurrences: 12
   lll:
-    line-length: 140
+    line-length: 160
   funlen:
     lines: 80
   gomoddirectives:
@@ -52,6 +52,7 @@ issues:
     - "mnd: Magic number: 0.001, in"
     - "mnd: Magic number: 2, in"
     - "mnd: Magic number: 3, in"
+    - "mnd: Magic number: 4, in"
     - "mnd: Magic number: 6, in"
     - "mnd: Magic number: 7, in"
     - "mnd: Magic number: 10, in"

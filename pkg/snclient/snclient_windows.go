@@ -2,6 +2,8 @@ package snclient
 
 import (
 	"os"
+	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -28,6 +30,7 @@ func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, cha
 			time.Sleep(100 * time.Millisecond)
 			changes <- chg.CurrentStatus
 		case svc.Stop, svc.Shutdown:
+			log.Debugf("got windows service stop request")
 			m.snc.stop()
 			keepListening = false
 		case svc.Pause,
@@ -68,7 +71,7 @@ func (snc *Agent) runAsWinService() {
 		log.Fatalf("failed to determine if we are running in service: %s", err.Error())
 	}
 	if !inService {
-		log.Fatalf("--daemon mode cannot run interactively")
+		log.Fatalf("--daemon mode cannot run interactively on windows")
 	}
 
 	err = svc.Run(svcName, &winService{
@@ -109,4 +112,15 @@ func mainSignalHandler(sig os.Signal, _ *Agent) MainStateType {
 	}
 
 	return Resume
+}
+
+func (snc *Agent) finishUpdate(binPath string) {
+	// start service again
+	cmd := exec.Command("net", "start", "snclient")
+	output, err := cmd.CombinedOutput()
+	log.Tracef("[update] net start snclient: %s", strings.TrimSpace(string(output)))
+	if err != nil {
+		log.Debugf("net start snclient failed: %s", err.Error())
+	}
+	os.Exit(ExitCodeOK)
 }
