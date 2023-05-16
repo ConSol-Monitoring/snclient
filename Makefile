@@ -9,7 +9,7 @@ GOVERSION:=$(shell \
 MINGOVERSION:=00010019
 MINGOVERSIONSTR:=1.19
 BUILD:=$(shell git rev-parse --short HEAD)
-REVISION:=$(shell printf "%04d" $$( git rev-list --all --count))
+REVISION:=$(shell ./buildtools/get_version | awk -F . '{ print $$3 }')
 # see https://github.com/go-modules-by-example/index/blob/master/010_tools/README.md
 # and https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
 TOOLSFOLDER=$(shell pwd)/tools
