@@ -44,6 +44,8 @@ const (
 	Unequal // !=
 
 	// Text
+	Contains      // like
+	ContainsNot   // unlike
 	RegexMatch    // ~
 	RegexMatchNot // !~
 
@@ -64,9 +66,13 @@ func OperatorParse(str string) (Operator, error) {
 		return Equal, nil
 	case "!=", "is not", "ne":
 		return Unequal, nil
-	case "~", "like":
+	case "like":
+		return Contains, nil
+	case "unlike", "not like":
+		return ContainsNot, nil
+	case "~", "regexp", "regex":
 		return RegexMatch, nil
-	case "!~", "unlike", "not like":
+	case "!~", "not regex", "not regexp":
 		return RegexMatchNot, nil
 	case "<", "lt":
 		return Lower, nil
@@ -107,8 +113,8 @@ func GroupOperatorParse(str string) (GroupOperator, error) {
 	return 0, fmt.Errorf("unknown logical operator: %s", str)
 }
 
-// ConditionParse parse filter= from check args
-func ConditionParse(input string) (*Condition, error) {
+// NewCondition parse filter= from check args
+func NewCondition(input string) (*Condition, error) {
 	input = strings.TrimSpace(input)
 	if input == "none" {
 		return &Condition{isNone: true}, nil
@@ -124,6 +130,120 @@ func ConditionParse(input string) (*Condition, error) {
 	}
 
 	return cond, nil
+}
+
+// Match checks if given map matches current condition
+func (c *Condition) Match(data map[string]string) bool {
+	if len(c.group) > 0 {
+		for i := range c.group {
+			res := c.group[i].matchSingle(data)
+			if !res && c.groupOperator == GroupAnd {
+				return false
+			}
+			if res && c.groupOperator == GroupOr {
+				return true
+			}
+		}
+
+		// and: this means all conditions meet -> true.
+		// or: it means no condition has met yet -> false
+		return c.groupOperator == GroupAnd
+	}
+
+	return c.matchSingle(data)
+}
+
+// matchSingle checks a single condition and does not recurse into logical groups
+func (c *Condition) matchSingle(data map[string]string) bool {
+	varStr, ok := data[c.keyword]
+	if !ok {
+		return false
+	}
+	condStr := fmt.Sprintf("%v", c.value)
+	varNum, err1 := strconv.ParseFloat(varStr, 64)
+	condNum, err2 := strconv.ParseFloat(condStr, 64)
+	switch c.operator {
+	case Equal:
+		if err1 == nil && err2 == nil {
+			return varNum == condNum
+		}
+		// fallback to string compare
+		return condStr == varStr
+	case Unequal:
+		if err1 == nil && err2 == nil {
+			return varNum != condNum
+		}
+		// fallback to string compare
+		return condStr != varStr
+	case Contains:
+		return strings.Contains(varStr, condStr)
+	case ContainsNot:
+		return !strings.Contains(varStr, condStr)
+	case GreaterEqual:
+		if err1 == nil && err2 == nil {
+			return varNum >= condNum
+		}
+
+		return false
+	case Greater:
+		if err1 == nil && err2 == nil {
+			return varNum > condNum
+		}
+
+		return false
+	case LowerEqual:
+		if err1 == nil && err2 == nil {
+			return varNum <= condNum
+		}
+
+		return false
+	case Lower:
+		if err1 == nil && err2 == nil {
+			return varNum < condNum
+		}
+
+		return false
+	case RegexMatch:
+		regex, err := regexp.Compile(condStr)
+		if err != nil {
+			log.Warnf("invalid regex: %s: %s", condStr, err.Error())
+
+			return false
+		}
+
+		return regex.MatchString(varStr)
+	case RegexMatchNot:
+		regex, err := regexp.Compile(condStr)
+		if err != nil {
+			log.Warnf("invalid regex: %s: %s", condStr, err.Error())
+
+			return false
+		}
+
+		return !regex.MatchString(varStr)
+	case InList:
+		if list, ok := c.value.([]string); ok {
+			for _, el := range list {
+				if el == varStr {
+					return true
+				}
+			}
+		}
+
+		return false
+	case NotInList:
+		if list, ok := c.value.([]string); ok {
+			for _, el := range list {
+				if el == varStr {
+					return false
+				}
+			}
+		}
+
+		return true
+	}
+
+	return false
 }
 
 // add parsed condition, returns remaining token
@@ -386,4 +506,29 @@ func conditionSetValue(cond *Condition, str string, expand bool) error {
 	}
 
 	return nil
+}
+
+// ThresholdString returns string used in warn/crit threshold performance data.
+func ThresholdString(name string, conditions []*Condition) string {
+	// fetch warning conditions for name of metric
+	filtered := make([]*Condition, 0)
+	for n := range conditions {
+		if conditions[n].keyword == name {
+			filtered = append(filtered, conditions[n])
+		}
+	}
+
+	if len(filtered) == 0 {
+		return ""
+	}
+
+	if len(filtered) == 1 {
+		return fmt.Sprintf("%v", filtered[0].value)
+	}
+
+	if len(filtered) == 2 {
+		return fmt.Sprintf("%v:%v", filtered[0].value, filtered[1].value)
+	}
+
+	return ""
 }

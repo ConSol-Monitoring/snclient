@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"strings"
-
 	"pkg/utils"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -31,6 +30,8 @@ type CheckWebPerf struct {
 type CheckWebPerfVal struct {
 	Value    interface{} `json:"value"`
 	Unit     string      `json:"unit"`
+	Min      interface{} `json:"minimum,omitempty"`
+	Max      interface{} `json:"maximum,omitempty"`
 	Warning  *string     `json:"warning,omitempty"`
 	Critical *string     `json:"critical,omitempty"`
 }
@@ -165,17 +166,27 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 			Unit: metric.Unit,
 		}
 		if metric.Warning != nil {
-			warn := metric.Warning.String()
+			warn := metric.ThresholdString(metric.Warning)
 			val.Warning = &warn
 		}
 		if metric.Critical != nil {
-			crit := metric.Critical.String()
+			crit := metric.ThresholdString(metric.Critical)
 			val.Critical = &crit
 		}
 		if utils.IsFloatVal(metric.Value) {
+			val.Min = metric.Min
+			val.Max = metric.Max
 			val.Value = metric.Value
 			perf.FloatVal = &val
 		} else {
+			if metric.Min != nil {
+				min := int64(*metric.Min)
+				val.Min = &min
+			}
+			if metric.Max != nil {
+				max := int64(*metric.Max)
+				val.Max = &max
+			}
 			val.Value = int64(metric.Value)
 			perf.IntVal = &val
 		}

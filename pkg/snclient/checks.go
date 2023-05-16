@@ -72,8 +72,8 @@ type CheckMetric struct {
 	Name     string
 	Unit     string
 	Value    float64
-	Warning  *Threshold
-	Critical *Threshold
+	Warning  []*Condition
+	Critical []*Condition
 	Min      *float64
 	Max      *float64
 }
@@ -84,14 +84,10 @@ func (m *CheckMetric) String() string {
 	res.WriteString(fmt.Sprintf("'%s'=%s%s", m.Name, strconv.FormatFloat(m.Value, 'f', -1, 64), m.Unit))
 
 	res.WriteString(";")
-	if m.Warning != nil {
-		res.WriteString(m.Warning.String())
-	}
+	res.WriteString(m.ThresholdString(m.Warning))
 
 	res.WriteString(";")
-	if m.Critical != nil {
-		res.WriteString(m.Critical.String())
-	}
+	res.WriteString(m.ThresholdString(m.Critical))
 
 	res.WriteString(";")
 	if m.Min != nil {
@@ -110,4 +106,8 @@ func (m *CheckMetric) String() string {
 	}
 
 	return resStr
+}
+
+func (m *CheckMetric) ThresholdString(conditions []*Condition) string {
+	return ThresholdString(m.Name, conditions)
 }

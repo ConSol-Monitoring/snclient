@@ -81,6 +81,10 @@ issues:
     - "Function 'Check' has too many statements"
     - "Function 'Check' is too long"
     - "cognitive complexity .* of func .*.Check"
+    - "cognitive complexity .* of func .*conditionAdd"
+    - "cognitive complexity .* of func .*.matchSingle"
+    - "Function 'matchSingle' has too many statements"
+    - "cyclomatic complexity .* of func .*.matchSingle"
     - "appendAssign: append result not assigned to the same slice"
   exclude-rules:
     # Exclude some linters from running on tests files.

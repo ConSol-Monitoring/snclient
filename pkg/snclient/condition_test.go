@@ -55,7 +55,7 @@ func TestConditionParse(t *testing.T) {
 			},
 		},
 	} {
-		cond, err := ConditionParse(check.input)
+		cond, err := NewCondition(check.input)
 		assert.NoErrorf(t, err, "ConditionParse should throw no error")
 		assert.Equal(t, check.expect, cond, fmt.Sprintf("ConditionParse(%s) -> %v", check.input, check.expect))
 	}
@@ -84,8 +84,67 @@ func TestConditionParseErrors(t *testing.T) {
 		{"state in (", nil},
 		{"a > 0 && b < 0 || x > 3", nil},
 	} {
-		cond, err := ConditionParse(check.threshold)
+		cond, err := NewCondition(check.threshold)
 		assert.Errorf(t, err, "ConditionParse should error")
 		assert.Nilf(t, cond, fmt.Sprintf("ConditionParse(%s) errors should not return condition", check.threshold))
+	}
+}
+
+func TestConditionCompare(t *testing.T) {
+	for _, check := range []struct {
+		threshold string
+		key       string
+		value     string
+		expect    bool
+	}{
+		{"test > 5", "test", "2", false},
+		{"test > 5", "test", "5.1", true},
+		{"test >= 5", "test", "5.0", true},
+		{"test < 5", "test", "5.1", false},
+		{"test <= 5", "test", "5.0", true},
+		{"test <= 5", "test", "5.1", false},
+		{"test like abc", "test", "abcdef", true},
+		{"test not like abc", "test", "abcdef", false},
+		{"test like 'abc'", "test", "abcdef", true},
+		{`test like "abc"`, "test", "abcdef", true},
+		{`test in ('abc', '123', 'xyz')`, "test", "123", true},
+		{`test in ('abc', '123', 'xyz')`, "test", "13", false},
+		{`test not in ('abc', '123', 'xyz')`, "test", "123", false},
+		{`test not in ('abc', '123', 'xyz')`, "test", "asd", true},
+		{"test = 5", "test", "5", true},
+		{"test = 5", "test", "5.0", true},
+		{"test = 5.0", "test", "5", true},
+		{"test = '123'", "test", "123", true},
+		{"test != '123'", "test", "123", false},
+		{"test regex 'a+'", "test", "aaaa", true},
+		{"test regex 'a+'", "test", "bbbb", false},
+		{"test !~ 'a+'", "test", "bbb", true},
+		{"test !~ 'a+'", "test", "aa", false},
+	} {
+		threshold, err := NewCondition(check.threshold)
+		assert.NoErrorf(t, err, "parsed threshold")
+		assert.NotNilf(t, threshold, "parsed threshold")
+		compare := map[string]string{check.key: check.value}
+		assert.Equalf(t, check.expect, threshold.Match(compare), fmt.Sprintf("Compare(%s) -> (%v) %v", check.threshold, check.value, check.expect))
+	}
+}
+
+func TestConditionThresholdString(t *testing.T) {
+	for _, check := range []struct {
+		threshold string
+		name      string
+		expect    string
+	}{
+		{"test > 5", "test", "5"},
+		{"test > 5 or test < 3", "test", "3:5"},
+		{"test < 3 or test > 5", "test", "3:5"},
+		{"test > 10 and test < 20", "test", "@10:20"},
+		{"test < 20 and test > 20", "test", "@10:20"},
+	} {
+		threshold, err := NewCondition(check.threshold)
+		assert.NoErrorf(t, err, "parsed threshold")
+		assert.NotNilf(t, threshold, "parsed threshold")
+		perfRange := ThresholdString(check.name, []*Condition{threshold})
+		assert.Equalf(t, check.expect, perfRange, fmt.Sprintf("ThresholdString(%s) -> (%v) = %v", check.threshold, perfRange, check.expect))
 	}
 }

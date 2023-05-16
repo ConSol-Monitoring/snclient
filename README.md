@@ -70,6 +70,7 @@ Find a brief overview of what is planned and what is done already:
   - [ ] exporter_exporter
   - [ ] windows_exporter
   - [ ] node_exporter
+  - [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
 
 ### Stage 3
 - [ ] add basic prometheus exporters

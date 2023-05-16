@@ -14,7 +14,7 @@ func init() {
 
 type CheckMemory struct {
 	noCopy noCopy
-	data   CheckData
+	data   *CheckData
 }
 
 /* check_memory
@@ -23,18 +23,27 @@ type CheckMemory struct {
  * Units: B, KB, MB, GB, TB, %
  */
 func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
-	// default state: OK
-	state := int64(0)
-	l.data.detailSyntax = "%(type) = %(used)"
-	_, err := ParseArgs(args, &l.data)
-	if err != nil {
-		return nil, fmt.Errorf("args error: %s", err.Error())
+	l.data = &CheckData{
+		result: CheckResult{
+			State: CheckExitOK,
+		},
+		detailSyntax: "%(type) = %(used)",
+		topSyntax:    "${status}: ${list}",
 	}
-	var checkData []map[string]string
+	_, err := ParseArgs(args, l.data)
+	if err != nil {
+		return nil, err
+	}
 
-	// collect ram metrics (physical + committed)
-	physical, _ := mem.VirtualMemory()
-	committed, _ := mem.SwapMemory()
+	physical, err := mem.VirtualMemory()
+	if err != nil {
+		return nil, fmt.Errorf("fetching virtual memory failed: %s", err.Error())
+	}
+
+	committed, err := mem.SwapMemory()
+	if err != nil {
+		return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
+	}
 
 	physicalM := map[string]string{
 		"type":     "physical",
@@ -44,8 +53,7 @@ func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
 		"used_pct": strconv.FormatFloat(physical.UsedPercent, 'f', 0, 64),
 		"free_pct": strconv.FormatUint(physical.Free*100/(physical.Total+1), 10),
 	}
-
-	checkData = append(checkData, physicalM)
+	l.data.listData = append(l.data.listData, physicalM)
 
 	committedM := map[string]string{
 		"type":     "committed",
@@ -55,50 +63,25 @@ func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
 		"used_pct": strconv.FormatFloat(committed.UsedPercent, 'f', 0, 64),
 		"free_pct": strconv.FormatUint(committed.Free*100/(committed.Total+1), 10),
 	}
+	l.data.listData = append(l.data.listData, committedM)
 
-	checkData = append(checkData, committedM)
+	l.data.Check(CheckExitCritical, l.data.critThreshold, physicalM)
+	l.data.Check(CheckExitCritical, l.data.critThreshold, committedM)
+	l.data.Check(CheckExitWarning, l.data.warnThreshold, physicalM)
+	l.data.Check(CheckExitWarning, l.data.warnThreshold, committedM)
 
-	// compare ram metrics to thresholds
-	if CompareMetrics(physicalM, l.data.warnThreshold) || CompareMetrics(committedM, l.data.warnThreshold) {
-		state = CheckExitWarning
-	}
+	value := float64(physical.Used)
+	size := float64(physical.Total)
+	min := float64(0)
+	l.data.result.Metrics = append(l.data.result.Metrics, &CheckMetric{
+		Name:     "physical",
+		Unit:     "B",
+		Value:    value,
+		Min:      &min,
+		Max:      &size,
+		Warning:  l.data.warnThreshold,
+		Critical: l.data.critThreshold,
+	})
 
-	if CompareMetrics(physicalM, l.data.critThreshold) || CompareMetrics(committedM, l.data.critThreshold) {
-		state = CheckExitCritical
-	}
-
-	output := ""
-	for i, d := range checkData {
-		output += ParseSyntax(l.data.detailSyntax, d)
-		if i != len(checkData)-1 {
-			output += ", "
-		}
-	}
-
-	// build perfdata
-	metrics := []*CheckMetric{}
-
-	for _, val := range committedM {
-		value, _ := strconv.ParseFloat(val, 64)
-		metrics = append(metrics, &CheckMetric{
-			Name:  fmt.Sprintf("committed_%v", l.data.warnThreshold.name),
-			Unit:  "",
-			Value: value,
-		})
-	}
-
-	for _, val := range physicalM {
-		value, _ := strconv.ParseFloat(val, 64)
-		metrics = append(metrics, &CheckMetric{
-			Name:  fmt.Sprintf("physical_%v", l.data.warnThreshold.name),
-			Unit:  "",
-			Value: value,
-		})
-	}
-
-	return &CheckResult{
-		State:   state,
-		Output:  output,
-		Metrics: metrics,
-	}, nil
+	return &l.data.result, nil
 }

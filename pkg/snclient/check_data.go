@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -11,15 +10,55 @@ type Argument struct {
 	value string
 }
 
+// CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
 	filter        []*Condition
-	warnThreshold *Threshold // TODO: make them list of conditions
-	critThreshold *Threshold // TODO: make them list of conditions
+	warnThreshold []*Condition
+	critThreshold []*Condition
 	detailSyntax  string
 	topSyntax     string
 	okSyntax      string
+	listSyntax    string
 	emptySyntax   string
 	emptyState    int64
+	details       map[string]string
+	listData      []map[string]string
+	result        CheckResult
+}
+
+// Check conditions against given data and set result state
+func (cd *CheckData) Check(state int64, conditions []*Condition, data map[string]string) {
+	// no need to escalate state anymore
+	if cd.result.State >= state {
+		return
+	}
+
+	for i := range conditions {
+		if conditions[i].Match(data) {
+			cd.result.State = state
+
+			return
+		}
+	}
+}
+
+// Filter data map by conditions and return filtered list
+func (cd *CheckData) Filter(conditions []*Condition, data []map[string]string) []map[string]string {
+	result := make([]map[string]string, 0)
+
+	for num := range data {
+		matched := false
+		for i := range conditions {
+			if conditions[i].Match(data[num]) {
+				break
+			}
+		}
+		if matched {
+			result = append(result, data[num])
+		}
+	}
+
+	return result
 }
 
 func ParseStateString(state string) int64 {
@@ -43,17 +82,17 @@ func ParseArgs(args []string, data *CheckData) ([]Argument, error) {
 		split := strings.SplitN(v, "=", 2)
 		switch split[0] {
 		case "warn", "warning":
-			thr, err := ThresholdParse(split[1])
+			cond, err := NewCondition(split[1])
 			if err != nil {
-				return nil, fmt.Errorf("threshold error: %s", err.Error())
+				return nil, err
 			}
-			data.warnThreshold = thr
+			data.warnThreshold = append(data.warnThreshold, cond)
 		case "crit", "critical":
-			thr, err := ThresholdParse(split[1])
+			cond, err := NewCondition(split[1])
 			if err != nil {
-				return nil, fmt.Errorf("threshold error: %s", err.Error())
+				return nil, err
 			}
-			data.critThreshold = thr
+			data.critThreshold = append(data.critThreshold, cond)
 		case "detail-syntax":
 			data.detailSyntax = split[1]
 		case "top-syntax":
@@ -65,7 +104,7 @@ func ParseArgs(args []string, data *CheckData) ([]Argument, error) {
 		case "empty-state":
 			data.emptyState = ParseStateString(split[1])
 		case "filter":
-			cond, err := ConditionParse(split[1])
+			cond, err := NewCondition(split[1])
 			if err != nil {
 				return nil, err
 			}
