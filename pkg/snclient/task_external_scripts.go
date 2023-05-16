@@ -32,14 +32,12 @@ func (e *ExternalScriptsHandler) Init(snc *Agent, _ *ConfigSection, conf *Config
 	e.snc = snc
 
 	//nolint:gocritic
-	/*
-		for _, sectionName := range []string{"/settings/external scripts/scripts", "/settings/external scripts/wrapped scripts"} {
-			scripts := conf.Section(sectionName)
-			for name, command := range scripts.data {
-				AvailableChecks[name] = CheckEntry{name, &CheckWrap{commandString: command}}
-			}
+	for _, sectionName := range []string{"/settings/external scripts/scripts", "/settings/external scripts/wrapped scripts"} {
+		scripts := conf.Section(sectionName)
+		for name, command := range scripts.data {
+			AvailableChecks[name] = CheckEntry{name, &CheckWrap{commandString: command}}
 		}
-	*/
+	}
 
 	aliases := conf.Section("/settings/external scripts/alias")
 	for name, command := range aliases.data {
