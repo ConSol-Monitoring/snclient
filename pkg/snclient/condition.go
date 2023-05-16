@@ -190,7 +190,7 @@ func conditionAdd(token []string) (cond *Condition, remaining []string, err erro
 	}
 
 	if len(conditions) == 1 {
-		return conditions[0], nil, nil
+		return conditions[0], token, nil
 	}
 
 	cond = &Condition{
@@ -229,15 +229,18 @@ func conditionNext(token []string) (cond *Condition, remaining []string, err err
 			query = query + " " + token[0] + " " + token[1]
 			token = token[2:]
 			cond.operator = operator2
-		} else {
-			operator, err := OperatorParse(token[0])
-			if err != nil {
-				return nil, nil, err
-			}
-			query = query + " " + token[0]
-			token = token[1:]
-			cond.operator = operator
 		}
+	}
+
+	// no operator yet?
+	if cond.operator == 0 {
+		operator, err := OperatorParse(token[0])
+		if err != nil {
+			return nil, nil, err
+		}
+		query = query + " " + token[0]
+		token = token[1:]
+		cond.operator = operator
 	}
 
 	if len(token) == 0 {
@@ -297,6 +300,9 @@ func conditionListValue(cond *Condition, token []string) (remaining []string, er
 		token = token[1:]
 		if strings.HasSuffix(str, ")") {
 			str = strings.TrimSuffix(str, ")")
+			if strings.HasSuffix(str, ",") {
+				return nil, fmt.Errorf("trailing comma in value list after: %s", str)
+			}
 			if str != "" {
 				list = append(list, str)
 			}
@@ -305,6 +311,9 @@ func conditionListValue(cond *Condition, token []string) (remaining []string, er
 		}
 		if !strings.HasSuffix(str, ",") && (len(token) == 0 || token[0] != ")") {
 			return nil, fmt.Errorf("expected comma in value list after: %s", str)
+		}
+		if strings.HasSuffix(str, ",") && len(token) == 0 {
+			return nil, fmt.Errorf("trailing comma in value list after: %s", str)
 		}
 		str = strings.TrimSuffix(str, ",")
 		list = append(list, str)
