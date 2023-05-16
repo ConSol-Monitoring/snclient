@@ -121,7 +121,7 @@ func (l *HandlerWeb) verifyPassword(password string) bool {
 
 	// no login with default password
 	if l.password == DefaultPassword {
-		log.Errorf("password matches default password -> 403")
+		log.Errorf("configured password in ini file matches default password, deny all access -> 403")
 
 		return false
 	}
