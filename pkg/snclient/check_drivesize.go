@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -48,7 +49,10 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 	}
 
 	// collect disk metrics
-	disks, _ := disk.Partitions(true)
+	disks, err := disk.Partitions(true)
+	if err != nil {
+		return nil, fmt.Errorf("disk partitions failed: %s", err.Error())
+	}
 
 	for _, drive := range disks {
 		if len(drives) > 0 && !slices.Contains(drives, "*") &&
@@ -60,7 +64,12 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 			continue
 		}
 
-		usage, _ := disk.Usage(drive.Mountpoint)
+		usage, err := disk.Usage(drive.Mountpoint)
+		if err != nil {
+			log.Debugf("disk usage %s failed: %s", drive.Mountpoint, err.Error())
+
+			continue
+		}
 
 		check.listData = append(check.listData, map[string]string{
 			"drive_or_name":  drive.Mountpoint,
@@ -80,7 +89,5 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 		})
 	}
 
-	check.Finalize()
-
-	return check.result, nil
+	return check.Finalize()
 }

@@ -100,7 +100,5 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}
 	}
 
-	check.Finalize()
-
-	return check.result, nil
+	return check.Finalize()
 }

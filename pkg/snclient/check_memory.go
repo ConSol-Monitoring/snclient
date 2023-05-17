@@ -77,7 +77,5 @@ func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
 		Critical: check.critThreshold,
 	})
 
-	check.Finalize()
-
-	return check.result, nil
+	return check.Finalize()
 }

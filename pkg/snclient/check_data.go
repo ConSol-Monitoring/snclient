@@ -30,14 +30,14 @@ type CheckData struct {
 	result          *CheckResult
 }
 
-func (cd *CheckData) Finalize() {
+func (cd *CheckData) Finalize() (*CheckResult, error) {
 	cd.Check(CheckExitCritical, cd.critThreshold, cd.details)
 	cd.Check(CheckExitWarning, cd.warnThreshold, cd.details)
 
 	switch {
 	case cd.result.Output != "":
 		// already set, leave it
-		return
+		return cd.result, nil
 	case len(cd.filter) > 0 && len(cd.listData) == 0:
 		cd.result.Output = cd.emptySyntax
 		cd.result.State = cd.emptyState
@@ -58,6 +58,8 @@ func (cd *CheckData) Finalize() {
 		"list":  strings.Join(list, ", "),
 	}
 	cd.result.Finalize(cd.details, finalMacros)
+
+	return cd.result, nil
 }
 
 // Check conditions against given data and set result state

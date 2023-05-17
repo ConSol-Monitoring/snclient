@@ -40,7 +40,5 @@ func (l *CheckOSVersion) Check(_ *Agent, args []string) (*CheckResult, error) {
 		"arch":     runtime.GOARCH,
 	}
 
-	check.Finalize()
-
-	return check.result, nil
+	return check.Finalize()
 }

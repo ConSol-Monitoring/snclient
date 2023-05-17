@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient+ agent.
 
 next:
+         - implement filter and thresholds
          - packaging
            - add windows service mode
          - add command alias support

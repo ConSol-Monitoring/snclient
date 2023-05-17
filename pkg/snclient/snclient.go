@@ -689,34 +689,28 @@ func (snc *Agent) logPanicExit() {
 // RunCheck calls check by name and returns the check result
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 	res := snc.runCheck(name, args)
+	res.Finalize()
 
 	return res
 }
 
-func (snc *Agent) runCheck(name string, args []string) (res *CheckResult) {
+func (snc *Agent) runCheck(name string, args []string) *CheckResult {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
-	defer func() {
-		res.Finalize()
-	}()
 	check, ok := AvailableChecks[name]
 	if !ok {
-		res = &CheckResult{
+		return &CheckResult{
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("${status} - No such check: %s", name),
 		}
-
-		return res
 	}
 
 	res, err := check.Handler.Check(snc, args)
 	if err != nil {
-		res = &CheckResult{
+		return &CheckResult{
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("${status} - %s", err.Error()),
 		}
-
-		return res
 	}
 
 	return res

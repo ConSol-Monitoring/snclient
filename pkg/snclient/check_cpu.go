@@ -71,7 +71,5 @@ func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 		}
 	}
 
-	check.Finalize()
-
-	return check.result, nil
+	return check.Finalize()
 }

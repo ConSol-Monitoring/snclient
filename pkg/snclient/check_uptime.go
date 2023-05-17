@@ -59,7 +59,5 @@ func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
 		Value: float64(int(uptime.Seconds())),
 	})
 
-	check.Finalize()
-
-	return check.result, nil
+	return check.Finalize()
 }
