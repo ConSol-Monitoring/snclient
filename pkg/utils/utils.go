@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -263,4 +264,24 @@ func CopyFileMode(src, dst string) error {
 	}
 
 	return nil
+}
+
+// Count lines in file
+func LineCounter(reader *os.File) int {
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
+
+	for {
+		c, err := reader.Read(buf)
+		count += bytes.Count(buf[:c], lineSep)
+
+		switch {
+		case err == io.EOF:
+			return count
+
+		case err != nil:
+			return count
+		}
+	}
 }

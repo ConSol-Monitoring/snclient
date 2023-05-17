@@ -73,9 +73,9 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 
 			fileInfo, err := os.Stat(path)
 			if err != nil {
-				return fmt.Errorf("couldn't get Stat info on file: %v", err.Error())
+				return fmt.Errorf("couldnt get Stat info on file: %v", err.Error())
 			}
-			fileInfoSys, ok := fileInfo.Sys().(*syscall.Win32FileAttributeData)
+			fileInfoSys, ok := fileInfo.Sys().(*syscall.Stat_t)
 			if !ok {
 				return fmt.Errorf("type assertion for fileInfo.Sys() failed")
 			}
@@ -86,13 +86,13 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 			}
 
 			check.listData = append(check.listData, map[string]string{
-				"access":     time.Unix(0, fileInfoSys.LastAccessTime.Nanoseconds()).In(time.UTC).Format("2006-01-02 15:04:05"),
-				"access_l":   time.Unix(0, fileInfoSys.LastAccessTime.Nanoseconds()).Format("2006-01-02 15:04:05"),
-				"access_u":   time.Unix(0, fileInfoSys.LastAccessTime.Nanoseconds()).In(time.UTC).Format("2006-01-02 15:04:05"),
-				"age":        strconv.FormatInt((time.Now().UnixNano()-fileInfoSys.LastWriteTime.Nanoseconds())/1e9, 10),
-				"creation":   time.Unix(0, fileInfoSys.CreationTime.Nanoseconds()).In(time.UTC).Format("2006-01-02 15:04:05"),
-				"creation_l": time.Unix(0, fileInfoSys.CreationTime.Nanoseconds()).Format("2006-01-02 15:04:05"),
-				"creation_u": time.Unix(0, fileInfoSys.CreationTime.Nanoseconds()).In(time.UTC).Format("2006-01-02 15:04:05"),
+				"access":     time.Unix(fileInfoSys.Atim.Sec, fileInfoSys.Atim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
+				"access_l":   time.Unix(fileInfoSys.Atim.Sec, fileInfoSys.Atim.Nsec).Format("2006-01-02 15:04:05"),
+				"access_u":   time.Unix(fileInfoSys.Atim.Sec, fileInfoSys.Atim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
+				"age":        strconv.FormatInt((time.Now().UnixNano()-(fileInfoSys.Atim.Sec*1e9)-fileInfoSys.Mtim.Nsec)/1e9, 10),
+				"creation":   time.Unix(fileInfoSys.Ctim.Sec, fileInfoSys.Ctim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
+				"creation_l": time.Unix(fileInfoSys.Ctim.Sec, fileInfoSys.Ctim.Nsec).Format("2006-01-02 15:04:05"),
+				"creation_u": time.Unix(fileInfoSys.Ctim.Sec, fileInfoSys.Ctim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
 				"file":       fileInfo.Name(),
 				"filename":   fileInfo.Name(),
 				"line_count": strconv.FormatInt(int64(utils.LineCounter(fileHandler)), 10),
@@ -100,10 +100,10 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 				"path":       path,
 				"size":       strconv.FormatInt(fileInfo.Size(), 10),
 				"type":       map[bool]string{true: "directory", false: "file"}[dir.IsDir()],
-				"write":      time.Unix(0, fileInfoSys.LastWriteTime.Nanoseconds()).In(time.UTC).Format("2006-01-02 15:04:05"),
-				"written":    time.Unix(0, fileInfoSys.LastWriteTime.Nanoseconds()).In(time.UTC).Format("2006-01-02 15:04:05"),
-				"written_l":  time.Unix(0, fileInfoSys.LastWriteTime.Nanoseconds()).Format("2006-01-02 15:04:05"),
-				"written_u":  time.Unix(0, fileInfoSys.LastWriteTime.Nanoseconds()).In(time.UTC).Format("2006-01-02 15:04:05"),
+				"write":      time.Unix(fileInfoSys.Mtim.Sec, fileInfoSys.Mtim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
+				"written":    time.Unix(fileInfoSys.Mtim.Sec, fileInfoSys.Mtim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
+				"written_l":  time.Unix(fileInfoSys.Mtim.Sec, fileInfoSys.Mtim.Nsec).Format("2006-01-02 15:04:05"),
+				"written_u":  time.Unix(fileInfoSys.Mtim.Sec, fileInfoSys.Mtim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
 			})
 
 			fileHandler.Close()

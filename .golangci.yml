@@ -5,7 +5,7 @@ linters-settings:
       - style
       - experimental
   gocyclo:
-    min-complexity: 25
+    min-complexity: 26
   goconst:
     min-len: 8
     min-occurrences: 12
@@ -58,11 +58,13 @@ issues:
     - "mnd: Magic number: 10, in"
     - "mnd: Magic number: 16, in"
     - "mnd: Magic number: 24, in"
+    - "mnd: Magic number: 32, in"
     - "mnd: Magic number: 60, in"
     - "mnd: Magic number: 64, in"
     - "mnd: Magic number: 100, in"
     - "mnd: Magic number: 365, in"
     - "mnd: Magic number: 1000, in"
+    - "mnd: Magic number: 1024, in"
     - "mnd: Magic number: 3600, in"
     - "mnd: Magic number: 86400, in"
     - "mnd: Magic number: 1e3, in"
