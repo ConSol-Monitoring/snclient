@@ -58,6 +58,12 @@ func (cr *CheckResult) StateString() string {
 	return "UNKNOWN"
 }
 
+func (cr *CheckResult) EscalateStatus(state int64) {
+	if state > cr.State {
+		cr.State = state
+	}
+}
+
 func (cr *CheckResult) BuildPluginOutput() []byte {
 	output := []byte(cr.Output)
 	if len(cr.Metrics) > 0 {

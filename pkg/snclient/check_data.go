@@ -20,6 +20,7 @@ type CheckData struct {
 	defaultWarning  string
 	critThreshold   []*Condition
 	defaultCritical string
+	okThreshold     []*Condition
 	detailSyntax    string
 	topSyntax       string
 	okSyntax        string
@@ -33,19 +34,24 @@ type CheckData struct {
 func (cd *CheckData) Finalize() (*CheckResult, error) {
 	defer restoreLogLevel()
 	log.Tracef("finalize check results:")
+	if cd.details == nil {
+		cd.details = map[string]string{}
+	}
+	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	log.Tracef("details: %v", cd.details)
-
-	cd.Check(CheckExitCritical, cd.critThreshold, cd.details)
-	cd.Check(CheckExitWarning, cd.warnThreshold, cd.details)
 
 	if len(cd.listData) > 0 {
 		log.Tracef("list data:")
 		for _, l := range cd.listData {
+			cd.Check(l, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 			log.Tracef(" - %v", l)
-			cd.Check(CheckExitCritical, cd.critThreshold, l)
-			cd.Check(CheckExitWarning, cd.warnThreshold, l)
 		}
 	}
+
+	finalMacros := cd.buildListMacros()
+
+	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
+	cd.setStateFromMaps(finalMacros)
 
 	switch {
 	case cd.result.Output != "":
@@ -60,33 +66,87 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 		cd.result.Output = cd.topSyntax
 	}
 
-	list := []string{}
-	for _, l := range cd.listData {
-		el := ReplaceMacros(cd.detailSyntax, l)
-		list = append(list, el)
-	}
-
-	finalMacros := map[string]string{
-		"count": fmt.Sprintf("%d", len(list)),
-		"list":  strings.Join(list, ", "),
-	}
 	cd.result.Finalize(cd.details, finalMacros)
 
 	return cd.result, nil
 }
 
-// Check conditions against given data and set result state
-func (cd *CheckData) Check(state int64, conditions []*Condition, data map[string]string) {
-	// no need to escalate state anymore
-	if cd.result.State >= state {
-		return
+func (cd *CheckData) buildListMacros() map[string]string {
+	list := []string{}
+	okList := make([]string, 0)
+	warnList := make([]string, 0)
+	critList := make([]string, 0)
+	for _, l := range cd.listData {
+		expanded := ReplaceMacros(cd.detailSyntax, l)
+		list = append(list, expanded)
+		switch l["state"] {
+		case "0":
+			okList = append(okList, expanded)
+		case "1":
+			warnList = append(warnList, expanded)
+		case "2":
+			critList = append(critList, expanded)
+		}
 	}
 
-	for i := range conditions {
-		if conditions[i].Match(data) {
-			cd.result.State = state
+	problemList := make([]string, 0)
+	problemList = append(problemList, critList...)
+	problemList = append(problemList, warnList...)
 
-			return
+	detailList := append(problemList, okList...)
+
+	return map[string]string{
+		"count":         fmt.Sprintf("%d", len(list)),
+		"list":          strings.Join(list, ", "),
+		"ok_count":      fmt.Sprintf("%d", len(okList)),
+		"ok_list":       strings.Join(okList, ", "),
+		"warn_count":    fmt.Sprintf("%d", len(warnList)),
+		"warn_list":     strings.Join(warnList, ", "),
+		"crit_count":    fmt.Sprintf("%d", len(critList)),
+		"crit_list":     strings.Join(critList, ", "),
+		"problem_count": fmt.Sprintf("%d", len(problemList)),
+		"problem_list":  strings.Join(problemList, ", "),
+		"detail_list":   strings.Join(detailList, ", "),
+	}
+}
+
+func (cd *CheckData) setStateFromMaps(macros map[string]string) {
+	switch macros["state"] {
+	case "1":
+		cd.result.EscalateStatus(1)
+	case "2":
+		cd.result.EscalateStatus(2)
+	case "3":
+		cd.result.EscalateStatus(3)
+	}
+
+	switch {
+	case macros["crit_count"] != "0":
+		cd.result.EscalateStatus(2)
+	case macros["warn_count"] != "0":
+		cd.result.EscalateStatus(1)
+	}
+}
+
+// Check conditions against given data and set result state
+func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []*Condition) {
+	data["state"] = fmt.Sprintf("%d", CheckExitOK)
+
+	for i := range warnCond {
+		if warnCond[i].Match(data) {
+			data["state"] = fmt.Sprintf("%d", CheckExitWarning)
+		}
+	}
+
+	for i := range critCond {
+		if critCond[i].Match(data) {
+			data["state"] = fmt.Sprintf("%d", CheckExitCritical)
+		}
+	}
+
+	for i := range okCond {
+		if okCond[i].Match(data) {
+			data["state"] = fmt.Sprintf("%d", CheckExitOK)
 		}
 	}
 }
@@ -145,6 +205,12 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			split = append(split, "")
 		}
 		switch split[0] {
+		case "ok":
+			cond, err := NewCondition(split[1])
+			if err != nil {
+				return nil, err
+			}
+			cd.okThreshold = append(cd.okThreshold, cond)
 		case "warn", "warning":
 			cond, err := NewCondition(split[1])
 			if err != nil {
