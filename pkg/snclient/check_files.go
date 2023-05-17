@@ -1,5 +1,3 @@
-//go:build linux || darwin
-
 package snclient
 
 import (
@@ -9,7 +7,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"pkg/utils"
@@ -17,6 +14,12 @@ import (
 
 func init() {
 	AvailableChecks["check_files"] = CheckEntry{"check_files", new(CheckFiles)}
+}
+
+type FileInfoUnified struct {
+	Atime time.Time // Access time
+	Mtime time.Time // Modify time
+	Ctime time.Time // Create time
 }
 
 type CheckFiles struct{}
@@ -77,35 +80,36 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 			if err != nil {
 				return fmt.Errorf("couldnt get Stat info on file: %v", err.Error())
 			}
-			fileInfoSys, ok := fileInfo.Sys().(*syscall.Stat_t)
-			if !ok {
-				return fmt.Errorf("type assertion for fileInfo.Sys() failed")
-			}
 
 			fileHandler, err := os.Open(path)
 			if err != nil {
 				return fmt.Errorf("couldnt open file %s: %v", path, err.Error())
 			}
 
+			fileInfoSys, err := getCheckFileTimes(fileInfo)
+			if err != nil {
+				return fmt.Errorf("type assertion for fileInfo.Sys() failed")
+			}
+
 			check.listData = append(check.listData, map[string]string{
-				"access":     time.Unix(fileInfoSys.Atim.Sec, fileInfoSys.Atim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
-				"access_l":   time.Unix(fileInfoSys.Atim.Sec, fileInfoSys.Atim.Nsec).Format("2006-01-02 15:04:05"),
-				"access_u":   time.Unix(fileInfoSys.Atim.Sec, fileInfoSys.Atim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
-				"age":        strconv.FormatInt((time.Now().UnixNano()-(fileInfoSys.Atim.Sec*1e9)-fileInfoSys.Mtim.Nsec)/1e9, 10),
-				"creation":   time.Unix(fileInfoSys.Ctim.Sec, fileInfoSys.Ctim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
-				"creation_l": time.Unix(fileInfoSys.Ctim.Sec, fileInfoSys.Ctim.Nsec).Format("2006-01-02 15:04:05"),
-				"creation_u": time.Unix(fileInfoSys.Ctim.Sec, fileInfoSys.Ctim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
+				"access":     fileInfoSys.Atime.UTC().Format("2006-01-02 15:04:05"),
+				"access_l":   fileInfoSys.Atime.Format("2006-01-02 15:04:05"),
+				"access_u":   fileInfoSys.Atime.UTC().Format("2006-01-02 15:04:05"),
+				"age":        fmt.Sprintf("%d", time.Now().Unix()-fileInfoSys.Mtime.Unix()),
+				"creation":   fileInfoSys.Ctime.UTC().Format("2006-01-02 15:04:05"),
+				"creation_l": fileInfoSys.Ctime.Format("2006-01-02 15:04:05"),
+				"creation_u": fileInfoSys.Ctime.UTC().Format("2006-01-02 15:04:05"),
 				"file":       fileInfo.Name(),
 				"filename":   fileInfo.Name(),
-				"line_count": strconv.FormatInt(int64(utils.LineCounter(fileHandler)), 10),
+				"line_count": fmt.Sprintf("%d", utils.LineCounter(fileHandler)),
 				"name":       fileInfo.Name(),
 				"path":       path,
-				"size":       strconv.FormatInt(fileInfo.Size(), 10),
+				"size":       fmt.Sprintf("%d", fileInfo.Size()),
 				"type":       map[bool]string{true: "directory", false: "file"}[dir.IsDir()],
-				"write":      time.Unix(fileInfoSys.Mtim.Sec, fileInfoSys.Mtim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
-				"written":    time.Unix(fileInfoSys.Mtim.Sec, fileInfoSys.Mtim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
-				"written_l":  time.Unix(fileInfoSys.Mtim.Sec, fileInfoSys.Mtim.Nsec).Format("2006-01-02 15:04:05"),
-				"written_u":  time.Unix(fileInfoSys.Mtim.Sec, fileInfoSys.Mtim.Nsec).In(time.UTC).Format("2006-01-02 15:04:05"),
+				"write":      fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
+				"written":    fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
+				"written_l":  fileInfoSys.Mtime.Format("2006-01-02 15:04:05"),
+				"written_u":  fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
 			})
 
 			fileHandler.Close()
