@@ -7,6 +7,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCheckUnknown(t *testing.T) {
+	snc := Agent{}
+	res := snc.RunCheck("not_there", []string{})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
+	assert.Regexpf(t,
+		regexp.MustCompile(`^UNKNOWN - No such check: not_there`),
+		string(res.BuildPluginOutput()),
+		"output matches",
+	)
+}
+
 func TestCheckSNClientVersion(t *testing.T) {
 	snc := Agent{}
 	res := snc.RunCheck("check_snclient_version", []string{})

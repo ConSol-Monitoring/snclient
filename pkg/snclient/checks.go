@@ -35,6 +35,16 @@ type CheckResult struct {
 	Metrics []*CheckMetric
 }
 
+func (cr *CheckResult) Finalize(macros ...map[string]string) {
+	if macros != nil {
+		cr.Output = ReplaceMacros(cr.Output, macros...)
+	}
+	finalMacros := map[string]string{
+		"status": cr.StateString(),
+	}
+	cr.Output = ReplaceMacros(cr.Output, finalMacros)
+}
+
 func (cr *CheckResult) StateString() string {
 	switch cr.State {
 	case 0:

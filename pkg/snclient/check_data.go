@@ -54,11 +54,10 @@ func (cd *CheckData) Finalize() {
 	}
 
 	finalMacros := map[string]string{
-		"status": cd.result.StateString(),
-		"count":  fmt.Sprintf("%d", len(list)),
-		"list":   strings.Join(list, ", "),
+		"count": fmt.Sprintf("%d", len(list)),
+		"list":  strings.Join(list, ", "),
 	}
-	cd.result.Output = ReplaceMacros(cd.result.Output, cd.details, finalMacros)
+	cd.result.Finalize(cd.details, finalMacros)
 }
 
 // Check conditions against given data and set result state

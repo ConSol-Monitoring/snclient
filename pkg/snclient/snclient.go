@@ -693,27 +693,30 @@ func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 	return res
 }
 
-func (snc *Agent) runCheck(name string, args []string) *CheckResult {
+func (snc *Agent) runCheck(name string, args []string) (res *CheckResult) {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
+	defer func() {
+		res.Finalize()
+	}()
 	check, ok := AvailableChecks[name]
 	if !ok {
-		res := CheckResult{
+		res = &CheckResult{
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("${status} - No such check: %s", name),
 		}
 
-		return &res
+		return res
 	}
 
 	res, err := check.Handler.Check(snc, args)
 	if err != nil {
-		res := CheckResult{
+		res = &CheckResult{
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("${status} - %s", err.Error()),
 		}
 
-		return &res
+		return res
 	}
 
 	return res
