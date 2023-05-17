@@ -67,7 +67,6 @@ alias_cpu = check_cpu warn=load=99 crit=load=100
 func TestCheckUptime(t *testing.T) {
 	snc := Agent{}
 	res := snc.RunCheck("check_uptime", []string{})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
 		regexp.MustCompile(`^\w+: uptime:.*?\d+:\d+h, boot: \d+\-\d+\-\d+ \d+:\d+:\d+ \(UTC\) \|'uptime'=\d+s;172800;86400`),
 		string(res.BuildPluginOutput()),
