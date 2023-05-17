@@ -19,7 +19,14 @@ if [ "v$OLDVERSION" = "v$NEWVERSION" -o "x$NEWVERSION" = "x" ]; then
 fi
 
 sed -i -e 's/VERSION =.*/VERSION = "'$NEWVERSION'"/g' pkg/snclient/snclient.go
-sed -i Changes -e "s/^next:.*/$(printf "%-10s %s" ${NEWVERSION} "$(date)")/"
+VERSIONHEADER=$(printf "%-10s %s" ${NEWVERSION} "$(date)")
+if grep "^next:" Changes >/dev/null 2>&1; then
+	# replace next: with version
+	sed -i Changes -e "s/^next:.*/${VERSIONHEADER}/"
+else
+	# no next: entry found, replace second line with new entry
+	sed -i Changes -e "2s/^/\n${VERSIONHEADER}\n          - ...\n/"
+fi
 git add Changes pkg/snclient/snclient.go
 git commit -vs -m "release v${NEWVERSION}"
 git tag -f "v$NEWVERSION"
