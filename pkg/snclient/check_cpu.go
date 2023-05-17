@@ -58,6 +58,8 @@ func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 			dur, _ := utils.ExpandDuration(time)
 			avg := counter.AvgForDuration(dur)
 			check.listData = append(check.listData, map[string]string{
+				"time": time,
+				"core": fmt.Sprintf("%s", name),
 				"load": fmt.Sprintf("%f", avg),
 			})
 			check.result.Metrics = append(check.result.Metrics, &CheckMetric{

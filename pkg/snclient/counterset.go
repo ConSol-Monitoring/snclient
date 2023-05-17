@@ -5,7 +5,7 @@ type CounterSet struct {
 	counter map[string]map[string]*Counter
 }
 
-func NewCounerSet() *CounterSet {
+func NewCounterSet() *CounterSet {
 	cs := &CounterSet{
 		counter: make(map[string]map[string]*Counter),
 	}

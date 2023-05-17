@@ -45,9 +45,11 @@ var (
 	LogFormat         = `[%{Severity}][pid:%{Pid}][%{ShortFile}:%{Line}] %{Message}`
 	log               = factorlog.New(os.Stdout, BuildFormatter(DateTimeLogFormat+LogFormat))
 	targetWriter      io.Writer
+	restoreLevel      string
 )
 
 func setLogLevel(level string) {
+	restoreLevel = level
 	switch strings.ToLower(level) {
 	case "off":
 		log.SetMinMaxSeverity(factorlog.StringToSeverity("PANIC"), factorlog.StringToSeverity("PANIC"))
@@ -64,7 +66,21 @@ func setLogLevel(level string) {
 	case "trace":
 		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
 		log.SetVerbosity(LogVerbosityTrace)
+	default:
+		log.Errorf("unknown log level: %s", level)
 	}
+}
+
+func raiseLogLevel(level string) {
+	if factorlog.StringToSeverity(strings.ToUpper(level)) < factorlog.StringToSeverity(strings.ToUpper(restoreLevel)) {
+		prev := restoreLevel
+		setLogLevel(level)
+		restoreLevel = prev
+	}
+}
+
+func restoreLogLevel() {
+	setLogLevel(restoreLevel)
 }
 
 func setLogFile(snc *Agent, conf *ConfigSection) {

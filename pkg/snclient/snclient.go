@@ -127,7 +127,7 @@ func NewAgent(build, revision string, args []string) *Agent {
 		Revision:  revision,
 		Listeners: NewModuleSet("listener"),
 		Tasks:     NewModuleSet("task"),
-		Counter:   NewCounerSet(),
+		Counter:   NewCounterSet(),
 		Config:    NewConfig(),
 	}
 	snc.setFlags()

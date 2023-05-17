@@ -13,6 +13,7 @@ type Argument struct {
 // CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
 	noCopy          noCopy
+	debug           string
 	defaultFilter   string
 	filter          []*Condition
 	warnThreshold   []*Condition
@@ -30,12 +31,20 @@ type CheckData struct {
 }
 
 func (cd *CheckData) Finalize() (*CheckResult, error) {
+	defer restoreLogLevel()
+	log.Tracef("finalize check results:")
+	log.Tracef("details: %v", cd.details)
+
 	cd.Check(CheckExitCritical, cd.critThreshold, cd.details)
 	cd.Check(CheckExitWarning, cd.warnThreshold, cd.details)
 
-	for _, l := range cd.listData {
-		cd.Check(CheckExitCritical, cd.critThreshold, l)
-		cd.Check(CheckExitWarning, cd.warnThreshold, l)
+	if len(cd.listData) > 0 {
+		log.Tracef("list data:")
+		for _, l := range cd.listData {
+			log.Tracef(" - %v", l)
+			cd.Check(CheckExitCritical, cd.critThreshold, l)
+			cd.Check(CheckExitWarning, cd.warnThreshold, l)
+		}
 	}
 
 	switch {
@@ -148,6 +157,11 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 				return nil, err
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
+		case "debug":
+			cd.debug = split[1]
+			if cd.debug == "" {
+				cd.debug = "debug"
+			}
 		case "detail-syntax":
 			cd.detailSyntax = split[1]
 		case "top-syntax":
@@ -173,6 +187,8 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	raiseLogLevel(cd.debug)
 
 	return argList, nil
 }
