@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"pkg/utils"
+
 	"github.com/shirou/gopsutil/v3/host"
 )
 
@@ -23,7 +25,10 @@ func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		topSyntax: "uptime: ${uptime}h, boot: ${boottime}",
+		defaultWarning:  "uptime < 2d",
+		defaultCritical: "uptime < 1d",
+		topSyntax:       "${status}: ${list}",
+		detailSyntax:    "uptime: ${uptime}, boot: ${boot} (UTC)",
 	}
 	_, err := check.ParseArgs(args)
 	if err != nil {
@@ -31,33 +36,28 @@ func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
 	}
 
 	// collect time metrics (boot + now)
-	bootTime, _ := host.BootTime()
-	now := time.Now()
-
-	uptime := now.Sub(time.Unix(int64(bootTime), 0))
-
-	check.details["uptime"] = fmt.Sprintf("%.f", uptime.Seconds())
-
-	var days string
-	day := int(uptime.Hours() / 24)
-	hours := int(uptime.Hours()) - day*24
-	minutes := int(uptime.Minutes()) - (hours*60 + day*24*60)
-	if day > 7 {
-		days = fmt.Sprintf("%vw %vd", day/7, day-day/7*7)
-	} else {
-		days = fmt.Sprintf("%vd", day)
+	bootTime, err := host.BootTime()
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve uptime: %s", err.Error())
 	}
+	uptime := time.Since(time.Unix(int64(bootTime), 0))
 
-	bootTimeF := time.Unix(int64(bootTime), 0).Format("2006-01-02 15:04:05")
-
-	check.details["uptime"] = fmt.Sprintf("%v %v:%v", days, hours, minutes)
-	check.details["boottime"] = fmt.Sprintf("%v (UTC)", bootTimeF)
+	check.listData = append(check.listData, map[string]string{
+		"uptime": utils.DurationString(uptime.Truncate(time.Minute)),
+		"boot":   time.Unix(int64(bootTime), 0).UTC().Format("2006-01-02 15:04:05"),
+	})
 
 	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-		Name:  "uptime",
-		Unit:  "s",
-		Value: float64(int(uptime.Seconds())),
+		Name:     "uptime",
+		Unit:     "s",
+		Value:    float64(int(uptime.Seconds())),
+		Warning:  check.warnThreshold,
+		Critical: check.critThreshold,
 	})
+
+	check.details = map[string]string{
+		"uptime": fmt.Sprintf("%f", uptime.Seconds()),
+	}
 
 	return check.Finalize()
 }

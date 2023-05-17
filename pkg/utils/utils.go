@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/kdar/factorlog"
@@ -78,6 +79,35 @@ func ToPrecision(val float64, precision int) float64 {
 	short, _ := strconv.ParseFloat(valStr, 64)
 
 	return short
+}
+
+func DurationString(dur time.Duration) string {
+	seconds := int64(dur.Seconds())
+
+	years := seconds / (86400 * 365)
+	seconds -= years * (86400 * 365)
+
+	weeks := seconds / (86400 * 7)
+	seconds -= weeks * (86400 * 7)
+
+	days := seconds / 86400
+	seconds -= days * 86400
+
+	hours := seconds / 3600
+	seconds -= hours * 3600
+
+	minutes := seconds / 60
+
+	switch {
+	case years > 0:
+		return fmt.Sprintf("%dy %dw", years, weeks)
+	case weeks > 3:
+		return fmt.Sprintf("%dw %dd", weeks, days)
+	case days > 0:
+		return fmt.Sprintf("%dd %02d:%02dh", days+weeks*7, hours, minutes)
+	default:
+		return fmt.Sprintf("%02d:%02dh", hours, minutes)
+	}
 }
 
 // GetExecutablePath returns path to executable information

@@ -22,7 +22,6 @@ type CheckData struct {
 	detailSyntax    string
 	topSyntax       string
 	okSyntax        string
-	listSyntax      string
 	emptySyntax     string
 	emptyState      int64
 	details         map[string]string
@@ -33,6 +32,11 @@ type CheckData struct {
 func (cd *CheckData) Finalize() (*CheckResult, error) {
 	cd.Check(CheckExitCritical, cd.critThreshold, cd.details)
 	cd.Check(CheckExitWarning, cd.warnThreshold, cd.details)
+
+	for _, l := range cd.listData {
+		cd.Check(CheckExitCritical, cd.critThreshold, l)
+		cd.Check(CheckExitWarning, cd.warnThreshold, l)
+	}
 
 	switch {
 	case cd.result.Output != "":
@@ -49,7 +53,7 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 
 	list := []string{}
 	for _, l := range cd.listData {
-		el := ReplaceMacros(cd.listSyntax, l)
+		el := ReplaceMacros(cd.detailSyntax, l)
 		list = append(list, el)
 	}
 

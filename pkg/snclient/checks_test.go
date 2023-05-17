@@ -35,7 +35,7 @@ func TestCheckCPU(t *testing.T) {
 	res := snc.RunCheck("check_cpu", []string{"warn=load = 99", "crit=load = 100"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: CPU load is ok.\|'total 5m'=\d+%;99;100 'total 1m'=\d+%;99;100 'total 5s'=\d+%;99;100$`),
+		regexp.MustCompile(`^OK: CPU load is ok. \|'total 5m'=\d+%;99;100 'total 1m'=\d+%;99;100 'total 5s'=\d+%;99;100$`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -56,10 +56,21 @@ alias_cpu = check_cpu warn=load=99 crit=load=100
 	res := snc.RunCheck("alias_cpu", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: CPU load is ok.\|'total 5m'=\d+%;99;100 'total 1m'=\d+%;99;100 'total 5s'=\d+%;99;100$`),
+		regexp.MustCompile(`^OK: CPU load is ok. \|'total 5m'=\d+%;99;100 'total 1m'=\d+%;99;100 'total 5s'=\d+%;99;100$`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
 
 	StopTestAgent(t, snc)
+}
+
+func TestCheckUptime(t *testing.T) {
+	snc := Agent{}
+	res := snc.RunCheck("check_uptime", []string{})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(t,
+		regexp.MustCompile(`^\w+: uptime:.*?\d+:\d+h, boot: \d+\-\d+\-\d+ \d+:\d+:\d+ \(UTC\) \|'uptime'=\d+s;172800;86400`),
+		string(res.BuildPluginOutput()),
+		"output matches",
+	)
 }

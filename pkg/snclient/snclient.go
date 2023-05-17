@@ -372,6 +372,11 @@ func getGlobalMacros() map[string]string {
 		"exe-full": execPath,
 	}
 
+	macros["file-ext"] = ""
+	if runtime.GOOS == "windows" {
+		macros["file-ext"] = ".exe"
+	}
+
 	return macros
 }
 
@@ -569,8 +574,9 @@ func (snc *Agent) printUsage(full bool) {
 }
 
 func (snc *Agent) setFlags() {
-	flags := &flag.FlagSet{}
+	flags := flag.NewFlagSet("snclient", flag.ContinueOnError)
 	snc.flagset = flags
+	flags.Usage = func() {}
 	flags.Var(&snc.flags.flagConfigFile, "c", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
 	flags.Var(&snc.flags.flagConfigFile, "config", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
 	flags.BoolVar(&snc.flags.flagDaemon, "d", false, "start snclient as daemon in background")
@@ -595,7 +601,8 @@ func (snc *Agent) setFlags() {
 func (snc *Agent) checkFlags(osArgs []string) {
 	err := snc.flagset.Parse(osArgs)
 	if err != nil {
-		LogStderrf("ERROR: %s", err.Error())
+		// errors have been printed already
+		os.Exit(ExitCodeError)
 	}
 
 	if snc.flags.flagVersion {
@@ -774,10 +781,9 @@ func (snc *Agent) checkUpdateBinary() {
 		return
 	}
 
-	binPath := strings.TrimSuffix(strings.TrimSuffix(executable, ".update"), ".update.exe")
-	if runtime.GOOS == "windows" {
-		binPath += ".exe"
-	}
+	binPath := strings.TrimSuffix(executable, GlobalMacros["file-ext"])
+	binPath = strings.TrimSuffix(binPath, ".update")
+	binPath += GlobalMacros["file-ext"]
 	log.Tracef("running as %s, moving updated file to %s", executable, binPath)
 
 	// create a copy of our update file which will be moved later
@@ -813,12 +819,7 @@ func (snc *Agent) checkUpdateBinary() {
 }
 
 func (snc *Agent) buildUpdateFile(executable string) string {
-	executable = strings.TrimSuffix(executable, ".exe") + ".update"
-	if runtime.GOOS == "windows" {
-		executable += ".exe"
-	}
-
-	return executable
+	return strings.TrimSuffix(executable, GlobalMacros["file-ext"]) + ".update" + GlobalMacros["file-ext"]
 }
 
 // replaceMacros replaces variables in given string.

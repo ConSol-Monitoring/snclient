@@ -24,11 +24,11 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		okSyntax:    "%(status): ${list}",
-		listSyntax:  "${name}: ${count}",
-		topSyntax:   "${status}: ${problem_list}",
-		emptyState:  3,
-		emptySyntax: "check_cpu failed to find anything with this filter.",
+		okSyntax:     "%(status): ${list}",
+		detailSyntax: "${name}: ${count}",
+		topSyntax:    "${status}: ${problem_list}",
+		emptyState:   3,
+		emptySyntax:  "check_cpu failed to find anything with this filter.",
 	}
 	argList, err := check.ParseArgs(args)
 	if err != nil {

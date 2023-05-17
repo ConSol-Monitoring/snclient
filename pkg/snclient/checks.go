@@ -65,7 +65,7 @@ func (cr *CheckResult) BuildPluginOutput() []byte {
 		for _, m := range cr.Metrics {
 			perf = append(perf, m.String())
 		}
-		output = append(output, '|')
+		output = append(output, ' ', '|')
 		output = append(output, []byte(strings.Join(perf, " "))...)
 	}
 
