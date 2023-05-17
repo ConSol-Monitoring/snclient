@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
+	"regexp"
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
@@ -69,6 +70,11 @@ const (
 var (
 	AvailableTasks     []*LoadableModule
 	AvailableListeners []*LoadableModule
+
+	GlobalMacros = getGlobalMacros()
+
+	// macros can be either ${...} or %(...)
+	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_:]+\s*\}|%\(\s*[a-zA-Z\-_:]+\s*\)`)
 )
 
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
@@ -317,10 +323,10 @@ func (snc *Agent) init() (*AgentRunSet, error) {
 	var files configFiles
 	files = snc.flags.flagConfigFile
 
-	defaultLocations := []string{"./snclient.ini", "/etc/snclient/snclient.ini"}
-	execPath, err := utils.GetExecutablePath()
-	if err == nil {
-		defaultLocations = append(defaultLocations, path.Join(execPath, "snclient.ini"))
+	defaultLocations := []string{
+		"./snclient.ini",
+		"/etc/snclient/snclient.ini",
+		path.Join(GlobalMacros["exe-path"], "snclient.ini"),
 	}
 
 	// no config supplied, check default locations, first match wins
@@ -350,6 +356,25 @@ func (snc *Agent) init() (*AgentRunSet, error) {
 	return initSet, nil
 }
 
+func getGlobalMacros() map[string]string {
+	execDir, execFile, execPath, err := utils.GetExecutablePath()
+	if err != nil {
+		LogStderrf("ERROR: could not detect path to executable: %s", err.Error())
+		os.Exit(ExitCodeError)
+	}
+
+	// initialize global macros
+	macros := map[string]string{
+		"goos":     runtime.GOOS,
+		"goarch":   runtime.GOARCH,
+		"exe-path": execDir,
+		"exe-file": execFile,
+		"exe-full": execPath,
+	}
+
+	return macros
+}
+
 func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
 	config := NewConfig()
 	for _, path := range file {
@@ -374,14 +399,10 @@ func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
 
 		fallthrough
 	default:
-		execPath, err := utils.GetExecutablePath()
-		if err != nil {
-			return nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
-		}
-
-		pathSection.Set("exe-path", execPath)
+		pathSection.Set("exe-path", GlobalMacros["exe-path"])
 	}
 
+	// set defaults for empty path settings
 	for _, key := range []string{"exe-path", "shared-path", "scripts", "certificate-path"} {
 		val, ok := pathSection.GetString(key)
 		if !ok || val == "" {
@@ -389,16 +410,17 @@ func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
 		}
 	}
 
+	// replace macros in path section early
 	for key, val := range pathSection.data {
-		val = config.replaceMacros(val)
+		val = ReplaceMacros(val, pathSection.data, GlobalMacros)
 		pathSection.Set(key, val)
 	}
 
 	// replace other sections
 	for _, section := range config.sections {
 		for key, val := range section.data {
-			val = config.replaceMacros(val)
-			section.data[key] = val
+			val = ReplaceMacros(val, pathSection.data, GlobalMacros)
+			section.Set(key, val)
 		}
 	}
 
@@ -667,7 +689,6 @@ func (snc *Agent) logPanicExit() {
 // RunCheck calls check by name and returns the check result
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 	res := snc.runCheck(name, args)
-	res.replaceOutputVariables()
 
 	return res
 }
@@ -801,4 +822,48 @@ func (snc *Agent) buildUpdateFile(executable string) string {
 	}
 
 	return executable
+}
+
+// replaceMacros replaces variables in given string.
+func ReplaceMacros(value string, macroSets ...map[string]string) string {
+	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
+		str = strings.TrimSpace(str)
+		orig := str
+
+		switch {
+		// ${...} macros
+		case strings.HasPrefix(str, "${"):
+			str = strings.TrimPrefix(str, "${")
+			str = strings.TrimSuffix(str, "}")
+		// %(...) macros
+		case strings.HasPrefix(str, "%("):
+			str = strings.TrimPrefix(str, "%(")
+			str = strings.TrimSuffix(str, ")")
+		}
+		str = strings.TrimSpace(str)
+
+		flag := ""
+		flags := strings.SplitN(str, ":", 1)
+		if len(flags) == 2 {
+			str = flags[0]
+			flag = strings.ToLower(flags[1])
+		}
+
+		for _, ms := range macroSets {
+			if repl, ok := ms[str]; ok {
+				switch flag {
+				case "lc":
+					return strings.ToLower(repl)
+				case "uc":
+					return strings.ToUpper(repl)
+				default:
+					return repl
+				}
+			}
+		}
+
+		return orig
+	})
+
+	return value
 }

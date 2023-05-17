@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"pkg/utils"
 	"strings"
+
+	"pkg/utils"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -76,7 +77,9 @@ func (l *HandlerWeb) Start() error {
 }
 
 func (l *HandlerWeb) Stop() {
-	l.listener.Stop()
+	if l.listener != nil {
+		l.listener.Stop()
+	}
 }
 
 func (l *HandlerWeb) Defaults() ConfigData {
@@ -208,10 +211,10 @@ func (l *HandlerWeb) metrics2PerfV1(metrics []*CheckMetric) map[string]interface
 			"unit":  metric.Unit,
 		}
 		if metric.Warning != nil {
-			perf["warning"] = "..."
+			perf["warning"] = metric.ThresholdString(metric.Warning)
 		}
 		if metric.Critical != nil {
-			perf["critical"] = "..."
+			perf["critical"] = metric.ThresholdString(metric.Critical)
 		}
 		if metric.Min != nil {
 			perf["minimum"] = *metric.Min

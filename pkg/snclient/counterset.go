@@ -24,6 +24,16 @@ func (cs *CounterSet) Create(category, key string, duration float64) {
 	cat[key] = counter
 }
 
+func (cs *CounterSet) Keys(category string) (keys []string) {
+	if cat, ok := cs.counter[category]; ok {
+		for key := range cat {
+			keys = append(keys, key)
+		}
+	}
+
+	return keys
+}
+
 func (cs *CounterSet) Get(category, key string) *Counter {
 	if cat, ok := cs.counter[category]; ok {
 		if counter, ok := cat[key]; ok {

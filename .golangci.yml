@@ -85,6 +85,7 @@ issues:
     - "cognitive complexity .* of func .*.matchSingle"
     - "Function 'matchSingle' has too many statements"
     - "cyclomatic complexity .* of func .*.matchSingle"
+    - "cognitive complexity .* of func .*ThresholdString"
     - "appendAssign: append result not assigned to the same slice"
   exclude-rules:
     # Exclude some linters from running on tests files.

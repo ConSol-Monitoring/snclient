@@ -114,7 +114,7 @@ func mainSignalHandler(sig os.Signal, _ *Agent) MainStateType {
 	return Resume
 }
 
-func (snc *Agent) finishUpdate(binPath string) {
+func (snc *Agent) finishUpdate(_ string) {
 	// start service again
 	cmd := exec.Command("net", "start", "snclient")
 	output, err := cmd.CombinedOutput()

@@ -11,19 +11,26 @@ func init() {
 	AvailableChecks["check_cpu"] = CheckEntry{"check_cpu", new(CheckCPU)}
 }
 
-type CheckCPU struct {
-	noCopy noCopy
-	data   CheckData
-}
+type CheckCPU struct{}
 
 /* check_cpu */
 func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
-	state := CheckExitOK
-	output := "${status}: CPU load is ${status_lc}."
-	metrics := make([]*CheckMetric, 0)
-	argList, err := ParseArgs(args, &l.data)
+	check := &CheckData{
+		result: &CheckResult{
+			State: CheckExitOK,
+		},
+		defaultFilter:   "core = 'total'",
+		defaultWarning:  "load > 80",
+		defaultCritical: "load > 90",
+		okSyntax:        "%(status): CPU load is ok.",
+		detailSyntax:    "${time}: ${load}%",
+		topSyntax:       "${status}: ${problem_list}",
+		emptyState:      3,
+		emptySyntax:     "check_cpu failed to find anything with this filter.",
+	}
+	argList, err := check.ParseArgs(args)
 	if err != nil {
-		return nil, fmt.Errorf("args error: %s", err.Error())
+		return nil, err
 	}
 
 	times := []string{}
@@ -36,44 +43,35 @@ func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 	if len(times) == 0 {
 		times = []string{"5m", "1m", "5s"}
 	}
-	names := []string{"total"}
 
-	for _, name := range names {
+	for _, name := range snc.Counter.Keys("cpu") {
+		if !check.MatchFilter("core", name) {
+			continue
+		}
+
 		counter := snc.Counter.Get("cpu", name)
-		if counter != nil {
-			for _, time := range times {
-				time = strings.TrimSpace(time)
-				dur, _ := utils.ExpandDuration(time)
-				avg := counter.AvgForDuration(dur)
-				metrics = append(metrics, &CheckMetric{
-					Name:     fmt.Sprintf("%s %s", name, time),
-					Value:    utils.ToPrecision(avg, 0),
-					Unit:     "%",
-					Warning:  l.data.warnThreshold,
-					Critical: l.data.critThreshold,
-				})
-				compare := map[string]string{"load": fmt.Sprintf("%f", avg)}
-				switch {
-				case CompareMetrics(compare, l.data.critThreshold):
-					state = CheckExitCritical
-				case CompareMetrics(compare, l.data.warnThreshold) && state < CheckExitWarning:
-					state = CheckExitWarning
-				}
-			}
+		if counter == nil {
+			continue
+		}
+		for _, time := range times {
+			time = strings.TrimSpace(time)
+			dur, _ := utils.ExpandDuration(time)
+			avg := counter.AvgForDuration(dur)
+			check.listData = append(check.listData, map[string]string{
+				"load": fmt.Sprintf("%f", avg),
+			})
+			check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+				ThresholdName: "load",
+				Name:          fmt.Sprintf("%s %s", name, time),
+				Value:         utils.ToPrecision(avg, 0),
+				Unit:          "%",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+			})
 		}
 	}
 
-	if len(metrics) == 0 {
-		return &CheckResult{
-			State:   CheckExitUnknown,
-			Output:  "UNKNOWN - did not find any cpu counter",
-			Metrics: metrics,
-		}, nil
-	}
+	check.Finalize()
 
-	return &CheckResult{
-		State:   state,
-		Output:  output,
-		Metrics: metrics,
-	}, nil
+	return check.result, nil
 }

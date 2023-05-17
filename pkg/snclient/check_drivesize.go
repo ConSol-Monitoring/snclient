@@ -1,8 +1,6 @@
 package snclient
 
 import (
-	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -15,10 +13,7 @@ func init() {
 	AvailableChecks["check_drivesize"] = CheckEntry{"check_drivesize", new(CheckDrivesize)}
 }
 
-type CheckDrivesize struct {
-	noCopy noCopy
-	data   CheckData
-}
+type CheckDrivesize struct{}
 
 /* check_drivesize
  * Description: Checks the drive usage on the host.
@@ -26,19 +21,21 @@ type CheckDrivesize struct {
  * Units: B, KB, MB, GB, TB, %
  */
 func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
-	// default state: OK
-	state := CheckExitOK
-	l.data.detailSyntax = "%(drive_or_name)\\: %(used)/%(size) used"
-	l.data.okSyntax = "All %(count) drive(s) are ok"
-	l.data.topSyntax = "%(problem_list)"
-	argList, err := ParseArgs(args, &l.data)
-	if err != nil {
-		return nil, fmt.Errorf("args error: %s", err.Error())
+	check := &CheckData{
+		result: &CheckResult{
+			State: CheckExitOK,
+		},
+		okSyntax:     "All %(count) drive(s) are ok",
+		detailSyntax: "%(drive_or_name)\\: %(used)/%(size) used",
+		topSyntax:    "%(problem_list)",
 	}
-	var output string
+	argList, err := check.ParseArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	drives := []string{}
 	excludes := []string{}
-	var checkData map[string]string
 
 	// parse threshold args
 	for _, arg := range argList {
@@ -50,14 +47,8 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}
 	}
 
-	perfMetrics := []*CheckMetric{}
-
 	// collect disk metrics
 	disks, _ := disk.Partitions(true)
-
-	disksOk := make([]string, 0, len(disks))
-	disksWarning := make([]string, 0, len(disks))
-	disksCritical := make([]string, 0, len(disks))
 
 	for _, drive := range disks {
 		if len(drives) > 0 && !slices.Contains(drives, "*") &&
@@ -71,7 +62,7 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 
 		usage, _ := disk.Usage(drive.Mountpoint)
 
-		metrics := map[string]string{
+		check.listData = append(check.listData, map[string]string{
 			"drive_or_name":  drive.Mountpoint,
 			"total_used_pct": strconv.FormatUint(uint64(usage.UsedPercent), 10),
 			"total free_pct": strconv.FormatUint(usage.Free*100/(usage.Total+1), 10),
@@ -80,63 +71,16 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 			"size":           humanize.Bytes(usage.Total),
 			"used_pct":       strconv.FormatUint(uint64(usage.UsedPercent), 10),
 			"free_pct":       strconv.FormatUint(usage.Free*100/(usage.Total+1), 10),
-		}
+		})
 
-		for key, val := range metrics {
-			var value float64
-			unit := ""
-			if l.data.warnThreshold.unit == "%" {
-				value, _ = strconv.ParseFloat(val, 64)
-			} else {
-				f, _ := strconv.ParseFloat(val, 64)
-				value, unit = humanize.ComputeSI(f)
-			}
-			perfMetrics = append(perfMetrics, &CheckMetric{
-				Name:  fmt.Sprintf("%v %v", drive.Mountpoint, key),
-				Unit:  unit,
-				Value: math.Round(value * 1e3 / 1e3),
-			})
-		}
-
-		if CompareMetrics(metrics, l.data.critThreshold) {
-			disksCritical = append(disksCritical, ParseSyntax(l.data.detailSyntax, metrics))
-
-			continue
-		}
-
-		if CompareMetrics(metrics, l.data.warnThreshold) {
-			disksWarning = append(disksWarning, ParseSyntax(l.data.detailSyntax, metrics))
-
-			continue
-		}
-
-		disksOk = append(disksOk, ParseSyntax(l.data.detailSyntax, metrics))
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:  drive.Mountpoint,
+			Unit:  "",
+			Value: usage.UsedPercent,
+		})
 	}
 
-	if len(disksCritical) > 0 {
-		state = CheckExitCritical
-	} else if len(disksWarning) > 0 {
-		state = CheckExitWarning
-	}
+	check.Finalize()
 
-	checkData = map[string]string{
-		"status":       strconv.FormatInt(state, 10),
-		"count":        strconv.FormatInt(int64(len(drives)), 10),
-		"ok_list":      strings.Join(disksOk, ", "),
-		"warn_list":    strings.Join(disksWarning, ", "),
-		"crit_list":    strings.Join(disksCritical, ", "),
-		"problem_list": strings.Join(append(disksCritical, disksWarning...), ", "),
-	}
-
-	if state == CheckExitOK {
-		output = ParseSyntax(l.data.okSyntax, checkData)
-	} else {
-		output = ParseSyntax(l.data.topSyntax, checkData)
-	}
-
-	return &CheckResult{
-		State:   state,
-		Output:  output,
-		Metrics: perfMetrics,
-	}, nil
+	return check.result, nil
 }

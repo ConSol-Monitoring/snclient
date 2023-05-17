@@ -2,7 +2,6 @@ package snclient
 
 import (
 	"strconv"
-	"strings"
 
 	"pkg/eventlog"
 
@@ -13,25 +12,29 @@ func init() {
 	AvailableChecks["check_eventlog"] = CheckEntry{"check_eventlog", new(CheckEventlog)}
 }
 
-type CheckEventlog struct {
-	noCopy noCopy
-	data   CheckData
-}
+type CheckEventlog struct{}
 
 /* check_process_windows
  * Description: Checks the eventlog of the host.
  */
 
 func (l *CheckEventlog) Check(_ *Agent, args []string) (*CheckResult, error) {
-	state := CheckExitOK
-	l.data.detailSyntax = "%(file) %(source) (%(message))"
-	l.data.okSyntax = "Event log seems fine"
-	l.data.topSyntax = "%(count) message(s) %(problem_list)"
-	l.data.emptySyntax = "No entries found"
-	argList, _ := ParseArgs(args, &l.data)
-	var output string
+	check := &CheckData{
+		result: &CheckResult{
+			State: CheckExitOK,
+		},
+		detailSyntax: "%(file) %(source) (%(message))",
+		okSyntax:     "Event log seems fine",
+		topSyntax:    "%(count) message(s) %(problem_list)",
+		emptySyntax:  "No entries found",
+		emptyState:   3,
+	}
+	argList, err := check.ParseArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	files := []string{}
-	var checkData map[string]string
 	events := []*winevent.Event{}
 
 	// parse args
@@ -48,12 +51,8 @@ func (l *CheckEventlog) Check(_ *Agent, args []string) (*CheckResult, error) {
 		events = append(events, fileEvent...)
 	}
 
-	okList := make([]string, 0, len(events))
-	warnList := make([]string, 0, len(events))
-	critList := make([]string, 0, len(events))
-
 	for _, event := range events {
-		metrics := map[string]string{
+		check.listData = append(check.listData, map[string]string{
 			"computer": event.Computer,
 			"file":     event.Channel,
 			"log":      event.Channel,
@@ -65,41 +64,10 @@ func (l *CheckEventlog) Check(_ *Agent, args []string) (*CheckResult, error) {
 			"source":   event.Provider.Name,
 			"task":     event.Task,
 			"written":  event.TimeCreated.SystemTime.Format("02-01-2006 15:04:05"),
-		}
-
-		switch {
-		case CompareMetrics(metrics, l.data.critThreshold) && l.data.critThreshold.name != "none":
-			critList = append(critList, ParseSyntax(l.data.detailSyntax, metrics))
-		case CompareMetrics(metrics, l.data.warnThreshold) && l.data.warnThreshold.name != "none":
-			warnList = append(warnList, ParseSyntax(l.data.detailSyntax, metrics))
-		default:
-			okList = append(okList, ParseSyntax(l.data.detailSyntax, metrics))
-		}
+		})
 	}
 
-	if len(critList) > 0 {
-		state = CheckExitCritical
-	} else if len(warnList) > 0 {
-		state = CheckExitWarning
-	}
+	check.Finalize()
 
-	checkData = map[string]string{
-		"status":       strconv.FormatInt(state, 10),
-		"count":        strconv.FormatInt(int64(len(events)), 10),
-		"ok_list":      strings.Join(okList, ", "),
-		"warn_list":    strings.Join(warnList, ", "),
-		"crit_list":    strings.Join(critList, ", "),
-		"problem_list": strings.Join(append(critList, warnList...), ", "),
-	}
-
-	if state == CheckExitOK {
-		output = ParseSyntax(l.data.okSyntax, checkData)
-	} else {
-		output = ParseSyntax(l.data.topSyntax, checkData)
-	}
-
-	return &CheckResult{
-		State:  state,
-		Output: output,
-	}, nil
+	return check.result, nil
 }

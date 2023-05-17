@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -23,8 +21,6 @@ var DefaultConfig = map[string]*ConfigData{"/modules": {
 	"CheckExternalScripts": "enabled",
 	"Updates":              "enabled",
 }}
-
-var reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_]+\s*\}`)
 
 type configFiles []string
 
@@ -155,36 +151,6 @@ func (config *Config) Section(name string) *ConfigSection {
 	return section
 }
 
-// replaceMacros replaces variables in given string.
-func (config *Config) replaceMacros(value string) string {
-	macros := map[string]string{
-		"goos":   runtime.GOOS,
-		"goarch": runtime.GOARCH,
-	}
-	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
-		orig := str
-		str = strings.TrimPrefix(str, "${")
-		str = strings.TrimSuffix(str, "}")
-		str = strings.TrimSpace(str)
-
-		// add paths on demand to allow circular cascading macros
-		if path, ok := config.Section("/paths").GetString(str); ok {
-			macros[str] = path
-		}
-
-		repl, ok := macros[str]
-		if !ok {
-			log.Warnf("using undefined macro: ${%s}", str)
-
-			return orig
-		}
-
-		return repl
-	})
-
-	return value
-}
-
 // parseString parses string from config section.
 func (config *Config) parseString(val string) (string, error) {
 	val = strings.TrimSpace(val)
@@ -257,7 +223,12 @@ func (cs *ConfigSection) Clone() *ConfigSection {
 func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	val, ok = cs.data[key]
 	if ok {
-		val = cs.cfg.replaceMacros(val)
+		macros := make([]map[string]string, 0)
+		if cs.cfg != nil {
+			macros = append(macros, cs.cfg.Section("/paths").data)
+		}
+		macros = append(macros, GlobalMacros)
+		val = ReplaceMacros(val, macros...)
 	}
 
 	return val, ok

@@ -31,7 +31,6 @@ func (e *ExternalScriptsHandler) Defaults() ConfigData {
 func (e *ExternalScriptsHandler) Init(snc *Agent, _ *ConfigSection, conf *Config) error {
 	e.snc = snc
 
-	//nolint:gocritic
 	for _, sectionName := range []string{"/settings/external scripts/scripts", "/settings/external scripts/wrapped scripts"} {
 		scripts := conf.Section(sectionName)
 		for name, command := range scripts.data {

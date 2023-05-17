@@ -20,7 +20,7 @@ func TestConditionParse(t *testing.T) {
 		{"state = dead", &Condition{keyword: "state", operator: Equal, value: "dead"}},
 		{"uptime < 180s", &Condition{keyword: "uptime", operator: Lower, value: "180", unit: "s"}},
 		{"uptime < 2h", &Condition{keyword: "uptime", operator: Lower, value: "7200", unit: "s"}},
-		{"version not like  '1 2 3'", &Condition{keyword: "version", operator: RegexMatchNot, value: "1 2 3"}},
+		{"version not like  '1 2 3'", &Condition{keyword: "version", operator: ContainsNot, value: "1 2 3"}},
 		{"state is not 0", &Condition{keyword: "state", operator: Unequal, value: "0"}},
 		{"used gt 0", &Condition{keyword: "used", operator: Greater, value: "0"}},
 		{"state not in ('started')", &Condition{keyword: "state", operator: NotInList, value: []string{"started"}}},
@@ -34,7 +34,7 @@ func TestConditionParse(t *testing.T) {
 				group: []*Condition{
 					{keyword: "provider", operator: Equal, value: "abc"},
 					{keyword: "id", operator: Equal, value: "123"},
-					{keyword: "message", operator: RegexMatch, value: "foo"},
+					{keyword: "message", operator: Contains, value: "foo"},
 				},
 			},
 		},
@@ -48,7 +48,7 @@ func TestConditionParse(t *testing.T) {
 						groupOperator: GroupOr,
 						group: []*Condition{
 							{keyword: "id", operator: Equal, value: "123"},
-							{keyword: "message", operator: RegexMatch, value: "foo"},
+							{keyword: "message", operator: Contains, value: "foo"},
 						},
 					},
 				},
@@ -139,7 +139,7 @@ func TestConditionThresholdString(t *testing.T) {
 		{"test > 5 or test < 3", "test", "3:5"},
 		{"test < 3 or test > 5", "test", "3:5"},
 		{"test > 10 and test < 20", "test", "@10:20"},
-		{"test < 20 and test > 20", "test", "@10:20"},
+		{"test < 20 and test > 10", "test", "@10:20"},
 	} {
 		threshold, err := NewCondition(check.threshold)
 		assert.NoErrorf(t, err, "parsed threshold")

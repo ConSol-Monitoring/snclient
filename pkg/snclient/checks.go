@@ -48,11 +48,6 @@ func (cr *CheckResult) StateString() string {
 	return "UNKNOWN"
 }
 
-func (cr *CheckResult) replaceOutputVariables() {
-	cr.Output = strings.ReplaceAll(cr.Output, "${status}", cr.StateString())
-	cr.Output = strings.ReplaceAll(cr.Output, "${status_lc}", strings.ToLower(cr.StateString()))
-}
-
 func (cr *CheckResult) BuildPluginOutput() []byte {
 	output := []byte(cr.Output)
 	if len(cr.Metrics) > 0 {
@@ -69,13 +64,14 @@ func (cr *CheckResult) BuildPluginOutput() []byte {
 
 // CheckMetric contains a single performance value.
 type CheckMetric struct {
-	Name     string
-	Unit     string
-	Value    float64
-	Warning  []*Condition
-	Critical []*Condition
-	Min      *float64
-	Max      *float64
+	Name          string
+	Unit          string
+	Value         float64
+	ThresholdName string
+	Warning       []*Condition
+	Critical      []*Condition
+	Min           *float64
+	Max           *float64
 }
 
 func (m *CheckMetric) String() string {
@@ -109,5 +105,9 @@ func (m *CheckMetric) String() string {
 }
 
 func (m *CheckMetric) ThresholdString(conditions []*Condition) string {
+	if m.ThresholdName != "" {
+		return ThresholdString(m.ThresholdName, conditions)
+	}
+
 	return ThresholdString(m.Name, conditions)
 }

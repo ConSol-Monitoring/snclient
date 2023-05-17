@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"pkg/wmi"
 
@@ -15,10 +14,7 @@ func init() {
 	AvailableChecks["check_process"] = CheckEntry{"check_process", new(CheckProcess)}
 }
 
-type CheckProcess struct {
-	noCopy noCopy
-	data   CheckData
-}
+type CheckProcess struct{}
 
 var ProcessStates = map[string]string{
 	"stopped": "0",
@@ -33,20 +29,22 @@ var ProcessStates = map[string]string{
  * Units: ?
  */
 func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
-	// default state: OK
-	state := CheckExitOK
-	var output string
-	l.data.detailSyntax = "%(process)=%(state)"
-	l.data.topSyntax = "%(problem_list)"
-	l.data.okSyntax = "all processes are ok."
-	l.data.emptySyntax = "No processes found"
-	l.data.emptyState = CheckExitUnknown
-	argList, err := ParseArgs(args, &l.data)
-	if err != nil {
-		return nil, fmt.Errorf("args error: %s", err.Error())
+	check := &CheckData{
+		result: &CheckResult{
+			State: CheckExitOK,
+		},
+		detailSyntax: "%(process)=%(state)",
+		topSyntax:    "%(problem_list)",
+		okSyntax:     "all processes are ok.",
+		emptySyntax:  "No processes found",
+		emptyState:   CheckExitUnknown,
 	}
+	argList, err := check.ParseArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	var processes []string
-	var checkData map[string]string
 
 	// parse threshold args
 	for _, arg := range argList {
@@ -55,10 +53,6 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}
 	}
 
-	metrics := make([]*CheckMetric, 0, len(processes))
-	okList := make([]string, 0, len(processes))
-	warnList := make([]string, 0, len(processes))
-	critList := make([]string, 0, len(processes))
 	processData, _, err := wmi.Query(`Select
 									Name,
 									CommandLine,
@@ -113,9 +107,8 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 			state = 1
 		}
 
-		metrics = append(metrics, &CheckMetric{Name: process, Value: state})
 		dre := regexp.MustCompile(`\d+\.\d+`)
-		mdata := map[string]string{
+		check.listData = append(check.listData, map[string]string{
 			"process":          process,
 			"state":            ProcessStates[strconv.FormatFloat(state, 'f', 0, 64)],
 			"command_line":     proc["CommandLine"],
@@ -132,54 +125,10 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 			"user":             proc["UserModeTime"],
 			"virtual":          proc["VirtualSize"],
 			"working_set":      proc["WorkingSetSize"],
-		}
-
-		if CompareMetrics(mdata, l.data.critThreshold) && l.data.critThreshold.value != "none" {
-			critList = append(critList, ParseSyntax(l.data.detailSyntax, mdata))
-
-			continue
-		}
-
-		if CompareMetrics(mdata, l.data.warnThreshold) && l.data.warnThreshold.value != "none" {
-			warnList = append(warnList, ParseSyntax(l.data.detailSyntax, mdata))
-
-			continue
-		}
-
-		okList = append(okList, ParseSyntax(l.data.detailSyntax, mdata))
+		})
 	}
 
-	totalList := append(okList, append(warnList, critList...)...)
+	check.Finalize()
 
-	if len(critList) > 0 {
-		state = CheckExitCritical
-	} else if len(warnList) > 0 {
-		state = CheckExitWarning
-	}
-
-	if len(totalList) == 0 {
-		state = l.data.emptyState
-	}
-
-	checkData = map[string]string{
-		"state":        ProcessStates[strconv.FormatInt(state, 10)],
-		"count":        strconv.FormatInt(int64(len(totalList)), 10),
-		"ok_list":      strings.Join(okList, ", "),
-		"warn_list":    strings.Join(warnList, ", "),
-		"crit_list":    strings.Join(critList, ", "),
-		"list":         strings.Join(totalList, ", "),
-		"problem_list": strings.Join(append(critList, warnList...), ", "),
-	}
-
-	if state == CheckExitOK {
-		output = ParseSyntax(l.data.okSyntax, checkData)
-	} else {
-		output = ParseSyntax(l.data.topSyntax, checkData)
-	}
-
-	return &CheckResult{
-		State:   state,
-		Output:  output,
-		Metrics: metrics,
-	}, nil
+	return check.result, nil
 }

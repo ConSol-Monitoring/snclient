@@ -155,6 +155,9 @@ func (c *Condition) Match(data map[string]string) bool {
 
 // matchSingle checks a single condition and does not recurse into logical groups
 func (c *Condition) matchSingle(data map[string]string) bool {
+	if c.isNone {
+		return true
+	}
 	varStr, ok := data[c.keyword]
 	if !ok {
 		return false
@@ -512,9 +515,26 @@ func conditionSetValue(cond *Condition, str string, expand bool) error {
 func ThresholdString(name string, conditions []*Condition) string {
 	// fetch warning conditions for name of metric
 	filtered := make([]*Condition, 0)
-	for n := range conditions {
-		if conditions[n].keyword == name {
-			filtered = append(filtered, conditions[n])
+	var group GroupOperator
+	for num := range conditions {
+		if conditions[num].keyword == name {
+			filtered = append(filtered, conditions[num])
+		}
+		if conditions[num].groupOperator == GroupOr {
+			group = conditions[num].groupOperator
+			for i := range conditions[num].group {
+				if conditions[num].group[i].keyword == name {
+					filtered = append(filtered, conditions[num].group[i])
+				}
+			}
+		}
+		if conditions[num].groupOperator == GroupAnd {
+			group = conditions[num].groupOperator
+			for i := range conditions[num].group {
+				if conditions[num].group[i].keyword == name {
+					filtered = append(filtered, conditions[num].group[i])
+				}
+			}
 		}
 	}
 
@@ -527,7 +547,23 @@ func ThresholdString(name string, conditions []*Condition) string {
 	}
 
 	if len(filtered) == 2 {
-		return fmt.Sprintf("%v:%v", filtered[0].value, filtered[1].value)
+		low := filtered[0].value
+		high := filtered[1].value
+		num1, err1 := strconv.ParseFloat(fmt.Sprintf("%v", low), 64)
+		num2, err2 := strconv.ParseFloat(fmt.Sprintf("%v", high), 64)
+		if err1 != nil || err2 != nil {
+			return ""
+		}
+		if num1 > num2 {
+			low = filtered[1].value
+			high = filtered[0].value
+		}
+		if group == GroupOr {
+			return fmt.Sprintf("%v:%v", low, high)
+		}
+		if group == GroupAnd {
+			return fmt.Sprintf("@%v:%v", low, high)
+		}
 	}
 
 	return ""

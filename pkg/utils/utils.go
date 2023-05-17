@@ -80,19 +80,22 @@ func ToPrecision(val float64, precision int) float64 {
 	return short
 }
 
-// GetExecutablePath returns path to executable
-func GetExecutablePath() (string, error) {
+// GetExecutablePath returns path to executable information
+// execDir: folder of the executable
+// execFile: file name (basename) of executable
+// execPath: full path to executable (dir/file)
+func GetExecutablePath() (execDir, execFile, execPath string, err error) {
 	executable, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("executable error: %s", err.Error())
+		return "", "", "", fmt.Errorf("executable error: %s", err.Error())
 	}
 
 	executable, err = filepath.Abs(executable)
 	if err != nil {
-		return "", fmt.Errorf("abs error: %s", err.Error())
+		return "", "", "", fmt.Errorf("abs error: %s", err.Error())
 	}
 
-	return filepath.Dir(executable), nil
+	return filepath.Dir(executable), filepath.Base(execPath), executable, nil
 }
 
 func ReadPid(pidfile string) (int, error) {
@@ -125,7 +128,7 @@ func Tokenize(str string) []string {
 }
 
 // TokenizeBy returns list of string tokens separated by any char in separator
-func TokenizeBy(str string, separator string) []string {
+func TokenizeBy(str, separator string) []string {
 	var tokens []string
 
 	inQuotes := false
@@ -176,14 +179,14 @@ func ParseVersion(str string) (num float64) {
 }
 
 func Sha256Sum(path string) (hash string, err error) {
-	f, err := os.Open(path)
+	file, err := os.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("open %s: %s", path, err.Error())
 	}
-	defer f.Close()
+	defer file.Close()
 
 	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
+	if _, err := io.Copy(h, file); err != nil {
 		return "", fmt.Errorf("read %s: %s", path, err.Error())
 	}
 

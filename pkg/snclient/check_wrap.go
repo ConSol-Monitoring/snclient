@@ -21,7 +21,7 @@ func (l *CheckWrap) Check(_ *Agent, args []string) (*CheckResult, error) {
 	// default state: OK
 	state := int64(0)
 	var err error
-	argList, err := ParseArgs(args, &l.data)
+	argList, err := l.data.ParseArgs(args)
 	if err != nil {
 		return nil, fmt.Errorf("args error: %s", err.Error())
 	}

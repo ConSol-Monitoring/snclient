@@ -2,7 +2,6 @@ package snclient
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/host"
@@ -12,10 +11,7 @@ func init() {
 	AvailableChecks["check_uptime"] = CheckEntry{"check_uptime", new(CheckUptime)}
 }
 
-type CheckUptime struct {
-	noCopy noCopy
-	data   CheckData
-}
+type CheckUptime struct{}
 
 /* check_uptime
  * Description: Checks the uptime of the host.
@@ -23,11 +19,15 @@ type CheckUptime struct {
  * Units: s
  */
 func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
-	// default state: OK
-	state := int64(0)
-	_, err := ParseArgs(args, &l.data)
+	check := &CheckData{
+		result: &CheckResult{
+			State: CheckExitOK,
+		},
+		topSyntax: "uptime: ${uptime}h, boot: ${boottime}",
+	}
+	_, err := check.ParseArgs(args)
 	if err != nil {
-		return nil, fmt.Errorf("args error: %s", err.Error())
+		return nil, err
 	}
 
 	// collect time metrics (boot + now)
@@ -36,18 +36,7 @@ func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
 
 	uptime := now.Sub(time.Unix(int64(bootTime), 0))
 
-	mdata := map[string]string{
-		"uptime": strconv.FormatInt(int64(uptime.Seconds()), 10),
-	}
-
-	// compare ram metrics to thresholds
-	if CompareMetrics(mdata, l.data.warnThreshold) {
-		state = CheckExitWarning
-	}
-
-	if CompareMetrics(mdata, l.data.critThreshold) {
-		state = CheckExitCritical
-	}
+	check.details["uptime"] = fmt.Sprintf("%.f", uptime.Seconds())
 
 	var days string
 	day := int(uptime.Hours() / 24)
@@ -61,17 +50,16 @@ func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
 
 	bootTimeF := time.Unix(int64(bootTime), 0).Format("2006-01-02 15:04:05")
 
-	output := fmt.Sprintf("uptime: %v %v:%vh, boot: %v (UTC)", days, hours, minutes, bootTimeF)
+	check.details["uptime"] = fmt.Sprintf("%v %v:%v", days, hours, minutes)
+	check.details["boottime"] = fmt.Sprintf("%v (UTC)", bootTimeF)
 
-	return &CheckResult{
-		State:  state,
-		Output: output,
-		Metrics: []*CheckMetric{
-			{
-				Name:  "uptime",
-				Unit:  "s",
-				Value: float64(int(uptime.Seconds())),
-			},
-		},
-	}, nil
+	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+		Name:  "uptime",
+		Unit:  "s",
+		Value: float64(int(uptime.Seconds())),
+	})
+
+	check.Finalize()
+
+	return check.result, nil
 }

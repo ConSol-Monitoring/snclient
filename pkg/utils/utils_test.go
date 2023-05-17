@@ -41,7 +41,7 @@ func TestUtilsIsFloatVal(t *testing.T) {
 }
 
 func TestUtilsExecPath(t *testing.T) {
-	execPath, err := GetExecutablePath()
+	execPath, _, _, err := GetExecutablePath()
 	assert.NoErrorf(t, err, "GetExecutablePath works")
 
 	assert.NotEmptyf(t, execPath, "GetExecutablePath")

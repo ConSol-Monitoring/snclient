@@ -11,10 +11,7 @@ func init() {
 	AvailableChecks["check_wmi"] = CheckEntry{"check_wmi", new(CheckWMI)}
 }
 
-type CheckWMI struct {
-	noCopy noCopy
-	data   CheckData
-}
+type CheckWMI struct{}
 
 /* check_wmi
  * Description: Querys the WMI for several metrics.
@@ -22,12 +19,16 @@ type CheckWMI struct {
  * Units: none
  */
 func (l *CheckWMI) Check(_ *Agent, args []string) (*CheckResult, error) {
-	// default state: OK
-	state := int64(0)
-	argList, err := ParseArgs(args, &l.data)
-	if err != nil {
-		return nil, fmt.Errorf("args error: %s", err.Error())
+	check := &CheckData{
+		result: &CheckResult{
+			State: CheckExitOK,
+		},
 	}
+	argList, err := check.ParseArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	var query string
 
 	// parse threshold args
@@ -43,35 +44,18 @@ func (l *CheckWMI) Check(_ *Agent, args []string) (*CheckResult, error) {
 	// query wmi
 	querydata, output, err := wmi.Query(query)
 	if err != nil {
-		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
+		return nil, fmt.Errorf("wmi query failed: %s%s", output, err.Error())
 	}
-
-	mdata := map[string]string{}
-	perfMetrics := []*CheckMetric{}
 
 	for _, d := range querydata[0] {
-		mdata[d.Key] = d.Value
-		if d.Key == l.data.warnThreshold.name || d.Key == l.data.critThreshold.name {
-			value, _ := strconv.ParseFloat(d.Value, 64)
-			perfMetrics = append(perfMetrics, &CheckMetric{
-				Name:  d.Key,
-				Value: value,
-			})
-		}
+		value, _ := strconv.ParseFloat(d.Value, 64)
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:  d.Key,
+			Value: value,
+		})
 	}
 
-	// compare metrics to thresholds
-	if CompareMetrics(mdata, l.data.warnThreshold) {
-		state = CheckExitWarning
-	}
+	check.Finalize()
 
-	if CompareMetrics(mdata, l.data.critThreshold) {
-		state = CheckExitCritical
-	}
-
-	return &CheckResult{
-		State:   state,
-		Output:  output,
-		Metrics: perfMetrics,
-	}, nil
+	return check.result, nil
 }
