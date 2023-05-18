@@ -188,9 +188,9 @@ func (u *UpdateHandler) checkUpdate(force bool) (err error) {
 	u.lastUpdate = &now
 
 	var downloadURL string
-	if ok, _ := regexp.MatchString(`^https://api.github.com/repos/.*/releases`, u.updateURL); ok {
+	if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/releases`, u.updateURL); ok {
 		downloadURL, err = u.checkUpdateGithubRelease()
-	} else if ok, _ := regexp.MatchString(`^https://github.com/.*/actions`, u.updateURL); ok {
+	} else if ok, _ := regexp.MatchString(`^https://github\.com/.*/actions`, u.updateURL); ok {
 		downloadURL, err = u.checkUpdateGithubActions()
 	} else if ok, _ := regexp.MatchString(`^file:`, u.updateURL); ok {
 		downloadURL, err = u.checkUpdateFile()
