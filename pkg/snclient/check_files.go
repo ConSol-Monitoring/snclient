@@ -66,7 +66,7 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 			if err != nil {
 				return err
 			}
-			if maxDepth != -1 && dir.IsDir() && strings.Count(path, string(os.PathSeparator)) > int(maxDepth) {
+			if maxDepth != -1 && dir.IsDir() && int64(strings.Count(path, string(os.PathSeparator))) > maxDepth {
 				return fs.SkipDir
 			}
 			if dir.IsDir() {

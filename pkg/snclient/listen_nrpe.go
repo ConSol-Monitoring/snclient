@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"math"
 	"net"
 	"strings"
 
@@ -109,7 +110,11 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 	}
 
 	output := statusResult.BuildPluginOutput()
-	response := nrpe.BuildPacket(request.Version(), nrpe.NrpeResponsePacket, uint16(statusResult.State), output)
+	state := uint16(3)
+	if statusResult.State > 0 && statusResult.State <= math.MaxInt16 {
+		state = uint16(statusResult.State)
+	}
+	response := nrpe.BuildPacket(request.Version(), nrpe.NrpeResponsePacket, state, output)
 
 	if err := response.Write(con); err != nil {
 		log.Errorf("nrpe write response error: %s", err.Error())

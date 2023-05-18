@@ -290,15 +290,15 @@ func (u *UpdateHandler) checkUpdateGithubRelease() (downloadURL string, err erro
 		archVariants = append(archVariants, "aarch64")
 	}
 	for _, arch := range archVariants {
-		lookfor := strings.ToLower(fmt.Sprintf("%s-%s", runtime.GOOS, arch))
+		lookFor := strings.ToLower(fmt.Sprintf("%s-%s", runtime.GOOS, arch))
 		for _, asset := range lastRelease.Assets {
-			if strings.Contains(strings.ToLower(asset.Name), "bin-") && strings.Contains(strings.ToLower(asset.Name), lookfor) {
+			if strings.Contains(strings.ToLower(asset.Name), "bin-") && strings.Contains(strings.ToLower(asset.Name), lookFor) {
 				return asset.URL, nil
 			}
 		}
 	}
 
-	log.Debugf("[update] no download url for this architechtur found: os:%s arch:%s", runtime.GOARCH, runtime.GOOS)
+	log.Debugf("[update] no download url for this architecture found: os:%s arch:%s", runtime.GOARCH, runtime.GOOS)
 
 	return "", nil
 }
@@ -472,9 +472,9 @@ func (u *UpdateHandler) verifyUpdate(newBinPath string) (version string, err err
 
 func (u *UpdateHandler) applyRestart(bin string) error {
 	u.snc.stop()
-	log.Tracef("[update] reexec into new file %s %v", bin, os.Args[1:])
+	log.Tracef("[update] re-exec into new file %s %v", bin, os.Args[1:])
 	if runtime.GOOS == "windows" {
-		// cannot reexec on windows, need to start a separate updater
+		// cannot re-exec on windows, need to start a separate updater
 		cmd := exec.Cmd{
 			Path: bin,
 			Args: os.Args,
