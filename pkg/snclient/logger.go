@@ -66,6 +66,7 @@ func setLogLevel(level string) {
 	case "trace":
 		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
 		log.SetVerbosity(LogVerbosityTrace)
+	case "":
 	default:
 		log.Errorf("unknown log level: %s", level)
 	}
