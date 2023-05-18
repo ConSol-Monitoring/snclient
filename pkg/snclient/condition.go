@@ -134,6 +134,9 @@ func NewCondition(input string) (*Condition, error) {
 
 // Match checks if given map matches current condition
 func (c *Condition) Match(data map[string]string) bool {
+	if c.isNone {
+		return false
+	}
 	if len(c.group) > 0 {
 		for i := range c.group {
 			res := c.group[i].matchSingle(data)

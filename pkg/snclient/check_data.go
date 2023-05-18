@@ -79,7 +79,7 @@ func (cd *CheckData) buildListMacros() map[string]string {
 	for _, l := range cd.listData {
 		expanded := ReplaceMacros(cd.detailSyntax, l)
 		list = append(list, expanded)
-		switch l["state"] {
+		switch l["_state"] {
 		case "0":
 			okList = append(okList, expanded)
 		case "1":
@@ -111,7 +111,7 @@ func (cd *CheckData) buildListMacros() map[string]string {
 }
 
 func (cd *CheckData) setStateFromMaps(macros map[string]string) {
-	switch macros["state"] {
+	switch macros["_state"] {
 	case "1":
 		cd.result.EscalateStatus(1)
 	case "2":
@@ -123,30 +123,34 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	switch {
 	case macros["crit_count"] != "0":
 		cd.result.EscalateStatus(2)
+		macros["_state"] = "2"
 	case macros["warn_count"] != "0":
 		cd.result.EscalateStatus(1)
+		macros["_state"] = "1"
 	}
+
+	cd.details["_state"] = fmt.Sprintf("%d", cd.result.State)
 }
 
 // Check conditions against given data and set result state
 func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []*Condition) {
-	data["state"] = fmt.Sprintf("%d", CheckExitOK)
+	data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 
 	for i := range warnCond {
 		if warnCond[i].Match(data) {
-			data["state"] = fmt.Sprintf("%d", CheckExitWarning)
+			data["_state"] = fmt.Sprintf("%d", CheckExitWarning)
 		}
 	}
 
 	for i := range critCond {
 		if critCond[i].Match(data) {
-			data["state"] = fmt.Sprintf("%d", CheckExitCritical)
+			data["_state"] = fmt.Sprintf("%d", CheckExitCritical)
 		}
 	}
 
 	for i := range okCond {
 		if okCond[i].Match(data) {
-			data["state"] = fmt.Sprintf("%d", CheckExitOK)
+			data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 		}
 	}
 }
@@ -155,6 +159,9 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []
 func (cd *CheckData) MatchFilter(name, value string) bool {
 	data := map[string]string{name: value}
 	for _, cond := range cd.filter {
+		if cond.isNone {
+			return true
+		}
 		if cond.Match(data) {
 			return true
 		}
