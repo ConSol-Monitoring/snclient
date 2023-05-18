@@ -16,8 +16,8 @@ func getCheckFileTimes(fileInfo fs.FileInfo) (*FileInfoUnified, error) {
 	}
 
 	return &FileInfoUnified{
-		Atime: time.Unix(fileInfoSys.Atim.Sec, fileInfoSys.Atim.Nsec),
-		Mtime: time.Unix(fileInfoSys.Mtim.Sec, fileInfoSys.Mtim.Nsec),
-		Ctime: time.Unix(fileInfoSys.Ctim.Sec, fileInfoSys.Ctim.Nsec),
+		Atime: time.Unix(int64(fileInfoSys.Atim.Sec), int64(fileInfoSys.Atim.Nsec)), //nolint:unconvert // variable is platform specific and int32 on 386 arch
+		Mtime: time.Unix(int64(fileInfoSys.Mtim.Sec), int64(fileInfoSys.Mtim.Nsec)), //nolint:unconvert // same
+		Ctime: time.Unix(int64(fileInfoSys.Ctim.Sec), int64(fileInfoSys.Ctim.Nsec)), //nolint:unconvert // same
 	}, nil
 }
