@@ -91,6 +91,7 @@ type Agent struct {
 	flagset   *flag.FlagSet
 	flags     struct { // command line flags
 		flagDaemon       bool
+		flagQuiet        bool
 		flagVerbose      bool
 		flagVeryVerbose  bool
 		flagTraceVerbose bool
@@ -584,6 +585,8 @@ func (snc *Agent) setFlags() {
 	flags.StringVar(&snc.flags.flagPidfile, "pidfile", "", "set path to pidfile")
 	flags.StringVar(&snc.flags.flagLogFile, "logfile", "", "override logfile from the configuration file")
 	flags.StringVar(&snc.flags.flagLogFormat, "logformat", "", "override logformat, see https://pkg.go.dev/github.com/kdar/factorlog")
+	flags.BoolVar(&snc.flags.flagQuiet, "q", false, "quiet mode, only log errors")
+	flags.BoolVar(&snc.flags.flagQuiet, "quiet", false, "quiet mode, only log errors")
 	flags.BoolVar(&snc.flags.flagVerbose, "v", false, "enable verbose output")
 	flags.BoolVar(&snc.flags.flagVerbose, "verbose", false, "enable verbose output")
 	flags.BoolVar(&snc.flags.flagVeryVerbose, "vv", false, "enable very verbose output")
@@ -752,6 +755,10 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 	level, ok := conf.GetString("level")
 	if !ok {
 		level = "info"
+	}
+
+	if snc.flags.flagQuiet {
+		level = "error"
 	}
 
 	switch {

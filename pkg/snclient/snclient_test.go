@@ -30,6 +30,7 @@ func StartTestAgent(t *testing.T, config string, args []string) *Agent {
 	os.Remove(tmpPidfile.Name())
 
 	osArgs := []string{
+		"--quiet",
 		fmt.Sprintf("--config=%s", tmpConfig.Name()),
 		fmt.Sprintf("--pidfile=%s", tmpPidfile.Name()),
 	}
