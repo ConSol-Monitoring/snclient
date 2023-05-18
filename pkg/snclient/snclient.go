@@ -104,6 +104,7 @@ type Agent struct {
 		flagCPUProfile   string
 		flagLogFile      string
 		flagLogFormat    string
+		flagLogLevel     string
 		flagDeadlock     int
 	}
 	cpuProfileHandler *os.File
@@ -585,6 +586,7 @@ func (snc *Agent) setFlags() {
 	flags.StringVar(&snc.flags.flagPidfile, "pidfile", "", "set path to pidfile")
 	flags.StringVar(&snc.flags.flagLogFile, "logfile", "", "override logfile from the configuration file")
 	flags.StringVar(&snc.flags.flagLogFormat, "logformat", "", "override logformat, see https://pkg.go.dev/github.com/kdar/factorlog")
+	flags.StringVar(&snc.flags.flagLogLevel, "loglevel", "", "set loglevel to one of: off, error, info, debug, trace")
 	flags.BoolVar(&snc.flags.flagQuiet, "q", false, "quiet mode, only log errors")
 	flags.BoolVar(&snc.flags.flagQuiet, "quiet", false, "quiet mode, only log errors")
 	flags.BoolVar(&snc.flags.flagVerbose, "v", false, "enable verbose output")
@@ -759,6 +761,10 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 
 	if snc.flags.flagQuiet {
 		level = "error"
+	}
+
+	if snc.flags.flagLogLevel != "" {
+		level = snc.flags.flagLogLevel
 	}
 
 	switch {
