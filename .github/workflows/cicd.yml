@@ -186,7 +186,6 @@ jobs:
           path: "${{ env.BIN }}.msi"
           if-no-files-found: error
       - uses: geekyeggo/delete-artifact@v2
-        continue-on-error: true
         with:
             name: ${{ env.BIN }}
 
@@ -246,7 +245,6 @@ jobs:
           path: "${{ env.DIST }}.pkg"
           if-no-files-found: error
       - uses: geekyeggo/delete-artifact@v2
-        continue-on-error: true
         with:
             name: "${{ env.BIN }}"
 
@@ -278,10 +276,6 @@ jobs:
           name: "${{ env.BIN }}.rpm"
           path: "${{ env.BIN }}.rpm"
           if-no-files-found: error
-      - uses: geekyeggo/delete-artifact@v2
-        continue-on-error: true
-        with:
-            name: "${{ env.BIN }}"
 
 
   # remove those artifacts which have been converted to .deb or .rpm files
@@ -297,7 +291,6 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
       - uses: geekyeggo/delete-artifact@v2
-        continue-on-error: true
         with:
             name: "${{ env.BIN }}"
 
@@ -308,7 +301,6 @@ jobs:
     needs: [pkg-msi]
     steps:
       - uses: geekyeggo/delete-artifact@v2
-        continue-on-error: true
         with:
             name: "windist"
 
