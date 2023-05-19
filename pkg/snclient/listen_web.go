@@ -18,8 +18,13 @@ const (
 )
 
 type CheckWebLine struct {
-	Message string      `json:"message"`
-	Perf    interface{} `json:"perf,omitempty"`
+	Message string         `json:"message"`
+	Perf    []CheckWebPerf `json:"perf,omitempty"`
+}
+
+type CheckWebLineV1 struct {
+	Message string                 `json:"message"`
+	Perf    map[string]interface{} `json:"perf,omitempty"`
 }
 
 type CheckWebPerf struct {
@@ -302,7 +307,7 @@ func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
 		"command": command,
 		"result":  result.State,
-		"lines": []CheckWebLine{
+		"lines": []CheckWebLineV1{
 			{
 				Message: result.Output,
 				Perf:    l.Handler.metrics2PerfV1(result.Metrics),
