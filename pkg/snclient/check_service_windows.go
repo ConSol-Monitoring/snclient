@@ -3,6 +3,9 @@ package snclient
 import (
 	"fmt"
 
+	"pkg/utils"
+
+	"github.com/shirou/gopsutil/v3/process"
 	"golang.org/x/exp/slices"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
@@ -103,64 +106,128 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 			continue
 		}
 
-		ctlSvc, err := ctrlMgr.OpenService(service)
+		err = l.addService(check, ctrlMgr, service, len(services))
 		if err != nil {
-			if len(services) == 0 {
-				continue
-			}
-
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("Failed to open service %s: %s", service, err),
-			}, nil
-		}
-
-		statusCode, err := ctlSvc.Query()
-		if err != nil {
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("Failed to retrieve status code for service %s: %s", service, err),
-			}, nil
-		}
-
-		conf, err := ctlSvc.Config()
-		if err != nil {
-			if len(services) == 0 {
-				continue
-			}
-
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("Failed to retrieve service configuration for %s: %s", service, err),
-			}, nil
-		}
-
-		ctlSvc.Close()
-
-		delayed := "0"
-		if conf.DelayedAutoStart {
-			delayed = "1"
-		}
-		check.listData = append(check.listData, map[string]string{
-			"name":           service,
-			"service":        service,
-			"state":          l.svcState(statusCode.State),
-			"desc":           conf.DisplayName,
-			"delayed":        delayed,
-			"classification": l.svcClassification(conf.ServiceType),
-			"pid":            fmt.Sprintf("%d", statusCode.ProcessId),
-			"start_type":     l.svcStartType(conf.StartType, conf.DelayedAutoStart),
-		})
-
-		if len(services) > 0 {
-			check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-				Name:  service,
-				Value: float64(statusCode.State),
-			})
+			return nil, err
 		}
 	}
 
 	return check.Finalize()
+}
+
+func (l *CheckService) getServiceDetails(ctrlMgr *mgr.Mgr, service string, servicesCount int) (*svc.Status, *mgr.Config, *process.MemoryInfoStat, *float64, error) {
+	svcName, err := windows.UTF16PtrFromString(service)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to convert service name %s: %s", service, err.Error())
+	}
+
+	svcHdl, err := windows.OpenService(ctrlMgr.Handle, svcName, windows.SERVICE_QUERY_STATUS|windows.SERVICE_QUERY_CONFIG)
+	if err != nil {
+		if servicesCount == 0 {
+			return nil, nil, nil, nil, nil
+		}
+
+		return nil, nil, nil, nil, fmt.Errorf("failed to open service %s: %s", service, err.Error())
+	}
+	ctlSvc := &mgr.Service{Name: service, Handle: svcHdl}
+	defer ctlSvc.Close()
+
+	statusCode, err := ctlSvc.Query()
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to retrieve status code for service %s: %s", service, err.Error())
+	}
+
+	conf, err := ctlSvc.Config()
+	if err != nil {
+		if servicesCount == 0 {
+			return nil, nil, nil, nil, nil
+		}
+
+		return nil, nil, nil, nil, fmt.Errorf("failed to retrieve service configuration for %s: %s", service, err.Error())
+	}
+
+	// retrieve process metrics
+	var mem *process.MemoryInfoStat
+	var cpu *float64
+	if statusCode.State == windows.SERVICE_RUNNING {
+		proc, _ := process.NewProcess(int32(statusCode.ProcessId))
+		if proc != nil {
+			mem, _ = proc.MemoryInfo()
+			cpuP, err := proc.CPUPercent()
+			if err == nil {
+				cpu = &cpuP
+			}
+		}
+	}
+
+	return &statusCode, &conf, mem, cpu, nil
+}
+
+func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service string, servicesCount int) error {
+	statusCode, conf, mem, cpu, err := l.getServiceDetails(ctrlMgr, service, servicesCount)
+	if err != nil {
+		return err
+	}
+	if statusCode == nil {
+		return nil
+	}
+
+	delayed := "0"
+	if conf.DelayedAutoStart {
+		delayed = "1"
+	}
+
+	listEntry := map[string]string{
+		"name":           service,
+		"service":        service,
+		"state":          l.svcState(statusCode.State),
+		"desc":           conf.DisplayName,
+		"delayed":        delayed,
+		"classification": l.svcClassification(conf.ServiceType),
+		"pid":            fmt.Sprintf("%d", statusCode.ProcessId),
+		"start_type":     l.svcStartType(conf.StartType, conf.DelayedAutoStart),
+	}
+	if mem != nil {
+		listEntry["rss"] = fmt.Sprintf("%dB", mem.RSS)
+		listEntry["vms"] = fmt.Sprintf("%dB", mem.VMS)
+	}
+	if cpu != nil {
+		listEntry["cpu"] = fmt.Sprintf("%f%%", *cpu)
+	}
+	check.listData = append(check.listData, listEntry)
+
+	if servicesCount == 0 {
+		return nil
+	}
+
+	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+		Name:  service,
+		Value: float64(statusCode.State),
+	})
+	if mem != nil {
+		check.result.Metrics = append(
+			check.result.Metrics,
+			&CheckMetric{
+				Name:  fmt.Sprintf("%s rss", service),
+				Value: float64(mem.RSS),
+				Unit:  "B",
+			},
+			&CheckMetric{
+				Name:  fmt.Sprintf("%s vms", service),
+				Value: float64(mem.VMS),
+				Unit:  "B",
+			},
+		)
+	}
+	if cpu != nil {
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:  fmt.Sprintf("%s cpu", service),
+			Value: utils.ToPrecision(*cpu, 1),
+			Unit:  "%",
+		})
+	}
+
+	return nil
 }
 
 func (l *CheckService) svcClassification(serviceType uint32) string {

@@ -2,8 +2,10 @@ package snclient
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"pkg/utils"
@@ -34,12 +36,22 @@ type CheckWebPerf struct {
 }
 
 type CheckWebPerfVal struct {
-	Value    interface{} `json:"value"`
-	Unit     string      `json:"unit"`
-	Min      interface{} `json:"minimum,omitempty"`
-	Max      interface{} `json:"maximum,omitempty"`
-	Warning  *string     `json:"warning,omitempty"`
-	Critical *string     `json:"critical,omitempty"`
+	Value    CheckWebPerfNumber `json:"value"`
+	Unit     string             `json:"unit"`
+	Min      interface{}        `json:"minimum,omitempty"`
+	Max      interface{}        `json:"maximum,omitempty"`
+	Warning  *string            `json:"warning,omitempty"`
+	Critical *string            `json:"critical,omitempty"`
+}
+
+type CheckWebPerfNumber float64
+
+func (n CheckWebPerfNumber) MarshalJSON() ([]byte, error) {
+	if !utils.IsFloatVal(float64(n)) {
+		return []byte(fmt.Sprintf("%d", int64(n))), nil
+	}
+
+	return []byte(strconv.FormatFloat(float64(n), 'f', -1, 64)), nil
 }
 
 func init() {
@@ -184,7 +196,7 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 		if utils.IsFloatVal(metric.Value) {
 			val.Min = metric.Min
 			val.Max = metric.Max
-			val.Value = metric.Value
+			val.Value = CheckWebPerfNumber(metric.Value)
 			perf.FloatVal = &val
 		} else {
 			if metric.Min != nil {
@@ -195,7 +207,7 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 				max := int64(*metric.Max)
 				val.Max = &max
 			}
-			val.Value = int64(metric.Value)
+			val.Value = CheckWebPerfNumber(metric.Value)
 			perf.IntVal = &val
 		}
 		result = append(result, perf)
@@ -212,7 +224,7 @@ func (l *HandlerWeb) metrics2PerfV1(metrics []*CheckMetric) map[string]interface
 
 	for _, metric := range metrics {
 		perf := map[string]interface{}{
-			"value": int64(metric.Value),
+			"value": CheckWebPerfNumber(metric.Value),
 			"unit":  metric.Unit,
 		}
 		if metric.Warning != nil {
