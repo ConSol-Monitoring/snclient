@@ -3,6 +3,7 @@ package snclient
 import (
 	"flag"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -106,6 +107,7 @@ type Agent struct {
 		flagLogFormat    string
 		flagLogLevel     string
 		flagDeadlock     int
+		flagWatch        bool
 	}
 	cpuProfileHandler *os.File
 	Build             string
@@ -120,6 +122,7 @@ type AgentRunSet struct {
 	config    *Config
 	listeners *ModuleSet
 	tasks     *ModuleSet
+	files     []string
 }
 
 // NewAgent returns a new Agent object ready to be started by Run()
@@ -146,6 +149,9 @@ func NewAgent(build, revision string, args []string) *Agent {
 	snc.createLogger(initSet.config)
 
 	snc.checkUpdateBinary()
+	if snc.flags.flagWatch {
+		snc.startRestartWatcher()
+	}
 
 	snc.osSignalChannel = make(chan os.Signal, 1)
 
@@ -382,9 +388,9 @@ func getGlobalMacros() map[string]string {
 	return macros
 }
 
-func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
+func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
 	config := NewConfig()
-	for _, path := range file {
+	for _, path := range files {
 		err := config.ReadINI(path)
 		if err != nil {
 			return nil, fmt.Errorf("reading settings failed: %s", err.Error())
@@ -453,6 +459,7 @@ func (snc *Agent) readConfiguration(file []string) (*AgentRunSet, error) {
 		config:    config,
 		listeners: listen,
 		tasks:     tasks,
+		files:     files,
 	}, nil
 }
 
@@ -601,6 +608,7 @@ func (snc *Agent) setFlags() {
 	flags.StringVar(&snc.flags.flagCPUProfile, "cpuprofile", "", "write cpu profile to `file`")
 	flags.StringVar(&snc.flags.flagMemProfile, "memprofile", "", "write memory profile to `file`")
 	flags.IntVar(&snc.flags.flagDeadlock, "debug-deadlock", 0, "enable deadlock detection with given timeout")
+	flags.BoolVar(&snc.flags.flagWatch, "watch", false, "enable filewatch to restart agent if executable or ini file changes")
 }
 
 func (snc *Agent) checkFlags(osArgs []string) {
@@ -833,6 +841,91 @@ func (snc *Agent) checkUpdateBinary() {
 
 func (snc *Agent) buildUpdateFile(executable string) string {
 	return strings.TrimSuffix(executable, GlobalMacros["file-ext"]) + ".update" + GlobalMacros["file-ext"]
+}
+
+func (snc *Agent) startRestartWatcher() {
+	if runtime.GOOS == "windows" {
+		snc.startRestartWatcherWindows()
+
+		return
+	}
+
+	go func() {
+		defer snc.logPanicExit()
+		binFile := GlobalMacros["exe-full"]
+		snc.restartWatcherCb(func() {
+			up := &UpdateHandler{snc: snc}
+			LogError(up.ApplyRestart(binFile))
+		})
+	}()
+}
+
+func (snc *Agent) restartWatcherCb(restartCb func()) {
+	binFile := GlobalMacros["exe-full"]
+	lastStat := map[string]*fs.FileInfo{}
+	files := []string{}
+	files = append(files, snc.initSet.files...)
+	files = append(files, binFile)
+	ticker := time.NewTicker(500 * time.Millisecond)
+	for {
+		<-ticker.C
+		if !snc.IsRunning() {
+			return
+		}
+
+		for _, file := range files {
+			stat, err := os.Stat(file)
+			if err != nil {
+				continue
+			}
+			last, ok := lastStat[file]
+			if !ok {
+				lastStat[file] = &stat
+
+				continue
+			}
+
+			if stat.ModTime().After((*last).ModTime()) {
+				log.Infof("%s has changed on disk, restarting...", file)
+				restartCb()
+			}
+			lastStat[file] = &stat
+		}
+	}
+}
+
+func (snc *Agent) startRestartWatcherWindows() {
+	binFile := GlobalMacros["exe-full"]
+	args := []string{}
+	for _, a := range os.Args {
+		if !strings.Contains(a, "-watch") {
+			args = append(args, a)
+		}
+	}
+	getCmd := func() exec.Cmd {
+		cmd := exec.Cmd{
+			Path:   binFile,
+			Args:   args,
+			Env:    os.Environ(),
+			Stdin:  os.Stdin,
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
+		}
+
+		return cmd
+	}
+	cmd := getCmd()
+	LogError(cmd.Start())
+
+	snc.running.Store(true)
+	snc.restartWatcherCb(func() {
+		LogError(cmd.Process.Kill())
+		_ = cmd.Wait()
+
+		cmd = getCmd()
+		LogError(cmd.Start())
+	})
+	os.Exit(ExitCodeOK)
 }
 
 // replaceMacros replaces variables in given string.

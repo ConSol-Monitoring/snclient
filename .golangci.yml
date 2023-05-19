@@ -63,6 +63,7 @@ issues:
     - "mnd: Magic number: 64, in"
     - "mnd: Magic number: 100, in"
     - "mnd: Magic number: 365, in"
+    - "mnd: Magic number: 500, in"
     - "mnd: Magic number: 1000, in"
     - "mnd: Magic number: 1024, in"
     - "mnd: Magic number: 3600, in"

@@ -223,7 +223,7 @@ func (u *UpdateHandler) checkUpdate(force bool) (err error) {
 			log.Warnf("[update] downgrading to %s", newVersion)
 		}
 		log.Infof("[update] update successful from %s to %s, restarting into new version", u.snc.Version(), newVersion)
-		err = u.applyRestart(updateFile)
+		err = u.ApplyRestart(updateFile)
 		if err != nil {
 			return err
 		}
@@ -470,7 +470,7 @@ func (u *UpdateHandler) verifyUpdate(newBinPath string) (version string, err err
 	return version, nil
 }
 
-func (u *UpdateHandler) applyRestart(bin string) error {
+func (u *UpdateHandler) ApplyRestart(bin string) error {
 	u.snc.stop()
 	log.Tracef("[update] re-exec into new file %s %v", bin, os.Args[1:])
 	if runtime.GOOS == "windows" {
