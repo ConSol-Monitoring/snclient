@@ -111,6 +111,10 @@ test: vendor
 	if grep -rn TODO: ./cmd/ ./pkg/ ; then exit 1; fi
 	if grep -rn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 
+# test with filter
+testf: vendor
+	go test -short -v -timeout=1m pkg/* -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS" | grep -v "^FAIL"
+
 longtest: vendor
 	go test -v -timeout=1m pkg/*
 
@@ -392,3 +396,12 @@ release_notes.txt: Changes
 	# changes start with 4rd line until first empty line
 	tail -n +4 Changes | sed '/^$$/,$$d' | sed -e 's/^         //g' >> release_notes.txt
 	echo '```' >> release_notes.txt
+
+# just skip unknown make targets
+.DEFAULT:
+	@if [[ "$(MAKECMDGOALS)" =~ ^testf ]]; then \
+		: ; \
+	else \
+		echo "unknown make target(s): $(MAKECMDGOALS)"; \
+		exit 1; \
+	fi
