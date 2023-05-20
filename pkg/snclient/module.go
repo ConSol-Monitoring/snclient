@@ -41,6 +41,14 @@ func (ms *ModuleSet) Start() {
 	}
 }
 
+func (ms *ModuleSet) Get(name string) (task Module) {
+	if task, ok := ms.modules[name]; ok {
+		return task
+	}
+
+	return nil
+}
+
 func (ms *ModuleSet) Add(name string, task Module) error {
 	if _, ok := ms.modules[name]; ok {
 		return fmt.Errorf("duplicate %s module with name: %s", ms.name, name)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,6 +16,7 @@ import (
 	"unicode"
 
 	"github.com/kdar/factorlog"
+	"github.com/sassoftware/go-rpmutils"
 )
 
 // ExpandDuration expand duration string into seconds
@@ -284,4 +286,41 @@ func LineCounter(reader *os.File) int {
 			return count
 		}
 	}
+}
+
+func MimeType(fileName string) (mime string, err error) {
+	r, err := os.Open(fileName)
+	if err != nil {
+		return "", err
+	}
+
+	defer r.Close()
+
+	header := make([]byte, 500)
+	_, err = io.ReadFull(r, header)
+	if err != nil {
+		return "", err
+	}
+	mimeType := http.DetectContentType(header)
+
+	if mimeType == "application/octet-stream" {
+		// try to open as rpm
+		f, err := os.Open(fileName)
+		if err != nil {
+			return mimeType, nil
+		}
+		defer f.Close()
+		rpm, err := rpmutils.ReadRpm(f)
+		if err != nil {
+			return mimeType, nil
+		}
+		_, err = rpm.Header.GetNEVRA()
+		if err != nil {
+			return mimeType, nil
+		}
+
+		return "application/rpm", nil
+	}
+
+	return mimeType, nil
 }

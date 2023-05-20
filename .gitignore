@@ -21,3 +21,4 @@ server.key
 release_notes.txt
 go.work
 go.work.sum
+*.local

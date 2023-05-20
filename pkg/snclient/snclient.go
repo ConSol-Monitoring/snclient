@@ -148,6 +148,8 @@ func NewAgent(flags *AgentFlags) *Agent {
 		snc.CleanExit(ExitCodeError)
 	}
 	snc.initSet = initSet
+	snc.Tasks = initSet.tasks
+	snc.Config = initSet.config
 	snc.createLogger(initSet.config)
 
 	snc.osSignalChannel = make(chan os.Signal, 1)

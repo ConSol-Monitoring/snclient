@@ -110,7 +110,7 @@ build-darwin-aarch64: vendor
 
 test: vendor
 	go test -short -v -timeout=1m pkg/*
-	if grep -rn TODO: ./cmd/ ./pkg/ ; then exit 1; fi
+	if grep -rn TODO: ./cmd/ ./pkg/ ./packaging/ ; then exit 1; fi
 	if grep -rn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 
 # test with filter
@@ -132,7 +132,7 @@ citest: vendor
 	#
 	# Checking TODO items
 	#
-	if grep -rn TODO: ./cmd/ ./pkg/ ; then exit 1; fi
+	if grep -rn TODO: ./cmd/ ./pkg/ ./packaging/ ; then exit 1; fi
 	#
 	# Checking remaining debug calls
 	#

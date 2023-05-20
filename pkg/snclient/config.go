@@ -14,13 +14,22 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
-var DefaultConfig = map[string]*ConfigData{"/modules": {
-	"Logrotate":            "enabled",
-	"CheckSystem":          "enabled",
-	"CheckSystemUnix":      "enabled",
-	"CheckExternalScripts": "enabled",
-	"Updates":              "enabled",
-}}
+var DefaultConfig = map[string]*ConfigData{
+	"/modules": {
+		"Logrotate":            "enabled",
+		"CheckSystem":          "enabled",
+		"CheckSystemUnix":      "enabled",
+		"CheckExternalScripts": "enabled",
+		"Updates":              "enabled",
+	},
+	"/settings/updates": {
+		"channel": "stable",
+	},
+	"/settings/updates/channel": {
+		"stable": "https://api.github.com/repos/ConSol-monitoring/snclient/releases",
+		"dev":    "https://api.github.com/repos/ConSol-monitoring/snclient/actions/artifacts",
+	},
+}
 
 type configFiles []string
 
@@ -256,14 +265,23 @@ func (cs *ConfigSection) GetBool(key string) (val, ok bool, err error) {
 	if !ok {
 		return false, false, nil
 	}
-	switch strings.ToLower(raw) {
-	case "1", "enabled", "true":
-		return true, true, nil
-	case "0", "disabled", "false":
-		return false, true, nil
+	val, err = String2Bool(raw)
+	if err != nil {
+		return false, true, err
 	}
 
-	return false, true, fmt.Errorf("cannot parse boolean value from %s", raw)
+	return val, ok, nil
+}
+
+func String2Bool(raw string) (bool, error) {
+	switch strings.ToLower(raw) {
+	case "1", "enabled", "true", "yes":
+		return true, nil
+	case "0", "disabled", "false", "no":
+		return false, nil
+	}
+
+	return false, fmt.Errorf("cannot parse boolean value from %s", raw)
 }
 
 // GetDuration parses duration value from config section, it returns the value if found and sets ok to true.

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"dump"
 	"fmt"
 	"os"
 	"pkg/snclient"
@@ -20,8 +19,8 @@ It aims to provide a basic set of fault monitoring and metrics
 while being easily extendible with own script and checks.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// default to server mode
-			dump.Dump(args)
-			fmt.Printf("root\n")
+			// should never reach this point
+			fmt.Fprintf(os.Stderr, "snclient called without arguments, see --help for usage.")
 			os.Exit(3)
 		},
 		PreRun: func(cmd *cobra.Command, _ []string) {
