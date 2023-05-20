@@ -70,7 +70,7 @@ func (l *HandlerPrometheus) Defaults() ConfigData {
 
 func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config) error {
 	registerMetrics()
-	infoCount.WithLabelValues(VERSION, snc.Build).Set(1)
+	infoCount.WithLabelValues(VERSION, Build).Set(1)
 
 	listener, err := NewListener(snc, conf, l)
 	if err != nil {

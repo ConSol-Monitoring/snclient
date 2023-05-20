@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -14,7 +13,7 @@ func init() {
 }
 
 // Starts a full Agent from given config
-func StartTestAgent(t *testing.T, config string, args []string) *Agent {
+func StartTestAgent(t *testing.T, config string) *Agent {
 	t.Helper()
 	tmpConfig, err := os.CreateTemp("", "testconfig")
 	assert.NoErrorf(t, err, "tmp config created")
@@ -29,13 +28,12 @@ func StartTestAgent(t *testing.T, config string, args []string) *Agent {
 	tmpPidfile.Close()
 	os.Remove(tmpPidfile.Name())
 
-	osArgs := []string{
-		"--quiet",
-		fmt.Sprintf("--config=%s", tmpConfig.Name()),
-		fmt.Sprintf("--pidfile=%s", tmpPidfile.Name()),
+	flags := &AgentFlags{
+		Quiet:       true,
+		ConfigFiles: []string{tmpConfig.Name()},
+		Pidfile:     tmpPidfile.Name(),
 	}
-	osArgs = append(osArgs, args...)
-	snc := NewAgent("test", "0", osArgs)
+	snc := NewAgent(flags)
 	started := snc.StartWait(10 * time.Second)
 	assert.Truef(t, started, "agent is started successfully")
 	if !started {

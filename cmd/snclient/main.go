@@ -1,28 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
-
-	"pkg/snclient"
+	"pkg/snclient/cmd"
 )
 
-// Build contains the current git commit id
-// compile passing -ldflags "-X main.Build <build sha1>" to set the id.
-var Build string
-
-// Revision contains the minor version number (number of commits)
-// compile passing -ldflags "-X main.Revision <commits>" to set the revsion number.
-var Revision string
-
 func main() {
-	if Revision == "" {
-		Revision = "0"
+	if err := cmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
-	if Build == "" {
-		Build = "unknown"
-	}
-
-	snc := snclient.NewAgent(Build, Revision, os.Args[1:])
-	snc.Run()
-	snc.CleanExit(snclient.ExitCodeOK)
 }

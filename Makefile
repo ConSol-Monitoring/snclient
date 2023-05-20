@@ -35,6 +35,8 @@ ifeq ($(RPM_ARCH),arm64)
 	RPM_ARCH=aarch64
 endif
 
+BUILD_FLAGS=-trimpath -ldflags "-s -w -X pkg/snclient.Build=$(BUILD) -X pkg/snclient.Revision=$(REVISION)"
+
 
 all: build
 
@@ -65,11 +67,11 @@ vendor: go.work
 
 go.work: pkg/*
 	echo "go $(MINGOVERSIONSTR)" > go.work
-	go work use . pkg/*
+	go work use . pkg/* pkg/*/*/.
 
 build: vendor go.work snclient.ini server.crt server.key
 	set -xe; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD; cd ../..; \
+		cd ./cmd/$$CMD && CGO_ENABLED=0 go build $(BUILD_FLAGS) -o ../../$$CMD; cd ../..; \
 	done
 
 # run build watch, ex. with tracing: make build-watch -- -vv
@@ -78,32 +80,32 @@ build-watch: vendor
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.linux.amd64; cd ../..; \
+		cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o ../../$$CMD.linux.amd64; cd ../..; \
 	done
 
 build-linux-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=linux GOARCH=386 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.linux.i386; cd ../..; \
+		cd ./cmd/$$CMD && GOOS=linux GOARCH=386 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o ../../$$CMD.linux.i386; cd ../..; \
 	done
 
 build-windows-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.windows.i386.exe; cd ../..; \
+		cd ./cmd/$$CMD && GOOS=windows GOARCH=386 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o ../../$$CMD.windows.i386.exe; cd ../..; \
 	done
 
 build-windows-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.windows.amd64.exe; cd ../..; \
+		cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o ../../$$CMD.windows.amd64.exe; cd ../..; \
 	done
 
 build-freebsd-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.freebsd.i386; cd ../..; \
+		cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o ../../$$CMD.freebsd.i386; cd ../..; \
 	done
 
 build-darwin-aarch64: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Build=$(BUILD) -X main.Revision=$(REVISION)" -o ../../$$CMD.darwin.aarch64; cd ../..; \
+		cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64; cd ../..; \
 	done
 
 test: vendor
@@ -173,7 +175,7 @@ citest: vendor
 	#
 
 benchmark:
-	go test -timeout=1m -ldflags "-s -w -X main.Build=$(BUILD)" -v -bench=B\* -run=^$$ -benchmem ./pkg/*
+	go test -timeout=1m $(BUILD_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/*
 
 racetest:
 	go test -race -timeout=3m -coverprofile=coverage.txt -covermode=atomic ./pkg/*

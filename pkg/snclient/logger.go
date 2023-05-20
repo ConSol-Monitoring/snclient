@@ -87,8 +87,8 @@ func restoreLogLevel() {
 func setLogFile(snc *Agent, conf *ConfigSection) {
 	file, _ := conf.GetString("file name")
 	// override from cmd flags
-	if snc.flags.flagLogFile != "" {
-		file = snc.flags.flagLogFile
+	if snc.flags.LogFile != "" {
+		file = snc.flags.LogFile
 	}
 
 	var logFormatter factorlog.Formatter
@@ -127,8 +127,8 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 	switch {
 	case format != "":
 		logFormatter = BuildFormatter(format)
-	case snc.flags.flagLogFormat != "":
-		logFormatter = BuildFormatter(snc.flags.flagLogFormat)
+	case snc.flags.LogFormat != "":
+		logFormatter = BuildFormatter(snc.flags.LogFormat)
 	}
 
 	log.SetFormatter(logFormatter)

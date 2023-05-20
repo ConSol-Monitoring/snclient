@@ -30,7 +30,7 @@ func TestCheckSNClientVersion(t *testing.T) {
 }
 
 func TestCheckCPU(t *testing.T) {
-	snc := StartTestAgent(t, "", []string{})
+	snc := StartTestAgent(t, "")
 
 	res := snc.RunCheck("check_cpu", []string{"warn=load = 101", "crit=load = 102"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
@@ -51,7 +51,7 @@ CheckExternalScripts = enabled
 [/settings/external scripts/alias]
 alias_cpu = check_cpu warn=load=101 crit=load=102
 `
-	snc := StartTestAgent(t, config, []string{})
+	snc := StartTestAgent(t, config)
 
 	res := snc.RunCheck("alias_cpu", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")

@@ -1,3 +1,5 @@
+//go:build !windows
+
 package snclient
 
 import (
@@ -9,10 +11,6 @@ import (
 
 	"pkg/utils"
 )
-
-func (snc *Agent) daemonize() {
-	snc.RunBackground()
-}
 
 func isInteractive() bool {
 	o, _ := os.Stdout.Stat()
@@ -45,13 +43,13 @@ func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 
 		return Resume
 	case syscall.SIGUSR2:
-		if snc.flags.flagMemProfile == "" {
+		if snc.flags.ProfileMem == "" {
 			log.Errorf("requested memory profile, but flag -memprofile missing")
 
 			return (Resume)
 		}
 
-		memFile, err := os.Create(snc.flags.flagMemProfile)
+		memFile, err := os.Create(snc.flags.ProfileMem)
 		if err != nil {
 			log.Errorf("could not create memory profile: %s", err.Error())
 		}
@@ -63,7 +61,7 @@ func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 			log.Errorf("could not write memory profile: %s", err.Error())
 		}
 
-		log.Warnf("memory profile written to: %s", snc.flags.flagMemProfile)
+		log.Warnf("memory profile written to: %s", snc.flags.ProfileMem)
 
 		return (Resume)
 	default:
@@ -73,11 +71,22 @@ func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 	return Resume
 }
 
-func (snc *Agent) finishUpdate(binPath string) {
+func (snc *Agent) finishUpdate(binPath, _ string) {
 	log.Tracef("[update] reexec into new file %s %v", binPath, os.Args[1:])
 	err := syscall.Exec(binPath, os.Args, os.Environ()) //nolint:gosec // false positive? There should be no tainted input here
 	if err != nil {
 		log.Errorf("restart failed: %s", err.Error())
 	}
 	os.Exit(ExitCodeError)
+}
+
+func (snc *Agent) StartRestartWatcher() {
+	go func() {
+		defer snc.logPanicExit()
+		binFile := GlobalMacros["exe-full"]
+		snc.restartWatcherCb(func() {
+			up := &UpdateHandler{snc: snc}
+			LogError(up.ApplyRestart(binFile))
+		})
+	}()
 }

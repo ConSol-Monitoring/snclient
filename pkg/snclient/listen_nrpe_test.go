@@ -30,7 +30,7 @@ port = 45666
 allow arguments = false
 use ssl = false
 `
-	snc := StartTestAgent(t, config, []string{})
+	snc := StartTestAgent(t, config)
 
 	con, err := net.DialTimeout("tcp", "127.0.0.1:45666", 10*time.Second)
 	assert.NoErrorf(t, err, "connection established")

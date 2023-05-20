@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"flag"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -51,6 +50,16 @@ const (
 	DefaultSocketTimeout = 30
 )
 
+var (
+	// Build contains the current git commit id
+	// compile passing -ldflags "-X pkg/snclient.Build <build sha1>" to set the id.
+	Build = ""
+
+	// Revision contains the minor version number (number of commits, since last tag)
+	// compile passing -ldflags "-X pkg/snclient.Revision <commits>" to set the revision number.
+	Revision = ""
+)
+
 // MainStateType is used to set different states of the main loop.
 type MainStateType int
 
@@ -84,34 +93,29 @@ type noCopy struct{}
 func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
+type AgentFlags struct {
+	ConfigFiles     []string
+	Verbose         int
+	Quiet           bool
+	Help            bool
+	Version         bool
+	LogLevel        string
+	LogFormat       string
+	LogFile         string
+	Pidfile         string
+	ProfilePort     string
+	ProfileCPU      string
+	ProfileMem      string
+	DeadlockTimeout int
+}
+
 type Agent struct {
-	Config    *Config     // reference to global config object
-	Listeners *ModuleSet  // Listeners stores if we started listeners
-	Tasks     *ModuleSet  // Tasks stores if we started task runners
-	Counter   *CounterSet // Counter stores collected counters from tasks
-	flagset   *flag.FlagSet
-	flags     struct { // command line flags
-		flagDaemon       bool
-		flagQuiet        bool
-		flagVerbose      bool
-		flagVeryVerbose  bool
-		flagTraceVerbose bool
-		flagVersion      bool
-		flagHelp         bool
-		flagConfigFile   configFiles
-		flagPidfile      string
-		flagMemProfile   string
-		flagProfile      string
-		flagCPUProfile   string
-		flagLogFile      string
-		flagLogFormat    string
-		flagLogLevel     string
-		flagDeadlock     int
-		flagWatch        bool
-	}
+	Config            *Config     // reference to global config object
+	Listeners         *ModuleSet  // Listeners stores if we started listeners
+	Tasks             *ModuleSet  // Tasks stores if we started task runners
+	Counter           *CounterSet // Counter stores collected counters from tasks
+	flags             *AgentFlags
 	cpuProfileHandler *os.File
-	Build             string
-	Revision          string
 	initSet           *AgentRunSet
 	osSignalChannel   chan os.Signal
 	running           atomic.Bool
@@ -126,17 +130,15 @@ type AgentRunSet struct {
 }
 
 // NewAgent returns a new Agent object ready to be started by Run()
-func NewAgent(build, revision string, args []string) *Agent {
+func NewAgent(flags *AgentFlags) *Agent {
 	snc := &Agent{
-		Build:     build,
-		Revision:  revision,
 		Listeners: NewModuleSet("listener"),
 		Tasks:     NewModuleSet("task"),
 		Counter:   NewCounterSet(),
 		Config:    NewConfig(),
+		flags:     flags,
 	}
-	snc.setFlags()
-	snc.checkFlags(args)
+	snc.checkFlags()
 	snc.createLogger(nil)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
@@ -148,20 +150,7 @@ func NewAgent(build, revision string, args []string) *Agent {
 	snc.initSet = initSet
 	snc.createLogger(initSet.config)
 
-	snc.checkUpdateBinary()
-	if snc.flags.flagWatch {
-		snc.startRestartWatcher()
-	}
-
 	snc.osSignalChannel = make(chan os.Signal, 1)
-
-	// daemonize
-	if snc.flags.flagDaemon {
-		snc.daemonize()
-		snc.CleanExit(ExitCodeOK)
-
-		return nil
-	}
 
 	return snc
 }
@@ -329,7 +318,7 @@ func (snc *Agent) startModules(initSet *AgentRunSet) {
 
 func (snc *Agent) init() (*AgentRunSet, error) {
 	var files configFiles
-	files = snc.flags.flagConfigFile
+	files = snc.flags.ConfigFiles
 
 	defaultLocations := []string{
 		"./snclient.ini",
@@ -507,15 +496,15 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 
 func (snc *Agent) createPidFile() {
 	// write the pid id if file path is defined
-	if snc.flags.flagPidfile == "" {
+	if snc.flags.Pidfile == "" {
 		return
 	}
 	// check existing pid
 	if snc.checkStalePidFile() {
-		LogStderrf("WARNING: removing stale pidfile %s", snc.flags.flagPidfile)
+		LogStderrf("WARNING: removing stale pidfile %s", snc.flags.Pidfile)
 	}
 
-	err := os.WriteFile(snc.flags.flagPidfile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0o600)
+	err := os.WriteFile(snc.flags.Pidfile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0o600)
 	if err != nil {
 		LogStderrf("ERROR: Could not write pidfile: %s", err.Error())
 		snc.CleanExit(ExitCodeError)
@@ -523,7 +512,7 @@ func (snc *Agent) createPidFile() {
 }
 
 func (snc *Agent) checkStalePidFile() bool {
-	pid, err := utils.ReadPid(snc.flags.flagPidfile)
+	pid, err := utils.ReadPid(snc.flags.Pidfile)
 	if err != nil {
 		return false
 	}
@@ -543,93 +532,24 @@ func (snc *Agent) checkStalePidFile() bool {
 }
 
 func (snc *Agent) deletePidFile() {
-	if snc.flags.flagPidfile != "" {
-		os.Remove(snc.flags.flagPidfile)
+	if snc.flags.Pidfile != "" {
+		os.Remove(snc.flags.Pidfile)
 	}
 }
 
 // Version returns version including Revision number
 func (snc *Agent) Version() string {
-	return fmt.Sprintf("v%s.%s", VERSION, snc.Revision)
+	return fmt.Sprintf("v%s.%s", VERSION, Revision)
 }
 
-// printVersion prints the version.
-func (snc *Agent) printVersion() {
-	fmt.Fprintf(os.Stdout, "%s %s (Build: %s)\n", NAME, snc.Version(), snc.Build)
+// PrintVersion prints the version.
+func (snc *Agent) PrintVersion() {
+	fmt.Fprintf(os.Stdout, "%s %s (Build: %s)\n", NAME, snc.Version(), Build)
 }
 
-func (snc *Agent) printUsage(full bool) {
-	usageOutput := os.Stdout
-	fmt.Fprintf(usageOutput, "Usage: snclient [OPTION]...\n")
-	fmt.Fprintf(usageOutput, "\n")
-	fmt.Fprintf(usageOutput, "snclient+ agent runs checks and provides metrics.\n")
-	fmt.Fprintf(usageOutput, "\n")
-	fmt.Fprintf(usageOutput, "Basic Settings:\n")
-	fmt.Fprintf(usageOutput, "    --daemon                                     \n")
-	fmt.Fprintf(usageOutput, "    --config=<configfile>                        \n")
-	fmt.Fprintf(usageOutput, "    --help|-h                                    \n")
-	fmt.Fprintf(usageOutput, "\n")
-
-	if full {
-		snc.flagset.SetOutput(usageOutput)
-		snc.flagset.PrintDefaults()
-	}
-
-	fmt.Fprintf(usageOutput, "\n")
-	fmt.Fprintf(usageOutput, "see README for a detailed explanation of all options.\n")
-	fmt.Fprintf(usageOutput, "\n")
-
-	os.Exit(ExitCodeUnknown)
-}
-
-func (snc *Agent) setFlags() {
-	flags := flag.NewFlagSet("snclient", flag.ContinueOnError)
-	snc.flagset = flags
-	flags.Usage = func() {}
-	flags.Var(&snc.flags.flagConfigFile, "c", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
-	flags.Var(&snc.flags.flagConfigFile, "config", "set path to config file / can be used multiple times / supports globs, ex.: *.ini")
-	flags.BoolVar(&snc.flags.flagDaemon, "d", false, "start snclient as daemon in background")
-	flags.BoolVar(&snc.flags.flagDaemon, "daemon", false, "start snclient as daemon in background")
-	flags.StringVar(&snc.flags.flagPidfile, "pidfile", "", "set path to pidfile")
-	flags.StringVar(&snc.flags.flagLogFile, "logfile", "", "override logfile from the configuration file")
-	flags.StringVar(&snc.flags.flagLogFormat, "logformat", "", "override logformat, see https://pkg.go.dev/github.com/kdar/factorlog")
-	flags.StringVar(&snc.flags.flagLogLevel, "loglevel", "", "set loglevel to one of: off, error, info, debug, trace")
-	flags.BoolVar(&snc.flags.flagQuiet, "q", false, "quiet mode, only log errors")
-	flags.BoolVar(&snc.flags.flagQuiet, "quiet", false, "quiet mode, only log errors")
-	flags.BoolVar(&snc.flags.flagVerbose, "v", false, "enable verbose output")
-	flags.BoolVar(&snc.flags.flagVerbose, "verbose", false, "enable verbose output")
-	flags.BoolVar(&snc.flags.flagVeryVerbose, "vv", false, "enable very verbose output")
-	flags.BoolVar(&snc.flags.flagTraceVerbose, "vvv", false, "enable trace output")
-	flags.BoolVar(&snc.flags.flagVersion, "version", false, "print version and exit")
-	flags.BoolVar(&snc.flags.flagVersion, "V", false, "print version and exit")
-	flags.BoolVar(&snc.flags.flagHelp, "help", false, "print help and exit")
-	flags.BoolVar(&snc.flags.flagHelp, "h", false, "print help and exit")
-	flags.StringVar(&snc.flags.flagProfile, "debug-profiler", "", "start pprof profiler on this port, ex. :6060")
-	flags.StringVar(&snc.flags.flagCPUProfile, "cpuprofile", "", "write cpu profile to `file`")
-	flags.StringVar(&snc.flags.flagMemProfile, "memprofile", "", "write memory profile to `file`")
-	flags.IntVar(&snc.flags.flagDeadlock, "debug-deadlock", 0, "enable deadlock detection with given timeout")
-	flags.BoolVar(&snc.flags.flagWatch, "watch", false, "enable filewatch to restart agent if executable or ini file changes")
-}
-
-func (snc *Agent) checkFlags(osArgs []string) {
-	err := snc.flagset.Parse(osArgs)
-	if err != nil {
-		// errors have been printed already
-		os.Exit(ExitCodeError)
-	}
-
-	if snc.flags.flagVersion {
-		snc.printVersion()
-		os.Exit(ExitCodeOK)
-	}
-
-	if snc.flags.flagHelp {
-		snc.printUsage(true)
-		os.Exit(ExitCodeOK)
-	}
-
-	if snc.flags.flagProfile != "" {
-		if snc.flags.flagCPUProfile != "" || snc.flags.flagMemProfile != "" {
+func (snc *Agent) checkFlags() {
+	if snc.flags.ProfilePort != "" {
+		if snc.flags.ProfileCPU != "" || snc.flags.ProfileMem != "" {
 			LogStderrf("ERROR: either use -debug-profile or -cpu/memprofile, not both")
 			os.Exit(ExitCodeError)
 		}
@@ -642,7 +562,7 @@ func (snc *Agent) checkFlags(osArgs []string) {
 			defer snc.logPanicExit()
 
 			server := &http.Server{
-				Addr:              snc.flags.flagProfile,
+				Addr:              snc.flags.ProfilePort,
 				ReadTimeout:       DefaultSocketTimeout * time.Second,
 				ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
 				WriteTimeout:      DefaultSocketTimeout * time.Second,
@@ -656,10 +576,10 @@ func (snc *Agent) checkFlags(osArgs []string) {
 		}()
 	}
 
-	if snc.flags.flagCPUProfile != "" {
+	if snc.flags.ProfileCPU != "" {
 		runtime.SetBlockProfileRate(BlockProfileRateInterval)
 
-		cpuProfileHandler, err := os.Create(snc.flags.flagCPUProfile)
+		cpuProfileHandler, err := os.Create(snc.flags.ProfileCPU)
 		if err != nil {
 			LogStderrf("ERROR: could not create CPU profile: %s", err.Error())
 			os.Exit(ExitCodeError)
@@ -673,11 +593,11 @@ func (snc *Agent) checkFlags(osArgs []string) {
 		snc.cpuProfileHandler = cpuProfileHandler
 	}
 
-	if snc.flags.flagDeadlock <= 0 {
+	if snc.flags.DeadlockTimeout <= 0 {
 		deadlock.Opts.Disable = true
 	} else {
 		deadlock.Opts.Disable = false
-		deadlock.Opts.DeadlockTimeout = time.Duration(snc.flags.flagDeadlock) * time.Second
+		deadlock.Opts.DeadlockTimeout = time.Duration(snc.flags.DeadlockTimeout) * time.Second
 		deadlock.Opts.LogBuf = NewLogWriter("Error")
 	}
 }
@@ -685,10 +605,10 @@ func (snc *Agent) checkFlags(osArgs []string) {
 func (snc *Agent) CleanExit(exitCode int) {
 	snc.deletePidFile()
 
-	if snc.flags.flagCPUProfile != "" {
+	if snc.flags.ProfileCPU != "" {
 		pprof.StopCPUProfile()
 		snc.cpuProfileHandler.Close()
-		log.Infof("cpu profile written to: %s", snc.flags.flagCPUProfile)
+		log.Infof("cpu profile written to: %s", snc.flags.ProfileCPU)
 	}
 
 	os.Exit(exitCode)
@@ -746,7 +666,7 @@ func (snc *Agent) buildStartupMsg() string {
 		log.Debugf("failed to get platform host id: %s", err.Error())
 	}
 	msg := fmt.Sprintf("%s starting (version:v%s.%s - build:%s - host:%s - pid:%d - os:%s %s - arch:%s)",
-		NAME, VERSION, snc.Revision, snc.Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH)
+		NAME, VERSION, Revision, Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH)
 
 	return msg
 }
@@ -767,25 +687,25 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 		level = "info"
 	}
 
-	if snc.flags.flagQuiet {
+	if snc.flags.Quiet {
 		level = "error"
 	}
 
-	if snc.flags.flagLogLevel != "" {
-		level = snc.flags.flagLogLevel
+	if snc.flags.LogLevel != "" {
+		level = snc.flags.LogLevel
 	}
 
 	switch {
-	case snc.flags.flagVeryVerbose, snc.flags.flagTraceVerbose:
+	case snc.flags.Verbose >= 2:
 		level = "trace"
-	case snc.flags.flagVerbose:
+	case snc.flags.Verbose >= 1:
 		level = "debug"
 	}
 	setLogLevel(level)
 }
 
-// checkUpdateBinary checks if we run as snclient.update.exe and if so, move that file in place and restart
-func (snc *Agent) checkUpdateBinary() {
+// CheckUpdateBinary checks if we run as snclient.update.exe and if so, move that file in place and restart
+func (snc *Agent) CheckUpdateBinary(mode string) {
 	executable, err := os.Executable()
 	if err != nil {
 		log.Errorf("could not detect path to executable: %s", err.Error())
@@ -817,7 +737,7 @@ func (snc *Agent) checkUpdateBinary() {
 		return
 	}
 
-	if runtime.GOOS == "windows" && snc.flags.flagDaemon {
+	if runtime.GOOS == "windows" && mode == "winservice" {
 		// stop service, so we can replace the binary
 		cmd := exec.Command("net", "stop", "snclient")
 		output, err := cmd.CombinedOutput()
@@ -836,28 +756,11 @@ func (snc *Agent) checkUpdateBinary() {
 	}
 
 	snc.stop()
-	snc.finishUpdate(binPath)
+	snc.finishUpdate(binPath, mode)
 }
 
 func (snc *Agent) buildUpdateFile(executable string) string {
 	return strings.TrimSuffix(executable, GlobalMacros["file-ext"]) + ".update" + GlobalMacros["file-ext"]
-}
-
-func (snc *Agent) startRestartWatcher() {
-	if runtime.GOOS == "windows" {
-		snc.startRestartWatcherWindows()
-
-		return
-	}
-
-	go func() {
-		defer snc.logPanicExit()
-		binFile := GlobalMacros["exe-full"]
-		snc.restartWatcherCb(func() {
-			up := &UpdateHandler{snc: snc}
-			LogError(up.ApplyRestart(binFile))
-		})
-	}()
 }
 
 func (snc *Agent) restartWatcherCb(restartCb func()) {
@@ -892,40 +795,6 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 			lastStat[file] = &stat
 		}
 	}
-}
-
-func (snc *Agent) startRestartWatcherWindows() {
-	binFile := GlobalMacros["exe-full"]
-	args := []string{}
-	for _, a := range os.Args {
-		if !strings.Contains(a, "-watch") {
-			args = append(args, a)
-		}
-	}
-	getCmd := func() exec.Cmd {
-		cmd := exec.Cmd{
-			Path:   binFile,
-			Args:   args,
-			Env:    os.Environ(),
-			Stdin:  os.Stdin,
-			Stdout: os.Stdout,
-			Stderr: os.Stderr,
-		}
-
-		return cmd
-	}
-	cmd := getCmd()
-	LogError(cmd.Start())
-
-	snc.running.Store(true)
-	snc.restartWatcherCb(func() {
-		LogError(cmd.Process.Kill())
-		_ = cmd.Wait()
-
-		cmd = getCmd()
-		LogError(cmd.Start())
-	})
-	os.Exit(ExitCodeOK)
 }
 
 // replaceMacros replaces variables in given string.

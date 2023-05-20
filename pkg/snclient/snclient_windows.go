@@ -55,16 +55,7 @@ func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, cha
 	return ssec, errno
 }
 
-func (snc *Agent) daemonize() {
-	inService, _ := svc.IsWindowsService()
-	if inService {
-		snc.runAsWinService()
-	} else {
-		snc.RunBackground()
-	}
-}
-
-func (snc *Agent) runAsWinService() {
+func (snc *Agent) RunAsWinService() {
 	const svcName = "snclient"
 	inService, err := svc.IsWindowsService()
 	if err != nil {
@@ -114,7 +105,10 @@ func mainSignalHandler(sig os.Signal, _ *Agent) MainStateType {
 	return Resume
 }
 
-func (snc *Agent) finishUpdate(_ string) {
+func (snc *Agent) finishUpdate(_, mode string) {
+	if mode != "winservice" {
+		return
+	}
 	// start service again
 	cmd := exec.Command("net", "start", "snclient")
 	output, err := cmd.CombinedOutput()
@@ -122,5 +116,39 @@ func (snc *Agent) finishUpdate(_ string) {
 	if err != nil {
 		log.Debugf("net start snclient failed: %s", err.Error())
 	}
+	os.Exit(ExitCodeOK)
+}
+
+func (snc *Agent) StartRestartWatcher() {
+	binFile := GlobalMacros["exe-full"]
+	args := []string{}
+	for _, a := range os.Args {
+		if a != "watch" && a != "dev" {
+			args = append(args, a)
+		}
+	}
+	getCmd := func() exec.Cmd {
+		cmd := exec.Cmd{
+			Path:   binFile,
+			Args:   args,
+			Env:    os.Environ(),
+			Stdin:  os.Stdin,
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
+		}
+
+		return cmd
+	}
+	cmd := getCmd()
+	LogError(cmd.Start())
+
+	snc.running.Store(true)
+	snc.restartWatcherCb(func() {
+		LogError(cmd.Process.Kill())
+		_ = cmd.Wait()
+
+		cmd = getCmd()
+		LogError(cmd.Start())
+	})
 	os.Exit(ExitCodeOK)
 }

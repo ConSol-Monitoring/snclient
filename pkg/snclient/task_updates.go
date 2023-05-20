@@ -292,7 +292,7 @@ func (u *UpdateHandler) checkUpdateGithubRelease() (downloadURL string, err erro
 	for _, arch := range archVariants {
 		lookFor := strings.ToLower(fmt.Sprintf("%s-%s", runtime.GOOS, arch))
 		for _, asset := range lastRelease.Assets {
-			if strings.Contains(strings.ToLower(asset.Name), "bin-") && strings.Contains(strings.ToLower(asset.Name), lookFor) {
+			if strings.Contains(strings.ToLower(asset.Name), ".rpm") && strings.Contains(strings.ToLower(asset.Name), lookFor) {
 				return asset.URL, nil
 			}
 		}

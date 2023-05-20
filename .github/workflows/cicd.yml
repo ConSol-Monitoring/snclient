@@ -162,23 +162,13 @@ jobs:
 
       - run: |
           Write-Host "Building ${{ env.BIN }}.msi"
-
-          Invoke-WebRequest -UseBasicParsing -Uri https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe -OutFile wix311.exe
-          & ".\wix311.exe" "/q"
-
-          $win_arch = "x64"
-          if ("${{ matrix.go-arch }}" -eq "386") { $win_arch = "x86" }
-
-          & 'C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe' .\packaging\windows\snclient.wxs `
-            -arch $win_arch `
-            -dPlatform="$($win_arch)" `
-            -dMajorVersion="${{needs.get-version.outputs.major}}" `
-            -dMinorVersion="${{needs.get-version.outputs.minor}}" `
-            -dRevisionNumber="${{needs.get-version.outputs.revision}}" `
-            -dGitSha="${{ needs.get-version.outputs.sha }}"
-          & "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" ".\snclient.wixobj"
-
-          Move-Item -Path ./snclient.msi -Destination "./${{ env.BIN }}.msi"
+          & .\packaging\windows\build_msi.ps1 `
+            -out=".\${{ env.BIN }}.msi" `
+            -arch="${{ matrix.go-arch }}" `
+            -major="${{needs.get-version.outputs.major}}" `
+            -minor="${{needs.get-version.outputs.minor}}" `
+            -rev="${{needs.get-version.outputs.revision}}" `
+            -sha="${{ needs.get-version.outputs.sha }}"
 
       - uses: actions/upload-artifact@v3
         with:

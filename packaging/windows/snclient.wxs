@@ -35,7 +35,7 @@
 				<ServiceInstall
 					Description='SNClient+ (Secure Naemon Client) is a secure general purpose monitoring agent designed as replacement for NRPE and NSClient++.'
 					ErrorControl='ignore'
-					Arguments="--daemon"
+					Arguments="winservice"
 					Name = 'snclient'
 					Id='SNClientService'
 					Interactive='no'
