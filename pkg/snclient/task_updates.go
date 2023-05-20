@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"archive/zip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"regexp"
 	"runtime"
 	"strings"
@@ -15,6 +17,8 @@ import (
 	"time"
 
 	"pkg/utils"
+
+	"github.com/sassoftware/go-rpmutils"
 )
 
 const (
@@ -41,25 +45,36 @@ type UpdateHandler struct {
 
 	automaticUpdates bool
 	automaticRestart bool
-	updateURL        string
+	channel          string
+	preRelease       bool
 	updateInterval   float64
 	updateHours      []UpdateHours
 	updateDays       []UpdateDays
 
 	httpOptions  *HTTPClientOptions
 	lastUpdate   *time.Time
-	lastModified *time.Time
+	lastModified map[string]*time.Time
+}
+
+type updatesAvailable struct {
+	channel string
+	url     string
+	version string
+	header  map[string]string
 }
 
 func NewUpdateHandler() Module {
-	return &UpdateHandler{}
+	return &UpdateHandler{
+		lastModified: make(map[string]*time.Time),
+	}
 }
 
 func (u *UpdateHandler) Defaults() ConfigData {
 	defaults := ConfigData{
 		"automatic updates": "disabled",
 		"automatic restart": "disabled",
-		"update url":        "https://api.github.com/repos/ConSol-monitoring/snclient/releases",
+		"channel":           "stable",
+		"pre release":       "false",
 		"update interval":   "1h",
 		"update hours":      "0-24",
 		"update days":       "mon-sun",
@@ -86,8 +101,16 @@ func (u *UpdateHandler) Init(snc *Agent, section *ConfigSection, _ *Config) erro
 }
 
 func (u *UpdateHandler) setConfig(section *ConfigSection) error {
-	if updateURL, ok := section.GetString("update url"); ok {
-		u.updateURL = updateURL
+	if channel, ok := section.GetString("channel"); ok {
+		u.channel = channel
+	}
+
+	preRelease, ok, err := section.GetBool("pre release")
+	switch {
+	case err != nil:
+		return fmt.Errorf("pre release: %s", err.Error())
+	case ok:
+		u.preRelease = preRelease
 	}
 
 	autoUpdate, ok, err := section.GetBool("automatic updates")
@@ -166,7 +189,7 @@ func (u *UpdateHandler) mainLoop() {
 			return
 		case <-ticker.C:
 			ticker.Reset(interval)
-			err := u.checkUpdate(false)
+			_, err := u.CheckUpdates(false, true, u.automaticRestart, u.preRelease, "", u.channel)
 			if err != nil {
 				log.Errorf("[updates] checking for updates failed: %s", err.Error())
 			}
@@ -176,69 +199,167 @@ func (u *UpdateHandler) mainLoop() {
 	}
 }
 
-func (u *UpdateHandler) checkUpdate(force bool) (err error) {
+func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool, downgrade, channel string) (version string, err error) {
 	if !force {
 		if !u.updatePreChecks() {
-			return nil
+			return "", nil
 		}
 	}
 
 	log.Tracef("[updates] starting update check")
+	log.Tracef("[updates] channel:      %s", channel)
+	log.Tracef("[updates] download:     %v", download)
+	log.Tracef("[updates] auto restart: %v", restarts)
+	if downgrade != "" {
+		log.Tracef("[updates] downgrade:    yes: %s", downgrade)
+	} else {
+		log.Tracef("[updates] downgrade:    no")
+	}
 	now := time.Now()
 	u.lastUpdate = &now
 
-	var downloadURL string
-	if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/releases`, u.updateURL); ok {
-		downloadURL, err = u.checkUpdateGithubRelease()
-	} else if ok, _ := regexp.MatchString(`^https://github\.com/.*/actions`, u.updateURL); ok {
-		downloadURL, err = u.checkUpdateGithubActions()
-	} else if ok, _ := regexp.MatchString(`^file:`, u.updateURL); ok {
-		downloadURL, err = u.checkUpdateFile()
-	} else {
-		downloadURL, err = u.checkUpdateCustomURL()
-	}
-
+	available, err := u.fetchAvailableUpdates(force, download, restarts, preRelease, downgrade, channel)
 	if err != nil {
-		return err
+		return "", err
+	}
+	if len(available) == 0 {
+		return "", nil
 	}
 
-	if downloadURL == "" {
-		return nil
+	best := u.chooseBestUpdate(available, downgrade)
+	if best == nil {
+		return "", nil
 	}
 
-	updateFile, err := u.downloadUpdate(downloadURL)
+	if !download {
+		return best.version, nil
+	}
+
+	updateFile, err := u.downloadUpdate(best)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	newVersion, err := u.verifyUpdate(updateFile)
 	if err != nil {
 		LogError(os.Remove(updateFile))
 
-		return err
+		return "", err
 	}
 
-	if u.automaticRestart {
-		if utils.ParseVersion(newVersion) < utils.ParseVersion(u.snc.Version()) {
-			log.Warnf("[update] downgrading to %s", newVersion)
-		}
+	if utils.ParseVersion(newVersion) < utils.ParseVersion(u.snc.Version()) {
+		log.Warnf("[update] downgrading to %s", newVersion)
+	}
+
+	if restarts {
 		log.Infof("[update] update successful from %s to %s, restarting into new version", u.snc.Version(), newVersion)
 		err = u.ApplyRestart(updateFile)
 		if err != nil {
-			return err
+			return "", err
 		}
 	} else {
-		log.Infof("[update] update to version %s successful (no automatic restart)", newVersion)
+		log.Infof("[update] version %s successfully downloaded: %s", newVersion, updateFile)
 	}
 
-	return nil
+	return newVersion, nil
+}
+
+func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade string) (best *updatesAvailable) {
+	down := float64(-1)
+	if downgrade != "" {
+		down = utils.ParseVersion(downgrade)
+	}
+
+	bestVersion := float64(0)
+	for i, u := range updates {
+		version := utils.ParseVersion(u.version)
+		if down != -1 {
+			if version == down {
+				return &updates[i]
+			}
+
+			continue
+		}
+		if best == nil || version > bestVersion {
+			best = &updates[i]
+			bestVersion = version
+		}
+	}
+
+	if down != -1 {
+		log.Warnf("did not find requested version (%s) to downgrade to:", downgrade)
+		for _, u := range updates {
+			log.Warnf("  - %s (from %s)", u.version, u.url)
+		}
+	}
+
+	curVersion := utils.ParseVersion(u.snc.Version())
+	if bestVersion <= curVersion {
+		return nil
+	}
+
+	return best
+}
+
+func (u *UpdateHandler) fetchAvailableUpdates(force, download, restarts, preRelease bool, downgrade, channel string) (updates []updatesAvailable, err error) {
+	available := []updatesAvailable{}
+	channelConfSection := u.snc.Config.Section("/settings/updates/channel")
+	chanList := strings.Split(channel, ",")
+	for _, channel := range chanList {
+		channel = strings.TrimSpace(channel)
+		if channel == "" {
+			continue
+		}
+		url, ok := channelConfSection.GetString(channel)
+		if !ok {
+			log.Warnf("no update channel '%s', check the %s config section.", channel, channelConfSection.name)
+
+			continue
+		}
+
+		log.Tracef("next: %s channel: %s", channel, url)
+
+		updates, err := u.CheckUpdate(url, download, preRelease, channel)
+		if err != nil {
+			log.Warnf("channel %s failed: %s", channel, err.Error())
+
+			continue
+		}
+
+		available = append(available, updates...)
+	}
+
+	return available, nil
+}
+
+func (u *UpdateHandler) CheckUpdate(url string, download, preRelease bool, channel string) (updates []updatesAvailable, err error) {
+	if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/releases`, url); ok {
+		updates, err = u.checkUpdateGithubRelease(url, preRelease)
+	} else if ok, _ := regexp.MatchString(`^https://api\.github.com/repos/.*/actions/artifacts`, url); ok {
+		updates, err = u.checkUpdateGithubActions(url, channel)
+	} else if ok, _ := regexp.MatchString(`^file:`, url); ok {
+		updates, err = u.checkUpdateFile(url)
+	} else {
+		updates, err = u.checkUpdateCustomURL(url)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range updates {
+		updates[i].channel = channel
+	}
+
+	return updates, nil
 }
 
 // check available updates from github release page
-func (u *UpdateHandler) checkUpdateGithubRelease() (downloadURL string, err error) {
-	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", u.updateURL, nil)
+func (u *UpdateHandler) checkUpdateGithubRelease(url string, preRelease bool) (updates []updatesAvailable, err error) {
+	log.Tracef("[update] checking github release url at: %s", url)
+	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, nil)
 	if err != nil {
-		return "", fmt.Errorf("http: %s", err.Error())
+		return nil, fmt.Errorf("http: %s", err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -257,83 +378,156 @@ func (u *UpdateHandler) checkUpdateGithubRelease() (downloadURL string, err erro
 	var releases []GithubRelease
 	err = json.NewDecoder(resp.Body).Decode(&releases)
 	if err != nil {
-		return "", fmt.Errorf("json: %s", err.Error())
+		return nil, fmt.Errorf("json: %s", err.Error())
 	}
 
-	lastVersion := float64(0)
-	var lastRelease *GithubRelease
-	for i := range releases {
-		release := releases[i]
-		vers := utils.ParseVersion(release.TagName)
-		if vers > lastVersion {
-			lastVersion = utils.ParseVersion(release.TagName)
-			lastRelease = &release
-		}
-	}
-	if lastRelease == nil {
+	if len(releases) == 0 {
 		log.Debugf("[update] no releases found")
 
-		return "", nil
+		return nil, nil
 	}
 
-	if lastVersion <= utils.ParseVersion(VERSION) {
-		log.Debugf("[update] no updates found, last github release is: %s", lastRelease.TagName)
+	for i := range releases {
+		release := releases[i]
+		if release.PreRelease && !preRelease {
+			log.Debugf("skipping pre release: %s", release.TagName)
 
-		return "", nil
+			continue
+		}
+
+		archVariants := []string{runtime.GOARCH}
+		switch runtime.GOARCH {
+		case "386":
+			archVariants = append(archVariants, "i386")
+		case "arm64":
+			archVariants = append(archVariants, "aarch64")
+		}
+		foundOne := false
+		for _, arch := range archVariants {
+			lookFor := strings.ToLower(fmt.Sprintf("%s-%s", runtime.GOOS, arch))
+			for _, asset := range release.Assets {
+				lowAsset := strings.ToLower(asset.Name)
+				if strings.Contains(lowAsset, lookFor) {
+					// right now we can only extract .rpm and .msi
+					if strings.Contains(lowAsset, ".rpm") || strings.Contains(lowAsset, ".msi") {
+						updates = append(updates, updatesAvailable{url: asset.URL, version: release.TagName})
+						foundOne = true
+
+						break
+					}
+				}
+			}
+			if foundOne {
+				break
+			}
+		}
+		if !foundOne {
+			log.Debugf("[update] no download url for this architecture found: os:%s arch:%s", runtime.GOARCH, runtime.GOOS)
+		}
 	}
 
-	archVariants := []string{runtime.GOARCH}
-	switch runtime.GOARCH {
-	case "386":
-		archVariants = append(archVariants, "i386")
-	case "arm64":
-		archVariants = append(archVariants, "aarch64")
+	return updates, nil
+}
+
+// check available updates from github actions page
+func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates []updatesAvailable, err error) {
+	log.Tracef("[update] checking github action url at: %s", url)
+	conf := u.snc.Config.Section("/settings/updates/channel/" + channel)
+	token, ok := conf.GetString("github token")
+	if !ok || token == "" || token == "<GITHUB-TOKEN>" {
+		return nil, fmt.Errorf("github action urls require a github token to work, skipping.")
 	}
-	for _, arch := range archVariants {
-		lookFor := strings.ToLower(fmt.Sprintf("%s-%s", runtime.GOOS, arch))
-		for _, asset := range lastRelease.Assets {
-			if strings.Contains(strings.ToLower(asset.Name), ".rpm") && strings.Contains(strings.ToLower(asset.Name), lookFor) {
-				return asset.URL, nil
+	header := map[string]string{
+		"Authorization": "Bearer " + token,
+	}
+	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, header)
+	if err != nil {
+		return nil, fmt.Errorf("http: %s", err.Error())
+	}
+	defer resp.Body.Close()
+
+	type GithubArtifact struct {
+		URL  string `json:"archive_download_url"`
+		Name string `json:"name"`
+	}
+
+	type GithubActions struct {
+		Artifacts []GithubArtifact `json:"artifacts"`
+	}
+	var artifacts GithubActions
+	err = json.NewDecoder(resp.Body).Decode(&artifacts)
+	if err != nil {
+		return nil, fmt.Errorf("json: %s", err.Error())
+	}
+
+	if len(artifacts.Artifacts) == 0 {
+		log.Debugf("[update] no action artifacts found")
+
+		return nil, nil
+	}
+
+	reVersion := regexp.MustCompile(`^snclient\-(.*?)\-\w+-\w+\.\w+`)
+
+	for i := range artifacts.Artifacts {
+		artifact := artifacts.Artifacts[i]
+
+		archVariants := []string{runtime.GOARCH}
+		switch runtime.GOARCH {
+		case "386":
+			archVariants = append(archVariants, "i386")
+		case "arm64":
+			archVariants = append(archVariants, "aarch64")
+		}
+		for _, arch := range archVariants {
+			lookFor := strings.ToLower(fmt.Sprintf("%s-%s", runtime.GOOS, arch))
+			lowAsset := strings.ToLower(artifact.Name)
+			if strings.Contains(lowAsset, lookFor) {
+				// right now we can only extract .rpm and .msi
+				if strings.Contains(lowAsset, ".rpm") || strings.Contains(lowAsset, ".msi") {
+					matches := reVersion.FindStringSubmatch(artifact.Name)
+					if len(matches) > 1 {
+						version := matches[1]
+						updates = append(updates, updatesAvailable{url: artifact.URL, version: version, header: header})
+					}
+				}
 			}
 		}
 	}
 
-	log.Debugf("[update] no download url for this architecture found: os:%s arch:%s", runtime.GOARCH, runtime.GOOS)
+	if len(updates) == 0 {
+		log.Debugf("[update] no matching artifacts url for this architecture found: os:%s arch:%s", runtime.GOARCH, runtime.GOOS)
+	}
 
-	return "", nil
-}
-
-// check available updates from github actions page
-func (u *UpdateHandler) checkUpdateGithubActions() (downloadURL string, err error) {
-	return "", nil
+	return updates, nil
 }
 
 // check available update from any url
-func (u *UpdateHandler) checkUpdateCustomURL() (downloadURL string, err error) {
-	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "HEAD", u.updateURL, nil)
+func (u *UpdateHandler) checkUpdateCustomURL(url string) (updates []updatesAvailable, err error) {
+	log.Tracef("[update] checking custom url at: %s", url)
+	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "HEAD", url, nil)
 	if err != nil {
-		return "", fmt.Errorf("http: %s", err.Error())
+		return nil, fmt.Errorf("http: %s", err.Error())
 	}
 	defer resp.Body.Close()
 
 	if resp.ContentLength < 0 {
-		return "", fmt.Errorf("request failed %s: got content length %d", u.updateURL, resp.ContentLength)
+		return nil, fmt.Errorf("request failed %s: got content length %d", url, resp.ContentLength)
 	}
 
 	executable, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("could not detect path to executable: %s", err.Error())
+		return nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
 	}
 
 	stat, err := os.Stat(executable)
 	if err != nil {
-		return "", fmt.Errorf("stat: %s", err.Error())
+		return nil, fmt.Errorf("stat: %s", err.Error())
 	}
 
 	if resp.ContentLength > 0 && resp.ContentLength != stat.Size() {
-		log.Tracef("[update] content size differs %s: %d vs. %s: %d", u.updateURL, resp.ContentLength, executable, stat.Size())
+		log.Tracef("[update] content size differs %s: %d vs. %s: %d", url, resp.ContentLength, executable, stat.Size())
 
-		return u.updateURL, nil
+		return []updatesAvailable{{url: url, version: ""}}, nil
 	}
 
 	lastModified := resp.Header.Get("Last-Modified")
@@ -342,71 +536,79 @@ func (u *UpdateHandler) checkUpdateCustomURL() (downloadURL string, err error) {
 		if err != nil {
 			log.Debugf("error parsing Last-Modified header: %s", err)
 		} else {
-			if u.lastModified != nil && u.lastModified.Before(modifiedTime) {
-				log.Tracef("[update] last-modified differs for %s", u.updateURL)
+			prev, ok := u.lastModified[url]
+			if ok && prev.Before(modifiedTime) {
+				log.Tracef("[update] last-modified differs for %s", url)
 				log.Tracef("[update] old %s", modifiedTime.UTC().String())
 				log.Tracef("[update] new %s", u.lastUpdate.UTC().String())
 
-				return u.updateURL, nil
+				return []updatesAvailable{{url: url, version: ""}}, nil
 			}
-			u.lastModified = &modifiedTime
+			u.lastModified[url] = &modifiedTime
 		}
 	}
 
-	log.Tracef("[update] no update available, %s matches the last version from %s.", executable, u.updateURL)
+	log.Tracef("[update] no update available, %s matches the last version from %s.", executable, url)
 
-	return "", nil
+	return []updatesAvailable{{url: url, version: ""}}, nil
 }
 
 // check available update from local filesystem
-func (u *UpdateHandler) checkUpdateFile() (downloadURL string, err error) {
-	localPath := strings.TrimPrefix(u.updateURL, "file://")
+func (u *UpdateHandler) checkUpdateFile(url string) (updates []updatesAvailable, err error) {
+	localPath := strings.TrimPrefix(url, "file://")
+	log.Tracef("[update] checking local file at: %s", localPath)
 	stat, err := os.Stat(localPath)
 	if err != nil {
-		return "", fmt.Errorf("could not find update file: %s", err.Error())
+		return nil, fmt.Errorf("could not find update file: %s", err.Error())
 	}
 
 	executable, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("could not detect path to executable: %s", err.Error())
+		return nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
 	}
 
 	oldStat, err := os.Stat(executable)
 	if err != nil {
-		return "", fmt.Errorf("stat: %s", err.Error())
+		return nil, fmt.Errorf("stat: %s", err.Error())
 	}
-	if oldStat.Size() != stat.Size() {
-		log.Tracef("[update] size differs %s: %d vs. %s: %d", localPath, stat.Size(), executable, oldStat.Size())
+	var sum1 string
+	var sum2 string
+	if oldStat.Size() == stat.Size() {
+		sum1, err = utils.Sha256Sum(localPath)
+		if err != nil {
+			return nil, fmt.Errorf("sha256sum %s: %s", localPath, err.Error())
+		}
 
-		return u.updateURL, nil
+		sum2, err = utils.Sha256Sum(executable)
+		if err != nil {
+			return nil, fmt.Errorf("sha256sum %s: %s", executable, err.Error())
+		}
+
+		if sum1 == sum2 {
+			log.Tracef("[update] no update available, %s matches the last version at %s.", executable, localPath)
+
+			return []updatesAvailable{{url: url, version: u.snc.Version()}}, nil
+		}
 	}
 
-	sum1, err := utils.Sha256Sum(localPath)
+	log.Tracef("[update] checksum differs %s: %s vs. %s: %s", localPath, sum1, executable, sum2)
+	log.Tracef("[update] size differs %s: %d vs. %s: %d", localPath, stat.Size(), executable, oldStat.Size())
+
+	// get version from that executable
+	version, err := u.verifyUpdate(localPath)
 	if err != nil {
-		return "", fmt.Errorf("sha256sum %s: %s", localPath, err.Error())
+		return nil, err
 	}
 
-	sum2, err := utils.Sha256Sum(executable)
-	if err != nil {
-		return "", fmt.Errorf("sha256sum %s: %s", executable, err.Error())
-	}
-
-	if sum1 != sum2 {
-		log.Tracef("[update] checksum differs %s: %s vs. %s: %s", localPath, sum1, executable, sum2)
-
-		return u.updateURL, nil
-	}
-
-	log.Tracef("[update] no update available, %s matches the last version at %s.", executable, localPath)
-
-	return "", nil
+	return []updatesAvailable{{url: url, version: version}}, nil
 }
 
 // fetch update file into tmp file
-func (u *UpdateHandler) downloadUpdate(url string) (binPath string, err error) {
+func (u *UpdateHandler) downloadUpdate(update *updatesAvailable) (binPath string, err error) {
+	url := update.url
 	var src io.ReadCloser
 	if strings.HasPrefix(url, "file://") {
-		localPath := strings.TrimPrefix(u.updateURL, "file://")
+		localPath := strings.TrimPrefix(url, "file://")
 		log.Tracef("[update] fetching update from %s", localPath)
 		file, err := os.Open(localPath)
 		if err != nil {
@@ -415,7 +617,7 @@ func (u *UpdateHandler) downloadUpdate(url string) (binPath string, err error) {
 		src = file
 	} else {
 		log.Tracef("[update] downloading update from %s", url)
-		resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, nil)
+		resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, update.header)
 		if err != nil {
 			return "", fmt.Errorf("fetching update failed %s: %s", url, err.Error())
 		}
@@ -423,32 +625,70 @@ func (u *UpdateHandler) downloadUpdate(url string) (binPath string, err error) {
 		src = resp.Body
 	}
 
-	executable, err := os.Executable()
-	if err != nil {
-		return "", fmt.Errorf("could not detect path to executable: %s", err.Error())
-	}
+	executable := GlobalMacros["exe-full"]
 	updateFile := u.snc.buildUpdateFile(executable)
-	tmpFile, err := os.Create(updateFile)
+	saveFile, err := os.Create(updateFile)
 	if err != nil {
 		return "", fmt.Errorf("open: %s", err.Error())
 	}
 
-	log.Tracef("[update] saving to %s", tmpFile.Name())
-	defer tmpFile.Close()
+	log.Tracef("[update] saving to %s", saveFile.Name())
 
-	_, err = io.Copy(tmpFile, src)
+	_, err = io.Copy(saveFile, src)
 	if err != nil {
-		tmpFile.Close()
+		saveFile.Close()
 
 		return "", fmt.Errorf("read: %s", err.Error())
+	}
+	saveFile.Close()
+
+	err = u.extractUpdate(updateFile)
+	if err != nil {
+		return "", err
+	}
+
+	return updateFile, nil
+}
+
+func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
+	executable := GlobalMacros["exe-full"]
+
+	// what file type did we download?
+	mime, err := utils.MimeType(updateFile)
+	if err != nil {
+		return err
+	}
+	switch mime {
+	case "application/zip":
+		// unzip and start over
+		log.Tracef("downloaded zip file, extract content")
+		err = u.extractZip(updateFile)
+		if err != nil {
+			return err
+		}
+		LogError(utils.CopyFileMode(executable, updateFile))
+
+		return u.extractUpdate(updateFile)
+	case "application/rpm":
+		log.Tracef("downloaded rpm file, extract content")
+		// extract rpm and start over
+		err = u.extractRpm(updateFile)
+		if err != nil {
+			return err
+		}
+		LogError(utils.CopyFileMode(executable, updateFile))
+
+		return u.extractUpdate(updateFile)
+	default:
+		log.Tracef("unsupported mime type: %s for file %s", mime, updateFile)
 	}
 
 	err = utils.CopyFileMode(executable, updateFile)
 	if err != nil {
-		return "", fmt.Errorf("chmod %s: %s", updateFile, err.Error())
+		return fmt.Errorf("chmod %s: %s", updateFile, err.Error())
 	}
 
-	return updateFile, nil
+	return nil
 }
 
 func (u *UpdateHandler) verifyUpdate(newBinPath string) (version string, err error) {
@@ -560,4 +800,75 @@ func (u *UpdateHandler) updatePreChecks() bool {
 	}
 
 	return true
+}
+
+func (u *UpdateHandler) extractZip(fileName string) error {
+	r, err := zip.OpenReader(fileName)
+	if err != nil {
+		return fmt.Errorf("zip: %s", err.Error())
+	}
+	defer r.Close()
+
+	if len(r.File) != 1 {
+		return fmt.Errorf("expect zip must contain exactly one file, have: %d", len(r.File))
+	}
+
+	tempFile, err := os.CreateTemp("", "snclient-unzip")
+	if err != nil {
+		return fmt.Errorf("mktemp: %s", err.Error())
+	}
+
+	src, err := r.File[0].Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	_, err = io.Copy(tempFile, src)
+	if err != nil {
+		tempFile.Close()
+
+		return fmt.Errorf("read: %s", err.Error())
+	}
+	tempFile.Close()
+
+	log.Tracef("mv %s %s", tempFile.Name(), fileName)
+	err = os.Rename(tempFile.Name(), fileName)
+	if err != nil {
+		return fmt.Errorf("mv: %s", err.Error())
+	}
+
+	return nil
+}
+
+func (u *UpdateHandler) extractRpm(fileName string) error {
+	f, err := os.Open(fileName)
+	if err != nil {
+		return fmt.Errorf("rpm open: %s", err.Error())
+	}
+	defer f.Close()
+
+	rpm, err := rpmutils.ReadRpm(f)
+	if err != nil {
+		return fmt.Errorf("read rpm: %s", err.Error())
+	}
+
+	tempDir, err := os.MkdirTemp("", "snclient-tmprpm")
+	if err != nil {
+		return fmt.Errorf("MkdirTemp: %s", err.Error())
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Extracting payload
+	if err := rpm.ExpandPayload(tempDir); err != nil {
+		return fmt.Errorf("rpm unpack: %s", err.Error())
+	}
+
+	log.Tracef("mv %s %s", path.Join(tempDir, "/usr/bin/snclient"), fileName)
+	err = os.Rename(path.Join(tempDir, "/usr/bin/snclient"), fileName)
+	if err != nil {
+		return fmt.Errorf("mv: %s", err.Error())
+	}
+
+	return nil
 }
