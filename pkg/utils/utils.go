@@ -306,12 +306,17 @@ func MimeType(fileName string) (mime string, err error) {
 	if mimeType == "application/octet-stream" {
 		// see https://en.wikipedia.org/wiki/List_of_file_signatures
 		signatures := map[string]string{
-			"EDABEEDB":         "application/rpm",
-			"D0CF11E0A1B11AE1": "application/msi",
+			"0:EDABEEDB":           "application/rpm",
+			"0:D0CF11E0A1B11AE1":   "application/msi",
+			"257:7573746172003030": "application/x-tar",
+			"257:7573746172202000": "application/x-tar",
 		}
 		for sig, mime := range signatures {
+			sigData := strings.Split(sig, ":")
+			offset, _ := strconv.Atoi(sigData[0])
+			sig = sigData[1]
 			sigBytes, err := hex.DecodeString(sig)
-			if err == nil && bytes.HasPrefix(header, sigBytes) {
+			if err == nil && bytes.HasPrefix(header[offset:], sigBytes) {
 				return mime, nil
 			}
 		}

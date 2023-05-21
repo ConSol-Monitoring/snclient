@@ -1,7 +1,9 @@
 package snclient
 
 import (
+	"archive/tar"
 	"archive/zip"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -514,11 +516,7 @@ func (u *UpdateHandler) checkUpdateCustomURL(url string) (updates []updatesAvail
 		return nil, fmt.Errorf("request failed %s: got content length %d", url, resp.ContentLength)
 	}
 
-	executable, err := os.Executable()
-	if err != nil {
-		return nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
-	}
-
+	executable := GlobalMacros["exe-full"]
 	stat, err := os.Stat(executable)
 	if err != nil {
 		return nil, fmt.Errorf("stat: %s", err.Error())
@@ -553,49 +551,28 @@ func (u *UpdateHandler) checkUpdateCustomURL(url string) (updates []updatesAvail
 	return []updatesAvailable{{url: url, version: ""}}, nil
 }
 
-// check available update from local filesystem
+// check available update from local or remote filesystem
 func (u *UpdateHandler) checkUpdateFile(url string) (updates []updatesAvailable, err error) {
 	localPath := strings.TrimPrefix(url, "file://")
 	log.Tracef("[update] checking local file at: %s", localPath)
-	stat, err := os.Stat(localPath)
+	_, err = os.Stat(localPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not find update file: %s", err.Error())
 	}
 
-	executable, err := os.Executable()
+	// copy to tmp location
+	tempFile, err := os.CreateTemp("", "snclient-tmpupdate")
 	if err != nil {
-		return nil, fmt.Errorf("could not detect path to executable: %s", err.Error())
+		return nil, fmt.Errorf("mktemp: %s", err.Error())
 	}
+	LogError(tempFile.Close())
+	defer os.Remove(tempFile.Name())
+	utils.CopyFile(localPath, tempFile.Name())
 
-	oldStat, err := os.Stat(executable)
-	if err != nil {
-		return nil, fmt.Errorf("stat: %s", err.Error())
-	}
-	var sum1 string
-	var sum2 string
-	if oldStat.Size() == stat.Size() {
-		sum1, err = utils.Sha256Sum(localPath)
-		if err != nil {
-			return nil, fmt.Errorf("sha256sum %s: %s", localPath, err.Error())
-		}
-
-		sum2, err = utils.Sha256Sum(executable)
-		if err != nil {
-			return nil, fmt.Errorf("sha256sum %s: %s", executable, err.Error())
-		}
-
-		if sum1 == sum2 {
-			log.Tracef("[update] no update available, %s matches the last version at %s.", executable, localPath)
-
-			return []updatesAvailable{{url: url, version: u.snc.Version()}}, nil
-		}
-	}
-
-	log.Tracef("[update] checksum differs %s: %s vs. %s: %s", localPath, sum1, executable, sum2)
-	log.Tracef("[update] size differs %s: %d vs. %s: %d", localPath, stat.Size(), executable, oldStat.Size())
+	u.extractUpdate(tempFile.Name())
 
 	// get version from that executable
-	version, err := u.verifyUpdate(localPath)
+	version, err := u.verifyUpdate(tempFile.Name())
 	if err != nil {
 		return nil, err
 	}
@@ -658,39 +635,31 @@ func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
 	if err != nil {
 		return fmt.Errorf("mime: %s", err.Error())
 	}
+
+	startOver := true
+	log.Tracef("detected mime %s on downloaded file %s", mime, updateFile)
 	switch mime {
 	case "application/zip":
-		// unzip and start over
-		log.Tracef("downloaded zip file, extract content")
 		err = u.extractZip(updateFile)
-		if err != nil {
-			return err
-		}
-		LogError(utils.CopyFileMode(executable, updateFile))
-
-		return u.extractUpdate(updateFile)
+	case "application/x-gzip":
+		err = u.extractGZip(updateFile)
+	case "application/x-tar":
+		err = u.extractTar(updateFile)
 	case "application/rpm":
-		log.Tracef("downloaded rpm file, extract content")
-		// extract rpm and start over
 		err = u.extractRpm(updateFile)
-		if err != nil {
-			return err
-		}
-		LogError(utils.CopyFileMode(executable, updateFile))
-
-		return u.extractUpdate(updateFile)
 	case "application/msi":
-		log.Tracef("downloaded msi file, extract content")
-		// extract msi and start over
 		err = u.extractMsi(updateFile)
+	default:
+		startOver = false
+	}
+
+	if startOver {
 		if err != nil {
 			return err
 		}
 		LogError(utils.CopyFileMode(executable, updateFile))
 
 		return u.extractUpdate(updateFile)
-	default:
-		log.Tracef("unsupported mime type: %s for file %s", mime, updateFile)
 	}
 
 	err = utils.CopyFileMode(executable, updateFile)
@@ -797,12 +766,7 @@ func (u *UpdateHandler) updatePreChecks() bool {
 		}
 	}
 
-	executable, err := os.Executable()
-	if err != nil {
-		log.Tracef("could not detect path to executable: %s", err.Error())
-
-		return false
-	}
+	executable := GlobalMacros["exe-full"]
 	if strings.Contains(executable, ".update") {
 		log.Tracef("[updates] started from a tmp update file, skipping")
 
@@ -841,6 +805,90 @@ func (u *UpdateHandler) extractZip(fileName string) error {
 		return fmt.Errorf("read: %s", err.Error())
 	}
 	tempFile.Close()
+	defer os.Remove(tempFile.Name())
+
+	log.Tracef("cp %s %s", tempFile.Name(), fileName)
+	err = utils.CopyFile(tempFile.Name(), fileName)
+	if err != nil {
+		return fmt.Errorf("cp: %s", err.Error())
+	}
+
+	return nil
+}
+
+func (u *UpdateHandler) extractGZip(fileName string) error {
+	srcFile, err := os.Open(fileName)
+	if err != nil {
+		return fmt.Errorf("open: %s", err.Error())
+	}
+	defer srcFile.Close()
+	gzipHandle, err := gzip.NewReader(srcFile)
+	if err != nil {
+		return fmt.Errorf("gzip: %s", err.Error())
+	}
+	defer gzipHandle.Close()
+
+	tempFile, err := os.CreateTemp("", "snclient-gunzip")
+	if err != nil {
+		return fmt.Errorf("mktemp: %s", err.Error())
+	}
+
+	_, err = io.Copy(tempFile, gzipHandle)
+	if err != nil {
+		tempFile.Close()
+
+		return fmt.Errorf("read: %s", err.Error())
+	}
+	tempFile.Close()
+	defer os.Remove(tempFile.Name())
+
+	log.Tracef("cp %s %s", tempFile.Name(), fileName)
+	err = utils.CopyFile(tempFile.Name(), fileName)
+	if err != nil {
+		return fmt.Errorf("cp: %s", err.Error())
+	}
+
+	return nil
+}
+
+func (u *UpdateHandler) extractTar(fileName string) error {
+	tarFile, err := os.Open(fileName)
+	if err != nil {
+		return fmt.Errorf("tar open: %s", err.Error())
+	}
+	defer tarFile.Close()
+
+	tempFile, err := os.CreateTemp("", "snclient-tar")
+	if err != nil {
+		return fmt.Errorf("mktemp: %s", err.Error())
+	}
+	defer tempFile.Close()
+
+	found := false
+	tr := tar.NewReader(tarFile)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("tar read: %s", err.Error())
+		}
+		if found {
+			return fmt.Errorf("tarball must contain only one file, got another: %s", hdr.Name)
+		}
+
+		log.Tracef("copying %s from tarball", hdr.Name)
+		if _, err := io.Copy(tempFile, tr); err != nil {
+			return fmt.Errorf("tar read: %s", err.Error())
+		}
+		tempFile.Close()
+		found = true
+	}
+
+	if !found {
+		return fmt.Errorf("did not find snclient binary in tar file")
+	}
 
 	log.Tracef("cp %s %s", tempFile.Name(), fileName)
 	err = utils.CopyFile(tempFile.Name(), fileName)
@@ -865,7 +913,7 @@ func (u *UpdateHandler) extractRpm(fileName string) error {
 
 	tempDir, err := os.MkdirTemp("", "snclient-tmprpm")
 	if err != nil {
-		return fmt.Errorf("mkdirtemp: %s", err.Error())
+		return fmt.Errorf("MkdirTemp: %s", err.Error())
 	}
 	defer os.RemoveAll(tempDir)
 
@@ -877,7 +925,7 @@ func (u *UpdateHandler) extractRpm(fileName string) error {
 	log.Tracef("cp %s %s", path.Join(tempDir, "/usr/bin/snclient"), fileName)
 	err = utils.CopyFile(path.Join(tempDir, "/usr/bin/snclient"), fileName)
 	if err != nil {
-		return fmt.Errorf("cp: %s", err.Error())
+		return fmt.Errorf("mv: %s", err.Error())
 	}
 
 	return nil
