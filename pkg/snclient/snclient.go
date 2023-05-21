@@ -305,8 +305,12 @@ func (snc *Agent) stop() {
 }
 
 func (snc *Agent) startModules(initSet *AgentRunSet) {
-	snc.Tasks.StopRemove()
-	snc.Listeners.StopRemove()
+	if snc.Tasks != initSet.tasks {
+		snc.Tasks.StopRemove()
+	}
+	if snc.Listeners != initSet.listeners {
+		snc.Listeners.StopRemove()
+	}
 
 	snc.Config = initSet.config
 	snc.Listeners = initSet.listeners
