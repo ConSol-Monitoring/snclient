@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,6 +31,9 @@ const (
 
 	// Usual check interval
 	UpdateCheckIntervalRegular = 55 * time.Second
+
+	// Maximum file size for updates (prevent tar bombs)
+	UpdateFileMaxSize = 100e6
 )
 
 var reVersion = regexp.MustCompile(`SNClient.*?\s+(v[\d.]+)\s+`)
@@ -304,6 +308,9 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 func (u *UpdateHandler) fetchAvailableUpdates(preRelease bool, channel string) (updates []updatesAvailable) {
 	available := []updatesAvailable{}
 	channelConfSection := u.snc.Config.Section("/settings/updates/channel")
+	if channel == "all" {
+		channel = strings.Join(channelConfSection.data.Keys(), ",")
+	}
 	chanList := strings.Split(channel, ",")
 	for _, channel := range chanList {
 		channel = strings.TrimSpace(channel)
@@ -567,9 +574,15 @@ func (u *UpdateHandler) checkUpdateFile(url string) (updates []updatesAvailable,
 	}
 	LogError(tempFile.Close())
 	defer os.Remove(tempFile.Name())
-	utils.CopyFile(localPath, tempFile.Name())
+	err = utils.CopyFile(localPath, tempFile.Name())
+	if err != nil {
+		return nil, fmt.Errorf("copy update file failed: %s", err.Error())
+	}
 
-	u.extractUpdate(tempFile.Name())
+	err = u.extractUpdate(tempFile.Name())
+	if err != nil {
+		return nil, fmt.Errorf("extracting update failed: %s", err.Error())
+	}
 
 	// get version from that executable
 	version, err := u.verifyUpdate(tempFile.Name())
@@ -833,8 +846,8 @@ func (u *UpdateHandler) extractGZip(fileName string) error {
 		return fmt.Errorf("mktemp: %s", err.Error())
 	}
 
-	_, err = io.Copy(tempFile, gzipHandle)
-	if err != nil {
+	_, err = io.CopyN(tempFile, gzipHandle, UpdateFileMaxSize)
+	if err != nil && !errors.Is(err, io.EOF) {
 		tempFile.Close()
 
 		return fmt.Errorf("read: %s", err.Error())
@@ -865,10 +878,10 @@ func (u *UpdateHandler) extractTar(fileName string) error {
 	defer tempFile.Close()
 
 	found := false
-	tr := tar.NewReader(tarFile)
+	tarHandle := tar.NewReader(tarFile)
 	for {
-		hdr, err := tr.Next()
-		if err == io.EOF {
+		hdr, err := tarHandle.Next()
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -879,8 +892,10 @@ func (u *UpdateHandler) extractTar(fileName string) error {
 		}
 
 		log.Tracef("copying %s from tarball", hdr.Name)
-		if _, err := io.Copy(tempFile, tr); err != nil {
-			return fmt.Errorf("tar read: %s", err.Error())
+		if _, err := io.CopyN(tempFile, tarHandle, UpdateFileMaxSize); err != nil {
+			if !errors.Is(err, io.EOF) {
+				return fmt.Errorf("tar read: %s", err.Error())
+			}
 		}
 		tempFile.Close()
 		found = true

@@ -209,6 +209,16 @@ func (cs *ConfigSection) Set(key, value string) {
 // ConfigData contains data for a section.
 type ConfigData map[string]string
 
+// Keys returns all config keys
+func (d *ConfigData) Keys() []string {
+	keys := make([]string, 0, len(*d))
+	for k := range *d {
+		keys = append(keys, k)
+	}
+
+	return keys
+}
+
 // Merge merges defaults into ConfigSection.
 func (d *ConfigData) Merge(defaults ConfigData) {
 	for key, value := range defaults {
