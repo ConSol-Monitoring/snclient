@@ -344,8 +344,10 @@ func (u *UpdateHandler) checkUpdate(url string, preRelease bool, channel string)
 		return nil, err
 	}
 
-	for i := range updates {
+	log.Debugf("found %d versions in %s channel:", len(updates), channel)
+	for i, u := range updates {
 		updates[i].channel = channel
+		log.Debugf("  - %s (from %s)", u.version, u.url)
 	}
 
 	return updates, nil
@@ -437,7 +439,8 @@ func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates [
 	header := map[string]string{
 		"Authorization": "Bearer " + token,
 	}
-	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, header)
+	// show some more than the default 30, 100 seems to be maximum
+	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url+"?per_page=100", header)
 	if err != nil {
 		return nil, fmt.Errorf("http: %s", err.Error())
 	}
@@ -457,24 +460,23 @@ func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates [
 		return nil, fmt.Errorf("json: %s", err.Error())
 	}
 
+	log.Debugf("[update] found %d action artifacts in %s channel", len(artifacts.Artifacts), channel)
 	if len(artifacts.Artifacts) == 0 {
-		log.Debugf("[update] no action artifacts found")
-
 		return nil, nil
 	}
 
 	reVersion := regexp.MustCompile(`^snclient\-(.*?)\-\w+-\w+\.\w+`)
 
+	archVariants := []string{runtime.GOARCH}
+	switch runtime.GOARCH {
+	case "386":
+		archVariants = append(archVariants, "i386")
+	case "arm64":
+		archVariants = append(archVariants, "aarch64")
+	}
+
 	for i := range artifacts.Artifacts {
 		artifact := artifacts.Artifacts[i]
-
-		archVariants := []string{runtime.GOARCH}
-		switch runtime.GOARCH {
-		case "386":
-			archVariants = append(archVariants, "i386")
-		case "arm64":
-			archVariants = append(archVariants, "aarch64")
-		}
 		for _, arch := range archVariants {
 			lookFor := strings.ToLower(fmt.Sprintf("%s-%s", runtime.GOOS, arch))
 			lowAsset := strings.ToLower(artifact.Name)
