@@ -163,12 +163,12 @@ jobs:
       - run: |
           Write-Host "Building ${{ env.BIN }}.msi"
           & .\packaging\windows\build_msi.ps1 `
-            -out=.\${{ env.BIN }}.msi `
-            -arch=${{ matrix.go-arch }} `
-            -major=${{needs.get-version.outputs.major}} `
-            -minor=${{needs.get-version.outputs.minor}} `
-            -rev=${{needs.get-version.outputs.revision}} `
-            -sha=${{ needs.get-version.outputs.sha }}
+            -out "${{ env.BIN }}.msi" `
+            -arch "${{ matrix.go-arch }}" `
+            -major "${{needs.get-version.outputs.major}}" `
+            -minor "${{needs.get-version.outputs.minor}}" `
+            -rev "${{needs.get-version.outputs.revision}}" `
+            -sha "${{ needs.get-version.outputs.sha }}"
 
       - uses: actions/upload-artifact@v3
         with:
