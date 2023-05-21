@@ -34,7 +34,7 @@ while being easily extendible with own script and checks.`,
 	},
 	PreRun: func(cmd *cobra.Command, _ []string) {
 		if agentFlags.Version {
-			snc := snclient.NewAgent(agentFlags)
+			snc := snclient.Agent{}
 			snc.PrintVersion()
 			os.Exit(snclient.ExitCodeOK)
 		}
