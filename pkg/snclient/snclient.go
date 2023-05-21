@@ -712,13 +712,7 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 
 // CheckUpdateBinary checks if we run as snclient.update.exe and if so, move that file in place and restart
 func (snc *Agent) CheckUpdateBinary(mode string) {
-	executable, err := os.Executable()
-	if err != nil {
-		log.Errorf("could not detect path to executable: %s", err.Error())
-
-		return
-	}
-
+	executable := GlobalMacros["exe-full"]
 	updateFile := snc.buildUpdateFile(executable)
 
 	if !strings.Contains(executable, ".update") {
@@ -736,7 +730,7 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 	// create a copy of our update file which will be moved later
 	tmpPath := binPath + ".tmp"
 	defer os.Remove(tmpPath)
-	err = utils.CopyFile(executable, tmpPath)
+	err := utils.CopyFile(executable, tmpPath)
 	if err != nil {
 		log.Errorf("copy: %s", err.Error())
 
