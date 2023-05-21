@@ -332,7 +332,7 @@ func (u *UpdateHandler) fetchAvailableUpdates(preRelease bool, channel string) (
 func (u *UpdateHandler) checkUpdate(url string, preRelease bool, channel string) (updates []updatesAvailable, err error) {
 	if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/releases`, url); ok {
 		updates, err = u.checkUpdateGithubRelease(url, preRelease)
-	} else if ok, _ := regexp.MatchString(`^https://api\.github.com/repos/.*/actions/artifacts`, url); ok {
+	} else if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/actions/artifacts`, url); ok {
 		updates, err = u.checkUpdateGithubActions(url, channel)
 	} else if ok, _ := regexp.MatchString(`^file:`, url); ok {
 		updates, err = u.checkUpdateFile(url)
