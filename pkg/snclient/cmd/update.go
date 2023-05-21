@@ -3,8 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"pkg/snclient"
 	"strings"
+
+	"pkg/snclient"
 
 	"github.com/spf13/cobra"
 )

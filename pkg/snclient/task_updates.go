@@ -218,10 +218,7 @@ func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool,
 	now := time.Now()
 	u.lastUpdate = &now
 
-	available, err := u.fetchAvailableUpdates(force, download, restarts, preRelease, downgrade, channel)
-	if err != nil {
-		return "", err
-	}
+	available := u.fetchAvailableUpdates(preRelease, channel)
 	if len(available) == 0 {
 		return "", nil
 	}
@@ -271,17 +268,17 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 	}
 
 	bestVersion := float64(0)
-	for i, u := range updates {
+	for num, u := range updates {
 		version := utils.ParseVersion(u.version)
 		if down != -1 {
 			if version == down {
-				return &updates[i]
+				return &updates[num]
 			}
 
 			continue
 		}
 		if best == nil || version > bestVersion {
-			best = &updates[i]
+			best = &updates[num]
 			bestVersion = version
 		}
 	}
@@ -301,7 +298,7 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 	return best
 }
 
-func (u *UpdateHandler) fetchAvailableUpdates(force, download, restarts, preRelease bool, downgrade, channel string) (updates []updatesAvailable, err error) {
+func (u *UpdateHandler) fetchAvailableUpdates(preRelease bool, channel string) (updates []updatesAvailable) {
 	available := []updatesAvailable{}
 	channelConfSection := u.snc.Config.Section("/settings/updates/channel")
 	chanList := strings.Split(channel, ",")
@@ -319,7 +316,7 @@ func (u *UpdateHandler) fetchAvailableUpdates(force, download, restarts, preRele
 
 		log.Tracef("next: %s channel: %s", channel, url)
 
-		updates, err := u.CheckUpdate(url, download, preRelease, channel)
+		updates, err := u.checkUpdate(url, preRelease, channel)
 		if err != nil {
 			log.Warnf("channel %s failed: %s", channel, err.Error())
 
@@ -329,10 +326,10 @@ func (u *UpdateHandler) fetchAvailableUpdates(force, download, restarts, preRele
 		available = append(available, updates...)
 	}
 
-	return available, nil
+	return available
 }
 
-func (u *UpdateHandler) CheckUpdate(url string, download, preRelease bool, channel string) (updates []updatesAvailable, err error) {
+func (u *UpdateHandler) checkUpdate(url string, preRelease bool, channel string) (updates []updatesAvailable, err error) {
 	if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/releases`, url); ok {
 		updates, err = u.checkUpdateGithubRelease(url, preRelease)
 	} else if ok, _ := regexp.MatchString(`^https://api\.github.com/repos/.*/actions/artifacts`, url); ok {
@@ -434,8 +431,8 @@ func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates [
 	log.Tracef("[update] checking github action url at: %s", url)
 	conf := u.snc.Config.Section("/settings/updates/channel/" + channel)
 	token, ok := conf.GetString("github token")
-	if !ok || token == "" || token == "<GITHUB-TOKEN>" {
-		return nil, fmt.Errorf("github action urls require a github token to work, skipping.")
+	if !ok || token == "" || token == "<GITHUB-TOKEN>" { //nolint:gosec // false positive token, this is no token
+		return nil, fmt.Errorf("github action urls require a github token to work, skipping")
 	}
 	header := map[string]string{
 		"Authorization": "Bearer " + token,
@@ -656,7 +653,7 @@ func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
 	// what file type did we download?
 	mime, err := utils.MimeType(updateFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("mime: %s", err.Error())
 	}
 	switch mime {
 	case "application/zip":
@@ -803,14 +800,14 @@ func (u *UpdateHandler) updatePreChecks() bool {
 }
 
 func (u *UpdateHandler) extractZip(fileName string) error {
-	r, err := zip.OpenReader(fileName)
+	zipHandle, err := zip.OpenReader(fileName)
 	if err != nil {
 		return fmt.Errorf("zip: %s", err.Error())
 	}
-	defer r.Close()
+	defer zipHandle.Close()
 
-	if len(r.File) != 1 {
-		return fmt.Errorf("expect zip must contain exactly one file, have: %d", len(r.File))
+	if len(zipHandle.File) != 1 {
+		return fmt.Errorf("expect zip must contain exactly one file, have: %d", len(zipHandle.File))
 	}
 
 	tempFile, err := os.CreateTemp("", "snclient-unzip")
@@ -818,9 +815,9 @@ func (u *UpdateHandler) extractZip(fileName string) error {
 		return fmt.Errorf("mktemp: %s", err.Error())
 	}
 
-	src, err := r.File[0].Open()
+	src, err := zipHandle.File[0].Open()
 	if err != nil {
-		return err
+		return fmt.Errorf("zip open: %s", err.Error())
 	}
 	defer src.Close()
 
@@ -842,13 +839,13 @@ func (u *UpdateHandler) extractZip(fileName string) error {
 }
 
 func (u *UpdateHandler) extractRpm(fileName string) error {
-	f, err := os.Open(fileName)
+	rpmFile, err := os.Open(fileName)
 	if err != nil {
 		return fmt.Errorf("rpm open: %s", err.Error())
 	}
-	defer f.Close()
+	defer rpmFile.Close()
 
-	rpm, err := rpmutils.ReadRpm(f)
+	rpm, err := rpmutils.ReadRpm(rpmFile)
 	if err != nil {
 		return fmt.Errorf("read rpm: %s", err.Error())
 	}

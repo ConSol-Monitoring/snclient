@@ -3,35 +3,34 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"pkg/snclient"
 	"strings"
+
+	"pkg/snclient"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
-var (
-	rootCmd = &cobra.Command{
-		Use:   "snclient [global flags] [command]",
-		Short: "Multi-platform monitoring agent for Naemon and Prometheus.",
-		Long: `SNClient+ is a generic monitoring agent available for multiple platforms.
+var rootCmd = &cobra.Command{
+	Use:   "snclient [global flags] [command]",
+	Short: "Multi-platform monitoring agent for Naemon and Prometheus.",
+	Long: `SNClient+ is a generic monitoring agent available for multiple platforms.
 It aims to provide a basic set of fault monitoring and metrics
 while being easily extendible with own script and checks.`,
-		Run: func(cmd *cobra.Command, args []string) {
-			// default to server mode
-			// should never reach this point
-			fmt.Fprintf(os.Stderr, "snclient called without arguments, see --help for usage.")
-			os.Exit(3)
-		},
-		PreRun: func(cmd *cobra.Command, _ []string) {
-			if agentFlags.Version {
-				snc := snclient.NewAgent(agentFlags)
-				snc.PrintVersion()
-				os.Exit(snclient.ExitCodeOK)
-			}
-		},
-	}
-)
+	Run: func(cmd *cobra.Command, args []string) {
+		// default to server mode
+		// should never reach this point
+		fmt.Fprintf(os.Stderr, "snclient called without arguments, see --help for usage.")
+		os.Exit(3)
+	},
+	PreRun: func(cmd *cobra.Command, _ []string) {
+		if agentFlags.Version {
+			snc := snclient.NewAgent(agentFlags)
+			snc.PrintVersion()
+			os.Exit(snclient.ExitCodeOK)
+		}
+	},
+}
 
 var agentFlags = &snclient.AgentFlags{}
 

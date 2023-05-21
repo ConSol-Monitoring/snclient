@@ -289,17 +289,17 @@ func LineCounter(reader *os.File) int {
 }
 
 func MimeType(fileName string) (mime string, err error) {
-	r, err := os.Open(fileName)
+	zipFile, err := os.Open(fileName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("open: %s", err.Error())
 	}
 
-	defer r.Close()
+	defer zipFile.Close()
 
 	header := make([]byte, 500)
-	_, err = io.ReadFull(r, header)
+	_, err = io.ReadFull(zipFile, header)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("read: %s", err.Error())
 	}
 	mimeType := http.DetectContentType(header)
 
