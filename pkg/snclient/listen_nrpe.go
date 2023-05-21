@@ -61,7 +61,9 @@ func (l *HandlerNRPE) Start() error {
 }
 
 func (l *HandlerNRPE) Stop() {
-	l.listener.Stop()
+	if l.listener != nil {
+		l.listener.Stop()
+	}
 }
 
 func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
