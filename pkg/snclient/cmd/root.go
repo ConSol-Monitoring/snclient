@@ -17,6 +17,15 @@ var rootCmd = &cobra.Command{
 	Long: `SNClient+ is a generic monitoring agent available for multiple platforms.
 It aims to provide a basic set of fault monitoring and metrics
 while being easily extendible with own script and checks.`,
+	Example: `  * Start server
+    %> snclient server
+
+  * Start as daemon in background
+    %> snclient daemon
+
+  * Check for update in verbose mode
+    %> snclient update -v
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// default to server mode
 		// should never reach this point
@@ -122,10 +131,7 @@ var usageTemplate = `Usage:{{if .Runnable}}
   {{.UseLine}}{{end}}{{if gt (len .Aliases) 0}}
 
 Aliases:
-  {{.NameAndAliases}}{{end}}{{if .HasExample}}
-
-Examples:
-{{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
+  {{.NameAndAliases}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
 
 Available Commands:{{range $cmds}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{else}}{{range $group := .Groups}}
@@ -140,7 +146,10 @@ Flags:
 {{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
 
 Global Flags:
-{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasHelpSubCommands}}
 
 Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
   {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
