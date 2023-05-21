@@ -71,7 +71,7 @@ go.work: pkg/*
 
 build: vendor go.work snclient.ini server.crt server.key
 	set -xe; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD; cd ../..; \
+		( cd ./cmd/$$CMD && CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD ) ; \
 	done
 
 # run build watch, ex. with tracing: make build-watch -- -vv
@@ -84,32 +84,32 @@ build-watch-make: vendor
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.linux.amd64; cd ../..; \
+		( cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.linux.amd64 ) ; \
 	done
 
 build-linux-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=linux GOARCH=386 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.linux.i386; cd ../..; \
+		( cd ./cmd/$$CMD && GOOS=linux GOARCH=386 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.linux.i386 ) ; \
 	done
 
 build-windows-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.i386.exe; cd ../..; \
+		( cd ./cmd/$$CMD && GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.i386.exe ) ; \
 	done
 
 build-windows-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.amd64.exe; cd ../..; \
+		( cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.amd64.exe ) ; \
 	done
 
 build-freebsd-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.freebsd.i386; cd ../..; \
+		( cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.freebsd.i386 ) ; \
 	done
 
 build-darwin-aarch64: vendor
 	set -e; for CMD in $(CMDS); do \
-		cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64; cd ../..; \
+		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
 	done
 
 test: vendor
