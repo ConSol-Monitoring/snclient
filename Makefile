@@ -113,16 +113,16 @@ build-darwin-aarch64: vendor
 	done
 
 test: vendor
-	go test -short -v $(TEST_FLAGS) pkg/*
+	go test -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd
 	if grep -rn TODO: ./cmd/ ./pkg/ ./packaging/ ; then exit 1; fi
 	if grep -rn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 
 # test with filter
 testf: vendor
-	go test -short -v $(TEST_FLAGS) pkg/* -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS" | grep -v "^FAIL"
+	go test -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS" | grep -v "^FAIL"
 
 longtest: vendor
-	go test -v $(TEST_FLAGS) pkg/*
+	go test -v $(TEST_FLAGS) pkg/* pkg/*/cmd
 
 citest: vendor
 	#
@@ -179,18 +179,18 @@ citest: vendor
 	#
 
 benchmark:
-	go test $(TEST_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/*
+	go test $(TEST_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/* pkg/*/cmd
 
 racetest:
-	go test -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/*
+	go test -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/* pkg/*/cmd
 
 covertest:
-	go test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/*
+	go test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
 	go tool cover -func=cover.out
 	go tool cover -html=cover.out -o coverage.html
 
 coverweb:
-	go test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/*
+	go test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
 	go tool cover -html=cover.out
 
 clean:
