@@ -26,18 +26,17 @@ while being easily extendible with own script and checks.`,
   * Check for update in verbose mode
     %> snclient update -v
 `,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// default to server mode
-		// should never reach this point
-		fmt.Fprintf(os.Stderr, "snclient called without arguments, see --help for usage.")
-		os.Exit(3)
-	},
-	PreRun: func(cmd *cobra.Command, _ []string) {
+
 		if agentFlags.Version {
 			snc := snclient.Agent{}
 			snc.PrintVersion()
-			os.Exit(snclient.ExitCodeOK)
+			return nil
 		}
+
+		// should never reach this point
+		return fmt.Errorf("snclient called without arguments, see --help for usage.")
 	},
 }
 
