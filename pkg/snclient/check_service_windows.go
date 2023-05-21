@@ -18,15 +18,6 @@ func init() {
 
 type CheckService struct{}
 
-var ServiceStates = map[string]string{
-	"stopped":      "1",
-	"dead":         "1",
-	"startpending": "2",
-	"stoppending":  "3",
-	"running":      "4",
-	"started":      "4",
-}
-
 /* check_service_windows
  * Description: Checks the state of a service on the host.
  * Thresholds: status
@@ -36,6 +27,11 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
 		result: &CheckResult{
 			State: CheckExitOK,
+		},
+		conditionAlias: map[string]map[string]string{
+			"state": {
+				"started": "running",
+			},
 		},
 		defaultFilter:   "none",
 		defaultCritical: "state = 'stopped' && start_type = 'auto'",
@@ -235,15 +231,19 @@ func (l *CheckService) svcClassification(serviceType uint32) string {
 	case windows.SERVICE_KERNEL_DRIVER:
 		return "kernel-driver"
 	case windows.SERVICE_FILE_SYSTEM_DRIVER:
-		return "filesystem-driver"
+		return "system-driver"
 	case windows.SERVICE_ADAPTER:
-		return "service-adapater"
+		return "service-adapter"
 	case windows.SERVICE_RECOGNIZER_DRIVER:
 		return "driver"
 	case windows.SERVICE_WIN32_OWN_PROCESS:
-		return "custom"
+		return "service-own-process"
 	case windows.SERVICE_WIN32_SHARE_PROCESS:
-		return "shared-process"
+		return "service-shared-process"
+	case windows.SERVICE_WIN32:
+		return "service"
+	case windows.SERVICE_INTERACTIVE_PROCESS:
+		return "interactive"
 	}
 
 	return "unknown"
@@ -254,15 +254,15 @@ func (l *CheckService) svcState(serviceState svc.State) string {
 	case windows.SERVICE_STOPPED:
 		return "stopped"
 	case windows.SERVICE_START_PENDING:
-		return "start-pending"
+		return "starting"
 	case windows.SERVICE_STOP_PENDING:
-		return "stop-pending"
+		return "stopping"
 	case windows.SERVICE_RUNNING:
 		return "running"
 	case windows.SERVICE_CONTINUE_PENDING:
-		return "continue-pending"
+		return "continuing"
 	case windows.SERVICE_PAUSE_PENDING:
-		return "pause-pending"
+		return "pausing"
 	case windows.SERVICE_PAUSED:
 		return "paused"
 	}
@@ -271,19 +271,19 @@ func (l *CheckService) svcState(serviceState svc.State) string {
 }
 
 func (l *CheckService) svcStartType(startType uint32, delayed bool) string {
+	if delayed {
+		return "delayed"
+	}
+
 	switch startType {
 	case windows.SERVICE_BOOT_START:
 		return "boot"
 	case windows.SERVICE_SYSTEM_START:
 		return "system"
 	case windows.SERVICE_AUTO_START:
-		if delayed {
-			return "delayed"
-		}
-
 		return "auto"
 	case windows.SERVICE_DEMAND_START:
-		return "manual"
+		return "demand"
 	case windows.SERVICE_DISABLED:
 		return "disabled"
 	}

@@ -15,6 +15,7 @@ type CheckData struct {
 	noCopy          noCopy
 	debug           string
 	defaultFilter   string
+	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
 	filter          []*Condition
 	warnThreshold   []*Condition
 	defaultWarning  string
@@ -261,6 +262,9 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		return nil, err
 	}
 
+	cd.applyConditionAlias()
+
+	// increase logLevel temporary if debug arg is set
 	raiseLogLevel(cd.debug)
 
 	return argList, nil
@@ -292,4 +296,33 @@ func (cd *CheckData) setFallbacks() error {
 	}
 
 	return nil
+}
+
+func (cd *CheckData) applyConditionAlias() {
+	if len(cd.conditionAlias) == 0 {
+		return
+	}
+	cd.applyConditionAliasList(cd.filter)
+	cd.applyConditionAliasList(cd.warnThreshold)
+	cd.applyConditionAliasList(cd.critThreshold)
+	cd.applyConditionAliasList(cd.okThreshold)
+}
+
+func (cd *CheckData) applyConditionAliasList(cond []*Condition) {
+	for _, cond := range cond {
+		if len(cond.group) > 0 {
+			cd.applyConditionAliasList(cond.group)
+
+			return
+		}
+
+		for replaceKeyword, aliasMap := range cd.conditionAlias {
+			if cond.keyword == replaceKeyword {
+				valStr := fmt.Sprintf("%v", cond.value)
+				if repl, ok := aliasMap[valStr]; ok {
+					cond.value = repl
+				}
+			}
+		}
+	}
 }
