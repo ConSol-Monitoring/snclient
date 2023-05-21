@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -678,6 +679,16 @@ func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
 		LogError(utils.CopyFileMode(executable, updateFile))
 
 		return u.extractUpdate(updateFile)
+	case "application/msi":
+		log.Tracef("downloaded msi file, extract content")
+		// extract msi and start over
+		err = u.extractMsi(updateFile)
+		if err != nil {
+			return err
+		}
+		LogError(utils.CopyFileMode(executable, updateFile))
+
+		return u.extractUpdate(updateFile)
 	default:
 		log.Tracef("unsupported mime type: %s for file %s", mime, updateFile)
 	}
@@ -831,10 +842,10 @@ func (u *UpdateHandler) extractZip(fileName string) error {
 	}
 	tempFile.Close()
 
-	log.Tracef("mv %s %s", tempFile.Name(), fileName)
-	err = os.Rename(tempFile.Name(), fileName)
+	log.Tracef("cp %s %s", tempFile.Name(), fileName)
+	err = utils.CopyFile(tempFile.Name(), fileName)
 	if err != nil {
-		return fmt.Errorf("mv: %s", err.Error())
+		return fmt.Errorf("cp: %s", err.Error())
 	}
 
 	return nil
@@ -854,7 +865,7 @@ func (u *UpdateHandler) extractRpm(fileName string) error {
 
 	tempDir, err := os.MkdirTemp("", "snclient-tmprpm")
 	if err != nil {
-		return fmt.Errorf("MkdirTemp: %s", err.Error())
+		return fmt.Errorf("mkdirtemp: %s", err.Error())
 	}
 	defer os.RemoveAll(tempDir)
 
@@ -863,10 +874,50 @@ func (u *UpdateHandler) extractRpm(fileName string) error {
 		return fmt.Errorf("rpm unpack: %s", err.Error())
 	}
 
-	log.Tracef("mv %s %s", path.Join(tempDir, "/usr/bin/snclient"), fileName)
-	err = os.Rename(path.Join(tempDir, "/usr/bin/snclient"), fileName)
+	log.Tracef("cp %s %s", path.Join(tempDir, "/usr/bin/snclient"), fileName)
+	err = utils.CopyFile(path.Join(tempDir, "/usr/bin/snclient"), fileName)
 	if err != nil {
-		return fmt.Errorf("mv: %s", err.Error())
+		return fmt.Errorf("cp: %s", err.Error())
+	}
+
+	return nil
+}
+
+func (u *UpdateHandler) extractMsi(fileName string) error {
+	// Create a temporary directory to extract the contents of the .msi file
+	tempDir, err := os.MkdirTemp("", "snclient-tmpmsi")
+	if err != nil {
+		return fmt.Errorf("mkdirtemp: %s", err.Error())
+	}
+	defer os.RemoveAll(tempDir)
+	log.Tracef("temp dir: %s", tempDir)
+
+	// Use the "msiexec" command to extract the file from the .msi
+	cmd := exec.Command("msiexec", "/a", fileName, "/qn", "TARGETDIR="+tempDir) //nolint:gosec // no user input here
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run msiexec %s: %s", strings.Join(cmd.Args, " "), err.Error())
+	}
+
+	extractedFilePath := ""
+	err = filepath.Walk(tempDir, func(path string, info os.FileInfo, err error) error {
+		if strings.HasSuffix(path, "snclient.exe") {
+			extractedFilePath = path
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("filewalk: %s", err.Error())
+	}
+
+	if extractedFilePath == "" {
+		return fmt.Errorf("did not find snclient.exe in msi file")
+	}
+
+	log.Tracef("cp %s %s", extractedFilePath, fileName)
+	err = utils.CopyFile(extractedFilePath, fileName)
+	if err != nil {
+		return fmt.Errorf("cp: %s", err.Error())
 	}
 
 	return nil

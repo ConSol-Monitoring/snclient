@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"math"
@@ -16,7 +17,6 @@ import (
 	"unicode"
 
 	"github.com/kdar/factorlog"
-	"github.com/sassoftware/go-rpmutils"
 )
 
 // ExpandDuration expand duration string into seconds
@@ -304,22 +304,17 @@ func MimeType(fileName string) (mime string, err error) {
 	mimeType := http.DetectContentType(header)
 
 	if mimeType == "application/octet-stream" {
-		// try to open as rpm
-		f, err := os.Open(fileName)
-		if err != nil {
-			return mimeType, nil
+		// see https://en.wikipedia.org/wiki/List_of_file_signatures
+		signatures := map[string]string{
+			"EDABEEDB":         "application/rpm",
+			"D0CF11E0A1B11AE1": "application/msi",
 		}
-		defer f.Close()
-		rpm, err := rpmutils.ReadRpm(f)
-		if err != nil {
-			return mimeType, nil
+		for sig, mime := range signatures {
+			sigBytes, err := hex.DecodeString(sig)
+			if err == nil && bytes.HasPrefix(header, sigBytes) {
+				return mime, nil
+			}
 		}
-		_, err = rpm.Header.GetNEVRA()
-		if err != nil {
-			return mimeType, nil
-		}
-
-		return "application/rpm", nil
 	}
 
 	return mimeType, nil
