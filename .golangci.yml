@@ -97,6 +97,3 @@ issues:
     - path: _test\.go
       linters:
         - dupword
-    - path: check_service_linux.go
-      linters:
-        - gosec
