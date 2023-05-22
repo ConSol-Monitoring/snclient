@@ -573,19 +573,20 @@ func (u *UpdateHandler) checkUpdateFile(url string) (updates []updatesAvailable,
 		return nil, fmt.Errorf("mktemp: %s", err.Error())
 	}
 	LogError(tempFile.Close())
-	defer os.Remove(tempFile.Name())
-	err = utils.CopyFile(localPath, tempFile.Name())
+	os.Remove(tempFile.Name())
+	tempUpdate := tempFile.Name() + GlobalMacros["file-ext"]
+	err = utils.CopyFile(localPath, tempUpdate)
 	if err != nil {
 		return nil, fmt.Errorf("copy update file failed: %s", err.Error())
 	}
 
-	err = u.extractUpdate(tempFile.Name())
+	err = u.extractUpdate(tempUpdate)
 	if err != nil {
 		return nil, fmt.Errorf("extracting update failed: %s", err.Error())
 	}
 
 	// get version from that executable
-	version, err := u.verifyUpdate(tempFile.Name())
+	version, err := u.verifyUpdate(tempUpdate)
 	if err != nil {
 		return nil, err
 	}
