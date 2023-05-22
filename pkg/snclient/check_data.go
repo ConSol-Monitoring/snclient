@@ -16,6 +16,7 @@ type CheckData struct {
 	debug           string
 	defaultFilter   string
 	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
+	args            map[string]interface{}
 	filter          []*Condition
 	warnThreshold   []*Condition
 	defaultWarning  string
@@ -253,7 +254,18 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			}
 			cd.filter = append(cd.filter, cond)
 		default:
-			argList = append(argList, Argument{key: split[0], value: split[1]})
+			if arg, ok := cd.args[split[0]]; ok {
+				switch a := arg.(type) {
+				case *[]string:
+					*a = append(*a, split[1])
+				case *string:
+					*a = split[1]
+				default:
+					log.Errorf("unsupported args type: %T in %s", a, v)
+				}
+			} else {
+				argList = append(argList, Argument{key: split[0], value: split[1]})
+			}
 		}
 	}
 

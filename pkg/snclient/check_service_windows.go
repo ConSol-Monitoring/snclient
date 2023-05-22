@@ -19,11 +19,11 @@ func init() {
 type CheckService struct{}
 
 /* check_service_windows
- * Description: Checks the state of a service on the host.
- * Thresholds: status
- * Units: stopped, dead, startpending, stoppedpending, running, started
+ * Description: Checks the state of a windows service.
  */
 func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
+	services := []string{}
+	excludes := []string{}
 	check := &CheckData{
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -33,6 +33,10 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 				"started": "running",
 			},
 		},
+		args: map[string]interface{}{
+			"service": &services,
+			"exclude": &excludes,
+		},
 		defaultFilter:   "none",
 		defaultCritical: "state != 'running' && start_type = 'auto'",
 		defaultWarning:  "state != 'running' && start_type = 'delayed'",
@@ -41,22 +45,9 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 		okSyntax:        "%(status): All %(count) service(s) are ok.",
 		emptySyntax:     "%(status): No services found",
 	}
-	argList, err := check.ParseArgs(args)
+	_, err := check.ParseArgs(args)
 	if err != nil {
 		return nil, err
-	}
-
-	services := []string{}
-	excludes := []string{}
-
-	// parse threshold args
-	for _, arg := range argList {
-		switch arg.key {
-		case "service":
-			services = append(services, arg.value)
-		case "exclude":
-			excludes = append(excludes, arg.value)
-		}
 	}
 
 	// collect service state
