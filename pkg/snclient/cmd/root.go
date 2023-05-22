@@ -11,13 +11,18 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "snclient [global flags] [command]",
-	Short: "Multi-platform monitoring agent for Naemon and Prometheus.",
-	Long: `SNClient+ is a generic monitoring agent available for multiple platforms.
+var agentFlags = &snclient.AgentFlags{}
+
+var rootCmd = NewRootCmd()
+
+func NewRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "snclient [global flags] [command]",
+		Short: "Multi-platform monitoring agent for Naemon and Prometheus.",
+		Long: `SNClient+ is a generic monitoring agent available for multiple platforms.
 It aims to provide a basic set of fault monitoring and metrics
 while being easily extendible with own script and checks.`,
-	Example: `  * Start server
+		Example: `  * Start server
     %> snclient server
 
   * Start as daemon in background
@@ -26,45 +31,53 @@ while being easily extendible with own script and checks.`,
   * Check for update in verbose mode
     %> snclient update -v
 `,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// default to server mode
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// defaults to server mode unless --help/--version is given
+			if agentFlags.Version {
+				snc := snclient.Agent{}
+				snc.PrintVersion()
+				return nil
+			}
 
-		if agentFlags.Version {
-			snc := snclient.Agent{}
-			snc.PrintVersion()
-			return nil
-		}
+			if agentFlags.Help {
+				return nil
+			}
 
-		// should never reach this point
-		return fmt.Errorf("snclient called without arguments, see --help for usage.")
-	},
+			// should never reach this point
+			return fmt.Errorf("snclient called without arguments, see --help for usage.")
+		},
+	}
+
+	return cmd
 }
 
-var agentFlags = &snclient.AgentFlags{}
-
 func init() {
-	rootCmd.PersistentFlags().BoolVarP(&agentFlags.Help, "help", "h", false, "print help and exit")
-	rootCmd.PersistentFlags().BoolVarP(&agentFlags.Version, "version", "V", false, "print version and exit")
-	rootCmd.PersistentFlags().StringArrayVarP(&agentFlags.ConfigFiles, "config", "c", []string{}, "path to config file, supports wildcards like *.ini (default is ./snclient.ini) (multiple)")
-	rootCmd.PersistentFlags().BoolVarP(&agentFlags.Quiet, "quiet", "q", false, "set loglevel to error")
-	rootCmd.PersistentFlags().CountVarP(&agentFlags.Verbose, "verbose", "v", "increase loglevel, -v means debug, -vv means trace")
-	rootCmd.PersistentFlags().StringVarP(&agentFlags.LogLevel, "loglevel", "", "info", "set loglevel to one of: off, error, info, debug, trace")
-	rootCmd.PersistentFlags().StringVarP(&agentFlags.LogFormat, "logformat", "", "", "override logformat, see https://pkg.go.dev/github.com/kdar/factorlog")
-	rootCmd.PersistentFlags().StringVarP(&agentFlags.LogFile, "logfile", "", "", "Path to log file or stdout/stderr")
-	rootCmd.PersistentFlags().StringVarP(&agentFlags.ProfilePort, "debug-profiler", "", "", "start pprof profiler on this port, ex. :6060")
-	rootCmd.PersistentFlags().StringVarP(&agentFlags.ProfileCPU, "cpuprofile", "", "", "write cpu profile to `file")
-	rootCmd.PersistentFlags().StringVarP(&agentFlags.ProfileMem, "memprofile", "", "", "write memory profile to `file")
-	rootCmd.PersistentFlags().IntVarP(&agentFlags.DeadlockTimeout, "debug-deadlock", "", 0, "enable deadlock detection with given timeout")
-	rootCmd.PersistentFlags().MarkHidden("debug-deadlock") // there are no lock so far
+	addFlags(rootCmd, agentFlags)
+}
 
-	rootCmd.DisableAutoGenTag = true
-	rootCmd.DisableSuggestions = true
+func addFlags(cmd *cobra.Command, flags *snclient.AgentFlags) {
+	cmd.PersistentFlags().BoolVarP(&flags.Help, "help", "h", false, "print help and exit")
+	cmd.PersistentFlags().BoolVarP(&flags.Version, "version", "V", false, "print version and exit")
+	cmd.PersistentFlags().StringArrayVarP(&flags.ConfigFiles, "config", "c", []string{}, "path to config file, supports wildcards like *.ini (default is ./snclient.ini) (multiple)")
+	cmd.PersistentFlags().BoolVarP(&flags.Quiet, "quiet", "q", false, "set loglevel to error")
+	cmd.PersistentFlags().CountVarP(&flags.Verbose, "verbose", "v", "increase loglevel, -v means debug, -vv means trace")
+	cmd.PersistentFlags().StringVarP(&flags.LogLevel, "loglevel", "", "info", "set loglevel to one of: off, error, info, debug, trace")
+	cmd.PersistentFlags().StringVarP(&flags.LogFormat, "logformat", "", "", "override logformat, see https://pkg.go.dev/github.com/kdar/factorlog")
+	cmd.PersistentFlags().StringVarP(&flags.LogFile, "logfile", "", "", "Path to log file or stdout/stderr")
+	cmd.PersistentFlags().StringVarP(&flags.ProfilePort, "debug-profiler", "", "", "start pprof profiler on this port, ex. :6060")
+	cmd.PersistentFlags().StringVarP(&flags.ProfileCPU, "cpuprofile", "", "", "write cpu profile to `file")
+	cmd.PersistentFlags().StringVarP(&flags.ProfileMem, "memprofile", "", "", "write memory profile to `file")
+	cmd.PersistentFlags().IntVarP(&flags.DeadlockTimeout, "debug-deadlock", "", 0, "enable deadlock detection with given timeout")
+	cmd.PersistentFlags().MarkHidden("debug-deadlock") // there are no lock so far
 
-	rootCmd.PersistentFlags().SortFlags = false
-	rootCmd.Flags().SortFlags = false
+	cmd.DisableAutoGenTag = true
+	cmd.DisableSuggestions = true
 
-	rootCmd.AddGroup(&cobra.Group{ID: "daemon", Title: "Server commands:"})
-	rootCmd.SetUsageTemplate(usageTemplate)
+	cmd.PersistentFlags().SortFlags = false
+	cmd.Flags().SortFlags = false
+
+	cmd.AddGroup(&cobra.Group{ID: "daemon", Title: "Server commands:"})
+	cmd.SetUsageTemplate(usageTemplate)
 }
 
 func Execute() error {
@@ -74,26 +87,33 @@ func Execute() error {
 }
 
 func maybeInjectRootAlias(rootCmd *cobra.Command, inject string) {
-	nonRootAliases := nonRootSubCmds(rootCmd)
-
-	if len(os.Args) > 1 {
-		for _, v := range nonRootAliases {
-			if os.Args[1] == v {
-				return
-			}
-		}
+	cmd, args, err := rootCmd.Find(os.Args[1:])
+	if err != nil {
+		return
 	}
+
+	// are we going for the root command?
+	if cmd.Name() != rootCmd.Name() {
+		return
+	}
+
+	tmpFlags := &snclient.AgentFlags{}
+	tmpCmd := NewRootCmd()
+	addFlags(tmpCmd, tmpFlags)
+
+	// parse flags (ignoring unknown flags for subcommands) and check if we want help or version only
+	tmpCmd.FParseErrWhitelist.UnknownFlags = true
+	tmpCmd.ParseFlags(args)
+	if tmpFlags.Version {
+		os.Args = []string{os.Args[0], "-V"}
+		return
+	}
+	if tmpFlags.Help {
+		os.Args = []string{os.Args[0], "-h"}
+		return
+	}
+
 	os.Args = append([]string{os.Args[0], inject}, os.Args[1:]...)
-}
-
-func nonRootSubCmds(rootCmd *cobra.Command) []string {
-	res := []string{"help", "completion", "-h", "--help", "-V", "--version"}
-	for _, c := range rootCmd.Commands() {
-		res = append(res, c.Name())
-		res = append(res, c.Aliases...)
-	}
-
-	return res
 }
 
 func sanitizeOSArgs() {

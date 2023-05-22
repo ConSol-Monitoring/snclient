@@ -144,7 +144,7 @@ func (snc *Agent) StartRestartWatcher() {
 
 	snc.running.Store(true)
 	snc.restartWatcherCb(func() {
-		LogError(cmd.Process.Kill())
+		LogDebug(cmd.Process.Kill())
 		_ = cmd.Wait()
 
 		cmd = getCmd()

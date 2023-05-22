@@ -159,6 +159,15 @@ func LogError2(_ interface{}, err error) {
 	}
 }
 
+func LogDebug(err error) {
+	if err != nil {
+		logErr := log.Output(factorlog.DEBUG, 2, err.Error())
+		if logErr != nil {
+			LogStderrf("failed to log: %s (%s)", err.Error(), logErr.Error())
+		}
+	}
+}
+
 func LogStderrf(format string, args ...interface{}) {
 	log.SetOutput(os.Stderr)
 	logErr := log.Output(factorlog.ERROR, 2, fmt.Sprintf(format, args...))
