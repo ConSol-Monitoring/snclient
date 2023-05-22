@@ -44,6 +44,7 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 		topSyntax:       "%(status): %(crit_list), delayed (%(warn_list))",
 		okSyntax:        "%(status): All %(count) service(s) are ok.",
 		emptySyntax:     "%(status): No services found",
+		emptyState:      CheckExitUnknown,
 	}
 	_, err := check.ParseArgs(args)
 	if err != nil {
@@ -67,33 +68,37 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}, nil
 	}
 
-	// add services from arguments
-	for _, name := range services {
-		if name != "*" {
-			if !slices.Contains(serviceList, name) {
-				serviceList = append(serviceList, name)
-			}
-		}
-	}
-
 	for _, service := range serviceList {
-		if !check.MatchFilter("service", service) {
-			log.Tracef("service %s excluded by filter", service)
-
-			continue
-		}
-		if len(services) > 0 && !slices.Contains(services, service) && !slices.Contains(services, "*") {
-			log.Tracef("service %s excluded by not matching service list", service)
-
-			continue
-		}
 		if slices.Contains(excludes, service) {
 			log.Tracef("service %s excluded by 'exclude' argument", service)
 
 			continue
 		}
 
-		err = l.addService(check, ctrlMgr, service, len(services))
+		err = l.addService(check, ctrlMgr, service, services, excludes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// add services not yet added to the list
+	for _, service := range services {
+		if service == "*" {
+			continue
+		}
+		found := false
+		for _, e := range check.listData {
+			if e["name"] == service || e["desc"] == service {
+				found = true
+
+				break
+			}
+		}
+		if found {
+			continue
+		}
+
+		err = l.addService(check, ctrlMgr, service, services, excludes)
 		if err != nil {
 			return nil, err
 		}
@@ -126,11 +131,7 @@ func (l *CheckService) getServiceDetails(ctrlMgr *mgr.Mgr, service string, servi
 
 	conf, err := ctlSvc.Config()
 	if err != nil {
-		if servicesCount == 0 {
-			return nil, nil, nil, nil, nil
-		}
-
-		return nil, nil, nil, nil, fmt.Errorf("failed to retrieve service configuration for %s: %s", service, err.Error())
+		log.Tracef("failed to retrieve service configuration for %s: %s", service, err.Error())
 	}
 
 	// retrieve process metrics
@@ -150,8 +151,8 @@ func (l *CheckService) getServiceDetails(ctrlMgr *mgr.Mgr, service string, servi
 	return &statusCode, &conf, mem, cpu, nil
 }
 
-func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service string, servicesCount int) error {
-	statusCode, conf, mem, cpu, err := l.getServiceDetails(ctrlMgr, service, servicesCount)
+func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service string, services, excludes []string) error {
+	statusCode, conf, mem, cpu, err := l.getServiceDetails(ctrlMgr, service, len(services))
 	if err != nil {
 		return err
 	}
@@ -160,7 +161,7 @@ func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service st
 	}
 
 	delayed := "0"
-	if conf.DelayedAutoStart {
+	if conf != nil && conf.DelayedAutoStart {
 		delayed = "1"
 	}
 
@@ -181,9 +182,14 @@ func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service st
 	if cpu != nil {
 		listEntry["cpu"] = fmt.Sprintf("%f%%", *cpu)
 	}
+
+	if !l.isRequired(check, listEntry, services, excludes) {
+		return nil
+	}
+
 	check.listData = append(check.listData, listEntry)
 
-	if servicesCount == 0 {
+	if len(services) == 0 {
 		return nil
 	}
 
@@ -215,6 +221,32 @@ func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service st
 	}
 
 	return nil
+}
+
+func (l *CheckService) isRequired(check *CheckData, entry map[string]string, services, excludes []string) bool {
+	name := entry["name"]
+	desc := entry["desc"]
+	if slices.Contains(excludes, name) || slices.Contains(excludes, desc) {
+		log.Tracef("service %s excluded by exclude list", name)
+
+		return false
+	}
+	if slices.Contains(services, "*") {
+		return true
+	}
+	if len(services) > 0 && !slices.Contains(services, name) && !slices.Contains(services, desc) {
+		log.Tracef("service %s excluded by not matching service list", name)
+
+		return false
+	}
+
+	if !check.MatchMapCondition(check.filter, entry) {
+		log.Tracef("service %s excluded by filter", name)
+
+		return false
+	}
+
+	return true
 }
 
 func (l *CheckService) svcClassification(serviceType uint32) string {
@@ -262,16 +294,16 @@ func (l *CheckService) svcState(serviceState svc.State) string {
 }
 
 func (l *CheckService) svcStartType(startType uint32, delayed bool) string {
-	if delayed {
-		return "delayed"
-	}
-
 	switch startType {
 	case windows.SERVICE_BOOT_START:
 		return "boot"
 	case windows.SERVICE_SYSTEM_START:
 		return "system"
 	case windows.SERVICE_AUTO_START:
+		if delayed {
+			return "delayed"
+		}
+
 		return "auto"
 	case windows.SERVICE_DEMAND_START:
 		return "demand"

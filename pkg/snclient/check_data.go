@@ -17,7 +17,7 @@ type CheckData struct {
 	defaultFilter   string
 	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
 	args            map[string]interface{}
-	filter          []*Condition
+	filter          []*Condition // if set, only show entries matching this filter set
 	warnThreshold   []*Condition
 	defaultWarning  string
 	critThreshold   []*Condition
@@ -41,6 +41,9 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	}
 	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	log.Tracef("details: %v", cd.details)
+
+	// apply final filter
+	cd.listData = cd.Filter(cd.filter, cd.listData)
 
 	if len(cd.listData) > 0 {
 		log.Tracef("list data:")
@@ -172,18 +175,26 @@ func (cd *CheckData) MatchFilter(name, value string) bool {
 	return false
 }
 
+// MatchMapCondition returns true listEntry matches filter
+func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string]string) bool {
+	for i := range conditions {
+		if conditions[i].isNone {
+			continue
+		}
+		if !conditions[i].Match(entry) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Filter data map by conditions and return filtered list
 func (cd *CheckData) Filter(conditions []*Condition, data []map[string]string) []map[string]string {
 	result := make([]map[string]string, 0)
 
 	for num := range data {
-		matched := false
-		for i := range conditions {
-			if conditions[i].Match(data[num]) {
-				break
-			}
-		}
-		if matched {
+		if cd.MatchMapCondition(conditions, data[num]) {
 			result = append(result, data[num])
 		}
 	}
@@ -208,8 +219,8 @@ func (cd *CheckData) parseStateString(state string) int64 {
 // and returns all unknown options
 func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 	argList := make([]Argument, 0, len(args))
-	for _, v := range args {
-		split := strings.SplitN(v, "=", 2)
+	for _, argVal := range args {
+		split := strings.SplitN(argVal, "=", 2)
 		if len(split) == 1 {
 			split = append(split, "")
 		}
@@ -255,13 +266,13 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			cd.filter = append(cd.filter, cond)
 		default:
 			if arg, ok := cd.args[split[0]]; ok {
-				switch a := arg.(type) {
+				switch argRef := arg.(type) {
 				case *[]string:
-					*a = append(*a, split[1])
+					*argRef = append(*argRef, split[1])
 				case *string:
-					*a = split[1]
+					*argRef = split[1]
 				default:
-					log.Errorf("unsupported args type: %T in %s", a, v)
+					log.Errorf("unsupported args type: %T in %s", argRef, argVal)
 				}
 			} else {
 				argList = append(argList, Argument{key: split[0], value: split[1]})
