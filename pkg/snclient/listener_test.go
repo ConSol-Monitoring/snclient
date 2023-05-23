@@ -12,7 +12,7 @@ func TestListenerConfig(t *testing.T) {
 		data: ConfigData{
 			"port":          "8080",
 			"bind to":       "*",
-			"allowed hosts": "localhost, [::1], 127.0.0.1, 192.168.123.0/24",
+			"allowed hosts": "localhost, [::1], 127.0.0.1, 192.168.123.0/24, one.one.one.one",
 			"use ssl":       "false",
 		},
 	}
@@ -29,6 +29,7 @@ func TestListenerConfig(t *testing.T) {
 		{false, "127.0.0.2"},
 		{true, "192.168.123.1"},
 		{false, "192.168.125.5"},
+		{true, "1.1.1.1"},
 	} {
 		assert.Equalf(t, check.expect, listen.CheckAllowedHosts(check.addr), fmt.Sprintf("CheckAllowedHosts(%s) -> %v", check.addr, check.expect))
 	}
