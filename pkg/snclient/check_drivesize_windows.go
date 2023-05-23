@@ -1,5 +1,3 @@
-//go:build !windows
-
 package snclient
 
 import (
@@ -88,14 +86,14 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 
 		check.result.Metrics = append(check.result.Metrics,
 			&CheckMetric{
-				Name:     drive.Mountpoint + " used %",
+				Name:     drive.Mountpoint + "\\ used %",
 				Unit:     "%",
 				Value:    usage.UsedPercent,
 				Warning:  check.warnThreshold,
 				Critical: check.critThreshold,
 			},
 			&CheckMetric{
-				Name:  drive.Mountpoint + " used",
+				Name:  drive.Mountpoint + "\\ used",
 				Unit:  "B",
 				Value: float64(usage.Used),
 			},
