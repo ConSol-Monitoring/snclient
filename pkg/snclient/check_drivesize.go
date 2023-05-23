@@ -1,3 +1,5 @@
+//go:build !windows
+
 package snclient
 
 import (
@@ -26,9 +28,11 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		okSyntax:     "All %(count) drive(s) are ok",
-		detailSyntax: "%(drive_or_name)\\: %(used)/%(size) used",
-		topSyntax:    "%(problem_list)",
+		defaultWarning:  "used_pct > 80",
+		defaultCritical: "used_pct > 90",
+		okSyntax:        "All %(count) drive(s) are ok",
+		detailSyntax:    "%(drive_or_name)\\: %(used)/%(size) used",
+		topSyntax:       "%(problem_list)",
 	}
 	argList, err := check.ParseArgs(args)
 	if err != nil {
@@ -82,11 +86,21 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 			"free_pct":       strconv.FormatUint(usage.Free*100/(usage.Total+1), 10),
 		})
 
-		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-			Name:  drive.Mountpoint,
-			Unit:  "",
-			Value: usage.UsedPercent,
-		})
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				Name:     drive.Mountpoint + " used %",
+				Unit:     "%",
+				Value:    usage.UsedPercent,
+				Warning:  check.warnThreshold,
+				Critical: check.critThreshold,
+			},
+			&CheckMetric{
+				Name:  drive.Mountpoint + " used",
+				Unit:  "B",
+				Value: float64(usage.Used),
+			},
+		)
+
 	}
 
 	return check.Finalize()
