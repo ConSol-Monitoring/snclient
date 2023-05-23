@@ -94,7 +94,7 @@ func (a *AllowedHost) resolveCache() []netip.Addr {
 
 	for _, v := range ips {
 		i, err := netip.ParseAddr(v.String())
-		if err != nil {
+		if err == nil {
 			resolved = append(resolved, i)
 		}
 	}
