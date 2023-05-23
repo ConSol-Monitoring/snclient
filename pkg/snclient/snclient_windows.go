@@ -1,11 +1,16 @@
 package snclient
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
+
+	"pkg/utils"
 
 	"golang.org/x/sys/windows/svc"
 )
@@ -92,6 +97,7 @@ func mainSignalHandler(sig os.Signal, _ *Agent) MainStateType {
 		return ShutdownGraceFully
 	case os.Interrupt, syscall.SIGINT:
 		log.Infof("got sigint, quitting")
+		removeTmpExeFiles()
 
 		return Shutdown
 	case syscall.SIGHUP:
@@ -120,16 +126,18 @@ func (snc *Agent) finishUpdate(_, mode string) {
 }
 
 func (snc *Agent) StartRestartWatcher() {
-	binFile := GlobalMacros["exe-full"]
-	args := []string{}
-	for _, a := range os.Args {
-		if a != "watch" && a != "dev" {
-			args = append(args, a)
-		}
-	}
 	getCmd := func() exec.Cmd {
+		// need to copy binary, inplace overwrite does not seem to work
+		tmpFile := fmt.Sprintf("%s.tmp.%d%s", GlobalMacros["exe-full"], time.Now().UnixMicro(), GlobalMacros["file-ext"])
+		LogError(utils.CopyFile(GlobalMacros["exe-full"], tmpFile))
+		args := []string{tmpFile}
+		for _, a := range os.Args[1:] {
+			if a != "watch" && a != "dev" {
+				args = append(args, a)
+			}
+		}
 		cmd := exec.Cmd{
-			Path:   binFile,
+			Path:   tmpFile,
 			Args:   args,
 			Env:    os.Environ(),
 			Stdin:  os.Stdin,
@@ -142,13 +150,39 @@ func (snc *Agent) StartRestartWatcher() {
 	cmd := getCmd()
 	LogError(cmd.Start())
 
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-interrupt
+		time.Sleep(500 * time.Millisecond)
+		removeTmpExeFiles()
+		os.Exit(0)
+	}()
+
 	snc.running.Store(true)
 	snc.restartWatcherCb(func() {
 		LogDebug(cmd.Process.Kill())
 		_ = cmd.Wait()
+		if strings.Contains(cmd.Path, ".tmp.") {
+			os.Remove(cmd.Path)
+		}
+		removeTmpExeFiles()
 
 		cmd = getCmd()
 		LogError(cmd.Start())
 	})
 	os.Exit(ExitCodeOK)
+}
+
+func removeTmpExeFiles() {
+	files, err := filepath.Glob("snclient.*.tmp.*.exe")
+	if err != nil {
+		log.Debugf("tmp files remove failed: %s", err.Error())
+	}
+	for _, f := range files {
+		if err := os.Remove(f); err != nil {
+			log.Debugf("tmp files remove failed %s: %s", f, err.Error())
+		}
+	}
 }
