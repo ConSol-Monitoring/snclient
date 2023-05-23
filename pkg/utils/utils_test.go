@@ -16,6 +16,7 @@ func TestUtilsExpandDuration(t *testing.T) {
 		{"1m", 60},
 		{"10s", 10},
 		{"100ms", 0.1},
+		{"100", 100},
 	}
 
 	for _, tst := range tests {
