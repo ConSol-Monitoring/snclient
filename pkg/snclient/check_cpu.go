@@ -44,6 +44,10 @@ func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 		times = []string{"5m", "1m", "5s"}
 	}
 
+	if len(snc.Counter.Keys("cpu")) == 0 {
+		return nil, fmt.Errorf("no cpu counter available, make sure CheckSystem / CheckSystemUnix in /modules config is enabled")
+	}
+
 	for _, name := range snc.Counter.Keys("cpu") {
 		if !check.MatchFilter("core", name) {
 			continue
