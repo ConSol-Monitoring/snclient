@@ -100,7 +100,6 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 				Value: float64(usage.Used),
 			},
 		)
-
 	}
 
 	return check.Finalize()
