@@ -213,6 +213,7 @@ func (cd *CheckData) parseStateString(state string) int64 {
 // ParseArgs parses check arguments into the CheckData struct
 // and returns all unknown options
 func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
+	appendArgs := map[string]bool{}
 	argList := make([]Argument, 0, len(args))
 	for _, argExpr := range args {
 		argExpr = cd.removeQuotes(argExpr)
@@ -266,7 +267,13 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			if arg, ok := cd.args[keyword]; ok {
 				switch argRef := arg.(type) {
 				case *[]string:
+					if _, ok := appendArgs[keyword]; !ok {
+						// first time this arg occurs, empty default lists
+						empty := make([]string, 0)
+						*argRef = empty
+					}
 					*argRef = append(*argRef, argValue)
+					appendArgs[keyword] = true
 				case *string:
 					*argRef = argValue
 				default:
@@ -292,6 +299,7 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 }
 
 func (cd *CheckData) removeQuotes(str string) string {
+	str = strings.TrimSpace(str)
 	switch {
 	case strings.HasPrefix(str, "'") && strings.HasSuffix(str, "'"):
 		str = strings.TrimPrefix(str, "'")

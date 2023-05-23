@@ -18,5 +18,10 @@ func TestCheckCPU(t *testing.T) {
 		"output matches",
 	)
 
+	res = snc.RunCheck("check_cpu", []string{"warn=load = 101", "crit=load = 102", "time=3m", "time=7m"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "total 3m", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "total 7m", "output matches")
+
 	StopTestAgent(t, snc)
 }
