@@ -219,63 +219,66 @@ func (cd *CheckData) parseStateString(state string) int64 {
 // and returns all unknown options
 func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 	argList := make([]Argument, 0, len(args))
-	for _, argVal := range args {
-		split := strings.SplitN(argVal, "=", 2)
+	for _, argExpr := range args {
+		argExpr = cd.removeQuotes(argExpr)
+		split := strings.SplitN(cd.removeQuotes(argExpr), "=", 2)
 		if len(split) == 1 {
 			split = append(split, "")
 		}
-		switch split[0] {
+		keyword := cd.removeQuotes(split[0])
+		argValue := cd.removeQuotes(split[1])
+		switch keyword {
 		case "ok":
-			cond, err := NewCondition(split[1])
+			cond, err := NewCondition(argValue)
 			if err != nil {
 				return nil, err
 			}
 			cd.okThreshold = append(cd.okThreshold, cond)
 		case "warn", "warning":
-			cond, err := NewCondition(split[1])
+			cond, err := NewCondition(argValue)
 			if err != nil {
 				return nil, err
 			}
 			cd.warnThreshold = append(cd.warnThreshold, cond)
 		case "crit", "critical":
-			cond, err := NewCondition(split[1])
+			cond, err := NewCondition(argValue)
 			if err != nil {
 				return nil, err
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
 		case "debug":
-			cd.debug = split[1]
+			cd.debug = argValue
 			if cd.debug == "" {
 				cd.debug = "debug"
 			}
 		case "detail-syntax":
-			cd.detailSyntax = split[1]
+			cd.detailSyntax = argValue
 		case "top-syntax":
-			cd.topSyntax = split[1]
+			cd.topSyntax = argValue
 		case "ok-syntax":
-			cd.okSyntax = split[1]
+			cd.okSyntax = argValue
 		case "empty-syntax":
-			cd.emptySyntax = split[1]
+			cd.emptySyntax = argValue
 		case "empty-state":
-			cd.emptyState = cd.parseStateString(split[1])
+			cd.emptyState = cd.parseStateString(argValue)
 		case "filter":
-			cond, err := NewCondition(split[1])
+			cond, err := NewCondition(argValue)
 			if err != nil {
 				return nil, err
 			}
 			cd.filter = append(cd.filter, cond)
 		default:
-			if arg, ok := cd.args[split[0]]; ok {
+			if arg, ok := cd.args[keyword]; ok {
 				switch argRef := arg.(type) {
 				case *[]string:
-					*argRef = append(*argRef, split[1])
+					*argRef = append(*argRef, argValue)
 				case *string:
-					*argRef = split[1]
+					*argRef = argValue
 				default:
-					log.Errorf("unsupported args type: %T in %s", argRef, argVal)
+					log.Errorf("unsupported args type: %T in %s", argRef, argExpr)
 				}
 			} else {
-				argList = append(argList, Argument{key: split[0], value: split[1]})
+				argList = append(argList, Argument{key: keyword, value: argValue})
 			}
 		}
 	}
@@ -291,6 +294,23 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 	raiseLogLevel(cd.debug)
 
 	return argList, nil
+}
+
+func (cd *CheckData) removeQuotes(str string) string {
+	switch {
+	case strings.HasPrefix(str, "'") && strings.HasSuffix(str, "'"):
+		str = strings.TrimPrefix(str, "'")
+		str = strings.TrimSuffix(str, "'")
+
+		return str
+	case strings.HasPrefix(str, `"`) && strings.HasSuffix(str, `"`):
+		str = strings.TrimPrefix(str, `"`)
+		str = strings.TrimSuffix(str, `"`)
+
+		return str
+	}
+
+	return str
 }
 
 func (cd *CheckData) setFallbacks() error {

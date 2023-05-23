@@ -30,5 +30,5 @@ func TestCheckService(t *testing.T) {
 
 	res = snc.RunCheck("check_service", []string{"service=nonexistingservice"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Containsf(t, "The specified service does not exist as an installed service", string(res.BuildPluginOutput()), "output matches")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "The specified service does not exist as an installed service", "output matches")
 }
