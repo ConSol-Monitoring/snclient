@@ -5,11 +5,6 @@ import (
 	"strings"
 )
 
-type Argument struct {
-	key   string
-	value string
-}
-
 // CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
 	noCopy          noCopy

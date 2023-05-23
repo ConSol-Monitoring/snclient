@@ -7,17 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckEventlog(t *testing.T) {
-	snc := Agent{}
-	res := snc.RunCheck("check_eventlog", []string{})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Regexpf(t,
-		regexp.MustCompile(`^Event log seems fine`),
-		string(res.BuildPluginOutput()),
-		"output matches",
-	)
-}
-
 func TestCheckService(t *testing.T) {
 	snc := Agent{}
 	res := snc.RunCheck("check_service", []string{"filter='state=running'"})
