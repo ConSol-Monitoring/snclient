@@ -36,7 +36,7 @@ type CheckDrivesize struct{}
  * Description: Checks the drive usage on this windows host.
  */
 func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
-	drives := []string{}
+	drives := []string{"all"}
 	excludes := []string{}
 	total := false
 	magic := float64(1)
@@ -51,8 +51,8 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 			"magic":   &magic,
 		},
 		defaultFilter:   "( mounted = 1  or media_type = 0 )",
-		defaultWarning:  "used_pct > 80",
-		defaultCritical: "used_pct > 90",
+		defaultWarning:  "used > 80",
+		defaultCritical: "used > 90",
 		okSyntax:        "%(status) All %(count) drive(s) are ok",
 		detailSyntax:    "%(drive_or_name) %(used)/%(size) used",
 		topSyntax:       "${status} ${problem_list}",
@@ -184,8 +184,8 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 
 	usage, err := disk.Usage(drive["drive_or_id"])
 	if err != nil {
-		if drive["type"] != "cdrom" && drive["removable"] == "1" {
-			drive["_error"] = fmt.Sprintf("failed to get size for %s: %s", drive["drive_or_id"], err.Error())
+		if drive["type"] != "cdrom" && drive["removable"] == "0" {
+			drive["_error"] = fmt.Sprintf("Failed to find disk partition %s: %s", drive["drive_or_id"], err.Error())
 		}
 		usage = &disk.UsageStat{}
 	}
@@ -204,6 +204,11 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 	drive["free"] = humanize.IBytesF(uint64(magic*float64(usage.Free)), 3)
 	drive["free_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Free)))
 	drive["free_pct"] = fmt.Sprintf("%f", freePct)
+
+	// check filter before adding metrics
+	if !check.MatchMapCondition(check.filter, drive) {
+		return
+	}
 
 	if check.HasThreshold("free") {
 		l.addMetrics(check, "free", drive["drive"]+" free", magic*float64(usage.Free), magic*float64(usage.Total))
@@ -261,6 +266,11 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 		"free_pct":      fmt.Sprintf("%f", float64(free)*100/(float64(total))),
 	}
 	check.listData = append(check.listData, drive)
+
+	// check filter before adding metrics
+	if !check.MatchMapCondition(check.filter, drive) {
+		return
+	}
 
 	if check.HasThreshold("free") {
 		l.addMetrics(check, "free", drive["drive"]+" free", float64(free), float64(total))
@@ -339,7 +349,7 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 		&fileSystemName[0],
 		uint32(len(fileSystemName)))
 	if err != nil {
-		if drive["type"] != "cdrom" && drive["removable"] == "1" {
+		if drive["type"] != "cdrom" && drive["removable"] == "0" {
 			drive["_error"] = fmt.Sprintf("cannot get volume information for %s: %s", drive["drive_or_id"], err.Error())
 		}
 

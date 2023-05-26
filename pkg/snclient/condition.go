@@ -161,7 +161,7 @@ func (c *Condition) matchSingle(data map[string]string) bool {
 	if c.isNone {
 		return true
 	}
-	varStr, ok := data[c.keyword]
+	varStr, ok := c.getVarValue(data)
 	if !ok {
 		return false
 	}
@@ -250,6 +250,28 @@ func (c *Condition) matchSingle(data map[string]string) bool {
 	}
 
 	return false
+}
+
+// getVarValue extracts value from dataset for conditions keyword
+// tries keyword_pct for % unit and keyword_bytes for B unit
+// returns value from keyword unless found already
+func (c *Condition) getVarValue(data map[string]string) (val string, ok bool) {
+	switch {
+	case c.unit == "%":
+		varStr, ok := data[c.keyword+"_pct"]
+		if ok {
+			return varStr, ok
+		}
+	case strings.EqualFold(c.unit, "B"):
+		varStr, ok := data[c.keyword+"_bytes"]
+		if ok {
+			return varStr, ok
+		}
+	}
+
+	varStr, ok := data[c.keyword]
+
+	return varStr, ok
 }
 
 // Clone returns a new copy of this condition

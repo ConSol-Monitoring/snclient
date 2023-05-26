@@ -13,7 +13,7 @@ func TestCheckDrivesize(t *testing.T) {
 	res := snc.RunCheck("check_drivesize", []string{"warn=free > 0", "crit=free > 0", "drive=c"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK All 1 drive\(s\) are ok \|'c: free'=.*?B;0;0;0;.*? 'c: free %'=\d+%;0;0;0;100`),
+		regexp.MustCompile(`^CRITICAL c: .*?\/.*? used \|'c: free'=.*?B;0;0;0;.*? 'c: free %'=.*?%;0;0;0;100`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -23,11 +23,10 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK: No drives found", "output matches")
 
 	res = snc.RunCheck("check_drivesize", []string{"warn=free>0", "total"})
-	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
-	assert.Contains(t, string(res.BuildPluginOutput()), "c: used %", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "C:\\ used %", "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), "total free", "output matches")
-	assert.Contains(t, string(res.BuildPluginOutput()), "c: free", "output matches")
-	assert.Contains(t, string(res.BuildPluginOutput()), ";0;90;0;100", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "C:\\ free", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), ";0;;0;100", "output matches")
 
 	res = snc.RunCheck("check_drivesize", []string{"drive=k"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
@@ -41,7 +40,8 @@ func TestCheckDrivesize(t *testing.T) {
 		"show-all",
 	})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK: No drives found", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK C:\\ ", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), ";99;99.5;0;100", "output matches")
 
 	StopTestAgent(t, snc)
 }

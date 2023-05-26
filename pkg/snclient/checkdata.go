@@ -67,7 +67,12 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 		}
 	}
 
-	finalMacros := cd.buildListMacros()
+	var finalMacros map[string]string
+	if len(cd.listData) == 1 {
+		finalMacros = cd.buildListMacrosFromSingleEntry()
+	} else {
+		finalMacros = cd.buildListMacros()
+	}
 
 	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	cd.setStateFromMaps(finalMacros)
@@ -126,6 +131,8 @@ func (cd *CheckData) buildListMacros() map[string]string {
 
 	problemList := []string{}
 	detailList := []string{}
+
+	// if there is only one problem, there is no need to add brackets
 	if len(critList) > 0 {
 		result["crit_list"] = "critical(" + strings.Join(critList, ", ") + ")"
 		problemList = append(problemList, result["crit_list"])
@@ -143,6 +150,41 @@ func (cd *CheckData) buildListMacros() map[string]string {
 
 	result["problem_list"] = strings.Join(problemList, " ")
 	result["detail_list"] = strings.Join(detailList, " ")
+
+	return result
+}
+
+func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
+	entry := cd.listData[0]
+	expanded := ReplaceMacros(cd.detailSyntax, entry)
+
+	result := map[string]string{
+		"count":         "1",
+		"list":          expanded,
+		"ok_count":      "0",
+		"ok_list":       "",
+		"warn_count":    "0",
+		"warn_list":     "",
+		"crit_count":    "0",
+		"crit_list":     "",
+		"problem_count": "0",
+		"problem_list":  "",
+		"detail_list":   expanded,
+	}
+
+	switch entry["_state"] {
+	case "0":
+		result["ok_list"] = expanded
+		result["ok_count"] = "1"
+	case "1":
+		result["problem_list"] = expanded
+		result["warn_list"] = expanded
+		result["warn_count"] = "1"
+	case "2":
+		result["problem_list"] = expanded
+		result["crit_list"] = expanded
+		result["crit_count"] = "1"
+	}
 
 	return result
 }
