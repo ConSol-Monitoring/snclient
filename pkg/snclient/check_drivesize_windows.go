@@ -26,6 +26,10 @@ const (
 	StorageGetHotplugInfo      = 0x0305
 	IoctlStorageGetHotplugInfo = (IoctlStorageBase << 16) | (FileAnyAccess << 14) | (StorageGetHotplugInfo << 2) | MethodBuffered
 
+	StorageGetMediaTypesEX      = 0x0301
+	IoctlStorageGetMediaTypesEX = (IoctlStorageBase << 16) | (FileAnyAccess << 14) | (StorageGetMediaTypesEX << 2) | MethodBuffered
+	MaxMediaTypes               = 128
+
 	// https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumeinformationw
 	FileReadOonlyVolume = uint32(0x00080000)
 )
@@ -173,8 +177,12 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 	drive["erasable"] = "0"
 	drive["hotplug"] = ""
 
-	err := l.setDeviceFlags(drive)
-	if err != nil {
+	if err := l.setDeviceFlags(drive); err != nil {
+		drive["_error"] = fmt.Sprintf("device flags: %s", err.Error())
+
+		return
+	}
+	if err := l.setMediaType(drive); err != nil {
 		drive["_error"] = fmt.Sprintf("device flags: %s", err.Error())
 
 		return
@@ -188,6 +196,8 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 			drive["_error"] = fmt.Sprintf("Failed to find disk partition %s: %s", drive["drive_or_id"], err.Error())
 		}
 		usage = &disk.UsageStat{}
+	} else {
+		drive["mounted"] = "1"
 	}
 
 	freePct := float64(0)
@@ -195,7 +205,6 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 		freePct = float64(usage.Free) * 100 / (float64(usage.Total))
 	}
 
-	drive["mounted"] = "1"
 	drive["size"] = humanize.IBytesF(uint64(magic*float64(usage.Total)), 3)
 	drive["size_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Total)))
 	drive["used"] = humanize.IBytesF(uint64(magic*float64(usage.Used)), 3)
@@ -308,7 +317,16 @@ func (l *CheckDrivesize) setDeviceFlags(drive map[string]string) error {
 		WriteCacheEnableOverride bool
 	}
 	var hotplugInfo storageHotplugInfo
-	err = windows.DeviceIoControl(handle, IoctlStorageGetHotplugInfo, nil, 0, (*byte)(unsafe.Pointer(&hotplugInfo)), uint32(unsafe.Sizeof(hotplugInfo)), &num, nil)
+	err = windows.DeviceIoControl(
+		handle,
+		IoctlStorageGetHotplugInfo,
+		nil,
+		0,
+		(*byte)(unsafe.Pointer(&hotplugInfo)),
+		uint32(unsafe.Sizeof(hotplugInfo)),
+		&num,
+		nil,
+	)
 	if err != nil {
 		return fmt.Errorf("deviceio %s: %s", drive["drive"], err.Error())
 	}
@@ -323,6 +341,56 @@ func (l *CheckDrivesize) setDeviceFlags(drive map[string]string) error {
 	if hotplugInfo.DeviceHotplug {
 		drive["hotplug"] = "1"
 	}
+
+	return nil
+}
+
+func (l *CheckDrivesize) setMediaType(drive map[string]string) error {
+	szDevice := fmt.Sprintf(`\\.\%s`, strings.TrimSuffix(drive["drive"], "\\"))
+	szPtr, err := syscall.UTF16PtrFromString(szDevice)
+	if err != nil {
+		log.Warnf("stringPtr: %s", szDevice, err.Error())
+
+		return nil
+	}
+	handle, err := windows.CreateFile(szPtr, 0, 0, nil, windows.OPEN_EXISTING, 0, 0)
+	if err != nil {
+		log.Tracef("create file: %s: %s", drive["letter"], err.Error())
+
+		return nil
+	}
+	defer func() {
+		LogDebug(windows.CloseHandle(handle))
+	}()
+
+	var num uint32
+	// https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-get_media_types
+	type getMediaTypesEX struct {
+		DeviceType           uint8
+		MediaInfo            uint8
+		Removable            bool
+		Reserved             [2]uint8
+		MediaType            uint32
+		MediaCharacteristics uint32
+		DeviceSpecific       [8]uint8
+	}
+
+	var mediaTypesEx [MaxMediaTypes]getMediaTypesEX
+	err = windows.DeviceIoControl(
+		handle,
+		IoctlStorageGetMediaTypesEX,
+		nil,
+		0,
+		(*byte)(unsafe.Pointer(&mediaTypesEx)),
+		uint32(unsafe.Sizeof(mediaTypesEx)),
+		&num,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("deviceio %s: %s", drive["drive"], err.Error())
+	}
+
+	drive["media_type"] = fmt.Sprintf("%d", mediaTypesEx[0].DeviceType)
 
 	return nil
 }
