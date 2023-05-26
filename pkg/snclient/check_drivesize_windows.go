@@ -206,9 +206,11 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 	drive["free_pct"] = fmt.Sprintf("%f", freePct)
 
 	if check.HasThreshold("free") {
-		l.addMetrics(check, drive["drive"]+" free", magic*float64(usage.Free), magic*float64(usage.Total))
+		l.addMetrics(check, "free", drive["drive"]+" free", magic*float64(usage.Free), magic*float64(usage.Total))
 	}
-	l.addMetrics(check, drive["drive"]+" used", magic*float64(usage.Used), magic*float64(usage.Total))
+	if check.HasThreshold("used") {
+		l.addMetrics(check, "used", drive["drive"]+" used", magic*float64(usage.Used), magic*float64(usage.Total))
+	}
 }
 
 func (l *CheckDrivesize) addTotal(check *CheckData) {
@@ -261,9 +263,11 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 	check.listData = append(check.listData, drive)
 
 	if check.HasThreshold("free") {
-		l.addMetrics(check, drive["drive"]+" free", float64(free), float64(total))
+		l.addMetrics(check, "free", drive["drive"]+" free", float64(free), float64(total))
 	}
-	l.addMetrics(check, drive["drive"]+" used", float64(used), float64(total))
+	if check.HasThreshold("used") {
+		l.addMetrics(check, "used", drive["drive"]+" used", float64(used), float64(total))
+	}
 }
 
 func (l *CheckDrivesize) setDeviceFlags(drive map[string]string) error {
@@ -472,22 +476,22 @@ func (l *CheckDrivesize) driveType(dType uint32) string {
 	return "unknown"
 }
 
-func (l *CheckDrivesize) addMetrics(check *CheckData, name string, val, total float64) {
+func (l *CheckDrivesize) addMetrics(check *CheckData, threshold, perfLabel string, val, total float64) {
 	percent := float64(0)
-	if strings.Contains(name, "used") {
+	if threshold == "used" {
 		percent = 100
 	}
 	if total > 0 {
 		percent = val * 100 / total
 	}
-	pctName := name + " %"
+	pctName := perfLabel + " %"
 	check.result.Metrics = append(check.result.Metrics,
 		&CheckMetric{
-			Name:     name,
+			Name:     perfLabel,
 			Unit:     "B",
 			Value:    int64(val),
-			Warning:  check.TransformThreshold(check.warnThreshold, "used", name, "%", "B", total),
-			Critical: check.TransformThreshold(check.critThreshold, "used", name, "%", "B", total),
+			Warning:  check.TransformThreshold(check.warnThreshold, threshold, perfLabel, "%", "B", total),
+			Critical: check.TransformThreshold(check.critThreshold, threshold, perfLabel, "%", "B", total),
 			Min:      &Zero,
 			Max:      &total,
 		},
@@ -495,8 +499,8 @@ func (l *CheckDrivesize) addMetrics(check *CheckData, name string, val, total fl
 			Name:     pctName,
 			Unit:     "%",
 			Value:    utils.ToPrecision(percent, 1),
-			Warning:  check.TransformThreshold(check.warnThreshold, "used", pctName, "B", "%", total),
-			Critical: check.TransformThreshold(check.critThreshold, "used", pctName, "B", "%", total),
+			Warning:  check.TransformThreshold(check.warnThreshold, threshold, pctName, "B", "%", total),
+			Critical: check.TransformThreshold(check.critThreshold, threshold, pctName, "B", "%", total),
 			Min:      &Zero,
 			Max:      &Hundred,
 		},

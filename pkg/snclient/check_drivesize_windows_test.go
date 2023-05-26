@@ -11,7 +11,7 @@ func TestCheckDrivesize(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	res := snc.RunCheck("check_drivesize", []string{"warn=free > 0", "crit=free > 0", "drive=c"})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 	assert.Regexpf(t,
 		regexp.MustCompile(`^OK All 1 drive\(s\) are ok \|'c: free'=.*?B;0;0;0;.*? 'c: free %'=\d+%;0;0;0;100`),
 		string(res.BuildPluginOutput()),
