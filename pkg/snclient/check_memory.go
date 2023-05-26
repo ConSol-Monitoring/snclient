@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/dustin/go-humanize"
+	"pkg/humanize"
+
 	"github.com/shirou/gopsutil/v3/mem"
 )
 

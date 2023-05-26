@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"pkg/convert"
 	"pkg/snclient"
 
 	"github.com/spf13/cobra"
@@ -44,8 +45,8 @@ snclient update --downgrade=0.2
 					channel = cmd.Flag("channel").Value.String()
 				}
 				channel = strings.TrimPrefix(channel, ",")
-				checkOnly, _ := snclient.String2Bool(cmd.Flag("check").Value.String())
-				preRelease, _ := snclient.String2Bool(cmd.Flag("prerelease").Value.String())
+				checkOnly := convert.Bool(cmd.Flag("check").Value.String())
+				preRelease := convert.Bool(cmd.Flag("prerelease").Value.String())
 				version, err := mod.CheckUpdates(
 					true,
 					!checkOnly,

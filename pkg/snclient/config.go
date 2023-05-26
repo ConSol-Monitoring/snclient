@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"pkg/convert"
+	"pkg/humanize"
 	"pkg/utils"
-
-	"github.com/dustin/go-humanize"
 )
 
 var DefaultConfig = map[string]*ConfigData{
@@ -275,36 +275,12 @@ func (cs *ConfigSection) GetBool(key string) (val, ok bool, err error) {
 	if !ok {
 		return false, false, nil
 	}
-	val, err = String2Bool(raw)
+	val, err = convert.BoolE(raw)
 	if err != nil {
-		return false, true, err
+		return false, true, fmt.Errorf("parseBool %s: %s", raw, err.Error())
 	}
 
 	return val, ok, nil
-}
-
-func String2Bool(raw string) (bool, error) {
-	switch strings.ToLower(raw) {
-	case "1", "enabled", "true", "yes":
-		return true, nil
-	case "0", "disabled", "false", "no":
-		return false, nil
-	}
-
-	return false, fmt.Errorf("cannot parse boolean value from %s", raw)
-}
-
-func GetFloat64(raw interface{}) float64 {
-	switch val := raw.(type) {
-	case float64:
-		return val
-	case int64:
-		return float64(val)
-	default:
-		num, _ := strconv.ParseFloat(fmt.Sprintf("%v", val), 64)
-
-		return num
-	}
 }
 
 // GetDuration parses duration value from config section, it returns the value if found and sets ok to true.
@@ -324,7 +300,7 @@ func (cs *ConfigSection) GetDuration(key string) (val float64, ok bool, err erro
 
 // GetBytes parses int value with optional SI
 // If value is found but cannot be parsed, error is set.
-func (cs *ConfigSection) GetBytes(key string) (val int64, ok bool, err error) {
+func (cs *ConfigSection) GetBytes(key string) (val uint64, ok bool, err error) {
 	raw, ok := cs.GetString(key)
 	if !ok {
 		return 0, false, nil
@@ -334,7 +310,7 @@ func (cs *ConfigSection) GetBytes(key string) (val int64, ok bool, err error) {
 		return 0, true, fmt.Errorf("GetBytes: %s", err.Error())
 	}
 
-	return int64(num), true, nil
+	return num, true, nil
 }
 
 func parseTLSMinVersion(version string) (uint16, error) {

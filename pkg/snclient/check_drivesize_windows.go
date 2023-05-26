@@ -7,9 +7,9 @@ import (
 	"syscall"
 	"unsafe"
 
+	"pkg/humanize"
 	"pkg/utils"
 
-	"github.com/dustin/go-humanize"
 	"github.com/shirou/gopsutil/v3/disk"
 	"golang.org/x/sys/windows"
 )
@@ -196,12 +196,12 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 	}
 
 	drive["mounted"] = "1"
-	drive["size"] = humanize.IBytes(uint64(magic * float64(usage.Total)))
+	drive["size"] = humanize.IBytesF(uint64(magic*float64(usage.Total)), 3)
 	drive["size_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Total)))
-	drive["used"] = humanize.IBytes(uint64(magic * float64(usage.Used)))
+	drive["used"] = humanize.IBytesF(uint64(magic*float64(usage.Used)), 3)
 	drive["used_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Used)))
 	drive["used_pct"] = fmt.Sprintf("%f", usage.UsedPercent)
-	drive["free"] = humanize.IBytes(uint64(magic * float64(usage.Free)))
+	drive["free"] = humanize.IBytesF(uint64(magic*float64(usage.Free)), 3)
 	drive["free_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Free)))
 	drive["free_pct"] = fmt.Sprintf("%f", freePct)
 
@@ -249,12 +249,12 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 		"media_type":    "0",
 		"type":          "total",
 		"letter":        "",
-		"size":          humanize.IBytes(uint64(total)),
+		"size":          humanize.IBytesF(uint64(total), 3),
 		"size_bytes":    fmt.Sprintf("%d", total),
-		"used":          humanize.IBytes(uint64(used)),
+		"used":          humanize.IBytesF(uint64(used), 3),
 		"used_bytes":    fmt.Sprintf("%d", used),
 		"used_pct":      fmt.Sprintf("%f", usedPct),
-		"free":          humanize.IBytes(uint64(free)),
+		"free":          humanize.IBytesF(uint64(free), 3),
 		"free_bytes":    fmt.Sprintf("%d", free),
 		"free_pct":      fmt.Sprintf("%f", float64(free)*100/(float64(total))),
 	}
@@ -485,7 +485,7 @@ func (l *CheckDrivesize) addMetrics(check *CheckData, name string, val, total fl
 		&CheckMetric{
 			Name:     name,
 			Unit:     "B",
-			Value:    val,
+			Value:    int64(val),
 			Warning:  check.TransformThreshold(check.warnThreshold, "used", name, "%", "B", total),
 			Critical: check.TransformThreshold(check.critThreshold, "used", name, "%", "B", total),
 			Min:      &Zero,

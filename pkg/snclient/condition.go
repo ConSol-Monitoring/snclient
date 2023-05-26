@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"pkg/convert"
+	"pkg/humanize"
 	"pkg/utils"
-
-	"github.com/dustin/go-humanize"
 )
 
 var (
@@ -564,14 +564,14 @@ func ThresholdString(name string, conditions []*Condition) string {
 	}
 
 	if len(filtered) == 1 {
-		return fmt.Sprintf("%v", filtered[0].value)
+		return convert.Num2String(filtered[0].value)
 	}
 
 	if len(filtered) == 2 {
 		low := filtered[0].value
 		high := filtered[1].value
-		num1, err1 := strconv.ParseFloat(fmt.Sprintf("%v", low), 64)
-		num2, err2 := strconv.ParseFloat(fmt.Sprintf("%v", high), 64)
+		num1, err1 := convert.Float64E(low)
+		num2, err2 := convert.Float64E(high)
 		if err1 != nil || err2 != nil {
 			return ""
 		}
@@ -580,10 +580,10 @@ func ThresholdString(name string, conditions []*Condition) string {
 			high = filtered[0].value
 		}
 		if group == GroupOr {
-			return fmt.Sprintf("%v:%v", low, high)
+			return fmt.Sprintf("%s:%s", convert.Num2String(low), convert.Num2String(high))
 		}
 		if group == GroupAnd {
-			return fmt.Sprintf("@%v:%v", low, high)
+			return fmt.Sprintf("@%s:%s", convert.Num2String(low), convert.Num2String(high))
 		}
 	}
 

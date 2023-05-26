@@ -7,7 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dustin/go-humanize"
+	"pkg/humanize"
+
 	"github.com/shirou/gopsutil/v3/disk"
 	"golang.org/x/exp/slices"
 )

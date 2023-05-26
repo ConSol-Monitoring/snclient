@@ -1,0 +1,83 @@
+package convert
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestConvertFloat64E(t *testing.T) {
+	tests := []struct {
+		in  interface{}
+		res float64
+		err bool
+	}{
+		{1.5, 1.5, false},
+		{"1.5", 1.5, false},
+		{"1", 1, false},
+		{"1e7", 1e7, false},
+		{"", 0, true},
+		{"abc", 0, true},
+	}
+
+	for _, tst := range tests {
+		res, err := Float64E(tst.in)
+		if tst.err {
+			assert.Error(t, err)
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equalf(t, tst.res, res, "Float64E: %s", tst.in)
+	}
+}
+
+func TestConvertBoolE(t *testing.T) {
+	tests := []struct {
+		in  interface{}
+		res bool
+		err bool
+	}{
+		{true, true, false},
+		{false, false, false},
+		{"yes", true, false},
+		{"no", false, false},
+		{"No", false, false},
+		{"Enabled", true, false},
+		{"nope", false, true},
+	}
+
+	for _, tst := range tests {
+		res, err := BoolE(tst.in)
+		if tst.err {
+			assert.Error(t, err)
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equalf(t, tst.res, res, "BoolE: %v -> %v", tst.in, res)
+	}
+}
+
+func TestNum2String(t *testing.T) {
+	tests := []struct {
+		in  interface{}
+		res string
+		err bool
+	}{
+		{1.00, "1", false},
+		{"100", "100", false},
+		{"1.50", "1.5", false},
+		{"abc", "", true},
+		{"10737418240", "10737418240", false},
+		{"1.5e4", "15000", false},
+	}
+
+	for _, tst := range tests {
+		res, err := Num2StringE(tst.in)
+		if tst.err {
+			assert.Error(t, err)
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equalf(t, tst.res, res, "Num2StringE: %T(%v) -> %v", tst.in, tst.in, res)
+	}
+}

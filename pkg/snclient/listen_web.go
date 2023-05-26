@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
+	"pkg/convert"
 	"pkg/utils"
 
 	"github.com/go-chi/chi/v5"
@@ -44,14 +44,17 @@ type CheckWebPerfVal struct {
 	Critical *string            `json:"critical,omitempty"`
 }
 
-type CheckWebPerfNumber float64
+type CheckWebPerfNumber struct {
+	num interface{}
+}
 
 func (n CheckWebPerfNumber) MarshalJSON() ([]byte, error) {
-	if !utils.IsFloatVal(float64(n)) {
-		return []byte(fmt.Sprintf("%d", int64(n))), nil
+	val, err := convert.Num2StringE(n.num)
+	if err != nil {
+		return nil, fmt.Errorf("num2string: %s", err.Error())
 	}
 
-	return []byte(strconv.FormatFloat(float64(n), 'f', -1, 64)), nil
+	return []byte(val), nil
 }
 
 func init() {
@@ -196,7 +199,7 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 		if utils.IsFloatVal(metric.Value) {
 			val.Min = metric.Min
 			val.Max = metric.Max
-			val.Value = CheckWebPerfNumber(metric.Value)
+			val.Value = CheckWebPerfNumber{num: metric.Value}
 			perf.FloatVal = &val
 		} else {
 			if metric.Min != nil {
@@ -207,7 +210,7 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 				max := int64(*metric.Max)
 				val.Max = &max
 			}
-			val.Value = CheckWebPerfNumber(metric.Value)
+			val.Value = CheckWebPerfNumber{num: metric.Value}
 			perf.IntVal = &val
 		}
 		result = append(result, perf)
@@ -224,7 +227,7 @@ func (l *HandlerWeb) metrics2PerfV1(metrics []*CheckMetric) map[string]interface
 
 	for _, metric := range metrics {
 		perf := map[string]interface{}{
-			"value": CheckWebPerfNumber(metric.Value),
+			"value": CheckWebPerfNumber{num: metric.Value},
 			"unit":  metric.Unit,
 		}
 		if metric.Warning != nil {

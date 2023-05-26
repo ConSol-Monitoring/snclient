@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"pkg/convert"
 )
 
 // CheckMetric contains a single performance value.
 type CheckMetric struct {
 	Name          string
 	Unit          string
-	Value         float64
+	Value         interface{}
 	ThresholdName string
 	Warning       []*Condition
 	Critical      []*Condition
@@ -22,7 +24,7 @@ type CheckMetric struct {
 func (m *CheckMetric) String() string {
 	var res bytes.Buffer
 
-	res.WriteString(fmt.Sprintf("'%s'=%s%s", m.Name, strconv.FormatFloat(m.Value, 'f', -1, 64), m.Unit))
+	res.WriteString(fmt.Sprintf("'%s'=%s%s", m.Name, convert.Num2String(m.Value), m.Unit))
 
 	res.WriteString(";")
 	res.WriteString(m.ThresholdString(m.Warning))

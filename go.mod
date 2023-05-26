@@ -2,19 +2,23 @@ module github.com/consol-monitoring/snclient
 
 go 1.19
 
+replace pkg/dump => ./pkg/dump
+
+replace pkg/eventlog => ./pkg/eventlog
+
+replace pkg/convert => ./pkg/convert
+
+replace pkg/humanize => ./pkg/humanize
+
+replace pkg/nrpe => ./pkg/nrpe
+
 replace pkg/snclient => ./pkg/snclient
 
 replace pkg/snclient/cmd => ./pkg/snclient/cmd
 
-replace pkg/nrpe => ./pkg/nrpe
-
 replace pkg/utils => ./pkg/utils
 
-replace pkg/dump => ./pkg/dump
-
 replace pkg/wmi => ./pkg/wmi
-
-replace pkg/eventlog => ./pkg/eventlog
 
 // elastic/beats only works with its own fork of sarama
 replace github.com/Shopify/sarama => github.com/elastic/sarama v1.19.1-0.20220310193331-ebc2b0d8eef3
@@ -58,7 +62,6 @@ require (
 	github.com/curioswitch/go-reassign v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denis-tingaikin/go-header v0.4.3 // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elastic/beats/v7 v7.17.10 // indirect
 	github.com/elastic/go-sysinfo v1.10.2 // indirect
 	github.com/elastic/go-ucfg v0.8.6 // indirect
@@ -228,7 +231,9 @@ require (
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
 	mvdan.cc/unparam v0.0.0-20230312165513-e84e2d14e3b8 // indirect
+	pkg/convert v0.0.0-00010101000000-000000000000 // indirect
 	pkg/eventlog v0.0.0-00010101000000-000000000000 // indirect
+	pkg/humanize v0.0.0-00010101000000-000000000000 // indirect
 	pkg/nrpe v0.0.0-00010101000000-000000000000 // indirect
 	pkg/snclient v0.0.0-00010101000000-000000000000 // indirect
 	pkg/utils v0.0.0-00010101000000-000000000000 // indirect

@@ -71,8 +71,15 @@ func IsDigitsOnly(s string) bool {
 
 // IsFloatVal returns true if given val is a real float64 with fractions
 // or false if value can be represented as int64
-func IsFloatVal(val float64) bool {
-	return strconv.FormatFloat(val, 'f', -1, 64) != fmt.Sprintf("%d", int64(val))
+func IsFloatVal(val interface{}) bool {
+	switch num := val.(type) {
+	case float64:
+		return strconv.FormatFloat(num, 'f', -1, 64) != fmt.Sprintf("%d", int64(num))
+	case int64:
+		return true
+	default:
+		return false
+	}
 }
 
 // ToPrecision converts float64 to given precision, ex.: 5.12345 -> 5.1

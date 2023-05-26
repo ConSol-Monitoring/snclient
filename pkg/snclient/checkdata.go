@@ -2,10 +2,14 @@ package snclient
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
-	"github.com/dustin/go-humanize"
+	"pkg/convert"
+	"pkg/humanize"
+	"pkg/utils"
+
 	"golang.org/x/exp/slices"
 )
 
@@ -297,9 +301,9 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			if argValue == "" {
 				cd.showAll = true
 			} else {
-				showAll, err := String2Bool(argValue)
+				showAll, err := convert.BoolE(argValue)
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("parseBool %s: %s", argValue, err.Error())
 				}
 				cd.showAll = showAll
 			}
@@ -364,9 +368,9 @@ func (cd *CheckData) parseAnyArg(appendArgs map[string]bool, argExpr, keyword, a
 			b := true
 			*argRef = b
 		} else {
-			b, err := String2Bool(argValue)
+			b, err := convert.BoolE(argValue)
 			if err != nil {
-				return true, err
+				return true, fmt.Errorf("parseBool %s: %s", argValue, err.Error())
 			}
 			*argRef = b
 		}
@@ -510,7 +514,7 @@ func (cd *CheckData) ExpandThresholdUnit(exponents []string, targetUnit string, 
 		}
 		unit := strings.ToLower(cond.unit)
 		if slices.Contains(names, cond.keyword) && slices.Contains(exponents, unit) {
-			val, err := humanize.ParseBytes(fmt.Sprintf("%f%s%s", GetFloat64(cond.value), cond.unit, targetUnit))
+			val, err := humanize.ParseBytes(fmt.Sprintf("%f%s%s", convert.Float64(cond.value), cond.unit, targetUnit))
 			if err == nil {
 				cond.unit = targetUnit
 				cond.value = val
@@ -555,24 +559,32 @@ func (cd *CheckData) TransformThreshold(srcThreshold []*Condition, srcName, targ
 	transformed := cd.CloneThreshold(srcThreshold)
 	// Warning:  check.TransformThreshold(check.warnThreshold, "used", name, "%", "B", total),
 	applyChange := func(cond *Condition) bool {
-		if cond.keyword == srcName {
-			cond.keyword = targetName
-			if cond.unit == srcUnit {
-				switch {
-				case srcUnit == "%":
-					pct := GetFloat64(cond.value)
-					val := pct / 100 * total
-					cond.value = val
-					cond.unit = targetUnit
-				case targetUnit == "%":
-					val := GetFloat64(cond.value)
-					pct := (val * 100) / total
-					cond.value = pct
-					cond.unit = targetUnit
-				default:
-					log.Errorf("unsupported src unit in threshold transition: %s", srcUnit)
-				}
+		if cond.keyword != srcName {
+			return true
+		}
+		cond.keyword = targetName
+		if cond.unit != srcUnit {
+			return true
+		}
+
+		switch {
+		case srcUnit == "%":
+			pct := convert.Float64(cond.value)
+			val := pct / 100 * total
+			switch {
+			case strings.EqualFold(targetUnit, "b"):
+				cond.value = math.Round(val)
+			default:
+				cond.value = utils.ToPrecision(val, 3)
 			}
+			cond.unit = targetUnit
+		case targetUnit == "%":
+			val := convert.Float64(cond.value)
+			pct := (val * 100) / total
+			cond.value = utils.ToPrecision(pct, 2)
+			cond.unit = targetUnit
+		default:
+			log.Errorf("unsupported src unit in threshold transition: %s", srcUnit)
 		}
 
 		return true

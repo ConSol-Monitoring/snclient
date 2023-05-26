@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/dustin/go-humanize"
+	"pkg/humanize"
 )
 
 func init() {
@@ -19,7 +19,7 @@ type LogrotateHandler struct {
 	stopChannel chan bool
 	snc         *Agent
 
-	maxSize int64
+	maxSize uint64
 }
 
 func NewLogrotateHandler() Module {
@@ -81,10 +81,10 @@ func (l *LogrotateHandler) mainLoop() {
 			}
 
 			log.Tracef("[Logrotate] check logfile rotation (threshold %s / current size: %s)",
-				humanize.IBytes(uint64(l.maxSize)),
+				humanize.IBytes(l.maxSize),
 				humanize.IBytes(uint64(fileInfo.Size())),
 			)
-			if fileInfo.Size() > l.maxSize {
+			if uint64(fileInfo.Size()) > l.maxSize {
 				l.rotate(logFile, l.maxSize/2)
 			}
 
@@ -93,8 +93,8 @@ func (l *LogrotateHandler) mainLoop() {
 	}
 }
 
-func (l *LogrotateHandler) rotate(logFile string, targetsize int64) {
-	log.Infof("[Logrotate] rotating logfile to %s", humanize.Bytes(uint64(targetsize)))
+func (l *LogrotateHandler) rotate(logFile string, targetsize uint64) {
+	log.Infof("[Logrotate] rotating logfile to %s", humanize.IBytes(targetsize))
 
 	lineCount, err := l.numLines2Remove(logFile, targetsize)
 	if err != nil {
@@ -156,13 +156,13 @@ func (l *LogrotateHandler) rotate(logFile string, targetsize int64) {
 	}
 }
 
-func (l *LogrotateHandler) numLines2Remove(logFile string, targetsize int64) (lineCount int64, err error) {
+func (l *LogrotateHandler) numLines2Remove(logFile string, targetsize uint64) (lineCount int64, err error) {
 	fileInfo, err := os.Stat(logFile)
 	if err != nil {
 		return 0, fmt.Errorf("stat %s failed: %s", logFile, err.Error())
 	}
 
-	curSize := fileInfo.Size()
+	curSize := uint64(fileInfo.Size())
 	removeSize := curSize - targetsize
 
 	file, err := os.Open(logFile)
@@ -172,10 +172,10 @@ func (l *LogrotateHandler) numLines2Remove(logFile string, targetsize int64) (li
 
 	defer file.Close()
 
-	sizeCount := int64(0)
+	sizeCount := uint64(0)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		sizeCount += int64(len(scanner.Bytes()))
+		sizeCount += uint64(len(scanner.Bytes()))
 		lineCount++
 		if sizeCount > removeSize {
 			break
