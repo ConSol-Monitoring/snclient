@@ -84,13 +84,13 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 	sort.Strings(keys)
 
 	for _, k := range keys {
-		disk := requiredDisks[k]
-		if l.isExcluded(disk, excludes) {
+		drive := requiredDisks[k]
+		if l.isExcluded(drive, excludes) {
 			continue
 		}
-		l.addDiskDetails(check, disk, magic)
-		disk["flags"] = strings.Join(l.getFlagNames(disk), ", ")
-		check.listData = append(check.listData, disk)
+		l.addDiskDetails(check, drive, magic)
+		drive["flags"] = strings.Join(l.getFlagNames(drive), ", ")
+		check.listData = append(check.listData, drive)
 	}
 
 	if total {
