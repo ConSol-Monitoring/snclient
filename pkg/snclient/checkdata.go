@@ -2,7 +2,17 @@ package snclient
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+
+	"github.com/dustin/go-humanize"
+	"golang.org/x/exp/slices"
+)
+
+var (
+	// Variable to use in Threshold Min/Max
+	Zero    = float64(0)
+	Hundred = float64(100)
 )
 
 // CheckData contains the runtime data of a generic check plugin
@@ -25,6 +35,7 @@ type CheckData struct {
 	emptyState      int64
 	details         map[string]string
 	listData        []map[string]string
+	showAll         bool
 	result          *CheckResult
 }
 
@@ -42,9 +53,13 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 
 	if len(cd.listData) > 0 {
 		log.Tracef("list data:")
-		for _, l := range cd.listData {
-			cd.Check(l, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
-			log.Tracef(" - %v", l)
+		for _, entry := range cd.listData {
+			// not yet filtered errors are fatal
+			if errMsg, ok := entry["_error"]; ok {
+				return nil, fmt.Errorf("%s", errMsg)
+			}
+			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
+			log.Tracef(" - %v", entry)
 		}
 	}
 
@@ -60,6 +75,8 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	case len(cd.filter) > 0 && len(cd.listData) == 0:
 		cd.result.Output = cd.emptySyntax
 		cd.result.State = cd.emptyState
+	case cd.showAll:
+		cd.result.Output = "%(status) %(list)"
 	case cd.result.State == 0 && cd.okSyntax != "":
 		cd.result.Output = cd.okSyntax
 	default:
@@ -89,27 +106,44 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		}
 	}
 
-	problemList := make([]string, 0)
-	problemList = append(problemList, critList...)
-	problemList = append(problemList, warnList...)
-
-	detailList := append(problemList, okList...)
-
-	return map[string]string{
+	result := map[string]string{
 		"count":         fmt.Sprintf("%d", len(list)),
 		"list":          strings.Join(list, ", "),
 		"ok_count":      fmt.Sprintf("%d", len(okList)),
-		"ok_list":       strings.Join(okList, ", "),
+		"ok_list":       "",
 		"warn_count":    fmt.Sprintf("%d", len(warnList)),
-		"warn_list":     strings.Join(warnList, ", "),
+		"warn_list":     "",
 		"crit_count":    fmt.Sprintf("%d", len(critList)),
-		"crit_list":     strings.Join(critList, ", "),
-		"problem_count": fmt.Sprintf("%d", len(problemList)),
-		"problem_list":  strings.Join(problemList, ", "),
-		"detail_list":   strings.Join(detailList, ", "),
+		"crit_list":     "",
+		"problem_count": fmt.Sprintf("%d", len(warnList)+len(critList)),
+		"problem_list":  "",
+		"detail_list":   "",
 	}
+
+	problemList := []string{}
+	detailList := []string{}
+	if len(critList) > 0 {
+		result["crit_list"] = "critical(" + strings.Join(critList, ", ") + ")"
+		problemList = append(problemList, result["crit_list"])
+		detailList = append(detailList, result["crit_list"])
+	}
+	if len(warnList) > 0 {
+		result["warn_list"] = "warning(" + strings.Join(warnList, ", ") + ")"
+		problemList = append(problemList, result["warn_list"])
+		detailList = append(detailList, result["warn_list"])
+	}
+	if len(okList) > 0 {
+		result["ok_list"] = strings.Join(okList, ", ")
+		detailList = append(detailList, result["ok_list"])
+	}
+
+	result["problem_list"] = strings.Join(problemList, " ")
+	result["detail_list"] = strings.Join(detailList, " ")
+
+	return result
 }
 
+// setStateFromMaps sets main state from _state or list counts.
 func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	switch macros["_state"] {
 	case "1":
@@ -132,7 +166,7 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	cd.details["_state"] = fmt.Sprintf("%d", cd.result.State)
 }
 
-// Check conditions against given data and set result state
+// Check tries warn/crit/ok conditions against given data and sets result state.
 func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []*Condition) {
 	data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 
@@ -170,7 +204,7 @@ func (cd *CheckData) MatchFilter(name, value string) bool {
 	return false
 }
 
-// MatchMapCondition returns true listEntry matches filter
+// MatchMapCondition returns true if listEntry matches filter
 func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string]string) bool {
 	for i := range conditions {
 		if conditions[i].isNone {
@@ -184,7 +218,8 @@ func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string
 	return true
 }
 
-// Filter data map by conditions and return filtered list
+// Filter data map by conditions and return filtered list.
+// ALl items not matching given filter will be removed.
 func (cd *CheckData) Filter(conditions []*Condition, data []map[string]string) []map[string]string {
 	result := make([]map[string]string, 0)
 
@@ -197,8 +232,9 @@ func (cd *CheckData) Filter(conditions []*Condition, data []map[string]string) [
 	return result
 }
 
+// parseStateString translates string naemon state to int64
 func (cd *CheckData) parseStateString(state string) int64 {
-	switch state {
+	switch strings.ToLower(state) {
 	case "0", "ok":
 		return 0
 	case "1", "warn", "warning":
@@ -257,6 +293,16 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			cd.emptySyntax = argValue
 		case "empty-state":
 			cd.emptyState = cd.parseStateString(argValue)
+		case "show-all":
+			if argValue == "" {
+				cd.showAll = true
+			} else {
+				showAll, err := String2Bool(argValue)
+				if err != nil {
+					return nil, err
+				}
+				cd.showAll = showAll
+			}
 		case "filter":
 			cond, err := NewCondition(argValue)
 			if err != nil {
@@ -264,22 +310,13 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			}
 			cd.filter = append(cd.filter, cond)
 		default:
-			if arg, ok := cd.args[keyword]; ok {
-				switch argRef := arg.(type) {
-				case *[]string:
-					if _, ok := appendArgs[keyword]; !ok {
-						// first time this arg occurs, empty default lists
-						empty := make([]string, 0)
-						*argRef = empty
-					}
-					*argRef = append(*argRef, argValue)
-					appendArgs[keyword] = true
-				case *string:
-					*argRef = argValue
-				default:
-					log.Errorf("unsupported args type: %T in %s", argRef, argExpr)
-				}
-			} else {
+			parsed, err := cd.parseAnyArg(appendArgs, argExpr, keyword, argValue)
+			switch {
+			case err != nil:
+				return nil, err
+			case parsed:
+				// ok
+			default:
 				argList = append(argList, Argument{key: keyword, value: argValue})
 			}
 		}
@@ -298,6 +335,49 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 	return argList, nil
 }
 
+// parseAnyArg parses args into the args map with custom arguments
+func (cd *CheckData) parseAnyArg(appendArgs map[string]bool, argExpr, keyword, argValue string) (bool, error) {
+	arg, ok := cd.args[keyword]
+	if !ok {
+		return false, nil
+	}
+
+	switch argRef := arg.(type) {
+	case *[]string:
+		if _, ok := appendArgs[keyword]; !ok {
+			// first time this arg occurs, empty default lists
+			empty := make([]string, 0)
+			*argRef = empty
+		}
+		*argRef = append(*argRef, argValue)
+		appendArgs[keyword] = true
+	case *string:
+		*argRef = argValue
+	case *float64:
+		f, err := strconv.ParseFloat(argValue, 64)
+		if err != nil {
+			return true, fmt.Errorf("parseFloat %s: %s", argExpr, err.Error())
+		}
+		*argRef = f
+	case *bool:
+		if argValue == "" {
+			b := true
+			*argRef = b
+		} else {
+			b, err := String2Bool(argValue)
+			if err != nil {
+				return true, err
+			}
+			*argRef = b
+		}
+	default:
+		log.Errorf("unsupported args type: %T in %s", argRef, argExpr)
+	}
+
+	return true, nil
+}
+
+// removeQuotes remove single/double quotes around string
 func (cd *CheckData) removeQuotes(str string) string {
 	str = strings.TrimSpace(str)
 	switch {
@@ -316,6 +396,7 @@ func (cd *CheckData) removeQuotes(str string) string {
 	return str
 }
 
+// setFallbacks sets default filter/warn/crit thresholds unless already set.
 func (cd *CheckData) setFallbacks() error {
 	if len(cd.filter) == 0 && cd.defaultFilter != "" {
 		cond, err := NewCondition(cd.defaultFilter)
@@ -344,6 +425,7 @@ func (cd *CheckData) setFallbacks() error {
 	return nil
 }
 
+// apply condition aliases to all filter/warn/crit/ok conditions.
 func (cd *CheckData) applyConditionAlias() {
 	if len(cd.conditionAlias) == 0 {
 		return
@@ -354,6 +436,7 @@ func (cd *CheckData) applyConditionAlias() {
 	cd.applyConditionAliasList(cd.okThreshold)
 }
 
+// apply condition aliases to given conditions.
 func (cd *CheckData) applyConditionAliasList(cond []*Condition) {
 	for _, cond := range cond {
 		if len(cond.group) > 0 {
@@ -371,4 +454,130 @@ func (cd *CheckData) applyConditionAliasList(cond []*Condition) {
 			}
 		}
 	}
+}
+
+// HasThreshold returns true is the warn/crit threshold use at least one condition with the given name.
+func (cd *CheckData) HasThreshold(name string) bool {
+	if cd.hasThresholdCond(cd.warnThreshold, name) {
+		return true
+	}
+	if cd.hasThresholdCond(cd.critThreshold, name) {
+		return true
+	}
+
+	return false
+}
+
+// hasThresholdCond returns true is the given list of conditions uses the given name at least once.
+func (cd *CheckData) hasThresholdCond(condList []*Condition, name string) bool {
+	for _, cond := range condList {
+		if len(cond.group) > 0 {
+			return cd.hasThresholdCond(cond.group, name)
+		}
+
+		if cond.keyword == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+// SetDefaultThresholdUnit sets default unit for all threshold conditions matching
+// the name and not having a unit already
+func (cd *CheckData) SetDefaultThresholdUnit(defaultUnit string, names []string) {
+	setDefault := func(cond *Condition) bool {
+		if len(cond.group) == 0 && cond.unit == "" {
+			for _, name := range names {
+				if name == cond.keyword {
+					cond.unit = defaultUnit
+				}
+			}
+		}
+
+		return true
+	}
+	cd.VisitAll(cd.warnThreshold, setDefault)
+	cd.VisitAll(cd.critThreshold, setDefault)
+	cd.VisitAll(cd.okThreshold, setDefault)
+}
+
+// ExpandThresholdUnit multiplies the threshold value if the unit matches the exponents. Unit is then replaced with the targetUnit.
+func (cd *CheckData) ExpandThresholdUnit(exponents []string, targetUnit string, names []string) {
+	apply := func(cond *Condition) bool {
+		if len(cond.group) > 0 {
+			return true
+		}
+		unit := strings.ToLower(cond.unit)
+		if slices.Contains(names, cond.keyword) && slices.Contains(exponents, unit) {
+			val, err := humanize.ParseBytes(fmt.Sprintf("%f%s%s", GetFloat64(cond.value), cond.unit, targetUnit))
+			if err == nil {
+				cond.unit = targetUnit
+				cond.value = val
+			}
+		}
+
+		return true
+	}
+	cd.VisitAll(cd.warnThreshold, apply)
+	cd.VisitAll(cd.critThreshold, apply)
+	cd.VisitAll(cd.okThreshold, apply)
+}
+
+// VisitAll calls callback recursively for each condition until callback returns false
+func (cd *CheckData) VisitAll(condList []*Condition, callback func(*Condition) bool) bool {
+	for _, cond := range condList {
+		if len(cond.group) > 0 {
+			if !cd.VisitAll(cond.group, callback) {
+				return false
+			}
+		} else {
+			if !callback(cond) {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func (cd *CheckData) CloneThreshold(srcThreshold []*Condition) (cloned []*Condition) {
+	cloned = make([]*Condition, 0)
+
+	for i := range srcThreshold {
+		cloned = append(cloned, srcThreshold[i].Clone())
+	}
+
+	return cloned
+}
+
+func (cd *CheckData) TransformThreshold(srcThreshold []*Condition, srcName, targetName, srcUnit, targetUnit string, total float64) (threshold []*Condition) {
+	transformed := cd.CloneThreshold(srcThreshold)
+	// Warning:  check.TransformThreshold(check.warnThreshold, "used", name, "%", "B", total),
+	applyChange := func(cond *Condition) bool {
+		if cond.keyword == srcName {
+			cond.keyword = targetName
+			if cond.unit == srcUnit {
+				switch {
+				case srcUnit == "%":
+					pct := GetFloat64(cond.value)
+					val := pct / 100 * total
+					cond.value = val
+					cond.unit = targetUnit
+				case targetUnit == "%":
+					val := GetFloat64(cond.value)
+					pct := (val * 100) / total
+					cond.value = pct
+					cond.unit = targetUnit
+				default:
+					log.Errorf("unsupported src unit in threshold transition: %s", srcUnit)
+				}
+			}
+		}
+
+		return true
+	}
+	cd.VisitAll(transformed, applyChange)
+
+	return transformed
 }

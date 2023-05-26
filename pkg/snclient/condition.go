@@ -252,6 +252,24 @@ func (c *Condition) matchSingle(data map[string]string) bool {
 	return false
 }
 
+// Clone returns a new copy of this condition
+func (c *Condition) Clone() *Condition {
+	clone := &Condition{
+		keyword:       c.keyword,
+		operator:      c.operator,
+		unit:          c.unit,
+		value:         c.value,
+		groupOperator: c.groupOperator,
+		group:         make([]*Condition, 0),
+	}
+
+	for i := range c.group {
+		clone.group = append(clone.group, c.group[i].Clone())
+	}
+
+	return clone
+}
+
 // add parsed condition, returns remaining token
 func conditionAdd(token []string) (cond *Condition, remaining []string, err error) {
 	if len(token) == 0 {

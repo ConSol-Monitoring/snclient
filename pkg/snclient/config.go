@@ -294,6 +294,19 @@ func String2Bool(raw string) (bool, error) {
 	return false, fmt.Errorf("cannot parse boolean value from %s", raw)
 }
 
+func GetFloat64(raw interface{}) float64 {
+	switch val := raw.(type) {
+	case float64:
+		return val
+	case int64:
+		return float64(val)
+	default:
+		num, _ := strconv.ParseFloat(fmt.Sprintf("%v", val), 64)
+
+		return num
+	}
+}
+
 // GetDuration parses duration value from config section, it returns the value if found and sets ok to true.
 // If value is found but cannot be parsed, error is set.
 func (cs *ConfigSection) GetDuration(key string) (val float64, ok bool, err error) {
