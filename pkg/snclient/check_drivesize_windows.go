@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -75,7 +76,15 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 		return nil, err
 	}
 
-	for _, disk := range requiredDisks {
+	// sort by drive / id
+	keys := make([]string, 0, len(requiredDisks))
+	for k := range requiredDisks {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		disk := requiredDisks[k]
 		if l.isExcluded(disk, excludes) {
 			continue
 		}
