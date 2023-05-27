@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"unicode"
 	"unsafe"
 
 	"pkg/humanize"
@@ -140,32 +141,12 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[st
 		case "all-volumes":
 			l.setVolumes(requiredDisks)
 		default:
-			// "c" or "c:"" will use the drive c and "c:\" will use the volume
-			found := false
-			switch len(drive) {
-			case 1, 2:
-				drive = strings.TrimSuffix(drive, ":") + ":"
-				availDisks := map[string]map[string]string{}
-				err := l.setDisks(availDisks)
-				if err != nil {
-					return nil, err
-				}
-				for driveOrID := range availDisks {
-					if strings.EqualFold(driveOrID, drive+"\\") {
-						requiredDisks[drive] = availDisks[driveOrID]
-						requiredDisks[drive]["drive"] = drive
-						found = true
-					}
-				}
-			}
-			if !found {
-				requiredDisks[drive] = map[string]string{
-					"id":            "",
-					"drive":         drive,
-					"drive_or_id":   drive,
-					"drive_or_name": drive,
-					"letter":        "",
-				}
+			// "c" or "c:"" will use the drive c
+			// "c:\" will use the volume
+			// "c:\path" will use the best matching volume
+			err := l.setCustomPath(drive, requiredDisks)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -540,6 +521,61 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 		}
 		requiredDisks[driveOrID] = entry
 	}
+}
+
+func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string) (err error) {
+	// match a drive, ex: "c" or "c:"
+	switch len(drive) {
+	case 1, 2:
+		drive = strings.TrimSuffix(drive, ":") + ":"
+		availDisks := map[string]map[string]string{}
+		err = l.setDisks(availDisks)
+		if err != nil {
+			return err
+		}
+		for driveOrID := range availDisks {
+			if strings.EqualFold(driveOrID, drive+"\\") {
+				requiredDisks[drive] = utils.CloneStringMap(availDisks[driveOrID])
+				requiredDisks[drive]["drive"] = drive // use name from attributes
+
+				return nil
+			}
+		}
+	}
+
+	// try to find closes matching volume
+	availVolumes := map[string]map[string]string{}
+	l.setVolumes(availVolumes)
+	testDrive := strings.TrimSuffix(drive, "\\")
+	// make first character uppercase because drives are uppercase in the volume list
+	r := []rune(testDrive)
+	testDrive = string(append([]rune{unicode.ToUpper(r[0])}, r[1:]...))
+	var match *map[string]string
+	for i := range availVolumes {
+		vol := availVolumes[i]
+		if vol["drive"] != "" && strings.HasPrefix(testDrive+"\\", vol["drive"]) {
+			if match == nil || len((*match)[drive]) < len(vol[drive]) {
+				match = &vol
+			}
+		}
+	}
+	if match != nil {
+		requiredDisks[drive] = utils.CloneStringMap(*match)
+		requiredDisks[drive]["drive"] = drive
+
+		return nil
+	}
+
+	// add anyway to generate an error later with more default values filled in
+	requiredDisks[drive] = map[string]string{
+		"id":            "",
+		"drive":         drive,
+		"drive_or_id":   drive,
+		"drive_or_name": drive,
+		"letter":        "",
+	}
+
+	return nil
 }
 
 func (l *CheckDrivesize) driveType(dType uint32) string {

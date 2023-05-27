@@ -120,6 +120,15 @@ func DurationString(dur time.Duration) string {
 	}
 }
 
+func CloneStringMap(src map[string]string) (clone map[string]string) {
+	clone = make(map[string]string)
+	for k, v := range src {
+		clone[k] = v
+	}
+
+	return clone
+}
+
 // GetExecutablePath returns path to executable information
 // execDir: folder of the executable
 // execFile: file name (basename) of executable
