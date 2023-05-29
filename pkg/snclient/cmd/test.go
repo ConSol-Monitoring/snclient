@@ -64,6 +64,7 @@ func testPrompt(cmd *cobra.Command, snc *snclient.Agent) {
 	}
 
 	snc.PrintVersion()
+	fmt.Fprintf(rootCmd.OutOrStdout(), "enter check command, 'help' or 'exit'.\n")
 
 	rl := readline.NewShell()
 	rl.Prompt.Primary(func() string { return ">> " })
@@ -72,11 +73,15 @@ func testPrompt(cmd *cobra.Command, snc *snclient.Agent) {
 	for {
 		text, err := rl.Readline()
 		if err != nil {
-			break
+			return
 		}
 		switch text {
-		case "", "exit":
+		case "exit":
+			return
+		case "":
 			break
+		case "help":
+			testHelp(cmd)
 		default:
 			args := utils.Tokenize(text)
 			testRunCheck(cmd, snc, args)
@@ -97,4 +102,8 @@ func testRunCheck(cmd *cobra.Command, snc *snclient.Agent, args []string) int64 
 	}
 
 	return res.State
+}
+
+func testHelp(cmd *cobra.Command) {
+	fmt.Fprintf(rootCmd.OutOrStdout(), "%s", cmd.Long)
 }
