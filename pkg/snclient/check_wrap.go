@@ -19,9 +19,8 @@ type CheckWrap struct {
  * todo .
  */
 func (l *CheckWrap) Check(_ *Agent, args []string) (*CheckResult, error) {
-	// default state: OK
-	state := int64(0)
 	var err error
+	var state int64
 	argList, err := l.data.ParseArgs(args)
 	if err != nil {
 		return nil, fmt.Errorf("args error: %s", err.Error())
@@ -46,8 +45,8 @@ func (l *CheckWrap) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}
 		scriptArgs["ARGS"] = strings.Join(args, " ")
 	}
-	re := regexp.MustCompile(`[%$](\w+)[%$]`)
-	matches := re.FindAllStringSubmatch(formattedCommand, -1)
+	argRe := regexp.MustCompile(`[%$](\w+)[%$]`)
+	matches := argRe.FindAllStringSubmatch(formattedCommand, -1)
 
 	for _, match := range matches {
 		r := regexp.MustCompile(regexp.QuoteMeta(match[0]))
@@ -60,11 +59,11 @@ func (l *CheckWrap) Check(_ *Agent, args []string) (*CheckResult, error) {
 	case "windows":
 		scriptOutput, err = exec.Command(winExecutable, "Set-ExecutionPolicy -Scope Process Unrestricted -Force;"+formattedCommand+"; $LASTEXITCODE").CombinedOutput()
 	case "linux":
-		scriptOutput, err = exec.Command(formattedCommand+"; echo $?").CombinedOutput()
+		scriptOutput, err = exec.Command(formattedCommand + "; echo $?").CombinedOutput()
 	}
 
 	var output string
-	re = regexp.MustCompile(`(\d+)\s*\z`)
+	re := regexp.MustCompile(`(\d+)\s*\z`)
 	match := re.FindStringSubmatch(string(scriptOutput))
 	if len(match) > 0 {
 		state, _ = strconv.ParseInt(match[1], 10, 64)
