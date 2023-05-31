@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"runtime"
 	"strconv"
+	"strings"
 )
 
 type CheckWrap struct {
@@ -38,6 +39,13 @@ func (l *CheckWrap) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}
 	}
 
+	if _, exists := scriptArgs["ARGS"]; !exists {
+		args := []string{}
+		for _, arg := range argList {
+			args = append(args, arg.key)
+		}
+		scriptArgs["ARGS"] = strings.Join(args, " ")
+	}
 	re := regexp.MustCompile(`[%$](\w+)[%$]`)
 	matches := re.FindAllStringSubmatch(formattedCommand, -1)
 
@@ -46,28 +54,28 @@ func (l *CheckWrap) Check(_ *Agent, args []string) (*CheckResult, error) {
 		formattedCommand = r.ReplaceAllString(formattedCommand, scriptArgs[match[1]])
 	}
 
-	var output []byte
+	var scriptOutput []byte
 	//nolint:gosec // tainted input is known and unavoidable
 	switch runtime.GOOS {
 	case "windows":
-		output, err = exec.Command(winExecutable, "Set-ExecutionPolicy -Scope Process Unrestricted -Force;"+formattedCommand).Output()
+		scriptOutput, err = exec.Command(winExecutable, "Set-ExecutionPolicy -Scope Process Unrestricted -Force;"+formattedCommand+"; $LASTEXITCODE").CombinedOutput()
 	case "linux":
-		output, err = exec.Command(formattedCommand).Output()
+		scriptOutput, err = exec.Command(formattedCommand+"; echo $?").CombinedOutput()
 	}
 
-	if err != nil {
-		re := regexp.MustCompile(`exit status (\d)`)
-		match := re.FindStringSubmatch(string(output))
-		if len(match) > 0 {
-			state, _ = strconv.ParseInt(match[1], 10, 64)
-		} else {
-			state = 3
-			output = []byte(fmt.Sprintf("Unknown Error in Script: %s", err))
-		}
+	var output string
+	re = regexp.MustCompile(`(\d+)\s*\z`)
+	match := re.FindStringSubmatch(string(scriptOutput))
+	if len(match) > 0 {
+		state, _ = strconv.ParseInt(match[1], 10, 64)
+		output = re.ReplaceAllString(string(scriptOutput), "")
+	} else {
+		state = 3
+		output = fmt.Sprintf("Unknown Error in Script: %s", err)
 	}
 
 	return &CheckResult{
 		State:  state,
-		Output: string(output),
+		Output: output,
 	}, nil
 }
