@@ -635,3 +635,34 @@ func (cd *CheckData) TransformThreshold(srcThreshold []*Condition, srcName, targ
 
 	return transformed
 }
+
+func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, total float64) {
+	percent := float64(0)
+	if threshold == "used" {
+		percent = 100
+	}
+	if total > 0 {
+		percent = val * 100 / total
+	}
+	pctName := perfLabel + " %"
+	cd.result.Metrics = append(cd.result.Metrics,
+		&CheckMetric{
+			Name:     perfLabel,
+			Unit:     "B",
+			Value:    int64(val),
+			Warning:  cd.TransformThreshold(cd.warnThreshold, threshold, perfLabel, "%", "B", total),
+			Critical: cd.TransformThreshold(cd.critThreshold, threshold, perfLabel, "%", "B", total),
+			Min:      &Zero,
+			Max:      &total,
+		},
+		&CheckMetric{
+			Name:     pctName,
+			Unit:     "%",
+			Value:    utils.ToPrecision(percent, 1),
+			Warning:  cd.TransformThreshold(cd.warnThreshold, threshold, pctName, "B", "%", total),
+			Critical: cd.TransformThreshold(cd.critThreshold, threshold, pctName, "B", "%", total),
+			Min:      &Zero,
+			Max:      &Hundred,
+		},
+	)
+}

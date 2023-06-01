@@ -2,11 +2,11 @@ package snclient
 
 import (
 	"fmt"
-	"strconv"
 
 	"pkg/humanize"
 
 	"github.com/shirou/gopsutil/v3/mem"
+	"golang.org/x/exp/slices"
 )
 
 func init() {
@@ -21,17 +21,26 @@ type CheckMemory struct{}
  * Units: B, KB, MB, GB, TB, %
  */
 func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
+	memType := []string{"committed", "physical"}
 	check := &CheckData{
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		detailSyntax: "%(type) = %(used)",
-		topSyntax:    "${status}: ${list}",
+		args: map[string]interface{}{
+			"type": &memType,
+		},
+		defaultWarning:  "used > 80%",
+		defaultCritical: "used > 90%",
+		detailSyntax:    "%(type) = %(used)",
+		topSyntax:       "${status}: ${list}",
 	}
 	_, err := check.ParseArgs(args)
 	if err != nil {
 		return nil, err
 	}
+
+	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
+	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
 	physical, err := mem.VirtualMemory()
 	if err != nil {
@@ -43,40 +52,38 @@ func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
 		return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
 	}
 
-	physicalM := map[string]string{
-		"physical": fmt.Sprintf("%d", physical.Used),
-		"type":     "physical",
-		"used":     humanize.Bytes(physical.Used),
-		"free":     humanize.Bytes(physical.Free),
-		"size":     humanize.Bytes(physical.Total),
-		"used_pct": strconv.FormatFloat(physical.UsedPercent, 'f', 0, 64),
-		"free_pct": strconv.FormatUint(physical.Free*100/(physical.Total+1), 10),
+	if physical.Total == 0 {
+		return nil, fmt.Errorf("total memory is zero")
 	}
-	check.listData = append(check.listData, physicalM)
 
-	committedM := map[string]string{
-		"page":     fmt.Sprintf("%d", physical.Used),
-		"type":     "committed",
-		"used":     humanize.Bytes(swap.Used),
-		"free":     humanize.Bytes(swap.Free),
-		"size":     humanize.Bytes(swap.Total),
-		"used_pct": strconv.FormatFloat(swap.UsedPercent, 'f', 0, 64),
-		"free_pct": strconv.FormatUint(swap.Free*100/(swap.Total+1), 10),
+	if slices.Contains(memType, "committed") {
+		l.addMemType(check, "committed", swap.Used, swap.Free, swap.Total)
 	}
-	check.listData = append(check.listData, committedM)
-
-	value := float64(physical.Used)
-	size := float64(physical.Total)
-	min := float64(0)
-	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-		Name:     "physical",
-		Unit:     "B",
-		Value:    value,
-		Min:      &min,
-		Max:      &size,
-		Warning:  check.warnThreshold,
-		Critical: check.critThreshold,
-	})
+	if slices.Contains(memType, "physical") {
+		l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total)
+	}
 
 	return check.Finalize()
+}
+
+func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, total uint64) {
+	entry := map[string]string{
+		name:         fmt.Sprintf("%d", used),
+		"type":       name,
+		"used":       humanize.IBytesF(used, 2),
+		"used_bytes": fmt.Sprintf("%d", used),
+		"used_pct":   fmt.Sprintf("%.3f", (float64(used) * 100 / (float64(total)))),
+		"free":       humanize.IBytesF(free*100/total, 2),
+		"free_bytes": fmt.Sprintf("%d", free),
+		"free_pct":   fmt.Sprintf("%.3f", (float64(free) * 100 / (float64(total)))),
+		"size":       humanize.IBytesF(total, 2),
+		"size_bytes": fmt.Sprintf("%d", total),
+	}
+	check.listData = append(check.listData, entry)
+	if check.HasThreshold("free") {
+		check.AddBytePercentMetrics("free", name+" free", float64(free), float64(total))
+	}
+	if check.HasThreshold("used") {
+		check.AddBytePercentMetrics("used", name+" used", float64(used), float64(total))
+	}
 }

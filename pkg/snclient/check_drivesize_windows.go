@@ -210,10 +210,10 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 	}
 
 	if check.HasThreshold("free") {
-		l.addMetrics(check, "free", drive["drive"]+" free", magic*float64(usage.Free), magic*float64(usage.Total))
+		check.AddBytePercentMetrics("free", drive["drive"]+" free", magic*float64(usage.Free), magic*float64(usage.Total))
 	}
 	if check.HasThreshold("used") {
-		l.addMetrics(check, "used", drive["drive"]+" used", magic*float64(usage.Used), magic*float64(usage.Total))
+		check.AddBytePercentMetrics("used", drive["drive"]+" used", magic*float64(usage.Used), magic*float64(usage.Total))
 	}
 }
 
@@ -272,10 +272,10 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 	}
 
 	if check.HasThreshold("free") {
-		l.addMetrics(check, "free", drive["drive"]+" free", float64(free), float64(total))
+		check.AddBytePercentMetrics("free", drive["drive"]+" free", float64(free), float64(total))
 	}
 	if check.HasThreshold("used") {
-		l.addMetrics(check, "used", drive["drive"]+" used", float64(used), float64(total))
+		check.AddBytePercentMetrics("used", drive["drive"]+" used", float64(used), float64(total))
 	}
 }
 
@@ -597,35 +597,4 @@ func (l *CheckDrivesize) driveType(dType uint32) string {
 	}
 
 	return "unknown"
-}
-
-func (l *CheckDrivesize) addMetrics(check *CheckData, threshold, perfLabel string, val, total float64) {
-	percent := float64(0)
-	if threshold == "used" {
-		percent = 100
-	}
-	if total > 0 {
-		percent = val * 100 / total
-	}
-	pctName := perfLabel + " %"
-	check.result.Metrics = append(check.result.Metrics,
-		&CheckMetric{
-			Name:     perfLabel,
-			Unit:     "B",
-			Value:    int64(val),
-			Warning:  check.TransformThreshold(check.warnThreshold, threshold, perfLabel, "%", "B", total),
-			Critical: check.TransformThreshold(check.critThreshold, threshold, perfLabel, "%", "B", total),
-			Min:      &Zero,
-			Max:      &total,
-		},
-		&CheckMetric{
-			Name:     pctName,
-			Unit:     "%",
-			Value:    utils.ToPrecision(percent, 1),
-			Warning:  check.TransformThreshold(check.warnThreshold, threshold, pctName, "B", "%", total),
-			Critical: check.TransformThreshold(check.critThreshold, threshold, pctName, "B", "%", total),
-			Min:      &Zero,
-			Max:      &Hundred,
-		},
-	)
 }
