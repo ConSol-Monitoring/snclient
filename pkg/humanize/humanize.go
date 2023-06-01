@@ -101,6 +101,11 @@ func Bytes(num uint64) string {
 	return humanizeBytes(num, 1000, []string{"B", "kB", "MB", "GB", "TB", "PB", "EB"}, 0)
 }
 
+// Bytes(82854982, 3) -> 83.000 MiB
+func BytesF(num uint64, precision int) string {
+	return humanizeBytes(num, 1000, []string{"B", "kB", "MB", "GB", "TB", "PB", "EB"}, precision)
+}
+
 // IBytes(82854982) -> 79 MiB
 func IBytes(num uint64) string {
 	return humanizeBytes(num, 1024, []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}, 0)
