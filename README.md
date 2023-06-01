@@ -29,6 +29,30 @@ There are prebuild binaries and packages for the all supported systems (see abov
 
 Further details are covered in the [documentation](docs/install.md).
 
+## Implementation Status
+W: work in progress
+X: completed
+
+|                        | Windows |  Linux  |   OSX   |   BSD   |
+|------------------------|---------|---------|---------|---------|
+| check_alias            |    X    |    X    |    X    |    X    |
+| check_cpu              |    X    |    X    |    X    |    X    |
+| check_drivesize        |    X    |    W    |    W    |    W    |
+| check_dummy            |    X    |    X    |    X    |    X    |
+| check_eventlog         |    W    |         |         |         |
+| check_files            |    W    |    W    |    W    |    W    |
+| check_index            |    X    |    X    |    X    |    X    |
+| check_memory           |    X    |    X    |    X    |    X    |
+| check_network          |    W    |    W    |    W    |    W    |
+| check_os_version       |    X    |    X    |    X    |    X    |
+| check_process          |    W    |    W    |    W    |    W    |
+| check_service          |    X    |         |         |         |
+| check_snclient_version |    X    |         |         |         |
+| check_uptime           |    X    |    X    |    X    |    X    |
+| check_wmi              |    W    |         |         |         |
+| check_wrap             |    W    |    W    |    W    |    W    |
+
+
 ## Roadmap
 Find a brief overview of what is planned and what is done already:
 
