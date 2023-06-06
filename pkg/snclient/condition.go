@@ -556,6 +556,8 @@ func conditionSetValue(cond *Condition, str string, expand bool) error {
 }
 
 // ThresholdString returns string used in warn/crit threshold performance data.
+//
+//nolint:funlen // allow more than 40 statements
 func ThresholdString(name string, conditions []*Condition) string {
 	// fetch warning conditions for name of metric
 	filtered := make([]*Condition, 0)
@@ -587,17 +589,19 @@ func ThresholdString(name string, conditions []*Condition) string {
 	}
 
 	if len(filtered) == 1 {
-		if filtered[0].operator == Lower {
+		//exhaustive:ignore // only the lower conditions get a trailing ":"
+		switch filtered[0].operator {
+		case Lower:
 			return convert.Num2String(filtered[0].value) + ":"
-		} else if filtered[0].operator == LowerEqual {
-			// the same should be done for len(filtered) == 2
+		case LowerEqual:
 			thisNumber, _ := convert.Float64E(filtered[0].value)
 			nextNumber := math.Ceil(thisNumber)
 			if thisNumber == nextNumber {
 				nextNumber++
 			}
+
 			return convert.Num2String(nextNumber) + ":"
-		} else {
+		default:
 			return convert.Num2String(filtered[0].value)
 		}
 	}
