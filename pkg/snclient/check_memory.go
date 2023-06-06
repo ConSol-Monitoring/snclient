@@ -86,4 +86,10 @@ func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, tota
 	if check.HasThreshold("used") {
 		check.AddBytePercentMetrics("used", name, float64(used), float64(total))
 	}
+	if check.HasThreshold("free_pct") {
+		check.AddPercentMetrics("free_pct", name+"_free_pct", float64(free), float64(total))
+	}
+	if check.HasThreshold("used_pct") {
+		check.AddPercentMetrics("used_pct", name+"_used_pct", float64(free), float64(total))
+	}
 }

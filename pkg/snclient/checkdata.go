@@ -666,3 +666,27 @@ func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, tot
 		},
 	)
 }
+
+func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total float64) {
+	percent := float64(0)
+	if strings.Contains(threshold, "used") {
+		percent = 100
+	} else if strings.Contains(threshold, "free") {
+		percent = 0
+	}
+	if total > 0 {
+		percent = val * 100 / total
+	}
+	cd.result.Metrics = append(cd.result.Metrics,
+		&CheckMetric{
+			Name:     perfLabel,
+			ThresholdName:     threshold,
+			Unit:     "%",
+			Value:    utils.ToPrecision(percent, 1),
+			Warning:  cd.warnThreshold,
+			Critical: cd.critThreshold,
+			Min:      &Zero,
+			Max:      &Hundred,
+		},
+	)
+}
