@@ -679,14 +679,14 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 	}
 	cd.result.Metrics = append(cd.result.Metrics,
 		&CheckMetric{
-			Name:     perfLabel,
-			ThresholdName:     threshold,
-			Unit:     "%",
-			Value:    utils.ToPrecision(percent, 1),
-			Warning:  cd.warnThreshold,
-			Critical: cd.critThreshold,
-			Min:      &Zero,
-			Max:      &Hundred,
+			Name:          perfLabel,
+			ThresholdName: threshold,
+			Unit:          "%",
+			Value:         utils.ToPrecision(percent, 1),
+			Warning:       cd.warnThreshold,
+			Critical:      cd.critThreshold,
+			Min:           &Zero,
+			Max:           &Hundred,
 		},
 	)
 }

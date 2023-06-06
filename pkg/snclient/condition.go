@@ -2,10 +2,10 @@ package snclient
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
-	"math"
 
 	"pkg/convert"
 	"pkg/humanize"
