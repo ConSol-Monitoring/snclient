@@ -11,7 +11,7 @@ func TestCheckUptime(t *testing.T) {
 	snc := Agent{}
 	res := snc.RunCheck("check_uptime", []string{})
 	assert.Regexpf(t,
-		regexp.MustCompile(`^\w+: uptime:.*?(\d+w \d+d|\d+:\d+h), boot: \d+\-\d+\-\d+ \d+:\d+:\d+ \(UTC\) \|'uptime'=\d+s;172800;86400`),
+		regexp.MustCompile(`^\w+: uptime:.*?(\d+w \d+d|\d+:\d+h), boot: \d+\-\d+\-\d+ \d+:\d+:\d+ \(UTC\) \|'uptime'=\d+s;172800:;86400:`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
