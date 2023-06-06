@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"math"
 
 	"pkg/convert"
 	"pkg/humanize"
@@ -586,7 +587,19 @@ func ThresholdString(name string, conditions []*Condition) string {
 	}
 
 	if len(filtered) == 1 {
-		return convert.Num2String(filtered[0].value)
+		if filtered[0].operator == Lower {
+			return convert.Num2String(filtered[0].value) + ":"
+		} else if filtered[0].operator == LowerEqual {
+			// TODO: the same for len(filtered) == 2
+			thisNumber, _ := convert.Float64E(filtered[0].value)
+			nextNumber := math.Ceil(thisNumber)
+			if thisNumber == nextNumber {
+				nextNumber++
+			}
+			return convert.Num2String(nextNumber) + ":"
+		} else {
+			return convert.Num2String(filtered[0].value)
+		}
 	}
 
 	if len(filtered) == 2 {
