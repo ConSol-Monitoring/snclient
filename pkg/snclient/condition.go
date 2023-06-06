@@ -590,7 +590,7 @@ func ThresholdString(name string, conditions []*Condition) string {
 		if filtered[0].operator == Lower {
 			return convert.Num2String(filtered[0].value) + ":"
 		} else if filtered[0].operator == LowerEqual {
-			// TODO: the same for len(filtered) == 2
+			// the same should be done for len(filtered) == 2
 			thisNumber, _ := convert.Float64E(filtered[0].value)
 			nextNumber := math.Ceil(thisNumber)
 			if thisNumber == nextNumber {
