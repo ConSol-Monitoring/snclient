@@ -85,6 +85,7 @@ Sets the format for the base names of the performance data.
 | --- | --- |
 | status | The returned status (OK/WARN/CRIT/UNKNOWN) |
 | count | Number of items matching the filter. |
+| total | Total number of items |
 | list | List of all items matching the filter. |
 | ok_count | Number of items that are ok |
 | ok_list | List of items that are ok |

@@ -1,21 +1,27 @@
 ﻿# check_memory
 
-## Description
+Check free/used memory on the host.
 
-Checks the hosts physical and committed memory
-
-## Thresholds
-
-- free (B, KB, MB, GB, TB, %)
-- used (B, KB, MB, GB, TB, %)
-- free_pct
-- used_pct
+- [Examples](#examples)
+- [Arguments](#arguments)
+- [Metrics](#metrics)
 
 ## Examples
 
-### Using NRPE
+### **Default check**
 
-#### Naemon Config
+    check_memory
+    OK: physical = 12 GB, committed = 17 GB |'physical'=11639271424B;;;0;17032155136
+
+Changing the return syntax to get more information:
+
+    check_memory "top-syntax=${list}" "detail-syntax=${type} free: ${free} used: ${used}size: ${size}"
+    physical free: 5 GB used: 12 GB size: 17 GB, committed free: 10 GB used: 17 GB size: 27 GB |'physical'=11546886144B;;;0;17032155136
+
+
+### Example using **NRPE** and **Naemon**
+
+Naemon Config
 
     define command{
         command_name    check_nrpe
@@ -24,10 +30,23 @@ Checks the hosts physical and committed memory
 
     define service {
             host_name               testhost
-            service_description     check_uptime_testhost
-            check_command           check_nrpe!check_memory!'warn=used_pct > 80' 'crit=used_pct > 95'
+            service_description     check_memory_testhost
+            check_command           check_nrpe!check_memory!'warn=used > 80%' 'crit=used > 90%'
     }
 
-#### Return
+Return
 
-    %> committed = 12 GB, physical = 9.0 GB|'committed_used_pct'=60;;;;'physical_used_pct'=52;;;;
+    OK: physical = 12 GB, committed = 17 GB |'physical'=11639271424B;;;0;17032155136
+
+## Metrics
+
+#### **Check specific metrics**
+
+| Metric | Description |
+| --- | --- |
+| free | Free Memory in bytes (IEC/SI/%) |
+| free_pct | Free memory in pct |
+| used | Used Memory in bytes (IEC/SI/%) |
+| used_pct | Used memory in pct |
+| size | Total size of memory |
+| type | The type of memory |
