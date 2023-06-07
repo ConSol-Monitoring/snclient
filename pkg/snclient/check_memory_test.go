@@ -13,7 +13,7 @@ func TestCheckMemory(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	swap, err := mem.SwapMemory()
-	assert.Nil(t, err, "aquiring swap info failed")
+	assert.Nil(t, err, "acquiring swap info failed")
 
 	hasSwap := false
 	expectedOKOutput := `^OK: physical = \d+(\.\d+)? [KMGTi]*B \|`
