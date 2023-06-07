@@ -53,10 +53,10 @@ func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
 	}
 
 	if physical.Total == 0 {
-		return nil, fmt.Errorf("total memory is zero")
+		return nil, fmt.Errorf("total physical memory is zero")
 	}
 
-	if slices.Contains(memType, "committed") {
+	if slices.Contains(memType, "committed") && swap.Total > 0 {
 		l.addMemType(check, "committed", swap.Used, swap.Free, swap.Total)
 	}
 	if slices.Contains(memType, "physical") {
