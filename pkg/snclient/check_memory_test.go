@@ -4,16 +4,30 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/shirou/gopsutil/v3/mem"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckMemory(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
+	swap, err := mem.SwapMemory()
+	assert.Nil(t, err, "aquiring swap info failed")
+
+	hasSwap := false
+	expectedOKOutput := `^OK: physical = \d+(\.\d+)? [KMGTi]*B \|`
+	expectedCriticalOutput := `^CRITICAL: physical = \d+(\.\d+)? [KMGTi]*B \|`
+	if swap.Total > 0 {
+		hasSwap = true
+		expectedOKOutput = `^OK: committed = \d+(\.\d+)? [KMGTi]*B, physical = \d+(\.\d+)? [KMGTi]*B \|`
+		expectedCriticalOutput = `^CRITICAL: committed = \d+(\.\d+)? [KMGTi]*B, physical = \d+(\.\d+)? [KMGTi]*B \|`
+	}
+
 	res := snc.RunCheck("check_memory", []string{"warn=used > 95", "crit=used > 98"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: committed = \d+(\.\d+)? [KMGTi]*B, physical = \d+(\.\d+)? [KMGTi]*B \|`),
+		regexp.MustCompile(expectedOKOutput),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -27,21 +41,23 @@ func TestCheckMemory(t *testing.T) {
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
-	assert.Regexpf(t,
-		regexp.MustCompile(`'committed'=\d+B;\d+;\d+;0;\d+\s*`),
-		string(res.BuildPluginOutput()),
-		"output matches",
-	)
-	assert.Regexpf(t,
-		regexp.MustCompile(`'committed %'=\d+(\.\d+)?%;\d+(\.\d+)?;\d+(\.\d+)?;0;100\s*`),
-		string(res.BuildPluginOutput()),
-		"output matches",
-	)
+	if hasSwap {
+		assert.Regexpf(t,
+			regexp.MustCompile(`'committed'=\d+B;\d+;\d+;0;\d+\s*`),
+			string(res.BuildPluginOutput()),
+			"output matches",
+		)
+		assert.Regexpf(t,
+			regexp.MustCompile(`'committed %'=\d+(\.\d+)?%;\d+(\.\d+)?;\d+(\.\d+)?;0;100\s*`),
+			string(res.BuildPluginOutput()),
+			"output matches",
+		)
+	}
 
 	res = snc.RunCheck("check_memory", []string{"warn=used > 1B", "crit=used > 10B"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state CRITICAL")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^CRITICAL: committed = \d+(\.\d+)? [KMGTi]*B, physical = \d+(\.\d+)? [KMGTi]*B \|`),
+		regexp.MustCompile(expectedCriticalOutput),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -54,12 +70,7 @@ func TestCheckMemory(t *testing.T) {
 	res = snc.RunCheck("check_memory", []string{"warn=free_pct < 5", "crit=free_pct < 1"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: committed = \d+(\.\d+)? [KMGTi]*B, physical = \d+(\.\d+)? [KMGTi]*B \|`),
-		string(res.BuildPluginOutput()),
-		"output matches",
-	)
-	assert.Regexpf(t,
-		regexp.MustCompile(`'committed_free_pct'=\d+(\.\d+)?%;\d+(\.\d+)?:;\d+(\.\d+)?:;0;100\s*`),
+		regexp.MustCompile(expectedOKOutput),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -68,5 +79,12 @@ func TestCheckMemory(t *testing.T) {
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
+	if hasSwap {
+		assert.Regexpf(t,
+			regexp.MustCompile(`'committed_free_pct'=\d+(\.\d+)?%;\d+(\.\d+)?:;\d+(\.\d+)?:;0;100\s*`),
+			string(res.BuildPluginOutput()),
+			"output matches",
+		)
+	}
 	StopTestAgent(t, snc)
 }
