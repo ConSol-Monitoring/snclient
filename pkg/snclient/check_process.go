@@ -30,7 +30,7 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 		detailSyntax: "${name}: ${count}",
 		topSyntax:    "${status}: ${problem_list}",
 		emptyState:   3,
-		emptySyntax:  "check_cpu failed to find anything with this filter.",
+		emptySyntax:  "check_process failed to find anything with this filter.",
 	}
 	argList, err := check.ParseArgs(args)
 	if err != nil {

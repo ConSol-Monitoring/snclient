@@ -1,20 +1,21 @@
 ﻿# check_uptime
 
-## Description
+Check time since the host last booted.
 
-Checks the uptime of the host.
-
-## Thresholds
-
-- uptime
-
-Available Units: s
+- [Examples](#examples)
+- [Argument Defaults](#argument-defaults)
+- [Metrics](#metrics)
 
 ## Examples
 
-### Using NRPE
+### **Default check**
 
-#### Naemon Config
+    check_uptime
+    OK: uptime: 5w 6d 18:19h, boot: 2023-04-28 15:15:42 (UTC)
+
+### Example using **NRPE** and **Naemon**
+
+Naemon Config
 
     define command{
         command_name    check_nrpe
@@ -27,6 +28,24 @@ Available Units: s
             check_command           check_nrpe!check_uptime!'warn=uptime < 180s' 'crit=uptime < 60s'
     }
 
-#### Return
+Return
 
-    %> uptime: 5d 3:45h, boot: 2023-03-29 11:38:05 (UTC)|'uptime'=445507s;;;180;60
+    OK: uptime: 5w 6d 18:19h, boot: 2023-04-28 15:15:42 (UTC)
+
+## Argument Defaults
+
+| Argument | Default Value |
+| --- | --- |
+warning | uptime < 2d |
+critical | uptime < 1d |
+top-syntax | \${status}: ${list} |
+detail-syntax | uptime: \${uptime}, boot: ${boot} (UTC) |
+
+## Metrics
+
+#### **Check specific metrics**
+
+| Metric | Description |
+| --- | --- |
+| boot | System boot time |
+| uptime | Time since last boot |

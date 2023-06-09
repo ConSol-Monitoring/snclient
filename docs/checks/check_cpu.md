@@ -3,7 +3,7 @@
 Checks if the load of the CPU(s) are within bounds.
 
 - [Examples](#examples)
-- [Arguments](#arguments)
+- [Argument Defaults](#argument-defaults)
 - [Metrics](#metrics)
 
 ## Examples
@@ -37,6 +37,19 @@ Naemon Config
 Return
 
     OK: CPU load is ok. |'total 5m'=13%;80;90 'total 1m'=13%;80;90 'total 5s'=13%;80;90
+
+## Argument Defaults
+
+| Argument | Default Value |
+| --- | --- |
+filter | core = 'total' |
+warning | load > 80 |
+critical | load > 90 |
+empty-state | 3 (Unknown) |
+top-syntax | \${status}: ${problem_list} |
+ok-syntax | %(status): CPU load is ok. |
+empty-syntax | check_cpu failed to find anything with this filter. |
+detail-syntax | \${time}: ${load}% |
 
 ## Metrics
 

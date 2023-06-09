@@ -21,9 +21,9 @@ func (l *CheckNetwork) Check(_ *Agent, args []string) (*CheckResult, error) {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		okSyntax:     "%(list)",
+		okSyntax:     "%(status): %(list)",
 		detailSyntax: "%(name) >%(sent) <%(received) bps",
-		topSyntax:    "%(list)",
+		topSyntax:    "%(status): %(list)",
 	}
 	_, err := check.ParseArgs(args)
 	if err != nil {

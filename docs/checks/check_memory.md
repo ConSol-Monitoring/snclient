@@ -3,7 +3,7 @@
 Check free/used memory on the host.
 
 - [Examples](#examples)
-- [Arguments](#arguments)
+- [Argument Defaults](#argument-defaults)
 - [Metrics](#metrics)
 
 ## Examples
@@ -37,6 +37,15 @@ Naemon Config
 Return
 
     OK: physical = 12 GB, committed = 17 GB |'physical'=11639271424B;;;0;17032155136
+
+## Argument Defaults
+
+| Argument | Default Value |
+| --- | --- |
+warning | used > 80% |
+critical | used > 90% |
+top-syntax | \${status}: ${list} |
+detail-syntax | %(type) = %(used) |
 
 ## Metrics
 
