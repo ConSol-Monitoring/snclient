@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -45,7 +46,7 @@ snclient test -vv check_memory
 				return
 			}
 			rc := testRunCheck(cmd, snc, args)
-			os.Exit(int(rc))
+			os.Exit(rc)
 		},
 	}
 	rootCmd.AddCommand(testCmd)
@@ -89,7 +90,7 @@ func testPrompt(cmd *cobra.Command, snc *snclient.Agent) {
 	}
 }
 
-func testRunCheck(cmd *cobra.Command, snc *snclient.Agent, args []string) int64 {
+func testRunCheck(cmd *cobra.Command, snc *snclient.Agent, args []string) int {
 	res := snc.RunCheck(args[0], args[1:])
 	fmt.Fprintf(rootCmd.OutOrStdout(), "Exit Code: %s (%d)\n", res.StateString(), res.State)
 	fmt.Fprintf(rootCmd.OutOrStdout(), "Plugin Output:\n")
@@ -101,7 +102,12 @@ func testRunCheck(cmd *cobra.Command, snc *snclient.Agent, args []string) int64 
 		}
 	}
 
-	return res.State
+	state := int(3)
+	if res.State > 0 && res.State <= math.MaxInt {
+		state = int(res.State)
+	}
+
+	return state
 }
 
 func testHelp(cmd *cobra.Command) {
