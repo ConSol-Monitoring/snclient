@@ -1,0 +1,27 @@
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - "*"
+
+jobs:
+  copy-doc:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Deploy
+      uses: cpina/github-action-push-to-another-repository@v1.6
+      env:
+        SSH_DEPLOY_KEY: ${{ secrets.OMD_CONSOL_DE_KEY }}
+      with:
+        source-directory: 'docs/'
+        destination-github-username: 'ConSol-Monitoring'
+        destination-repository-name: 'omd-consol-de'
+        target-directory: 'content/en/docs/snclient'
+        commit-message: |
+          update snclient docs
+
+          https://github.com/ConSol-Monitoring/snclient/actions/workflows/deploy-docs.yml
+        user-email: 'devnull@consol.de'
+        user-name: '/dev/null'
+
