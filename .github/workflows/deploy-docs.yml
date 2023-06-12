@@ -23,5 +23,4 @@ jobs:
 
           https://github.com/ConSol-Monitoring/snclient/actions/workflows/deploy-docs.yml
         user-email: 'devnull@consol.de'
-        user-name: '/dev/null'
-
+        user-name: 'github automation'
