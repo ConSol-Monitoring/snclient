@@ -1,4 +1,27 @@
+---
+title: Installation
+---
+
 # Installation
+
+## Using Binary Packages
+
+Using packages is the recommended way to install SNClient+.
+
+### Stable Releases
+Installation packages from stable releases can be found here:
+
+- https://github.com/ConSol-Monitoring/snclient/releases
+
+### Development Snapshots
+During development each code commit produces build artifacts if all tests were
+successful.
+
+You will find those artifacts here:
+
+- https://github.com/ConSol-Monitoring/snclient/actions/workflows/cicd.yml
+
+Usually you should stick to the stable releases unless you want to test something.
 
 ## Building SNClient From Source
 
