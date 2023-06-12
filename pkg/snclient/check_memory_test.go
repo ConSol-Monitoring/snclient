@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/shirou/gopsutil/v3/mem"
-
 	"github.com/stretchr/testify/assert"
 )
 
