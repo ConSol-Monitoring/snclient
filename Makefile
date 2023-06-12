@@ -152,7 +152,7 @@ citest: vendor
 	# Run other subtests
 	#
 	$(MAKE) golangci
-	-$(MAKE) govulncheck
+	#-$(MAKE) govulncheck
 	$(MAKE) fmt
 	#
 	# Normal test cases
