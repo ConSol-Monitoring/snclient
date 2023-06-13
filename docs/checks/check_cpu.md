@@ -1,10 +1,20 @@
-﻿# check_cpu
+﻿---
+title: check_cpu
+---
+
+# check_cpu
 
 Checks if the load of the CPU(s) are within bounds.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Metrics](#metrics)
+
+### Implementation
+
+| Windows | Linux | FreeBSD | MacOSX |
+| --- | --- | --- | --- |
+| :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Examples
 

@@ -1,3 +1,7 @@
+---
+title: check_network
+---
+
 # check_network
 
 Checks network interface status.
@@ -5,6 +9,12 @@ Checks network interface status.
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Metrics](#metrics)
+
+### Implementation
+
+| Windows | Linux | FreeBSD | MacOSX |
+| --- | --- | --- | --- |
+| :construction: | :construction: | :construction: | :construction: |
 
 ## Examples
 

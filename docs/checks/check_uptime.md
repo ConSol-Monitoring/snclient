@@ -1,10 +1,20 @@
-﻿# check_uptime
+﻿---
+title: check_uptime
+---
+
+# check_uptime
 
 Check time since the host last booted.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Metrics](#metrics)
+
+### Implementation
+
+| Windows | Linux | FreeBSD | MacOSX |
+| --- | --- | --- | --- |
+| :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Examples
 

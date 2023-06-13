@@ -1,10 +1,20 @@
-﻿# check_service
+﻿---
+title: check_service
+---
+
+# check_service
 
 Check the state of one or more of the computer services.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Metrics](#metrics)
+
+### Implementation
+
+| Windows | Linux | FreeBSD | MacOSX |
+| --- | --- | --- | --- |
+| :white_check_mark: | :x: | :x: | :x: |
 
 ## Examples
 

@@ -1,3 +1,7 @@
+---
+title: check_drivesize
+---
+
 # check_drivesize
 
 Check the size (free-space) of a drive or volume.
@@ -5,6 +9,12 @@ Check the size (free-space) of a drive or volume.
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Metrics](#metrics)
+
+### Implementation
+
+| Windows | Linux | FreeBSD | MacOSX |
+| --- | --- | --- | --- |
+| :white_check_mark: | :construction: | :construction: | :construction: |
 
 ## Examples
 

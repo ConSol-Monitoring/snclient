@@ -1,10 +1,20 @@
-﻿# check_memory
+﻿---
+title: check_memory
+---
+
+# check_memory
 
 Check free/used memory on the host.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Metrics](#metrics)
+
+### Implementation
+
+| Windows | Linux | FreeBSD | MacOSX |
+| --- | --- | --- | --- |
+| :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Examples
 
