@@ -33,8 +33,8 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 			State: CheckExitOK,
 		},
 		detailSyntax: "%(name)",
-		okSyntax:     "All %(count) files are ok",
-		topSyntax:    "%(problem_count)/%(count) files (%(problem_list))",
+		okSyntax:     "%(status): All %(count) files are ok",
+		topSyntax:    "%(status): %(problem_count)/%(count) files (%(problem_list))",
 		emptySyntax:  "No files found",
 		emptyState:   CheckExitUnknown,
 	}

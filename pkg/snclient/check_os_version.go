@@ -21,7 +21,7 @@ func (l *CheckOSVersion) Check(_ *Agent, args []string) (*CheckResult, error) {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		topSyntax: "${status} - ${platform} ${version} (arch: ${arch})",
+		topSyntax: "${status}: ${platform} ${version} (arch: ${arch})",
 	}
 	_, err := check.ParseArgs(args)
 	if err != nil {

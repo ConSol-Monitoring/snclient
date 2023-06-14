@@ -24,8 +24,8 @@ func (l *CheckEventlog) Check(_ *Agent, args []string) (*CheckResult, error) {
 			State: CheckExitOK,
 		},
 		detailSyntax: "%(file) %(source) (%(message))",
-		okSyntax:     "Event log seems fine",
-		topSyntax:    "%(count) message(s) %(problem_list)",
+		okSyntax:     "%(status): Event log seems fine",
+		topSyntax:    "%(status): %(count) message(s) %(problem_list)",
 		emptySyntax:  "No entries found",
 		emptyState:   3,
 	}

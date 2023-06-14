@@ -34,8 +34,8 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 			State: CheckExitOK,
 		},
 		detailSyntax: "%(process)=%(state)",
-		topSyntax:    "%(problem_list)",
-		okSyntax:     "all processes are ok.",
+		topSyntax:    "%(status): %(problem_list)",
+		okSyntax:     "%(status): ${list}",
 		emptySyntax:  "No processes found",
 		emptyState:   CheckExitUnknown,
 	}

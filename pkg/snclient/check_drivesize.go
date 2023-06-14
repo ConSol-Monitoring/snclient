@@ -31,9 +31,10 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 		},
 		defaultWarning:  "used_pct > 80",
 		defaultCritical: "used_pct > 90",
-		okSyntax:        "All %(count) drive(s) are ok",
-		detailSyntax:    "%(drive_or_name)\\: %(used)/%(size) used",
-		topSyntax:       "%(problem_list)",
+		okSyntax:        "%(status): All %(count) drive(s) are ok",
+		detailSyntax:    "%(drive_or_name) %(used)/%(size) used",
+		topSyntax:       "${status}: ${problem_list}",
+		emptySyntax:     "%(status): No drives found",
 	}
 	argList, err := check.ParseArgs(args)
 	if err != nil {

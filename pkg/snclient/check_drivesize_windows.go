@@ -59,9 +59,9 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 		defaultFilter:   "( mounted = 1  or media_type = 0 )",
 		defaultWarning:  "used > 80",
 		defaultCritical: "used > 90",
-		okSyntax:        "%(status) All %(count) drive(s) are ok",
+		okSyntax:        "%(status): All %(count) drive(s) are ok",
 		detailSyntax:    "%(drive_or_name) %(used)/%(size) used",
-		topSyntax:       "${status} ${problem_list}",
+		topSyntax:       "${status}: ${problem_list}",
 		emptySyntax:     "%(status): No drives found",
 	}
 	_, err := check.ParseArgs(args)
