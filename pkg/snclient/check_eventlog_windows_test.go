@@ -12,7 +12,7 @@ func TestCheckEventlog(t *testing.T) {
 	res := snc.RunCheck("check_eventlog", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^Event log seems fine`),
+		regexp.MustCompile(`^OK: Event log seems fine`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
