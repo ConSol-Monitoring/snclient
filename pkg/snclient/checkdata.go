@@ -546,6 +546,7 @@ func (cd *CheckData) SetDefaultThresholdUnit(defaultUnit string, names []string)
 	cd.VisitAll(cd.warnThreshold, setDefault)
 	cd.VisitAll(cd.critThreshold, setDefault)
 	cd.VisitAll(cd.okThreshold, setDefault)
+	cd.VisitAll(cd.filter, setDefault)
 }
 
 // ExpandThresholdUnit multiplies the threshold value if the unit matches the exponents. Unit is then replaced with the targetUnit.
