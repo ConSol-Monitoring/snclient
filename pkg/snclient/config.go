@@ -331,3 +331,16 @@ func parseTLSMinVersion(version string) (uint16, error) {
 		return 0, err
 	}
 }
+
+func getSecureCiphers() (ciphers []uint16) {
+	ciphers = []uint16{}
+	for _, cipher := range tls.CipherSuites() {
+		if cipher.Insecure {
+			continue
+		}
+		log.Tracef("enabled cipher: %s", cipher.Name)
+		ciphers = append(ciphers, cipher.ID)
+	}
+
+	return
+}

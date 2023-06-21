@@ -137,6 +137,14 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 			l.tlsConfig.MinVersion = min
 		}
 
+		/* remove insecure cipers, but only tls == 1.2
+		 * with tls 1.3 go decides which ciphers will be used
+		 * with tls < 1.2 we allow all ciphers, it unsecure anyway and it seems like an old client needs to connect (default is 1.2)
+		 */
+		if l.tlsConfig.MinVersion == tls.VersionTLS12 {
+			l.tlsConfig.CipherSuites = getSecureCiphers()
+		}
+
 		// certificate
 		certPath, ok := conf.GetString("certificate")
 		switch {
