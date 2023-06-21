@@ -57,8 +57,10 @@ func (l *CheckWrap) Check(_ *Agent, args []string) (*CheckResult, error) {
 	//nolint:gosec // tainted input is known and unavoidable
 	switch runtime.GOOS {
 	case "windows":
+		log.Debugf("executing command: %s %s", winExecutable, "Set-ExecutionPolicy -Scope Process Unrestricted -Force;"+formattedCommand+"; $LASTEXITCODE")
 		scriptOutput, err = exec.Command(winExecutable, "Set-ExecutionPolicy -Scope Process Unrestricted -Force;"+formattedCommand+"; $LASTEXITCODE").CombinedOutput()
 	case "linux":
+		log.Debugf("executing command: %s", formattedCommand + "; echo $?")
 		scriptOutput, err = exec.Command(formattedCommand + "; echo $?").CombinedOutput()
 	}
 
