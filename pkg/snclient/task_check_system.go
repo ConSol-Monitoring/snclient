@@ -16,7 +16,7 @@ type CheckSystemHandler struct {
 	bufferLength float64
 }
 
-func NewCheckSCheckSystemHandler() Module {
+func NewCheckSystemHandler() Module {
 	return &CheckSystemHandler{}
 }
 
@@ -61,7 +61,7 @@ func (c *CheckSystemHandler) mainLoop() {
 	for {
 		select {
 		case <-c.stopChannel:
-			log.Tracef("stopping CheckSystemUnix mainLoop")
+			log.Tracef("stopping CheckSystem mainLoop")
 
 			return
 		case <-ticker.C:
@@ -75,7 +75,7 @@ func (c *CheckSystemHandler) mainLoop() {
 func (c *CheckSystemHandler) update(create bool) {
 	data, err := c.fetch()
 	if err != nil {
-		log.Warnf("[CheckSystemUnix] reading cpu info failed: %s", err.Error())
+		log.Warnf("[CheckSystem] reading cpu info failed: %s", err.Error())
 
 		return
 	}
