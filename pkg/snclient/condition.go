@@ -390,6 +390,12 @@ func conditionNext(token []string) (cond *Condition, remaining []string, err err
 	}
 	query := keyword
 
+	// trim quotes from keyword
+	keyword, err = utils.TrimQuotes(keyword)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s", err.Error())
+	}
+
 	cond = &Condition{
 		keyword: keyword,
 	}
