@@ -55,7 +55,7 @@ func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 			check.listData = append(check.listData, map[string]string{
 				"time": time,
 				"core": name,
-				"load": fmt.Sprintf("%f", avg),
+				"load": fmt.Sprintf("%.0f", utils.ToPrecision(avg, 0)),
 			})
 			check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 				ThresholdName: "load",
