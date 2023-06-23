@@ -212,6 +212,29 @@ func TokenizeBy(str, separator string) []string {
 	return tokens
 }
 
+func TrimQuotes(str string) (res string, err error) {
+	switch {
+	case strings.HasPrefix(str, "'"):
+		if !strings.HasSuffix(str, "'") || len(str) == 1 {
+			return "", fmt.Errorf("unbalanced quotes in '%s'", str)
+		}
+		str = strings.TrimPrefix(str, "'")
+		str = strings.TrimSuffix(str, "'")
+	case strings.HasPrefix(str, `"`):
+		if !strings.HasSuffix(str, `"`) || len(str) == 1 {
+			return "", fmt.Errorf("unbalanced quotes in '%s'", str)
+		}
+		str = strings.TrimPrefix(str, `"`)
+		str = strings.TrimSuffix(str, `"`)
+	case strings.HasSuffix(str, "'"):
+		return "", fmt.Errorf("unbalanced quotes in '%s'", str)
+	case strings.HasSuffix(str, `"`):
+		return "", fmt.Errorf("unbalanced quotes in '%s'", str)
+	}
+
+	return str, nil
+}
+
 func ParseVersion(str string) (num float64) {
 	str = strings.TrimPrefix(str, "v")
 	token := strings.Split(str, ".")
