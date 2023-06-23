@@ -45,9 +45,10 @@ X: completed
 | check_memory           |    X    |    X    |    X    |    X    |
 | check_network          |    W    |    W    |    W    |    W    |
 | check_os_version       |    X    |    X    |    X    |    X    |
+| check_pagefile         |         |         |         |         |
 | check_process          |    W    |    W    |    W    |    W    |
 | check_service          |    X    |         |         |         |
-| check_snclient_version |    X    |         |         |         |
+| check_snclient_version |    X    |    X    |    X    |    X    |
 | check_uptime           |    X    |    X    |    X    |    X    |
 | check_wmi              |    W    |         |         |         |
 | check_wrap             |    W    |    W    |    W    |    W    |
