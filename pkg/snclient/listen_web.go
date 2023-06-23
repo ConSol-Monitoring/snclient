@@ -49,6 +49,9 @@ type CheckWebPerfNumber struct {
 }
 
 func (n CheckWebPerfNumber) MarshalJSON() ([]byte, error) {
+	if fmt.Sprintf("%v", n.num) == "U" {
+		return []byte(`"U"`), nil
+	}
 	val, err := convert.Num2StringE(n.num)
 	if err != nil {
 		return nil, fmt.Errorf("num2string: %s", err.Error())
