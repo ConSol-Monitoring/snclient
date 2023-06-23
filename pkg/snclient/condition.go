@@ -270,7 +270,12 @@ func (c *Condition) getVarValue(data map[string]string) (val string, ok bool) {
 		}
 	}
 
-	varStr, ok := data[c.keyword]
+	varStr, ok := data[c.keyword+"_value"]
+	if ok {
+		return varStr, ok
+	}
+
+	varStr, ok = data[c.keyword]
 
 	return varStr, ok
 }
