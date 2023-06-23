@@ -257,6 +257,10 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 	// check clear text password
 	if !l.Handler.verifyPassword(req.Header.Get("Password")) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		res.Header().Set("Content-Type", "application/json")
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"error": "permission denied",
+		}))
 
 		return
 	}
@@ -310,6 +314,10 @@ func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	_, password, _ := req.BasicAuth()
 	if !l.Handler.verifyPassword(password) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		res.Header().Set("Content-Type", "application/json")
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"error": "permission denied",
+		}))
 
 		return
 	}
