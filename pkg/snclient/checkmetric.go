@@ -24,6 +24,11 @@ type CheckMetric struct {
 func (m *CheckMetric) String() string {
 	var res bytes.Buffer
 
+	// Unknown value
+	if fmt.Sprintf("%v", m.Value) == "U" {
+		return fmt.Sprintf("'%s'=U", m.Name)
+	}
+
 	res.WriteString(fmt.Sprintf("'%s'=%s%s", m.Name, convert.Num2String(m.Value), m.Unit))
 
 	res.WriteString(";")

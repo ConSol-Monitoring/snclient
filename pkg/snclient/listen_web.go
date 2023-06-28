@@ -49,6 +49,9 @@ type CheckWebPerfNumber struct {
 }
 
 func (n CheckWebPerfNumber) MarshalJSON() ([]byte, error) {
+	if fmt.Sprintf("%v", n.num) == "U" {
+		return []byte(`"U"`), nil
+	}
 	val, err := convert.Num2StringE(n.num)
 	if err != nil {
 		return nil, fmt.Errorf("num2string: %s", err.Error())
@@ -257,6 +260,10 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 	// check clear text password
 	if !l.Handler.verifyPassword(req.Header.Get("Password")) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		res.Header().Set("Content-Type", "application/json")
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"error": "permission denied",
+		}))
 
 		return
 	}
@@ -310,6 +317,10 @@ func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	_, password, _ := req.BasicAuth()
 	if !l.Handler.verifyPassword(password) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		res.Header().Set("Content-Type", "application/json")
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"error": "permission denied",
+		}))
 
 		return
 	}

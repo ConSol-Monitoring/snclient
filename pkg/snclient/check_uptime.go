@@ -43,8 +43,9 @@ func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
 	uptime := time.Since(time.Unix(int64(bootTime), 0))
 
 	check.listData = append(check.listData, map[string]string{
-		"uptime": utils.DurationString(uptime.Truncate(time.Minute)),
-		"boot":   time.Unix(int64(bootTime), 0).UTC().Format("2006-01-02 15:04:05"),
+		"uptime":       utils.DurationString(uptime.Truncate(time.Minute)),
+		"uptime_value": fmt.Sprintf("%.1f", uptime.Seconds()),
+		"boot":         time.Unix(int64(bootTime), 0).UTC().Format("2006-01-02 15:04:05"),
 	})
 
 	check.result.Metrics = append(check.result.Metrics, &CheckMetric{

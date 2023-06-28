@@ -270,7 +270,12 @@ func (c *Condition) getVarValue(data map[string]string) (val string, ok bool) {
 		}
 	}
 
-	varStr, ok := data[c.keyword]
+	varStr, ok := data[c.keyword+"_value"]
+	if ok {
+		return varStr, ok
+	}
+
+	varStr, ok = data[c.keyword]
 
 	return varStr, ok
 }
@@ -384,6 +389,12 @@ func conditionNext(token []string) (cond *Condition, remaining []string, err err
 		return nil, nil, fmt.Errorf("unexpected end of condition after '%s'", keyword)
 	}
 	query := keyword
+
+	// trim quotes from keyword
+	keyword, err = utils.TrimQuotes(keyword)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s", err.Error())
+	}
 
 	cond = &Condition{
 		keyword: keyword,

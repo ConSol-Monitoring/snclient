@@ -119,3 +119,33 @@ func TestDurationString(t *testing.T) {
 		assert.Equalf(t, tst.res, res, "DurationString: %v -> %v", tst.in, res)
 	}
 }
+
+func TestTrimQuotes(t *testing.T) {
+	tests := []struct {
+		in  string
+		res string
+		err bool
+	}{
+		{`"test"`, `test`, false},
+		{`'test'`, `test`, false},
+		{`'test test'`, `test test`, false},
+		{`"test test"`, `test test`, false},
+		{`"test test`, "", true},
+		{`'test test`, "", true},
+		{`test"test`, `test"test`, false},
+		{`test'test`, `test'test`, false},
+		{`test test'`, "", true},
+		{`test test"`, "", true},
+	}
+
+	for _, tst := range tests {
+		res, err := TrimQuotes(tst.in)
+		switch tst.err {
+		case true:
+			assert.Errorf(t, err, "TrimQuotes should error on %s", tst.in)
+		case false:
+			assert.Nilf(t, err, "TrimQuotes should not error on %s", tst.in)
+			assert.Equalf(t, tst.res, res, "TrimQuotes: %v -> %v", tst.in, res)
+		}
+	}
+}

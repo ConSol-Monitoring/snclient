@@ -120,6 +120,8 @@ func TestConditionCompare(t *testing.T) {
 		{"test regex 'a+'", "test", "bbbb", false},
 		{"test !~ 'a+'", "test", "bbb", true},
 		{"test !~ 'a+'", "test", "aa", false},
+		{"'test space' > 5", "test space", "2", false},
+		{"'test space' < 5", "test space", "2", true},
 	} {
 		threshold, err := NewCondition(check.threshold)
 		assert.NoErrorf(t, err, "parsed threshold")

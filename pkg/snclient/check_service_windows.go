@@ -189,36 +189,11 @@ func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service st
 
 	check.listData = append(check.listData, listEntry)
 
-	if len(services) == 0 {
+	if len(services) == 0 && !check.showAll {
 		return nil
 	}
 
-	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-		Name:  service,
-		Value: float64(statusCode.State),
-	})
-	if mem != nil {
-		check.result.Metrics = append(
-			check.result.Metrics,
-			&CheckMetric{
-				Name:  fmt.Sprintf("%s rss", service),
-				Value: float64(mem.RSS),
-				Unit:  "B",
-			},
-			&CheckMetric{
-				Name:  fmt.Sprintf("%s vms", service),
-				Value: float64(mem.VMS),
-				Unit:  "B",
-			},
-		)
-	}
-	if cpu != nil {
-		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-			Name:  fmt.Sprintf("%s cpu", service),
-			Value: utils.ToPrecision(*cpu, 1),
-			Unit:  "%",
-		})
-	}
+	l.addMetrics(check, service, statusCode, mem, cpu)
 
 	return nil
 }
@@ -312,4 +287,56 @@ func (l *CheckService) svcStartType(startType uint32, delayed bool) string {
 	}
 
 	return "unknown"
+}
+
+func (l *CheckService) addMetrics(check *CheckData, service string, statusCode *svc.Status, mem *process.MemoryInfoStat, cpu *float64) {
+	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+		Name:  service,
+		Value: float64(statusCode.State),
+	})
+	if mem != nil {
+		check.result.Metrics = append(
+			check.result.Metrics,
+			&CheckMetric{
+				Name:     fmt.Sprintf("%s rss", service),
+				Value:    float64(mem.RSS),
+				Unit:     "B",
+				Warning:  check.TransformThreshold(check.warnThreshold, "rss", fmt.Sprintf("%s rss", service), "B", "B", 0),
+				Critical: check.TransformThreshold(check.warnThreshold, "rss", fmt.Sprintf("%s rss", service), "B", "B", 0),
+			},
+			&CheckMetric{
+				Name:     fmt.Sprintf("%s vms", service),
+				Value:    float64(mem.VMS),
+				Unit:     "B",
+				Warning:  check.TransformThreshold(check.warnThreshold, "vms", fmt.Sprintf("%s vms", service), "B", "B", 0),
+				Critical: check.TransformThreshold(check.warnThreshold, "vms", fmt.Sprintf("%s vms", service), "B", "B", 0),
+			},
+		)
+	} else {
+		check.result.Metrics = append(
+			check.result.Metrics,
+			&CheckMetric{
+				Name:  fmt.Sprintf("%s rss", service),
+				Value: "U",
+			},
+			&CheckMetric{
+				Name:  fmt.Sprintf("%s vms", service),
+				Value: "U",
+			},
+		)
+	}
+	if cpu != nil {
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:     fmt.Sprintf("%s cpu", service),
+			Value:    utils.ToPrecision(*cpu, 1),
+			Unit:     "%",
+			Warning:  check.warnThreshold,
+			Critical: check.critThreshold,
+		})
+	} else {
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:  fmt.Sprintf("%s cpu", service),
+			Value: "U",
+		})
+	}
 }
