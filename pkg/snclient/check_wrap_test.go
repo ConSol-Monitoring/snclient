@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"testing"
 	"fmt"
+	"runtime"
+	"path/filepath"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -14,14 +16,19 @@ func init() {
 }
 
 func TestCheckWrap(t *testing.T) {
-	config := `
+	_, myTestFile, _, _ := runtime.Caller(0)
+	myTestDir := filepath.Dir(myTestFile)
+	scriptsDir := filepath.Join(myTestDir, "t", "scripts")
+
+	config := fmt.Sprintf(`
 [/modules]
 CheckExternalScripts = enabled
 
 [/settings/external scripts/scripts]
-check_dummy_sh = scripts/check_dummy.sh
-check_dummy_sh_ok = scripts/check_dummy.sh OK "i am ok"
-`
+check_dummy_sh = %s/check_dummy.sh
+check_dummy_sh_ok = %s/check_dummy.sh OK "i am ok"
+`, scriptsDir, scriptsDir)
+
 	snc := StartTestAgent(t, config)
 
 	res := snc.RunCheck("check_dummy_sh_ok", []string{})
