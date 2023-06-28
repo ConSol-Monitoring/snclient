@@ -13,11 +13,11 @@ type CheckWrap struct {
 	noCopy        noCopy
 	data          CheckData
 	commandString string
+	config        *ConfigSection
+	wrapped       bool
 }
 
-/* check_wrap_windows todo
- * todo .
- */
+// CheckWrap wraps existing scripts created by the ExternalScriptsHandler
 func (l *CheckWrap) Check(_ *Agent, args []string) (*CheckResult, error) {
 	var err error
 	var state int64
@@ -59,7 +59,7 @@ func (l *CheckWrap) Check(_ *Agent, args []string) (*CheckResult, error) {
 	case "windows":
 		log.Debugf("executing command: %s %s", winExecutable, "Set-ExecutionPolicy -Scope Process Unrestricted -Force;"+formattedCommand+"; $LASTEXITCODE")
 		scriptOutput, err = exec.Command(winExecutable, "Set-ExecutionPolicy -Scope Process Unrestricted -Force;"+formattedCommand+"; $LASTEXITCODE").CombinedOutput()
-	case "linux":
+	default:
 		log.Debugf("executing command: %s", formattedCommand+"; echo $?")
 		scriptOutput, err = exec.Command(formattedCommand + "; echo $?").CombinedOutput()
 	}

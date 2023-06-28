@@ -160,6 +160,18 @@ func (config *Config) Section(name string) *ConfigSection {
 	return section
 }
 
+// SectionsByPrefix returns section by name or empty section.
+func (config *Config) SectionsByPrefix(prefix string) map[string]*ConfigSection {
+	list := make(map[string]*ConfigSection, 0)
+	for name := range config.sections {
+		if strings.HasPrefix(name, prefix) {
+			list[name] = config.Section(name)
+		}
+	}
+
+	return list
+}
+
 // parseString parses string from config section.
 func (config *Config) parseString(val string) (string, error) {
 	val = strings.TrimSpace(val)
@@ -206,6 +218,18 @@ func (cs *ConfigSection) Set(key, value string) {
 	cs.data[key] = value
 }
 
+// Merge merges defaults into ConfigSection.
+func (d *ConfigSection) Merge(defaults ConfigSection) {
+	d.data.Merge(defaults.data)
+}
+
+// MergeDefaults merges multiple defaults into ConfigSection.
+func (d *ConfigSection) MergeDefaults(defaults ...*ConfigSection) {
+	for _, def := range defaults {
+		d.data.Merge(def.data)
+	}
+}
+
 // ConfigData contains data for a section.
 type ConfigData map[string]string
 
@@ -219,7 +243,7 @@ func (d *ConfigData) Keys() []string {
 	return keys
 }
 
-// Merge merges defaults into ConfigSection.
+// Merge merges defaults into ConfigData.
 func (d *ConfigData) Merge(defaults ConfigData) {
 	for key, value := range defaults {
 		if _, ok := (*d)[key]; !ok {

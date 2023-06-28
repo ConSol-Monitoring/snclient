@@ -49,6 +49,7 @@ X: completed
 | check_process          |    W    |    W    |    W    |    W    |
 | check_service          |    X    |         |         |         |
 | check_snclient_version |    X    |    X    |    X    |    X    |
+| check_tasksched        |         |         |         |         |
 | check_uptime           |    X    |    X    |    X    |    X    |
 | check_wmi              |    W    |         |         |         |
 | check_wrap             |    W    |    W    |    W    |    W    |
@@ -84,6 +85,7 @@ Find a brief overview of what is planned and what is done already:
   - [ ] windows_exporter
   - [ ] node_exporter
   - [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
+- [ ] add config include folder
 
 ### Stage 3
 - [ ] add basic prometheus exporters
