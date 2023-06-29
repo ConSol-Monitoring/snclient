@@ -142,13 +142,6 @@ citest: vendor
 	#
 	if grep -rn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 	#
-	# Darwin, Linux and Freebsd are handled equaly
-	#
-	set -ex; for file in $$(find . -name \*_linux.go -not -path "./vendor/*"); do \
-		diff $$file $${file/_linux.go/_freebsd.go}; \
-		diff $$file $${file/_linux.go/_darwin.go}; \
-	done
-	#
 	# Run other subtests
 	#
 	$(MAKE) golangci

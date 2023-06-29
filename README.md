@@ -47,7 +47,7 @@ X: completed
 | check_os_version       |    X    |    X    |    X    |    X    |
 | check_pagefile         |         |         |         |         |
 | check_process          |    W    |    W    |    W    |    W    |
-| check_service          |    X    |         |         |         |
+| check_service          |    X    |    W    |         |         |
 | check_snclient_version |    X    |    X    |    X    |    X    |
 | check_tasksched        |         |         |         |         |
 | check_uptime           |    X    |    X    |    X    |    X    |
