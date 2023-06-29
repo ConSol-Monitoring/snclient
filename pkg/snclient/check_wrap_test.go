@@ -3,7 +3,6 @@ package snclient
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"testing"
 
@@ -28,11 +27,7 @@ check_dummy_sh_ok = %s/check_dummy.sh OK "i am ok"
 
 	res := snc.RunCheck("check_dummy_sh_ok", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: i am ok$`),
-		string(res.BuildPluginOutput()),
-		"output matches",
-	)
+	assert.Equalf(t, "OK: i am ok", string(res.BuildPluginOutput()), "output matches")
 
 	StopTestAgent(t, snc)
 }
