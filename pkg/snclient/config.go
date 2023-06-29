@@ -2,16 +2,14 @@ package snclient
 
 import (
 	"bufio"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"os"
-	"strconv"
-	"strings"
-
 	"pkg/convert"
 	"pkg/humanize"
 	"pkg/utils"
+	"strconv"
+	"strings"
 )
 
 var DefaultConfig = map[string]*ConfigData{
@@ -219,36 +217,14 @@ func (cs *ConfigSection) Set(key, value string) {
 }
 
 // Merge merges defaults into ConfigSection.
-func (d *ConfigSection) Merge(defaults ConfigSection) {
-	d.data.Merge(defaults.data)
+func (cs *ConfigSection) Merge(defaults ConfigSection) {
+	cs.data.Merge(defaults.data)
 }
 
 // MergeDefaults merges multiple defaults into ConfigSection.
-func (d *ConfigSection) MergeDefaults(defaults ...*ConfigSection) {
+func (cs *ConfigSection) MergeDefaults(defaults ...*ConfigSection) {
 	for _, def := range defaults {
-		d.data.Merge(def.data)
-	}
-}
-
-// ConfigData contains data for a section.
-type ConfigData map[string]string
-
-// Keys returns all config keys
-func (d *ConfigData) Keys() []string {
-	keys := make([]string, 0, len(*d))
-	for k := range *d {
-		keys = append(keys, k)
-	}
-
-	return keys
-}
-
-// Merge merges defaults into ConfigData.
-func (d *ConfigData) Merge(defaults ConfigData) {
-	for key, value := range defaults {
-		if _, ok := (*d)[key]; !ok {
-			(*d)[key] = value
-		}
+		cs.data.Merge(def.data)
 	}
 }
 
@@ -337,34 +313,24 @@ func (cs *ConfigSection) GetBytes(key string) (val uint64, ok bool, err error) {
 	return num, true, nil
 }
 
-func parseTLSMinVersion(version string) (uint16, error) {
-	switch strings.ToLower(version) {
-	case "":
-		return 0, nil
-	case "tls10", "tls1.0":
-		return tls.VersionTLS10, nil
-	case "tls11", "tls1.1":
-		return tls.VersionTLS11, nil
-	case "tls12", "tls1.2":
-		return tls.VersionTLS12, nil
-	case "tls13", "tls1.3":
-		return tls.VersionTLS13, nil
-	default:
-		err := fmt.Errorf("cannot parse %s into tls version, supported values are: tls1.0, tls1.1, tls1.2, tls1.3", version)
+// ConfigData contains data for a section.
+type ConfigData map[string]string
 
-		return 0, err
+// Keys returns all config keys
+func (d *ConfigData) Keys() []string {
+	keys := make([]string, 0, len(*d))
+	for k := range *d {
+		keys = append(keys, k)
 	}
+
+	return keys
 }
 
-func getSecureCiphers() (ciphers []uint16) {
-	ciphers = []uint16{}
-	for _, cipher := range tls.CipherSuites() {
-		if cipher.Insecure {
-			continue
+// Merge merges defaults into ConfigData.
+func (d *ConfigData) Merge(defaults ConfigData) {
+	for key, value := range defaults {
+		if _, ok := (*d)[key]; !ok {
+			(*d)[key] = value
 		}
-		log.Tracef("enabled cipher: %s", cipher.Name)
-		ciphers = append(ciphers, cipher.ID)
 	}
-
-	return
 }

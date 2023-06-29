@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"utils"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -130,7 +131,7 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 
 		// tls minimum version
 		if tlsMin, ok := conf.GetString("tls min version"); ok {
-			min, err := parseTLSMinVersion(tlsMin)
+			min, err := utils.ParseTLSMinVersion(tlsMin)
 			if err != nil {
 				return fmt.Errorf("invalid tls min version: %s", err.Error())
 			}
@@ -142,7 +143,7 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 		 * with tls < 1.2 we allow all ciphers, it unsecure anyway and it seems like an old client needs to connect (default is 1.2)
 		 */
 		if l.tlsConfig.MinVersion == tls.VersionTLS12 {
-			l.tlsConfig.CipherSuites = getSecureCiphers()
+			l.tlsConfig.CipherSuites = utils.GetSecureCiphers()
 		}
 
 		// certificate

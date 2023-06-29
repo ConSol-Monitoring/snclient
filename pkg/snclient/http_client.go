@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"time"
+	"utils"
 )
 
 var DefaultHTTPClientConfig = ConfigData{
@@ -83,7 +84,7 @@ func (snc *Agent) buildClientHTTPOptions(section *ConfigSection) (options *HTTPC
 
 	// tls minimum version
 	if tlsMin, ok := section.GetString("tls min version"); ok {
-		min, err := parseTLSMinVersion(tlsMin)
+		min, err := utils.ParseTLSMinVersion(tlsMin)
 		if err != nil {
 			return nil, fmt.Errorf("tls min version: %s", err.Error())
 		}

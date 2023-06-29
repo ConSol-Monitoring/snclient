@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -362,4 +363,35 @@ func MimeType(fileName string) (mime string, err error) {
 	}
 
 	return mimeType, nil
+}
+
+func ParseTLSMinVersion(version string) (uint16, error) {
+	switch strings.ToLower(version) {
+	case "":
+		return 0, nil
+	case "tls10", "tls1.0":
+		return tls.VersionTLS10, nil
+	case "tls11", "tls1.1":
+		return tls.VersionTLS11, nil
+	case "tls12", "tls1.2":
+		return tls.VersionTLS12, nil
+	case "tls13", "tls1.3":
+		return tls.VersionTLS13, nil
+	default:
+		err := fmt.Errorf("cannot parse %s into tls version, supported values are: tls1.0, tls1.1, tls1.2, tls1.3", version)
+
+		return 0, err
+	}
+}
+
+func GetSecureCiphers() (ciphers []uint16) {
+	ciphers = []uint16{}
+	for _, cipher := range tls.CipherSuites() {
+		if cipher.Insecure {
+			continue
+		}
+		ciphers = append(ciphers, cipher.ID)
+	}
+
+	return
 }

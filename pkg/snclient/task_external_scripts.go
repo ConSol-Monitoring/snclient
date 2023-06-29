@@ -40,7 +40,6 @@ func (e *ExternalScriptsHandler) Init(snc *Agent, defaultScriptConfig *ConfigSec
 	if err := e.registerScriptPath(defaultScriptConfig, conf); err != nil {
 		return err
 	}
-
 	if err := e.registerScripts(defaultScriptConfig, conf); err != nil {
 		return err
 	}
@@ -50,6 +49,8 @@ func (e *ExternalScriptsHandler) Init(snc *Agent, defaultScriptConfig *ConfigSec
 	if err := e.registerAliases(defaultScriptConfig, conf); err != nil {
 		return err
 	}
+
+	log.Tracef("external scripts initialized")
 
 	return nil
 }
