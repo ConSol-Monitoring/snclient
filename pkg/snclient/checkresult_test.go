@@ -7,7 +7,7 @@ import (
 )
 
 func TestCheckResultValueOnly(t *testing.T) {
-	cr := &CheckResult{
+	checkRes := &CheckResult{
 		State:  0,
 		Output: "OK - test  |  free=317MB;;;;",
 	}
@@ -17,14 +17,14 @@ func TestCheckResultValueOnly(t *testing.T) {
 		Value: "317",
 		Unit:  "MB",
 	}}
-	cr.ParsePerformanceDataFromOutput()
-	assert.Equalf(t, expect, cr.Metrics, "parsed metrics")
-	assert.Equalf(t, "OK - test", cr.Output, "plugin output is trimmed now")
-	assert.Equalf(t, "OK - test |'free'=317MB", string(cr.BuildPluginOutput()), "plugin output")
+	checkRes.ParsePerformanceDataFromOutput()
+	assert.Equalf(t, expect, checkRes.Metrics, "parsed metrics")
+	assert.Equalf(t, "OK - test", checkRes.Output, "plugin output is trimmed now")
+	assert.Equalf(t, "OK - test |'free'=317MB", string(checkRes.BuildPluginOutput()), "plugin output")
 }
 
 func TestCheckResultWarnCritMinMax(t *testing.T) {
-	cr := &CheckResult{
+	checkRes := &CheckResult{
 		State:  0,
 		Output: "OK - test  |  val=5c;2;3;0;10",
 	}
@@ -42,31 +42,31 @@ func TestCheckResultWarnCritMinMax(t *testing.T) {
 		Min:         &zero,
 		Max:         &ten,
 	}}
-	cr.ParsePerformanceDataFromOutput()
-	assert.Equalf(t, expect, cr.Metrics, "parsed metrics")
-	assert.Equalf(t, "OK - test", cr.Output, "plugin output is trimmed now")
-	assert.Equalf(t, "OK - test |'val'=5c;2;3;0;10", string(cr.BuildPluginOutput()), "plugin output")
+	checkRes.ParsePerformanceDataFromOutput()
+	assert.Equalf(t, expect, checkRes.Metrics, "parsed metrics")
+	assert.Equalf(t, "OK - test", checkRes.Output, "plugin output is trimmed now")
+	assert.Equalf(t, "OK - test |'val'=5c;2;3;0;10", string(checkRes.BuildPluginOutput()), "plugin output")
 }
 
 func TestCheckResultEscapedPipe(t *testing.T) {
 	// escaped pipes are ignored
 	output := "OK - test \\|  free=317MB;;;;"
-	cr := &CheckResult{
+	checkRes := &CheckResult{
 		State:  0,
 		Output: output,
 	}
 
 	expect := []*CheckMetric{}
-	cr.ParsePerformanceDataFromOutput()
-	assert.Equalf(t, expect, cr.Metrics, "parsed metrics")
-	assert.Equalf(t, output, cr.Output, "plugin output is unchanged")
-	assert.Equalf(t, output, string(cr.BuildPluginOutput()), "plugin output")
+	checkRes.ParsePerformanceDataFromOutput()
+	assert.Equalf(t, expect, checkRes.Metrics, "parsed metrics")
+	assert.Equalf(t, output, checkRes.Output, "plugin output is unchanged")
+	assert.Equalf(t, output, string(checkRes.BuildPluginOutput()), "plugin output")
 }
 
 func TestCheckResultEscapedPipeAndUnescaped(t *testing.T) {
 	// escaped pipes are ignored
 	output := "OK - test \\|  free=317MB;;;; | test=9"
-	cr := &CheckResult{
+	checkRes := &CheckResult{
 		State:  0,
 		Output: output,
 	}
@@ -76,14 +76,14 @@ func TestCheckResultEscapedPipeAndUnescaped(t *testing.T) {
 		Value: "9",
 		Unit:  "",
 	}}
-	cr.ParsePerformanceDataFromOutput()
-	assert.Equalf(t, expect, cr.Metrics, "parsed metrics")
-	assert.Equalf(t, "OK - test \\|  free=317MB;;;;", cr.Output, "plugin output is trimmed now")
-	assert.Equalf(t, "OK - test \\|  free=317MB;;;; |'test'=9", string(cr.BuildPluginOutput()), "plugin output")
+	checkRes.ParsePerformanceDataFromOutput()
+	assert.Equalf(t, expect, checkRes.Metrics, "parsed metrics")
+	assert.Equalf(t, "OK - test \\|  free=317MB;;;;", checkRes.Output, "plugin output is trimmed now")
+	assert.Equalf(t, "OK - test \\|  free=317MB;;;; |'test'=9", string(checkRes.BuildPluginOutput()), "plugin output")
 }
 
 func TestCheckResultPerfOnly(t *testing.T) {
-	cr := &CheckResult{
+	checkRes := &CheckResult{
 		State:  0,
 		Output: "|  free=317MB;;;;",
 	}
@@ -93,14 +93,14 @@ func TestCheckResultPerfOnly(t *testing.T) {
 		Value: "317",
 		Unit:  "MB",
 	}}
-	cr.ParsePerformanceDataFromOutput()
-	assert.Equalf(t, expect, cr.Metrics, "parsed metrics")
-	assert.Equalf(t, "", cr.Output, "plugin output is trimmed now")
-	assert.Equalf(t, "|'free'=317MB", string(cr.BuildPluginOutput()), "plugin output")
+	checkRes.ParsePerformanceDataFromOutput()
+	assert.Equalf(t, expect, checkRes.Metrics, "parsed metrics")
+	assert.Equalf(t, "", checkRes.Output, "plugin output is trimmed now")
+	assert.Equalf(t, "|'free'=317MB", string(checkRes.BuildPluginOutput()), "plugin output")
 }
 
 func TestCheckResultMultiple(t *testing.T) {
-	cr := &CheckResult{
+	checkRes := &CheckResult{
 		State:  0,
 		Output: `|  free=317MB;;;; 'used bytes'=42GB;;;;  "total bytes"=11.5GB;10:20;@5:30`,
 	}
@@ -122,8 +122,8 @@ func TestCheckResultMultiple(t *testing.T) {
 		WarningStr:  &warn,
 		CriticalStr: &crit,
 	}}
-	cr.ParsePerformanceDataFromOutput()
-	assert.Equalf(t, expect, cr.Metrics, "parsed metrics")
-	assert.Equalf(t, "", cr.Output, "plugin output is trimmed now")
-	assert.Equalf(t, `|'free'=317MB 'used bytes'=42GB 'total bytes'=11.5GB;10:20;@5:30`, string(cr.BuildPluginOutput()), "plugin output")
+	checkRes.ParsePerformanceDataFromOutput()
+	assert.Equalf(t, expect, checkRes.Metrics, "parsed metrics")
+	assert.Equalf(t, "", checkRes.Output, "plugin output is trimmed now")
+	assert.Equalf(t, `|'free'=317MB 'used bytes'=42GB 'total bytes'=11.5GB;10:20;@5:30`, string(checkRes.BuildPluginOutput()), "plugin output")
 }

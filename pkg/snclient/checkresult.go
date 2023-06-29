@@ -21,7 +21,7 @@ const (
 	CheckExitUnknown = int64(3)
 )
 
-var reValuesUnit = regexp.MustCompile(`^([0-9\.]+)(.*?)$`)
+var reValuesUnit = regexp.MustCompile(`^([0-9.]+)(.*?)$`)
 
 // CheckResult is the result of a single check run.
 type CheckResult struct {
@@ -124,11 +124,12 @@ func (cr *CheckResult) findPipeIndex(str string) int {
 	escaped := false
 
 	for i, char := range str {
-		if char == '\\' {
+		switch {
+		case char == '\\':
 			escaped = true
-		} else if char == '|' && !escaped {
+		case char == '|' && !escaped:
 			return i
-		} else {
+		default:
 			escaped = false
 		}
 	}

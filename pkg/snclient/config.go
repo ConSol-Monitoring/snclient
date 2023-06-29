@@ -6,11 +6,12 @@ import (
 	"io"
 	"os"
 	"path"
+	"strconv"
+	"strings"
+
 	"pkg/convert"
 	"pkg/humanize"
 	"pkg/utils"
-	"strconv"
-	"strings"
 )
 
 var DefaultConfig = map[string]*ConfigData{
@@ -66,20 +67,20 @@ func NewConfig() *Config {
 }
 
 // ReadINI opens the config file and reads all key value pairs, separated through = and commented out with ";" and "#".
-func (config *Config) ReadINI(path string) error {
-	if prev, ok := config.alreadyIncluded[path]; ok {
-		return fmt.Errorf("duplicate config file found: %s, already included from %s", path, prev)
+func (config *Config) ReadINI(iniPath string) error {
+	if prev, ok := config.alreadyIncluded[iniPath]; ok {
+		return fmt.Errorf("duplicate config file found: %s, already included from %s", iniPath, prev)
 	}
-	config.alreadyIncluded[path] = "command args"
-	log.Debugf("reading config: %s", path)
-	file, err := os.Open(path)
+	config.alreadyIncluded[iniPath] = "command args"
+	log.Debugf("reading config: %s", iniPath)
+	file, err := os.Open(iniPath)
 	if err != nil {
-		return fmt.Errorf("%s: %s", path, err.Error())
+		return fmt.Errorf("%s: %s", iniPath, err.Error())
 	}
 
-	err = config.parseINI(file, path)
+	err = config.parseINI(file, iniPath)
 	if err != nil {
-		return fmt.Errorf("config error in file %s: %s", path, err.Error())
+		return fmt.Errorf("config error in file %s: %s", iniPath, err.Error())
 	}
 
 	// import includes
@@ -92,14 +93,14 @@ func (config *Config) ReadINI(path string) error {
 			if err != nil {
 				return fmt.Errorf("readini failed: %s", err.Error())
 			}
-			config.alreadyIncluded[incl] = path
+			config.alreadyIncluded[incl] = iniPath
 		}
 	}
 
 	return nil
 }
 
-func (config *Config) parseINI(file io.Reader, path string) error {
+func (config *Config) parseINI(file io.Reader, iniPath string) error {
 	var currentSection *ConfigSection
 	lineNr := 0
 
@@ -120,25 +121,25 @@ func (config *Config) parseINI(file io.Reader, path string) error {
 		}
 
 		if currentSection == nil {
-			return fmt.Errorf("parse error in %s:%d: found key=value pair outside of ini block", path, lineNr)
+			return fmt.Errorf("parse error in %s:%d: found key=value pair outside of ini block", iniPath, lineNr)
 		}
 
 		// get both values
 		val := strings.SplitN(line, "=", 2)
 		if len(val) < 2 {
-			return fmt.Errorf("parse error in %s:%d: found key without '='", path, lineNr)
+			return fmt.Errorf("parse error in %s:%d: found key without '='", iniPath, lineNr)
 		}
 		val[0] = strings.TrimSpace(val[0])
 		val[1] = strings.TrimSpace(val[1])
 
 		value, err := config.parseString(val[1])
 		if err != nil {
-			return fmt.Errorf("config error in %s:%d: %s", path, lineNr, err.Error())
+			return fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, err.Error())
 		}
 
 		// on duplicate entries the first one wins
 		if _, ok := currentSection.data[val[0]]; ok {
-			log.Warnf("tried to redefine %s/%s in %s:%d", currentSection.name, val[0], path, lineNr)
+			log.Warnf("tried to redefine %s/%s in %s:%d", currentSection.name, val[0], iniPath, lineNr)
 		} else {
 			currentSection.Set(val[0], value)
 		}

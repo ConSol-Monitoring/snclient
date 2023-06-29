@@ -40,13 +40,13 @@ func (e *ExternalScriptsHandler) Init(snc *Agent, defaultScriptConfig *ConfigSec
 	if err := e.registerScriptPath(defaultScriptConfig, conf); err != nil {
 		return err
 	}
-	if err := e.registerScripts(defaultScriptConfig, conf); err != nil {
+	if err := e.registerScripts(conf); err != nil {
 		return err
 	}
-	if err := e.registerWrapped(defaultScriptConfig, conf); err != nil {
+	if err := e.registerWrapped(conf); err != nil {
 		return err
 	}
-	if err := e.registerAliases(defaultScriptConfig, conf); err != nil {
+	if err := e.registerAliases(conf); err != nil {
 		return err
 	}
 
@@ -62,7 +62,7 @@ func (e *ExternalScriptsHandler) Start() error {
 func (e *ExternalScriptsHandler) Stop() {
 }
 
-func (e *ExternalScriptsHandler) registerScripts(defaultScriptConfig *ConfigSection, conf *Config) error {
+func (e *ExternalScriptsHandler) registerScripts(conf *Config) error {
 	// merge command shortcuts into separate config sections
 	scripts := conf.Section("/settings/external scripts/scripts")
 	for name, command := range scripts.data {
@@ -90,7 +90,7 @@ func (e *ExternalScriptsHandler) registerScripts(defaultScriptConfig *ConfigSect
 	return nil
 }
 
-func (e *ExternalScriptsHandler) registerWrapped(defaultScriptConfig *ConfigSection, conf *Config) error {
+func (e *ExternalScriptsHandler) registerWrapped(conf *Config) error {
 	// merge wrapped command shortcuts into separate config sections
 	scripts := conf.Section("/settings/external scripts/wrapped scripts")
 	for name, command := range scripts.data {
@@ -118,7 +118,7 @@ func (e *ExternalScriptsHandler) registerWrapped(defaultScriptConfig *ConfigSect
 	return nil
 }
 
-func (e *ExternalScriptsHandler) registerAliases(defaultScriptConfig *ConfigSection, conf *Config) error {
+func (e *ExternalScriptsHandler) registerAliases(conf *Config) error {
 	// merge alias shortcuts into separate config sections
 	scripts := conf.Section("/settings/external scripts/alias")
 	for name, command := range scripts.data {
