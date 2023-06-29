@@ -14,9 +14,11 @@ type CheckMetric struct {
 	Name          string
 	Unit          string
 	Value         interface{}
-	ThresholdName string
-	Warning       []*Condition
-	Critical      []*Condition
+	ThresholdName string       // if set, use this name instead of Name to extract thresholds from conditions
+	Warning       []*Condition // threshold used for warnings
+	WarningStr    *string      // set warnings from string
+	Critical      []*Condition // threshold used for critical
+	CriticalStr   *string      // set critical from string
 	Min           *float64
 	Max           *float64
 }
@@ -32,10 +34,18 @@ func (m *CheckMetric) String() string {
 	res.WriteString(fmt.Sprintf("'%s'=%s%s", m.Name, convert.Num2String(m.Value), m.Unit))
 
 	res.WriteString(";")
-	res.WriteString(m.ThresholdString(m.Warning))
+	if m.WarningStr != nil {
+		res.WriteString(*m.WarningStr)
+	} else {
+		res.WriteString(m.ThresholdString(m.Warning))
+	}
 
 	res.WriteString(";")
-	res.WriteString(m.ThresholdString(m.Critical))
+	if m.CriticalStr != nil {
+		res.WriteString(*m.CriticalStr)
+	} else {
+		res.WriteString(m.ThresholdString(m.Critical))
+	}
 
 	res.WriteString(";")
 	if m.Min != nil {
