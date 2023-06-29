@@ -79,10 +79,6 @@ func (e *ExternalScriptsHandler) registerScripts(defaultScriptConfig *ConfigSect
 			continue
 		}
 		cmdConf := conf.Section(sectionName)
-		cmdConf.MergeDefaults(
-			conf.Section("/settings/external scripts/scripts/default"),
-			defaultScriptConfig,
-		)
 		if command, ok := cmdConf.GetString("command"); ok {
 			log.Tracef("registered script: %s -> %s", name, command)
 			AvailableChecks[name] = CheckEntry{name, &CheckWrap{commandString: command, config: cmdConf}}
@@ -111,10 +107,6 @@ func (e *ExternalScriptsHandler) registerWrapped(defaultScriptConfig *ConfigSect
 			continue
 		}
 		cmdConf := conf.Section(sectionName)
-		cmdConf.MergeDefaults(
-			conf.Section("/settings/external scripts/wrapped scripts/default"),
-			defaultScriptConfig,
-		)
 		if command, ok := cmdConf.GetString("command"); ok {
 			log.Tracef("registered wrapped script: %s -> %s", name, command)
 			AvailableChecks[name] = CheckEntry{name, &CheckWrap{commandString: command, wrapped: true, config: cmdConf}}
@@ -143,11 +135,6 @@ func (e *ExternalScriptsHandler) registerAliases(defaultScriptConfig *ConfigSect
 			continue
 		}
 		cmdConf := conf.Section(sectionName)
-		cmdConf.MergeDefaults(
-			conf.Section("/settings/external scripts/alias/default"),
-			defaultScriptConfig,
-		)
-
 		if command, ok := cmdConf.GetString("command"); ok {
 			f := strings.Fields(command)
 			log.Tracef("registered wrapped script: %s -> %s", name, command)

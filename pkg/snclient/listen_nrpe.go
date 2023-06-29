@@ -12,7 +12,7 @@ func init() {
 	RegisterModule(&AvailableListeners, "NRPEServer", "/settings/NRPE/server", NewHandlerNRPE)
 }
 
-const NastyCharacters = "|`&><'\"\\[]{}"
+const NastyCharacters = "$|`&><'\"\\[]{}"
 
 type HandlerNRPE struct {
 	noCopy   noCopy
@@ -152,14 +152,19 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 		return true
 	}
 
-	if strings.ContainsAny(cmd, NastyCharacters) {
+	nastyChars, ok := conf.GetString("nasty characters")
+	if !ok {
+		nastyChars = NastyCharacters
+	}
+
+	if strings.ContainsAny(cmd, nastyChars) {
 		log.Debugf("command string contained nasty character", cmd)
 
 		return false
 	}
 
 	for i, arg := range args {
-		if strings.ContainsAny(arg, NastyCharacters) {
+		if strings.ContainsAny(arg, nastyChars) {
 			log.Debugf("cmd arg (#%d) contained nasty character", i)
 
 			return false

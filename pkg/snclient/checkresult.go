@@ -82,6 +82,8 @@ func (cr *CheckResult) ParsePerformanceDataFromOutputCond(command string, conf *
 	switch {
 	case err != nil:
 		log.Errorf("%s: ignore perfdata: %s", command, err.Error())
+
+		return
 	case ok && ignorePerfdata:
 		return
 	}
@@ -91,7 +93,9 @@ func (cr *CheckResult) ParsePerformanceDataFromOutputCond(command string, conf *
 
 // Parse performance data from the Output and put them into Metrics
 func (cr *CheckResult) ParsePerformanceDataFromOutput() {
-	cr.Metrics = []*CheckMetric{}
+	if cr.Metrics == nil {
+		cr.Metrics = []*CheckMetric{}
+	}
 	trimmedOutput := []string{}
 	// parse output line by line and extract metrics
 	for _, line := range strings.Split(cr.Output, "\n") {

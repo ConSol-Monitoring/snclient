@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"pkg/convert"
 	"pkg/humanize"
 	"pkg/utils"
@@ -248,6 +249,29 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 		}
 		macros = append(macros, GlobalMacros)
 		val = ReplaceMacros(val, macros...)
+	}
+
+	if cs.cfg == nil {
+		return val, ok
+	}
+
+	// try default folder for defaults
+	base := path.Base(cs.name)
+	folder := path.Dir(cs.name)
+	if base != "default" {
+		defSection := cs.cfg.Section(folder + "/default")
+		val, ok := defSection.GetString(key)
+		if ok {
+			return val, ok
+		}
+	}
+	parent := path.Dir(strings.TrimSuffix(folder, "/"))
+	if parent != "." && parent != "/" && parent != "" {
+		parSection := cs.cfg.Section(parent + "/default")
+		val, ok := parSection.GetString(key)
+		if ok {
+			return val, ok
+		}
 	}
 
 	return val, ok

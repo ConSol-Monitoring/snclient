@@ -51,6 +51,20 @@ Ex.: this works, even with `allow arguments` disabled.
 	[/settings/external scripts/alias]
 	alias_test = check_cpu warn=load=80 crit=load=90
 
+## Allow Nasty Characters Handling
+<img src="./icons/changed.png">
+
+In addition to the existing characters, SNClient does not allow the `$` character.
+
+The list of not allowed nasty characters is therefore:
+
+	$|`&><'\"\\[]{}
+
+Change the list of nasty chars with the `nasty characters` configuration option.
+
+	[/settings/default]
+	nasty characters = $|`&><'\"\\[]{}
+
 ## Allowed Hosts Handling
 <img src="./icons/feature.png">
 

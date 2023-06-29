@@ -10,11 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	fmt.Println("Initializing external command tests...")
-	// log.SetLevel(log.DebugLevel)
-}
-
 func TestCheckWrap(t *testing.T) {
 	_, myTestFile, _, _ := runtime.Caller(0)
 	myTestDir := filepath.Dir(myTestFile)
