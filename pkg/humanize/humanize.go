@@ -31,33 +31,46 @@ const (
 )
 
 var bytesSizeTable = map[string]uint64{
-	"b":   Byte,
-	"kib": KiByte,
-	"kb":  KByte,
-	"mib": MiByte,
-	"mb":  MByte,
-	"gib": GiByte,
-	"gb":  GByte,
-	"tib": TiByte,
-	"tb":  TByte,
-	"pib": PiByte,
-	"pb":  PByte,
-	"eib": EiByte,
-	"eb":  EByte,
+	"B": Byte,
+
+	"KB":  KByte,
+	"KiB": KiByte,
+	"Kb":  KiByte,
+
+	"MB":  MByte,
+	"MiB": MiByte,
+	"Mb":  MiByte,
+
+	"GB":  GByte,
+	"GiB": GiByte,
+	"Gb":  GiByte,
+
+	"TB":  TByte,
+	"TiB": TiByte,
+	"Tb":  TiByte,
+
+	"PB":  PByte,
+	"PiB": PiByte,
+	"Pb":  PiByte,
+
+	"EB":  EByte,
+	"EiB": EiByte,
+	"Eb":  EiByte,
+
 	// Without suffix
 	"":   Byte,
-	"ki": KiByte,
-	"k":  KByte,
-	"mi": MiByte,
-	"m":  MByte,
-	"gi": GiByte,
-	"g":  GByte,
-	"ti": TiByte,
-	"t":  TByte,
-	"pi": PiByte,
-	"p":  PByte,
-	"ei": EiByte,
-	"e":  EByte,
+	"KI": KiByte,
+	"K":  KByte,
+	"MI": MiByte,
+	"M":  MByte,
+	"GI": GiByte,
+	"G":  GByte,
+	"TI": TiByte,
+	"T":  TByte,
+	"PI": PiByte,
+	"P":  PByte,
+	"EI": EiByte,
+	"E":  EByte,
 }
 
 func ParseBytes(raw string) (uint64, error) {
@@ -83,8 +96,17 @@ func ParseBytes(raw string) (uint64, error) {
 		return 0, fmt.Errorf("parsefloat %s: %s", raw, err.Error())
 	}
 
-	extra := strings.ToLower(strings.TrimSpace(raw[lastDigit:]))
+	extra := strings.TrimSpace(raw[lastDigit:])
 	if m, ok := bytesSizeTable[extra]; ok {
+		fNum *= float64(m)
+		if fNum >= math.MaxUint64 {
+			return 0, fmt.Errorf("too large: %v", raw)
+		}
+
+		return uint64(fNum), nil
+	}
+
+	if m, ok := bytesSizeTable[strings.ToUpper(extra)]; ok {
 		fNum *= float64(m)
 		if fNum >= math.MaxUint64 {
 			return 0, fmt.Errorf("too large: %v", raw)
