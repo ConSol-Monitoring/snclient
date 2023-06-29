@@ -1,18 +1,18 @@
 package snclient
 
 import (
-	"regexp"
-	"testing"
 	"fmt"
-	"runtime"
 	"path/filepath"
+	"regexp"
+	"runtime"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
 	fmt.Println("Initializing external command tests...")
-	//log.SetLevel(log.DebugLevel)
+	// log.SetLevel(log.DebugLevel)
 }
 
 func TestCheckWrap(t *testing.T) {

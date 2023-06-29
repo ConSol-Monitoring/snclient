@@ -106,7 +106,6 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 }
 
 func (l *CheckService) addService(check *CheckData, service string, services, excludes []string) error {
-
 	out, err := exec.Command("systemctl", "status", fmt.Sprintf("%s.service", service)).Output()
 
 	if match, _ := regexp.MatchString(`Unit .* could not be found`, string(out)); match || len(out) < 1 {
