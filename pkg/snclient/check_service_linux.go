@@ -17,8 +17,8 @@ func init() {
 
 type CheckService struct{}
 
-/* check_service_windows
- * Description: Checks the state of a windows service.
+/* check_service_linux
+ * Description: Checks the state of a linux service.
  */
 func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 	services := []string{}
