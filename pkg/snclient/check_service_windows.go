@@ -2,7 +2,6 @@ package snclient
 
 import (
 	"fmt"
-
 	"pkg/utils"
 
 	"github.com/shirou/gopsutil/v3/process"
@@ -60,24 +59,26 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}, nil
 	}
 
-	serviceList, err := ctrlMgr.ListServices()
-	if err != nil {
-		return &CheckResult{
-			State:  int64(3),
-			Output: fmt.Sprintf("Failed to fetch service list: %s", err),
-		}, nil
-	}
-
-	for _, service := range serviceList {
-		if slices.Contains(excludes, service) {
-			log.Tracef("service %s excluded by 'exclude' argument", service)
-
-			continue
+	if len(services) == 0 || slices.Contains(services, "*") {
+		serviceList, err := ctrlMgr.ListServices()
+		if err != nil {
+			return &CheckResult{
+				State:  int64(3),
+				Output: fmt.Sprintf("Failed to fetch service list: %s", err),
+			}, nil
 		}
 
-		err = l.addService(check, ctrlMgr, service, services, excludes)
-		if err != nil {
-			return nil, err
+		for _, service := range serviceList {
+			if slices.Contains(excludes, service) {
+				log.Tracef("service %s excluded by 'exclude' argument", service)
+
+				continue
+			}
+
+			err = l.addService(check, ctrlMgr, service, services, excludes)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
