@@ -16,6 +16,16 @@ func init() {
 
 const systemctlTimeout = 30
 
+var (
+	reSvcDetails   = regexp.MustCompile(`(?s)^.*?\.service(?:\s\-\s(.*?)|)\n.*Active:\s*([A-Za-z() :-]+)(?:\ssince|\n)`)
+	reSvcMainPid   = regexp.MustCompile(`Main\sPID:\s(\d+)`)
+	reSvcPidMaster = regexp.MustCompile(`─(\d+).+\(master\)`)
+	reSvcMemory    = regexp.MustCompile(`Memory:\s([\w.]+)`)
+	reSvcPreset    = regexp.MustCompile(`\s+preset:\s+(\w+)\)`)
+	reSvcSince     = regexp.MustCompile(`since\s+([^;]+);`)
+	reSvcStatic    = regexp.MustCompile(`;\sstatic\)`)
+)
+
 type CheckService struct {
 	snc *Agent
 }
@@ -32,20 +42,14 @@ func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		conditionAlias: map[string]map[string]string{
-			"state": {
-				"started": "running",
-			},
-		},
 		args: map[string]interface{}{
 			"service": &services,
 			"exclude": &excludes,
 		},
 		defaultFilter:   "none",
-		defaultCritical: "state != 'running' && start_type = 'auto'",
-		defaultWarning:  "state != 'running' && start_type = 'delayed'",
+		defaultCritical: "state not in ('running', 'oneshot', 'static') && preset != 'disabled'",
 		detailSyntax:    "${name}=${state}",
-		topSyntax:       "%(status): %(crit_list), delayed (%(warn_list))",
+		topSyntax:       "%(status): %(crit_list)",
 		okSyntax:        "%(status): All %(count) service(s) are ok.",
 		emptySyntax:     "%(status): No services found",
 		emptyState:      CheckExitUnknown,
@@ -55,32 +59,33 @@ func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
 		return nil, err
 	}
 
-	output, stderr, _, _, err := snc.runExternalCommand("systemctl --type=service --plain --no-pager --quiet", systemctlTimeout)
-	if err != nil {
-		return &CheckResult{
-			State:  CheckExitUnknown,
-			Output: fmt.Sprintf("Failed to fetch service list: %s%s", err, stderr),
-		}, nil
-	}
-
-	re := regexp.MustCompile(`^(\S+)\.service\s+`)
-	matches := re.FindAllStringSubmatch(output, -1)
-
-	serviceList := []string{}
-	for _, match := range matches {
-		serviceList = append(serviceList, match[1])
-	}
-
-	for _, service := range serviceList {
-		if slices.Contains(excludes, service) {
-			log.Tracef("service %s excluded by 'exclude' argument", service)
-
-			continue
+	if len(services) == 0 || slices.Contains(services, "*") {
+		output, stderr, _, _, err := snc.runExternalCommand("systemctl --type=service --plain --no-pager --quiet", systemctlTimeout)
+		if err != nil {
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: fmt.Sprintf("Failed to fetch service list: %s%s", err, stderr),
+			}, nil
 		}
 
-		err = l.addService(check, service, services, excludes)
-		if err != nil {
-			return nil, err
+		re := regexp.MustCompile(`(?m)^(\S+)\.service\s+`)
+		matches := re.FindAllStringSubmatch(output, -1)
+
+		serviceList := []string{}
+		for _, match := range matches {
+			serviceList = append(serviceList, match[1])
+		}
+		for _, service := range serviceList {
+			if slices.Contains(excludes, service) {
+				log.Tracef("service %s excluded by 'exclude' argument", service)
+
+				continue
+			}
+
+			err = l.addService(check, service, services, excludes)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -120,42 +125,7 @@ func (l *CheckService) addService(check *CheckData, service string, services, ex
 		return fmt.Errorf("could not find service: %s", service)
 	}
 
-	listEntry := map[string]string{
-		"name":    service,
-		"service": service,
-	}
-
-	reSvcDetails := regexp.MustCompile(`\.service - (.*)(?s).*Active:\s*([A-Za-z() :-]+)\ssince\s\w+\s(.*)\s\w+;`)
-	match := reSvcDetails.FindStringSubmatch(output)
-	if len(match) > 3 {
-		listEntry["desc"] = match[1]
-		listEntry["state"] = l.svcState(match[2])
-		listEntry["created"] = match[3]
-	} else {
-		return fmt.Errorf("could not retrieve metrics for service: %s", service)
-	}
-
-	reSvcDetails = regexp.MustCompile(`Main\sPID:\s(\d+)`)
-	match = reSvcDetails.FindStringSubmatch(output)
-	if len(match) < 1 {
-		reSvcDetails = regexp.MustCompile(`─(\d+).+\(master\)`)
-		match = reSvcDetails.FindStringSubmatch(output)
-		if len(match) < 1 {
-			listEntry["pid"] = "-1"
-		} else {
-			listEntry["pid"] = match[1]
-		}
-	} else {
-		listEntry["pid"] = match[1]
-	}
-
-	reSvcDetails = regexp.MustCompile(`Memory:\s([\w.]+)`)
-	match = reSvcDetails.FindStringSubmatch(output)
-	if len(match) > 1 {
-		listEntry["mem"] = match[1]
-	} else {
-		listEntry["mem"] = "-1"
-	}
+	listEntry := l.parseSystemCtlStatus(service, output)
 
 	if !l.isRequired(check, listEntry, services, excludes) {
 		return nil
@@ -163,7 +133,7 @@ func (l *CheckService) addService(check *CheckData, service string, services, ex
 
 	check.listData = append(check.listData, listEntry)
 
-	if len(services) == 0 {
+	if len(services) == 0 && !check.showAll {
 		return nil
 	}
 
@@ -220,7 +190,7 @@ func (l *CheckService) svcState(serviceState string) string {
 	case "activating (start)":
 		return "starting"
 	case "active (exited)":
-		return "exited"
+		return "oneshot"
 	case "active (running)":
 		return "running"
 	}
@@ -237,11 +207,66 @@ func (l *CheckService) svcStateFloat(serviceState string) float64 {
 		return float64(1)
 	case "starting":
 		return float64(2)
-	case "exited":
+	case "oneshot":
 		return float64(3)
 	case "running":
 		return float64(4)
+	case "static":
+		return float64(5)
 	}
 
 	return float64(0)
+}
+
+func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[string]string) {
+	listEntry = map[string]string{
+		"name":    name,
+		"service": name,
+		"state":   "unknown",
+		"created": "",
+		"preset":  "",
+		"desc":    "",
+		"pid":     "",
+		"mem":     "",
+	}
+
+	match := reSvcDetails.FindStringSubmatch(output)
+	if len(match) > 2 {
+		listEntry["desc"] = match[1]
+		listEntry["state"] = l.svcState(match[2])
+	}
+
+	match = reSvcMainPid.FindStringSubmatch(output)
+	if len(match) < 1 {
+		match = reSvcPidMaster.FindStringSubmatch(output)
+		if len(match) < 1 {
+			listEntry["pid"] = ""
+		} else {
+			listEntry["pid"] = match[1]
+		}
+	} else {
+		listEntry["pid"] = match[1]
+	}
+
+	match = reSvcMemory.FindStringSubmatch(output)
+	if len(match) > 1 {
+		listEntry["mem"] = match[1]
+	}
+
+	match = reSvcPreset.FindStringSubmatch(output)
+	if len(match) > 1 {
+		listEntry["preset"] = match[1]
+	}
+
+	match = reSvcSince.FindStringSubmatch(output)
+	if len(match) > 1 {
+		listEntry["created"] = match[1]
+	}
+
+	match = reSvcStatic.FindStringSubmatch(output)
+	if len(match) > 0 {
+		listEntry["state"] = "static"
+	}
+
+	return listEntry
 }
