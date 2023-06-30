@@ -1,6 +1,9 @@
 package snclient
 
 import (
+	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -85,6 +88,9 @@ var (
 
 	// macros can be either ${...} or %(...)
 	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_:]+\s*\}|%\(\s*[a-zA-Z\-_:]+\s*\)`)
+
+	// runtime macros can be %...%
+	reRuntimeMacro = regexp.MustCompile(`%[a-zA-Z\-_:]+%`)
 )
 
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
@@ -797,11 +803,15 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 	}
 }
 
-// replaceMacros replaces variables in given string.
+/* replaceMacros replaces variables in given string.
+ * possible macros are:
+ *   ${macro}
+ *   %(macro)
+ */
 func ReplaceMacros(value string, macroSets ...map[string]string) string {
 	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
-		str = strings.TrimSpace(str)
 		orig := str
+		str = strings.TrimSpace(str)
 
 		switch {
 		// ${...} macros
@@ -815,30 +825,53 @@ func ReplaceMacros(value string, macroSets ...map[string]string) string {
 		}
 		str = strings.TrimSpace(str)
 
-		flag := ""
-		flags := strings.SplitN(str, ":", 1)
-		if len(flags) == 2 {
-			str = flags[0]
-			flag = strings.ToLower(flags[1])
-		}
-
-		for _, ms := range macroSets {
-			if repl, ok := ms[str]; ok {
-				switch flag {
-				case "lc":
-					return strings.ToLower(repl)
-				case "uc":
-					return strings.ToUpper(repl)
-				default:
-					return repl
-				}
-			}
-		}
-
-		return orig
+		return getMacrosetsValue(str, orig, macroSets...)
 	})
 
 	return value
+}
+
+/* ReplaceRuntimeMacros replaces runtime variables in given string.
+ * possible macros are:
+ *   %macro%
+ */
+func ReplaceRuntimeMacros(value string, macroSets ...map[string]string) string {
+	value = reRuntimeMacro.ReplaceAllStringFunc(value, func(str string) string {
+		orig := str
+		str = strings.TrimSpace(str)
+
+		// %...% macros
+		str = strings.TrimPrefix(str, "%")
+		str = strings.TrimSuffix(str, "%")
+
+		return getMacrosetsValue(str, orig, macroSets...)
+	})
+
+	return value
+}
+
+func getMacrosetsValue(macro, orig string, macroSets ...map[string]string) string {
+	flag := ""
+	flags := strings.SplitN(macro, ":", 1)
+	if len(flags) == 2 {
+		macro = flags[0]
+		flag = strings.ToLower(flags[1])
+	}
+
+	for _, ms := range macroSets {
+		if repl, ok := ms[macro]; ok {
+			switch flag {
+			case "lc":
+				return strings.ToLower(repl)
+			case "uc":
+				return strings.ToUpper(repl)
+			default:
+				return repl
+			}
+		}
+	}
+
+	return orig
 }
 
 func setProcessErrorResult(err error) (output string) {
@@ -886,7 +919,70 @@ func fixReturnCodes(output *string, exitCode *int64, state *os.ProcessState) {
 	*exitCode = 3
 }
 
-func fixPluginOutput(stdout, stderr *string) {
-	*stdout = strings.Replace(strings.Trim(*stdout, "\r\n"), "\n", `\n`, len(*stdout))
-	*stderr = strings.Replace(strings.Trim(*stderr, "\r\n"), "\n", `\n`, len(*stderr))
+func (snc *Agent) runExternalCommand(command string, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
+
+	shell := "/bin/sh"
+	shellArg := "-c"
+	if runtime.GOOS == "windows" {
+		shell = "cmd"
+		shellArg = "/c"
+	}
+	cmd := exec.CommandContext(ctx, shell, shellArg, command)
+
+	// byte buffer for output
+	var errbuf bytes.Buffer
+	var outbuf bytes.Buffer
+	cmd.Stdout = &outbuf
+	cmd.Stderr = &errbuf
+
+	// prevent child from receiving signals meant for the agent only
+	setSysProcAttr(cmd)
+
+	err = cmd.Start()
+	if err != nil && cmd.ProcessState == nil {
+		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
+	}
+
+	// https://github.com/golang/go/issues/18874
+	// timeout does not work for child processes and/or if file handles are still open
+	go func(proc *os.Process) {
+		defer snc.logPanicExit()
+		<-ctx.Done() // wait till command runs into timeout or is finished (canceled)
+		if proc == nil {
+			return
+		}
+		cmdErr := ctx.Err()
+		switch {
+		case errors.Is(cmdErr, context.DeadlineExceeded):
+			// timeout
+			processTimeoutKill(proc)
+		case errors.Is(cmdErr, context.Canceled):
+			// normal exit
+			LogDebug(proc.Kill())
+		}
+	}(cmd.Process)
+
+	err = cmd.Wait()
+	cancel()
+	if err != nil && cmd.ProcessState == nil {
+		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %w", err)
+	}
+
+	state := cmd.ProcessState
+	ctxErr := ctx.Err()
+	if errors.Is(ctxErr, context.DeadlineExceeded) {
+		return "", "", ExitCodeUnknown, state, fmt.Errorf("timeout: %w", ctxErr)
+	}
+
+	if waitStatus, ok := state.Sys().(syscall.WaitStatus); ok {
+		exitCode = int64(waitStatus.ExitStatus())
+	}
+
+	// extract stdout and stderr
+	stdout = string(bytes.TrimSpace((bytes.Trim(outbuf.Bytes(), "\x00"))))
+	stderr = string(bytes.TrimSpace((bytes.Trim(errbuf.Bytes(), "\x00"))))
+
+	return stdout, stderr, exitCode, state, nil
 }

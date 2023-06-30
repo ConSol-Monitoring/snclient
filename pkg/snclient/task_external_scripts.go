@@ -67,7 +67,7 @@ func (e *ExternalScriptsHandler) registerScripts(conf *Config) error {
 	scripts := conf.Section("/settings/external scripts/scripts")
 	for name, command := range scripts.data {
 		cmdConf := conf.Section("/settings/external scripts/scripts/" + name)
-		if _, ok := cmdConf.GetString("command"); !ok {
+		if !cmdConf.HasKey("command") {
 			cmdConf.Set("command", command)
 		}
 	}
@@ -95,7 +95,7 @@ func (e *ExternalScriptsHandler) registerWrapped(conf *Config) error {
 	scripts := conf.Section("/settings/external scripts/wrapped scripts")
 	for name, command := range scripts.data {
 		cmdConf := conf.Section("/settings/external scripts/wrapped scripts/" + name)
-		if _, ok := cmdConf.GetString("command"); !ok {
+		if !cmdConf.HasKey("command") {
 			cmdConf.Set("command", command)
 		}
 	}
@@ -123,7 +123,7 @@ func (e *ExternalScriptsHandler) registerAliases(conf *Config) error {
 	scripts := conf.Section("/settings/external scripts/alias")
 	for name, command := range scripts.data {
 		cmdConf := conf.Section("/settings/external scripts/alias/" + name)
-		if _, ok := cmdConf.GetString("command"); !ok {
+		if !cmdConf.HasKey("command") {
 			cmdConf.Set("command", command)
 		}
 	}
@@ -170,7 +170,7 @@ func (e *ExternalScriptsHandler) registerScriptPath(defaultScriptConfig *ConfigS
 	for _, command := range scripts {
 		name := filepath.Base(command)
 		cmdConf := conf.Section("/settings/external scripts/scripts/" + name)
-		if _, ok := cmdConf.GetString("command"); !ok {
+		if !cmdConf.HasKey("command") {
 			allow, _, _ := defaultScriptConfig.GetBool("allow arguments")
 			if allow {
 				cmdConf.Set("command", command+" %ARGS%")
