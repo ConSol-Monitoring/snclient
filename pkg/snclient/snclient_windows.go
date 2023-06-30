@@ -186,3 +186,9 @@ func removeTmpExeFiles() {
 		}
 	}
 }
+
+func (snc *Agent) runExternalCommand(_ string, _ int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
+	log.Panicf("runExternalCommand not implemented on windows")
+
+	return
+}

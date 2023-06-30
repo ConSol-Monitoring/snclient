@@ -2,7 +2,6 @@ package snclient
 
 import (
 	"fmt"
-	"os/exec"
 	"regexp"
 	"strings"
 
@@ -15,12 +14,18 @@ func init() {
 	AvailableChecks["check_service"] = CheckEntry{"check_service", new(CheckService)}
 }
 
-type CheckService struct{}
+const systemctlTimeout = 30
+
+type CheckService struct {
+	snc *Agent
+}
 
 /* check_service_linux
  * Description: Checks the state of a linux service.
  */
-func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
+func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
+	l.snc = snc
+
 	services := []string{}
 	excludes := []string{}
 	check := &CheckData{
@@ -50,19 +55,18 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 		return nil, err
 	}
 
-	out, err := exec.Command("systemctl", "--type=service").Output()
+	output, stderr, _, _, err := snc.runExternalCommand("systemctl --type=service --plain --no-pager --quiet", systemctlTimeout)
 	if err != nil {
 		return &CheckResult{
-			State:  int64(3),
-			Output: fmt.Sprintf("Failed to fetch service list: %s", err),
+			State:  CheckExitUnknown,
+			Output: fmt.Sprintf("Failed to fetch service list: %s%s", err, stderr),
 		}, nil
 	}
 
-	re := regexp.MustCompile(`([\w\-@.]+)\.service`)
-	matches := re.FindAllStringSubmatch(string(out), -1)
+	re := regexp.MustCompile(`^(\S+)\.service\s+`)
+	matches := re.FindAllStringSubmatch(output, -1)
 
 	serviceList := []string{}
-
 	for _, match := range matches {
 		serviceList = append(serviceList, match[1])
 	}
@@ -80,6 +84,7 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}
 	}
 
+	// add user supplied services not yet added
 	for _, service := range services {
 		if service == "*" {
 			continue
@@ -106,10 +111,13 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 }
 
 func (l *CheckService) addService(check *CheckData, service string, services, excludes []string) error {
-	out, err := exec.Command("systemctl", "status", fmt.Sprintf("%s.service", service)).Output()
+	output, stderr, _, _, err := l.snc.runExternalCommand(fmt.Sprintf("systemctl status %s.service", service), systemctlTimeout)
+	if err != nil {
+		return fmt.Errorf("systemctl failed: %s\n%s", err.Error(), stderr)
+	}
 
-	if match, _ := regexp.MatchString(`Unit .* could not be found`, string(out)); match || len(out) < 1 {
-		return fmt.Errorf("Couldnt find service: %s", service)
+	if match, _ := regexp.MatchString(`Unit .* could not be found`, output); match || len(output) < 1 {
+		return fmt.Errorf("could not find service: %s", service)
 	}
 
 	listEntry := map[string]string{
@@ -117,21 +125,21 @@ func (l *CheckService) addService(check *CheckData, service string, services, ex
 		"service": service,
 	}
 
-	re := regexp.MustCompile(`\.service - (.*)(?s).*Active:\s*([A-Za-z() :-]+)\ssince\s\w+\s(.*)\s\w+;`)
-	match := re.FindStringSubmatch(string(out))
+	reSvcDetails := regexp.MustCompile(`\.service - (.*)(?s).*Active:\s*([A-Za-z() :-]+)\ssince\s\w+\s(.*)\s\w+;`)
+	match := reSvcDetails.FindStringSubmatch(output)
 	if len(match) > 3 {
 		listEntry["desc"] = match[1]
 		listEntry["state"] = l.svcState(match[2])
 		listEntry["created"] = match[3]
 	} else {
-		return fmt.Errorf("Couldnt retrieve metrics for service: %s", service)
+		return fmt.Errorf("could not retrieve metrics for service: %s", service)
 	}
 
-	re = regexp.MustCompile(`Main\sPID:\s(\d+)`)
-	match = re.FindStringSubmatch(string(out))
+	reSvcDetails = regexp.MustCompile(`Main\sPID:\s(\d+)`)
+	match = reSvcDetails.FindStringSubmatch(output)
 	if len(match) < 1 {
-		re = regexp.MustCompile(`─(\d+).+\(master\)`)
-		match = re.FindStringSubmatch(string(out))
+		reSvcDetails = regexp.MustCompile(`─(\d+).+\(master\)`)
+		match = reSvcDetails.FindStringSubmatch(output)
 		if len(match) < 1 {
 			listEntry["pid"] = "-1"
 		} else {
@@ -141,8 +149,8 @@ func (l *CheckService) addService(check *CheckData, service string, services, ex
 		listEntry["pid"] = match[1]
 	}
 
-	re = regexp.MustCompile(`Memory:\s([\w.]+)`)
-	match = re.FindStringSubmatch(string(out))
+	reSvcDetails = regexp.MustCompile(`Memory:\s([\w.]+)`)
+	match = reSvcDetails.FindStringSubmatch(output)
 	if len(match) > 1 {
 		listEntry["mem"] = match[1]
 	} else {
@@ -163,15 +171,15 @@ func (l *CheckService) addService(check *CheckData, service string, services, ex
 		Name:  service,
 		Value: l.svcStateFloat(listEntry["state"]),
 	})
-	mem_bytes, err := humanize.ParseBytes(listEntry["mem"])
+	memBytes, err := humanize.ParseBytes(listEntry["mem"])
 	if err != nil {
-		mem_bytes = 0
+		memBytes = 0
 	}
 	check.result.Metrics = append(
 		check.result.Metrics,
 		&CheckMetric{
 			Name:  fmt.Sprintf("%s mem", service),
-			Value: float64(mem_bytes),
+			Value: float64(memBytes),
 			Unit:  "B",
 		},
 	)

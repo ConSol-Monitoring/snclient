@@ -840,3 +840,53 @@ func ReplaceMacros(value string, macroSets ...map[string]string) string {
 
 	return value
 }
+
+func setProcessErrorResult(err error) (output string) {
+	if os.IsNotExist(err) {
+		output = "UNKNOWN: Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists."
+
+		return
+	}
+	if os.IsPermission(err) {
+		output = "UNKNOWN: Return code of 126 is out of bounds. Make sure the plugin you're trying to run is executable."
+
+		return
+	}
+	log.Errorf("system error: %w", err)
+	output = fmt.Sprintf("UNKNOWN: %s", err.Error())
+
+	return
+}
+
+func fixReturnCodes(output *string, exitCode *int64, state *os.ProcessState) {
+	if *exitCode >= 0 && *exitCode <= 3 {
+		return
+	}
+	if *exitCode == 126 {
+		*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Make sure the plugin you're trying to run is executable.\n%s", *exitCode, *output)
+		*exitCode = 2
+
+		return
+	}
+	if *exitCode == 127 {
+		*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", *exitCode, *output)
+		*exitCode = 2
+
+		return
+	}
+	if waitStatus, ok := state.Sys().(syscall.WaitStatus); ok {
+		if waitStatus.Signaled() {
+			*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Plugin exited by signal: %s.\n%s", waitStatus.Signal(), waitStatus.Signal(), *output)
+			*exitCode = 2
+
+			return
+		}
+	}
+	*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds.\n%s", *exitCode, *output)
+	*exitCode = 3
+}
+
+func fixPluginOutput(stdout, stderr *string) {
+	*stdout = strings.Replace(strings.Trim(*stdout, "\r\n"), "\n", `\n`, len(*stdout))
+	*stderr = strings.Replace(strings.Trim(*stderr, "\r\n"), "\n", `\n`, len(*stderr))
+}

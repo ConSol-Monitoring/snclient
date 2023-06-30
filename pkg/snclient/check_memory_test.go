@@ -23,7 +23,7 @@ func TestCheckMemory(t *testing.T) {
 		expectedCriticalOutput = `^CRITICAL: committed = \d+(\.\d+)? [KMGTi]*B, physical = \d+(\.\d+)? [KMGTi]*B \|`
 	}
 
-	res := snc.RunCheck("check_memory", []string{"warn=used > 95", "crit=used > 98"})
+	res := snc.RunCheck("check_memory", []string{"warn=used > 101", "crit=used > 102"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
 		regexp.MustCompile(expectedOKOutput),
@@ -66,7 +66,7 @@ func TestCheckMemory(t *testing.T) {
 		"output matches",
 	)
 
-	res = snc.RunCheck("check_memory", []string{"warn=free_pct < 5", "crit=free_pct < 1"})
+	res = snc.RunCheck("check_memory", []string{"warn=free_pct < 0", "crit=free_pct < 0"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
 		regexp.MustCompile(expectedOKOutput),

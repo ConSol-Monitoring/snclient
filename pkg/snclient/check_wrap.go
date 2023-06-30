@@ -1,18 +1,14 @@
 package snclient
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
-	"time"
 )
 
 type CheckWrap struct {
@@ -83,140 +79,29 @@ func (l *CheckWrap) Check(snc *Agent, args []string) (*CheckResult, error) {
 			output = fmt.Sprintf("Unknown Error in Script: %s", err)
 		}
 	default:
-		output, state = l.runExternalCommand(formattedCommand, timeoutSeconds)
+		stdout, stderr, exitCode, procState, err := l.snc.runExternalCommand(formattedCommand, timeoutSeconds)
+		if err != nil {
+			exitCode = CheckExitUnknown
+			switch {
+			case procState == nil:
+				stdout = setProcessErrorResult(err)
+			case errors.Is(err, context.DeadlineExceeded):
+				stdout = fmt.Sprintf("UKNOWN: script run into timeout after %ds\n%s%s", timeoutSeconds, stdout, stderr)
+			default:
+				stdout = fmt.Sprintf("UKNOWN: script error %s\n%s%s", err.Error(), stdout, stderr)
+			}
+		}
+		fixPluginOutput(&stdout, &stderr)
+		if stderr != "" {
+			stdout += "\n[" + stderr + "]"
+		}
+		fixReturnCodes(&stdout, &exitCode, procState)
+		output = stdout
+		state = exitCode
 	}
 
 	return &CheckResult{
 		State:  state,
 		Output: output,
 	}, nil
-}
-
-func (l *CheckWrap) runExternalCommand(command string, timeout int64) (output string, exitCode int64) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", command)
-
-	// byte buffer for output
-	var errbuf bytes.Buffer
-	var outbuf bytes.Buffer
-	cmd.Stdout = &outbuf
-	cmd.Stderr = &errbuf
-
-	// prevent child from receiving signals meant for the agent only
-	setSysProcAttr(cmd)
-
-	err := cmd.Start()
-	if err != nil && cmd.ProcessState == nil {
-		return setProcessErrorResult(err), ExitCodeUnknown
-	}
-
-	// https://github.com/golang/go/issues/18874
-	// timeout does not work for child processes and/or if file handles are still open
-	go func(proc *os.Process) {
-		defer l.snc.logPanicExit()
-		<-ctx.Done() // wait till command runs into timeout or is finished (canceled)
-		if proc == nil {
-			return
-		}
-		cmdErr := ctx.Err()
-		switch {
-		case errors.Is(cmdErr, context.DeadlineExceeded):
-			// timeout
-			processTimeoutKill(proc)
-		case errors.Is(cmdErr, context.Canceled):
-			// normal exit
-			LogDebug(proc.Kill())
-		}
-	}(cmd.Process)
-
-	err = cmd.Wait()
-	cancel()
-	if err != nil && cmd.ProcessState == nil {
-		return setProcessErrorResult(err), ExitCodeUnknown
-	}
-
-	state := cmd.ProcessState
-
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		output = fmt.Sprintf("UKNOWN: script run into timeout after %ds", timeout)
-		exitCode = CheckExitUnknown
-
-		return
-	}
-
-	if waitStatus, ok := state.Sys().(syscall.WaitStatus); ok {
-		exitCode = int64(waitStatus.ExitStatus())
-	}
-
-	// extract stdout and stderr
-	output = string(bytes.TrimSpace((bytes.Trim(outbuf.Bytes(), "\x00"))))
-	errStr := string(bytes.TrimSpace((bytes.Trim(errbuf.Bytes(), "\x00"))))
-	if errStr != "" {
-		output += "\n[" + errStr + "]"
-	}
-
-	fixReturnCodes(&output, &exitCode, state)
-	output = strings.Replace(strings.Trim(output, "\r\n"), "\n", `\n`, len(output))
-
-	return output, exitCode
-}
-
-func setProcessErrorResult(err error) (output string) {
-	if os.IsNotExist(err) {
-		output = "UNKNOWN: Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists."
-
-		return
-	}
-	if os.IsPermission(err) {
-		output = "UNKNOWN: Return code of 126 is out of bounds. Make sure the plugin you're trying to run is executable."
-
-		return
-	}
-	log.Errorf("system error: %w", err)
-	output = fmt.Sprintf("UNKNOWN: %s", err.Error())
-
-	return
-}
-
-func fixReturnCodes(output *string, exitCode *int64, state *os.ProcessState) {
-	if *exitCode >= 0 && *exitCode <= 3 {
-		return
-	}
-	if *exitCode == 126 {
-		*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Make sure the plugin you're trying to run is executable.\n%s", *exitCode, *output)
-		*exitCode = 2
-
-		return
-	}
-	if *exitCode == 127 {
-		*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", *exitCode, *output)
-		*exitCode = 2
-
-		return
-	}
-	if waitStatus, ok := state.Sys().(syscall.WaitStatus); ok {
-		if waitStatus.Signaled() {
-			*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Plugin exited by signal: %s.\n%s", waitStatus.Signal(), waitStatus.Signal(), *output)
-			*exitCode = 2
-
-			return
-		}
-	}
-	*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds.\n%s", *exitCode, *output)
-	*exitCode = 3
-}
-
-func processTimeoutKill(process *os.Process) {
-	go func(pid int) {
-		// kill the process itself and the hole process group
-		LogDebug(syscall.Kill(-pid, syscall.SIGTERM))
-		time.Sleep(1 * time.Second)
-
-		LogDebug(syscall.Kill(-pid, syscall.SIGINT))
-		time.Sleep(1 * time.Second)
-
-		LogDebug(syscall.Kill(-pid, syscall.SIGKILL))
-	}(process.Pid)
 }
