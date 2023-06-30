@@ -13,7 +13,7 @@ Checks the version of the host OS.
 ### Implementation
 
 | Windows | Linux | FreeBSD | MacOSX |
-| --- | --- | --- | --- |
+|:-------:|:-----:|:-------:|:------:|
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Examples

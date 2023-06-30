@@ -13,7 +13,7 @@ Checks network interface status.
 ### Implementation
 
 | Windows | Linux | FreeBSD | MacOSX |
-| --- | --- | --- | --- |
+|:-------:|:-----:|:-------:|:------:|
 | :construction: | :construction: | :construction: | :construction: |
 
 ## Examples
@@ -29,7 +29,7 @@ Naemon Config
 
     define command{
         command_name    check_nrpe
-        command_line    $USER1$/check_nrpe -2 -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
     }
 
     define service {

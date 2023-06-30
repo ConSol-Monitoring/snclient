@@ -12,7 +12,7 @@ Check for errors in the eventlog.
 ### Implementation
 
 | Windows | Linux | FreeBSD | MacOSX |
-| --- | --- | --- | --- |
+|:-------:|:-----:|:-------:|:------:|
 | :construction: | :x: | :x: | :x: |
 
 ## Argument Defaults

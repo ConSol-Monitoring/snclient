@@ -1,10 +1,10 @@
 ﻿---
-title: check_service
+title: check_service (Linux)
 ---
 
-# check_service
+# check_service (Linux)
 
-Check the state of one or more of the computer services.
+Check the state of one or more of the linux (systemctl) services.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
@@ -13,8 +13,10 @@ Check the state of one or more of the computer services.
 ### Implementation
 
 | Windows | Linux | FreeBSD | MacOSX |
-| --- | --- | --- | --- |
-| :white_check_mark: | :x: | :x: | :x: |
+|:-------:|:-----:|:-------:|:------:|
+|  :x:  |  :white_check_mark:  |  :x:  |  :x:  |
+
+There is a [check_service for windows](check_service_windows) as well.
 
 ## Examples
 
@@ -25,7 +27,7 @@ Check the state of one or more of the computer services.
 
 Checking a single service:
 
-    check_service service=dhcp
+    check_service service=postfix
     OK: All 1 service(s) are ok.
 
 
@@ -35,13 +37,13 @@ Naemon Config
 
     define command{
         command_name    check_nrpe
-        command_line    $USER1$/check_nrpe -2 -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
     }
 
     define service {
             host_name               testhost
             service_description     check_service_testhost
-            check_command           check_nrpe!check_service!'service=dhcp' 'crit=status = dead'
+            check_command           check_nrpe!check_service!'service=postfix' 'crit=status != running'
     }
 
 Return
@@ -53,10 +55,10 @@ Return
 | Argument | Default Value |
 | --- | --- |
 filter | none |
-warning | state != 'running' && start_type = 'delayed' |
-critical | state != 'running' && start_type = 'auto' |
+warning | none |
+critical | state not in ('running', 'oneshot', 'static') && preset != 'disabled' |
 empty-state | 3 (Unknown) |
-top-syntax | %(status): %(crit_list), delayed (%(warn_list)) |
+top-syntax | %(status): %(crit_list) |
 ok-syntax | %(status): All %(count) service(s) are ok. |
 empty-syntax | %(status): No services found |
 detail-syntax | \${name}=\${state} (${start_type}) |
@@ -65,23 +67,20 @@ detail-syntax | \${name}=\${state} (${start_type}) |
 
 | Argument | Default Value | Description |
 | --- | --- | --- |
-| computer | | Name of the remote computer to check |
 | service | | Name of the service to check (set to * to check all services) |
 | exclude | | List of services to exclude from the check (mainly used when service is set to *) |
-| type | service | The types of services to enumerate? |
-| state | all | The states of services to enumerate. (Available states are active, inactive or all)? |
 
 
-## Metrics
+## Filter
 
-#### **Check specific metrics**
+#### **Check specific filter**
 
-| Metric | Description |
-| --- | --- |
+| Filter Attribute | Description |
+| ---------------- | ----------- |
 | name | The name of the service |
-| state | The state of the service |
+| service | Same as name |
 | desc | Description of the service |
-| delayed | If the service is delayed |
-| classification | Classification of the service |
+| state | The state of the service, one of: stopped, starting, oneshot, running or unknown |
+| preset | The preset attribute of the service, one of: enabled or disabled |
 | pid | The pid of the service |
-| start_type | The configured start type |
+| mem | The memory usage |

@@ -13,7 +13,7 @@ Check various aspects of a file and/or folder.
 ### Implementation
 
 | Windows | Linux | FreeBSD | MacOSX |
-| --- | --- | --- | --- |
+|:-------:|:-----:|:-------:|:------:|
 | :construction: | :construction: | :construction: | :construction: |
 
 ## Examples
