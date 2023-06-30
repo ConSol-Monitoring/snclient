@@ -25,6 +25,7 @@ func (l *CheckPagefile) Check(_ *Agent, args []string) (*CheckResult, error) {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
+		defaultFilter:   "name = 'total'",
 		defaultWarning:  "used > 60%",
 		defaultCritical: "used > 80%",
 		detailSyntax:    "${name} ${used} (${size})",
