@@ -46,6 +46,9 @@ func TestConfigStringParent(t *testing.T) {
 [/settings/default]
 Key1 = Value1
 
+[/settings/sub1]
+Key4 = Value4
+
 [/settings/sub1/default]
 Key2 = Value2
 
@@ -66,4 +69,7 @@ Key3 = Value3
 
 	val1, _ := section.GetString("Key1")
 	assert.Equalf(t, "Value1", val1, "got val1")
+
+	val4, _ := section.GetString("Key4")
+	assert.Equalf(t, "Value4", val4, "got val4")
 }

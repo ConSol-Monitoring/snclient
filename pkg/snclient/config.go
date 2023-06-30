@@ -240,6 +240,13 @@ func (cs *ConfigSection) Clone() *ConfigSection {
 	return clone
 }
 
+// HasKey returns true if given key exists in this config section
+func (cs *ConfigSection) HasKey(key string) (ok bool) {
+	_, ok = cs.data[key]
+
+	return ok
+}
+
 // GetString parses string from config section, it returns the value if found and sets ok to true.
 func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	val, ok = cs.data[key]
@@ -250,6 +257,8 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 		}
 		macros = append(macros, GlobalMacros)
 		val = ReplaceMacros(val, macros...)
+
+		return val, ok
 	}
 
 	if cs.cfg == nil {
@@ -259,8 +268,15 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	// try default folder for defaults
 	base := path.Base(cs.name)
 	folder := path.Dir(cs.name)
-	if base != "default" {
+	if base != "default" && folder != "/" {
 		defSection := cs.cfg.Section(folder + "/default")
+		val, ok := defSection.GetString(key)
+		if ok {
+			return val, ok
+		}
+	}
+	if folder != cs.name {
+		defSection := cs.cfg.Section(folder)
 		val, ok := defSection.GetString(key)
 		if ok {
 			return val, ok
@@ -268,7 +284,7 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	}
 	parent := path.Dir(strings.TrimSuffix(folder, "/"))
 	if parent != "." && parent != "/" && parent != "" {
-		parSection := cs.cfg.Section(parent + "/default")
+		parSection := cs.cfg.Section(parent)
 		val, ok := parSection.GetString(key)
 		if ok {
 			return val, ok
