@@ -2,17 +2,16 @@ package snclient
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckWrap(t *testing.T) {
-	_, myTestFile, _, _ := runtime.Caller(0)
-	myTestDir := filepath.Dir(myTestFile)
-	scriptsDir := filepath.Join(myTestDir, "t", "scripts")
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
 
 	config := fmt.Sprintf(`
 [/modules]

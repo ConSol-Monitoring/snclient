@@ -3,6 +3,7 @@ package snclient
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -108,7 +109,7 @@ func (l *CheckWrap) runExternalCommand(command string, timeout int64) (output st
 
 	err := cmd.Start()
 	if err != nil && cmd.ProcessState == nil {
-		return setProcessErrorResult(err)
+		return setProcessErrorResult(err), ExitCodeUnknown
 	}
 
 	// https://github.com/golang/go/issues/18874
@@ -119,25 +120,26 @@ func (l *CheckWrap) runExternalCommand(command string, timeout int64) (output st
 		if proc == nil {
 			return
 		}
-		switch ctx.Err() {
-		case context.DeadlineExceeded:
+		cmdErr := ctx.Err()
+		switch {
+		case errors.Is(cmdErr, context.DeadlineExceeded):
 			// timeout
 			processTimeoutKill(proc)
-		case context.Canceled:
+		case errors.Is(cmdErr, context.Canceled):
 			// normal exit
-			proc.Kill()
+			LogDebug(proc.Kill())
 		}
 	}(cmd.Process)
 
 	err = cmd.Wait()
 	cancel()
 	if err != nil && cmd.ProcessState == nil {
-		return setProcessErrorResult(err)
+		return setProcessErrorResult(err), ExitCodeUnknown
 	}
 
 	state := cmd.ProcessState
 
-	if ctx.Err() == context.DeadlineExceeded {
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		output = fmt.Sprintf("UKNOWN: script run into timeout after %ds", timeout)
 		exitCode = CheckExitUnknown
 
@@ -161,21 +163,18 @@ func (l *CheckWrap) runExternalCommand(command string, timeout int64) (output st
 	return output, exitCode
 }
 
-func setProcessErrorResult(err error) (output string, exitCode int64) {
+func setProcessErrorResult(err error) (output string) {
 	if os.IsNotExist(err) {
-		output = fmt.Sprintf("UNKNOWN: Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists.")
-		exitCode = CheckExitUnknown
+		output = "UNKNOWN: Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists."
 
 		return
 	}
 	if os.IsPermission(err) {
-		output = fmt.Sprintf("UNKNOWN: Return code of 126 is out of bounds. Make sure the plugin you're trying to run is executable.")
-		exitCode = CheckExitUnknown
+		output = "UNKNOWN: Return code of 126 is out of bounds. Make sure the plugin you're trying to run is executable."
 
 		return
 	}
 	log.Errorf("system error: %w", err)
-	exitCode = CheckExitUnknown
 	output = fmt.Sprintf("UNKNOWN: %s", err.Error())
 
 	return
@@ -209,15 +208,15 @@ func fixReturnCodes(output *string, exitCode *int64, state *os.ProcessState) {
 	*exitCode = 3
 }
 
-func processTimeoutKill(p *os.Process) {
+func processTimeoutKill(process *os.Process) {
 	go func(pid int) {
 		// kill the process itself and the hole process group
-		syscall.Kill(-pid, syscall.SIGTERM)
+		LogDebug(syscall.Kill(-pid, syscall.SIGTERM))
 		time.Sleep(1 * time.Second)
 
-		syscall.Kill(-pid, syscall.SIGINT)
+		LogDebug(syscall.Kill(-pid, syscall.SIGINT))
 		time.Sleep(1 * time.Second)
 
-		syscall.Kill(-pid, syscall.SIGKILL)
-	}(p.Pid)
+		LogDebug(syscall.Kill(-pid, syscall.SIGKILL))
+	}(process.Pid)
 }
