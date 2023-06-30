@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"utils"
+	"pkg/utils"
 )
 
 const (

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"utils"
+	"pkg/utils"
 
 	"github.com/go-chi/chi/v5"
 )

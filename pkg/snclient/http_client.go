@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"utils"
+	"pkg/utils"
 )
 
 var DefaultHTTPClientConfig = ConfigData{
