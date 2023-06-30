@@ -1,27 +1,29 @@
 #!/usr/bin/env bash
 
-OK=0
-WARNING=1
-CRITICAL=2
-UNKNOWN=3
-
 state=$1
-message=$2
-
-if [[ "$state" != "OK" && "$state" != "Warning" && "$state" != "Critical" && "$state" != "Unknown" ]]; then
-    echo "Invalid state argument. Please provide one of: OK, Warning, Critical, Unknown"
-    exit $UNKNOWN
+if [ -n "$2" ]; then
+  message=": $2"
+else
+  message=""
 fi
 
-echo "$state: $message"
-exit_status=$OK
+if [[ "$state" != "0" && "$state" != "1" && "$state" != "2" && "$state" != "3" ]]; then
+    echo "Invalid state argument. Please provide one of: 0, 1, 2, 3"
+    exit 3
+fi
 
-if [ "$state" = "Warning" ]; then
-    exit_status=$WARNING
-elif [ "$state" = "Critical" ]; then
-    exit_status=$CRITICAL
-elif [ "$state" = "Unknown" ]; then
-    exit_status=$UNKNOWN
+if [ "$state" = "0" ]; then
+    echo "OK$message"
+    exit_status=0
+elif [ "$state" = "1" ]; then
+    echo "WARNING$message"
+    exit_status=1
+elif [ "$state" = "2" ]; then
+    echo "CRITICAL$message"
+    exit_status=2
+elif [ "$state" = "3" ]; then
+    echo "UNKNOWN$message"
+    exit_status=3
 fi
 
 exit $exit_status
