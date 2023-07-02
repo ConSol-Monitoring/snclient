@@ -33,9 +33,9 @@ var DefaultConfig = map[string]*ConfigData{
 	"/settings/external scripts/wrappings": {
 		"bat": `${script root}\\%SCRIPT% %ARGS%`,
 		"ps1": `cmd /c echo ` +
-			`If (-Not (Test-Path "${script root}\%SCRIPT%") ) ` +
-			`{ Write-Host "UNKNOWN: Script "${script root}\%SCRIPT%" not found."; exit(3) }; ` +
-			`${script root}\%SCRIPT% $ARGS$; exit($lastexitcode) | powershell.exe /noprofile -command -`,
+			`If (-Not (Test-Path "${script root}\%SCRIPT%" ) ) ` +
+			`{ Write-Host "UNKNOWN: Script ${script root}\%SCRIPT% not found." ; exit(3) }; ` +
+			`${script root}\%SCRIPT% $ARGS$; exit($lastexitcode) | powershell.exe -nologo -noprofile -command -`,
 	},
 }
 

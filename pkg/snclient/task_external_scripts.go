@@ -5,7 +5,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
+
+	"pkg/utils"
 )
 
 func init() {
@@ -136,7 +137,7 @@ func (e *ExternalScriptsHandler) registerAliases(conf *Config) error {
 		}
 		cmdConf := conf.Section(sectionName)
 		if command, ok := cmdConf.GetString("command"); ok {
-			f := strings.Fields(command)
+			f := utils.Tokenize(command)
 			log.Tracef("registered wrapped script: %s -> %s", name, command)
 			AvailableChecks[name] = CheckEntry{name, &CheckAlias{command: f[0], args: f[1:], config: cmdConf}}
 		} else {

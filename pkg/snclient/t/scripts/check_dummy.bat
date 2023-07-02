@@ -28,4 +28,3 @@ if "%state%" equ "0" (
 )
 
 exit /b %exitStatus%
-

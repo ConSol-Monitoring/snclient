@@ -43,6 +43,16 @@ func (l *CheckWrap) Check(snc *Agent, args []string) (*CheckResult, error) {
 		command = ReplaceRuntimeMacros(l.commandString, macros)
 	}
 
+	if strings.Contains(command, "script root") {
+		scriptRoot, ok := snc.Config.Section("/settings/external scripts").GetString("script root")
+		if ok {
+			macrosRoot := map[string]string{
+				"script root": scriptRoot,
+			}
+			command = ReplaceMacros(command, macrosRoot)
+		}
+	}
+
 	// set default timeout
 	timeoutSeconds, ok, err := l.config.GetInt("timeout")
 	if err != nil || !ok {

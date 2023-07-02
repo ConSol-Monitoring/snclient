@@ -191,6 +191,6 @@ func processTimeoutKill(process *os.Process) {
 	LogDebug(process.Signal(syscall.SIGKILL))
 }
 
-func setSysProcAttr(_ *exec.Cmd) {
-	// not implemented on windows
+func setSysProcAttr(cmd *exec.Cmd) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 }

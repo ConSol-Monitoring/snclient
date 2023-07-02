@@ -87,10 +87,10 @@ var (
 	GlobalMacros = getGlobalMacros()
 
 	// macros can be either ${...} or %(...)
-	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_:]+\s*\}|%\(\s*[a-zA-Z\-_:]+\s*\)`)
+	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_: ]+\s*\}|%\(\s*[a-zA-Z\-_: ]+\s*\)`)
 
 	// runtime macros can be %...%
-	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z\-_:]+(?:%|\$)`)
+	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z\-_: ]+(?:%|\$)`)
 )
 
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
@@ -931,14 +931,16 @@ func (snc *Agent) runExternalCommand(command string, timeout int64) (stdout, std
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	shell := "/bin/sh"
-	shellArg := "-c"
+	cmdList := []string{"/bin/sh", "-c", command}
 	if runtime.GOOS == "windows" {
-		shell = "cmd"
-		shellArg = "/c"
+		cmdList = utils.Tokenize(command)
+		cmdList, err = utils.TrimQuotesAll(cmdList)
+		if err != nil {
+			return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
+		}
 	}
-	log.Tracef("exec.Command: %#v", []string{shell, shellArg, command})
-	cmd := exec.CommandContext(ctx, shell, shellArg, command)
+	log.Tracef("exec.Command: %#v", cmdList)
+	cmd := exec.CommandContext(ctx, cmdList[0], cmdList[1:]...) //nolint:gosec // tainted input is configurable
 
 	// byte buffer for output
 	var errbuf bytes.Buffer
