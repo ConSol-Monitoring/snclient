@@ -173,6 +173,7 @@ func LogThreadDump(log *factorlog.FactorLog) {
 }
 
 // Tokenize returns list of string tokens
+// token will still have quotes around after tokenizing
 func Tokenize(str string) []string {
 	return (TokenizeBy(str, " \t\n\r"))
 }
@@ -234,6 +235,19 @@ func TrimQuotes(str string) (res string, err error) {
 	}
 
 	return str, nil
+}
+
+func TrimQuotesAll(str []string) (res []string, err error) {
+	res = make([]string, len(str))
+	for i, s := range str {
+		t, err := TrimQuotes(s)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = t
+	}
+
+	return res, err
 }
 
 func ParseVersion(str string) (num float64) {
