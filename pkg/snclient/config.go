@@ -29,6 +29,14 @@ var DefaultConfig = map[string]*ConfigData{
 		"stable": "https://api.github.com/repos/ConSol-monitoring/snclient/releases",
 		"dev":    "https://api.github.com/repos/ConSol-monitoring/snclient/actions/artifacts",
 	},
+
+	"/settings/external scripts/wrappings": {
+		"bat": `${script root}\\%SCRIPT% %ARGS%`,
+		"ps1": `cmd /c echo ` +
+			`If (-Not (Test-Path "${script root}\%SCRIPT%") ) ` +
+			`{ Write-Host "UNKNOWN: Script "${script root}\%SCRIPT%" not found."; exit(3) }; ` +
+			`${script root}\%SCRIPT% $ARGS$; exit($lastexitcode) | powershell.exe /noprofile -command -`,
+	},
 }
 
 type configFiles []string

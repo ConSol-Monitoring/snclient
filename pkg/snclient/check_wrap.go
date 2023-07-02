@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"pkg/utils"
@@ -29,7 +30,18 @@ func (l *CheckWrap) Check(snc *Agent, args []string) (*CheckResult, error) {
 	for i := range args {
 		macros[fmt.Sprintf("ARG%d", i+1)] = args[i]
 	}
-	command := ReplaceRuntimeMacros(l.commandString, macros)
+
+	var command string
+	if l.wrapped {
+		ext := strings.TrimPrefix(filepath.Ext(cmdToken[0]), ".")
+		wrapping, ok := snc.Config.Section("/settings/external scripts/wrappings").GetString(ext)
+		if !ok {
+			return nil, fmt.Errorf("no wrapping found for extension: %s", ext)
+		}
+		command = ReplaceRuntimeMacros(wrapping, macros)
+	} else {
+		command = ReplaceRuntimeMacros(l.commandString, macros)
+	}
 
 	// set default timeout
 	timeoutSeconds, ok, err := l.config.GetInt("timeout")
