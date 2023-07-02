@@ -90,7 +90,7 @@ var (
 	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_:]+\s*\}|%\(\s*[a-zA-Z\-_:]+\s*\)`)
 
 	// runtime macros can be %...%
-	reRuntimeMacro = regexp.MustCompile(`%[a-zA-Z\-_:]+%`)
+	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z\-_:]+(?:%|\$)`)
 )
 
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
@@ -834,15 +834,23 @@ func ReplaceMacros(value string, macroSets ...map[string]string) string {
 /* ReplaceRuntimeMacros replaces runtime variables in given string.
  * possible macros are:
  *   %macro%
+ *   $macro$
  */
 func ReplaceRuntimeMacros(value string, macroSets ...map[string]string) string {
 	value = reRuntimeMacro.ReplaceAllStringFunc(value, func(str string) string {
 		orig := str
 		str = strings.TrimSpace(str)
 
+		switch {
 		// %...% macros
-		str = strings.TrimPrefix(str, "%")
-		str = strings.TrimSuffix(str, "%")
+		case strings.HasPrefix(str, "%"):
+			str = strings.TrimPrefix(str, "%")
+			str = strings.TrimSuffix(str, "%")
+		// $...$ macros
+		case strings.HasPrefix(str, "$"):
+			str = strings.TrimPrefix(str, "$")
+			str = strings.TrimSuffix(str, "$")
+		}
 
 		return getMacrosetsValue(str, orig, macroSets...)
 	})
@@ -929,6 +937,7 @@ func (snc *Agent) runExternalCommand(command string, timeout int64) (stdout, std
 		shell = "cmd"
 		shellArg = "/c"
 	}
+	log.Tracef("exec.Command: %#v", []string{shell, shellArg, command})
 	cmd := exec.CommandContext(ctx, shell, shellArg, command)
 
 	// byte buffer for output
@@ -947,22 +956,7 @@ func (snc *Agent) runExternalCommand(command string, timeout int64) (stdout, std
 
 	// https://github.com/golang/go/issues/18874
 	// timeout does not work for child processes and/or if file handles are still open
-	go func(proc *os.Process) {
-		defer snc.logPanicExit()
-		<-ctx.Done() // wait till command runs into timeout or is finished (canceled)
-		if proc == nil {
-			return
-		}
-		cmdErr := ctx.Err()
-		switch {
-		case errors.Is(cmdErr, context.DeadlineExceeded):
-			// timeout
-			processTimeoutKill(proc)
-		case errors.Is(cmdErr, context.Canceled):
-			// normal exit
-			LogDebug(proc.Kill())
-		}
-	}(cmd.Process)
+	go procTimeoutGuard(ctx, snc, cmd.Process)
 
 	err = cmd.Wait()
 	cancel()
@@ -984,5 +978,26 @@ func (snc *Agent) runExternalCommand(command string, timeout int64) (stdout, std
 	stdout = string(bytes.TrimSpace((bytes.Trim(outbuf.Bytes(), "\x00"))))
 	stderr = string(bytes.TrimSpace((bytes.Trim(errbuf.Bytes(), "\x00"))))
 
+	log.Tracef("exit: %d", exitCode)
+	log.Tracef("stdout: %s", stdout)
+	log.Tracef("stderr: %s", stderr)
+
 	return stdout, stderr, exitCode, state, nil
+}
+
+func procTimeoutGuard(ctx context.Context, snc *Agent, proc *os.Process) {
+	defer snc.logPanicExit()
+	<-ctx.Done() // wait till command runs into timeout or is finished (canceled)
+	if proc == nil {
+		return
+	}
+	cmdErr := ctx.Err()
+	switch {
+	case errors.Is(cmdErr, context.DeadlineExceeded):
+		// timeout
+		processTimeoutKill(proc)
+	case errors.Is(cmdErr, context.Canceled):
+		// normal exit
+		return
+	}
 }
