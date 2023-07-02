@@ -1,5 +1,5 @@
 param (
-    [Parameter(Position = 0, Mandatory = $true)]
+    [Parameter(Position = 0, Mandatory = $false)]
     [ValidateSet("0", "1", "2", "3")]
     [string]$state,
     [Parameter(Position = 1)]
@@ -16,19 +16,19 @@ if (![string]::IsNullOrEmpty($message)) {
 
 switch ($state) {
     "0" {
-        Write-Host "OK:$message"
+        Write-Host "OK$message"
         $exitStatus = 0
     }
     "1" {
-        Write-Host "WARNING:$message"
+        Write-Host "WARNING$message"
         $exitStatus = 1
     }
     "2" {
-        Write-Host "CRITICAL:$message"
+        Write-Host "CRITICAL$message"
         $exitStatus = 2
     }
     "3" {
-        Write-Host "UNKNOWN:$message"
+        Write-Host "UNKNOWN$message"
         $exitStatus = 3
     }
 }
