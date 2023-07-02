@@ -168,21 +168,20 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 	drive["hotplug"] = ""
 
 	if err := l.setDeviceFlags(drive); err != nil {
-		drive["_error"] = fmt.Sprintf("device flags: %s", err.Error())
-
-		return
+		log.Debugf("device flags: %s", err.Error())
 	}
 	if err := l.setMediaType(drive); err != nil {
-		drive["_error"] = fmt.Sprintf("device flags: %s", err.Error())
-
-		return
+		log.Debugf("device flags: %s", err.Error())
 	}
 
 	l.setDeviceInfo(drive)
 
 	usage, err := disk.Usage(drive["drive_or_id"])
 	if err != nil {
-		if drive["type"] != "cdrom" && drive["removable"] == "0" {
+		switch {
+		case drive["type"] == "cdrom":
+		case drive["removable"] != "0":
+		default:
 			drive["_error"] = fmt.Sprintf("Failed to find disk partition %s: %s", drive["drive_or_id"], err.Error())
 		}
 		usage = &disk.UsageStat{}
@@ -393,6 +392,9 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 		return
 	}
 	drive["type"] = l.driveType(windows.GetDriveType(volPtr))
+	if drive["type"] == "removable" {
+		drive["removable"] = "1"
+	}
 
 	volumeName := make([]uint16, 512)
 	fileSystemName := make([]uint16, 512)
@@ -407,7 +409,10 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 		&fileSystemName[0],
 		uint32(len(fileSystemName)))
 	if err != nil {
-		if drive["type"] != "cdrom" && drive["removable"] == "0" {
+		switch {
+		case drive["type"] == "cdrom":
+		case drive["removable"] != "0":
+		default:
 			drive["_error"] = fmt.Sprintf("cannot get volume information for %s: %s", drive["drive_or_id"], err.Error())
 		}
 
