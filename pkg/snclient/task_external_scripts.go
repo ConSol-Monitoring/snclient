@@ -150,7 +150,7 @@ func (e *ExternalScriptsHandler) registerAliases(conf *Config) error {
 
 func (e *ExternalScriptsHandler) registerScriptPath(defaultScriptConfig *ConfigSection, conf *Config) error {
 	scriptPath, ok := defaultScriptConfig.GetString("script path")
-	if !ok {
+	if !ok || scriptPath == "" {
 		return nil
 	}
 
