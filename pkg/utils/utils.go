@@ -265,7 +265,8 @@ func ParseVersion(str string) (num float64) {
 	return num
 }
 
-func Sha256Sum(path string) (hash string, err error) {
+// Sha256FileSum returns sha256 sum for given file
+func Sha256FileSum(path string) (hash string, err error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("open %s: %s", path, err.Error())
@@ -275,6 +276,17 @@ func Sha256Sum(path string) (hash string, err error) {
 	h := sha256.New()
 	if _, err := io.Copy(h, file); err != nil {
 		return "", fmt.Errorf("read %s: %s", path, err.Error())
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+// Sha256Sum returns sha256 sum for given string
+func Sha256Sum(text string) (hash string, err error) {
+	h := sha256.New()
+	_, err = fmt.Fprint(h, text)
+	if err != nil {
+		return "", fmt.Errorf("sha256: %s", err.Error())
 	}
 
 	return fmt.Sprintf("%x", h.Sum(nil)), nil

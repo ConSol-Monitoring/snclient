@@ -1003,3 +1003,43 @@ func procTimeoutGuard(ctx context.Context, snc *Agent, proc *os.Process) {
 		return
 	}
 }
+
+func (snc *Agent) verifyPassword(confPassword, userPassword string) bool {
+	// password checks are disabled
+	if confPassword == "" {
+		return true
+	}
+
+	// no login with default password
+	if confPassword == DefaultPassword {
+		log.Errorf("configured password in ini file matches default password, deny all access -> 403")
+
+		return false
+	}
+
+	// hashed password?
+	fields := strings.SplitN(confPassword, ":", 2)
+	if len(fields) == 2 {
+		switch strings.ToLower(fields[0]) {
+		case "sha256":
+			confPassword = fields[1]
+			var err error
+			userPassword, err = utils.Sha256Sum(userPassword)
+			if err != nil {
+				log.Errorf("sha256 failed: %s", err.Error())
+
+				return false
+			}
+		default:
+			log.Errorf("unsupported hash algorithm: %s", fields[0])
+		}
+	}
+
+	if confPassword == userPassword {
+		return true
+	}
+
+	log.Errorf("password mismatch -> 403")
+
+	return false
+}

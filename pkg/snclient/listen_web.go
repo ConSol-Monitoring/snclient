@@ -140,28 +140,6 @@ func (l *HandlerWeb) GetMappings(*Agent) []URLMapping {
 	}
 }
 
-func (l *HandlerWeb) verifyPassword(password string) bool {
-	// password checks are disabled
-	if l.password == "" {
-		return true
-	}
-
-	// no login with default password
-	if l.password == DefaultPassword {
-		log.Errorf("configured password in ini file matches default password, deny all access -> 403")
-
-		return false
-	}
-
-	if l.password == password {
-		return true
-	}
-
-	log.Errorf("password mismatch -> 403")
-
-	return false
-}
-
 func queryParam2CommandArgs(req *http.Request) []string {
 	args := make([]string, 0)
 
@@ -258,7 +236,7 @@ type HandlerWebLegacy struct {
 
 func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// check clear text password
-	if !l.Handler.verifyPassword(req.Header.Get("Password")) {
+	if !l.Handler.snc.verifyPassword(l.Handler.password, req.Header.Get("Password")) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		res.Header().Set("Content-Type", "application/json")
 		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
@@ -315,7 +293,7 @@ type HandlerWebV1 struct {
 func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// check basic auth password
 	_, password, _ := req.BasicAuth()
-	if !l.Handler.verifyPassword(password) {
+	if !l.Handler.snc.verifyPassword(l.Handler.password, password) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		res.Header().Set("Content-Type", "application/json")
 		LogError(json.NewEncoder(res).Encode(map[string]interface{}{

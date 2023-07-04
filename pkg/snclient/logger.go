@@ -80,6 +80,12 @@ func raiseLogLevel(level string) {
 	}
 }
 
+func disableLogsTemporarily() {
+	prev := restoreLevel
+	setLogLevel("off")
+	restoreLevel = prev
+}
+
 func restoreLogLevel() {
 	setLogLevel(restoreLevel)
 }
