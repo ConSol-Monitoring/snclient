@@ -62,7 +62,7 @@ Find a brief overview of what is planned and what is done already:
 - [X] support NRPE clients
 - [X] support NSCP rest api clients
 - [X] support basic Prometheus metrics
-- [ ] implement internal checks
+- [ ] finish builtin checks
 - [X] implement reading nsclient.ini files
 - [X] implement ssl/tls support
 - [X] implement authenticaton / authorization
@@ -93,14 +93,9 @@ Find a brief overview of what is planned and what is done already:
 
 ### Miscellaneous
 - [ ] check usr signal handler
-- [ ] Rest API
-  - [ ] add performance data support
 - [ ] improve configuration
   - [ ] add config validator
   - [ ] use strong typed config items
-- [ ] improve documentation
-  - [ ] add feature comparison to readme
-  - [ ] add docs/
 - [ ] osx
   - [ ] check pkg uninstall
 - [ ] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, amd64 -> aarch64
