@@ -253,11 +253,11 @@ version:
 
 dist:
 	mkdir -p ./dist
-	openssl req -newkey rsa:2048 -nodes -keyout dist/server.key -out dist/server.csr -subj "/CN=localhost"
-	openssl x509 -req -days 20000 -in dist/server.csr -signkey dist/server.key -out dist/server.crt
-	openssl req -nodes -new -x509 -keyout dist/ca.key -out dist/ca.crt -days 20000 -subj "/CN=localhost"
-	cat dist/ca.crt dist/ca.key > dist/cacert.pem
-	rm -f dist/ca.crt dist/ca.key dist/server.csr
+	openssl genrsa -out dist/ca.key 4096
+	openssl req -key dist/ca.key -new -x509 -days 20000 -sha256 -extensions v3_ca -out dist/cacert.pem -subj "/C=DE/ST=Bavaria/L=Earth/O=snclient/OU=IT/CN=Root CA SNClient"
+	openssl req -newkey rsa:2048 -nodes -keyout dist/server.key -out dist/server.csr -subj "/CN=snclient" -reqexts SAN -extensions SAN -config <(echo -e "[SAN]\nsubjectAltName=DNS:snclient")
+	openssl x509 -req -CA dist/cacert.pem -CAkey dist/ca.key -days 20000 -in dist/server.csr -out dist/server.crt -copy_extensions copyall
+	rm -f dist/server.csr
 	cp \
 		./README.md \
 		./LICENSE \
@@ -341,6 +341,7 @@ rpm: | dist
 	sed -i dist/snclient.spec -e 's|^Version: .*|Version: $(VERSION)|'
 	sed -i dist/snclient.spec -e 's|^BuildArch: .*|BuildArch: $(RPM_ARCH)|'
 	cp -rp dist snclient-$(VERSION)
+	rm -f snclient-$(VERSION)/ca.key
 	tar cfz snclient-$(VERSION).tar.gz snclient-$(VERSION)
 	rm -rf snclient-$(VERSION)
 	mkdir -p $(RPM_TOPDIR)/{SOURCES,BUILD,RPMS,SRPMS,SPECS}
