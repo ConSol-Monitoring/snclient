@@ -273,23 +273,23 @@ func Sha256FileSum(path string) (hash string, err error) {
 	}
 	defer file.Close()
 
-	h := sha256.New()
-	if _, err := io.Copy(h, file); err != nil {
+	sha := sha256.New()
+	if _, err := io.Copy(sha, file); err != nil {
 		return "", fmt.Errorf("read %s: %s", path, err.Error())
 	}
 
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	return fmt.Sprintf("%x", sha.Sum(nil)), nil
 }
 
 // Sha256Sum returns sha256 sum for given string
 func Sha256Sum(text string) (hash string, err error) {
-	h := sha256.New()
-	_, err = fmt.Fprint(h, text)
+	sha := sha256.New()
+	_, err = fmt.Fprint(sha, text)
 	if err != nil {
 		return "", fmt.Errorf("sha256: %s", err.Error())
 	}
 
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	return fmt.Sprintf("%x", sha.Sum(nil)), nil
 }
 
 // Copy file from src to destination

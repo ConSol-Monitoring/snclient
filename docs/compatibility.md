@@ -85,6 +85,22 @@ ex.:
 Allowing tls 1.2 or higher (default) disables known insecure ciphers. Allowing
 tls lower than 1.2 enables all ciphers.
 
+## Passwords
+<img src="./icons/feature.png">
+SNClient supports using hashed passwords in the configuration file.
+
+	%> snclient hash
+	enter password to hash or hit ctrl+c to exit.
+	<entering password>
+	hash sum: SHA256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+
+Then use this hash as password:
+
+	[/settings/WEB/server]
+	password = SHA256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+
+
+
 ## Checks
 
 Check specific changes and enhancements:
