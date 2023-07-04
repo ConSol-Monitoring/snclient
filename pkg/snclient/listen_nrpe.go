@@ -27,9 +27,10 @@ func NewHandlerNRPE() Module {
 
 func (l *HandlerNRPE) Defaults() ConfigData {
 	defaults := ConfigData{
-		"allow arguments":        "0",
-		"allow nasty characters": "0",
+		"allow arguments":        "false",
+		"allow nasty characters": "false",
 		"port":                   "5666",
+		"use ssl":                "true",
 	}
 	defaults.Merge(DefaultListenTCPConfig)
 

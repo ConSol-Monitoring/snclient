@@ -107,9 +107,11 @@ func (l *HandlerWeb) Stop() {
 
 func (l *HandlerWeb) Defaults() ConfigData {
 	defaults := ConfigData{
-		"port":     "8443",
-		"use ssl":  "1",
-		"password": DefaultPassword,
+		"port":                   "8443",
+		"use ssl":                "1",
+		"password":               DefaultPassword,
+		"allow arguments":        "true",
+		"allow nasty characters": "false",
 	}
 	defaults.Merge(DefaultListenHTTPConfig)
 
