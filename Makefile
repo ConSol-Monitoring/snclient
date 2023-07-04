@@ -254,8 +254,8 @@ version:
 dist:
 	mkdir -p ./dist
 	openssl req -newkey rsa:2048 -nodes -keyout dist/server.key -out dist/server.csr -subj "/CN=localhost"
-	openssl x509 -req -days 3650 -in dist/server.csr -signkey dist/server.key -out dist/server.crt
-	openssl req -nodes -new -x509 -keyout dist/ca.key -out dist/ca.crt -days 3650 -subj "/CN=localhost"
+	openssl x509 -req -days 20000 -in dist/server.csr -signkey dist/server.key -out dist/server.crt
+	openssl req -nodes -new -x509 -keyout dist/ca.key -out dist/ca.crt -days 20000 -subj "/CN=localhost"
 	cat dist/ca.crt dist/ca.key > dist/cacert.pem
 	rm -f dist/ca.crt dist/ca.key dist/server.csr
 	cp \
@@ -404,3 +404,6 @@ release_notes.txt: Changes
 		echo "unknown make target(s): $(MAKECMDGOALS)"; \
 		exit 1; \
 	fi
+
+client1.pem:
+	openssl req -new -nodes -x509 -out client1.pem -keyout client1.key -days 20000 -subj "/C=DE/ST=Bavaria/L=Earth/O=SNClient/OU=IT"

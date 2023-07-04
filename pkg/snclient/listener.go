@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
@@ -174,6 +175,22 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 			return fmt.Errorf("tls.LoadX509KeyPair: %s / %s: %s", certPath, certKey, err.Error())
 		}
 		l.tlsConfig.Certificates = []tls.Certificate{cer}
+
+		clientPEMs, ok := conf.GetString("client certificates")
+		if ok {
+			caCertPool := x509.NewCertPool()
+			for _, file := range strings.Split(clientPEMs, ",") {
+				file = strings.TrimSpace(file)
+				caCert, err := os.ReadFile(file)
+				if err != nil {
+					return fmt.Errorf("os.ReadFile: %w", err)
+				}
+				caCertPool.AppendCertsFromPEM(caCert)
+			}
+
+			l.tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+			l.tlsConfig.ClientCAs = caCertPool
+		}
 	}
 
 	return nil
@@ -189,7 +206,12 @@ func (l *Listener) Stop() {
 // Start listening.
 func (l *Listener) Start() error {
 	log.Infof("starting %s listener on %s", l.connType, l.BindString())
-	log.Debugf("ssl: %v", l.tlsConfig != nil)
+	sslOptions := ""
+	if l.tlsConfig != nil && l.tlsConfig.ClientCAs != nil {
+		sslOptions = " (client certificate required)"
+	}
+
+	log.Debugf("ssl: %v%s", l.tlsConfig != nil, sslOptions)
 
 	if len(l.allowedHosts) == 0 {
 		log.Debugf("allowed hosts: all")

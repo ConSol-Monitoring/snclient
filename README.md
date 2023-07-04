@@ -67,7 +67,7 @@ Find a brief overview of what is planned and what is done already:
 - [X] implement ssl/tls support
 - [X] implement authenticaton / authorization
   - [X] basic auth
-  - [ ] client certificates
+  - [X] client certificates
   - [X] allowed hosts
   - [X] allow arguments
   - [X] allow nasty characters
