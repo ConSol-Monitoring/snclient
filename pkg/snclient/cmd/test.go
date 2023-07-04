@@ -103,7 +103,7 @@ func testRunCheck(cmd *cobra.Command, snc *snclient.Agent, args []string) int {
 	}
 
 	state := int(3)
-	if res.State > 0 && res.State <= math.MaxInt {
+	if res.State >= 0 && res.State <= math.MaxInt {
 		state = int(res.State)
 	}
 

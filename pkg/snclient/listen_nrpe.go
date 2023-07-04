@@ -114,7 +114,7 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 
 	output := statusResult.BuildPluginOutput()
 	state := uint16(3)
-	if statusResult.State > 0 && statusResult.State <= math.MaxInt16 {
+	if statusResult.State >= 0 && statusResult.State <= math.MaxInt16 {
 		state = uint16(statusResult.State)
 	}
 	response := nrpe.BuildPacket(request.Version(), nrpe.NrpeResponsePacket, state, output)
