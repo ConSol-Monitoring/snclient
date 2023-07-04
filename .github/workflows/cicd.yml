@@ -227,7 +227,7 @@ jobs:
       - run: |
           echo "Building ${{ env.DIST }}.pkg"
           brew install help2man
-          brew install openssl
+          export PATH="/usr/local/opt/openssl@3/bin:$PATH"
           make osx
           mv snclient*.pkg ${{ env.DIST }}.pkg
       - uses: actions/upload-artifact@v3
