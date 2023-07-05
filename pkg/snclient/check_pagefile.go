@@ -15,13 +15,10 @@ func init() {
 
 type CheckPagefile struct{}
 
-/* check_pagefile
- * Description: Checks the pagefile usage on the host.
- * Thresholds: used, free, used_pct, free_pct, peak, peak_pct
- * Units: B, KB, MB, GB, TB, %
- */
 func (l *CheckPagefile) Check(_ *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
+		name:        "check_pagefile",
+		description: "Checks the pagefile usage.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

@@ -13,11 +13,10 @@ func init() {
 
 type CheckOSVersion struct{}
 
-/* check_os_version
- * Description: Checks the os version
- */
 func (l *CheckOSVersion) Check(_ *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
+		name:        "check_os_version",
+		description: "Checks the os system version.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

@@ -14,12 +14,10 @@ func init() {
 
 type CheckEventlog struct{}
 
-/* check_process_windows
- * Description: Checks the eventlog of the host.
- */
-
 func (l *CheckEventlog) Check(_ *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
+		name:        "check_eventlog",
+		description: "Checks the windows eventlog entries.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

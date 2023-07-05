@@ -24,11 +24,10 @@ type FileInfoUnified struct {
 
 type CheckFiles struct{}
 
-/* check_files
- * Description: Check the files in the directory
- */
 func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
+		name:        "check_files",
+		description: "Checks files and directories.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

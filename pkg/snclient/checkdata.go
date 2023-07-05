@@ -19,10 +19,19 @@ var (
 	Hundred = float64(100)
 )
 
+type UsageError struct {
+	usage string
+}
+
+func (e *UsageError) Error() string {
+	return e.usage
+}
+
 // CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
 	noCopy          noCopy
 	name            string
+	description     string
 	debug           string
 	defaultFilter   string
 	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
@@ -308,7 +317,9 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		argValue := cd.removeQuotes(split[1])
 		switch keyword {
 		case "help":
-			return nil, fmt.Errorf("usage: %s", cd.name)
+			return nil, &UsageError{
+				usage: fmt.Sprintf("check:\n\n  %s\n\nusage:\n\n  %s [<options>] [<filter>]\n\ndescription:\n\n  %s", cd.name, cd.name, cd.description),
+			}
 		case "ok":
 			cond, err := NewCondition(argValue)
 			if err != nil {

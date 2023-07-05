@@ -659,6 +659,13 @@ func (snc *Agent) runCheck(name string, args []string) *CheckResult {
 
 	res, err := check.Handler.Check(snc, args)
 	if err != nil {
+		if e, ok := err.(*UsageError); ok {
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: e.Error(),
+			}
+		}
+
 		return &CheckResult{
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("${status} - %s", err.Error()),

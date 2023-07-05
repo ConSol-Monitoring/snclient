@@ -12,11 +12,11 @@ func init() {
 
 type CheckCPU struct{}
 
-/* check_cpu */
 func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 	times := []string{"5m", "1m", "5s"}
 	check := &CheckData{
-		name: "check_cpu",
+		name:        "check_cpu",
+		description: "Checks the cpu usage metrics.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

@@ -4,10 +4,9 @@ package snclient
 
 import (
 	"fmt"
+	"pkg/humanize"
 	"strconv"
 	"strings"
-
-	"pkg/humanize"
 
 	"github.com/shirou/gopsutil/v3/disk"
 	"golang.org/x/exp/slices"
@@ -19,13 +18,10 @@ func init() {
 
 type CheckDrivesize struct{}
 
-/* check_drivesize
- * Description: Checks the drive usage on the host.
- * Thresholds: used, free, used_pct, free_pct
- * Units: B, KB, MB, GB, TB, %
- */
 func (l *CheckDrivesize) Check(snc *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
+		name:        "check_drivesize",
+		description: "Checks the disk drive/volumes usage on a host.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

@@ -2,10 +2,9 @@ package snclient
 
 import (
 	"fmt"
+	"pkg/humanize"
 	"regexp"
 	"strings"
-
-	"pkg/humanize"
 
 	"golang.org/x/exp/slices"
 )
@@ -30,15 +29,14 @@ type CheckService struct {
 	snc *Agent
 }
 
-/* check_service_linux
- * Description: Checks the state of a linux service.
- */
 func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
 	l.snc = snc
 
 	services := []string{}
 	excludes := []string{}
 	check := &CheckData{
+		name:        "check_service",
+		description: "Checks the state of one or multiple linux (systemctl) services.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

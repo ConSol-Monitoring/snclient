@@ -23,13 +23,10 @@ var ProcessStates = map[string]string{
 	"1":       "started",
 }
 
-/* check_process_windows
- * Description: Checks the state of a process on the host.
- * Thresholds: status
- * Units: ?
- */
 func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
+		name:        "check_process",
+		description: "Check state/metrics of one or more of the processes running on the computer.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

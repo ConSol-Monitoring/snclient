@@ -13,11 +13,6 @@ func init() {
 
 type CheckWMI struct{}
 
-/* check_wmi
- * Description: Querys the WMI for several metrics.
- * Thresholds: keys of the query
- * Units: none
- */
 func (l *CheckWMI) Check(snc *Agent, args []string) (*CheckResult, error) {
 	query := ""
 	target := ""
@@ -25,7 +20,8 @@ func (l *CheckWMI) Check(snc *Agent, args []string) (*CheckResult, error) {
 	password := ""
 	namespace := ""
 	check := &CheckData{
-		name: "check_wmi",
+		name:        "check_wmi",
+		description: "Check status and metrics by running wmi queries.",
 		args: map[string]interface{}{
 			"query":     &query,
 			"target":    &target,

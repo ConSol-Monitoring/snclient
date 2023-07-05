@@ -13,11 +13,10 @@ func init() {
 
 type CheckNetwork struct{}
 
-/* check_network
- * Description: Checks the state of network interfaces
- */
 func (l *CheckNetwork) Check(_ *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
+		name:        "check_network",
+		description: "Checks the state and metrics of network interfaces.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

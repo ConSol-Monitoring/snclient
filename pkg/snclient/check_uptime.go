@@ -15,13 +15,10 @@ func init() {
 
 type CheckUptime struct{}
 
-/* check_uptime
- * Description: Checks the uptime of the host.
- * Thresholds: uptime
- * Units: s
- */
 func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
+		name:        "check_uptime",
+		description: "Check computer uptime (time since last reboot).",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

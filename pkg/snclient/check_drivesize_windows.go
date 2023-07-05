@@ -38,15 +38,14 @@ const (
 
 type CheckDrivesize struct{}
 
-/* check_drivesize
- * Description: Checks the drive usage on this windows host.
- */
 func (l *CheckDrivesize) Check(snc *Agent, args []string) (*CheckResult, error) {
 	drives := []string{"all"}
 	excludes := []string{}
 	total := false
 	magic := float64(1)
 	check := &CheckData{
+		name:        "check_drivesize",
+		description: "Checks the disk drive/volumes usage on a windows host.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

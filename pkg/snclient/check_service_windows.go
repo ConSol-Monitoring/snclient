@@ -34,13 +34,12 @@ type CheckService struct {
 	AllServices []WindowsService
 }
 
-/* check_service_windows
- * Description: Checks the state of a windows service.
- */
 func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 	services := []string{}
 	excludes := []string{}
 	check := &CheckData{
+		name:        "check_service",
+		description: "Checks the state of one or multiple windows services.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

@@ -15,14 +15,11 @@ func init() {
 
 type CheckMemory struct{}
 
-/* check_memory
- * Description: Checks the memory usage on the host.
- * Thresholds: used, free, used_pct, free_pct
- * Units: B, KB, MB, GB, TB, %
- */
 func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
 	memType := []string{"committed", "physical"}
 	check := &CheckData{
+		name:        "check_memory",
+		description: "Checks the memory usage on the host.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

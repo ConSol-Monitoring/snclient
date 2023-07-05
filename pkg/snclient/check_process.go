@@ -18,11 +18,10 @@ type CheckProcess struct {
 	noCopy noCopy
 }
 
-/* check_process_linux
- * Description: Checks the state of a process on the host.
- */
 func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
+		name:        "check_process",
+		description: "Checks the state and metrics of one or multiple processes.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
