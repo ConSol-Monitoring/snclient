@@ -41,7 +41,7 @@ type CheckDrivesize struct{}
 /* check_drivesize
  * Description: Checks the drive usage on this windows host.
  */
-func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
+func (l *CheckDrivesize) Check(snc *Agent, args []string) (*CheckResult, error) {
 	drives := []string{"all"}
 	excludes := []string{}
 	total := false
@@ -67,6 +67,11 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 	_, err := check.ParseArgs(args)
 	if err != nil {
 		return nil, err
+	}
+
+	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckDisk")
+	if !enabled {
+		return nil, fmt.Errorf("module CheckDisk is not enabled in /modules section")
 	}
 
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})

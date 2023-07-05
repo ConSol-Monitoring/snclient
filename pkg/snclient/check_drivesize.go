@@ -24,7 +24,7 @@ type CheckDrivesize struct{}
  * Thresholds: used, free, used_pct, free_pct
  * Units: B, KB, MB, GB, TB, %
  */
-func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
+func (l *CheckDrivesize) Check(snc *Agent, args []string) (*CheckResult, error) {
 	check := &CheckData{
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -39,6 +39,11 @@ func (l *CheckDrivesize) Check(_ *Agent, args []string) (*CheckResult, error) {
 	argList, err := check.ParseArgs(args)
 	if err != nil {
 		return nil, err
+	}
+
+	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckDisk")
+	if !enabled {
+		return nil, fmt.Errorf("module CheckDisk is not enabled in /modules section")
 	}
 
 	drives := []string{}
