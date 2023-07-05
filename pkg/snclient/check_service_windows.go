@@ -404,7 +404,7 @@ func (l *CheckService) GetNameByDisplayName(name string) (string, error) {
 }
 
 func (l *CheckService) ListServicesWithDisplayname() ([]WindowsService, error) {
-	querydata, _, err := wmi.Query("SELECT Name, DisplayName FROM Win32_Service")
+	querydata, err := wmi.Query("SELECT Name, DisplayName FROM Win32_Service")
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch service list")
 	}

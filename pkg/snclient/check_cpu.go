@@ -16,6 +16,7 @@ type CheckCPU struct{}
 func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 	times := []string{"5m", "1m", "5s"}
 	check := &CheckData{
+		name: "check_cpu",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

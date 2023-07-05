@@ -14,13 +14,12 @@ type Data struct {
 	Value string
 }
 
-func Query(query string) (querydata [][]Data, out string, err error) {
+func Query(query string) (querydata [][]Data, err error) {
 	var ret [][]Data
-	var output []string
 
 	err = ole.CoInitialize(0)
 	if err != nil {
-		return nil, "", fmt.Errorf("check_service: couldn't initialize COM connection: %s", err.Error())
+		return nil, fmt.Errorf("check_service: couldn't initialize COM connection: %s", err.Error())
 	}
 	defer ole.CoUninitialize()
 
@@ -75,7 +74,6 @@ func Query(query string) (querydata [][]Data, out string, err error) {
 					}
 				}
 				obj = append(obj, Data{Key: strings.TrimSpace(val), Value: value})
-				output = append(output, property.ToString())
 			}
 
 			ret = append(ret, obj)
@@ -83,11 +81,11 @@ func Query(query string) (querydata [][]Data, out string, err error) {
 			return nil
 		}()
 		if err != nil {
-			return nil, "", fmt.Errorf("wmi error: %s", err.Error())
+			return nil, fmt.Errorf("wmi error: %s", err.Error())
 		}
 	}
 
-	return ret, strings.Join(output, ", "), nil
+	return ret, nil
 }
 
 func ResultToMap(queryResult [][]Data) []map[string]string {

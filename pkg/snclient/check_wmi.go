@@ -2,7 +2,7 @@ package snclient
 
 import (
 	"fmt"
-	"strconv"
+	"strings"
 
 	"pkg/wmi"
 )
@@ -18,41 +18,63 @@ type CheckWMI struct{}
  * Thresholds: keys of the query
  * Units: none
  */
-func (l *CheckWMI) Check(_ *Agent, args []string) (*CheckResult, error) {
+func (l *CheckWMI) Check(snc *Agent, args []string) (*CheckResult, error) {
+	query := ""
+	target := ""
+	user := ""
+	password := ""
+	namespace := ""
 	check := &CheckData{
+		name: "check_wmi",
+		args: map[string]interface{}{
+			"query":     &query,
+			"target":    &target,
+			"namespace": &namespace,
+			"user":      &user,
+			"password":  &password,
+		},
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
+		topSyntax:    "${list}",
+		detailSyntax: "%(line)",
 	}
-	argList, err := check.ParseArgs(args)
+	_, err := check.ParseArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	var query string
+	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckWMI")
+	if !enabled {
+		return nil, fmt.Errorf("module CheckWMI is not enabled in /modules section")
+	}
 
-	// parse threshold args
-	for _, arg := range argList {
-		switch arg.key {
-		case "query":
-			query = arg.value
-		default:
-			log.Debugf("unknown argument: %s", arg.key)
+	for _, k := range []string{"target", "user", "password", "namespace"} {
+		if check.args[k] != nil {
+			if str, ok := check.args[k].(*string); !ok || *str != "" {
+				return nil, fmt.Errorf("CheckWMI: '%s' attribute is not supported", k)
+			}
 		}
 	}
 
-	// query wmi
-	querydata, output, err := wmi.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("wmi query failed: %s%s", output, err.Error())
+	if query == "" {
+		return nil, fmt.Errorf("wmi query required")
 	}
 
-	for _, d := range querydata[0] {
-		value, _ := strconv.ParseFloat(d.Value, 64)
-		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-			Name:  d.Key,
-			Value: value,
-		})
+	querydata, err := wmi.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
+	}
+
+	for _, row := range querydata {
+		values := []string{}
+		entry := map[string]string{}
+		for k := range row {
+			entry[row[k].Key] = row[k].Value
+			values = append(values, row[k].Value)
+		}
+		check.listData = append(check.listData, entry)
+		entry["line"] = strings.Join(values, ", ")
 	}
 
 	return check.Finalize()

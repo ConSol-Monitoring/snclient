@@ -22,6 +22,7 @@ var (
 // CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
 	noCopy          noCopy
+	name            string
 	debug           string
 	defaultFilter   string
 	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
@@ -306,6 +307,8 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		keyword := cd.removeQuotes(split[0])
 		argValue := cd.removeQuotes(split[1])
 		switch keyword {
+		case "help":
+			return nil, fmt.Errorf("usage: %s", cd.name)
 		case "ok":
 			cond, err := NewCondition(argValue)
 			if err != nil {

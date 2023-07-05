@@ -39,9 +39,9 @@ func (l *CheckPagefile) Check(_ *Agent, args []string) (*CheckResult, error) {
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
-	querydata, output, err := wmi.Query("SELECT Name, CurrentUsage, AllocatedBaseSize, PeakUsage FROM Win32_PageFileUsage")
+	querydata, err := wmi.Query("SELECT Name, CurrentUsage, AllocatedBaseSize, PeakUsage FROM Win32_PageFileUsage")
 	if err != nil {
-		return nil, fmt.Errorf("wmi query failed: %s%s", output, err.Error())
+		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}
 
 	totalData := map[string]uint64{"CurrentUsage": 0, "PeakUsage": 0, "AllocatedBaseSize": 0}

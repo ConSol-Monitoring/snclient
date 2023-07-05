@@ -53,7 +53,7 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}
 	}
 
-	processData, _, err := wmi.Query(`Select
+	processData, err := wmi.Query(`Select
 									Name,
 									CommandLine,
 									CreationDate,

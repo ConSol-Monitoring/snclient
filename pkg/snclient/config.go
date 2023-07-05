@@ -20,6 +20,8 @@ var DefaultConfig = map[string]*ConfigData{
 		"CheckSystem":          "enabled",
 		"CheckSystemUnix":      "enabled",
 		"CheckExternalScripts": "enabled",
+		"CheckDisk":            "enabled",
+		"CheckWMI":             "disabled",
 		"NRPEServer":           "disabled",
 		"WEBServer":            "enabled",
 		"Updates":              "enabled",
