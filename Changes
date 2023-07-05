@@ -3,6 +3,8 @@ This file documents the revision history for the SNClient+ agent.
 next:
          - implement external scripts
          - add support for client certificates
+         - add hashed passwords
+         - improve internal checks
 
 0.03       Mon Jun 12 22:23:02 CEST 2023
          - implement filter and thresholds
