@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"pkg/utils"
+	"pkg/wmi"
 
 	"github.com/shirou/gopsutil/v3/process"
 	"golang.org/x/exp/slices"
@@ -16,7 +17,22 @@ func init() {
 	AvailableChecks["check_service"] = CheckEntry{"check_service", new(CheckService)}
 }
 
-type CheckService struct{}
+type WindowsService struct {
+	Name        string
+	DisplayName string
+}
+
+type WindowsServiceDetails struct {
+	Name   string
+	Status *svc.Status
+	Config *mgr.Config
+	Memory *process.MemoryInfoStat
+	CPU    *float64
+}
+
+type CheckService struct {
+	AllServices []WindowsService
+}
 
 /* check_service_windows
  * Description: Checks the state of a windows service.
@@ -109,26 +125,17 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 	return check.Finalize()
 }
 
-func (l *CheckService) getServiceDetails(ctrlMgr *mgr.Mgr, service string, servicesCount int) (*svc.Status, *mgr.Config, *process.MemoryInfoStat, *float64, error) {
-	svcName, err := windows.UTF16PtrFromString(service)
+func (l *CheckService) getServiceDetails(ctrlMgr *mgr.Mgr, service string) (*WindowsServiceDetails, error) {
+	realName, svcHdl, err := l.FindService(ctrlMgr, service)
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed to convert service name %s: %s", service, err.Error())
+		return nil, fmt.Errorf("failed to open service %s: %s", service, err.Error())
 	}
-
-	svcHdl, err := windows.OpenService(ctrlMgr.Handle, svcName, windows.SERVICE_QUERY_STATUS|windows.SERVICE_QUERY_CONFIG)
-	if err != nil {
-		if servicesCount == 0 {
-			return nil, nil, nil, nil, nil
-		}
-
-		return nil, nil, nil, nil, fmt.Errorf("failed to open service %s: %s", service, err.Error())
-	}
-	ctlSvc := &mgr.Service{Name: service, Handle: svcHdl}
+	ctlSvc := &mgr.Service{Name: service, Handle: *svcHdl}
 	defer ctlSvc.Close()
 
 	statusCode, err := ctlSvc.Query()
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed to retrieve status code for service %s: %s", service, err.Error())
+		return nil, fmt.Errorf("failed to retrieve status code for service %s: %s", service, err.Error())
 	}
 
 	conf, err := ctlSvc.Config()
@@ -150,39 +157,46 @@ func (l *CheckService) getServiceDetails(ctrlMgr *mgr.Mgr, service string, servi
 		}
 	}
 
-	return &statusCode, &conf, mem, cpu, nil
+	return &WindowsServiceDetails{
+		Name:   realName,
+		Status: &statusCode,
+		Config: &conf,
+		Memory: mem,
+		CPU:    cpu,
+	}, nil
 }
 
 func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service string, services, excludes []string) error {
-	statusCode, conf, mem, cpu, err := l.getServiceDetails(ctrlMgr, service, len(services))
+	details, err := l.getServiceDetails(ctrlMgr, service)
 	if err != nil {
+		if len(services) == 0 {
+			return nil
+		}
+
 		return err
-	}
-	if statusCode == nil {
-		return nil
 	}
 
 	delayed := "0"
-	if conf != nil && conf.DelayedAutoStart {
+	if details.Config.DelayedAutoStart {
 		delayed = "1"
 	}
 
 	listEntry := map[string]string{
 		"name":           service,
-		"service":        service,
-		"state":          l.svcState(statusCode.State),
-		"desc":           conf.DisplayName,
+		"service":        details.Name,
+		"state":          l.svcState(details.Status.State),
+		"desc":           details.Config.DisplayName,
 		"delayed":        delayed,
-		"classification": l.svcClassification(conf.ServiceType),
-		"pid":            fmt.Sprintf("%d", statusCode.ProcessId),
-		"start_type":     l.svcStartType(conf.StartType, conf.DelayedAutoStart),
+		"classification": l.svcClassification(details.Config.ServiceType),
+		"pid":            fmt.Sprintf("%d", details.Status.ProcessId),
+		"start_type":     l.svcStartType(details.Config.StartType, details.Config.DelayedAutoStart),
 	}
-	if mem != nil {
-		listEntry["rss"] = fmt.Sprintf("%dB", mem.RSS)
-		listEntry["vms"] = fmt.Sprintf("%dB", mem.VMS)
+	if details.Memory != nil {
+		listEntry["rss"] = fmt.Sprintf("%dB", details.Memory.RSS)
+		listEntry["vms"] = fmt.Sprintf("%dB", details.Memory.VMS)
 	}
-	if cpu != nil {
-		listEntry["cpu"] = fmt.Sprintf("%f%%", *cpu)
+	if details.CPU != nil {
+		listEntry["cpu"] = fmt.Sprintf("%f%%", *details.CPU)
 	}
 
 	if !l.isRequired(check, listEntry, services, excludes) {
@@ -195,7 +209,7 @@ func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service st
 		return nil
 	}
 
-	l.addMetrics(check, service, statusCode, mem, cpu)
+	l.addMetrics(check, service, details.Status, details.Memory, details.CPU)
 
 	return nil
 }
@@ -341,4 +355,74 @@ func (l *CheckService) addMetrics(check *CheckData, service string, statusCode *
 			Value: "U",
 		})
 	}
+}
+
+func (l *CheckService) FindService(ctrlMgr *mgr.Mgr, name string) (string, *windows.Handle, error) {
+	svcName, err := windows.UTF16PtrFromString(name)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to convert service name %s: %s", name, err.Error())
+	}
+
+	svcHdl, sErr := windows.OpenService(ctrlMgr.Handle, svcName, windows.SERVICE_QUERY_STATUS|windows.SERVICE_QUERY_CONFIG)
+	if sErr == nil {
+		return name, &svcHdl, nil
+	}
+
+	// try display name
+	if shortName, _ := l.GetNameByDisplayName(name); shortName != "" {
+		svcName, err = windows.UTF16PtrFromString(shortName)
+		if err != nil {
+			return name, nil, fmt.Errorf("failed to convert service name %s: %s", name, err.Error())
+		}
+
+		svcHdl, err := windows.OpenService(ctrlMgr.Handle, svcName, windows.SERVICE_QUERY_STATUS|windows.SERVICE_QUERY_CONFIG)
+		if err == nil {
+			return shortName, &svcHdl, nil
+		}
+	}
+
+	return name, nil, fmt.Errorf("failed to find service name %s: %s", name, sErr.Error())
+}
+
+// GetNameByDisplayName finds a service name from given displayname
+func (l *CheckService) GetNameByDisplayName(name string) (string, error) {
+	if l.AllServices == nil {
+		serviceList, err := l.ListServicesWithDisplayname()
+		if err != nil {
+			return "", fmt.Errorf("failed to fetch service list: %s", err.Error())
+		}
+		l.AllServices = serviceList
+	}
+
+	for _, s := range l.AllServices {
+		if s.DisplayName == name {
+			return s.Name, nil
+		}
+	}
+
+	return "", nil
+}
+
+func (l *CheckService) ListServicesWithDisplayname() ([]WindowsService, error) {
+	querydata, _, err := wmi.Query("SELECT Name, DisplayName FROM Win32_Service")
+	if err != nil {
+		return nil, fmt.Errorf("could not fetch service list")
+	}
+
+	names := make([]WindowsService, 0)
+
+	for _, row := range querydata {
+		entry := WindowsService{}
+		for _, v := range row {
+			switch v.Key {
+			case "Name":
+				entry.Name = v.Value
+			case "DisplayName":
+				entry.DisplayName = v.Value
+			}
+		}
+		names = append(names, entry)
+	}
+
+	return names, nil
 }
