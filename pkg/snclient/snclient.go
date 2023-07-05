@@ -659,7 +659,7 @@ func (snc *Agent) runCheck(name string, args []string) *CheckResult {
 
 	res, err := check.Handler.Check(snc, args)
 	if err != nil {
-		if e, ok := err.(*UsageError); ok {
+		if e, ok := err.(*UsageError); ok { //nolint:errorlint // errors.As does not work for custom errors
 			return &CheckResult{
 				State:  CheckExitUnknown,
 				Output: e.Error(),
