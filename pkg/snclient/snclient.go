@@ -35,7 +35,7 @@ const (
 		" monitoring agent designed as replacement for NRPE and NSClient++."
 
 	// VERSION contains the actual snclient version.
-	VERSION = "0.03"
+	VERSION = "0.04"
 
 	// ExitCodeOK is used for normal exits.
 	ExitCodeOK = 0

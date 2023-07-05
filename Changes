@@ -1,6 +1,6 @@
 This file documents the revision history for the SNClient+ agent.
 
-next:
+0.04       Wed Jul  5 19:13:44 CEST 2023
          - implement external scripts
          - add support for client certificates
          - add hashed passwords
