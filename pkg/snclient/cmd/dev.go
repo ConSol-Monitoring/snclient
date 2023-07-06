@@ -26,6 +26,7 @@ func init() {
 The agent will be restarted immediately on file changes.
 `,
 		Run: func(cmd *cobra.Command, _ []string) {
+			agentFlags.Mode = snclient.ModeServer
 			snc := snclient.NewAgent(agentFlags)
 			snc.StartRestartWatcher()
 			snc.Run()

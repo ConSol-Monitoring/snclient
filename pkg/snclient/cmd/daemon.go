@@ -15,6 +15,7 @@ All logs will be written to the configured logfile.
 `,
 		GroupID: "daemon",
 		Run: func(cmd *cobra.Command, args []string) {
+			agentFlags.Mode = snclient.ModeServer
 			snc := snclient.NewAgent(agentFlags)
 			snc.CheckUpdateBinary("daemon")
 			snc.RunBackground()

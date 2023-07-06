@@ -34,6 +34,7 @@ snclient update --prerelease --check all
 snclient update --downgrade=0.2
 `,
 		Run: func(cmd *cobra.Command, args []string) {
+			agentFlags.Mode = snclient.ModeOneShot
 			snc := snclient.NewAgent(agentFlags)
 			task := snc.Tasks.Get("Updates")
 			switch mod := task.(type) {

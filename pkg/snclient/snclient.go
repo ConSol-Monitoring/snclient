@@ -80,6 +80,19 @@ const (
 	Resume
 )
 
+// MainRunMode gives hints about wether snclient runs as server or not.
+type MainRunMode int
+
+const (
+	_ MainRunMode = iota
+
+	// ModeServer is used for long running modes
+	ModeServer
+
+	// ModeOneShot is used for single run commands
+	ModeOneShot
+)
+
 var (
 	AvailableTasks     []*LoadableModule
 	AvailableListeners []*LoadableModule
@@ -105,6 +118,7 @@ type AgentFlags struct {
 	Quiet           bool
 	Help            bool
 	Version         bool
+	Mode            MainRunMode
 	LogLevel        string
 	LogFormat       string
 	LogFile         string
@@ -352,7 +366,7 @@ func (snc *Agent) init() (*AgentRunSet, error) {
 	}
 
 	// still empty
-	if len(files) == 0 {
+	if len(files) == 0 && snc.flags.Mode == ModeServer {
 		return nil, fmt.Errorf("no config file supplied (--config=..) and no config file found in default locations (%s)",
 			strings.Join(defaultLocations, ", "))
 	}
@@ -447,13 +461,16 @@ func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
 		return nil, fmt.Errorf("task initialization failed: %s", err.Error())
 	}
 
-	listen, err := snc.initModules("listener", AvailableListeners, config)
-	if err != nil {
-		return nil, fmt.Errorf("listener initialization failed: %s", err.Error())
-	}
+	var listen *ModuleSet
+	if snc.flags.Mode == ModeServer {
+		listen, err = snc.initModules("listener", AvailableListeners, config)
+		if err != nil {
+			return nil, fmt.Errorf("listener initialization failed: %s", err.Error())
+		}
 
-	if len(listen.modules) == 0 {
-		log.Warnf("no listener enabled")
+		if len(listen.modules) == 0 {
+			log.Warnf("no listener enabled")
+		}
 	}
 
 	return &AgentRunSet{
