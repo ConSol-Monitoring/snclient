@@ -105,7 +105,7 @@ func BuildPacketV2(packetType, statusCode uint16, statusLine []byte) *Packet {
 
 // BuildPacketV4 creates new v4 packet structure.
 func BuildPacketV4(packetType, statusCode uint16, statusLine []byte) *Packet {
-	dataLength := len(statusLine)
+	dataLength := len(statusLine) + 1 // +1 for the final null byte
 	if dataLength > NrpeV4MaxPacketDataLength {
 		statusLine = statusLine[0:NrpeV4MaxPacketDataLength]
 		dataLength = len(statusLine)
