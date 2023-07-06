@@ -1,5 +1,5 @@
 ---
-title: Installation
+linkTitle: Installation
 ---
 
 # Installation

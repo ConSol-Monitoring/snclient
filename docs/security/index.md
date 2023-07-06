@@ -1,5 +1,5 @@
 ---
-title: Security
+linkTitle: Security
 ---
 
 # Security

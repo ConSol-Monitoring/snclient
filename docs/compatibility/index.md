@@ -1,5 +1,5 @@
 ---
-title: Compatibility
+linkTitle: Compatibility
 ---
 
 # Compatibility
@@ -10,7 +10,7 @@ So here is a list of things different to NSClient++.
 
 ## Performance Data
 ### Threshold Ranges
-<img src="./icons/feature.png">
+![Feature](../icons/feature.png "this is a new thing in SNClient+")
 
 SNClient+ supports standard monitoring-plugins compatible performance data as
 described in https://www.monitoring-plugins.org/doc/guidelines.html#AEN201.
@@ -24,13 +24,13 @@ It is advised to always use the latest [check_nsc_web plugin](https://github.com
 
 
 ### Bytes
-<img src="./icons/changed.png">
+![Change](../icons/changed.png "this is different in SNClient+")
 
 All bytes related performance data uses bytes in the performance data now.
 
 
 ### SI Units
-<img src="./icons/changed.png">
+![Change](../icons/changed.png "this is different in SNClient+")
 
 SNClient uses IEC units if possible. This means for example:
 
@@ -41,7 +41,7 @@ SNClient uses IEC units if possible. This means for example:
 
 
 ## Allow Arguments Handling
-<img src="./icons/feature.png">
+![Feature](../icons/feature.png "this is a new thing in SNClient+")
 
 SNClient allows arguments from alias definitions, even if `allow arguments` is not allowed. Only additional arguments
 are not allowed in this case.
@@ -52,7 +52,7 @@ Ex.: this works, even with `allow arguments` disabled.
 	alias_test = check_cpu warn=load=80 crit=load=90
 
 ## Allow Nasty Characters Handling
-<img src="./icons/changed.png">
+![Change](../icons/changed.png "this is different in SNClient+")
 
 In addition to the existing characters, SNClient does not allow the `$` character.
 
@@ -66,13 +66,13 @@ Change the list of nasty chars with the `nasty characters` configuration option.
 	nasty characters = $|`&><'\"\\[]{}
 
 ## Allowed Hosts Handling
-<img src="./icons/feature.png">
+![Feature](../icons/feature.png "this is a new thing in SNClient+")
 
 The `allowed hosts` configuration is available for all network services, not only NRPE. The REST webserver can make use
 of it as well.
 
 ## TLS/SSL Configuration
-<img src="./icons/changed.png">
+![Change](../icons/changed.png "this is different in SNClient+")
 
 The tls configuration has been simplified. Instead of setting specific ciphers, you can now set a
 minimum required tls version.
@@ -86,7 +86,8 @@ Allowing tls 1.2 or higher (default) disables known insecure ciphers. Allowing
 tls lower than 1.2 enables all ciphers.
 
 ## Passwords
-<img src="./icons/feature.png">
+![Feature](../icons/feature.png "this is a new thing in SNClient+")
+
 SNClient supports using hashed passwords in the configuration file.
 
 	%> snclient hash
@@ -106,7 +107,7 @@ Then use this hash as password:
 Check specific changes and enhancements:
 
 ### check_service
-<img src="./icons/feature.png">
+![Feature](../icons/feature.png "this is a new thing in SNClient+")
 
 The `check_service` adds memory and cpu metrics if the service is running.
 
