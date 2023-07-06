@@ -15,12 +15,24 @@ import (
 
 func init() {
 	testCmd := &cobra.Command{
-		Use:   "test [cmd]",
-		Short: "Start test mode or run given query",
+		Use:     "test [cmd]",
+		Aliases: []string{"run", "do"},
+		Short:   "Start test mode or run given query",
 		Long: `Test mode can be used to manually test queries.
 
 If query is given a one shot result will be printed. Without command, snclient
 will start a query prompt.
+
+This command has aliases which slightly change behaviour.
+
+# human readable output
+snclient test ...
+
+# naemon/nagios (monitoring-plugins) plugin compatible output and exit code
+snclient run ...
+
+# do is an alias for run
+snclient do ...
 
 Examples:
 
@@ -32,15 +44,25 @@ snclient test check_load filter=none crit=none warn=none
 
 # run check_memory with debug output
 snclient test -vv check_memory
+
+# run check_files directly as naemon check
+snclient do check_files path=/tmp crit='count > 100'
 `,
 		Run: func(cmd *cobra.Command, args []string) {
+			agentFlags.Mode = snclient.ModeOneShot
 			agentFlags.LogFile = "stdout"
 			agentFlags.LogFormat = snclient.LogColors + `[%{Time "15:04:05.000"}][%{S}] %{Message}` + snclient.LogColorReset
 			if agentFlags.Verbose > 2 {
 				agentFlags.LogFormat = snclient.LogColors + `[%{Time "15:04:05.000"}][%{S}][%{ShortFile}:%{Line}] %{Message}` + snclient.LogColorReset
 			}
 			snc := snclient.NewAgent(agentFlags)
+
 			if len(args) == 0 {
+				if cmd.CalledAs() != "test" {
+					cmd.Usage()
+
+					os.Exit(snclient.ExitCodeUnknown)
+				}
 				testPrompt(cmd, snc)
 
 				return
@@ -92,14 +114,11 @@ func testPrompt(cmd *cobra.Command, snc *snclient.Agent) {
 
 func testRunCheck(cmd *cobra.Command, snc *snclient.Agent, args []string) int {
 	res := snc.RunCheck(args[0], args[1:])
-	fmt.Fprintf(rootCmd.OutOrStdout(), "Exit Code: %s (%d)\n", res.StateString(), res.State)
-	fmt.Fprintf(rootCmd.OutOrStdout(), "Plugin Output:\n")
-	fmt.Fprintf(rootCmd.OutOrStdout(), "%s\n", res.Output)
-	if len(res.Metrics) > 0 {
-		fmt.Fprintf(rootCmd.OutOrStdout(), "\nPerformance Metrics:\n")
-		for _, m := range res.Metrics {
-			fmt.Fprintf(rootCmd.OutOrStdout(), "  - %s\n", m.String())
-		}
+	switch cmd.CalledAs() {
+	case "test":
+		testPrintHuman(cmd, res)
+	case "do", "run":
+		testPrintNaemon(cmd, res)
 	}
 
 	state := int(3)
@@ -112,4 +131,23 @@ func testRunCheck(cmd *cobra.Command, snc *snclient.Agent, args []string) int {
 
 func testHelp(cmd *cobra.Command) {
 	fmt.Fprintf(rootCmd.OutOrStdout(), "%s", cmd.Long)
+}
+
+func testPrintHuman(cmd *cobra.Command, res *snclient.CheckResult) {
+	fmt.Fprintf(rootCmd.OutOrStdout(), "Exit Code: %s (%d)\n", res.StateString(), res.State)
+	fmt.Fprintf(rootCmd.OutOrStdout(), "Plugin Output:\n")
+	fmt.Fprintf(rootCmd.OutOrStdout(), "%s\n", res.Output)
+	if len(res.Metrics) > 0 {
+		fmt.Fprintf(rootCmd.OutOrStdout(), "\nPerformance Metrics:\n")
+		for _, m := range res.Metrics {
+			fmt.Fprintf(rootCmd.OutOrStdout(), "  - %s\n", m.String())
+		}
+	}
+}
+
+func testPrintNaemon(cmd *cobra.Command, res *snclient.CheckResult) {
+	output := string(res.BuildPluginOutput())
+	output = strings.TrimSpace(output)
+	fmt.Fprintf(rootCmd.OutOrStdout(), output)
+	fmt.Fprintf(rootCmd.OutOrStdout(), "\n")
 }
