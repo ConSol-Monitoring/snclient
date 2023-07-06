@@ -27,6 +27,8 @@ func (e *UsageError) Error() string {
 	return e.usage
 }
 
+type CommaStringList []string
+
 // CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
 	noCopy          noCopy
@@ -411,6 +413,14 @@ func (cd *CheckData) parseAnyArg(appendArgs map[string]bool, argExpr, keyword, a
 		}
 		*argRef = append(*argRef, argValue)
 		appendArgs[keyword] = true
+	case *CommaStringList:
+		if _, ok := appendArgs[keyword]; !ok {
+			// first time this arg occurs, empty default lists
+			empty := make([]string, 0)
+			*argRef = empty
+		}
+		*argRef = append(*argRef, strings.Split(argValue, ",")...)
+		appendArgs[keyword] = true
 	case *string:
 		*argRef = argValue
 	case *float64:
@@ -419,6 +429,12 @@ func (cd *CheckData) parseAnyArg(appendArgs map[string]bool, argExpr, keyword, a
 			return true, fmt.Errorf("parseFloat %s: %s", argExpr, err.Error())
 		}
 		*argRef = f
+	case *int64:
+		i, err := strconv.ParseInt(argValue, 10, 64)
+		if err != nil {
+			return true, fmt.Errorf("parseInt %s: %s", argExpr, err.Error())
+		}
+		*argRef = i
 	case *bool:
 		if argValue == "" {
 			b := true

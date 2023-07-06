@@ -461,7 +461,7 @@ func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
 		return nil, fmt.Errorf("task initialization failed: %s", err.Error())
 	}
 
-	var listen *ModuleSet
+	listen := NewModuleSet("listener")
 	if snc.flags.Mode == ModeServer {
 		listen, err = snc.initModules("listener", AvailableListeners, config)
 		if err != nil {

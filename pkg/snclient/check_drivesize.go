@@ -4,9 +4,10 @@ package snclient
 
 import (
 	"fmt"
-	"pkg/humanize"
 	"strconv"
 	"strings"
+
+	"pkg/humanize"
 
 	"github.com/shirou/gopsutil/v3/disk"
 	"golang.org/x/exp/slices"

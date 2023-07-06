@@ -5,7 +5,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,11 +24,22 @@ type FileInfoUnified struct {
 type CheckFiles struct{}
 
 func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
+	paths := []string{}
+	pathList := CommaStringList{}
+	pattern := "*"
+	maxDepth := int64(-1)
 	check := &CheckData{
 		name:        "check_files",
 		description: "Checks files and directories.",
 		result: &CheckResult{
 			State: CheckExitOK,
+		},
+		args: map[string]interface{}{
+			"path":      &paths,
+			"file":      &paths,
+			"paths":     &pathList,
+			"pattern":   &pattern,
+			"max-depth": &maxDepth,
 		},
 		detailSyntax: "%(name)",
 		okSyntax:     "%(status): All %(count) files are ok",
@@ -37,31 +47,22 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 		emptySyntax:  "No files found",
 		emptyState:   CheckExitUnknown,
 	}
-	argList, err := check.ParseArgs(args)
+	_, err := check.ParseArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	maxDepth := int64(-1)
-	paths := []string{}
-	pattern := "*"
-
-	// parse remaining args
-	for _, arg := range argList {
-		switch arg.key {
-		case "path", "file":
-			paths = append(paths, arg.value)
-		case "paths":
-			paths = append(paths, strings.Split(arg.value, ",")...)
-		case "max-depth":
-			maxDepth, _ = strconv.ParseInt(arg.value, 10, 64)
-		case "pattern":
-			pattern = arg.value
-		}
+	paths = append(paths, pathList...)
+	if len(paths) == 0 {
+		return nil, fmt.Errorf("no path specified")
 	}
 
-	for _, checkpath := range paths {
-		err := filepath.WalkDir(checkpath, func(path string, dir fs.DirEntry, err error) error {
+	hasLineCount := check.HasThreshold("line_count")
+
+	for _, checkPath := range paths {
+		checkPath = strings.TrimSpace(checkPath)
+
+		err := filepath.WalkDir(checkPath, func(path string, dir fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -75,14 +76,9 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 				return nil
 			}
 
-			fileInfo, err := os.Stat(path)
+			fileInfo, err := dir.Info()
 			if err != nil {
-				return fmt.Errorf("couldnt get Stat info on file: %v", err.Error())
-			}
-
-			fileHandler, err := os.Open(path)
-			if err != nil {
-				return fmt.Errorf("couldnt open file %s: %v", path, err.Error())
+				return fmt.Errorf("could not stat file: %s", err.Error())
 			}
 
 			fileInfoSys, err := getCheckFileTimes(fileInfo)
@@ -90,7 +86,8 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 				return fmt.Errorf("type assertion for fileInfo.Sys() failed")
 			}
 
-			check.listData = append(check.listData, map[string]string{
+			fileEntry := map[string]string{
+				"path":       path,
 				"access":     fileInfoSys.Atime.UTC().Format("2006-01-02 15:04:05"),
 				"access_l":   fileInfoSys.Atime.Format("2006-01-02 15:04:05"),
 				"access_u":   fileInfoSys.Atime.UTC().Format("2006-01-02 15:04:05"),
@@ -100,24 +97,43 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 				"creation_u": fileInfoSys.Ctime.UTC().Format("2006-01-02 15:04:05"),
 				"file":       fileInfo.Name(),
 				"filename":   fileInfo.Name(),
-				"line_count": fmt.Sprintf("%d", utils.LineCounter(fileHandler)),
 				"name":       fileInfo.Name(),
-				"path":       path,
 				"size":       fmt.Sprintf("%d", fileInfo.Size()),
 				"type":       map[bool]string{true: "directory", false: "file"}[dir.IsDir()],
 				"write":      fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
 				"written":    fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
 				"written_l":  fileInfoSys.Mtime.Format("2006-01-02 15:04:05"),
 				"written_u":  fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
-			})
+			}
 
-			fileHandler.Close()
+			if hasLineCount {
+				fileHandler, err := os.Open(path)
+				if err != nil {
+					return fmt.Errorf("could not open file %s: %s", path, err.Error())
+				}
+				fileEntry["line_count"] = fmt.Sprintf("%d", utils.LineCounter(fileHandler))
+				fileHandler.Close()
+			}
+
+			check.listData = append(check.listData, fileEntry)
 
 			return nil
 		})
 		if err != nil {
-			log.Debug("error walking directory: %v", err)
+			return nil, fmt.Errorf("error walking directory %s: %s", checkPath, err.Error())
 		}
+	}
+
+	if check.HasThreshold("count") {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				Name:     "count",
+				Value:    int64(len(check.listData)),
+				Warning:  check.warnThreshold,
+				Critical: check.critThreshold,
+				Min:      &Zero,
+			},
+		)
 	}
 
 	return check.Finalize()

@@ -2,9 +2,10 @@ package snclient
 
 import (
 	"fmt"
-	"pkg/humanize"
 	"regexp"
 	"strings"
+
+	"pkg/humanize"
 
 	"golang.org/x/exp/slices"
 )

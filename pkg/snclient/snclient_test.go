@@ -33,6 +33,7 @@ func StartTestAgent(t *testing.T, config string) *Agent {
 		Quiet:       true,
 		ConfigFiles: []string{tmpConfig.Name()},
 		Pidfile:     tmpPidfile.Name(),
+		Mode:        ModeServer,
 	}
 	snc := NewAgent(flags)
 	started := snc.StartWait(10 * time.Second)
