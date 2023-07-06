@@ -28,6 +28,7 @@ Usually you should stick to the stable releases unless you want to test somethin
 ### Requirements
 
 - go >= 1.19
+- openssl >= 3
 - make
 
 ## Building Binary
