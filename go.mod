@@ -56,6 +56,7 @@ require (
 	github.com/breml/bidichk v0.2.4 // indirect
 	github.com/breml/errchkjson v0.3.1 // indirect
 	github.com/butuzov/ireturn v0.1.1 // indirect
+	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.0.0-20230227094218-b8c73b2037b8 // indirect
@@ -165,6 +166,8 @@ require (
 	github.com/quasilyte/regex/syntax v0.0.0-20210819130434-b3f0c404a727 // indirect
 	github.com/quasilyte/stdinfo v0.0.0-20220114132959-f7386bf02567 // indirect
 	github.com/reeflective/readline v0.1.0-beta.0.20230523012110-bad9da7f3303 // indirect
+	github.com/rickb777/date v1.14.2 // indirect
+	github.com/rickb777/plural v1.2.2 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/ryancurrah/gomodguard v1.3.0 // indirect
 	github.com/ryanrolds/sqlclosecheck v0.4.0 // indirect
