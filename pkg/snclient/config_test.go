@@ -2,7 +2,6 @@ package snclient
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -93,10 +92,10 @@ password = supersecret
 custom_ini = %s/nrpe_web_ports.ini
 
 	`, configsDir)
-	iniFile, err := ioutil.TempFile("", "snclient-*.ini")
+	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
-	err = iniFile.Close()
+	err := iniFile.Close()
 	assert.NoErrorf(t, err, "config written")
 	cfg := NewConfig()
 	err = cfg.ReadINI(iniFile.Name())
@@ -111,8 +110,8 @@ custom_ini = %s/nrpe_web_ports.ini
 	assert.Equalf(t, "1443", webPort, "got web port")
 	webPassword, _ := section.GetString("password")
 	assert.Equalf(t, "soopersecret", webPassword, "got web password")
-
 }
+
 func TestConfigIncludeDir(t *testing.T) {
 	testDir, _ := os.Getwd()
 	configsDir := filepath.Join(testDir, "t", "configs")
@@ -130,10 +129,10 @@ custom_ini = %s/nrpe_web_ports.ini
 custom_ini_dir = %s
 
 	`, configsDir, customDir)
-	iniFile, err := ioutil.TempFile("", "snclient-*.ini")
+	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
-	err = iniFile.Close()
+	err := iniFile.Close()
 	assert.NoErrorf(t, err, "config written")
 	cfg := NewConfig()
 	err = cfg.ReadINI(iniFile.Name())
@@ -148,5 +147,4 @@ custom_ini_dir = %s
 	assert.Equalf(t, "84433", webPort, "got web port")
 	webPassword, _ := section.GetString("password")
 	assert.Equalf(t, "consol123", webPassword, "got web password")
-
 }

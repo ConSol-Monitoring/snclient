@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -89,6 +91,31 @@ func (config *Config) ReadINI(iniPath string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", iniPath, err.Error())
 	}
+	fileStat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("%s: %s", iniPath, err.Error())
+	}
+	if fileStat.IsDir() {
+		err := filepath.WalkDir(iniPath, func(path string, dir fs.DirEntry, err error) error {
+			if err != nil {
+				return fmt.Errorf("%s/%s: %s", iniPath, path, err.Error())
+			}
+			if dir.IsDir() {
+				return nil
+			}
+			if match, _ := filepath.Match(`*.ini`, dir.Name()); !match {
+				return nil
+			}
+			err = config.ReadINI(path)
+
+			return err
+		})
+		if err != nil {
+			return fmt.Errorf("%s: %s", iniPath, err.Error())
+		}
+
+		return nil
+	}
 
 	err = config.parseINI(file, iniPath)
 	if err != nil {
@@ -151,7 +178,6 @@ func (config *Config) parseINI(file io.Reader, iniPath string) error {
 
 		// on duplicate entries the first one wins
 		if _, ok := currentSection.data[val[0]]; ok {
-			//log.Warnf("tried to redefine %s/%s in %s:%d", currentSection.name, val[0], iniPath, lineNr)
 			log.Warnf("redefining %s/%s in %s:%d", currentSection.name, val[0], iniPath, lineNr)
 			currentSection.Set(val[0], value)
 		} else {
