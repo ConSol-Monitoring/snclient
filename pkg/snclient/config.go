@@ -151,7 +151,9 @@ func (config *Config) parseINI(file io.Reader, iniPath string) error {
 
 		// on duplicate entries the first one wins
 		if _, ok := currentSection.data[val[0]]; ok {
-			log.Warnf("tried to redefine %s/%s in %s:%d", currentSection.name, val[0], iniPath, lineNr)
+			//log.Warnf("tried to redefine %s/%s in %s:%d", currentSection.name, val[0], iniPath, lineNr)
+			log.Warnf("redefining %s/%s in %s:%d", currentSection.name, val[0], iniPath, lineNr)
+			currentSection.Set(val[0], value)
 		} else {
 			currentSection.Set(val[0], value)
 		}
