@@ -127,7 +127,7 @@ password = supersecret
 
 [/includes]
 custom_ini = %s/nrpe_web_ports.ini
-custom_ini = %s
+custom_ini_dir = %s
 
 	`, configsDir, customDir)
 	iniFile, err := ioutil.TempFile("", "snclient-*.ini")
