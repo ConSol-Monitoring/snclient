@@ -19,9 +19,13 @@ type CheckTasksched struct{}
  * Description: checks scheduled tasks
  */
 func (l *CheckTasksched) Check(_ *Agent, args []string) (*CheckResult, error) {
+	timeZoneStr := "Local"
 	check := &CheckData{
 		result: &CheckResult{
 			State: CheckExitOK,
+		},
+		args: map[string]interface{}{
+			"timezone": &timeZoneStr,
 		},
 		defaultFilter:   "enabled = true",
 		defaultCritical: "exit_code < 0",
@@ -37,7 +41,10 @@ func (l *CheckTasksched) Check(_ *Agent, args []string) (*CheckResult, error) {
 		return nil, err
 	}
 
-	timeZone, _ := time.Now().Zone()
+	timeZone, err := time.LoadLocation(timeZoneStr)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't find timezone: %s", timeZoneStr)
+	}
 
 	// connect to task scheduler
 	taskSvc, err := taskmaster.Connect()
@@ -66,13 +73,13 @@ func (l *CheckTasksched) Check(_ *Agent, args []string) (*CheckResult, error) {
 			"exit_string":          taskList[index].LastTaskResult.String(),
 			"folder":               taskList[index].Path,
 			"max_run_time":         taskList[index].Definition.Settings.TimeLimit.String(),
-			"most_recent_run_time": taskList[index].LastRunTime.Format("2006-01-02 15:04:05 " + timeZone),
+			"most_recent_run_time": taskList[index].LastRunTime.In(timeZone).Format("2006-01-02 15:04:05 MST"),
 			"priority":             fmt.Sprintf("%d", taskList[index].Definition.Settings.Priority),
 			"title":                taskList[index].Name,
 			"hidden":               fmt.Sprintf("%t", taskList[index].Definition.Settings.Hidden),
 			"missed_runs":          fmt.Sprintf("%d", taskList[index].MissedRuns),
 			"task_status":          taskList[index].State.String(),
-			"next_run_time":        taskList[index].NextRunTime.Format("2006-01-02 15:04:05 " + timeZone),
+			"next_run_time":        taskList[index].NextRunTime.In(timeZone).Format("2006-01-02 15:04:05 MST"),
 		}
 		check.listData = append(check.listData, entry)
 	}

@@ -131,3 +131,17 @@ The `check_service` adds memory and cpu metrics if the service is running.
 
 	check_service service=snclient
 	OK: All 1 service(s) are ok. |'snclient'=4;;;; 'snclient rss'=12943360B;;;; 'snclient vms'=6492160B;;;; 'snclient cpu'=0%;;;;
+
+### check_files
+![Change](../icons/changed.png "this is different in SNClient+")
+
+`check_files` now only has one metric for `access, creation and written` time instead of multiple for local and utc timezones. As a replacement it has the option to set the timezone by using the timezone argument. The default is the local timezone.
+
+Example:
+
+	check_files path=c:/windows warn=size>2MB max-depth=1 timezone=Europe/Berlin
+
+### check_tasksched
+![Feature](../icons/feature.png "this is a new thing in SNClient+")
+
+`check_tasksched` also has the option to set the timezone using the timezone argument. The default is still local time.

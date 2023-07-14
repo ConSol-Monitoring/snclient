@@ -33,6 +33,12 @@ ok-syntax | %(status): All tasks are ok |
 empty-syntax | %(status): No tasks found |
 detail-syntax | \${folder}/\${title}: ${exit_code} != 0 |
 
+### **Check specific arguments**
+
+| Argument | Description |
+| --- | --- |
+| timezone | Sets the timezone for time metrics (default is local time) |
+
 ## Metrics
 
 #### **Check specific metrics**
