@@ -113,3 +113,4 @@ The following things will most likely not be part of snclient any time:
 - NSCA support
 - SMTP support
 - Website/Rest API (except doing checks)
+- check_nt support
