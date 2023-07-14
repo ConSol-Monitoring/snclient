@@ -309,7 +309,7 @@ func (u *UpdateHandler) fetchAvailableUpdates(preRelease bool, channel string) (
 	available := []updatesAvailable{}
 	channelConfSection := u.snc.Config.Section("/settings/updates/channel")
 	if channel == "all" {
-		channel = strings.Join(channelConfSection.data.Keys(), ",")
+		channel = strings.Join(channelConfSection.Keys(), ",")
 	}
 	chanList := strings.Split(channel, ",")
 	for _, channel := range chanList {

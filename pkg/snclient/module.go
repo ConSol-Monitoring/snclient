@@ -107,8 +107,8 @@ func (lm *LoadableModule) Init(snc *Agent, conf *Config) (Module, error) {
 	handler := lm.Creator()
 
 	modConf := conf.Section(lm.ConfigKey).Clone()
-	modConf.data.Merge(conf.Section("/settings/default").data)
-	modConf.data.Merge(handler.Defaults())
+	modConf.MergeSection(conf.Section("/settings/default"))
+	modConf.MergeData(handler.Defaults())
 
 	err := handler.Init(snc, modConf, conf)
 	if err != nil {

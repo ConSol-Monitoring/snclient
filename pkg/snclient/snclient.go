@@ -415,7 +415,7 @@ func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
 	// apply defaults
 	for sectionName, defaults := range DefaultConfig {
 		section := config.Section(sectionName)
-		section.data.Merge(*defaults)
+		section.MergeData(defaults)
 	}
 
 	// set paths

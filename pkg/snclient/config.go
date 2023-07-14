@@ -14,9 +14,11 @@ import (
 	"pkg/convert"
 	"pkg/humanize"
 	"pkg/utils"
+
+	"golang.org/x/exp/slices"
 )
 
-var DefaultConfig = map[string]*ConfigData{
+var DefaultConfig = map[string]map[string]string{
 	"/modules": {
 		"Logrotate":            "enabled",
 		"CheckSystem":          "enabled",
@@ -67,13 +69,13 @@ func (c *configFiles) Set(value string) error {
 
 // Config contains the merged config over all config files.
 type Config struct {
-	sections        map[string]ConfigSection
+	sections        map[string]*ConfigSection
 	alreadyIncluded map[string]string
 }
 
 func NewConfig() *Config {
 	conf := &Config{
-		sections:        make(map[string]ConfigSection, 0),
+		sections:        make(map[string]*ConfigSection, 0),
 		alreadyIncluded: make(map[string]string, 0),
 	}
 
@@ -124,13 +126,17 @@ func (config *Config) ReadINI(iniPath string) error {
 
 	// import includes
 	inclSection := config.Section("/includes")
-	for name, incl := range inclSection.data {
+	for _, name := range inclSection.Keys() {
+		incl, _ := inclSection.GetString(name)
+		if incl == "" {
+			continue
+		}
 		log.Tracef("reading config include: %s", incl)
-		delete(inclSection.data, name)
+		inclSection.Remove(name)
 		if _, ok := config.alreadyIncluded[incl]; !ok {
 			err := config.ReadINI(incl)
 			if err != nil {
-				return fmt.Errorf("readini failed: %s", err.Error())
+				return fmt.Errorf("include readini failed: %s", err.Error())
 			}
 			config.alreadyIncluded[incl] = iniPath
 		}
@@ -176,13 +182,7 @@ func (config *Config) parseINI(file io.Reader, iniPath string) error {
 			return fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, err.Error())
 		}
 
-		// on duplicate entries the first one wins
-		if _, ok := currentSection.data[val[0]]; ok {
-			log.Warnf("redefining %s/%s in %s:%d", currentSection.name, val[0], iniPath, lineNr)
-			currentSection.Set(val[0], value)
-		} else {
-			currentSection.Set(val[0], value)
-		}
+		currentSection.Set(val[0], value)
 	}
 
 	return nil
@@ -191,11 +191,11 @@ func (config *Config) parseINI(file io.Reader, iniPath string) error {
 // Section returns section by name or empty section.
 func (config *Config) Section(name string) *ConfigSection {
 	if section, ok := config.sections[name]; ok {
-		return &section
+		return section
 	}
 
 	section := NewConfigSection(config, name)
-	config.sections[name] = *section
+	config.sections[name] = section
 
 	return section
 }
@@ -240,6 +240,7 @@ type ConfigSection struct {
 	cfg  *Config
 	name string
 	data ConfigData
+	keys []string
 }
 
 // NewConfigSection creates a new ConfigSection.
@@ -248,6 +249,7 @@ func NewConfigSection(cfg *Config, name string) *ConfigSection {
 		cfg:  cfg,
 		name: name,
 		data: make(map[string]string, 0),
+		keys: make([]string, 0),
 	}
 
 	return section
@@ -256,17 +258,41 @@ func NewConfigSection(cfg *Config, name string) *ConfigSection {
 // Set sets a single key/value pair. Existing keys will be overwritten.
 func (cs *ConfigSection) Set(key, value string) {
 	cs.data[key] = value
+	if !slices.Contains(cs.keys, key) {
+		cs.keys = append(cs.keys, key)
+	}
+}
+
+// Remove removes a single key.
+func (cs *ConfigSection) Remove(key string) {
+	delete(cs.data, key)
+
+	index := slices.Index(cs.keys, key)
+	if index != -1 {
+		cs.keys = slices.Delete(cs.keys, index, index+1)
+	}
 }
 
 // Merge merges defaults into ConfigSection.
-func (cs *ConfigSection) Merge(defaults ConfigSection) {
-	cs.data.Merge(defaults.data)
+// (first value wins, later ones will be discarded)
+func (cs *ConfigSection) MergeSection(defaults *ConfigSection) {
+	cs.MergeData(defaults.data)
 }
 
-// MergeDefaults merges multiple defaults into ConfigSection.
-func (cs *ConfigSection) MergeDefaults(defaults ...*ConfigSection) {
+// MergeSections merges multiple defaults into ConfigSection.
+// (first value wins, later ones will be discarded)
+func (cs *ConfigSection) MergeSections(defaults ...*ConfigSection) {
 	for _, def := range defaults {
-		cs.data.Merge(def.data)
+		cs.MergeSection(def)
+	}
+}
+
+// MergeData merges config maps into a section
+func (cs *ConfigSection) MergeData(defaults ConfigData) {
+	for key, val := range defaults {
+		if !cs.HasKey(key) {
+			cs.Set(key, val)
+		}
 	}
 }
 
@@ -276,8 +302,16 @@ func (cs *ConfigSection) Clone() *ConfigSection {
 	for k, v := range cs.data {
 		clone.data[k] = v
 	}
+	clone.keys = append(clone.keys, clone.keys...)
+	clone.cfg = cs.cfg
+	clone.name = cs.name
 
 	return clone
+}
+
+// Keys returns list of config keys.
+func (cs *ConfigSection) Keys() []string {
+	return cs.keys
 }
 
 // HasKey returns true if given key exists in this config section
@@ -397,17 +431,7 @@ func (cs *ConfigSection) GetBytes(key string) (val uint64, ok bool, err error) {
 // ConfigData contains data for a section.
 type ConfigData map[string]string
 
-// Keys returns all config keys
-func (d *ConfigData) Keys() []string {
-	keys := make([]string, 0, len(*d))
-	for k := range *d {
-		keys = append(keys, k)
-	}
-
-	return keys
-}
-
-// Merge merges defaults into ConfigData.
+// Merge merges two config maps (unordered)
 func (d *ConfigData) Merge(defaults ConfigData) {
 	for key, value := range defaults {
 		if _, ok := (*d)[key]; !ok {
