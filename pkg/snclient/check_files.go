@@ -58,6 +58,7 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 	}
 
 	hasLineCount := check.HasThreshold("line_count")
+	timeZone, _ := time.Now().Zone()
 
 	for _, checkPath := range paths {
 		checkPath = strings.TrimSpace(checkPath)
@@ -88,12 +89,12 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 
 			fileEntry := map[string]string{
 				"path":       path,
-				"access":     fileInfoSys.Atime.UTC().Format("2006-01-02 15:04:05"),
-				"access_l":   fileInfoSys.Atime.Format("2006-01-02 15:04:05"),
-				"access_u":   fileInfoSys.Atime.UTC().Format("2006-01-02 15:04:05"),
+				"access":     fileInfoSys.Atime.UTC().Format("2006-01-02 15:04:05 UTC"),
+				"access_l":   fileInfoSys.Atime.Format("2006-01-02 15:04:05 " + timeZone),
+				"access_u":   fileInfoSys.Atime.UTC().Format("2006-01-02 15:04:05 UTC"),
 				"age":        fmt.Sprintf("%d", time.Now().Unix()-fileInfoSys.Mtime.Unix()),
 				"creation":   fileInfoSys.Ctime.UTC().Format("2006-01-02 15:04:05"),
-				"creation_l": fileInfoSys.Ctime.Format("2006-01-02 15:04:05"),
+				"creation_l": fileInfoSys.Ctime.Format("2006-01-02 15:04:05 " + timeZone),
 				"creation_u": fileInfoSys.Ctime.UTC().Format("2006-01-02 15:04:05"),
 				"file":       fileInfo.Name(),
 				"filename":   fileInfo.Name(),
@@ -102,7 +103,7 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 				"type":       map[bool]string{true: "directory", false: "file"}[dir.IsDir()],
 				"write":      fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
 				"written":    fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
-				"written_l":  fileInfoSys.Mtime.Format("2006-01-02 15:04:05"),
+				"written_l":  fileInfoSys.Mtime.Format("2006-01-02 15:04:05 " + timeZone),
 				"written_u":  fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
 			}
 
