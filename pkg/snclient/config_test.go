@@ -148,3 +148,41 @@ custom_ini_dir = %s
 	webPassword, _ := section.GetString("password")
 	assert.Equalf(t, "consol123", webPassword, "got web password")
 }
+
+func TestConfigIncludeWildcards(t *testing.T) {
+	testDir, _ := os.Getwd()
+	configsDir := filepath.Join(testDir, "t", "configs")
+	customDir := filepath.Join(testDir, "t", "configs", "custom")
+	configText := fmt.Sprintf(`
+[/settings/NRPE/server]
+port = 5666
+
+[/settings/WEB/server]
+port = 443
+password = supersecret
+
+[/includes]
+custom_ini = %s/nrpe_web_ports.ini
+custom_ini_dir = %s
+custom_ini_wc = %s/nrpe_web_ports_*.ini
+
+	`, configsDir, customDir, configsDir)
+	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
+	defer os.Remove(iniFile.Name())
+	_, _ = iniFile.WriteString(configText)
+	err := iniFile.Close()
+	assert.NoErrorf(t, err, "config written")
+	cfg := NewConfig()
+	err = cfg.ReadINI(iniFile.Name())
+	assert.NoErrorf(t, err, "config parsed")
+
+	section := cfg.Section("/settings/NRPE/server")
+	nrpePort, _ := section.GetString("port")
+	assert.Equalf(t, "12345", nrpePort, "got nrpe port")
+
+	section = cfg.Section("/settings/WEB/server")
+	webPort, _ := section.GetString("port")
+	assert.Equalf(t, "1919", webPort, "got web port")
+	webPassword, _ := section.GetString("password")
+	assert.Equalf(t, "s00pers3cr3t", webPassword, "got web password")
+}

@@ -133,12 +133,18 @@ func (config *Config) ReadINI(iniPath string) error {
 		}
 		log.Tracef("reading config include: %s", incl)
 		inclSection.Remove(name)
+		matchingPaths, err := filepath.Glob(incl)
+		if err != nil {
+			return fmt.Errorf("malformed include path: %s", err.Error())
+		}
 		if _, ok := config.alreadyIncluded[incl]; !ok {
-			err := config.ReadINI(incl)
-			if err != nil {
-				return fmt.Errorf("include readini failed: %s", err.Error())
+			for _, inclFile := range matchingPaths {
+				err := config.ReadINI(inclFile)
+				if err != nil {
+					return fmt.Errorf("readini failed: %s", err.Error())
+				}
+				config.alreadyIncluded[inclFile] = iniPath
 			}
-			config.alreadyIncluded[incl] = iniPath
 		}
 	}
 
