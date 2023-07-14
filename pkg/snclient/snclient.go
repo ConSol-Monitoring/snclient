@@ -502,9 +502,7 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 
 		mod, err := entry.Init(snc, conf)
 		if err != nil {
-			log.Errorf("%s: %s", entry.ConfigKey, err.Error())
-
-			continue
+			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
 		}
 
 		name := entry.Name()
@@ -514,9 +512,7 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 
 		err = modules.Add(name, mod)
 		if err != nil {
-			log.Errorf("%s: %s", entry.ConfigKey, err.Error())
-
-			continue
+			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
 		}
 	}
 
