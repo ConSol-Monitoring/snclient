@@ -16,8 +16,14 @@ func init() {
 // Starts a full Agent from given config
 func StartTestAgent(t *testing.T, config string) *Agent {
 	t.Helper()
+	testDefaultConfig := `
+[/modules]
+WEBServer = disabled
+`
 	tmpConfig, err := os.CreateTemp("", "testconfig")
 	assert.NoErrorf(t, err, "tmp config created")
+	_, err = tmpConfig.WriteString(testDefaultConfig)
+	assert.NoErrorf(t, err, "tmp defaults written")
 	_, err = tmpConfig.WriteString(config)
 	assert.NoErrorf(t, err, "tmp config written")
 	err = tmpConfig.Close()
