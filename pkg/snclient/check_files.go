@@ -28,6 +28,7 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 	pathList := CommaStringList{}
 	pattern := "*"
 	maxDepth := int64(-1)
+	timeZoneStr := "Local"
 	check := &CheckData{
 		name:        "check_files",
 		description: "Checks files and directories.",
@@ -40,6 +41,7 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 			"paths":     &pathList,
 			"pattern":   &pattern,
 			"max-depth": &maxDepth,
+			"timezone":  &timeZoneStr,
 		},
 		detailSyntax: "%(name)",
 		okSyntax:     "%(status): All %(count) files are ok",
@@ -58,7 +60,10 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 	}
 
 	hasLineCount := check.HasThreshold("line_count")
-	timeZone, _ := time.Now().Zone()
+	timeZone, err := time.LoadLocation(timeZoneStr)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't find timezone: %s", timeZoneStr)
+	}
 
 	for _, checkPath := range paths {
 		checkPath = strings.TrimSpace(checkPath)
@@ -88,23 +93,17 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 			}
 
 			fileEntry := map[string]string{
-				"path":       path,
-				"access":     fileInfoSys.Atime.UTC().Format("2006-01-02 15:04:05 UTC"),
-				"access_l":   fileInfoSys.Atime.Format("2006-01-02 15:04:05 " + timeZone),
-				"access_u":   fileInfoSys.Atime.UTC().Format("2006-01-02 15:04:05 UTC"),
-				"age":        fmt.Sprintf("%d", time.Now().Unix()-fileInfoSys.Mtime.Unix()),
-				"creation":   fileInfoSys.Ctime.UTC().Format("2006-01-02 15:04:05"),
-				"creation_l": fileInfoSys.Ctime.Format("2006-01-02 15:04:05 " + timeZone),
-				"creation_u": fileInfoSys.Ctime.UTC().Format("2006-01-02 15:04:05"),
-				"file":       fileInfo.Name(),
-				"filename":   fileInfo.Name(),
-				"name":       fileInfo.Name(),
-				"size":       fmt.Sprintf("%d", fileInfo.Size()),
-				"type":       map[bool]string{true: "directory", false: "file"}[dir.IsDir()],
-				"write":      fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
-				"written":    fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
-				"written_l":  fileInfoSys.Mtime.Format("2006-01-02 15:04:05 " + timeZone),
-				"written_u":  fileInfoSys.Mtime.UTC().Format("2006-01-02 15:04:05"),
+				"path":     path,
+				"access":   fileInfoSys.Atime.In(timeZone).Format("2006-01-02 15:04:05 MST"),
+				"age":      fmt.Sprintf("%d", time.Now().Unix()-fileInfoSys.Mtime.Unix()),
+				"creation": fileInfoSys.Ctime.In(timeZone).Format("2006-01-02 15:04:05 MST"),
+				"file":     fileInfo.Name(),
+				"filename": fileInfo.Name(),
+				"name":     fileInfo.Name(),
+				"size":     fmt.Sprintf("%d", fileInfo.Size()),
+				"type":     map[bool]string{true: "directory", false: "file"}[dir.IsDir()],
+				"write":    fileInfoSys.Mtime.In(timeZone).Format("2006-01-02 15:04:05 MST"),
+				"written":  fileInfoSys.Mtime.In(timeZone).Format("2006-01-02 15:04:05 MST"),
 			}
 
 			if hasLineCount {
