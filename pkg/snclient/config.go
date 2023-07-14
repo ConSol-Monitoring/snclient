@@ -88,7 +88,7 @@ func (config *Config) ReadINI(iniPath string) error {
 		return fmt.Errorf("duplicate config file found: %s, already included from %s", iniPath, prev)
 	}
 	config.alreadyIncluded[iniPath] = "command args"
-	log.Debugf("reading config: %s", iniPath)
+	log.Tracef("stat config path: %s", iniPath)
 	file, err := os.Open(iniPath)
 	if err != nil {
 		return fmt.Errorf("%s: %s", iniPath, err.Error())
@@ -98,9 +98,10 @@ func (config *Config) ReadINI(iniPath string) error {
 		return fmt.Errorf("%s: %s", iniPath, err.Error())
 	}
 	if fileStat.IsDir() {
+		log.Debugf("recursing into config folder: %s", iniPath)
 		err := filepath.WalkDir(iniPath, func(path string, dir fs.DirEntry, err error) error {
 			if err != nil {
-				return fmt.Errorf("%s/%s: %s", iniPath, path, err.Error())
+				return fmt.Errorf("%s: %s", path, err.Error())
 			}
 			if dir.IsDir() {
 				return nil
@@ -108,9 +109,8 @@ func (config *Config) ReadINI(iniPath string) error {
 			if match, _ := filepath.Match(`*.ini`, dir.Name()); !match {
 				return nil
 			}
-			err = config.ReadINI(path)
 
-			return err
+			return config.ReadINI(path)
 		})
 		if err != nil {
 			return fmt.Errorf("%s: %s", iniPath, err.Error())
@@ -119,33 +119,10 @@ func (config *Config) ReadINI(iniPath string) error {
 		return nil
 	}
 
+	log.Debugf("reading config: %s", iniPath)
 	err = config.parseINI(file, iniPath)
 	if err != nil {
 		return fmt.Errorf("config error in file %s: %s", iniPath, err.Error())
-	}
-
-	// import includes
-	inclSection := config.Section("/includes")
-	for _, name := range inclSection.Keys() {
-		incl, _ := inclSection.GetString(name)
-		if incl == "" {
-			continue
-		}
-		log.Tracef("reading config include: %s", incl)
-		inclSection.Remove(name)
-		matchingPaths, err := filepath.Glob(incl)
-		if err != nil {
-			return fmt.Errorf("malformed include path: %s", err.Error())
-		}
-		if _, ok := config.alreadyIncluded[incl]; !ok {
-			for _, inclFile := range matchingPaths {
-				err := config.ReadINI(inclFile)
-				if err != nil {
-					return fmt.Errorf("readini failed: %s", err.Error())
-				}
-				config.alreadyIncluded[inclFile] = iniPath
-			}
-		}
 	}
 
 	return nil
@@ -189,6 +166,36 @@ func (config *Config) parseINI(file io.Reader, iniPath string) error {
 		}
 
 		currentSection.Set(val[0], value)
+
+		// recurse directly when in an includes section to maintain order of settings
+		if currentSection.name == "/includes" {
+			err := config.parseInclude(value, iniPath)
+			if err != nil {
+				return fmt.Errorf("%s (included in %s:%d)", err.Error(), iniPath, lineNr)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (config *Config) parseInclude(inclPath, srcPath string) error {
+	log.Tracef("reading config include: %s", inclPath)
+	matchingPaths, err := filepath.Glob(inclPath)
+	if err != nil {
+		return fmt.Errorf("malformed include path: %s", err.Error())
+	}
+
+	if _, ok := config.alreadyIncluded[inclPath]; ok {
+		return nil
+	}
+
+	for _, inclFile := range matchingPaths {
+		err := config.ReadINI(inclFile)
+		if err != nil {
+			return fmt.Errorf("included readini failed: %s", err.Error())
+		}
+		config.alreadyIncluded[inclFile] = srcPath
 	}
 
 	return nil
