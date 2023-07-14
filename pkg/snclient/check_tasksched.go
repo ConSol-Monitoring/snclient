@@ -4,6 +4,7 @@ package snclient
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/capnspacehook/taskmaster"
 )
@@ -36,6 +37,8 @@ func (l *CheckTasksched) Check(_ *Agent, args []string) (*CheckResult, error) {
 		return nil, err
 	}
 
+	timeZone, _ := time.Now().Zone()
+
 	// connect to task scheduler
 	taskSvc, err := taskmaster.Connect()
 	if err != nil {
@@ -63,13 +66,13 @@ func (l *CheckTasksched) Check(_ *Agent, args []string) (*CheckResult, error) {
 			"exit_string":          taskList[index].LastTaskResult.String(),
 			"folder":               taskList[index].Path,
 			"max_run_time":         taskList[index].Definition.Settings.TimeLimit.String(),
-			"most_recent_run_time": taskList[index].LastRunTime.Format("2006-01-02 15:04:05"),
+			"most_recent_run_time": taskList[index].LastRunTime.Format("2006-01-02 15:04:05 " + timeZone),
 			"priority":             fmt.Sprintf("%d", taskList[index].Definition.Settings.Priority),
 			"title":                taskList[index].Name,
 			"hidden":               fmt.Sprintf("%t", taskList[index].Definition.Settings.Hidden),
 			"missed_runs":          fmt.Sprintf("%d", taskList[index].MissedRuns),
 			"task_status":          taskList[index].State.String(),
-			"next_run_time":        taskList[index].NextRunTime.Format("2006-01-02 15:04:05"),
+			"next_run_time":        taskList[index].NextRunTime.Format("2006-01-02 15:04:05 " + timeZone),
 		}
 		check.listData = append(check.listData, entry)
 	}

@@ -49,11 +49,11 @@ detail-syntax | %(name) |
 
 | Metric | Description |
 | --- | --- |
-| access | Last access time |
+| access | Last access time (UTC) |
 | access_l | Last access time (local time) |
 | access_u | Last access time (UTC) |
 | age | Seconds since file was last written |
-| creation | When file was created |
+| creation | When file was created (UTC) |
 | creation_l | When file was created (local time) |
 | creation_u | When file was created (UTC) |
 | file | Name of the file |
@@ -63,7 +63,7 @@ detail-syntax | %(name) |
 | line_count | Number of lines in the files (text files) |
 | size | File size|
 | type | Type of item (file or dir)|
-| written | When file was last written to |
+| written | When file was last written to (UTC) |
 | write | Alias for written |
 | written_l | When file was last written to (local time) |
 | written_u | When file was last written to (UTC) |
