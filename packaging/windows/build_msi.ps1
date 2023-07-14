@@ -29,7 +29,7 @@ if ("$arch" -eq "amd64") { $win_arch = "x64" }
   -dMinorVersion="$minor" `
   -dRevisionNumber="$rev" `
   -dGitSha="$sha"
-& "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" ".\snclient.wixobj"
+& "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" ".\snclient.wixobj" -ext WixUtilExtension.dll -ext WixUIExtension.dll
 
 
 If (Test-Path -Path "$out" ) {
