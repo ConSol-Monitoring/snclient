@@ -22,6 +22,7 @@ import (
 
 	"pkg/utils"
 
+	"github.com/kdar/factorlog"
 	deadlock "github.com/sasha-s/go-deadlock"
 	daemon "github.com/sevlyar/go-daemon"
 	"github.com/shirou/gopsutil/v3/host"
@@ -139,6 +140,7 @@ type Agent struct {
 	initSet           *AgentRunSet
 	osSignalChannel   chan os.Signal
 	running           atomic.Bool
+	Log               *factorlog.FactorLog
 }
 
 // AgentRunSet contains the initial startup config items
@@ -157,6 +159,7 @@ func NewAgent(flags *AgentFlags) *Agent {
 		Counter:   NewCounterSet(),
 		Config:    NewConfig(),
 		flags:     flags,
+		Log:       log,
 	}
 	snc.checkFlags()
 	snc.createLogger(nil)
