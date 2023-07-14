@@ -8,6 +8,24 @@ SNClient+ tries hard to be backwards compatible with the NSClient++, however the
 
 So here is a list of things different to NSClient++.
 
+## Configuration
+![Change](../icons/changed.png "this is different in SNClient+")
+
+The way SNClient reads the ini files is different and more intuitive. Config files
+will be read from top to bottom and if the same value is encountered again it
+will be overwritten. The last value wins.
+
+That way you can have a default config with all default values and use a simple
+include at the end to customize local settings.
+
+Included files from `[/includes]` are evaluated directly in the order of appearance.
+
+SNClient supports wildcards and folders in includes as well, for example:
+
+	[/includes]
+	custom = local_*.ini
+	confd  = conf.d/
+
 ## Performance Data
 ### Threshold Ranges
 ![Feature](../icons/feature.png "this is a new thing in SNClient+")
