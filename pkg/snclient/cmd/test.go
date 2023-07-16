@@ -148,6 +148,5 @@ func testPrintHuman(cmd *cobra.Command, res *snclient.CheckResult) {
 func testPrintNaemon(cmd *cobra.Command, res *snclient.CheckResult) {
 	output := string(res.BuildPluginOutput())
 	output = strings.TrimSpace(output)
-	fmt.Fprintf(rootCmd.OutOrStdout(), output)
-	fmt.Fprintf(rootCmd.OutOrStdout(), "\n")
+	fmt.Fprintf(rootCmd.OutOrStdout(), "%s\n", output)
 }
