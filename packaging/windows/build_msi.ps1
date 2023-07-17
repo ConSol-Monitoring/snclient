@@ -29,11 +29,20 @@ if ("$arch" -eq "amd64") { $win_arch = "x64" }
   -dMinorVersion="$minor" `
   -dRevisionNumber="$rev" `
   -dGitSha="$sha"
-& "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" ".\snclient.wixobj" -ext WixUtilExtension.dll -ext WixUIExtension.dll
-
-
-If (Test-Path -Path "$out" ) {
-  Remove-Item $out
+If (-Not $?) {
+  Exit 1
 }
-Move-Item -Path .\snclient.msi -Destination $out
+
+& "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" ".\snclient.wixobj" -ext WixUtilExtension.dll -ext WixUIExtension.dll
+If (-Not $?) {
+  Exit 1
+}
+
+
+if ("$out" -ne "snclient.msi") {
+  If (Test-Path -Path "$out" ) {
+    Remove-Item $out
+  }
+  Move-Item -Path .\snclient.msi -Destination $out
+}
 Write-Output "build $out successfully."
