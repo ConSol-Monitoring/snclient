@@ -382,7 +382,7 @@ osx: | dist
 			--identifier com.snclient.snclient \
 			--version $(VERSION) \
 			--install-location / \
-			--scripts . \
+			--scripts packaging/osx/. \
 			"snclient-$(VERSION).pkg"
 	rm -rf build-pkg
 
