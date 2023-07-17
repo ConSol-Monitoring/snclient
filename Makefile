@@ -285,6 +285,7 @@ windist: | dist
 		-e 's/^file name =.*/file name = $${shared-path}\/snclient.log/g' \
 		-e 's/^max size =.*/max size = 10MiB/g'
 
+
 snclient: build snclient.ini
 
 snclient.ini:
