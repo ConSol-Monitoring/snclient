@@ -362,8 +362,8 @@ osx: | dist
 		build-pkg/Library/LaunchDaemons \
 		build-pkg/usr/local/bin \
 		build-pkg/etc/snclient \
-		build-pkg/usr/share/man/man1 \
-		build-pkg/usr/share/man/man8
+		build-pkg/usr/local/share/man/man1 \
+		build-pkg/usr/local/share/man/man8
 
 	cp packaging/osx/com.snclient.snclient.plist build-pkg/Library/LaunchDaemons/
 
@@ -375,8 +375,8 @@ osx: | dist
 		-e 's/^max size =.*/max size = 10MiB/g' \
 		build-pkg/etc/snclient/snclient.ini
 
-	cp -p dist/snclient.1 build-pkg/usr/share/man/man1/snclient.1
-	cp -p dist/snclient.8 build-pkg/usr/share/man/man8/snclient.8
+	cp -p dist/snclient.1 build-pkg/usr/local/share/man/man1/snclient.1
+	cp -p dist/snclient.8 build-pkg/usr/local/share/man/man8/snclient.8
 
 	pkgbuild --root "build-pkg" \
 			--identifier com.snclient.snclient \
