@@ -20,7 +20,7 @@ Key3 = 'Value3'
 # also comment
 	`
 	cfg := NewConfig()
-	err := cfg.parseINI(strings.NewReader(configText), "testfile.ini")
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", true)
 
 	assert.NoErrorf(t, err, "config parsed")
 
@@ -38,7 +38,7 @@ func TestConfigErrorI(t *testing.T) {
 Key1 = "Value1
 	`
 	cfg := NewConfig()
-	err := cfg.parseINI(strings.NewReader(configText), "testfile.ini")
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", true)
 
 	assert.Errorf(t, err, "config error found")
 	assert.ErrorContains(t, err, "config error in testfile.ini:3: unclosed quotes")
@@ -60,7 +60,7 @@ Key3 = Value3
 
 	`
 	cfg := NewConfig()
-	err := cfg.parseINI(strings.NewReader(configText), "testfile.ini")
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", true)
 	assert.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/sub1/other")

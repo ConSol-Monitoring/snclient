@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -28,6 +29,7 @@ var DefaultConfig = map[string]map[string]string{
 		"CheckWMI":             "disabled",
 		"NRPEServer":           "disabled",
 		"WEBServer":            "enabled",
+		"PrometheusServer":     "disabled",
 		"Updates":              "enabled",
 	},
 	"/settings/updates": {
@@ -82,6 +84,67 @@ func NewConfig() *Config {
 	return conf
 }
 
+func (config *Config) WriteINI(iniPath string) error {
+	keys := []string{}
+	for name := range config.sections {
+		keys = append(keys, name)
+	}
+
+	ranks := map[string]int{
+		"/paths":            1,
+		"/modules":          5,
+		"/settings/default": 10,
+		"/settings":         15,
+		"default":           20,
+		"/includes":         50,
+	}
+
+	wordRanks := make([]WordRank, len(keys))
+	for i, word := range keys {
+		rank, ok := ranks[word]
+		if ok {
+			wordRanks[i] = WordRank{Word: word, Rank: rank}
+
+			continue
+		}
+
+		for prefix, num := range ranks {
+			if strings.HasPrefix(word, prefix) {
+				if rank == 0 || rank > num {
+					rank = num + 2
+				}
+			}
+		}
+		if rank != 0 {
+			wordRanks[i] = WordRank{Word: word, Rank: rank}
+		}
+
+		wordRanks[i] = WordRank{Word: word, Rank: ranks["default"]}
+	}
+
+	sort.Sort(ByRank(wordRanks))
+
+	data := ""
+	for _, name := range wordRanks {
+		section := config.Section(name.Word)
+		data += section.String()
+		data += "\n\n"
+	}
+
+	file, err := os.Create(iniPath)
+	if err != nil {
+		return fmt.Errorf("failed to write ini %s: %s", iniPath, err.Error())
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(data)
+	if err != nil {
+		return fmt.Errorf("failed to write ini %s: %s", iniPath, err.Error())
+	}
+
+	return nil
+}
+
 // ReadINI opens the config file and reads all key value pairs, separated through = and commented out with ";" and "#".
 func (config *Config) ReadINI(iniPath string) error {
 	if prev, ok := config.alreadyIncluded[iniPath]; ok {
@@ -120,7 +183,7 @@ func (config *Config) ReadINI(iniPath string) error {
 	}
 
 	log.Debugf("reading config: %s", iniPath)
-	err = config.parseINI(file, iniPath)
+	err = config.ParseINI(file, iniPath, true)
 	if err != nil {
 		return fmt.Errorf("config error in file %s: %s", iniPath, err.Error())
 	}
@@ -128,7 +191,7 @@ func (config *Config) ReadINI(iniPath string) error {
 	return nil
 }
 
-func (config *Config) parseINI(file io.Reader, iniPath string) error {
+func (config *Config) ParseINI(file io.Reader, iniPath string, recursive bool) error {
 	var currentSection *ConfigSection
 	lineNr := 0
 
@@ -168,7 +231,7 @@ func (config *Config) parseINI(file io.Reader, iniPath string) error {
 		currentSection.Set(val[0], value)
 
 		// recurse directly when in an includes section to maintain order of settings
-		if currentSection.name == "/includes" {
+		if recursive && currentSection.name == "/includes" {
 			err := config.parseInclude(value, iniPath)
 			if err != nil {
 				return fmt.Errorf("%s (included in %s:%d)", err.Error(), iniPath, lineNr)
@@ -266,6 +329,17 @@ func NewConfigSection(cfg *Config, name string) *ConfigSection {
 	}
 
 	return section
+}
+
+// String returns section as string
+func (cs *ConfigSection) String() string {
+	data := []string{fmt.Sprintf("[%s]", cs.name)}
+
+	for _, key := range cs.keys {
+		data = append(data, fmt.Sprintf("%s = %s", key, cs.data[key]))
+	}
+
+	return strings.Join(data, "\n")
 }
 
 // Set sets a single key/value pair. Existing keys will be overwritten.
@@ -456,3 +530,13 @@ func (d *ConfigData) Merge(defaults ConfigData) {
 		}
 	}
 }
+
+type WordRank struct {
+	Word string
+	Rank int
+}
+type ByRank []WordRank
+
+func (a ByRank) Len() int           { return len(a) }
+func (a ByRank) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByRank) Less(i, j int) bool { return a[i].Rank < a[j].Rank || a[i].Word < a[j].Word }

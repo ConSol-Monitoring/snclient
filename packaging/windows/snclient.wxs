@@ -12,7 +12,13 @@
         <MajorUpgrade AllowDowngrades="yes" />
         <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
         <Property Id="WEBSERVER" Value="1" />
-        <Property Id="PASSWORD" Value="changeme" />
+        <Property Id="WEBSERVERPORT" Value="8443" />
+        <Property Id="WEBSERVERSSL" Value="1" />
+        <Property Id="NRPESERVERPORT" Value="5666" />
+        <Property Id="NRPESERVERSSL" Value="1" />
+        <Property Id="PROMETHEUSSERVERPORT" Value="9999" />
+        <Property Id="PASSWORD" Value="CHANGEME" />
+        <Property Id="ALLOWEDHOSTS" Value="127.0.0.1, ::1" />
         <WixVariable Id="WixUILicenseRtf" Value="packaging\windows\LICENSE.rtf" />
         <UI Id="InstallDialog">
             <UIRef Id="MyWixUI_InstallDir" />
@@ -23,7 +29,7 @@
                 <Directory Id="INSTALLDIR" Name="snclient">
                     <Component Id="MainExecutable" Guid="B74E8F62-9C75-4C20-8128-3E5CBA81D6D9" Win64="$(var.Win64)">
                         <File Id="SNClientExe" Name="snclient.exe" DiskId="1" Source="windist\snclient.exe" KeyPath="yes" />
-                        <ServiceInstall Description="SNClient+ (Secure Naemon Client) is a secure general purpose monitoring agent." ErrorControl="ignore" Arguments="winservice" Name="snclient" Id="SNClientService" Interactive="no" Start="auto" Type="ownProcess" Vital="no" />
+                        <ServiceInstall Description="SNClient+ (Secure Naemon Client) is a secure general purpose monitoring agent." ErrorControl="ignore" Arguments="winservice" Name="snclient" Id="SNClientService" Interactive="no" Start="auto" Type="ownProcess" Vital="no"></ServiceInstall>
                         <ServiceControl Id="StartSNClientService" Name="snclient" Stop="both" Remove="uninstall" Wait="yes" />
                     </Component>
                     <Component Id="SampleCaCertificate" Guid="5754CA78-7BEF-44B2-A01B-9C156E7C859B" NeverOverwrite="yes">
@@ -56,18 +62,26 @@
             <ComponentRef Id="LicenseFile" />
             <ComponentRef Id="ReadmeFile" />
         </Feature>
-
-        <SetProperty Id="CustomInstallerAction" Value='"[INSTALLDIR]snclient.exe" install pkg "INSTALLDIR=[INSTALLDIR]; NRPESERVER=[NRPESERVER]; WEBSERVER=[WEBSERVER]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; PASSWORD=[PASSWORD];"' Sequence="execute" Before="CustomInstallerAction" />
-        <CustomAction Id="CustomInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no"/>
-
-        <SetProperty Id="CustomUnInstallerAction" Value='"[INSTALLDIR]snclient.exe" uninstall pkg "INSTALLDIR=[INSTALLDIR] WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]"' Sequence="execute" Before="CustomUnInstallerAction" />
-        <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no"/>
-
+        <SetProperty Id="CustomInstallerAction1" Sequence="execute" Before="CustomInstallerAction1" Value="&quot;[INSTALLDIR]snclient.exe&quot; install set &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; WEBSERVER=[WEBSERVER]; WEBSERVERPORT=[WEBSERVERPORT]; WEBSERVERSSL=[WEBSERVERSSL]&quot;" />
+        <CustomAction Id="CustomInstallerAction1" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <SetProperty Id="CustomInstallerAction2" Sequence="execute" Before="CustomInstallerAction2" Value="&quot;[INSTALLDIR]snclient.exe&quot; install set &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; NRPESERVER=[NRPESERVER]; NRPESERVERPORT=[NRPESERVERPORT]; NRPESERVERSSL=[NRPESERVERSSL]&quot;" />
+        <CustomAction Id="CustomInstallerAction2" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <SetProperty Id="CustomInstallerAction3" Sequence="execute" Before="CustomInstallerAction3" Value="&quot;[INSTALLDIR]snclient.exe&quot; install set &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; PROMETHEUSSERVER=[PROMETHEUSSERVER]; PROMETHEUSSERVERPORT=[PROMETHEUSSERVERPORT]; PROMETHEUSSERVERSSL=[PROMETHEUSSERVERSSL]&quot;" />
+        <CustomAction Id="CustomInstallerAction3" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <SetProperty Id="CustomInstallerAction4" Sequence="execute" Before="CustomInstallerAction4" Value="&quot;[INSTALLDIR]snclient.exe&quot; install set &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; PASSWORD=[PASSWORD]; ALLOWEDHOSTS=[ALLOWEDHOSTS]; INCLUDES=[INCLUDES]&quot;" />
+        <CustomAction Id="CustomInstallerAction4" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <SetProperty Id="CustomInstallerAction99" Sequence="execute" Before="CustomInstallerAction99" Value="&quot;[INSTALLDIR]snclient.exe&quot; install pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED];&quot;" />
+        <CustomAction Id="CustomInstallerAction99" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <SetProperty Id="CustomUnInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; uninstall pkg &quot;INSTALLDIR=[INSTALLDIR] WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]&quot;" Sequence="execute" Before="CustomUnInstallerAction" />
+        <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <InstallExecuteSequence>
-          <Custom Action="CustomUnInstallerAction" Before="InstallFinalize">Installed</Custom>
-          <Custom Action="CustomInstallerAction" Before="InstallFinalize"></Custom>
+            <Custom Action="CustomUnInstallerAction" Before="InstallFinalize">Installed</Custom>
+            <Custom Action="CustomInstallerAction1" Before="InstallFinalize"></Custom>
+            <Custom Action="CustomInstallerAction2" Before="InstallFinalize"></Custom>
+            <Custom Action="CustomInstallerAction3" Before="InstallFinalize"></Custom>
+            <Custom Action="CustomInstallerAction4" Before="InstallFinalize"></Custom>
+            <Custom Action="CustomInstallerAction99" Before="InstallFinalize"></Custom>
         </InstallExecuteSequence>
-
     </Product>
     <Fragment>
         <UI Id="MyWixUI_InstallDir">
@@ -78,13 +92,35 @@
                 <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
                     <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
                 </Control>
+                <Control Type="Text" Id="txt1" Width="50" Height="10" X="8" Y="14" Text="Password" />
+                <Control Type="Edit" Id="password" Width="158" Height="15" X="75" Y="11" ToolTip="password used for nrpe and webserver." Property="PASSWORD" />
+
+                <Control Type="Text" Id="txt2" Width="58" Height="17" X="8" Y="34" Text="Allowed Hosts" />
+                <Control Type="Edit" Id="allowedhosts" Width="158" Height="15" X="75" Y="31" ToolTip="allowed hosts for nrpe and webserver." Property="ALLOWEDHOSTS" />
+
+                <Control Type="Text" Id="txt3" Width="58" Height="17" X="8" Y="54" Text="Include Config" />
+                <Control Type="Edit" Id="includes" Width="158" Height="15" X="75" Y="51" ToolTip="extra files/urls put int /includes section" Property="INCLUDES" />
+
                 <Control Type="GroupBox" Id="services" Width="351" Height="119" X="8" Y="105" Text="Services"></Control>
-                <Control Type="Text" Id="txt1" Width="50" Height="17" X="15" Y="120" Text="WebServer" />
-                <Control Type="CheckBox" Id="WebServer" Width="50" Height="17" X="68" Y="116" Default="yes" Property="WEBSERVER" CheckBoxValue="1" />
-                <Control Type="Text" Id="txt2" Width="50" Height="17" X="15" Y="139" Text="NRPE Server" />
-                <Control Type="CheckBox" Id="NRPEServer" Width="50" Height="17" X="68" Y="135" Default="no" Property="NRPESERVER" CheckBoxValue="1" />
-                <Control Type="Text" Id="txt3" Width="50" Height="17" X="8" Y="15" Text="Password:" />
-                <Control Type="Edit" Id="password" Width="158" Height="15" X="56" Y="11" ToolTip="password used for nrpe and webserver." Property="PASSWORD" />
+                <Control Type="Text" Id="txt4" Width="49" Height="9" X="15" Y="120" Text="WebServer" />
+                <Control Type="CheckBox" Id="webserver" Width="12" Height="17" X="94" Y="116" Default="yes" Property="WEBSERVER" CheckBoxValue="1" />
+                <Control Type="Text" Id="txt5" Width="23" Height="17" X="120" Y="120" Text="Port" />
+                <Control Type="Edit" Id="webserverport" Width="50" Height="15" X="146" Y="116" Property="WEBSERVERPORT" />
+                <Control Type="Text" Id="txt6" Width="18" Height="17" X="212" Y="120" Text="SSL" />
+                <Control Type="CheckBox" Id="webserverssl" Width="11" Height="17" X="232" Y="116" CheckBoxValue="1" Property="WEBSERVERSSL" />
+                <Control Type="Text" Id="txt7" Width="50" Height="10" X="15" Y="142" Text="NRPE Server" />
+                <Control Type="CheckBox" Id="nrpeserver" Width="12" Height="17" X="94" Y="139" Default="no" Property="NRPESERVER" CheckBoxValue="1" />
+                <Control Type="Text" Id="txt9" Width="22" Height="17" X="120" Y="142" Text="Port" />
+                <Control Type="Edit" Id="nrpeserverport" Width="50" Height="15" X="146" Y="139" Property="NRPESERVERPORT" />
+                <Control Type="Text" Id="txt8" Width="18" Height="17" X="212" Y="142" Text="SSL" />
+                <Control Type="CheckBox" Id="nrpeserverssl" Width="11" Height="17" X="232" Y="139" CheckBoxValue="1" Property="NRPESERVERSSL" />
+
+                <Control Type="Text" Id="txt10" Width="74" Height="10" X="15" Y="163" Text="Prometheus Server:" />
+                <Control Type="CheckBox" Id="prometheusserver" Width="12" Height="17" X="94" Y="160" Default="no" Property="PROMETHEUSSERVER" CheckBoxValue="1" />
+                <Control Type="Text" Id="txt11" Width="22" Height="13" X="120" Y="163" Text="Port" />
+                <Control Type="Edit" Id="prometheusserverport" Width="50" Height="15" X="146" Y="160" Property="PROMETHEUSSERVERPORT" />
+                <Control Type="Text" Id="txt12" Width="18" Height="17" X="212" Y="163" Text="SSL" />
+                <Control Type="CheckBox" Id="prometheusserverssl" Width="11" Height="17" X="232" Y="160" CheckBoxValue="1" Property="PROMETHEUSSERVERSSL" />
             </Dialog>
             <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
             <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />

@@ -5,10 +5,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"pkg/snclient"
+	"pkg/utils"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/windows"
@@ -49,8 +51,6 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 
 			if installConfig["WIX_UPGRADE_DETECTED"] == "" {
 				snc.Log.Infof("starting installer: %#v", installConfig)
-
-				// TODO: adjust ini
 			}
 
 			if hasService("snclient") {
@@ -58,6 +58,31 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 				if err != nil {
 					snc.Log.Errorf("failed to (re)start service: %s", err.Error())
 				}
+			}
+
+			snc.Log.Infof("installer finished successfully")
+			os.Exit(0)
+		},
+	})
+
+	// install set
+	installCmd.AddCommand(&cobra.Command{
+		Use:   "set [args]",
+		Short: "called from the msi installer, set up configuration according to setup dialog",
+		Run: func(cmd *cobra.Command, args []string) {
+			agentFlags.Mode = snclient.ModeOneShot
+			snc := snclient.NewAgent(agentFlags)
+
+			installConfig := parseInstallerArgs(args)
+
+			if installConfig["WIX_UPGRADE_DETECTED"] != "" {
+				return
+			}
+
+			snc.Log.Infof("installer set: %#v", installConfig)
+			err := writeIniFile(snc, installConfig)
+			if err != nil {
+				snc.Log.Errorf("failed to write install ini: %s", err.Error())
 			}
 
 			snc.Log.Infof("installer finished successfully")
@@ -183,4 +208,81 @@ func restartService(name string) error {
 		return err
 	}
 	return startService(name)
+}
+
+func writeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
+	installDir, ok := installConfig["INSTALLDIR"]
+	if !ok {
+		snc.Log.Errorf("no install dir found in arguments: %#v", installConfig)
+
+		return nil
+	}
+	targetFile := filepath.Join(installDir, "snclient_local.ini")
+	config := snclient.NewConfig()
+	file, err := os.Open(targetFile)
+	if err == nil {
+		err = config.ParseINI(file, targetFile, false)
+		if err != nil {
+			snc.Log.Errorf("failed to read %s: %s", targetFile, err.Error())
+		}
+	}
+
+	for key, value := range installConfig {
+		if value == "" {
+			continue
+		}
+		switch key {
+		case "INSTALLDIR", "WIX_UPGRADE_DETECTED":
+		case "PASSWORD":
+			if value != snclient.DefaultPassword {
+				config.Section("/settings/WEB/server").Set("password", toPassword(value))
+			}
+		case "ALLOWEDHOSTS":
+			config.Section("/settings/default").Set("allowed hosts", value)
+		case "INCLUDES":
+			config.Section("/includes").Set("installer", value)
+		case "WEBSERVER":
+			config.Section("/modules").Set("WEBServer", toBool(value))
+		case "WEBSERVERPORT":
+			config.Section("/settings/WEB/server").Set("port", value)
+		case "WEBSERVERSSL":
+			config.Section("/settings/WEB/server").Set("use ssl", toBool(value))
+		case "NRPESERVER":
+			config.Section("/modules").Set("NRPEServer", toBool(value))
+		case "NRPESERVERPORT":
+			config.Section("/settings/NRPE/server").Set("port", value)
+		case "NRPESERVERSSL":
+			config.Section("/settings/NRPE/server").Set("use ssl", toBool(value))
+		case "PROMETHEUSSERVER":
+			config.Section("/modules").Set("PrometheusServer", toBool(value))
+		case "PROMETHEUSSERVERPORT":
+			config.Section("/settings/Prometheus/server").Set("port", value)
+		case "PROMETHEUSSERVERSSL":
+			config.Section("/settings/Prometheus/server").Set("use ssl", toBool(value))
+		default:
+			snc.Log.Errorf("unknown config attribute: %s = %s", key, value)
+		}
+	}
+
+	err = config.WriteINI(targetFile)
+	if err != nil {
+		snc.Log.Errorf("failed to write %s: %s", targetFile, err.Error())
+	}
+
+	return nil
+}
+
+func toPassword(val string) string {
+	sum, _ := utils.Sha256Sum(val)
+
+	return fmt.Sprintf("%s:%s", "SHA256", sum)
+}
+
+func toBool(val string) string {
+	switch val {
+	case "1":
+		return "enabled"
+	default:
+		return "disabled"
+	}
 }
