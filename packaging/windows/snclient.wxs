@@ -24,7 +24,7 @@
                     <Component Id="MainExecutable" Guid="B74E8F62-9C75-4C20-8128-3E5CBA81D6D9" Win64="$(var.Win64)">
                         <File Id="SNClientExe" Name="snclient.exe" DiskId="1" Source="windist\snclient.exe" KeyPath="yes" />
                         <ServiceInstall Description="SNClient+ (Secure Naemon Client) is a secure general purpose monitoring agent." ErrorControl="ignore" Arguments="winservice" Name="snclient" Id="SNClientService" Interactive="no" Start="auto" Type="ownProcess" Vital="no" />
-                        <ServiceControl Id="StartSNClientService" Name="snclient" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+                        <ServiceControl Id="StartSNClientService" Name="snclient" Stop="both" Remove="uninstall" Wait="yes" />
                     </Component>
                     <Component Id="SampleCaCertificate" Guid="5754CA78-7BEF-44B2-A01B-9C156E7C859B" NeverOverwrite="yes">
                         <File Id="cacertPem" Name="cacert.pem" DiskId="1" Source="windist\cacert.pem" KeyPath="yes" />
@@ -66,9 +66,6 @@
         <InstallExecuteSequence>
           <Custom Action="CustomUnInstallerAction" Before="InstallFinalize">Installed</Custom>
           <Custom Action="CustomInstallerAction" Before="InstallFinalize"></Custom>
-          <DeleteServices><![CDATA[REMOVE ~= "ALL" AND (NOT UPGRADINGPRODUCTCODE)]]> </DeleteServices>
-          <InstallServices><![CDATA[NOT Installed]]> </InstallServices>
-          <StartServices>0</StartServices>
         </InstallExecuteSequence>
 
     </Product>
@@ -108,7 +105,7 @@
             <Publish Dialog="BrowseDlg" Control="OK" Event="SpawnDialog" Value="InvalidDirDlg" Order="4"><![CDATA[WIXUI_INSTALLDIR_VALID<>"1"]]></Publish>
             <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999">1</Publish>
             <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg">NOT Installed</Publish>
-            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">Installed AND PATCH</Publish>
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">WIX_UPGRADE_DETECTED</Publish>
             <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
             <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDialog">LicenseAccepted = "1"</Publish>
             <Publish Dialog="CustomizeDialog" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg">1</Publish>
@@ -122,7 +119,7 @@
             <Publish Dialog="InstallDirDlg" Control="ChangeFolder" Event="SpawnDialog" Value="BrowseDlg" Order="2">1</Publish>
             <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg" Order="1">NOT Installed</Publish>
             <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Order="2">Installed AND NOT PATCH</Publish>
-            <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">Installed AND PATCH</Publish>
+            <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">WIX_UPGRADE_DETECTED</Publish>
             <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg">1</Publish>
             <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
             <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>

@@ -4,7 +4,6 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
 
 	"pkg/snclient"
 
@@ -50,25 +49,24 @@ func init() {
 			snc := snclient.NewAgent(agentFlags)
 
 			installConfig := parseInstallerArgs(args)
-			snc.Log.Infof("starting uninstaller: %#v", installConfig)
-			/*
-				if hasService(WINSERVICE) {
-					err := stopService("snclient")
-					if err != nil {
-						snc.Log.Errorf("failed to stops service: %s", err.Error())
-					}
-					err = removeService("snclient")
-					if err != nil {
-						snc.Log.Errorf("failed to remove service: %s", err.Error())
-					}
-				}
-			*/
-			snc.Log.Infof("uninstall completed")
-			// remove logfile
-			err := os.Remove(filepath.Join(snclient.GlobalMacros["exe-path"], "snclient.log"))
-			if err != nil {
-				snc.Log.Errorf("cannot remove logfile: %s", err.Error())
+			if installConfig["REMOVE"] != "ALL" {
+				snc.Log.Infof("skipping uninstall: %#v", installConfig)
+				os.Exit(0)
 			}
+
+			snc.Log.Infof("starting uninstaller: %#v", installConfig)
+			if hasService(WINSERVICE) {
+				err := stopService("snclient")
+				if err != nil {
+					snc.Log.Errorf("failed to stops service: %s", err.Error())
+				}
+				err = removeService("snclient")
+				if err != nil {
+					snc.Log.Errorf("failed to remove service: %s", err.Error())
+				}
+			}
+
+			snc.Log.Infof("uninstall completed")
 			os.Exit(0)
 		},
 	})

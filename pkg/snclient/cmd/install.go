@@ -20,12 +20,6 @@ const (
 	// WINSERVICE set the service name for the windows service entry
 	WINSERVICE = "snclient"
 
-	// WINSERVICEDISPLAY sets the windows service display name
-	WINSERVICEDISPLAY = WINSERVICE
-
-	// WINSERVICEDESC sets the windows service description
-	WINSERVICEDESC = "SNClient+ (Secure Naemon Client) is a secure general purpose monitoring agent."
-
 	// WINSERVICESTOPTIMEOUT sets the time to wait till a service is stopped
 	WINSERVICESTOPTIMEOUT = 5 * time.Second
 
@@ -52,17 +46,12 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 			snc := snclient.NewAgent(agentFlags)
 
 			installConfig := parseInstallerArgs(args)
-			snc.Log.Infof("starting installer: %#v", installConfig)
-			/*
-				if hasService("snclient") {
-					snc.Log.Errorf("windows service does already exist")
-				} else {
-					err := installService(WINSERVICE, WINSERVICEDISPLAY, WINSERVICEDESC, []string{"winservice"})
-					if err != nil {
-						snc.Log.Errorf("failed to install service: %s", err.Error())
-					}
-				}
-			*/
+
+			if installConfig["WIX_UPGRADE_DETECTED"] == "" {
+				snc.Log.Infof("starting installer: %#v", installConfig)
+
+				// TODO: adjust ini
+			}
 
 			if hasService("snclient") {
 				err := restartService(WINSERVICE)
@@ -90,27 +79,6 @@ func parseInstallerArgs(args []string) (parsed map[string]string) {
 	}
 
 	return parsed
-}
-
-func installService(name, displayName, description string, args []string) error {
-	svcMgr, err := mgr.Connect()
-	if err != nil {
-		return err
-	}
-	defer svcMgr.Disconnect()
-
-	svcConfig := mgr.Config{
-		DisplayName:      displayName,
-		StartType:        mgr.StartAutomatic,
-		Description:      description,
-		DelayedAutoStart: true,
-	}
-	service, err := svcMgr.CreateService(name, os.Args[0], svcConfig, args...)
-	if err != nil {
-		return err
-	}
-	service.Close()
-	return nil
 }
 
 func removeService(name string) error {
