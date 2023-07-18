@@ -1,6 +1,9 @@
+//go:build windows
+
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -13,47 +16,74 @@ import (
 	"golang.org/x/sys/windows/svc/mgr"
 )
 
+const (
+	// WINSERVICE set the service name for the windows service entry
+	WINSERVICE = "snclient"
+
+	// WINSERVICEDISPLAY sets the windows service display name
+	WINSERVICEDISPLAY = WINSERVICE
+
+	// WINSERVICEDESC sets the windows service description
+	WINSERVICEDESC = "SNClient+ (Secure Naemon Client) is a secure general purpose monitoring agent."
+
+	// WINSERVICESTOPTIMEOUT sets the time to wait till a service is stopped
+	WINSERVICESTOPTIMEOUT = 5 * time.Second
+
+	// WINSERVICESTOPINTERVALL sets the interval at which the svc state is checked
+	WINSERVICESTOPINTERVALL = 500 * time.Millisecond
+)
+
 func init() {
 	installCmd := &cobra.Command{
 		Use:   "install [cmd]",
 		Short: "Install windows service and firewall exception",
 		Long: `Install is used during msi installation for adding the windows service and a firewall exception.
+It will also change some basic settings from the setup dialog. Ex. the initial password.
 `,
+	}
+	rootCmd.AddCommand(installCmd)
+
+	// install pkg
+	installCmd.AddCommand(&cobra.Command{
+		Use:   "pkg [args]",
+		Short: "called from the msi installer, set up firewall and service according to setup dialog",
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
 			snc := snclient.NewAgent(agentFlags)
 
-			installConfig := parseInstallerArgs(args[0])
-			snc.Log.Errorf("****** install: %#v", installConfig)
+			installConfig := parseInstallerArgs(args)
+			snc.Log.Infof("starting installer: %#v", installConfig)
+			/*
+				if hasService("snclient") {
+					snc.Log.Errorf("windows service does already exist")
+				} else {
+					err := installService(WINSERVICE, WINSERVICEDISPLAY, WINSERVICEDESC, []string{"winservice"})
+					if err != nil {
+						snc.Log.Errorf("failed to install service: %s", err.Error())
+					}
+				}
+			*/
+
 			if hasService("snclient") {
-				snc.Log.Errorf("windows service does already exist")
-			} else {
-				err := installService(
-					"snclient",
-					"snclient",
-					"SNClient+ (Secure Naemon Client) is a secure general purpose monitoring agent.",
-					[]string{"winservice"},
-				)
+				err := restartService(WINSERVICE)
 				if err != nil {
-					snc.Log.Errorf("failed to install service: %s", err.Error())
+					snc.Log.Errorf("failed to (re)start service: %s", err.Error())
 				}
 			}
 
-			err := restartService("snclient")
-			if err != nil {
-				snc.Log.Errorf("failed to start service: %s", err.Error())
-			}
-
+			snc.Log.Infof("installer finished successfully")
 			os.Exit(0)
 		},
-	}
-	rootCmd.AddCommand(installCmd)
+	})
 }
 
-func parseInstallerArgs(args string) map[string]string {
-	parsed := make(map[string]string, 0)
+func parseInstallerArgs(args []string) (parsed map[string]string) {
+	parsed = make(map[string]string, 0)
+	if len(args) == 0 {
+		return
+	}
 
-	for _, a := range strings.Split(args, "; ") {
+	for _, a := range strings.Split(args[0], "; ") {
 		val := strings.SplitN(a, "=", 2)
 		val[1] = strings.TrimSuffix(val[1], ";")
 		parsed[val[0]] = val[1]
@@ -69,12 +99,13 @@ func installService(name, displayName, description string, args []string) error 
 	}
 	defer svcMgr.Disconnect()
 
-	service, err := svcMgr.CreateService(name, os.Args[0], mgr.Config{
+	svcConfig := mgr.Config{
 		DisplayName:      displayName,
 		StartType:        mgr.StartAutomatic,
 		Description:      description,
 		DelayedAutoStart: true,
-	}, args...)
+	}
+	service, err := svcMgr.CreateService(name, os.Args[0], svcConfig, args...)
 	if err != nil {
 		return err
 	}
@@ -141,12 +172,16 @@ func stopService(name string) error {
 		return nil
 	}
 
-	// Wait for the service to stop
+	// Wait up to 10seconds for the service to stop
+	startWait := time.Now()
 	for state.State != svc.Stopped {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(WINSERVICESTOPINTERVALL)
 		state, err = service.Query()
 		if err != nil {
 			return err
+		}
+		if time.Now().After(startWait.Add(WINSERVICESTOPTIMEOUT)) {
+			return fmt.Errorf("could not stop service within %s, current state: %v", WINSERVICESTOPTIMEOUT, state)
 		}
 	}
 

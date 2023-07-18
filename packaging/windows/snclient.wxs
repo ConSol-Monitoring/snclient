@@ -22,19 +22,21 @@
             <Directory Id="$(var.PlatformProgramFilesFolder)">
                 <Directory Id="INSTALLDIR" Name="snclient">
                     <Component Id="MainExecutable" Guid="B74E8F62-9C75-4C20-8128-3E5CBA81D6D9" Win64="$(var.Win64)">
-                        <File Id="SNClientExe" Name="snclient.exe" DiskId="1" Source="snclient.exe" KeyPath="yes" />
+                        <File Id="SNClientExe" Name="snclient.exe" DiskId="1" Source="windist\snclient.exe" KeyPath="yes" />
+                        <ServiceInstall Description="SNClient+ (Secure Naemon Client) is a secure general purpose monitoring agent." ErrorControl="ignore" Arguments="winservice" Name="snclient" Id="SNClientService" Interactive="no" Start="auto" Type="ownProcess" Vital="no" />
+                        <ServiceControl Id="StartSNClientService" Name="snclient" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
                     </Component>
                     <Component Id="SampleCaCertificate" Guid="5754CA78-7BEF-44B2-A01B-9C156E7C859B" NeverOverwrite="yes">
-                        <File Id="cacertPem" Name="cacert.pem" DiskId="1" Source="cacert.pem" KeyPath="yes" />
+                        <File Id="cacertPem" Name="cacert.pem" DiskId="1" Source="windist\cacert.pem" KeyPath="yes" />
                     </Component>
                     <Component Id="SampleConfigurationIni" Guid="E64B4DBF-C6CF-41E5-9032-6D83C39B9323" NeverOverwrite="yes">
-                        <File Id="snclientIni" Name="snclient.ini" DiskId="1" Source="snclient.ini" KeyPath="yes" />
+                        <File Id="snclientIni" Name="snclient.ini" DiskId="1" Source="windist\snclient.ini" KeyPath="yes" />
                     </Component>
                     <Component Id="SampleServerCertificate" Guid="F58FD191-91AA-4F97-9FD8-78E2AE509AA7" NeverOverwrite="yes">
-                        <File Id="serverCrt" Name="server.crt" DiskId="1" Source="server.crt" KeyPath="yes" />
+                        <File Id="serverCrt" Name="server.crt" DiskId="1" Source="windist\server.crt" KeyPath="yes" />
                     </Component>
                     <Component Id="SampleServerKey" Guid="D06D3104-E240-4A11-BC54-62CB5FBD6AD5" NeverOverwrite="yes">
-                        <File Id="serverKey" Name="server.key" DiskId="1" Source="server.key" KeyPath="yes" />
+                        <File Id="serverKey" Name="server.key" DiskId="1" Source="windist\server.key" KeyPath="yes" />
                     </Component>
                     <Component Id="LicenseFile" Guid="384396D1-F506-4AF4-B3D3-D2CEC9E881F5">
                         <File Id="license" Name="LICENSE" DiskId="1" Source="LICENSE" KeyPath="yes" />
@@ -55,21 +57,20 @@
             <ComponentRef Id="ReadmeFile" />
         </Feature>
 
-        <SetProperty Id="CustomInstallerAction" Value='"[INSTALLDIR]snclient.exe" install "INSTALLDIR=[INSTALLDIR]; NRPESERVER=[NRPESERVER]; WEBSERVER=[WEBSERVER]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; PASSWORD=[PASSWORD];"'
-            Sequence="execute" Before="CustomInstallerAction" />
-        <CustomAction Id="CustomInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec"
-            Execute="deferred" Return="ignore" Impersonate="no"/>
+        <SetProperty Id="CustomInstallerAction" Value='"[INSTALLDIR]snclient.exe" install pkg "INSTALLDIR=[INSTALLDIR]; NRPESERVER=[NRPESERVER]; WEBSERVER=[WEBSERVER]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; PASSWORD=[PASSWORD];"' Sequence="execute" Before="CustomInstallerAction" />
+        <CustomAction Id="CustomInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no"/>
+
+        <SetProperty Id="CustomUnInstallerAction" Value='"[INSTALLDIR]snclient.exe" uninstall pkg "INSTALLDIR=[INSTALLDIR] WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]"' Sequence="execute" Before="CustomUnInstallerAction" />
+        <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no"/>
+
         <InstallExecuteSequence>
-          <Custom Action="CustomInstallerAction" Before="InstallFinalize">NOT INSTALLED</Custom>
+          <Custom Action="CustomUnInstallerAction" Before="InstallFinalize">Installed</Custom>
+          <Custom Action="CustomInstallerAction" Before="InstallFinalize"></Custom>
+          <DeleteServices><![CDATA[REMOVE ~= "ALL" AND (NOT UPGRADINGPRODUCTCODE)]]> </DeleteServices>
+          <InstallServices><![CDATA[NOT Installed]]> </InstallServices>
+          <StartServices>0</StartServices>
         </InstallExecuteSequence>
 
-        <SetProperty Id="CustomUnInstallerAction" Value='"[INSTALLDIR]snclient.exe" uninstall "INSTALLDIR=[INSTALLDIR] WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED];"'
-            Sequence="execute" Before="CustomInstallerAction" />
-        <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec"
-            Execute="deferred" Return="ignore" Impersonate="no"/>
-        <InstallExecuteSequence>
-          <Custom Action="CustomUnInstallerAction" Before="InstallFinalize"></Custom>
-        </InstallExecuteSequence>
     </Product>
     <Fragment>
         <UI Id="MyWixUI_InstallDir">

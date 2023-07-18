@@ -10,7 +10,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
+	"path/filepath"
+	"pkg/utils"
 	"regexp"
 	"runtime"
 	"runtime/debug"
@@ -19,8 +20,6 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
-
-	"pkg/utils"
 
 	"github.com/kdar/factorlog"
 	deadlock "github.com/sasha-s/go-deadlock"
@@ -352,7 +351,7 @@ func (snc *Agent) init() (*AgentRunSet, error) {
 	defaultLocations := []string{
 		"./snclient.ini",
 		"/etc/snclient/snclient.ini",
-		path.Join(GlobalMacros["exe-path"], "snclient.ini"),
+		filepath.Join(GlobalMacros["exe-path"], "snclient.ini"),
 	}
 
 	// no config supplied, check default locations, first match wins

@@ -137,7 +137,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: "windist"
-          path: "dist"
+          path: "windist"
           if-no-files-found: error
 
 
@@ -159,6 +159,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: "windist"
+          path: "windist"
 
       - run: |
           Write-Host "Building ${{ env.BIN }}.msi"

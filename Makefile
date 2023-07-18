@@ -201,6 +201,7 @@ clean:
 	rm -rf vendor/
 	rm -rf $(TOOLSFOLDER)
 	rm -rf dist/
+	rm -rf windist/
 	rm -rf build-deb/
 	rm -rf build-rpm/
 	rm -f release_notes.txt
@@ -279,8 +280,14 @@ dist:
 		> dist/snclient.8
 
 windist: | dist
-	rm dist/snclient
-	sed -i dist/snclient.ini \
+	rm -f windist
+	mkdir windist
+	cp -p dist/cacert.pem \
+		dist/server.crt \
+		dist/server.key \
+		dist/snclient.ini \
+		windist/
+	sed -i windist/snclient.ini \
 		-e 's/\/etc\/snclient/${exe-path}/g' \
 		-e 's/^file name =.*/file name = $${shared-path}\/snclient.log/g' \
 		-e 's/^max size =.*/max size = 10MiB/g'

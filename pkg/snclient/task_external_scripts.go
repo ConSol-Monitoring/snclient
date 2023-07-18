@@ -161,7 +161,7 @@ func (e *ExternalScriptsHandler) registerScriptPath(defaultScriptConfig *ConfigS
 		return nil
 	}
 
-	pattern := path.Join(scriptPath, "*.*")
+	pattern := filepath.Join(scriptPath, "*.*")
 	log.Debugf("script path: loading all scripts matching: %s", pattern)
 	scripts, err := filepath.Glob(pattern)
 	if err != nil {
