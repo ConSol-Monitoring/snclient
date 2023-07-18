@@ -338,6 +338,10 @@ func (cs *ConfigSection) HasKey(key string) (ok bool) {
 func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	val, ok = cs.data[key]
 	if ok {
+		// treat literal UNKNOWN as empty strings, they are the default value in nsclient.ini
+		if val == "UNKNOWN" {
+			val = ""
+		}
 		macros := make([]map[string]string, 0)
 		if cs.cfg != nil {
 			macros = append(macros, cs.cfg.Section("/paths").data)
