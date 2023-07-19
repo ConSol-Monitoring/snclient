@@ -33,3 +33,16 @@ Installing the development snapshot is straight forward:
 ## Building SNClient From Source
 
 Building snclient from source is covered in detail here: [Building from source](build)
+
+
+## Firewall
+
+The windows .msi package will add the firewall exceptions automatically. If you changed
+the listener configuration, like ports or the enabled listeners, ex.: NRPE, Web
+you can update the firewall configuration with this command:
+
+	C:\Program Files\snclient> .\snclient.exe install firewall
+
+If you don't need the exceptions anymore, there is an uninstall command as well:
+
+	C:\Program Files\snclient> .\snclient.exe uninstall firewall

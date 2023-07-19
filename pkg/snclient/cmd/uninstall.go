@@ -42,8 +42,9 @@ func init() {
 
 	// uninstall pkg
 	uninstallCmd.AddCommand(&cobra.Command{
-		Use:   "pkg [args]",
-		Short: "called from the msi installer, removes firewall and service if agent gets uninstalled",
+		Use:    "pkg [args]",
+		Short:  "called from the msi installer, removes firewall and service if agent gets uninstalled",
+		Hidden: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
 			snc := snclient.NewAgent(agentFlags)
@@ -66,7 +67,25 @@ func init() {
 				}
 			}
 
+			removeFireWallRules(snc)
+
 			snc.Log.Infof("uninstall completed")
+			os.Exit(0)
+		},
+	})
+
+	// uninstall firewall
+	uninstallCmd.AddCommand(&cobra.Command{
+		Use:    "firewall [args]",
+		Short:  "remove existing firewall rules",
+		Hidden: true,
+		Run: func(cmd *cobra.Command, args []string) {
+			agentFlags.Mode = snclient.ModeOneShot
+			snc := snclient.NewAgent(agentFlags)
+
+			removeFireWallRules(snc)
+
+			snc.Log.Infof("firewall exceptions removed")
 			os.Exit(0)
 		},
 	})

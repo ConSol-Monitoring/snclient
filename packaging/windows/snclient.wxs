@@ -49,6 +49,22 @@
                     <Component Id="ReadmeFile" Guid="E1AA1ABC-B488-4083-95B1-B46ABF0EC591">
                         <File Id="readmeMd" Name="README.md" DiskId="1" Source="README.md" KeyPath="yes" />
                     </Component>
+                    <Component Id="TmpIni" Guid="03714F56-80C4-42FB-9E1C-CA1497874900">
+                        <CreateFolder Directory="INSTALLDIR" />
+                        <RemoveFile Id="RemoveIni" Name="tmp_installer.ini" On="uninstall" />
+                        <IniFile Id="WriteIni01" Section="/includes" Key="installer" Value="[INCLUDES]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni02" Section="/settings/default" Key="allowed hosts" Value="[ALLOWEDHOSTS]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni03" Section="/modules" Key="WEBServer" Value="[WEBSERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni04" Section="/settings/WEB/server" Key="port" Value="[WEBSERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni05" Section="/settings/WEB/server" Key="use ssl" Value="[WEBSERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni06" Section="/settings/WEB/server" Key="password" Value="[PASSWORD]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni07" Section="/modules" Key="NRPEServer" Value="[NRPESERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni08" Section="/settings/NRPE/server" Key="port" Value="[NRPESERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni09" Section="/settings/NRPE/server" Key="use ssl" Value="[NRPESERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni10" Section="/modules" Key="PROMETHEUSServer" Value="[PROMETHEUSSERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni11" Section="/settings/Prometheus/server" Key="port" Value="[PROMETHEUSSERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni12" Section="/settings/Prometheus/server" Key="use ssl" Value="[PROMETHEUSSERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                    </Component>
                 </Directory>
             </Directory>
         </Directory>
@@ -60,26 +76,15 @@
             <ComponentRef Id="SampleServerKey" />
             <ComponentRef Id="LicenseFile" />
             <ComponentRef Id="ReadmeFile" />
+            <ComponentRef Id="TmpIni" />
         </Feature>
-        <SetProperty Id="CustomInstallerAction1" Sequence="execute" Before="CustomInstallerAction1" Value="&quot;[INSTALLDIR]snclient.exe&quot; install set &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; WEBSERVER=[WEBSERVER]; WEBSERVERPORT=[WEBSERVERPORT]; WEBSERVERSSL=[WEBSERVERSSL]&quot;" />
-        <CustomAction Id="CustomInstallerAction1" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
-        <SetProperty Id="CustomInstallerAction2" Sequence="execute" Before="CustomInstallerAction2" Value="&quot;[INSTALLDIR]snclient.exe&quot; install set &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; NRPESERVER=[NRPESERVER]; NRPESERVERPORT=[NRPESERVERPORT]; NRPESERVERSSL=[NRPESERVERSSL]&quot;" />
-        <CustomAction Id="CustomInstallerAction2" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
-        <SetProperty Id="CustomInstallerAction3" Sequence="execute" Before="CustomInstallerAction3" Value="&quot;[INSTALLDIR]snclient.exe&quot; install set &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; PROMETHEUSSERVER=[PROMETHEUSSERVER]; PROMETHEUSSERVERPORT=[PROMETHEUSSERVERPORT]; PROMETHEUSSERVERSSL=[PROMETHEUSSERVERSSL]&quot;" />
-        <CustomAction Id="CustomInstallerAction3" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
-        <SetProperty Id="CustomInstallerAction4" Sequence="execute" Before="CustomInstallerAction4" Value="&quot;[INSTALLDIR]snclient.exe&quot; install set &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; PASSWORD=[PASSWORD]; ALLOWEDHOSTS=[ALLOWEDHOSTS]; INCLUDES=[INCLUDES]&quot;" />
-        <CustomAction Id="CustomInstallerAction4" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
-        <SetProperty Id="CustomInstallerAction99" Sequence="execute" Before="CustomInstallerAction99" Value="&quot;[INSTALLDIR]snclient.exe&quot; install pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED];&quot;" />
-        <CustomAction Id="CustomInstallerAction99" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <SetProperty Id="CustomInstallerAction" Sequence="execute" Before="CustomInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; install pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED];&quot;" />
+        <CustomAction Id="CustomInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <SetProperty Id="CustomUnInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; uninstall pkg &quot;INSTALLDIR=[INSTALLDIR] WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]&quot;" Sequence="execute" Before="CustomUnInstallerAction" />
         <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <InstallExecuteSequence>
             <Custom Action="CustomUnInstallerAction" Before="InstallFinalize">Installed</Custom>
-            <Custom Action="CustomInstallerAction1" Before="InstallFinalize"></Custom>
-            <Custom Action="CustomInstallerAction2" Before="InstallFinalize"></Custom>
-            <Custom Action="CustomInstallerAction3" Before="InstallFinalize"></Custom>
-            <Custom Action="CustomInstallerAction4" Before="InstallFinalize"></Custom>
-            <Custom Action="CustomInstallerAction99" Before="InstallFinalize"></Custom>
+            <Custom Action="CustomInstallerAction" Before="InstallFinalize"></Custom>
         </InstallExecuteSequence>
     </Product>
     <Fragment>

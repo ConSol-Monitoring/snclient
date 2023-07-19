@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"pkg/utils"
 	"regexp"
 	"runtime"
 	"runtime/debug"
@@ -20,6 +19,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"pkg/utils"
 
 	"github.com/kdar/factorlog"
 	deadlock "github.com/sasha-s/go-deadlock"
@@ -164,7 +165,7 @@ func NewAgent(flags *AgentFlags) *Agent {
 	snc.createLogger(nil)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
-	initSet, err := snc.init()
+	initSet, err := snc.Init()
 	if err != nil {
 		LogStderrf("ERROR: %s", err.Error())
 		snc.CleanExit(ExitCodeError)
@@ -261,7 +262,7 @@ func (snc *Agent) mainLoop() MainStateType {
 			case Resume:
 				continue
 			case Reload:
-				updateSet, err := snc.init()
+				updateSet, err := snc.Init()
 				if err != nil {
 					log.Errorf("reloading configuration failed: %s", err.Error())
 
@@ -344,7 +345,7 @@ func (snc *Agent) startModules(initSet *AgentRunSet) {
 	snc.initSet = initSet
 }
 
-func (snc *Agent) init() (*AgentRunSet, error) {
+func (snc *Agent) Init() (*AgentRunSet, error) {
 	var files configFiles
 	files = snc.flags.ConfigFiles
 

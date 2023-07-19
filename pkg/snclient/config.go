@@ -196,17 +196,29 @@ func (config *Config) ParseINI(file io.Reader, iniPath string, recursive bool) e
 	lineNr := 0
 
 	scanner := bufio.NewScanner(file)
+	currentComments := make([]string, 0)
 	for scanner.Scan() {
 		lineNr++
 
 		line := strings.TrimSpace(scanner.Text())
-		if line == "" || line[0] == ';' || line[0] == '#' {
+		if line == "" {
+			continue
+		}
+
+		if line[0] == ';' || line[0] == '#' {
+			line = strings.TrimSpace(line[1:])
+			currentComments = append(currentComments, line)
+
 			continue
 		}
 
 		if line[0] == '[' {
 			currentBlock := strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")
 			currentSection = config.Section(currentBlock)
+			if len(currentComments) > 0 {
+				currentSection.comments[""] = currentComments
+				currentComments = make([]string, 0)
+			}
 
 			continue
 		}
@@ -229,6 +241,10 @@ func (config *Config) ParseINI(file io.Reader, iniPath string, recursive bool) e
 		}
 
 		currentSection.Set(val[0], value)
+		if len(currentComments) > 0 {
+			currentSection.comments[val[0]] = currentComments
+			currentComments = make([]string, 0)
+		}
 
 		// recurse directly when in an includes section to maintain order of settings
 		if recursive && currentSection.name == "/includes" {
@@ -313,19 +329,21 @@ func (config *Config) parseString(val string) (string, error) {
 
 // ConfigSection contains a single config section.
 type ConfigSection struct {
-	cfg  *Config
-	name string
-	data ConfigData
-	keys []string
+	cfg      *Config
+	name     string
+	data     ConfigData
+	keys     []string
+	comments map[string][]string
 }
 
 // NewConfigSection creates a new ConfigSection.
 func NewConfigSection(cfg *Config, name string) *ConfigSection {
 	section := &ConfigSection{
-		cfg:  cfg,
-		name: name,
-		data: make(map[string]string, 0),
-		keys: make([]string, 0),
+		cfg:      cfg,
+		name:     name,
+		data:     make(map[string]string, 0),
+		keys:     make([]string, 0),
+		comments: make(map[string][]string, 0),
 	}
 
 	return section
@@ -333,9 +351,16 @@ func NewConfigSection(cfg *Config, name string) *ConfigSection {
 
 // String returns section as string
 func (cs *ConfigSection) String() string {
-	data := []string{fmt.Sprintf("[%s]", cs.name)}
+	data := []string{}
+	for _, comment := range cs.comments[""] {
+		data = append(data, fmt.Sprintf("; %s", comment))
+	}
+	data = append(data, fmt.Sprintf("[%s]", cs.name))
 
 	for _, key := range cs.keys {
+		for _, comment := range cs.comments[key] {
+			data = append(data, fmt.Sprintf("; %s", comment))
+		}
 		data = append(data, fmt.Sprintf("%s = %s", key, cs.data[key]))
 	}
 
