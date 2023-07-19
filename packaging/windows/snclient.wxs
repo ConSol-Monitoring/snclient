@@ -19,7 +19,6 @@
         <Property Id="PROMETHEUSSERVERPORT" Value="9999" />
         <Property Id="PASSWORD" Value="CHANGEME" />
         <Property Id="ALLOWEDHOSTS" Value="127.0.0.1, ::1" />
-        <WixVariable Id="WixUILicenseRtf" Value="packaging\windows\LICENSE.rtf" />
         <UI Id="InstallDialog">
             <UIRef Id="MyWixUI_InstallDir" />
         </UI>
@@ -85,7 +84,7 @@
     </Product>
     <Fragment>
         <UI Id="MyWixUI_InstallDir">
-            <Dialog Id="CustomizeDialog" Width="370" Height="270">
+            <Dialog Id="CustomizeDialog" Width="370" Height="270" Title="[ProductName] Setup">
                 <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
                 <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)" />
                 <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)" />
@@ -122,6 +121,24 @@
                 <Control Type="Text" Id="txt12" Width="18" Height="17" X="212" Y="163" Text="SSL" />
                 <Control Type="CheckBox" Id="prometheusserverssl" Width="11" Height="17" X="232" Y="160" CheckBoxValue="1" Property="PROMETHEUSSERVERSSL" />
             </Dialog>
+            <Dialog Id="CustomLicenseAgreementDlg" Width="370" Height="270" Title="!(loc.LicenseAgreementDlg_Title)">
+                <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.LicenseAgreementDlgBannerBitmap)" />
+                <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+                <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+                <Control Id="Description" Type="Text" X="25" Y="23" Width="340" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.LicenseAgreementDlgDescription)" />
+                <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.LicenseAgreementDlgTitle)" />
+                <Control Id="Print" Type="PushButton" X="112" Y="243" Width="56" Height="17" Text="!(loc.WixUIPrint)">
+                    <Publish Event="DoAction" Value="WixUIPrintEula">1</Publish>
+                </Control>
+                <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)" />
+                <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="I Agree" />
+                <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+                    <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
+                </Control>
+                <Control Id="LicenseText" Type="ScrollableText" X="20" Y="60" Width="330" Height="160" Sunken="yes" TabSkip="no">
+                    <Text SourceFile="windist\LICENSE.rtf" />
+                </Control>
+            </Dialog>
             <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
             <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
             <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="9" Bold="yes" />
@@ -140,11 +157,11 @@
             <Publish Dialog="BrowseDlg" Control="OK" Event="DoAction" Value="WixUIValidatePath" Order="3">1</Publish>
             <Publish Dialog="BrowseDlg" Control="OK" Event="SpawnDialog" Value="InvalidDirDlg" Order="4"><![CDATA[WIXUI_INSTALLDIR_VALID<>"1"]]></Publish>
             <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999">1</Publish>
-            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg">NOT Installed</Publish>
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="CustomLicenseAgreementDlg">NOT Installed</Publish>
             <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">WIX_UPGRADE_DETECTED</Publish>
-            <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
-            <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDialog">LicenseAccepted = "1"</Publish>
-            <Publish Dialog="CustomizeDialog" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg">1</Publish>
+            <Publish Dialog="CustomLicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
+            <Publish Dialog="CustomLicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDialog">1</Publish>
+            <Publish Dialog="CustomizeDialog" Control="Back" Event="NewDialog" Value="CustomLicenseAgreementDlg">1</Publish>
             <Publish Dialog="CustomizeDialog" Control="Next" Event="NewDialog" Value="InstallDirDlg">1</Publish>
             <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="CustomizeDialog">1</Publish>
             <Publish Dialog="InstallDirDlg" Control="Next" Event="SetTargetPath" Value="[WIXUI_INSTALLDIR]" Order="1">1</Publish>

@@ -287,6 +287,10 @@ windist: | dist
 		dist/server.key \
 		dist/snclient.ini \
 		windist/
+	# create LICENSE.rtf
+	echo '{\rtf1\ansi\deff0\nouicompat{\fonttbl{\f0\fnil\fcharset0 Courier New;}}' > windist/LICENSE.rtf
+	echo '\pard\f0\fs22\lang1033' >> windist/LICENSE.rtf
+	while read line; do printf "%s\n" "$$line\par"; done < LICENSE >> windist/LICENSE.rtf
 	sed -i windist/snclient.ini \
 		-e 's/\/etc\/snclient/${exe-path}/g' \
 		-e 's/^file name =.*/file name = $${shared-path}\/snclient.log/g' \
