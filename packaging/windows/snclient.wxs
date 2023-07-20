@@ -61,7 +61,7 @@
                         <IniFile Id="WriteIni07" Section="/modules" Key="NRPEServer" Value="[NRPESERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni08" Section="/settings/NRPE/server" Key="port" Value="[NRPESERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni09" Section="/settings/NRPE/server" Key="use ssl" Value="[NRPESERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni10" Section="/modules" Key="PROMETHEUSServer" Value="[PROMETHEUSSERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni10" Section="/modules" Key="PrometheusServer" Value="[PROMETHEUSSERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni11" Section="/settings/Prometheus/server" Key="port" Value="[PROMETHEUSSERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni12" Section="/settings/Prometheus/server" Key="use ssl" Value="[PROMETHEUSSERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                     </Component>
@@ -83,7 +83,7 @@
         <SetProperty Id="CustomUnInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; uninstall pkg &quot;INSTALLDIR=[INSTALLDIR] WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]&quot;" Sequence="execute" Before="CustomUnInstallerAction" />
         <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <InstallExecuteSequence>
-            <Custom Action="CustomUnInstallerAction" Before="InstallFinalize">Installed</Custom>
+            <Custom Action="CustomUnInstallerAction" Before="InstallFinalize"></Custom>
             <Custom Action="CustomInstallerAction" Before="InstallFinalize"></Custom>
         </InstallExecuteSequence>
     </Product>

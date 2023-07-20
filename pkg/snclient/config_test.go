@@ -194,6 +194,7 @@ func TestConfigWrite(t *testing.T) {
 ; port - port description
 port = 5666
 
+
 ; web help 1
 ; web help 2
 [/settings/WEB/server]
@@ -202,6 +203,7 @@ port = 443
 
 ; use ssl - security i important hmmkay
 ; use ssl = false
+
 
 [/includes]
 ; only comment1
@@ -220,6 +222,7 @@ port = 443
 ; port - port description
 port = 5666
 
+
 ; web help 1
 ; web help 2
 [/settings/WEB/server]
@@ -228,6 +231,7 @@ port = 1234
 
 ; use ssl - security i important hmmkay
 use ssl = enabled
+
 
 [/includes]
 ; only comment1
@@ -239,4 +243,23 @@ test = ./test.ini
 	cfg.Section("/includes").Insert("test", "./test.ini")
 
 	assert.Equalf(t, strings.TrimSpace(changedConfig), strings.TrimSpace(cfg.ToString()), "config changed correctly")
+}
+
+func TestConfigPackaging(t *testing.T) {
+	testDir, _ := os.Getwd()
+	pkgDir := filepath.Join(testDir, "..", "..", "packaging")
+	pkgCfgFile := filepath.Join(pkgDir, "snclient.ini")
+
+	file, err := os.Open(pkgCfgFile)
+	assert.NoErrorf(t, err, "open ini without error")
+
+	origConfig, err := os.ReadFile(pkgCfgFile)
+	assert.NoErrorf(t, err, "read ini without error")
+
+	cfg := NewConfig(false)
+	err = cfg.ParseINI(file, pkgCfgFile)
+	file.Close()
+
+	assert.NoErrorf(t, err, "parse ini without error")
+	assert.Equalf(t, strings.TrimSpace(string(origConfig)), strings.TrimSpace(cfg.ToString()), "default config should not change when opened and saved unchanged")
 }

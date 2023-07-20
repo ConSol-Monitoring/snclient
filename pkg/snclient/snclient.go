@@ -219,7 +219,7 @@ func (snc *Agent) Run() {
 	}
 
 	snc.running.Store(false)
-	log.Infof("snclient exited (pid %d)\n", os.Getpid())
+	log.Infof("snclient exited (pid:%d)\n", os.Getpid())
 }
 
 // RunBackground starts the agent in the background and returns immediately

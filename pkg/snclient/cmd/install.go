@@ -240,6 +240,7 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 	if err != nil {
 		snc.Log.Errorf("failed to parse %s: %s", tmpFile, err.Error())
 	}
+	file.Close()
 
 	targetFile := filepath.Join(installDir, "snclient.ini")
 	targetConfig := snclient.NewConfig(false)
@@ -250,6 +251,7 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 			snc.Log.Errorf("failed to read %s: %s", targetFile, err.Error())
 		}
 	}
+	file.Close()
 
 	for name, section := range tmpConfig.SectionsByPrefix("/") {
 		targetSection := targetConfig.Section(name)
@@ -260,12 +262,17 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 				if val != snclient.DefaultPassword {
 					targetSection.Insert(key, toPassword(val))
 				}
-			case "use ssl", "WEBServer", "NRPEServer", "PROMETHEUSServer":
+			case "use ssl", "WEBServer", "NRPEServer", "PrometheusServer":
 				val, _ := section.GetString(key)
 				targetSection.Insert(key, toBool(val))
-			case "installer", "port", "allowed hosts":
+			case "port", "allowed hosts":
 				val, _ := section.GetString(key)
 				targetSection.Insert(key, val)
+			case "installer":
+				val, _ := section.GetString(key)
+				if val != "" {
+					targetSection.Insert(key, val)
+				}
 			default:
 				snc.Log.Errorf("unhandled merge ini key: %s", key)
 			}
@@ -277,7 +284,10 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 		snc.Log.Errorf("failed to write %s: %s", targetFile, err.Error())
 	}
 
-	os.Remove(tmpFile)
+	err = os.Remove(tmpFile)
+	if err != nil {
+		snc.Log.Errorf("failed to remove %s: %s", tmpFile, err.Error())
+	}
 
 	return nil
 }

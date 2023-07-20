@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 
 	"pkg/snclient"
 
@@ -70,6 +71,12 @@ func init() {
 			removeFireWallRules(snc)
 
 			snc.Log.Infof("uninstall completed")
+
+			// close log file so we can delete it
+			snc.Log.SetOutput(os.Stderr)
+			logFile := filepath.Join(installConfig["INSTALLDIR"], "snclient.log")
+			_ = os.Remove(logFile)
+
 			os.Exit(0)
 		},
 	})

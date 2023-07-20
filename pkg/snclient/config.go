@@ -92,7 +92,7 @@ func (config *Config) ToString() string {
 	for _, name := range sortedSections {
 		section := strings.TrimSpace(config.Section(name).String())
 		data += section
-		data += "\n\n"
+		data += "\n\n\n"
 	}
 
 	return data
@@ -175,11 +175,19 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 			continue
 		}
 
+		// start of a new section
 		if line[0] == '[' {
 			// append comments to previous section unless they cuddle next section without newlines
-			if currentSection != nil && len(currentComments) > 0 && currentComments[len(currentComments)-1] == "" {
-				currentSection.comments["_END"] = currentComments
-				currentComments = make([]string, 0)
+			if currentSection != nil && len(currentComments) > 0 {
+				// search comments (in reverse) for the first empty line and split those onto the next section
+				for i := len(currentComments) - 1; i >= 0; i-- {
+					if currentComments[i] == "" {
+						currentSection.comments["_END"] = currentComments[:i]
+						currentComments = currentComments[i:]
+
+						break
+					}
+				}
 			}
 			currentBlock := strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")
 			currentSection = config.Section(currentBlock)
@@ -357,7 +365,12 @@ func (cs *ConfigSection) String() string {
 
 	for _, key := range cs.keys {
 		data = append(data, cs.comments[key]...)
-		data = append(data, fmt.Sprintf("%s = %s", key, cs.data[key]))
+		val := cs.data[key]
+		if val == "" {
+			data = append(data, fmt.Sprintf("%s =", key))
+		} else {
+			data = append(data, fmt.Sprintf("%s = %s", key, cs.data[key]))
+		}
 	}
 
 	data = append(data, cs.comments["_END"]...)

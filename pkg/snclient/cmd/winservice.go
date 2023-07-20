@@ -3,6 +3,8 @@
 package cmd
 
 import (
+	"os"
+
 	"pkg/snclient"
 
 	"github.com/spf13/cobra"
@@ -21,6 +23,7 @@ All logs will be written to the configured logfile.
 			snc := snclient.NewAgent(agentFlags)
 			snc.CheckUpdateBinary("winservice")
 			snc.RunAsWinService()
+			snc.Log.Infof("snclient exited (pid:%d)\n", os.Getpid())
 			snc.CleanExit(snclient.ExitCodeOK)
 		},
 		Hidden: true,
