@@ -356,6 +356,7 @@ func addFireWallRules(snc *snclient.Agent) {
 func addFireWallRule(snc *snclient.Agent, name string, port int64) error {
 	removeFireWallRule(snc, name)
 	snc.Log.Debugf("adding firewall rule '%s%s' for port: %d", FIREWALLPREFIX, name, port)
+	os.Chdir("C:\\") // avoid: exec: "netsh": cannot run executable found relative to current directory
 	cmd := exec.Command("netsh", "advfirewall", "firewall", "add", "rule",
 		"dir=in",
 		"action=allow",
@@ -388,12 +389,10 @@ func removeFireWallRules(snc *snclient.Agent) {
 
 func removeFireWallRule(snc *snclient.Agent, name string) error {
 	snc.Log.Debugf("removing firewall rule '%s%s'", FIREWALLPREFIX, name)
+	os.Chdir("C:\\") // avoid: exec: "netsh": cannot run executable found relative to current directory
 	cmd := exec.Command("netsh", "advfirewall", "firewall", "delete", "rule",
 		fmt.Sprintf("name=%s%s", FIREWALLPREFIX, name),
 	)
-	cmd.Dir = "C:\\" // avoid: exec: "netsh": cannot run executable found relative to current directory
-	pwd, _ := os.Getwd()
-	snc.Log.Errorf("pwd: %s", pwd)
 
 	output, err := cmd.CombinedOutput()
 	output = bytes.TrimSpace(output)
