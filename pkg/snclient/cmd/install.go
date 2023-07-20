@@ -228,7 +228,7 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 	}
 
 	tmpFile := filepath.Join(installDir, "tmp_installer.ini")
-	tmpConfig := snclient.NewConfig()
+	tmpConfig := snclient.NewConfig(false)
 	file, err := os.Open(tmpFile)
 	if err != nil {
 		snc.Log.Debugf("failed to read %s: %s", tmpFile, err.Error())
@@ -236,16 +236,16 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 		return nil
 	}
 
-	err = tmpConfig.ParseINI(file, tmpFile, false)
+	err = tmpConfig.ParseINI(file, tmpFile)
 	if err != nil {
 		snc.Log.Errorf("failed to parse %s: %s", tmpFile, err.Error())
 	}
 
 	targetFile := filepath.Join(installDir, "snclient.ini")
-	targetConfig := snclient.NewConfig()
+	targetConfig := snclient.NewConfig(false)
 	file, err = os.Open(targetFile)
 	if err == nil {
-		err = targetConfig.ParseINI(file, targetFile, false)
+		err = targetConfig.ParseINI(file, targetFile)
 		if err != nil {
 			snc.Log.Errorf("failed to read %s: %s", targetFile, err.Error())
 		}
@@ -258,14 +258,14 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 			case "password":
 				val, _ := section.GetString(key)
 				if val != snclient.DefaultPassword {
-					targetSection.Set(key, toPassword(val))
+					targetSection.Insert(key, toPassword(val))
 				}
 			case "use ssl", "WEBServer", "NRPEServer", "PROMETHEUSServer":
 				val, _ := section.GetString(key)
-				targetSection.Set(key, toBool(val))
+				targetSection.Insert(key, toBool(val))
 			case "installer", "port", "allowed hosts":
 				val, _ := section.GetString(key)
-				targetSection.Set(key, val)
+				targetSection.Insert(key, val)
 			default:
 				snc.Log.Errorf("unhandled merge ini key: %s", key)
 			}

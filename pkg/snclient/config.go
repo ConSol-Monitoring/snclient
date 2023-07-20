@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -73,71 +72,40 @@ func (c *configFiles) Set(value string) error {
 type Config struct {
 	sections        map[string]*ConfigSection
 	alreadyIncluded map[string]string
+	recursive       bool // read includes as they appear in the config
 }
 
-func NewConfig() *Config {
+func NewConfig(recursive bool) *Config {
 	conf := &Config{
 		sections:        make(map[string]*ConfigSection, 0),
 		alreadyIncluded: make(map[string]string, 0),
+		recursive:       recursive,
 	}
 
 	return conf
 }
 
-func (config *Config) WriteINI(iniPath string) error {
-	keys := []string{}
-	for name := range config.sections {
-		keys = append(keys, name)
-	}
-
-	ranks := map[string]int{
-		"/paths":            1,
-		"/modules":          5,
-		"/settings/default": 10,
-		"/settings":         15,
-		"default":           20,
-		"/includes":         50,
-	}
-
-	wordRanks := make([]WordRank, len(keys))
-	for i, word := range keys {
-		rank, ok := ranks[word]
-		if ok {
-			wordRanks[i] = WordRank{Word: word, Rank: rank}
-
-			continue
-		}
-
-		for prefix, num := range ranks {
-			if strings.HasPrefix(word, prefix) {
-				if rank == 0 || rank > num {
-					rank = num + 2
-				}
-			}
-		}
-		if rank != 0 {
-			wordRanks[i] = WordRank{Word: word, Rank: rank}
-		}
-
-		wordRanks[i] = WordRank{Word: word, Rank: ranks["default"]}
-	}
-
-	sort.Sort(ByRank(wordRanks))
+func (config *Config) ToString() string {
+	sortedSections := config.SectionNamesSorted()
 
 	data := ""
-	for _, name := range wordRanks {
-		section := config.Section(name.Word)
-		data += section.String()
+	for _, name := range sortedSections {
+		section := strings.TrimSpace(config.Section(name).String())
+		data += section
 		data += "\n\n"
 	}
 
+	return data
+}
+
+func (config *Config) WriteINI(iniPath string) error {
 	file, err := os.Create(iniPath)
 	if err != nil {
 		return fmt.Errorf("failed to write ini %s: %s", iniPath, err.Error())
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(data)
+	_, err = file.WriteString(config.ToString())
 	if err != nil {
 		return fmt.Errorf("failed to write ini %s: %s", iniPath, err.Error())
 	}
@@ -183,7 +151,7 @@ func (config *Config) ReadINI(iniPath string) error {
 	}
 
 	log.Debugf("reading config: %s", iniPath)
-	err = config.ParseINI(file, iniPath, true)
+	err = config.ParseINI(file, iniPath)
 	if err != nil {
 		return fmt.Errorf("config error in file %s: %s", iniPath, err.Error())
 	}
@@ -191,7 +159,7 @@ func (config *Config) ReadINI(iniPath string) error {
 	return nil
 }
 
-func (config *Config) ParseINI(file io.Reader, iniPath string, recursive bool) error {
+func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 	var currentSection *ConfigSection
 	lineNr := 0
 
@@ -201,22 +169,22 @@ func (config *Config) ParseINI(file io.Reader, iniPath string, recursive bool) e
 		lineNr++
 
 		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-
-		if line[0] == ';' || line[0] == '#' {
-			line = strings.TrimSpace(line[1:])
+		if line == "" || line[0] == ';' || line[0] == '#' {
 			currentComments = append(currentComments, line)
 
 			continue
 		}
 
 		if line[0] == '[' {
+			// append comments to previous section unless they cuddle next section without newlines
+			if currentSection != nil && len(currentComments) > 0 && currentComments[len(currentComments)-1] == "" {
+				currentSection.comments["_END"] = currentComments
+				currentComments = make([]string, 0)
+			}
 			currentBlock := strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")
 			currentSection = config.Section(currentBlock)
 			if len(currentComments) > 0 {
-				currentSection.comments[""] = currentComments
+				currentSection.comments["_BEGIN"] = currentComments
 				currentComments = make([]string, 0)
 			}
 
@@ -227,13 +195,18 @@ func (config *Config) ParseINI(file io.Reader, iniPath string, recursive bool) e
 			return fmt.Errorf("parse error in %s:%d: found key=value pair outside of ini block", iniPath, lineNr)
 		}
 
-		// get both values
+		// parse key and value
 		val := strings.SplitN(line, "=", 2)
 		if len(val) < 2 {
 			return fmt.Errorf("parse error in %s:%d: found key without '='", iniPath, lineNr)
 		}
 		val[0] = strings.TrimSpace(val[0])
 		val[1] = strings.TrimSpace(val[1])
+
+		// silently skip UNKNOWN values which were placeholder in nsclient
+		if val[1] == "UNKNOWN" {
+			continue
+		}
 
 		value, err := config.parseString(val[1])
 		if err != nil {
@@ -247,12 +220,16 @@ func (config *Config) ParseINI(file io.Reader, iniPath string, recursive bool) e
 		}
 
 		// recurse directly when in an includes section to maintain order of settings
-		if recursive && currentSection.name == "/includes" {
+		if config.recursive && currentSection.name == "/includes" {
 			err := config.parseInclude(value, iniPath)
 			if err != nil {
 				return fmt.Errorf("%s (included in %s:%d)", err.Error(), iniPath, lineNr)
 			}
 		}
+	}
+
+	if len(currentComments) > 0 {
+		currentSection.comments["_END"] = currentComments
 	}
 
 	return nil
@@ -327,6 +304,29 @@ func (config *Config) parseString(val string) (string, error) {
 	return val, nil
 }
 
+func (config *Config) SectionNames() []string {
+	keys := []string{}
+	for name := range config.sections {
+		keys = append(keys, name)
+	}
+
+	return keys
+}
+
+func (config *Config) SectionNamesSorted() []string {
+	keys := config.SectionNames()
+	ranks := map[string]int{
+		"/paths":            1,
+		"/modules":          5,
+		"/settings/default": 10,
+		"/settings":         15,
+		"default":           20,
+		"/includes":         50,
+	}
+
+	return utils.SortRanked(keys, ranks)
+}
+
 // ConfigSection contains a single config section.
 type ConfigSection struct {
 	cfg      *Config
@@ -352,26 +352,74 @@ func NewConfigSection(cfg *Config, name string) *ConfigSection {
 // String returns section as string
 func (cs *ConfigSection) String() string {
 	data := []string{}
-	for _, comment := range cs.comments[""] {
-		data = append(data, fmt.Sprintf("; %s", comment))
-	}
+	data = append(data, cs.comments["_BEGIN"]...)
 	data = append(data, fmt.Sprintf("[%s]", cs.name))
 
 	for _, key := range cs.keys {
-		for _, comment := range cs.comments[key] {
-			data = append(data, fmt.Sprintf("; %s", comment))
-		}
+		data = append(data, cs.comments[key]...)
 		data = append(data, fmt.Sprintf("%s = %s", key, cs.data[key]))
 	}
+
+	data = append(data, cs.comments["_END"]...)
 
 	return strings.Join(data, "\n")
 }
 
 // Set sets a single key/value pair. Existing keys will be overwritten.
 func (cs *ConfigSection) Set(key, value string) {
-	cs.data[key] = value
-	if !slices.Contains(cs.keys, key) {
+	if !cs.HasKey(key) {
 		cs.keys = append(cs.keys, key)
+	}
+	cs.data[key] = value
+}
+
+// Insert is just like Set but trys to find the key in comments first and will uncomment that one
+func (cs *ConfigSection) Insert(key, value string) {
+	if cs.HasKey(key) {
+		cs.data[key] = value
+
+		return
+	}
+
+	// search in comments
+	foundComment := false
+	for name, comments := range cs.comments {
+		if name == "_BEGIN" {
+			continue
+		}
+
+		prefix := fmt.Sprintf("; %s =", key)
+		for i, com := range comments {
+			if strings.HasPrefix(com, prefix) {
+				// replace with actual value
+				comments[i] = fmt.Sprintf("%s = %s", key, value)
+				foundComment = true
+
+				break
+			}
+		}
+
+		if foundComment {
+			break
+		}
+	}
+
+	if foundComment {
+		// parse section back again
+		tmpCfg := NewConfig(false)
+		LogDebug(tmpCfg.ParseINI(strings.NewReader(cs.String()), "tmp.ini"))
+		tmpSection := tmpCfg.Section(cs.name)
+		cs.data = tmpSection.data
+		cs.keys = tmpSection.keys
+		cs.comments = tmpSection.comments
+	} else {
+		// append normally
+		cs.Set(key, value)
+		// migrate existing comments from the end to this option so the new option appears last
+		if com, ok := cs.comments["_END"]; ok {
+			cs.comments[key] = com
+			delete(cs.comments, "_END")
+		}
 	}
 }
 
@@ -437,10 +485,6 @@ func (cs *ConfigSection) HasKey(key string) (ok bool) {
 func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	val, ok = cs.data[key]
 	if ok {
-		// treat literal UNKNOWN as empty strings, they are the default value in nsclient.ini
-		if val == "UNKNOWN" {
-			val = ""
-		}
 		macros := make([]map[string]string, 0)
 		if cs.cfg != nil {
 			macros = append(macros, cs.cfg.Section("/paths").data)
@@ -555,13 +599,3 @@ func (d *ConfigData) Merge(defaults ConfigData) {
 		}
 	}
 }
-
-type WordRank struct {
-	Word string
-	Rank int
-}
-type ByRank []WordRank
-
-func (a ByRank) Len() int           { return len(a) }
-func (a ByRank) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByRank) Less(i, j int) bool { return a[i].Rank < a[j].Rank || a[i].Word < a[j].Word }

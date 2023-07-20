@@ -12,13 +12,15 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
-	"pkg/utils"
 	"regexp"
 	"runtime"
 	"strings"
 	"syscall"
 	"time"
+
+	"pkg/utils"
 
 	"github.com/sassoftware/go-rpmutils"
 )
@@ -936,8 +938,8 @@ func (u *UpdateHandler) extractRpm(fileName string) error {
 		return fmt.Errorf("rpm unpack: %s", err.Error())
 	}
 
-	log.Tracef("cp %s %s", filepath.Join(tempDir, "/usr/bin/snclient"), fileName)
-	err = utils.CopyFile(filepath.Join(tempDir, "/usr/bin/snclient"), fileName)
+	log.Tracef("cp %s %s", path.Join(tempDir, "/usr/bin/snclient"), fileName)
+	err = utils.CopyFile(path.Join(tempDir, "/usr/bin/snclient"), fileName)
 	if err != nil {
 		return fmt.Errorf("mv: %s", err.Error())
 	}

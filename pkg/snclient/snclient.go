@@ -157,7 +157,7 @@ func NewAgent(flags *AgentFlags) *Agent {
 		Listeners: NewModuleSet("listener"),
 		Tasks:     NewModuleSet("task"),
 		Counter:   NewCounterSet(),
-		Config:    NewConfig(),
+		Config:    NewConfig(true),
 		flags:     flags,
 		Log:       log,
 	}
@@ -407,7 +407,7 @@ func getGlobalMacros() map[string]string {
 }
 
 func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
-	config := NewConfig()
+	config := NewConfig(true)
 	for _, path := range files {
 		err := config.ReadINI(path)
 		if err != nil {

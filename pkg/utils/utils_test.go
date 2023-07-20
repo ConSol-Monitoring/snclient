@@ -149,3 +149,38 @@ func TestTrimQuotes(t *testing.T) {
 		}
 	}
 }
+
+func TestRankedSort(t *testing.T) {
+	keys := []string{
+		"/includes",
+		"/settings/a",
+		"/settings/b",
+		"/settings/a/2",
+		"/settings/b/1",
+		"/settings/default",
+		"/paths",
+		"/modules",
+	}
+	expected := []string{
+		"/paths",
+		"/modules",
+		"/settings/default",
+		"/settings/a",
+		"/settings/a/2",
+		"/settings/b",
+		"/settings/b/1",
+		"/includes",
+	}
+	ranks := map[string]int{
+		"/paths":            1,
+		"/modules":          5,
+		"/settings/default": 10,
+		"/settings":         15,
+		"default":           20,
+		"/includes":         50,
+	}
+
+	sorted := SortRanked(keys, ranks)
+
+	assert.Equalf(t, expected, sorted, "sorted by rank")
+}
