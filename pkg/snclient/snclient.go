@@ -32,7 +32,7 @@ const (
 	// NAME contains the snclient full official name.
 	NAME = "SNClient+"
 
-	DESCRIPTION = "SNClient+ (Secure Naemon Client) is a secure general purpose" +
+	DESCRIPTION = "SNClient+ (Secure Naemon Client) is a general purpose" +
 		" monitoring agent designed as replacement for NRPE and NSClient++."
 
 	// VERSION contains the actual snclient version.
