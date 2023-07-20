@@ -29,6 +29,8 @@ const (
 
 	// WINSERVICESTOPINTERVALL sets the interval at which the svc state is checked
 	WINSERVICESTOPINTERVALL = 500 * time.Millisecond
+
+	FIREWALLPREFIX = "SNClient"
 )
 
 var listenerNames = []string{"WEB", "NRPE", "Prometheus"}
@@ -64,18 +66,14 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 			// reload config
 			snc.Init()
 
-			if hasService("snclient") {
+			if hasService(WINSERVICE) && serviceEnabled(WINSERVICE) {
 				err := restartService(WINSERVICE)
 				if err != nil {
 					snc.Log.Errorf("failed to (re)start service: %s", err.Error())
 				}
 			}
 
-			err = addFireWallRules(snc)
-			if err != nil {
-				snc.Log.Errorf("failed to setup firewall: %s", err.Error())
-			}
-
+			addFireWallRules(snc)
 			snc.Log.Infof("installer finished successfully")
 			os.Exit(0)
 		},
@@ -89,11 +87,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 			agentFlags.Mode = snclient.ModeOneShot
 			snc := snclient.NewAgent(agentFlags)
 
-			err := addFireWallRules(snc)
-			if err != nil {
-				snc.Log.Errorf("failed to setup firewall: %s", err.Error())
-			}
-
+			addFireWallRules(snc)
 			snc.Log.Infof("firewall setup ready")
 			os.Exit(0)
 		},
@@ -147,6 +141,27 @@ func hasService(name string) bool {
 	service.Close()
 
 	return true
+}
+
+func serviceEnabled(name string) bool {
+	svcMgr, err := mgr.Connect()
+	if err != nil {
+		return false
+	}
+	defer svcMgr.Disconnect()
+
+	service, err := svcMgr.OpenService(name)
+	if err != nil {
+		return false
+	}
+	defer service.Close()
+
+	cfg, err := service.Config()
+	if err != nil {
+		return false
+	}
+
+	return cfg.StartType != windows.SERVICE_DISABLED
 }
 
 func stopService(name string) error {
@@ -311,7 +326,7 @@ func toBool(val string) string {
 	}
 }
 
-func addFireWallRules(snc *snclient.Agent) error {
+func addFireWallRules(snc *snclient.Agent) {
 	for _, name := range listenerNames {
 		enabled, _, err := snc.Config.Section("/modules").GetBool(name + "Server")
 		if err != nil {
@@ -332,23 +347,24 @@ func addFireWallRules(snc *snclient.Agent) error {
 		if ok {
 			err := addFireWallRule(snc, name, port)
 			if err != nil {
-				snc.Log.Debugf("addFireWallRule: %s", name, err.Error())
+				snc.Log.Errorf("addFireWallRule: %s%s: %s", FIREWALLPREFIX, name, err.Error())
 			}
 		}
 	}
-	return nil
 }
 
 func addFireWallRule(snc *snclient.Agent, name string, port int64) error {
 	removeFireWallRule(snc, name)
-	snc.Log.Debugf("adding firewall rule 'SNClient%s' for port: %d", name, port)
+	snc.Log.Debugf("adding firewall rule '%s%s' for port: %d", FIREWALLPREFIX, name, port)
 	cmd := exec.Command("netsh", "advfirewall", "firewall", "add", "rule",
 		"dir=in",
 		"action=allow",
 		"protocol=TCP",
 		fmt.Sprintf("localport=%d", port),
-		fmt.Sprintf("name=SNClient%s", name),
+		fmt.Sprintf("name=%s%s", FIREWALLPREFIX, name),
 	)
+	pwd, _ := os.Getwd()
+	snc.Log.Errorf("pwd: %s", pwd)
 
 	output, err := cmd.CombinedOutput()
 	output = bytes.TrimSpace(output)
@@ -361,22 +377,23 @@ func addFireWallRule(snc *snclient.Agent, name string, port int64) error {
 	return nil
 }
 
-func removeFireWallRules(snc *snclient.Agent) error {
+func removeFireWallRules(snc *snclient.Agent) {
 	for _, name := range listenerNames {
 		err := removeFireWallRule(snc, name)
 		if err != nil {
-			snc.Log.Debugf("removeFireWallRule: %s", name, err.Error())
+			snc.Log.Errorf("removeFireWallRule: %s%s: %s", FIREWALLPREFIX, name, err.Error())
 		}
 	}
-
-	return nil
 }
 
 func removeFireWallRule(snc *snclient.Agent, name string) error {
-	snc.Log.Debugf("removing firewall rule 'SNClient%s'", name)
+	snc.Log.Debugf("removing firewall rule '%s%s'", FIREWALLPREFIX, name)
 	cmd := exec.Command("netsh", "advfirewall", "firewall", "delete", "rule",
-		fmt.Sprintf("name=SNClient%s", name),
+		fmt.Sprintf("name=%s%s", FIREWALLPREFIX, name),
 	)
+	cmd.Dir = "C:\\" // avoid: exec: "netsh": cannot run executable found relative to current directory
+	pwd, _ := os.Getwd()
+	snc.Log.Errorf("pwd: %s", pwd)
 
 	output, err := cmd.CombinedOutput()
 	output = bytes.TrimSpace(output)

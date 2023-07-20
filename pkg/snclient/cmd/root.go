@@ -61,7 +61,7 @@ func addFlags(cmd *cobra.Command, flags *snclient.AgentFlags) {
 	cmd.PersistentFlags().StringArrayVarP(&flags.ConfigFiles, "config", "c", []string{}, "path to config file, supports wildcards like *.ini (default is ./snclient.ini) (multiple)")
 	cmd.PersistentFlags().BoolVarP(&flags.Quiet, "quiet", "q", false, "set loglevel to error")
 	cmd.PersistentFlags().CountVarP(&flags.Verbose, "verbose", "v", "increase loglevel, -v means debug, -vv means trace")
-	cmd.PersistentFlags().StringVarP(&flags.LogLevel, "loglevel", "", "info", "set loglevel to one of: off, error, info, debug, trace")
+	cmd.PersistentFlags().StringVarP(&flags.LogLevel, "loglevel", "", "", "set loglevel to one of: off, error, info, debug, trace")
 	cmd.PersistentFlags().StringVarP(&flags.LogFormat, "logformat", "", "", "override logformat, see https://pkg.go.dev/github.com/kdar/factorlog")
 	cmd.PersistentFlags().StringVarP(&flags.LogFile, "logfile", "", "", "Path to log file or stdout/stderr")
 	cmd.PersistentFlags().StringVarP(&flags.ProfilePort, "debug-profiler", "", "", "start pprof profiler on this port, ex. :6060")
