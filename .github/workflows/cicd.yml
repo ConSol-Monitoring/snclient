@@ -298,6 +298,31 @@ jobs:
             name: "windist"
 
 
+  integration-test-windows:
+    strategy:
+      matrix:
+        go-version: [1.20.x]
+        go-os: [windows]
+        go-arch: [386, amd64]
+    runs-on: windows-latest
+    needs: [pkg-msi]
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: "${{ env.BIN }}.msi"
+      - name: Run Pester Tests
+        run: |
+          Move-Item -Path ${{ env.BIN }}.msi -Destination .\snclient.msi
+          Set-PSRepository psgallery -InstallationPolicy trusted
+          Install-Module -Name Pester -Confirm:$false -Force -SkipPublisherCheck
+          Invoke-Pester -Path ".\.github\tests\windows" -CI
+          if ($Error[0].Fullyqualifiederrorid -eq 'PesterAssertionFailed') {exit 1}
+        shell: powershell
+
+
   make-release:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
