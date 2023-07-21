@@ -1,5 +1,16 @@
 This file documents the revision history for the SNClient+ agent.
 
+0.05       Fri Jul 21 20:24:19 CEST 2023
+          - add configuration dialog to .msi installer
+          - setup windows firewall rules during installation
+          - add wildcard support for includes
+          - add conf.d directory support for includes
+          - added check_tasksched
+          - added nrpe mode to test cmd
+          - fix osx installer (#27)
+          - fix linux check_drivesize (#14)
+          - fix missing byte in nrpe response (#21)
+
 0.04       Wed Jul  5 19:13:44 CEST 2023
          - implement external scripts
          - add support for client certificates
