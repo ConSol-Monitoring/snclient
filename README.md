@@ -27,7 +27,7 @@ There are prebuild binaries and packages for the all supported systems (see abov
 [release page](https://github.com/Consol-Monitoring/snclient/releases).
 
 
-Further details are covered in the [documentation](docs/install.md).
+Further details are covered in the [documentation](https://omd.consol.de/docs/snclient/).
 
 ## Implementation Status
 W: work in progress
