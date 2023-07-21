@@ -8,11 +8,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
-	"time"
-
 	"pkg/snclient"
 	"pkg/utils"
+	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/windows"
@@ -364,8 +363,6 @@ func addFireWallRule(snc *snclient.Agent, name string, port int64) error {
 		fmt.Sprintf("localport=%d", port),
 		fmt.Sprintf("name=%s%s", FIREWALLPREFIX, name),
 	)
-	pwd, _ := os.Getwd()
-	snc.Log.Errorf("pwd: %s", pwd)
 
 	output, err := cmd.CombinedOutput()
 	output = bytes.TrimSpace(output)
