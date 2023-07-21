@@ -305,7 +305,7 @@ jobs:
         go-os: [windows]
         go-arch: [386, amd64]
     runs-on: windows-latest
-    needs: [pkg-msi]
+    needs: [get-version,pkg-msi]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
