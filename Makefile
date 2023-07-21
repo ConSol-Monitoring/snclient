@@ -237,6 +237,10 @@ golangci: tools
 		if [ $$dir != "pkg/eventlog" ]; then \
 			echo "  - GOOS=linux"; \
 			( cd $$dir && GOOS=linux golangci-lint run ./... ); \
+			echo "  - GOOS=darwin"; \
+			( cd $$dir && GOOS=darwin golangci-lint run ./... ); \
+			echo "  - GOOS=freebsd"; \
+			( cd $$dir && GOOS=freebsd golangci-lint run ./... ); \
 		fi; \
 		echo "  - GOOS=windows"; \
 		( cd $$dir && GOOS=windows golangci-lint run ./... ); \
