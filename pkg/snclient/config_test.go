@@ -253,13 +253,15 @@ func TestConfigPackaging(t *testing.T) {
 	file, err := os.Open(pkgCfgFile)
 	assert.NoErrorf(t, err, "open ini without error")
 
-	origConfig, err := os.ReadFile(pkgCfgFile)
+	data, err := os.ReadFile(pkgCfgFile)
 	assert.NoErrorf(t, err, "read ini without error")
+	// ignore windows newlines when checking for equality
+	origConfig := strings.ReplaceAll(strings.TrimSpace(string(data)), "\r\n", "\n")
 
 	cfg := NewConfig(false)
 	err = cfg.ParseINI(file, pkgCfgFile)
 	file.Close()
 
 	assert.NoErrorf(t, err, "parse ini without error")
-	assert.Equalf(t, strings.TrimSpace(string(origConfig)), strings.TrimSpace(cfg.ToString()), "default config should not change when opened and saved unchanged")
+	assert.Equalf(t, origConfig, strings.TrimSpace(cfg.ToString()), "default config should not change when opened and saved unchanged")
 }
