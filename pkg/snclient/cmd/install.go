@@ -8,10 +8,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"pkg/snclient"
-	"pkg/utils"
 	"strings"
 	"time"
+
+	"pkg/snclient"
+	"pkg/utils"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/windows"
