@@ -19,8 +19,8 @@ Key3 = 'Value3'
 ; comment
 # also comment
 	`
-	cfg := NewConfig()
-	err := cfg.parseINI(strings.NewReader(configText), "testfile.ini")
+	cfg := NewConfig(true)
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
 
 	assert.NoErrorf(t, err, "config parsed")
 
@@ -37,8 +37,8 @@ func TestConfigErrorI(t *testing.T) {
 [/test]
 Key1 = "Value1
 	`
-	cfg := NewConfig()
-	err := cfg.parseINI(strings.NewReader(configText), "testfile.ini")
+	cfg := NewConfig(true)
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
 
 	assert.Errorf(t, err, "config error found")
 	assert.ErrorContains(t, err, "config error in testfile.ini:3: unclosed quotes")
@@ -59,8 +59,8 @@ Key2 = Value2
 Key3 = Value3
 
 	`
-	cfg := NewConfig()
-	err := cfg.parseINI(strings.NewReader(configText), "testfile.ini")
+	cfg := NewConfig(true)
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
 	assert.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/sub1/other")
@@ -97,7 +97,7 @@ custom_ini = %s/nrpe_web_ports.ini
 	_, _ = iniFile.WriteString(configText)
 	err := iniFile.Close()
 	assert.NoErrorf(t, err, "config written")
-	cfg := NewConfig()
+	cfg := NewConfig(true)
 	err = cfg.ReadINI(iniFile.Name())
 	assert.NoErrorf(t, err, "config parsed")
 
@@ -134,7 +134,7 @@ custom_ini_dir = %s
 	_, _ = iniFile.WriteString(configText)
 	err := iniFile.Close()
 	assert.NoErrorf(t, err, "config written")
-	cfg := NewConfig()
+	cfg := NewConfig(true)
 	err = cfg.ReadINI(iniFile.Name())
 	assert.NoErrorf(t, err, "config parsed")
 
@@ -172,7 +172,7 @@ custom_ini_wc = %s/nrpe_web_ports_*.ini
 	_, _ = iniFile.WriteString(configText)
 	err := iniFile.Close()
 	assert.NoErrorf(t, err, "config written")
-	cfg := NewConfig()
+	cfg := NewConfig(true)
 	err = cfg.ReadINI(iniFile.Name())
 	assert.NoErrorf(t, err, "config parsed")
 
@@ -185,4 +185,83 @@ custom_ini_wc = %s/nrpe_web_ports_*.ini
 	assert.Equalf(t, "1919", webPort, "got web port")
 	webPassword, _ := section.GetString("password")
 	assert.Equalf(t, "s00pers3cr3t", webPassword, "got web password")
+}
+
+func TestConfigWrite(t *testing.T) {
+	configText := `
+; nrpe help
+[/settings/NRPE/server]
+; port - port description
+port = 5666
+
+
+; web help 1
+; web help 2
+[/settings/WEB/server]
+; port - port description
+port = 443
+
+; use ssl - security i important hmmkay
+; use ssl = false
+
+
+[/includes]
+; only comment1
+; only comment2
+`
+
+	cfg := NewConfig(false)
+	err := cfg.ParseINI(strings.NewReader(configText), "test.ini")
+
+	assert.NoErrorf(t, err, "parsed ini without error")
+	assert.Equalf(t, strings.TrimSpace(configText), strings.TrimSpace(cfg.ToString()), "config did no change")
+
+	changedConfig := `
+; nrpe help
+[/settings/NRPE/server]
+; port - port description
+port = 5666
+
+
+; web help 1
+; web help 2
+[/settings/WEB/server]
+; port - port description
+port = 1234
+
+; use ssl - security i important hmmkay
+use ssl = enabled
+
+
+[/includes]
+; only comment1
+; only comment2
+test = ./test.ini
+`
+	cfg.Section("/settings/WEB/server").Insert("port", "1234")
+	cfg.Section("/settings/WEB/server").Insert("use ssl", "enabled")
+	cfg.Section("/includes").Insert("test", "./test.ini")
+
+	assert.Equalf(t, strings.TrimSpace(changedConfig), strings.TrimSpace(cfg.ToString()), "config changed correctly")
+}
+
+func TestConfigPackaging(t *testing.T) {
+	testDir, _ := os.Getwd()
+	pkgDir := filepath.Join(testDir, "..", "..", "packaging")
+	pkgCfgFile := filepath.Join(pkgDir, "snclient.ini")
+
+	file, err := os.Open(pkgCfgFile)
+	assert.NoErrorf(t, err, "open ini without error")
+
+	data, err := os.ReadFile(pkgCfgFile)
+	assert.NoErrorf(t, err, "read ini without error")
+	// ignore windows newlines when checking for equality
+	origConfig := strings.ReplaceAll(strings.TrimSpace(string(data)), "\r\n", "\n")
+
+	cfg := NewConfig(false)
+	err = cfg.ParseINI(file, pkgCfgFile)
+	file.Close()
+
+	assert.NoErrorf(t, err, "parse ini without error")
+	assert.Equalf(t, origConfig, strings.TrimSpace(cfg.ToString()), "default config should not change when opened and saved unchanged")
 }

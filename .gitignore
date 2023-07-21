@@ -3,6 +3,7 @@
 *.exe
 *.deb
 *.rpm
+*.msi
 *.tar.gz
 *.linux.amd64
 *.linux.i386
@@ -14,6 +15,7 @@ coverage.txt
 vendor/
 tools/
 dist/
+windist/
 build-deb/
 snclient.ini
 server.crt
@@ -22,3 +24,5 @@ release_notes.txt
 go.work
 go.work.sum
 *.local
+snclient.wixobj
+snclient.wixpdb

@@ -35,7 +35,7 @@ func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, cha
 			time.Sleep(100 * time.Millisecond)
 			changes <- chg.CurrentStatus
 		case svc.Stop, svc.Shutdown:
-			log.Debugf("got windows service stop request")
+			log.Infof("got windows service stop request")
 			m.snc.stop()
 			keepListening = false
 		case svc.Pause,

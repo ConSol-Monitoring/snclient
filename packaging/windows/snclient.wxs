@@ -12,8 +12,13 @@
         <MajorUpgrade AllowDowngrades="yes" />
         <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
         <Property Id="WEBSERVER" Value="1" />
-        <Property Id="PASSWORD" Value="changeme" />
-        <WixVariable Id="WixUILicenseRtf" Value="packaging\windows\LICENSE.rtf" />
+        <Property Id="WEBSERVERPORT" Value="8443" />
+        <Property Id="WEBSERVERSSL" Value="1" />
+        <Property Id="NRPESERVERPORT" Value="5666" />
+        <Property Id="NRPESERVERSSL" Value="1" />
+        <Property Id="PROMETHEUSSERVERPORT" Value="9999" />
+        <Property Id="PASSWORD" Value="CHANGEME" />
+        <Property Id="ALLOWEDHOSTS" Value="127.0.0.1, ::1" />
         <UI Id="InstallDialog">
             <UIRef Id="MyWixUI_InstallDir" />
         </UI>
@@ -22,27 +27,43 @@
             <Directory Id="$(var.PlatformProgramFilesFolder)">
                 <Directory Id="INSTALLDIR" Name="snclient">
                     <Component Id="MainExecutable" Guid="B74E8F62-9C75-4C20-8128-3E5CBA81D6D9" Win64="$(var.Win64)">
-                        <File Id="SNClientExe" Name="snclient.exe" DiskId="1" Source="snclient.exe" KeyPath="yes" />
-                        <ServiceInstall Description="SNClient+ (Secure Naemon Client) is a secure general purpose monitoring agent." ErrorControl="ignore" Arguments="winservice" Name="snclient" Id="SNClientService" Interactive="no" Start="auto" Type="ownProcess" Vital="no" />
-                        <ServiceControl Id="StartSNClientService" Name="snclient" Start="install" Stop="both" Remove="uninstall" Wait="no" />
+                        <File Id="SNClientExe" Name="snclient.exe" DiskId="1" Source="windist\snclient.exe" KeyPath="yes" />
+                        <ServiceInstall Description="SNClient+ (Secure Naemon Client) is a general purpose monitoring agent." ErrorControl="ignore" Arguments="winservice" Name="snclient" Id="SNClientService" Interactive="no" Start="auto" Type="ownProcess" Vital="no"></ServiceInstall>
+                        <ServiceControl Id="StartSNClientService" Name="snclient" Stop="both" Remove="uninstall" Wait="yes" />
                     </Component>
                     <Component Id="SampleCaCertificate" Guid="5754CA78-7BEF-44B2-A01B-9C156E7C859B" NeverOverwrite="yes">
-                        <File Id="cacertPem" Name="cacert.pem" DiskId="1" Source="cacert.pem" KeyPath="yes" />
+                        <File Id="cacertPem" Name="cacert.pem" DiskId="1" Source="windist\cacert.pem" KeyPath="yes" />
                     </Component>
                     <Component Id="SampleConfigurationIni" Guid="E64B4DBF-C6CF-41E5-9032-6D83C39B9323" NeverOverwrite="yes">
-                        <File Id="snclientIni" Name="snclient.ini" DiskId="1" Source="snclient.ini" KeyPath="yes" />
+                        <File Id="snclientIni" Name="snclient.ini" DiskId="1" Source="windist\snclient.ini" KeyPath="yes" />
                     </Component>
                     <Component Id="SampleServerCertificate" Guid="F58FD191-91AA-4F97-9FD8-78E2AE509AA7" NeverOverwrite="yes">
-                        <File Id="serverCrt" Name="server.crt" DiskId="1" Source="server.crt" KeyPath="yes" />
+                        <File Id="serverCrt" Name="server.crt" DiskId="1" Source="windist\server.crt" KeyPath="yes" />
                     </Component>
                     <Component Id="SampleServerKey" Guid="D06D3104-E240-4A11-BC54-62CB5FBD6AD5" NeverOverwrite="yes">
-                        <File Id="serverKey" Name="server.key" DiskId="1" Source="server.key" KeyPath="yes" />
+                        <File Id="serverKey" Name="server.key" DiskId="1" Source="windist\server.key" KeyPath="yes" />
                     </Component>
                     <Component Id="LicenseFile" Guid="384396D1-F506-4AF4-B3D3-D2CEC9E881F5">
                         <File Id="license" Name="LICENSE" DiskId="1" Source="LICENSE" KeyPath="yes" />
                     </Component>
-                    <Component Id="ReadmeFile" Guid="E1AA1ABC-B488-4083-95B1-B46ABF0EC591" Win64="$(var.Win64)">
+                    <Component Id="ReadmeFile" Guid="E1AA1ABC-B488-4083-95B1-B46ABF0EC591">
                         <File Id="readmeMd" Name="README.md" DiskId="1" Source="README.md" KeyPath="yes" />
+                    </Component>
+                    <Component Id="TmpIni" Guid="03714F56-80C4-42FB-9E1C-CA1497874900">
+                        <CreateFolder Directory="INSTALLDIR" />
+                        <RemoveFile Id="RemoveIni" Name="tmp_installer.ini" On="uninstall" />
+                        <IniFile Id="WriteIni01" Section="/includes" Key="installer" Value="[INCLUDES]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni02" Section="/settings/default" Key="allowed hosts" Value="[ALLOWEDHOSTS]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni03" Section="/modules" Key="WEBServer" Value="[WEBSERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni04" Section="/settings/WEB/server" Key="port" Value="[WEBSERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni05" Section="/settings/WEB/server" Key="use ssl" Value="[WEBSERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni06" Section="/settings/WEB/server" Key="password" Value="[PASSWORD]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni07" Section="/modules" Key="NRPEServer" Value="[NRPESERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni08" Section="/settings/NRPE/server" Key="port" Value="[NRPESERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni09" Section="/settings/NRPE/server" Key="use ssl" Value="[NRPESERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni10" Section="/modules" Key="PrometheusServer" Value="[PROMETHEUSSERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni11" Section="/settings/Prometheus/server" Key="port" Value="[PROMETHEUSSERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni12" Section="/settings/Prometheus/server" Key="use ssl" Value="[PROMETHEUSSERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                     </Component>
                 </Directory>
             </Directory>
@@ -55,24 +76,73 @@
             <ComponentRef Id="SampleServerKey" />
             <ComponentRef Id="LicenseFile" />
             <ComponentRef Id="ReadmeFile" />
+            <ComponentRef Id="TmpIni" />
         </Feature>
+        <SetProperty Id="CustomInstallerAction" Sequence="execute" Before="CustomInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; install pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED];&quot;" />
+        <CustomAction Id="CustomInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <SetProperty Id="CustomUnInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; uninstall pkg &quot;INSTALLDIR=[INSTALLDIR] WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]&quot;" Sequence="execute" Before="CustomUnInstallerAction" />
+        <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
+        <InstallExecuteSequence>
+            <Custom Action="CustomUnInstallerAction" Before="RemoveFiles"></Custom>
+            <Custom Action="CustomInstallerAction" Before="InstallFinalize"></Custom>
+        </InstallExecuteSequence>
     </Product>
     <Fragment>
         <UI Id="MyWixUI_InstallDir">
-            <Dialog Id="CustomizeDialog" Width="370" Height="270">
+            <Dialog Id="CustomizeDialog" Width="370" Height="270" Title="[ProductName] Setup">
                 <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
                 <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)" />
                 <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)" />
                 <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
                     <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
                 </Control>
+                <Control Type="Text" Id="txt1" Width="50" Height="10" X="8" Y="14" Text="Password" />
+                <Control Type="Edit" Id="password" Width="158" Height="15" X="75" Y="11" ToolTip="password used for nrpe and webserver." Property="PASSWORD" />
+
+                <Control Type="Text" Id="txt2" Width="58" Height="17" X="8" Y="34" Text="Allowed Hosts" />
+                <Control Type="Edit" Id="allowedhosts" Width="158" Height="15" X="75" Y="31" ToolTip="allowed hosts for nrpe and webserver." Property="ALLOWEDHOSTS" />
+
+                <Control Type="Text" Id="txt3" Width="58" Height="17" X="8" Y="54" Text="Include Config" />
+                <Control Type="Edit" Id="includes" Width="158" Height="15" X="75" Y="51" ToolTip="extra files/urls put int /includes section" Property="INCLUDES" />
+
                 <Control Type="GroupBox" Id="services" Width="351" Height="119" X="8" Y="105" Text="Services"></Control>
-                <Control Type="Text" Id="txt1" Width="50" Height="17" X="15" Y="120" Text="WebServer" />
-                <Control Type="CheckBox" Id="WebServer" Width="50" Height="17" X="68" Y="116" Default="yes" Property="WEBSERVER" CheckBoxValue="1" />
-                <Control Type="Text" Id="txt2" Width="50" Height="17" X="15" Y="139" Text="NRPE Server" />
-                <Control Type="CheckBox" Id="NRPEServer" Width="50" Height="17" X="68" Y="135" Default="no" Property="NRPESERVER" CheckBoxValue="1" />
-                <Control Type="Text" Id="txt3" Width="50" Height="17" X="8" Y="15" Text="Password:" />
-                <Control Type="Edit" Id="password" Width="158" Height="15" X="56" Y="11" ToolTip="password used for nrpe and webserver." Property="PASSWORD" />
+                <Control Type="Text" Id="txt4" Width="49" Height="9" X="15" Y="120" Text="WebServer" />
+                <Control Type="CheckBox" Id="webserver" Width="12" Height="17" X="94" Y="116" Default="yes" Property="WEBSERVER" CheckBoxValue="1" />
+                <Control Type="Text" Id="txt5" Width="23" Height="17" X="120" Y="120" Text="Port" />
+                <Control Type="Edit" Id="webserverport" Width="50" Height="15" X="146" Y="116" Property="WEBSERVERPORT" />
+                <Control Type="Text" Id="txt6" Width="18" Height="17" X="212" Y="120" Text="SSL" />
+                <Control Type="CheckBox" Id="webserverssl" Width="11" Height="17" X="232" Y="116" CheckBoxValue="1" Property="WEBSERVERSSL" />
+                <Control Type="Text" Id="txt7" Width="50" Height="10" X="15" Y="142" Text="NRPE Server" />
+                <Control Type="CheckBox" Id="nrpeserver" Width="12" Height="17" X="94" Y="139" Default="no" Property="NRPESERVER" CheckBoxValue="1" />
+                <Control Type="Text" Id="txt9" Width="22" Height="17" X="120" Y="142" Text="Port" />
+                <Control Type="Edit" Id="nrpeserverport" Width="50" Height="15" X="146" Y="139" Property="NRPESERVERPORT" />
+                <Control Type="Text" Id="txt8" Width="18" Height="17" X="212" Y="142" Text="SSL" />
+                <Control Type="CheckBox" Id="nrpeserverssl" Width="11" Height="17" X="232" Y="139" CheckBoxValue="1" Property="NRPESERVERSSL" />
+
+                <Control Type="Text" Id="txt10" Width="74" Height="10" X="15" Y="163" Text="Prometheus Server:" />
+                <Control Type="CheckBox" Id="prometheusserver" Width="12" Height="17" X="94" Y="160" Default="no" Property="PROMETHEUSSERVER" CheckBoxValue="1" />
+                <Control Type="Text" Id="txt11" Width="22" Height="13" X="120" Y="163" Text="Port" />
+                <Control Type="Edit" Id="prometheusserverport" Width="50" Height="15" X="146" Y="160" Property="PROMETHEUSSERVERPORT" />
+                <Control Type="Text" Id="txt12" Width="18" Height="17" X="212" Y="163" Text="SSL" />
+                <Control Type="CheckBox" Id="prometheusserverssl" Width="11" Height="17" X="232" Y="160" CheckBoxValue="1" Property="PROMETHEUSSERVERSSL" />
+            </Dialog>
+            <Dialog Id="CustomLicenseAgreementDlg" Width="370" Height="270" Title="!(loc.LicenseAgreementDlg_Title)">
+                <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.LicenseAgreementDlgBannerBitmap)" />
+                <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+                <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+                <Control Id="Description" Type="Text" X="25" Y="23" Width="340" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.LicenseAgreementDlgDescription)" />
+                <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.LicenseAgreementDlgTitle)" />
+                <Control Id="Print" Type="PushButton" X="112" Y="243" Width="56" Height="17" Text="!(loc.WixUIPrint)">
+                    <Publish Event="DoAction" Value="WixUIPrintEula">1</Publish>
+                </Control>
+                <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)" />
+                <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="I Agree" />
+                <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+                    <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
+                </Control>
+                <Control Id="LicenseText" Type="ScrollableText" X="20" Y="60" Width="330" Height="160" Sunken="yes" TabSkip="no">
+                    <Text SourceFile="windist\LICENSE.rtf" />
+                </Control>
             </Dialog>
             <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
             <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
@@ -92,11 +162,11 @@
             <Publish Dialog="BrowseDlg" Control="OK" Event="DoAction" Value="WixUIValidatePath" Order="3">1</Publish>
             <Publish Dialog="BrowseDlg" Control="OK" Event="SpawnDialog" Value="InvalidDirDlg" Order="4"><![CDATA[WIXUI_INSTALLDIR_VALID<>"1"]]></Publish>
             <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999">1</Publish>
-            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg">NOT Installed</Publish>
-            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">Installed AND PATCH</Publish>
-            <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
-            <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDialog">LicenseAccepted = "1"</Publish>
-            <Publish Dialog="CustomizeDialog" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg">1</Publish>
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="CustomLicenseAgreementDlg">NOT Installed</Publish>
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">WIX_UPGRADE_DETECTED</Publish>
+            <Publish Dialog="CustomLicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
+            <Publish Dialog="CustomLicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDialog">1</Publish>
+            <Publish Dialog="CustomizeDialog" Control="Back" Event="NewDialog" Value="CustomLicenseAgreementDlg">1</Publish>
             <Publish Dialog="CustomizeDialog" Control="Next" Event="NewDialog" Value="InstallDirDlg">1</Publish>
             <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="CustomizeDialog">1</Publish>
             <Publish Dialog="InstallDirDlg" Control="Next" Event="SetTargetPath" Value="[WIXUI_INSTALLDIR]" Order="1">1</Publish>
@@ -107,7 +177,7 @@
             <Publish Dialog="InstallDirDlg" Control="ChangeFolder" Event="SpawnDialog" Value="BrowseDlg" Order="2">1</Publish>
             <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg" Order="1">NOT Installed</Publish>
             <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Order="2">Installed AND NOT PATCH</Publish>
-            <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">Installed AND PATCH</Publish>
+            <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">WIX_UPGRADE_DETECTED</Publish>
             <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg">1</Publish>
             <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
             <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>

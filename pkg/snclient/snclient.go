@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"runtime/debug"
@@ -32,7 +32,7 @@ const (
 	// NAME contains the snclient full official name.
 	NAME = "SNClient+"
 
-	DESCRIPTION = "SNClient+ (Secure Naemon Client) is a secure general purpose" +
+	DESCRIPTION = "SNClient+ (Secure Naemon Client) is a general purpose" +
 		" monitoring agent designed as replacement for NRPE and NSClient++."
 
 	// VERSION contains the actual snclient version.
@@ -157,7 +157,7 @@ func NewAgent(flags *AgentFlags) *Agent {
 		Listeners: NewModuleSet("listener"),
 		Tasks:     NewModuleSet("task"),
 		Counter:   NewCounterSet(),
-		Config:    NewConfig(),
+		Config:    NewConfig(true),
 		flags:     flags,
 		Log:       log,
 	}
@@ -165,7 +165,7 @@ func NewAgent(flags *AgentFlags) *Agent {
 	snc.createLogger(nil)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
-	initSet, err := snc.init()
+	initSet, err := snc.Init()
 	if err != nil {
 		LogStderrf("ERROR: %s", err.Error())
 		snc.CleanExit(ExitCodeError)
@@ -219,7 +219,7 @@ func (snc *Agent) Run() {
 	}
 
 	snc.running.Store(false)
-	log.Infof("snclient exited (pid %d)\n", os.Getpid())
+	log.Infof("snclient exited (pid:%d)\n", os.Getpid())
 }
 
 // RunBackground starts the agent in the background and returns immediately
@@ -262,7 +262,7 @@ func (snc *Agent) mainLoop() MainStateType {
 			case Resume:
 				continue
 			case Reload:
-				updateSet, err := snc.init()
+				updateSet, err := snc.Init()
 				if err != nil {
 					log.Errorf("reloading configuration failed: %s", err.Error())
 
@@ -345,14 +345,14 @@ func (snc *Agent) startModules(initSet *AgentRunSet) {
 	snc.initSet = initSet
 }
 
-func (snc *Agent) init() (*AgentRunSet, error) {
+func (snc *Agent) Init() (*AgentRunSet, error) {
 	var files configFiles
 	files = snc.flags.ConfigFiles
 
 	defaultLocations := []string{
 		"./snclient.ini",
 		"/etc/snclient/snclient.ini",
-		path.Join(GlobalMacros["exe-path"], "snclient.ini"),
+		filepath.Join(GlobalMacros["exe-path"], "snclient.ini"),
 	}
 
 	// no config supplied, check default locations, first match wins
@@ -407,7 +407,7 @@ func getGlobalMacros() map[string]string {
 }
 
 func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
-	config := NewConfig()
+	config := NewConfig(true)
 	for _, path := range files {
 		err := config.ReadINI(path)
 		if err != nil {

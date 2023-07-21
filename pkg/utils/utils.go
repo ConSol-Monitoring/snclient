@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -420,4 +421,55 @@ func GetSecureCiphers() (ciphers []uint16) {
 	}
 
 	return
+}
+
+// WordRank is used to sort []string lists by ranked prefixes
+type WordRank struct {
+	Word string
+	Rank int
+}
+type ByRank []WordRank
+
+func (a ByRank) Len() int      { return len(a) }
+func (a ByRank) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByRank) Less(i, j int) bool {
+	if a[i].Rank == a[j].Rank {
+		return a[i].Word < a[j].Word
+	}
+
+	return a[i].Rank < a[j].Rank
+}
+
+func SortRanked(list []string, ranks map[string]int) []string {
+	wordRanks := make([]WordRank, len(list))
+	for num, word := range list {
+		rank, ok := ranks[word]
+		if ok {
+			wordRanks[num] = WordRank{Word: word, Rank: rank}
+
+			continue
+		}
+
+		for prefix, num := range ranks {
+			if strings.HasPrefix(word, prefix) {
+				if rank == 0 || rank > num {
+					rank = num + 2
+				}
+			}
+		}
+		if rank != 0 {
+			wordRanks[num] = WordRank{Word: word, Rank: rank}
+		}
+
+		wordRanks[num] = WordRank{Word: word, Rank: ranks["default"]}
+	}
+
+	sort.Sort(ByRank(wordRanks))
+
+	sorted := make([]string, len(list))
+	for i, el := range wordRanks {
+		sorted[i] = el.Word
+	}
+
+	return sorted
 }
