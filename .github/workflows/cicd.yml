@@ -73,7 +73,7 @@ jobs:
         exclude:
           - go-os: darwin
             go-arch: 386
-    needs: [test, test-win, test-osx, get-version]
+    needs: [get-version]
     runs-on: ubuntu-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -98,7 +98,7 @@ jobs:
       matrix:
         go-os: [windows]
         go-arch: [386, amd64]
-    needs: [test, test-win, get-version]
+    needs: [get-version]
     runs-on: ubuntu-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -119,7 +119,7 @@ jobs:
 
 
   dist-win:
-    needs: [test, test-win, get-version]
+    needs: [get-version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -142,7 +142,7 @@ jobs:
       matrix:
         go-os: [windows]
         go-arch: [386, amd64]
-    needs: [get-version, build-win, dist-win]
+    needs: [get-version, build-win, dist-win, test, test-win, test-osx]
     runs-on: windows-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -183,7 +183,7 @@ jobs:
         go-os: [linux]
         go-arch: [386, amd64, arm64]
     runs-on: ubuntu-latest
-    needs: [get-version, build]
+    needs: [get-version, build, test, test-win, test-osx]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
@@ -208,7 +208,7 @@ jobs:
         go-os: [darwin]
         go-arch: [amd64, arm64]
     runs-on: macos-latest
-    needs: [get-version, build]
+    needs: [get-version, build, test, test-win, test-osx]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       DIST: "snclient-${{needs.get-version.outputs.version}}-osx-${{ matrix.go-arch }}"
@@ -241,7 +241,7 @@ jobs:
         go-os: [linux]
         go-arch: [386, amd64, arm64]
     runs-on: ubuntu-latest
-    needs: [get-version, build]
+    needs: [get-version, build, test, test-win, test-osx]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
@@ -316,7 +316,7 @@ jobs:
   make-release:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    needs: [get-version,pkg-msi,pkg-deb,pkg-rpm,pkg-osx,integration-test-windows]
+    needs: [get-version,pkg-msi,pkg-deb,pkg-rpm,pkg-osx,integration-test-windows, test, test-win, test-osx]
     outputs:
       release-upload-url: ${{ steps.create-release.outputs.upload_url }}
     steps:
