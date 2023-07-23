@@ -15,6 +15,9 @@ SNClient+ (Secure Naemon Client) is a general purpose monitoring agent designed
 as replacement for NRPE and NSClient++.
 It supports Prometheus, NRPE and a REST API HTTP(s) protocol to run checks.
 
+# no debug package required
+%define debug_package %{nil}
+
 %prep
 %setup -q
 
