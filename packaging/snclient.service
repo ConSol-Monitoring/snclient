@@ -8,7 +8,6 @@ User=root
 
 Restart=on-failure
 RestartSec=10
-startLimitIntervalSec=60
 
 WorkingDirectory=/
 ExecStart=/usr/bin/snclient --config=/etc/snclient/snclient.ini
