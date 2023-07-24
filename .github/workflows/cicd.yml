@@ -191,9 +191,11 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}"
-      - run: sudo apt-get install help2man
+      - run: sudo apt-get install help2man devscripts
       - run: |
           echo "Building ${{ env.BIN }}.deb"
+          export DEBEMAIL="Sven Nierlein <sven.nierlein@consol.de>"
+          export DEBFULLNAME="Sven Nierlein"
           make VERSION=${{needs.get-version.outputs.version}} ARCH=${{ matrix.go-arch }} DEBFILE=${{ env.BIN }}.deb deb
       - uses: actions/upload-artifact@v3
         with:

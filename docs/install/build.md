@@ -43,6 +43,7 @@ You will need those extra requirements:
 
 - dpkg
 - help2man
+- devscripts
 - (lintian)
 
 ### OSX PKG
