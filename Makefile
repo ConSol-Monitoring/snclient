@@ -321,7 +321,8 @@ deb: | dist
 		build-deb/usr/share/doc/snclient \
 		build-deb/usr/share/doc/snclient \
 		build-deb/usr/share/man/man1 \
-		build-deb/usr/share/man/man8
+		build-deb/usr/share/man/man8 \
+		build-deb/usr/share/lintian/overrides/
 
 	rm -rf ./build-deb/DEBIAN
 	cp -r ./packaging/debian ./build-deb/DEBIAN
@@ -329,12 +330,14 @@ deb: | dist
 	cp -p ./dist/snclient build-deb/usr/bin/snclient
 	cp ./packaging/snclient.service build-deb/lib/systemd/system/
 	cp ./packaging/snclient.logrotate build-deb/etc/logrotate.d/snclient
+	cp Changes build-deb/usr/share/doc/snclient/Changes
+	dch --empty --create --newversion "$(VERSION)" --package "snclient" -D "UNRELEASED" --urgency "low" -c build-deb/usr/share/doc/snclient/changelog "new upstream release"
 	rm -f build-deb/usr/share/doc/snclient/changelog.gz
-	cp Changes build-deb/usr/share/doc/snclient/changelog
-	gzip -n -9 build-deb/usr/share/doc/snclient/changelog
+	gzip -9 build-deb/usr/share/doc/snclient/changelog
 
 	cp ./dist/LICENSE build-deb//usr/share/doc/snclient/copyright
 	cp ./dist/README.md build-deb//usr/share/doc/snclient/README
+	mv ./build-deb/DEBIAN/snclient.lintian-overrides build-deb/usr/share/lintian/overrides/snclient
 
 	sed -i build-deb/DEBIAN/control -e 's|^Architecture: .*|Architecture: $(DEB_ARCH)|'
 	sed -i build-deb/DEBIAN/control -e 's|^Version: .*|Version: $(VERSION)|'
@@ -348,7 +351,7 @@ deb: | dist
 
 	dpkg-deb --build --root-owner-group ./build-deb ./$(DEBFILE)
 	rm -rf ./build-deb
-	-lintian ./$(DEBFILE)
+	-( cd packaging && lintian ../$(DEBFILE) )
 
 rpm: | dist
 	rm -rf snclient-$(VERSION)
