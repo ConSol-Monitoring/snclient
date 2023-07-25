@@ -245,6 +245,9 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 
 func (config *Config) parseInclude(inclPath, srcPath string) error {
 	log.Tracef("reading config include: %s", inclPath)
+	if ! filepath.IsAbs(inclPath) {
+		inclPath = filepath.Join(filepath.Dir(srcPath), inclPath)
+	}
 	matchingPaths, err := filepath.Glob(inclPath)
 	if err != nil {
 		return fmt.Errorf("malformed include path: %s", err.Error())
