@@ -13,6 +13,11 @@ Installation packages from stable releases can be found here:
 
 - https://github.com/ConSol-Monitoring/snclient/releases
 
+You might need to expand the assets to find the download links.
+![Assets](download.png "Expand Assets")
+
+
+
 ### Development Snapshots
 During development each code commit produces build artifacts if all tests were
 successful.
