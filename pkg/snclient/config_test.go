@@ -269,7 +269,7 @@ func TestConfigPackaging(t *testing.T) {
 func TestConfigRelativeIncludes(t *testing.T) {
 	testDir, _ := os.Getwd()
 	pkgDir := filepath.Join(testDir, "t", "configs")
-	pkgCfgFile := filepath.Join(pkgDir, "snclient.ini")
+	pkgCfgFile := filepath.Join(pkgDir, "snclient_incl.ini")
 
 	file, err := os.Open(pkgCfgFile)
 	assert.NoErrorf(t, err, "open ini without error")
