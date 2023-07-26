@@ -265,3 +265,25 @@ func TestConfigPackaging(t *testing.T) {
 	assert.NoErrorf(t, err, "parse ini without error")
 	assert.Equalf(t, origConfig, strings.TrimSpace(cfg.ToString()), "default config should not change when opened and saved unchanged")
 }
+
+func TestConfigRelativeIncludes(t *testing.T) {
+	testDir, _ := os.Getwd()
+	pkgDir := filepath.Join(testDir, "t", "configs")
+	pkgCfgFile := filepath.Join(pkgDir, "snclient_incl.ini")
+
+	file, err := os.Open(pkgCfgFile)
+	assert.NoErrorf(t, err, "open ini without error")
+
+	cfg := NewConfig(true)
+	err = cfg.ParseINI(file, pkgCfgFile)
+	file.Close()
+	assert.NoErrorf(t, err, "config parsed")
+
+	section := cfg.Section("/settings/WEB/server")
+	webPort, _ := section.GetString("port")
+	assert.Equalf(t, "11122", webPort, "got web port")
+	useSSL, _ := section.GetString("use ssl")
+	assert.Equalf(t, "false", useSSL, "got use ssl")
+	webPassword, _ := section.GetString("password")
+	assert.Equalf(t, "INCL02PW", webPassword, "got password")
+}
