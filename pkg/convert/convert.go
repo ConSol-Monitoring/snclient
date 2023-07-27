@@ -48,9 +48,9 @@ func BoolE(raw interface{}) (bool, error) {
 		return val, nil
 	default:
 		switch strings.ToLower(fmt.Sprintf("%v", raw)) {
-		case "1", "enabled", "true", "yes":
+		case "1", "enable", "enabled", "true", "yes":
 			return true, nil
-		case "0", "disabled", "false", "no":
+		case "0", "disable", "disabled", "false", "no":
 			return false, nil
 		}
 	}
