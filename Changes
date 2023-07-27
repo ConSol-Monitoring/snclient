@@ -1,5 +1,9 @@
 This file documents the revision history for the SNClient+ agent.
 
+0.06       Thu Jul 27 08:31:28 CEST 2023
+          - relative include paths are now considered to be in the parent ini-file
+          - wmi: improve error handling
+
 0.05       Fri Jul 21 20:24:19 CEST 2023
           - add configuration dialog to .msi installer
           - setup windows firewall rules during installation
