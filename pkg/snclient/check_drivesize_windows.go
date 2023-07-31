@@ -457,7 +457,12 @@ func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
 
 func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (err error) {
 	partitions, err := disk.Partitions(true)
-	if err != nil {
+	if err != nil && len(partitions) == 0 {
+		// in case even a single drive is locked by BitLocker, then
+		// the disk.Partitions returns an error.
+		// "This drive is locked by BitLocker Drive Encryption. You must unlock this drive from Control Panel"
+		// but there can still be valid elements in partitions,
+		// so abort here only if partitions is empty.
 		return fmt.Errorf("disk partitions failed: %s", err.Error())
 	}
 	for _, partition := range partitions {
@@ -539,9 +544,6 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 		drive = strings.TrimSuffix(drive, ":") + ":"
 		availDisks := map[string]map[string]string{}
 		err = l.setDisks(availDisks)
-		if err != nil {
-			return err
-		}
 		for driveOrID := range availDisks {
 			if strings.EqualFold(driveOrID, drive+"\\") {
 				requiredDisks[drive] = utils.CloneStringMap(availDisks[driveOrID])
@@ -549,6 +551,12 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 
 				return nil
 			}
+		}
+		if err != nil {
+			// if setDisks had a problem (e.g. bitlocker locked drive) and did not return
+			// the required drive, then pass any possible error on to the caller. otherwise
+			// we got what we want and already returned nil above.
+			return err
 		}
 	}
 
