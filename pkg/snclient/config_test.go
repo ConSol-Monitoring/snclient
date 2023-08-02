@@ -286,4 +286,7 @@ func TestConfigRelativeIncludes(t *testing.T) {
 	assert.Equalf(t, "false", useSSL, "got use ssl")
 	webPassword, _ := section.GetString("password")
 	assert.Equalf(t, "INCL02PW", webPassword, "got password")
+	modules := cfg.Section("/modules")
+	ces, _ := modules.GetString("CheckExternalScripts")
+	assert.Equalf(t, "enabled", ces, "got CheckExternalScripts")
 }
