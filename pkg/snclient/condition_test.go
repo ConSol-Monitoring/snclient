@@ -120,6 +120,13 @@ func TestConditionCompare(t *testing.T) {
 		{"test regex 'a+'", "test", "bbbb", false},
 		{"test !~ 'a+'", "test", "bbb", true},
 		{"test !~ 'a+'", "test", "aa", false},
+		{"test ~~ 'a'", "test", "AAAA", true},
+		{"test ~~ 'a'", "test", "BBBB", false},
+		{"test ~ /a/i", "test", "AAAA", true},
+		{"test ~ '/a/i'", "test", "AAAA", true},
+		{"test !~ /a/i", "test", "aaa", false},
+		{"test !~~ 'a'", "test", "AAAA", false},
+		{"test !~~ 'a'", "test", "BBBB", true},
 		{"'test space' > 5", "test space", "2", false},
 		{"'test space' < 5", "test space", "2", true},
 	} {

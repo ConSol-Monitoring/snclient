@@ -45,10 +45,12 @@ const (
 	Unequal // !=
 
 	// Text
-	Contains      // like
-	ContainsNot   // unlike
-	RegexMatch    // ~
-	RegexMatchNot // !~
+	Contains            // like
+	ContainsNot         // unlike
+	RegexMatch          // ~
+	RegexMatchNot       // !~
+	RegexMatchNoCase    // ~~
+	RegexMatchNotNoCase // !~~
 
 	// Numeric
 	Lower        // <
@@ -75,6 +77,10 @@ func OperatorParse(str string) (Operator, error) {
 		return RegexMatch, nil
 	case "!~", "not regex", "not regexp":
 		return RegexMatchNot, nil
+	case "~~", "regexpi", "regexi":
+		return RegexMatchNoCase, nil
+	case "!~~", "not regexi", "not regexpi":
+		return RegexMatchNotNoCase, nil
 	case "<", "lt":
 		return Lower, nil
 	case "<=", "le":
@@ -128,6 +134,23 @@ func NewCondition(input string) (*Condition, error) {
 	}
 	if len(remainingToken) > 0 {
 		return nil, fmt.Errorf("unexpected end of condition after '%s'", remainingToken[len(remainingToken)-1])
+	}
+
+	// convert /pattern/i regex into coresponding condition
+	switch cond.operator { //nolint:exhaustive // only relevant for regex conditions
+	case RegexMatch, RegexMatchNot:
+		condStr := fmt.Sprintf("%v", cond.value)
+		if strings.HasPrefix(condStr, "/") && strings.HasSuffix(condStr, "/i") {
+			condStr = strings.TrimPrefix(condStr, "/")
+			condStr = strings.TrimSuffix(condStr, "/i")
+			cond.value = condStr
+			switch cond.operator { //nolint:exhaustive // only relevant for regex conditions
+			case RegexMatch:
+				cond.operator = RegexMatchNoCase
+			case RegexMatchNot:
+				cond.operator = RegexMatchNotNoCase
+			}
+		}
 	}
 
 	return cond, nil
@@ -228,6 +251,26 @@ func (c *Condition) matchSingle(data map[string]string) bool {
 		}
 
 		return !regex.MatchString(varStr)
+
+	case RegexMatchNoCase:
+		regex, err := regexp.Compile("(?i)" + condStr)
+		if err != nil {
+			log.Warnf("invalid regex: %s: %s", condStr, err.Error())
+
+			return false
+		}
+
+		return regex.MatchString(varStr)
+	case RegexMatchNotNoCase:
+		regex, err := regexp.Compile("(?i)" + condStr)
+		if err != nil {
+			log.Warnf("invalid regex: %s: %s", condStr, err.Error())
+
+			return false
+		}
+
+		return !regex.MatchString(varStr)
+
 	case InList:
 		if list, ok := c.value.([]string); ok {
 			for _, el := range list {
