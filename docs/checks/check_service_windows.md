@@ -1,5 +1,5 @@
 ﻿---
-title: check_service (Windows)
+title: service (Windows)
 ---
 
 # check_service (Windows)
@@ -8,7 +8,7 @@ Check the state of one or more of the windows computer services.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
-- [Metrics](#metrics)
+- [Attributes](#attributes)
 
 ### Implementation
 
@@ -20,7 +20,7 @@ There is a [check_service for linux](check_service_linux) as well.
 
 ## Examples
 
-### **Default check**
+### Default check
 
     check_service
     OK: All 15 service(s) are ok.
@@ -31,7 +31,7 @@ Checking a single service:
     OK: All 1 service(s) are ok.
 
 
-### Example using **NRPE** and **Naemon**
+### Example using NRPE and Naemon
 
 Naemon Config
 

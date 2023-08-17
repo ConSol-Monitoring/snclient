@@ -1,5 +1,5 @@
 ﻿---
-title: check_service (Linux)
+title: service (Linux)
 ---
 
 # check_service (Linux)
@@ -8,7 +8,7 @@ Check the state of one or more of the linux (systemctl) services.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
-- [Metrics](#metrics)
+- [Attributes](#attributes)
 
 ### Implementation
 
@@ -20,7 +20,7 @@ There is a [check_service for windows](check_service_windows) as well.
 
 ## Examples
 
-### **Default check**
+### Default check
 
     check_service
     OK: All 15 service(s) are ok.
@@ -31,7 +31,7 @@ Checking a single service:
     OK: All 1 service(s) are ok.
 
 
-### Example using **NRPE** and **Naemon**
+### Example using NRPE and Naemon
 
 Naemon Config
 

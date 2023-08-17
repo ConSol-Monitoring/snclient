@@ -1,5 +1,5 @@
 ﻿---
-title: check_eventlog
+title: eventlog
 ---
 
 # check_eventlog
@@ -7,7 +7,7 @@ title: check_eventlog
 Check for errors in the eventlog.
 
 - [Argument Defaults](#argument-defaults)
-- [Metrics](#metrics)
+- [Attributes](#attributes)
 
 ### Implementation
 
@@ -32,11 +32,11 @@ detail-syntax | %(file) %(source) (%(message)) |
 | file | File to read (can be specified multiple times to check multiple files) |
 | log | Alias for file |
 
-## Metrics
+## Attributes
 
-#### **Check specific metrics**
+#### Check specific attributes
 
-| Metric | Description |
+| Attribute | Description |
 | --- | --- |
 | computer | Which computer generated the message |
 | file | The logfile name |

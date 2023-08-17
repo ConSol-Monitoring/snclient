@@ -1,5 +1,5 @@
 ﻿---
-title: check_uptime
+title: uptime
 ---
 
 # check_uptime
@@ -8,7 +8,7 @@ Check time since the host last booted.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
-- [Metrics](#metrics)
+- [Attributes](#attributes)
 
 ### Implementation
 
@@ -18,12 +18,12 @@ Check time since the host last booted.
 
 ## Examples
 
-### **Default check**
+### Default check
 
     check_uptime
     OK: uptime: 5w 6d 18:19h, boot: 2023-04-28 15:15:42 (UTC)
 
-### Example using **NRPE** and **Naemon**
+### Example using NRPE and Naemon
 
 Naemon Config
 
@@ -51,11 +51,11 @@ critical | uptime < 1d |
 top-syntax | \${status}: ${list} |
 detail-syntax | uptime: \${uptime}, boot: ${boot} (UTC) |
 
-## Metrics
+## Attributes
 
-#### **Check specific metrics**
+#### Check specific attributes
 
-| Metric | Description |
+| Attribute | Description |
 | --- | --- |
 | boot | System boot time |
 | uptime | Time since last boot |

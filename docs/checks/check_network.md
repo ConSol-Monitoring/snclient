@@ -1,5 +1,5 @@
 ---
-title: check_network
+title: network
 ---
 
 # check_network
@@ -8,7 +8,7 @@ Checks network interface status.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
-- [Metrics](#metrics)
+- [Attributes](#attributes)
 
 ### Implementation
 
@@ -18,12 +18,12 @@ Checks network interface status.
 
 ## Examples
 
-### **Default check**
+### Default check
 
     check_network
     OK: lo >11063848400 <11063848400 bps, eth0 >31774542210 <121709796043 bps
 
-### Example using **NRPE** and **Naemon**
+### Example using NRPE and Naemon
 
 Naemon Config
 
@@ -50,11 +50,11 @@ top-syntax | %(status): %(list) |
 ok-syntax | %(status): %(list) |
 detail-syntax | %(name) >%(sent) <%(received) bps |
 
-## Metrics
+## Attributes
 
-#### **Check specific metrics**
+#### Check specific attributes
 
-| Metric | Description |
+| Attribute | Description |
 | --- | --- |
 | MAC | The MAC address |
 | enabled | True if the network interface is enabled |
@@ -62,4 +62,4 @@ detail-syntax | %(name) >%(sent) <%(received) bps |
 | net_connection_id | Network connection id |
 | received | Bytes received per second |
 | sent | Bytes sent per second |
-| speed | Network interface speed? |
+| speed | Network interface speed (**currently not supported**) |

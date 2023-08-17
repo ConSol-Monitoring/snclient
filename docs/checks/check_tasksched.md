@@ -1,5 +1,5 @@
 ﻿---
-title: check_tasksched
+title: tasksched
 ---
 
 # check_tasksched
@@ -8,7 +8,7 @@ Check status of scheduled jobs.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
-- [Metrics](#metrics)
+- [Attributes](#attributes)
 
 ### Implementation
 
@@ -18,7 +18,7 @@ Check status of scheduled jobs.
 
 ## Examples
 
-### **Default check**
+### Default check
 
     check_tasksched warn='exit_code != 0'
     OK: All tasks are ok
@@ -39,11 +39,11 @@ detail-syntax | \${folder}/\${title}: ${exit_code} != 0 |
 | --- | --- |
 | timezone | Sets the timezone for time metrics (default is local time) |
 
-## Metrics
+## Attributes
 
-#### **Check specific metrics**
+#### Check specific attributes
 
-| Metric | Description |
+| Attribute | Description |
 | --- | --- |
 | application | Name of the application the task is associated with |
 | comment | Description of the task |

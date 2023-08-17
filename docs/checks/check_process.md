@@ -1,5 +1,5 @@
 ﻿---
-title: check_process
+title: process
 ---
 
 # check_process
@@ -8,7 +8,7 @@ Check state/metrics of one or more of the processes running on the computer.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
-- [Metrics](#metrics)
+- [Attributes](#attributes)
 
 ### Implementation
 
@@ -18,13 +18,13 @@ Check state/metrics of one or more of the processes running on the computer.
 
 ## Examples
 
-### **Default check**
+### Default check
 
     check_process process=explorer.exe
     OK: explorer.exe=started
 
 
-### Example using **NRPE** and **Naemon**
+### Example using NRPE and Naemon
 
 Naemon Config
 
@@ -59,11 +59,11 @@ detail-syntax | %(process)=%(state) |
 | --- | --- |
 | process | The process to check, set to * to check all |
 
-## Metrics
+## Attributes
 
-#### **Check specific metrics**
+#### Check specific attributes
 
-| Metric | Description |
+| Attribute | Description |
 | --- | --- |
 | process | Name of the process |
 | exe | Alias for process |

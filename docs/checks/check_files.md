@@ -1,5 +1,5 @@
 ﻿---
-title: check_files
+title: files
 ---
 
 # check_files
@@ -8,7 +8,7 @@ Check various aspects of a file and/or folder.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
-- [Metrics](#metrics)
+- [Attributes](#attributes)
 
 ### Implementation
 
@@ -18,7 +18,7 @@ Check various aspects of a file and/or folder.
 
 ## Examples
 
-### **Default check**
+### Default check
 
     check_files path=c:/windows warn=size>2MB max-depth=1
     WARNING: 1/28 files (warning(explorer.exe))
@@ -44,11 +44,11 @@ detail-syntax | %(name) |
 | max-depth | Maximum recursion depth |
 | timezone | Sets the timezone for time metrics (default is local time) |
 
-## Metrics
+## Attributes
 
-#### **Check specific metrics**
+#### Check specific attributes
 
-| Metric | Description |
+| Attribute | Description |
 | --- | --- |
 | access | Last access time |
 | age | Seconds since file was last written |

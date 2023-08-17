@@ -1,15 +1,8 @@
 ﻿---
-title: Common arguments and metrics
+title: Common check arguments
 ---
 
-# Common arguments and metrics for checks
-
-### [Arguments](#common-arguments)
-### [Metrics](#common-metrics)
-
-___
-
-## Common arguments
+# Common check arguments
 
 | Option | Description |
 | --- | --- |
@@ -18,58 +11,65 @@ ___
 [warn](#warning) | Short alias for warning.
 [critical](#critical) | Threshold when to generate a critical state.
 [crit](#critical) | Short alias for critical.
-[ok](#ok) | Threshold when to generate an ok state.?
+[ok](#ok) | Threshold when to generate an ok state.
 [empty-state](#empty-state) | Status to return when no items matches the filter.
 [top-syntax](#top-syntax) | Top level syntax.
 [ok-syntax](#ok-syntax) | Ok syntax.
 [empty-syntax](#empty-syntax) | Empty syntax.
 [detail-syntax](#detail-syntax) | Detailed/Individual Syntax.
-[perf-syntax](#perf-syntax) | Perfdata syntax.?
-time | time to check?
+[perf-syntax](#perf-syntax) | Perfdata syntax.
 
-### FILTER:
+## FILTER:
 
 Filter for items which will be included in the check. Unwanted items will be ignored and wont trigger a warning or critical state.
 
-### WARNING:
+Filter are explained in detail here: [Check Filter](../filter/)
+
+## WARNING:
 
 Filter which sets a threshold when to generate a warning state. If any wanted item matches this filter the return state will be escalated to warning.
 
-### CRITICAL:
+The syntax works the same way as [filter](#filter) except matching items are not removed but escalate the status to warning state.
+
+## CRITICAL:
 
 Filter which sets a threshold when to generate a critical state. If any wanted item matches this filter the return state will be escalated to critical.
 
-### OK:
+The syntax works the same way as [filter](#filter) except matching items are not removed but escalate the status to critical state.
+
+## OK:
 
 Filter which sets a threshold when to generate an ok state. If any wanted item matches this filter its state will be reset to ok regardless of its previous state.
 
-### EMPTY-STATE:
+The syntax works the same way as [filter](#filter) except matching items are not removed but the status is reset to ok state.
+
+## EMPTY-STATE:
 
 Status to be returned when no item matches the filter. If no filter is given this wont happen.
 
-### TOP-SYNTAX:
+## TOP-SYNTAX:
 
 Sets the format for the return message. Can include text as well as special keywords that will be replaced by information from the check. Keyword Syntax: ´\${keyword} or %(keyword). $ and % as well as {} and () can be used interchangeably.
 
-### OK-SYNTAX:
+## OK-SYNTAX:
 
 Sets the format for the return message if the state is OK. Can include text as well as special keywords that will be replaced by information from the check. Keyword Syntax: \${keyword} or %(keyword). $ and % as well as {} and () can be used interchangeably.
 
-### EMPTY-SYNTAX:
+## EMPTY-SYNTAX:
 
 Sets the format for the return message if no item matched the filter.
 
-### DETAIL-SYNTAX:
+## DETAIL-SYNTAX:
 
 Sets the format for each individual item in the message.
 
-### PERF-SYNTAX:
+## PERF-SYNTAX:
 
 Sets the format for the base names of the performance data.
 
-## Common metrics
+# Common filter attributes
 
-| Metric | Description |
+| Attribute | Description |
 | --- | --- |
 | status | The returned status (OK/WARN/CRIT/UNKNOWN) |
 | count | Number of items matching the filter. |

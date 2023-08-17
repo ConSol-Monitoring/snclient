@@ -1,5 +1,5 @@
 ---
-title: check_drivesize
+title: drivesize
 ---
 
 # check_drivesize
@@ -8,7 +8,7 @@ Check the size (free-space) of a drive or volume.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
-- [Metrics](#metrics)
+- [Attributes](#attributes)
 
 ### Implementation
 
@@ -18,13 +18,13 @@ Check the size (free-space) of a drive or volume.
 
 ## Examples
 
-### **Default check**
+### Default check
 
     check_drivesize drive=c:
     OK: All 1 drive(s) are ok
 
 
-### Example using **NRPE** and **Naemon**
+### Example using NRPE and Naemon
 
 Naemon Config
 
@@ -55,7 +55,7 @@ ok-syntax | %(status) All %(count) drive(s) are ok |
 empty-syntax | %(status): No drives found |
 detail-syntax | %(drive_or_name) %(used)/%(size) used |
 
-### **Check specific arguments**
+### Check specific arguments
 
 | Argument | Description |
 | --- | --- |
@@ -64,11 +64,11 @@ detail-syntax | %(drive_or_name) %(used)/%(size) used |
 | exclude | List of drives to exclude from check |
 | total | Include the total of all matching drives |
 
-## Metrics
+## Attributes
 
-#### **Check specific metrics**
+### Check specific attributes
 
-| Metric | Description |
+| Attribute | Description |
 | --- | --- |
 | id | Drive or id of drive |
 | name | Descriptive name of drive |
@@ -86,3 +86,7 @@ detail-syntax | %(drive_or_name) %(used)/%(size) used |
 | free | Total free of drive (human readable) |
 | free_bytes | Total free of drive in bytes |
 | free_pct | Total free of drive in percent |
+
+### Notes
+
+If no unit is specified, `used` and `free` default to percent, so `warning=used > 15` and `warning=used > 15%` is the same.

@@ -1,5 +1,5 @@
 ﻿---
-title: check_os_version
+title: os_version
 ---
 
 # check_os_version
@@ -8,7 +8,7 @@ Checks the version of the host OS.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
-- [Metrics](#metrics)
+- [Attributes](#attributes)
 
 ### Implementation
 
@@ -18,7 +18,7 @@ Checks the version of the host OS.
 
 ## Examples
 
-### **Default check**
+### Default check
 
     check_os_version
     OK - Microsoft Windows 10 Pro 10.0.19045.2728 Build 19045.2728 (arch: amd64)
@@ -29,11 +29,11 @@ Checks the version of the host OS.
 | --- | --- |
 top-syntax | \${status} - \${platform} \${version} (arch: \${arch}) |
 
-## Metrics
+## Attributes
 
-#### **Check specific metrics**
+#### Check specific attributes
 
-| Metric | Description |
+| Attribute | Description |
 | --- | --- |
 | platform | Platform of the OS |
 | family | OS Family |
