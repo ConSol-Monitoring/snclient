@@ -8,16 +8,7 @@ import (
 )
 
 func TestCheckServiceLinux(t *testing.T) {
-	flags := &AgentFlags{
-		Quiet: true,
-	}
-	snc := NewAgent(flags)
-
-	initSet, _ := snc.Init()
-	snc.initSet = initSet
-	snc.Tasks = initSet.tasks
-	snc.Config = initSet.config
-
+	snc := &Agent{}
 	res := snc.RunCheck("check_service", []string{"filter='state=running'"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
