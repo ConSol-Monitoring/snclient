@@ -156,6 +156,10 @@ func NewCondition(input string) (*Condition, error) {
 			case RegexMatchNot:
 				cond.operator = RegexMatchNotNoCase
 			}
+		} else if strings.HasPrefix(condStr, "/") && strings.HasSuffix(condStr, "/") {
+			condStr = strings.TrimPrefix(condStr, "/")
+			condStr = strings.TrimSuffix(condStr, "/")
+			cond.value = condStr
 		}
 	}
 
