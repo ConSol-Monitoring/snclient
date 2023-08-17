@@ -107,6 +107,8 @@ func TestConditionCompare(t *testing.T) {
 		{"test not like abc", "test", "abcdef", false},
 		{"test like 'abc'", "test", "abcdef", true},
 		{`test like "abc"`, "test", "abcdef", true},
+		{"test ilike 'AbC'", "test", "aBcdef", true},
+		{"test not ilike 'AbC'", "test", "aBcdef", false},
 		{`test in ('abc', '123', 'xyz')`, "test", "123", true},
 		{`test in ('abc', '123', 'xyz')`, "test", "13", false},
 		{`test not in ('abc', '123', 'xyz')`, "test", "123", false},

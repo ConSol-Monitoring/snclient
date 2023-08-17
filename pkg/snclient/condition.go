@@ -47,6 +47,8 @@ const (
 	// Text
 	Contains            // like
 	ContainsNot         // unlike
+	ContainsNoCase      // ilike
+	ContainsNotNoCase   // not ilike
 	RegexMatch          // ~
 	RegexMatchNot       // !~
 	RegexMatchNoCase    // ~~
@@ -73,6 +75,10 @@ func OperatorParse(str string) (Operator, error) {
 		return Contains, nil
 	case "unlike", "not like":
 		return ContainsNot, nil
+	case "ilike":
+		return ContainsNoCase, nil
+	case "not ilike":
+		return ContainsNotNoCase, nil
 	case "~", "regexp", "regex":
 		return RegexMatch, nil
 	case "!~", "not regex", "not regexp":
@@ -209,6 +215,10 @@ func (c *Condition) matchSingle(data map[string]string) bool {
 		return strings.Contains(varStr, condStr)
 	case ContainsNot:
 		return !strings.Contains(varStr, condStr)
+	case ContainsNoCase:
+		return strings.Contains(strings.ToLower(varStr), strings.ToLower(condStr))
+	case ContainsNotNoCase:
+		return !strings.Contains(strings.ToLower(varStr), strings.ToLower(condStr))
 	case GreaterEqual:
 		if err1 == nil && err2 == nil {
 			return varNum >= condNum
