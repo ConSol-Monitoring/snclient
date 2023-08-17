@@ -63,7 +63,7 @@ func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
 		if err != nil {
 			return &CheckResult{
 				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("Failed to fetch service list: %s%s", err, stderr),
+				Output: fmt.Sprintf("Failed to fetch service list: %s%s", err.Error(), stderr),
 			}, nil
 		}
 
