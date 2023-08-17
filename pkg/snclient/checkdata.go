@@ -250,6 +250,12 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []
 // MatchFilter returns true if {name: value} matches any filter
 func (cd *CheckData) MatchFilter(name, value string) bool {
 	data := map[string]string{name: value}
+
+	return cd.MatchFilterMap(data)
+}
+
+// MatchFilterMap returns true if given map matches any filter
+func (cd *CheckData) MatchFilterMap(data map[string]string) bool {
 	for _, cond := range cd.filter {
 		if cond.isNone {
 			return true

@@ -23,5 +23,23 @@ func TestCheckCPU(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "total 3m", "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), "total 7m", "output matches")
 
+	res = snc.RunCheck("check_cpu", []string{"warn=load = 101", "crit=load = 102", "filter=none"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "core0 1m", "output matches")
+
+	res = snc.RunCheck("check_cpu", []string{"warn=load = 101", "crit=load = 102", "filter=core=core0"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "core0 1m", "output matches")
+
+	res = snc.RunCheck("check_cpu", []string{"warn=load = 101", "crit=load = 102", "filter=core_id=core0"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "core0 1m", "output matches")
+	assert.NotContainsf(t, string(res.BuildPluginOutput()), "total 1m", "output matches not")
+
+	res = snc.RunCheck("check_cpu", []string{"warn=load = 101", "crit=load = 102", "filter=core_id != core1"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "core0 1m", "output matches")
+	assert.NotContainsf(t, string(res.BuildPluginOutput()), "core1 1m", "output matches not")
+
 	StopTestAgent(t, snc)
 }
