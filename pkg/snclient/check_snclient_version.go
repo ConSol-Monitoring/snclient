@@ -2,6 +2,7 @@ package snclient
 
 func init() {
 	AvailableChecks["check_snclient_version"] = CheckEntry{"check_snclient_version", new(CheckSNClientVersion)}
+	AvailableChecks["check_nscp_version"] = AvailableChecks["check_snclient_version"]
 }
 
 type CheckSNClientVersion struct {

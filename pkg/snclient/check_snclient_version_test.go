@@ -16,4 +16,12 @@ func TestCheckSNClientVersion(t *testing.T) {
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
+
+	res = snc.RunCheck("check_nscp_version", []string{})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(t,
+		regexp.MustCompile(`^SNClient\+ v\d+`),
+		string(res.BuildPluginOutput()),
+		"output matches",
+	)
 }
