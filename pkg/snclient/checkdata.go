@@ -17,15 +17,9 @@ var (
 	// Variable to use in Threshold Min/Max
 	Zero    = float64(0)
 	Hundred = float64(100)
+
+	DefaultCheckTimeout = float64(60)
 )
-
-type UsageError struct {
-	usage string
-}
-
-func (e *UsageError) Error() string {
-	return e.usage
-}
 
 type CommaStringList []string
 
@@ -38,6 +32,7 @@ type CheckData struct {
 	defaultFilter   string
 	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
 	args            map[string]interface{}
+	rawArgs         []string
 	filter          []*Condition // if set, only show entries matching this filter set
 	warnThreshold   []*Condition
 	defaultWarning  string
@@ -53,6 +48,8 @@ type CheckData struct {
 	listData        []map[string]string
 	showAll         bool
 	result          *CheckResult
+	showHelp        bool
+	timeout         float64
 }
 
 func (cd *CheckData) Finalize() (*CheckResult, error) {
@@ -313,11 +310,12 @@ func (cd *CheckData) parseStateString(state string) int64 {
 // ParseArgs parses check arguments into the CheckData struct
 // and returns all unknown options
 func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
+	cd.rawArgs = args
 	appendArgs := map[string]bool{}
 	argList := make([]Argument, 0, len(args))
 	for _, argExpr := range args {
 		argExpr = cd.removeQuotes(argExpr)
-		split := strings.SplitN(cd.removeQuotes(argExpr), "=", 2)
+		split := strings.SplitN(argExpr, "=", 2)
 		if len(split) == 1 {
 			split = append(split, "")
 		}
@@ -325,9 +323,9 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		argValue := cd.removeQuotes(split[1])
 		switch keyword {
 		case "help":
-			return nil, &UsageError{
-				usage: fmt.Sprintf("check:\n\n  %s\n\nusage:\n\n  %s [<options>] [<filter>]\n\ndescription:\n\n  %s", cd.name, cd.name, cd.description),
-			}
+			cd.showHelp = true
+
+			return nil, nil
 		case "ok":
 			cond, err := NewCondition(argValue)
 			if err != nil {
@@ -377,6 +375,12 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 				return nil, err
 			}
 			cd.filter = append(cd.filter, cond)
+		case "timeout":
+			timeout, err := convert.Float64E(argValue)
+			if err != nil {
+				return nil, fmt.Errorf("timeout parse error: %s", err.Error())
+			}
+			cd.timeout = timeout
 		default:
 			parsed, err := cd.parseAnyArg(appendArgs, argExpr, keyword, argValue)
 			switch {
@@ -502,6 +506,10 @@ func (cd *CheckData) setFallbacks() error {
 			return err
 		}
 		cd.critThreshold = append(cd.critThreshold, cond)
+	}
+
+	if cd.timeout == 0 {
+		cd.timeout = DefaultCheckTimeout
 	}
 
 	return nil
@@ -726,4 +734,8 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 			Max:           &Hundred,
 		},
 	)
+}
+
+func (cd *CheckData) Help() string {
+	return fmt.Sprintf("check:\n\n  %s\n\nusage:\n\n  %s [<options>] [<filter>]\n\ndescription:\n\n  %s", cd.name, cd.name, cd.description)
 }

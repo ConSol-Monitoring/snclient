@@ -41,7 +41,7 @@ command = sleep 10
 
 	res = snc.RunCheck("timeoutscript", []string{})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Equalf(t, "UKNOWN: script run into timeout after 1s\n", string(res.BuildPluginOutput()), "output matches")
+	assert.Equalf(t, "UNKNOWN: script run into timeout after 1s\n", string(res.BuildPluginOutput()), "output matches")
 
 	StopTestAgent(t, snc)
 }

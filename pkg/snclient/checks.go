@@ -1,10 +1,14 @@
 package snclient
 
+import "context"
+
+// AvailableChecks contains all registered check handler
 var AvailableChecks = make(map[string]CheckEntry)
 
 // CheckHandler handles a single check.
 type CheckHandler interface {
-	Check(snc *Agent, Args []string) (*CheckResult, error)
+	Check(ctx context.Context, snc *Agent, check *CheckData, args []Argument) (*CheckResult, error)
+	Build() *CheckData
 }
 
 type CheckEntry struct {

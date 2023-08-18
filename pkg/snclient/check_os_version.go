@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 
@@ -13,8 +14,8 @@ func init() {
 
 type CheckOSVersion struct{}
 
-func (l *CheckOSVersion) Check(_ *Agent, args []string) (*CheckResult, error) {
-	check := &CheckData{
+func (l *CheckOSVersion) Build() *CheckData {
+	return &CheckData{
 		name:        "check_os_version",
 		description: "Checks the os system version.",
 		result: &CheckResult{
@@ -22,11 +23,9 @@ func (l *CheckOSVersion) Check(_ *Agent, args []string) (*CheckResult, error) {
 		},
 		topSyntax: "${status}: ${platform} ${version} (arch: ${arch})",
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
+func (l *CheckOSVersion) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	platform, family, version, err := host.PlatformInformation()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get platform information: %s", err.Error())

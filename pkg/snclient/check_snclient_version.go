@@ -1,16 +1,16 @@
 package snclient
 
+import "context"
+
 func init() {
 	AvailableChecks["check_snclient_version"] = CheckEntry{"check_snclient_version", new(CheckSNClientVersion)}
 	AvailableChecks["check_nscp_version"] = AvailableChecks["check_snclient_version"]
 }
 
-type CheckSNClientVersion struct {
-	noCopy noCopy
-}
+type CheckSNClientVersion struct{}
 
-func (l *CheckSNClientVersion) Check(snc *Agent, args []string) (*CheckResult, error) {
-	check := &CheckData{
+func (l *CheckSNClientVersion) Build() *CheckData {
+	return &CheckData{
 		name:        "check_snclient_version",
 		description: "Check and return snclient version.",
 		result: &CheckResult{
@@ -19,11 +19,9 @@ func (l *CheckSNClientVersion) Check(snc *Agent, args []string) (*CheckResult, e
 		detailSyntax: "${name} ${version} (Build: ${build})",
 		topSyntax:    "${list}",
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
+func (l *CheckSNClientVersion) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	check.listData = append(check.listData, map[string]string{
 		"name":    NAME,
 		"version": snc.Version(),

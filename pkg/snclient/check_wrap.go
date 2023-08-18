@@ -18,17 +18,21 @@ type CheckWrap struct {
 	wrapped       bool
 }
 
+func (l *CheckWrap) Build() *CheckData {
+	return &CheckData{}
+}
+
 // CheckWrap wraps existing scripts created by the ExternalScriptsHandler
-func (l *CheckWrap) Check(snc *Agent, args []string) (*CheckResult, error) {
+func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	l.snc = snc
 
 	cmdToken := utils.Tokenize(l.commandString)
 	macros := map[string]string{
 		"SCRIPT": cmdToken[0],
-		"ARGS":   strings.Join(args, " "),
+		"ARGS":   strings.Join(check.rawArgs, " "),
 	}
-	for i := range args {
-		macros[fmt.Sprintf("ARG%d", i+1)] = args[i]
+	for i := range check.rawArgs {
+		macros[fmt.Sprintf("ARG%d", i+1)] = check.rawArgs[i]
 	}
 
 	var command string
@@ -59,16 +63,16 @@ func (l *CheckWrap) Check(snc *Agent, args []string) (*CheckResult, error) {
 		timeoutSeconds = 60
 	}
 
-	stdout, stderr, exitCode, procState, err := l.snc.runExternalCommand(command, timeoutSeconds)
+	stdout, stderr, exitCode, procState, err := l.snc.runExternalCommand(ctx, command, timeoutSeconds)
 	if err != nil {
 		exitCode = CheckExitUnknown
 		switch {
 		case procState == nil:
 			stdout = setProcessErrorResult(err)
 		case errors.Is(err, context.DeadlineExceeded):
-			stdout = fmt.Sprintf("UKNOWN: script run into timeout after %ds\n%s%s", timeoutSeconds, stdout, stderr)
+			stdout = fmt.Sprintf("UNKNOWN: script run into timeout after %ds\n%s%s", timeoutSeconds, stdout, stderr)
 		default:
-			stdout = fmt.Sprintf("UKNOWN: script error %s\n%s%s", err.Error(), stdout, stderr)
+			stdout = fmt.Sprintf("UNKNOWN: script error %s\n%s%s", err.Error(), stdout, stderr)
 		}
 	}
 	if stderr != "" {

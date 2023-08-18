@@ -3,6 +3,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strconv"
@@ -18,24 +19,30 @@ func init() {
 	AvailableChecks["check_drivesize"] = CheckEntry{"check_drivesize", new(CheckDrivesize)}
 }
 
-type CheckDrivesize struct{}
+type CheckDrivesize struct {
+	drives   []string
+	excludes []string
+	total    bool
+	magic    float64
+}
 
-func (l *CheckDrivesize) Check(snc *Agent, args []string) (*CheckResult, error) {
-	drives := []string{"all"}
-	excludes := []string{}
-	total := false
-	magic := float64(1)
-	check := &CheckData{
+func (l *CheckDrivesize) Build() *CheckData {
+	l.drives = []string{"all"}
+	l.excludes = []string{}
+	l.total = false
+	l.magic = float64(1)
+
+	return &CheckData{
 		name:        "check_drivesize",
 		description: "Checks the disk drive/volumes usage on a host.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]interface{}{
-			"drive":   &drives,
-			"exclude": &excludes,
-			"total":   &total,
-			"magic":   &magic,
+			"drive":   &l.drives,
+			"exclude": &l.excludes,
+			"total":   &l.total,
+			"magic":   &l.magic,
 		},
 		defaultWarning:  "used_pct > 80",
 		defaultCritical: "used_pct > 90",
@@ -44,11 +51,9 @@ func (l *CheckDrivesize) Check(snc *Agent, args []string) (*CheckResult, error) 
 		topSyntax:       "${status}: ${problem_list}",
 		emptySyntax:     "%(status): No drives found",
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
+func (l *CheckDrivesize) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckDisk")
 	if !enabled {
 		return nil, fmt.Errorf("module CheckDisk is not enabled in /modules section")
@@ -57,7 +62,7 @@ func (l *CheckDrivesize) Check(snc *Agent, args []string) (*CheckResult, error) 
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
-	requiredDisks, err := l.getRequiredDisks(drives)
+	requiredDisks, err := l.getRequiredDisks(l.drives)
 	if err != nil {
 		return nil, err
 	}
@@ -71,14 +76,14 @@ func (l *CheckDrivesize) Check(snc *Agent, args []string) (*CheckResult, error) 
 
 	for _, k := range keys {
 		drive := requiredDisks[k]
-		if l.isExcluded(drive, excludes) {
+		if l.isExcluded(drive, l.excludes) {
 			continue
 		}
-		l.addDiskDetails(check, drive, magic)
+		l.addDiskDetails(check, drive, l.magic)
 		check.listData = append(check.listData, drive)
 	}
 
-	if total {
+	if l.total {
 		// totals go first, so save current metrics and add them again
 		tmpMetrics := check.result.Metrics
 		check.result.Metrics = make([]*CheckMetric, 0)

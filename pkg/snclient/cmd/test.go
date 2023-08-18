@@ -23,7 +23,7 @@ func init() {
 If query is given a one shot result will be printed. Without command, snclient
 will start a query prompt.
 
-This command has aliases which slightly change behaviour.
+This command has aliases which slightly change behavior.
 
 # human readable output
 snclient test ...

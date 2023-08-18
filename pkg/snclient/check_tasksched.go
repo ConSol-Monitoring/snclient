@@ -3,6 +3,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -13,19 +14,21 @@ func init() {
 	AvailableChecks["check_tasksched"] = CheckEntry{"check_tasksched", new(CheckTasksched)}
 }
 
-type CheckTasksched struct{}
+type CheckTasksched struct {
+	timeZoneStr string
+}
 
-/* check_tasksched
- * Description: checks scheduled tasks
- */
-func (l *CheckTasksched) Check(_ *Agent, args []string) (*CheckResult, error) {
-	timeZoneStr := "Local"
-	check := &CheckData{
+func (l *CheckTasksched) Build() *CheckData {
+	l.timeZoneStr = "Local"
+
+	return &CheckData{
+		name:        "check_tasksched",
+		description: "checks scheduled tasks",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]interface{}{
-			"timezone": &timeZoneStr,
+			"timezone": &l.timeZoneStr,
 		},
 		defaultFilter:   "enabled = true",
 		defaultCritical: "exit_code < 0",
@@ -36,14 +39,12 @@ func (l *CheckTasksched) Check(_ *Agent, args []string) (*CheckResult, error) {
 		emptySyntax:     "%(status): No tasks found",
 		emptyState:      CheckExitWarning,
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
-	timeZone, err := time.LoadLocation(timeZoneStr)
+func (l *CheckTasksched) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	timeZone, err := time.LoadLocation(l.timeZoneStr)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't find timezone: %s", timeZoneStr)
+		return nil, fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
 	}
 
 	// connect to task scheduler

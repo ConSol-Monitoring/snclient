@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/shirou/gopsutil/v3/net"
@@ -13,8 +14,8 @@ func init() {
 
 type CheckNetwork struct{}
 
-func (l *CheckNetwork) Check(_ *Agent, args []string) (*CheckResult, error) {
-	check := &CheckData{
+func (l *CheckNetwork) Build() *CheckData {
+	return &CheckData{
 		name:        "check_network",
 		description: "Checks the state and metrics of network interfaces.",
 		result: &CheckResult{
@@ -24,11 +25,9 @@ func (l *CheckNetwork) Check(_ *Agent, args []string) (*CheckResult, error) {
 		detailSyntax: "%(name) >%(sent) <%(received) bps",
 		topSyntax:    "%(status): %(list)",
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
+func (l *CheckNetwork) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	interfaceList, _ := net.Interfaces()
 	IOList, _ := net.IOCounters(true)
 

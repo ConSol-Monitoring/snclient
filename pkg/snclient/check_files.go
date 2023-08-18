@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -21,27 +22,34 @@ type FileInfoUnified struct {
 	Ctime time.Time // Create time
 }
 
-type CheckFiles struct{}
+type CheckFiles struct {
+	paths       []string
+	pathList    CommaStringList
+	pattern     string
+	maxDepth    int64
+	timeZoneStr string
+}
 
-func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
-	paths := []string{}
-	pathList := CommaStringList{}
-	pattern := "*"
-	maxDepth := int64(-1)
-	timeZoneStr := "Local"
-	check := &CheckData{
+func (l *CheckFiles) Build() *CheckData {
+	l.paths = []string{}
+	l.pathList = CommaStringList{}
+	l.pattern = "*"
+	l.maxDepth = int64(-1)
+	l.timeZoneStr = "Local"
+
+	return &CheckData{
 		name:        "check_files",
 		description: "Checks files and directories.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]interface{}{
-			"path":      &paths,
-			"file":      &paths,
-			"paths":     &pathList,
-			"pattern":   &pattern,
-			"max-depth": &maxDepth,
-			"timezone":  &timeZoneStr,
+			"path":      &l.paths,
+			"file":      &l.paths,
+			"paths":     &l.pathList,
+			"pattern":   &l.pattern,
+			"max-depth": &l.maxDepth,
+			"timezone":  &l.timeZoneStr,
 		},
 		detailSyntax: "%(name)",
 		okSyntax:     "%(status): All %(count) files are ok",
@@ -49,36 +57,34 @@ func (l *CheckFiles) Check(_ *Agent, args []string) (*CheckResult, error) {
 		emptySyntax:  "No files found",
 		emptyState:   CheckExitUnknown,
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
-	paths = append(paths, pathList...)
-	if len(paths) == 0 {
+func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	l.paths = append(l.paths, l.pathList...)
+	if len(l.paths) == 0 {
 		return nil, fmt.Errorf("no path specified")
 	}
 
 	hasLineCount := check.HasThreshold("line_count")
-	timeZone, err := time.LoadLocation(timeZoneStr)
+	timeZone, err := time.LoadLocation(l.timeZoneStr)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't find timezone: %s", timeZoneStr)
+		return nil, fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
 	}
 
-	for _, checkPath := range paths {
+	for _, checkPath := range l.paths {
 		checkPath = strings.TrimSpace(checkPath)
 
 		err := filepath.WalkDir(checkPath, func(path string, dir fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
-			if maxDepth != -1 && dir.IsDir() && int64(strings.Count(path, string(os.PathSeparator))) > maxDepth {
+			if l.maxDepth != -1 && dir.IsDir() && int64(strings.Count(path, string(os.PathSeparator))) > l.maxDepth {
 				return fs.SkipDir
 			}
 			if dir.IsDir() {
 				return nil
 			}
-			if match, _ := filepath.Match(pattern, dir.Name()); !match {
+			if match, _ := filepath.Match(l.pattern, dir.Name()); !match {
 				return nil
 			}
 

@@ -250,7 +250,7 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 
 	command := chi.URLParam(req, "command")
 	args := queryParam2CommandArgs(req)
-	result := l.Handler.snc.RunCheck(command, args)
+	result := l.Handler.snc.RunCheckWithContext(req.Context(), command, args)
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
@@ -307,7 +307,7 @@ func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	command := chi.URLParam(req, "command")
 	args := queryParam2CommandArgs(req)
-	result := l.Handler.snc.RunCheck(command, args)
+	result := l.Handler.snc.RunCheckWithContext(req.Context(), command, args)
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 	LogError(json.NewEncoder(res).Encode(map[string]interface{}{

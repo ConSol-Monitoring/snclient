@@ -26,6 +26,7 @@ linters:
     - godot
     - cyclop
     - deadcode
+    - depguard
     - exhaustivestruct
     - exhaustruct
     - gochecknoglobals
@@ -89,6 +90,7 @@ issues:
     - "Function 'ParseArgs' has too many statements"
     - "complexity.*setListenConfig"
     - "complexity.*checkFlags"
+    - "complexity.*ParseArgs"
     - "Function 'readConfiguration' has too many statements"
     - "complexity.*readConfiguration"
     - "Function 'Check' has too many statements"

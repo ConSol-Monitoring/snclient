@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -14,15 +15,19 @@ type CheckDummy struct {
 	noCopy noCopy
 }
 
-/* CheckDummy <state> <text>
- * This check simply sets the state to the given value and outputs the remaining arguments.
- */
-func (l *CheckDummy) Check(_ *Agent, args []string) (*CheckResult, error) {
+func (l *CheckDummy) Build() *CheckData {
+	return &CheckData{
+		name:        "check_dummy",
+		description: "This check simply sets the state to the given value and outputs the remaining arguments.",
+	}
+}
+
+func (l *CheckDummy) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	state := int64(0)
 	output := "Dummy Check"
 
-	if len(args) > 0 {
-		res, err := strconv.ParseInt(args[0], 10, 64)
+	if len(check.rawArgs) > 0 {
+		res, err := strconv.ParseInt(check.rawArgs[0], 10, 64)
 		if err != nil {
 			res = CheckExitUnknown
 			output = fmt.Sprintf("cannot parse state to int: %s", err)
@@ -31,8 +36,8 @@ func (l *CheckDummy) Check(_ *Agent, args []string) (*CheckResult, error) {
 		state = res
 	}
 
-	if len(args) > 1 {
-		output = strings.Join(args[0:], " ")
+	if len(check.rawArgs) > 1 {
+		output = strings.Join(check.rawArgs[0:], " ")
 	}
 
 	return &CheckResult{

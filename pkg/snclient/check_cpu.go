@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 
 	"pkg/utils"
@@ -10,18 +11,21 @@ func init() {
 	AvailableChecks["check_cpu"] = CheckEntry{"check_cpu", new(CheckCPU)}
 }
 
-type CheckCPU struct{}
+type CheckCPU struct {
+	times []string
+}
 
-func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
-	times := []string{"5m", "1m", "5s"}
-	check := &CheckData{
+func (l *CheckCPU) Build() *CheckData {
+	l.times = []string{"5m", "1m", "5s"}
+
+	return &CheckData{
 		name:        "check_cpu",
 		description: "Checks the cpu usage metrics.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]interface{}{
-			"time": &times,
+			"time": &l.times,
 		},
 		defaultFilter:   "core = 'total'",
 		defaultWarning:  "load > 80",
@@ -32,11 +36,9 @@ func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 		emptyState:      3,
 		emptySyntax:     "check_cpu failed to find anything with this filter.",
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
+func (l *CheckCPU) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	if len(snc.Counter.Keys("cpu")) == 0 {
 		return nil, fmt.Errorf("no cpu counter available, make sure CheckSystem / CheckSystemUnix in /modules config is enabled")
 	}
@@ -50,7 +52,7 @@ func (l *CheckCPU) Check(snc *Agent, args []string) (*CheckResult, error) {
 		if counter == nil {
 			continue
 		}
-		for _, time := range times {
+		for _, time := range l.times {
 			dur, _ := utils.ExpandDuration(time)
 			avg := counter.AvgForDuration(dur)
 			check.listData = append(check.listData, map[string]string{

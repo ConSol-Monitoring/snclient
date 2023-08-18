@@ -185,7 +185,7 @@ func (snc *Agent) IsRunning() bool {
 	return snc.running.Load()
 }
 
-// Run starts the mainloop and blocks until Stop() is called
+// Run starts the main loop and blocks until Stop() is called
 func (snc *Agent) Run() {
 	defer snc.logPanicExit()
 
@@ -656,13 +656,21 @@ func (snc *Agent) logPanicExit() {
 
 // RunCheck calls check by name and returns the check result
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
-	res := snc.runCheck(name, args)
+	ctx, cancel := context.WithTimeout(context.TODO(), 60*time.Second)
+	defer cancel()
+
+	return snc.RunCheckWithContext(ctx, name, args)
+}
+
+// RunCheckWithContext calls check by name and returns the check result
+func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string) *CheckResult {
+	res := snc.runCheck(ctx, name, args)
 	res.Finalize()
 
 	return res
 }
 
-func (snc *Agent) runCheck(name string, args []string) *CheckResult {
+func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *CheckResult {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
 	check, ok := AvailableChecks[name]
@@ -673,15 +681,27 @@ func (snc *Agent) runCheck(name string, args []string) *CheckResult {
 		}
 	}
 
-	res, err := check.Handler.Check(snc, args)
+	chk := check.Handler.Build()
+	parsedArgs, err := chk.ParseArgs(args)
 	if err != nil {
-		if e, ok := err.(*UsageError); ok { //nolint:errorlint // errors.As does not work for custom errors
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: e.Error(),
-			}
+		return &CheckResult{
+			State:  CheckExitUnknown,
+			Output: fmt.Sprintf("${status} - %s", err.Error()),
 		}
+	}
 
+	if chk.showHelp {
+		return &CheckResult{
+			State:  CheckExitUnknown,
+			Output: chk.Help(),
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(chk.timeout)*time.Second)
+	defer cancel()
+
+	res, err := check.Handler.Check(ctx, snc, chk, parsedArgs)
+	if err != nil {
 		return &CheckResult{
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("${status} - %s", err.Error()),
@@ -950,8 +970,8 @@ func fixReturnCodes(output *string, exitCode *int64, state *os.ProcessState) {
 	*exitCode = 3
 }
 
-func (snc *Agent) runExternalCommand(command string, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
 
 	cmdList := []string{"/bin/sh", "-c", command}

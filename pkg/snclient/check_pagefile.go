@@ -3,6 +3,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 
 	"pkg/humanize"
@@ -15,8 +16,8 @@ func init() {
 
 type CheckPagefile struct{}
 
-func (l *CheckPagefile) Check(_ *Agent, args []string) (*CheckResult, error) {
-	check := &CheckData{
+func (l *CheckPagefile) Build() *CheckData {
+	return &CheckData{
 		name:        "check_pagefile",
 		description: "Checks the pagefile usage.",
 		result: &CheckResult{
@@ -28,11 +29,9 @@ func (l *CheckPagefile) Check(_ *Agent, args []string) (*CheckResult, error) {
 		detailSyntax:    "${name} ${used} (${size})",
 		topSyntax:       "${status}: ${list}",
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
+func (l *CheckPagefile) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 

@@ -1,5 +1,7 @@
 package snclient
 
+import "context"
+
 type CheckAlias struct {
 	noCopy  noCopy
 	command string
@@ -7,7 +9,12 @@ type CheckAlias struct {
 	config  *ConfigSection
 }
 
-func (a *CheckAlias) Check(snc *Agent, userArgs []string) (*CheckResult, error) {
+func (a *CheckAlias) Build() *CheckData {
+	return &CheckData{}
+}
+
+func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	userArgs := check.rawArgs
 	var statusResult *CheckResult
 	switch {
 	case !checkAllowArguments(a.config, userArgs):
@@ -23,7 +30,7 @@ func (a *CheckAlias) Check(snc *Agent, userArgs []string) (*CheckResult, error) 
 	default:
 		args := a.args
 		args = append(args, userArgs...)
-		statusResult = snc.runCheck(a.command, args)
+		statusResult = snc.runCheck(ctx, a.command, args)
 	}
 
 	statusResult.ParsePerformanceDataFromOutputCond(a.command, a.config)

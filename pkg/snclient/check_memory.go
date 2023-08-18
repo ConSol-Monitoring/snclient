@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 
 	"pkg/humanize"
@@ -13,29 +14,30 @@ func init() {
 	AvailableChecks["check_memory"] = CheckEntry{"check_memory", new(CheckMemory)}
 }
 
-type CheckMemory struct{}
+type CheckMemory struct {
+	memType []string
+}
 
-func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
-	memType := []string{"committed", "physical"}
-	check := &CheckData{
+func (l *CheckMemory) Build() *CheckData {
+	l.memType = []string{"committed", "physical"}
+
+	return &CheckData{
 		name:        "check_memory",
 		description: "Checks the memory usage on the host.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]interface{}{
-			"type": &memType,
+			"type": &l.memType,
 		},
 		defaultWarning:  "used > 80%",
 		defaultCritical: "used > 90%",
 		detailSyntax:    "%(type) = %(used)",
 		topSyntax:       "${status}: ${list}",
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
+func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
@@ -53,10 +55,10 @@ func (l *CheckMemory) Check(_ *Agent, args []string) (*CheckResult, error) {
 		return nil, fmt.Errorf("total physical memory is zero")
 	}
 
-	if slices.Contains(memType, "committed") && swap.Total > 0 {
+	if slices.Contains(l.memType, "committed") && swap.Total > 0 {
 		l.addMemType(check, "committed", swap.Used, swap.Free, swap.Total)
 	}
-	if slices.Contains(memType, "physical") {
+	if slices.Contains(l.memType, "physical") {
 		l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total)
 	}
 

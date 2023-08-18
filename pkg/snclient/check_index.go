@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"sort"
 	"strings"
 )
@@ -13,7 +14,14 @@ type CheckIndex struct {
 	noCopy noCopy
 }
 
-func (l *CheckIndex) Check(_ *Agent, _ []string) (*CheckResult, error) {
+func (l *CheckIndex) Build() *CheckData {
+	return &CheckData{
+		name:        "check_index",
+		description: "returns list of known checks.",
+	}
+}
+
+func (l *CheckIndex) Check(_ context.Context, _ *Agent, _ *CheckData, _ []Argument) (*CheckResult, error) {
 	state := int64(0)
 
 	keys := make([]string, 0, len(AvailableChecks))

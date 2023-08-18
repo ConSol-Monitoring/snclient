@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 
 	"pkg/utils"
@@ -32,12 +33,15 @@ type WindowsServiceDetails struct {
 
 type CheckService struct {
 	AllServices []WindowsService
+	services    []string
+	excludes    []string
 }
 
-func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
-	services := []string{}
-	excludes := []string{}
-	check := &CheckData{
+func (l *CheckService) Build() *CheckData {
+	l.services = []string{}
+	l.excludes = []string{}
+
+	return &CheckData{
 		name:        "check_service",
 		description: "Checks the state of one or multiple windows services.",
 		result: &CheckResult{
@@ -49,8 +53,8 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 			},
 		},
 		args: map[string]interface{}{
-			"service": &services,
-			"exclude": &excludes,
+			"service": &l.services,
+			"exclude": &l.excludes,
 		},
 		defaultFilter:   "none",
 		defaultCritical: "state != 'running' && start_type = 'auto'",
@@ -61,11 +65,9 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 		emptySyntax:     "%(status): No services found",
 		emptyState:      CheckExitUnknown,
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
+func (l *CheckService) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	// collect service state
 	ctrlMgr, err := mgr.Connect()
 	if err != nil {
@@ -75,7 +77,7 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}, nil
 	}
 
-	if len(services) == 0 || slices.Contains(services, "*") {
+	if len(l.services) == 0 || slices.Contains(l.services, "*") {
 		serviceList, err := ctrlMgr.ListServices()
 		if err != nil {
 			return &CheckResult{
@@ -85,13 +87,13 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}
 
 		for _, service := range serviceList {
-			if slices.Contains(excludes, service) {
+			if slices.Contains(l.excludes, service) {
 				log.Tracef("service %s excluded by 'exclude' argument", service)
 
 				continue
 			}
 
-			err = l.addService(check, ctrlMgr, service, services, excludes)
+			err = l.addService(check, ctrlMgr, service, l.services, l.excludes)
 			if err != nil {
 				return nil, err
 			}
@@ -99,7 +101,7 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 	}
 
 	// add services not yet added to the list
-	for _, service := range services {
+	for _, service := range l.services {
 		if service == "*" {
 			continue
 		}
@@ -115,7 +117,7 @@ func (l *CheckService) Check(_ *Agent, args []string) (*CheckResult, error) {
 			continue
 		}
 
-		err = l.addService(check, ctrlMgr, service, services, excludes)
+		err = l.addService(check, ctrlMgr, service, l.services, l.excludes)
 		if err != nil {
 			return nil, err
 		}

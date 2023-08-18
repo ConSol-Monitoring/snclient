@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -15,8 +16,8 @@ func init() {
 
 type CheckUptime struct{}
 
-func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
-	check := &CheckData{
+func (l *CheckUptime) Build() *CheckData {
+	return &CheckData{
 		name:        "check_uptime",
 		description: "Check computer uptime (time since last reboot).",
 		result: &CheckResult{
@@ -27,11 +28,9 @@ func (l *CheckUptime) Check(_ *Agent, args []string) (*CheckResult, error) {
 		topSyntax:       "${status}: ${list}",
 		detailSyntax:    "uptime: ${uptime}, boot: ${boot} (UTC)",
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
+func (l *CheckUptime) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	// collect time metrics (boot + now)
 	bootTime, err := host.BootTime()
 	if err != nil {

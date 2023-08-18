@@ -3,6 +3,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -15,15 +16,20 @@ func init() {
 }
 
 type CheckProcess struct {
-	noCopy noCopy
+	processes []string
 }
 
-func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
-	check := &CheckData{
+func (l *CheckProcess) Build() *CheckData {
+	l.processes = []string{}
+
+	return &CheckData{
 		name:        "check_process",
 		description: "Checks the state and metrics of one or multiple processes.",
 		result: &CheckResult{
 			State: CheckExitOK,
+		},
+		args: map[string]interface{}{
+			"process": &l.processes,
 		},
 		okSyntax:     "%(status): ${list}",
 		detailSyntax: "${name}: ${count}",
@@ -31,19 +37,9 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 		emptyState:   3,
 		emptySyntax:  "check_process failed to find anything with this filter.",
 	}
-	argList, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
-	// parse process filter
-	var processes []string
-	for _, arg := range argList {
-		if arg.key == "process" {
-			processes = append(processes, arg.value)
-		}
-	}
-
+func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	procs, err := process.Processes()
 	if err != nil {
 		return nil, fmt.Errorf("fetching processes failed: %s", err.Error())
@@ -56,7 +52,7 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 			continue
 		}
 		exe = filepath.Base(exe)
-		if len(processes) > 0 && !slices.Contains(processes, exe) {
+		if len(l.processes) > 0 && !slices.Contains(l.processes, exe) {
 			continue
 		}
 

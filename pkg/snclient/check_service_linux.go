@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -27,23 +28,24 @@ var (
 )
 
 type CheckService struct {
-	snc *Agent
+	snc      *Agent
+	services []string
+	excludes []string
 }
 
-func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
-	l.snc = snc
+func (l *CheckService) Build() *CheckData {
+	l.services = []string{}
+	l.excludes = []string{}
 
-	services := []string{}
-	excludes := []string{}
-	check := &CheckData{
+	return &CheckData{
 		name:        "check_service",
 		description: "Checks the state of one or multiple linux (systemctl) services.",
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]interface{}{
-			"service": &services,
-			"exclude": &excludes,
+			"service": &l.services,
+			"exclude": &l.excludes,
 		},
 		defaultFilter:   "none",
 		defaultCritical: "state not in ('running', 'oneshot', 'static') && preset != 'disabled'",
@@ -53,13 +55,13 @@ func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
 		emptySyntax:     "%(status): No services found",
 		emptyState:      CheckExitUnknown,
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
-	if len(services) == 0 || slices.Contains(services, "*") {
-		output, stderr, _, _, err := snc.runExternalCommand("systemctl --type=service --plain --no-pager --quiet", systemctlTimeout)
+func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	l.snc = snc
+
+	if len(l.services) == 0 || slices.Contains(l.services, "*") {
+		output, stderr, _, _, err := snc.runExternalCommand(ctx, "systemctl --type=service --plain --no-pager --quiet", systemctlTimeout)
 		if err != nil {
 			return &CheckResult{
 				State:  CheckExitUnknown,
@@ -75,13 +77,13 @@ func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
 			serviceList = append(serviceList, match[1])
 		}
 		for _, service := range serviceList {
-			if slices.Contains(excludes, service) {
+			if slices.Contains(l.excludes, service) {
 				log.Tracef("service %s excluded by 'exclude' argument", service)
 
 				continue
 			}
 
-			err = l.addService(check, service, services, excludes)
+			err = l.addService(ctx, check, service, l.services, l.excludes)
 			if err != nil {
 				return nil, err
 			}
@@ -89,7 +91,7 @@ func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
 	}
 
 	// add user supplied services not yet added
-	for _, service := range services {
+	for _, service := range l.services {
 		if service == "*" {
 			continue
 		}
@@ -105,7 +107,7 @@ func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
 			continue
 		}
 
-		err = l.addService(check, service, services, excludes)
+		err := l.addService(ctx, check, service, l.services, l.excludes)
 		if err != nil {
 			return nil, err
 		}
@@ -114,8 +116,8 @@ func (l *CheckService) Check(snc *Agent, args []string) (*CheckResult, error) {
 	return check.Finalize()
 }
 
-func (l *CheckService) addService(check *CheckData, service string, services, excludes []string) error {
-	output, stderr, _, _, err := l.snc.runExternalCommand(fmt.Sprintf("systemctl status %s.service", service), systemctlTimeout)
+func (l *CheckService) addService(ctx context.Context, check *CheckData, service string, services, excludes []string) error {
+	output, stderr, _, _, err := l.snc.runExternalCommand(ctx, fmt.Sprintf("systemctl status %s.service", service), systemctlTimeout)
 	if err != nil {
 		return fmt.Errorf("systemctl failed: %s\n%s", err.Error(), stderr)
 	}

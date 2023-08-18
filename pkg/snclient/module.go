@@ -28,6 +28,12 @@ func NewModuleSet(name string) *ModuleSet {
 	return ms
 }
 
+func (ms *ModuleSet) Stop() {
+	for _, t := range ms.modules {
+		t.Stop()
+	}
+}
+
 func (ms *ModuleSet) StopRemove() {
 	for name, t := range ms.modules {
 		t.Stop()

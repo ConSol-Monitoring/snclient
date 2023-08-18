@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -14,8 +15,6 @@ func init() {
 	AvailableChecks["check_process"] = CheckEntry{"check_process", new(CheckProcess)}
 }
 
-type CheckProcess struct{}
-
 var ProcessStates = map[string]string{
 	"stopped": "0",
 	"started": "1",
@@ -23,12 +22,21 @@ var ProcessStates = map[string]string{
 	"1":       "started",
 }
 
-func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
-	check := &CheckData{
+type CheckProcess struct {
+	processes []string
+}
+
+func (l *CheckProcess) Build() *CheckData {
+	l.processes = []string{}
+
+	return &CheckData{
 		name:        "check_process",
 		description: "Check state/metrics of one or more of the processes running on the computer.",
 		result: &CheckResult{
 			State: CheckExitOK,
+		},
+		args: map[string]interface{}{
+			"process": &l.processes,
 		},
 		detailSyntax: "%(process)=%(state)",
 		topSyntax:    "%(status): %(problem_list)",
@@ -36,20 +44,9 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 		emptySyntax:  "No processes found",
 		emptyState:   CheckExitUnknown,
 	}
-	argList, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
-	var processes []string
-
-	// parse threshold args
-	for _, arg := range argList {
-		if arg.key == "process" {
-			processes = append(processes, arg.value)
-		}
-	}
-
+func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	processData, err := wmi.Query(`Select
 									Name,
 									CommandLine,
@@ -81,8 +78,8 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 			if proc.Key == "Name" {
 				name = proc.Value
 				runningProcs[name] = map[string]string{}
-				if slices.Contains(processes, "*") {
-					processes = append(processes, name)
+				if slices.Contains(l.processes, "*") {
+					l.processes = append(l.processes, name)
 				}
 			}
 
@@ -90,7 +87,7 @@ func (l *CheckProcess) Check(_ *Agent, args []string) (*CheckResult, error) {
 		}
 	}
 
-	for _, process := range processes {
+	for _, process := range l.processes {
 		proc, exists := runningProcs[process]
 		if !exists {
 			continue

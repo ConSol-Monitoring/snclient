@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"strconv"
 
 	"pkg/eventlog"
@@ -12,14 +13,20 @@ func init() {
 	AvailableChecks["check_eventlog"] = CheckEntry{"check_eventlog", new(CheckEventlog)}
 }
 
-type CheckEventlog struct{}
+type CheckEventlog struct {
+	files []string
+}
 
-func (l *CheckEventlog) Check(_ *Agent, args []string) (*CheckResult, error) {
-	check := &CheckData{
+func (l *CheckEventlog) Build() *CheckData {
+	return &CheckData{
 		name:        "check_eventlog",
 		description: "Checks the windows eventlog entries.",
 		result: &CheckResult{
 			State: CheckExitOK,
+		},
+		args: map[string]interface{}{
+			"file": &l.files,
+			"log":  &l.files,
 		},
 		detailSyntax: "%(file) %(source) (%(message))",
 		okSyntax:     "%(status): Event log seems fine",
@@ -27,23 +34,12 @@ func (l *CheckEventlog) Check(_ *Agent, args []string) (*CheckResult, error) {
 		emptySyntax:  "No entries found",
 		emptyState:   3,
 	}
-	argList, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
-	files := []string{}
+func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	events := []*winevent.Event{}
 
-	// parse args
-	for _, arg := range argList {
-		switch arg.key {
-		case "file", "log":
-			files = append(files, arg.value)
-		}
-	}
-
-	for _, file := range files {
+	for _, file := range l.files {
 		e := eventlog.NewEventLog(file, log)
 		fileEvent, _ := e.Query()
 		events = append(events, fileEvent...)

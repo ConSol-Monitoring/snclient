@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -11,23 +12,30 @@ func init() {
 	AvailableChecks["check_wmi"] = CheckEntry{"check_wmi", new(CheckWMI)}
 }
 
-type CheckWMI struct{}
+type CheckWMI struct {
+	query     string
+	target    string
+	user      string
+	password  string
+	namespace string
+}
 
-func (l *CheckWMI) Check(snc *Agent, args []string) (*CheckResult, error) {
-	query := ""
-	target := ""
-	user := ""
-	password := ""
-	namespace := ""
-	check := &CheckData{
+func (l *CheckWMI) Build() *CheckData {
+	l.query = ""
+	l.target = ""
+	l.user = ""
+	l.password = ""
+	l.namespace = ""
+
+	return &CheckData{
 		name:        "check_wmi",
 		description: "Check status and metrics by running wmi queries.",
 		args: map[string]interface{}{
-			"query":     &query,
-			"target":    &target,
-			"namespace": &namespace,
-			"user":      &user,
-			"password":  &password,
+			"query":     &l.query,
+			"target":    &l.target,
+			"namespace": &l.namespace,
+			"user":      &l.user,
+			"password":  &l.password,
 		},
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -35,11 +43,9 @@ func (l *CheckWMI) Check(snc *Agent, args []string) (*CheckResult, error) {
 		topSyntax:    "${list}",
 		detailSyntax: "%(line)",
 	}
-	_, err := check.ParseArgs(args)
-	if err != nil {
-		return nil, err
-	}
+}
 
+func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckWMI")
 	if !enabled {
 		return nil, fmt.Errorf("module CheckWMI is not enabled in /modules section")
@@ -53,11 +59,11 @@ func (l *CheckWMI) Check(snc *Agent, args []string) (*CheckResult, error) {
 		}
 	}
 
-	if query == "" {
+	if l.query == "" {
 		return nil, fmt.Errorf("wmi query required")
 	}
 
-	querydata, err := wmi.Query(query)
+	querydata, err := wmi.Query(l.query)
 	if err != nil {
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}
