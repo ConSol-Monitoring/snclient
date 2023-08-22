@@ -645,7 +645,7 @@ func conditionFixTokenOperator(token []string) []string {
 // ThresholdString returns string used in warn/crit threshold performance data.
 //
 //nolint:funlen // allow more than 40 statements
-func ThresholdString(name string, conditions []*Condition) string {
+func ThresholdString(name string, conditions []*Condition, numberFormat func(interface{}) string) string {
 	// fetch warning conditions for name of metric
 	filtered := make([]*Condition, 0)
 	var group GroupOperator
@@ -679,7 +679,7 @@ func ThresholdString(name string, conditions []*Condition) string {
 		//exhaustive:ignore // only the lower conditions get a trailing ":"
 		switch filtered[0].operator {
 		case Lower:
-			return convert.Num2String(filtered[0].value) + ":"
+			return numberFormat(filtered[0].value) + ":"
 		case LowerEqual:
 			thisNumber, _ := convert.Float64E(filtered[0].value)
 			nextNumber := math.Ceil(thisNumber)
@@ -687,9 +687,9 @@ func ThresholdString(name string, conditions []*Condition) string {
 				nextNumber++
 			}
 
-			return convert.Num2String(nextNumber) + ":"
+			return numberFormat(nextNumber) + ":"
 		default:
-			return convert.Num2String(filtered[0].value)
+			return numberFormat(filtered[0].value)
 		}
 	}
 
@@ -701,16 +701,17 @@ func ThresholdString(name string, conditions []*Condition) string {
 		if err1 != nil || err2 != nil {
 			return ""
 		}
+		// switch numbers
 		if num1 > num2 {
 			low = filtered[1].value
 			high = filtered[0].value
 		}
 		if group == GroupOr {
-			return fmt.Sprintf("%s:%s", convert.Num2String(low), convert.Num2String(high))
+			return fmt.Sprintf("%s:%s", numberFormat(low), numberFormat(high))
 		}
-		if group == GroupAnd {
-			return fmt.Sprintf("@%s:%s", convert.Num2String(low), convert.Num2String(high))
-		}
+
+		// implicite And
+		return fmt.Sprintf("@%s:%s", numberFormat(low), numberFormat(high))
 	}
 
 	return ""

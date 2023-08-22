@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"pkg/convert"
+	"pkg/humanize"
 )
 
 // CheckMetric contains a single performance value.
@@ -21,17 +22,31 @@ type CheckMetric struct {
 	CriticalStr   *string      // set critical from string
 	Min           *float64
 	Max           *float64
+	PerfConfig    *PerfConfig // apply perf tweaks
 }
 
 func (m *CheckMetric) String() string {
 	var res bytes.Buffer
 
-	// Unknown value
-	if fmt.Sprintf("%v", m.Value) == "U" {
-		return fmt.Sprintf("'%s'=U", m.Name)
+	name := m.Name
+	if m.PerfConfig != nil {
+		// Suffix replaces the current name
+		if m.PerfConfig.Suffix != "" {
+			name = m.PerfConfig.Suffix
+		}
+
+		if m.PerfConfig.Prefix != "" {
+			name = fmt.Sprintf("%s%s", m.PerfConfig.Prefix, name)
+		}
 	}
 
-	res.WriteString(fmt.Sprintf("'%s'=%s%s", m.Name, convert.Num2String(m.Value), m.Unit))
+	// Unknown value
+	if fmt.Sprintf("%v", m.Value) == "U" {
+		return fmt.Sprintf("'%s'=U", name)
+	}
+
+	num, unit := m.tweakedNum(m.Value)
+	res.WriteString(fmt.Sprintf("'%s'=%s%s", name, num, unit))
 
 	res.WriteString(";")
 	if m.WarningStr != nil {
@@ -49,12 +64,22 @@ func (m *CheckMetric) String() string {
 
 	res.WriteString(";")
 	if m.Min != nil {
-		res.WriteString(strconv.FormatFloat(*m.Min, 'f', -1, 64))
+		if m.PerfConfig != nil {
+			num, _ := m.tweakedNum(*m.Min)
+			res.WriteString(num)
+		} else {
+			res.WriteString(strconv.FormatFloat(*m.Min, 'f', -1, 64))
+		}
 	}
 
 	res.WriteString(";")
 	if m.Max != nil {
-		res.WriteString(strconv.FormatFloat(*m.Max, 'f', -1, 64))
+		if m.PerfConfig != nil {
+			num, _ := m.tweakedNum(*m.Max)
+			res.WriteString(num)
+		} else {
+			res.WriteString(strconv.FormatFloat(*m.Max, 'f', -1, 64))
+		}
 	}
 
 	resStr := res.String()
@@ -66,10 +91,31 @@ func (m *CheckMetric) String() string {
 	return resStr
 }
 
-func (m *CheckMetric) ThresholdString(conditions []*Condition) string {
-	if m.ThresholdName != "" {
-		return ThresholdString(m.ThresholdName, conditions)
+// return number and unit but apply tweaks from perf-config before
+func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
+	if m.PerfConfig == nil {
+		return convert.Num2String(rawNum), m.Unit
 	}
 
-	return ThresholdString(m.Name, conditions)
+	if m.Unit == "B" {
+		num := humanize.BytesUnitF(uint64(convert.Float64(rawNum)), m.PerfConfig.Unit, 3)
+
+		return convert.Num2String(num), m.PerfConfig.Unit
+	}
+
+	return convert.Num2String(rawNum), m.Unit
+}
+
+func (m *CheckMetric) ThresholdString(conditions []*Condition) string {
+	conv := func(rawNum interface{}) string {
+		num, _ := m.tweakedNum(rawNum)
+
+		return num
+	}
+
+	if m.ThresholdName != "" {
+		return ThresholdString(m.ThresholdName, conditions, conv)
+	}
+
+	return ThresholdString(m.Name, conditions, conv)
 }

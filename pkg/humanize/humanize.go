@@ -106,6 +106,7 @@ func ParseBytes(raw string) (uint64, error) {
 		return uint64(fNum), nil
 	}
 
+	// try with uppercase case name if nothing matched yet
 	if m, ok := bytesSizeTable[strings.ToUpper(extra)]; ok {
 		fNum *= float64(m)
 		if fNum >= math.MaxUint64 {
@@ -140,6 +141,24 @@ func IBytesF(num uint64, precision int) string {
 
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
+}
+
+// returns bytes in target unit
+func BytesUnit(num uint64, targetUnit string) float64 {
+	return BytesUnitF(num, targetUnit, 0)
+}
+
+// returns bytes in target unit with given precision
+func BytesUnitF(num uint64, targetUnit string, precision int) float64 {
+	factor, ok := bytesSizeTable[targetUnit]
+	if !ok {
+		factor, ok = bytesSizeTable[strings.ToUpper(targetUnit)]
+		if !ok {
+			return 0
+		}
+	}
+
+	return roundToPrecision(float64(num)/float64(factor), precision)
 }
 
 func humanizeBytes(num uint64, base float64, sizes []string, precision int) string {

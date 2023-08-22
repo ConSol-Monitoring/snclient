@@ -2,15 +2,17 @@ package snclient
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
-	"convert"
-	"utils"
+	"pkg/convert"
+	"pkg/utils"
 )
 
 // PerfConfig contains a single perf-config item.
 type PerfConfig struct {
 	Selector string
+	regex    *regexp.Regexp
 	Ignore   bool
 	Prefix   string
 	Suffix   string
@@ -47,12 +49,33 @@ func NewPerfConfig(raw string) ([]PerfConfig, error) {
 			return nil, fmt.Errorf("parse error in perf-config args in '%s': %s", rawConf, err.Error())
 		}
 
+		if strings.Contains(perf.Selector, "*") {
+			patternText := perf.Selector
+			patternText = strings.ReplaceAll(patternText, "*", "WILD_CARD_ASTERISK")
+			patternText = regexp.QuoteMeta(patternText)
+			patternText = strings.ReplaceAll(patternText, "WILD_CARD_ASTERISK", ".*")
+			re, err := regexp.Compile(patternText)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert pattern '%s' into regexp: %s", patternText, err.Error())
+			}
+			perf.regex = re
+		}
+
 		list = append(list, perf)
 
 		token = token[4:]
 	}
 
 	return list, nil
+}
+
+// Match returns true if given string matches the selector
+func (p *PerfConfig) Match(name string) bool {
+	if p.regex != nil {
+		return p.regex.MatchString(name)
+	}
+
+	return strings.Contains(name, p.Selector)
 }
 
 func (p *PerfConfig) parseArgs(raw string) error {

@@ -103,6 +103,10 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	}
 
 	cd.result.Finalize(cd.details, finalMacros)
+	err := cd.result.ApplyPerfConfig(cd.perfConfig)
+	if err != nil {
+		return nil, fmt.Errorf("%s", err.Error())
+	}
 
 	return cd.result, nil
 }

@@ -41,6 +41,39 @@ func (cr *CheckResult) Finalize(macros ...map[string]string) {
 	cr.Output = ReplaceMacros(cr.Output, finalMacros)
 }
 
+func (cr *CheckResult) ApplyPerfConfig(perfCfg []PerfConfig) error {
+	tweakedMetrics := []*CheckMetric{}
+	for _, metric := range cr.Metrics {
+		found := false
+		for i := range perfCfg {
+			perf := perfCfg[i]
+			if perf.Match(metric.Name) {
+				found = true
+				if perf.Ignore {
+					break
+				}
+
+				metric.PerfConfig = &perf
+				tweakedMetrics = append(tweakedMetrics, metric)
+
+				break
+			}
+
+			if found {
+				break
+			}
+		}
+
+		// no tweak config found, simply pass it through
+		if !found {
+			tweakedMetrics = append(tweakedMetrics, metric)
+		}
+	}
+	cr.Metrics = tweakedMetrics
+
+	return nil
+}
+
 func (cr *CheckResult) StateString() string {
 	switch cr.State {
 	case 0:

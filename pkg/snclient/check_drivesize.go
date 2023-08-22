@@ -5,11 +5,12 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"pkg/humanize"
-	"pkg/utils"
 	"sort"
 	"strconv"
 	"strings"
+
+	"pkg/humanize"
+	"pkg/utils"
 
 	"github.com/shirou/gopsutil/v3/disk"
 )
