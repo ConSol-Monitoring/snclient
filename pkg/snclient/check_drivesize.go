@@ -5,12 +5,11 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"pkg/humanize"
+	"pkg/utils"
 	"sort"
 	"strconv"
 	"strings"
-
-	"pkg/humanize"
-	"pkg/utils"
 
 	"github.com/shirou/gopsutil/v3/disk"
 )
@@ -137,11 +136,12 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 		return fmt.Errorf("disk partitions failed: %s", err.Error())
 	}
 	for _, partition := range partitions {
-		drive := partition.Device
+		drive := partition.Mountpoint
 		entry, ok := requiredDisks[drive]
 		if !ok {
 			entry = make(map[string]string)
 		}
+
 		entry["drive"] = drive
 		entry["drive_or_id"] = drive
 		entry["drive_or_name"] = drive
