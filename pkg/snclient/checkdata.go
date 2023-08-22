@@ -50,6 +50,7 @@ type CheckData struct {
 	result          *CheckResult
 	showHelp        bool
 	timeout         float64
+	perfConfig      []PerfConfig
 }
 
 func (cd *CheckData) Finalize() (*CheckResult, error) {
@@ -381,6 +382,12 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 				return nil, fmt.Errorf("timeout parse error: %s", err.Error())
 			}
 			cd.timeout = timeout
+		case "perf-config":
+			perf, err := NewPerfConfig(argValue)
+			if err != nil {
+				return nil, err
+			}
+			cd.perfConfig = append(cd.perfConfig, perf...)
 		default:
 			parsed, err := cd.parseAnyArg(appendArgs, argExpr, keyword, argValue)
 			switch {

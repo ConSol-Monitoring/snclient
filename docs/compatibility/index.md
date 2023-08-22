@@ -58,6 +58,15 @@ SNClient uses IEC units if possible. This means for example:
 	G   = same as GB
 
 
+### Perf-Config
+![Change](../icons/changed.png "this is different in SNClient+")
+
+The `perf-config` option has been simplified. Multiple config options are applied
+in order and only the first match is applied.
+
+A detailed description can be found on the [performance configuration page](../checks/perfconfig/).
+
+
 ## Allow Arguments Handling
 ![Feature](../icons/feature.png "this is a new thing in SNClient+")
 

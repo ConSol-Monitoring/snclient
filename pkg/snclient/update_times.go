@@ -16,7 +16,7 @@ type UpdateHours struct {
 
 func NewUpdateHours(updateHours string) (res []UpdateHours, err error) {
 	res = make([]UpdateHours, 0)
-	token := utils.TokenizeBy(updateHours, ", \t\n\r")
+	token := utils.TokenizeBy(updateHours, ", \t\n\r", false, false)
 
 	for _, def := range token {
 		hours := strings.Split(def, "-")
@@ -71,7 +71,7 @@ type UpdateDays struct {
 
 func NewUpdateDays(updateDays string) (res []UpdateDays, err error) {
 	res = make([]UpdateDays, 0)
-	token := utils.TokenizeBy(updateDays, ", \t\n\r")
+	token := utils.TokenizeBy(updateDays, ", \t\n\r", false, false)
 
 	for _, def := range token {
 		days := strings.Split(def, "-")

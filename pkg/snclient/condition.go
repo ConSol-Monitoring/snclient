@@ -546,7 +546,7 @@ func conditionListValue(cond *Condition, token []string) (remaining []string, er
 	// split by , and trim quotes
 	res := []string{}
 	for _, e := range list {
-		subList := utils.TokenizeBy(e, ",")
+		subList := utils.TokenizeBy(e, ",", false, false)
 		for _, elem := range subList {
 			c := &Condition{}
 			err = conditionSetValue(c, elem, false)

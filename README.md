@@ -78,7 +78,7 @@ Find a brief overview of what is planned and what is done already:
   - [X] build osx .pkg packages
 - [X] implement log rotation for file logger
 - [X] self update (from configurable url)
-- [ ] implement perf-config
+- [X] implement perf-config
 - [ ] implement help with examples and filters
 
 ### Stage 2

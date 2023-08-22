@@ -176,11 +176,11 @@ func LogThreadDump(log *factorlog.FactorLog) {
 // Tokenize returns list of string tokens
 // token will still have quotes around after tokenizing
 func Tokenize(str string) []string {
-	return (TokenizeBy(str, " \t\n\r"))
+	return (TokenizeBy(str, " \t\n\r", true, false))
 }
 
 // TokenizeBy returns list of string tokens separated by any char in separator
-func TokenizeBy(str, separator string) []string {
+func TokenizeBy(str, separator string, keepQuotes, keepSeparator bool) []string {
 	var tokens []string
 
 	inQuotes := false
@@ -192,12 +192,16 @@ func TokenizeBy(str, separator string) []string {
 			if !inQuotes {
 				inDbl = !inDbl
 			}
-			token = append(token, char)
+			if keepQuotes || inQuotes {
+				token = append(token, char)
+			}
 		case char == '\'':
 			if !inDbl {
 				inQuotes = !inQuotes
 			}
-			token = append(token, char)
+			if keepQuotes || inDbl {
+				token = append(token, char)
+			}
 		case strings.ContainsRune(separator, char):
 			switch {
 			case inQuotes, inDbl:
@@ -205,12 +209,19 @@ func TokenizeBy(str, separator string) []string {
 			case len(token) > 0:
 				tokens = append(tokens, string(token))
 				token = make([]rune, 0)
+				if keepSeparator {
+					tokens = append(tokens, string(char))
+				}
 			}
 		default:
 			token = append(token, char)
 		}
 	}
-	tokens = append(tokens, string(token))
+
+	// append empty token if no token found so far
+	if len(token) > 0 || len(tokens) == 0 {
+		tokens = append(tokens, string(token))
+	}
 
 	return tokens
 }
