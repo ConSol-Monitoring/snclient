@@ -3,13 +3,12 @@ package snclient
 import (
 	"fmt"
 	"math"
-	"regexp"
-	"strconv"
-	"strings"
-
 	"pkg/convert"
 	"pkg/humanize"
 	"pkg/utils"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 var (
@@ -457,26 +456,15 @@ func conditionNext(token []string) (cond *Condition, remaining []string, err err
 		keyword: keyword,
 	}
 
-	// token might consist of 2 token, try that first
-	if len(token) > 1 {
-		operator2, err2 := OperatorParse(token[0] + " " + token[1])
-		if err2 == nil {
-			query = query + " " + token[0] + " " + token[1]
-			token = token[2:]
-			cond.operator = operator2
-		}
-	}
+	token = conditionFixTokenOperator(token)
 
-	// no operator yet?
-	if cond.operator == 0 {
-		operator, err := OperatorParse(token[0])
-		if err != nil {
-			return nil, nil, err
-		}
-		query = query + " " + token[0]
-		token = token[1:]
-		cond.operator = operator
+	operator, err := OperatorParse(token[0])
+	if err != nil {
+		return nil, nil, err
 	}
+	query = query + " " + token[0]
+	token = token[1:]
+	cond.operator = operator
 
 	if len(token) == 0 {
 		return nil, nil, fmt.Errorf("expected value after '%s'", query)
@@ -621,6 +609,36 @@ func conditionSetValue(cond *Condition, str string, expand bool) error {
 	}
 
 	return nil
+}
+
+// fix some cornercases in token lists, ex.:
+func conditionFixTokenOperator(token []string) []string {
+	if len(token) < 2 {
+		return token
+	}
+
+	switch {
+	// append "not" to next token
+	case token[0] == "not":
+		token[1] = "not " + token[1]
+		token = token[1:]
+	// append "not" to previous  token
+	case token[1] == "not":
+		token[1] = token[0] + " not"
+		token = token[1:]
+	}
+
+	// separate function call from options
+	switch {
+	case strings.HasPrefix(token[0], "in("):
+		token[0] = strings.TrimPrefix(token[0], "in")
+		token = append([]string{"in"}, token...)
+	case strings.HasPrefix(token[0], "not in("):
+		token[0] = strings.TrimPrefix(token[0], "not in")
+		token = append([]string{"not in"}, token...)
+	}
+
+	return token
 }
 
 // ThresholdString returns string used in warn/crit threshold performance data.
