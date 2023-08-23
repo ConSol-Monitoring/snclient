@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"utils"
 
 	"pkg/convert"
 	"pkg/humanize"
@@ -97,8 +98,19 @@ func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
 		return convert.Num2String(rawNum), m.Unit
 	}
 
-	if m.Unit == "B" {
+	if m.PerfConfig.Unit == "%" && m.Min != nil && m.Max != nil {
+		// convert into percent
+	}
+
+	switch m.Unit {
+	case "B":
+		// convert bytes
 		num := humanize.BytesUnitF(uint64(convert.Float64(rawNum)), m.PerfConfig.Unit, 3)
+
+		return convert.Num2String(num), m.PerfConfig.Unit
+	case "s":
+		// convert seconds
+		num := utils.TimeUnitF(uint64(convert.Float64(rawNum)), m.PerfConfig.Unit, 1)
 
 		return convert.Num2String(num), m.PerfConfig.Unit
 	}

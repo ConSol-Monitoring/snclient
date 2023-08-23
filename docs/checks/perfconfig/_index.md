@@ -43,3 +43,68 @@ The snclient will use the options in order and apply the first matching configur
 	check_plugin perf-config="used(ignored:true) *(unit:G)"
 
 will hide `used` performance data and apply unit G to everything else.
+
+
+## Units
+
+There are several possible and useful conversion available.
+
+### Bytes
+The base unit `B` for bytes can be converted into more human readable units.
+
+A common pattern is `*(unit:G)` to simply convert all performance data into gigabytes.
+
+	check_plugin perf-config="*(unit:G)"
+
+You can choose from these units:
+
+| Unit | Description |
+| ---- | ----------- |
+K    | KByte
+KB   | KByte
+KiB  | KiByte
+Kb   | KiByte
+KI   | KiByte
+M    | MByte
+MB   | MByte
+MiB  | MiByte
+Mb   | MiByte
+MI   | MiByte
+G    | GByte
+GB   | GByte
+GiB  | GiByte
+Gb   | GiByte
+GI   | GiByte
+T    | TByte
+TB   | TByte
+TiB  | TiByte
+Tb   | TiByte
+TI   | TiByte
+P    | PByte
+PB   | PByte
+PiB  | PiByte
+Pb   | PiByte
+PI   | PiByte
+E    | EByte
+EB   | EByte
+EiB  | EiByte
+Eb   | EiByte
+EI   | EiByte
+
+
+### Seconds / Duration
+Durations with the base unit `s` for seconds can be converted into the following units:
+
+| Unit | Description |
+| ---- | ----------- |
+ms     | milliseconds
+s      | seconds
+m      | minutes
+h      | hours
+d      | days
+w      | weeks
+y      | years
+
+For example convert the uptime to days:
+
+	check_uptime "perf-config=*(unit:d)"

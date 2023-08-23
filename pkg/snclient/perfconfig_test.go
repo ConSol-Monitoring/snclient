@@ -64,5 +64,17 @@ func TestCheckPerfConfig(t *testing.T) {
 	)
 	assert.NotContainsf(t, string(res.BuildPluginOutput()), "=0mib;", "must not contain 0mib")
 
+	res = snc.RunCheck("check_uptime", []string{
+		"warn=uptime > 0",
+		"crit=uptime > 0",
+		"perf-config=*(unit:d)",
+	})
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Regexpf(t,
+		regexp.MustCompile(`'uptime'=[\d.]+d;0;0`),
+		string(res.BuildPluginOutput()),
+		"output matches",
+	)
+
 	StopTestAgent(t, snc)
 }

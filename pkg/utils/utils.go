@@ -21,22 +21,24 @@ import (
 	"github.com/kdar/factorlog"
 )
 
+var TimeFactors = []struct {
+	suffix string
+	factor float64
+}{
+	{"ms", 0.001},
+	{"s", 1},
+	{"m", 60},
+	{"h", 3600},
+	{"d", 86400},
+	{"w", 86400 * 7},
+	{"y", 86400 * 365},
+}
+
 // ExpandDuration expand duration string into seconds
 func ExpandDuration(val string) (res float64, err error) {
 	var num float64
 
-	factors := []struct {
-		suffix string
-		factor float64
-	}{
-		{"ms", 0.001},
-		{"s", 1},
-		{"m", 60},
-		{"h", 3600},
-		{"d", 86400},
-	}
-
-	for _, f := range factors {
+	for _, f := range TimeFactors {
 		if strings.HasSuffix(val, f.suffix) {
 			num, err = strconv.ParseFloat(strings.TrimSuffix(val, f.suffix), 64)
 			res = num * f.factor
@@ -58,6 +60,17 @@ func ExpandDuration(val string) (res float64, err error) {
 	}
 
 	return 0, fmt.Errorf("expandDuration: cannot parse duration, unknown format in %s", val)
+}
+
+// returns time/duration in target unit with given precision
+func TimeUnitF(num uint64, targetUnit string, precision int) float64 {
+	for _, factor := range TimeFactors {
+		if strings.EqualFold(factor.suffix, targetUnit) {
+			return ToPrecision(float64(num)/float64(factor.factor), precision)
+		}
+	}
+
+	return 0
 }
 
 // IsDigitsOnly returns true if string only contains numbers
