@@ -108,3 +108,9 @@ y      | years
 For example convert the uptime to days:
 
 	check_uptime "perf-config=*(unit:d)"
+
+
+### Percent
+All performance data which have at least a value and a min and max value can be converted to percent.
+
+	check_plugin perf-config="*(unit:%)"

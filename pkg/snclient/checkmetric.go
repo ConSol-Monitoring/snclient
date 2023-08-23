@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"utils"
 
 	"pkg/convert"
 	"pkg/humanize"
+	"pkg/utils"
 )
 
 // CheckMetric contains a single performance value.
@@ -98,8 +98,12 @@ func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
 		return convert.Num2String(rawNum), m.Unit
 	}
 
-	if m.PerfConfig.Unit == "%" && m.Min != nil && m.Max != nil {
+	if m.PerfConfig.Unit == "%" && m.Min != nil && m.Max != nil && *m.Max > *m.Min {
 		// convert into percent
+		val := convert.Float64(rawNum)
+		perc := ((val - *m.Min) / (*m.Max - *m.Min)) * 100
+
+		return convert.Num2String(perc), m.PerfConfig.Unit
 	}
 
 	switch m.Unit {

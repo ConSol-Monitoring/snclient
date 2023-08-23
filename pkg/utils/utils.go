@@ -66,7 +66,7 @@ func ExpandDuration(val string) (res float64, err error) {
 func TimeUnitF(num uint64, targetUnit string, precision int) float64 {
 	for _, factor := range TimeFactors {
 		if strings.EqualFold(factor.suffix, targetUnit) {
-			return ToPrecision(float64(num)/float64(factor.factor), precision)
+			return ToPrecision(float64(num)/factor.factor, precision)
 		}
 	}
 

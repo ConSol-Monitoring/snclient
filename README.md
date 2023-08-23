@@ -80,6 +80,7 @@ Find a brief overview of what is planned and what is done already:
 - [X] self update (from configurable url)
 - [X] implement perf-config
 - [ ] implement help with examples and filters
+- [ ] review check plugin status
 
 ### Stage 2
 - [ ] add basic prometheus exporters

@@ -43,7 +43,8 @@ func (cr *CheckResult) Finalize(macros ...map[string]string) {
 
 func (cr *CheckResult) ApplyPerfConfig(perfCfg []PerfConfig) error {
 	tweakedMetrics := []*CheckMetric{}
-	for _, metric := range cr.Metrics {
+	for i := range cr.Metrics {
+		metric := cr.Metrics[i]
 		found := false
 		for i := range perfCfg {
 			perf := perfCfg[i]
