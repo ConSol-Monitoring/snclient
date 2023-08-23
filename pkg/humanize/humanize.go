@@ -97,17 +97,7 @@ func ParseBytes(raw string) (uint64, error) {
 	}
 
 	extra := strings.TrimSpace(raw[lastDigit:])
-	if m, ok := bytesSizeTable[extra]; ok {
-		fNum *= float64(m)
-		if fNum >= math.MaxUint64 {
-			return 0, fmt.Errorf("too large: %v", raw)
-		}
-
-		return uint64(fNum), nil
-	}
-
-	// try with uppercase case name if nothing matched yet
-	if m, ok := bytesSizeTable[strings.ToUpper(extra)]; ok {
+	if m, ok := getByteSize(extra); ok {
 		fNum *= float64(m)
 		if fNum >= math.MaxUint64 {
 			return 0, fmt.Errorf("too large: %v", raw)
@@ -150,12 +140,9 @@ func BytesUnit(num uint64, targetUnit string) float64 {
 
 // returns bytes in target unit with given precision
 func BytesUnitF(num uint64, targetUnit string, precision int) float64 {
-	factor, ok := bytesSizeTable[targetUnit]
+	factor, ok := getByteSize(targetUnit)
 	if !ok {
-		factor, ok = bytesSizeTable[strings.ToUpper(targetUnit)]
-		if !ok {
-			return 0
-		}
+		return 0
 	}
 
 	return roundToPrecision(float64(num)/float64(factor), precision)
@@ -187,4 +174,25 @@ func roundToPrecision(val float64, precision int) float64 {
 	factor := math.Pow10(precision)
 
 	return math.Round(val*factor) / factor
+}
+
+// find entry in the byte size table
+func getByteSize(name string) (uint64, bool) {
+	if m, ok := bytesSizeTable[name]; ok {
+		return m, ok
+	}
+
+	// try with uppercase case name if nothing matched yet
+	if m, ok := bytesSizeTable[strings.ToUpper(name)]; ok {
+		return m, ok
+	}
+
+	// try case insensitive match
+	for key, val := range bytesSizeTable {
+		if strings.EqualFold(key, name) {
+			return val, true
+		}
+	}
+
+	return 1, false
 }
