@@ -12,9 +12,9 @@ func TestCheckPerfConfigParser(t *testing.T) {
 	assert.NoErrorf(t, err, "no error in NewPerfConfig")
 
 	exp := []PerfConfig{
-		{Selector: "used", Unit: "G", Suffix: "s", Prefix: "pre"},
-		{Selector: "used %", Ignore: true},
-		{Selector: "*", Unit: "GiB", regex: regexp.MustCompile(".*")},
+		{Selector: "used", Unit: "G", Suffix: "s", Prefix: "pre", Magic: 1},
+		{Selector: "used %", Ignore: true, Magic: 1},
+		{Selector: "*", Unit: "GiB", regex: regexp.MustCompile(".*"), Magic: 1},
 	}
 	assert.Equalf(t, exp, perf, "NewPerfConfig parsed correctly")
 }

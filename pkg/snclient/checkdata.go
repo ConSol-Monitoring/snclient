@@ -84,6 +84,11 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 		finalMacros = cd.buildListMacros()
 	}
 
+	err := cd.result.ApplyPerfConfig(cd.perfConfig)
+	if err != nil {
+		return nil, fmt.Errorf("%s", err.Error())
+	}
+
 	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	cd.setStateFromMaps(finalMacros)
 
@@ -103,10 +108,6 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	}
 
 	cd.result.Finalize(cd.details, finalMacros)
-	err := cd.result.ApplyPerfConfig(cd.perfConfig)
-	if err != nil {
-		return nil, fmt.Errorf("%s", err.Error())
-	}
 
 	return cd.result, nil
 }

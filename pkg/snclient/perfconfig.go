@@ -17,6 +17,7 @@ type PerfConfig struct {
 	Prefix   string
 	Suffix   string
 	Unit     string
+	Magic    float64
 }
 
 func NewPerfConfig(raw string) ([]PerfConfig, error) {
@@ -80,41 +81,36 @@ func (p *PerfConfig) Match(name string) bool {
 
 func (p *PerfConfig) parseArgs(raw string) error {
 	conf := utils.TokenizeBy(raw, ";", false, false)
+	p.Magic = 1
 	for _, confItem := range conf {
 		confItem = strings.TrimSpace(confItem)
 		keyVal := strings.SplitN(confItem, ":", 2)
 		if len(keyVal) != 2 {
 			return fmt.Errorf("syntax error (key:value) in perf-config, expected colon in '%s'", raw)
 		}
+		rawVal, err := utils.TrimQuotes(strings.TrimSpace(keyVal[1]))
+		if err != nil {
+			return fmt.Errorf("quotes error in perf-config in '%s': %s", confItem, err.Error())
+		}
 		switch strings.ToLower(keyVal[0]) {
 		case "unit":
-			unit, err := utils.TrimQuotes(strings.TrimSpace(keyVal[1]))
-			if err != nil {
-				return fmt.Errorf("quotes error in perf-config in '%s': %s", confItem, err.Error())
-			}
-			p.Unit = unit
+			p.Unit = rawVal
 		case "suffix":
-			suffix, err := utils.TrimQuotes(strings.TrimSpace(keyVal[1]))
-			if err != nil {
-				return fmt.Errorf("quotes error in perf-config in '%s': %s", confItem, err.Error())
-			}
-			p.Suffix = suffix
+			p.Suffix = rawVal
 		case "prefix":
-			prefix, err := utils.TrimQuotes(strings.TrimSpace(keyVal[1]))
-			if err != nil {
-				return fmt.Errorf("quotes error in perf-config in '%s': %s", confItem, err.Error())
-			}
-			p.Prefix = prefix
+			p.Prefix = rawVal
 		case "ignored", "ignore":
-			ignore, err := utils.TrimQuotes(strings.TrimSpace(keyVal[1]))
-			if err != nil {
-				return fmt.Errorf("quotes error in perf-config in '%s'", confItem)
-			}
-			ign, err := convert.BoolE(ignore)
+			ign, err := convert.BoolE(rawVal)
 			if err != nil {
 				return fmt.Errorf("parse error in perf-config in '%s': %s", confItem, err.Error())
 			}
 			p.Ignore = ign
+		case "magic":
+			magic, err := convert.Float64E(rawVal)
+			if err != nil {
+				return fmt.Errorf("failed to parse magic number in perf-config in '%s': %s", confItem, err.Error())
+			}
+			p.Magic = magic
 		default:
 			return fmt.Errorf("unknown attribute %s in perf-config in '%s'", keyVal[0], raw)
 		}

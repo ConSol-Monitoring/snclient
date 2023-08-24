@@ -98,6 +98,11 @@ func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
 		return convert.Num2String(rawNum), m.Unit
 	}
 
+	if m.PerfConfig.Magic != 1 {
+		val := convert.Float64(rawNum)
+		rawNum = val * m.PerfConfig.Magic
+	}
+
 	if m.PerfConfig.Unit == "%" && m.Min != nil && m.Max != nil && *m.Max > *m.Min {
 		// convert into percent
 		val := convert.Float64(rawNum)
