@@ -66,6 +66,8 @@ in order and only the first match is applied.
 
 A detailed description can be found on the [performance configuration page](../checks/perfconfig/).
 
+SNClients perf-config has an additional `magic` option to apply a magic factor.
+
 
 ## Allow Arguments Handling
 ![Feature](../icons/feature.png "this is a new thing in SNClient+")

@@ -2,8 +2,6 @@
 title: Filter
 ---
 
-# Filter
-
 Filter can be uses to select specific objects from a result list. They are also used
 in warning, critical or ok thresholds.
 

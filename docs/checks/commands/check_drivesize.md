@@ -60,7 +60,7 @@ detail-syntax | %(drive_or_name) %(used)/%(size) used |
 | Argument | Description |
 | --- | --- |
 | drive | The drives to check |
-| magic | Magic number for use with scaling drive sizes |
+| magic | Magic number for use with scaling drive sizes. Note there is also a more generic magic factor in the perf-config option. |
 | exclude | List of drives to exclude from check |
 | total | Include the total of all matching drives |
 

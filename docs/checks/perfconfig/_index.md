@@ -2,8 +2,6 @@
 title: Perfomance Data Configuration
 ---
 
-# Perfomance Data Configuration
-
 Sometimes you might want to tweak performance data and therefore all checks
 support the `perf-conf` argument to apply tweaks to them.
 
@@ -30,6 +28,7 @@ The following keys are available:
 `prefix`  | `string`          | Change the prefix to something else.
 `suffix`  | `string`          | Change the suffix to something else.
 `unit`    | `string`          | Change the unit to something else.
+`magic`   | `number`          | Apply magic factor to performance data.
 
 
 ## Selector

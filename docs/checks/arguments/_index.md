@@ -2,8 +2,6 @@
 title: Common check arguments
 ---
 
-# Common check arguments
-
 | Option | Description |
 | --- | --- |
 [filter](#filter) | Filter for which items to check.
@@ -18,6 +16,7 @@ title: Common check arguments
 [empty-syntax](#empty-syntax) | Empty syntax.
 [detail-syntax](#detail-syntax) | Detailed/Individual Syntax.
 [perf-syntax](#perf-syntax) | Perfdata syntax.
+[perf-config](#perf-config) | Performance data tweaks.
 
 ## FILTER:
 
@@ -66,6 +65,12 @@ Sets the format for each individual item in the message.
 ## PERF-SYNTAX:
 
 Sets the format for the base names of the performance data.
+
+## PERF-CONFIG:
+
+Apply tweaks to performance data, like unit conversion.
+
+perf-config syntax is explained in detail here: [Perf Config](../perfconfig/)
 
 # Common filter attributes
 
