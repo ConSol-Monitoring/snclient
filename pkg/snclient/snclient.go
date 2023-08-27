@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -971,28 +972,24 @@ func fixReturnCodes(output *string, exitCode *int64, state *os.ProcessState) {
 }
 
 func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	//ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	cmdList := []string{"/bin/sh", "-c", command}
-	if runtime.GOOS == "windows" {
-		cmdList = utils.Tokenize(command)
-		cmdList, err = utils.TrimQuotesAll(cmdList)
-		if err != nil {
-			return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
-		}
+	scriptsPath, ok := snc.Config.Section("/paths").GetString("scripts")
+	if !ok {
+		scriptsPath, _ = os.Getwd()
 	}
-	log.Tracef("exec.Command: %#v", cmdList)
-	cmd := exec.CommandContext(ctx, cmdList[0], cmdList[1:]...) //nolint:gosec // tainted input is configurable
+	cmd, err := MakeCmd(ctx, command, scriptsPath)
+	if err != nil {
+		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
+	}
 
 	// byte buffer for output
 	var errbuf bytes.Buffer
 	var outbuf bytes.Buffer
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
-
-	// prevent child from receiving signals meant for the agent only
-	setSysProcAttr(cmd)
 
 	err = cmd.Start()
 	if err != nil && cmd.ProcessState == nil {
@@ -1085,4 +1082,56 @@ func (snc *Agent) verifyPassword(confPassword, userPassword string) bool {
 	log.Errorf("password mismatch -> 403")
 
 	return false
+}
+
+// MakeCmd returns the Cmd struct to execute the named program with
+// the given arguments.
+//
+// It first tries to find relative filenames in the PATH or in ${scripts}
+// If the first try did not succeed then it assumes we have a path with spaces
+// and appends argument after argument until a valid command path is found.
+func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error) {
+	cmdAndArgs := strings.Fields(command)
+	var cmdPath string
+	var cmdPathReplacement string
+	var holeFiller string
+	daemonDir, _ := os.Getwd()
+	_ = os.Chdir(scriptsPath)
+	for pieceNo := 0; pieceNo < len(cmdAndArgs); pieceNo++ {
+		cmdPath = strings.Join(cmdAndArgs[0:pieceNo+1], " ")
+		realPath, err := exec.LookPath(cmdPath)
+		if err == nil {
+			if !filepath.IsAbs(cmdPath) && cmdPath == realPath {
+				// a relative path like subdir/check_xy
+				cmdPathReplacement = filepath.Join(scriptsPath, cmdPath)
+			} else {
+				// /usr/bin/echo or %scripts%/check_xy
+				cmdPathReplacement = realPath
+			}
+			break
+		} else if errors.Is(err, exec.ErrDot) {
+			// like check_xy (which is in %scripts%)
+			cmdPathReplacement = filepath.Join(scriptsPath, cmdPath)
+			break
+		} else if !filepath.IsAbs(cmdPath) {
+			// maybe exec.ErrDot didn't work
+			_, err := os.Stat(cmdPath)
+			if err == nil {
+				cmdPathReplacement = filepath.Join(scriptsPath, cmdPath)
+				break
+			}
+		}
+	}
+	if cmdPathReplacement != "" {
+		if strings.Contains(cmdPathReplacement, " ") {
+			holeFiller = fmt.Sprintf("#_%c%c%c%c_#", rand.Intn(10)+'0', rand.Intn(26)+'a', rand.Intn(26)+'a', rand.Intn(26)+'a') //nolint
+		}
+		command = strings.Replace(command, cmdPath, strings.ReplaceAll(cmdPathReplacement, " ", holeFiller), 1)
+	}
+	_ = os.Chdir(daemonDir)
+
+	cmd, err := makeCmd(ctx, command, holeFiller)
+	log.Tracef("command object:\n path: %s\n args: %s\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr)
+
+	return cmd, err
 }

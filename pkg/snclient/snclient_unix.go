@@ -3,11 +3,13 @@
 package snclient
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 	"syscall"
 	"time"
 
@@ -106,9 +108,17 @@ func processTimeoutKill(process *os.Process) {
 	}(process.Pid)
 }
 
-func setSysProcAttr(cmd *exec.Cmd) {
+func makeCmd(ctx context.Context, command, holeFiller string) (*exec.Cmd, error) {
+	if holeFiller != "" {
+		command = strings.ReplaceAll(command, holeFiller, "\\ ")
+	}
+	cmdList := []string{"/bin/sh", "-c", command}
+	cmd := exec.CommandContext(ctx, cmdList[0], cmdList[1:]...) // #nosec G204
+	// prevent child from receiving signals meant for the agent only
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 		Pgid:    0,
 	}
+
+	return cmd, nil
 }

@@ -26,17 +26,18 @@ func (l *CheckWrap) Build() *CheckData {
 func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	l.snc = snc
 
-	cmdToken := utils.Tokenize(l.commandString)
-	macros := map[string]string{
-		"SCRIPT": cmdToken[0],
-		"ARGS":   strings.Join(check.rawArgs, " "),
-	}
+	macros := map[string]string{}
 	for i := range check.rawArgs {
 		macros[fmt.Sprintf("ARG%d", i+1)] = check.rawArgs[i]
 	}
 
 	var command string
 	if l.wrapped {
+		// substitute $ARGn$ in the command
+		commandString := ReplaceRuntimeMacros(l.commandString, macros)
+		cmdToken := utils.Tokenize(commandString)
+		macros["SCRIPT"] = cmdToken[0]
+		macros["ARGS"] = strings.Join(cmdToken[1:], " ")
 		ext := strings.TrimPrefix(filepath.Ext(cmdToken[0]), ".")
 		wrapping, ok := snc.Config.Section("/settings/external scripts/wrappings").GetString(ext)
 		if !ok {
@@ -44,16 +45,26 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		}
 		command = ReplaceRuntimeMacros(wrapping, macros)
 	} else {
+		macros["ARGS"] = strings.Join(check.rawArgs, " ")
+		macros["ARGS\""] = strings.Join(func(arr []string) []string {
+			quoteds := make([]string, len(arr))
+			for i, v := range arr {
+				quoteds[i] = fmt.Sprintf("%q", v)
+			}
+
+			return quoteds
+		}(check.rawArgs), " ")
 		command = ReplaceRuntimeMacros(l.commandString, macros)
 	}
 
-	if strings.Contains(command, "script root") {
-		scriptRoot, ok := snc.Config.Section("/settings/external scripts").GetString("script root")
+	// not available in nsclient, but can be useful in snclient
+	if strings.Contains(command, "scripts") {
+		scriptsDir, ok := snc.Config.Section("/settings/external scripts").GetString("scripts")
 		if ok {
-			macrosRoot := map[string]string{
-				"script root": scriptRoot,
+			macrosScriptsDir := map[string]string{
+				"scripts": scriptsDir,
 			}
-			command = ReplaceMacros(command, macrosRoot)
+			command = ReplaceMacros(command, macrosScriptsDir)
 		}
 	}
 
