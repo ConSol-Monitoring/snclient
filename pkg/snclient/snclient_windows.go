@@ -207,7 +207,7 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		return nil, errors.Wrap(err, "failed to trim quotes from cmdList")
 	}
 	cmdList[0] = strings.ReplaceAll(cmdList[0], "/", "\\")
-	cmdList[0] = strings.ReplaceAll(cmdList[0], holeFiller, " ")
+	cmdList[0] = strings.ReplaceAll(cmdList[0], "__BLANK__", " ")
 
 	name := cmdList[0]
 	if len(cmdList) == 1 {
@@ -245,8 +245,8 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 			shell = "cmd.exe" // Will be expanded by exec.LookPath in exec.Command
 		}
 		scArgs, _ := syscallCommandLineToArgv(command)
-		//scArgs[0] = "\"" + strings.ReplaceAll(scArgs[0], holeFiller, " ") + "\""
-		scArgs[0] = strings.ReplaceAll(scArgs[0], holeFiller, " ")
+		//scArgs[0] = "\"" + strings.ReplaceAll(scArgs[0], "__BLANK__", " ") + "\""
+		scArgs[0] = strings.ReplaceAll(scArgs[0], "__BLANK__", " ")
 		scArgs[0] = "'" + strings.ReplaceAll(scArgs[0], "/", "\\") + "'"
 		args := append([]string{"/c"}, scArgs...)
 		cmd := exec.CommandContext(ctx, shell, args...)
