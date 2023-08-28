@@ -104,8 +104,8 @@ var (
 	// macros can be either ${...} or %(...)
 	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_: ]+\s*\}|%\(\s*[a-zA-Z\-_: ]+\s*\)`)
 
-	// runtime macros can be %...%
-	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z\-_: ]+(?:%|\$)`)
+	// runtime macros can be %...% or $...$ or $ARGS"$
+	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z0-9"\-_: ]+(?:%|\$)`)
 )
 
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
@@ -972,8 +972,7 @@ func fixReturnCodes(output *string, exitCode *int64, state *os.ProcessState) {
 }
 
 func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
-	//ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
 
 	scriptsPath, ok := snc.Config.Section("/paths").GetString("scripts")
@@ -1095,31 +1094,28 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 	var cmdPath string
 	var cmdPathReplacement string
 	var holeFiller string
-	daemonDir, _ := os.Getwd()
-	_ = os.Chdir(scriptsPath)
 	for pieceNo := 0; pieceNo < len(cmdAndArgs); pieceNo++ {
 		cmdPath = strings.Join(cmdAndArgs[0:pieceNo+1], " ")
 		realPath, err := exec.LookPath(cmdPath)
+
 		if err == nil {
-			if !filepath.IsAbs(cmdPath) && cmdPath == realPath {
-				// a relative path like subdir/check_xy
-				cmdPathReplacement = filepath.Join(scriptsPath, cmdPath)
-			} else {
-				// /usr/bin/echo or %scripts%/check_xy
-				cmdPathReplacement = realPath
-			}
+			// can be abs., /usr/bin/echo or %scripts%/check_xy
+			// or rel., echo, timeout, anything in $PATH
+			cmdPathReplacement = realPath
+
 			break
-		} else if errors.Is(err, exec.ErrDot) {
-			// like check_xy (which is in %scripts%)
-			cmdPathReplacement = filepath.Join(scriptsPath, cmdPath)
+		}
+
+		if filepath.IsAbs(cmdPath) {
+			continue
+		}
+
+		// try a relative lookup in %scripts%
+		realPath, err = exec.LookPath(filepath.Join(scriptsPath, cmdPath))
+		if err == nil {
+			cmdPathReplacement = realPath
+
 			break
-		} else if !filepath.IsAbs(cmdPath) {
-			// maybe exec.ErrDot didn't work
-			_, err := os.Stat(cmdPath)
-			if err == nil {
-				cmdPathReplacement = filepath.Join(scriptsPath, cmdPath)
-				break
-			}
 		}
 	}
 	if cmdPathReplacement != "" {
@@ -1128,7 +1124,6 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 		}
 		command = strings.Replace(command, cmdPath, strings.ReplaceAll(cmdPathReplacement, " ", holeFiller), 1)
 	}
-	_ = os.Chdir(daemonDir)
 
 	cmd, err := makeCmd(ctx, command, holeFiller)
 	log.Tracef("command object:\n path: %s\n args: %s\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr)
