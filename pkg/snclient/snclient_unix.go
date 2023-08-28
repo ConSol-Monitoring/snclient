@@ -108,10 +108,8 @@ func processTimeoutKill(process *os.Process) {
 	}(process.Pid)
 }
 
-func makeCmd(ctx context.Context, command, holeFiller string) (*exec.Cmd, error) {
-	if holeFiller != "" {
-		command = strings.ReplaceAll(command, holeFiller, "\\ ")
-	}
+func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
+	command = strings.ReplaceAll(command, "__BLANK__", "\\ ")
 	cmdList := []string{"/bin/sh", "-c", command}
 	cmd := exec.CommandContext(ctx, cmdList[0], cmdList[1:]...) // #nosec G204
 	// prevent child from receiving signals meant for the agent only

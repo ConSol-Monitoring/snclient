@@ -196,15 +196,11 @@ func processTimeoutKill(process *os.Process) {
 
 // makeCmd handles the case where the program is a Windows batch os ps1 file
 // and the implication it has on argument quoting.
-func makeCmd(ctx context.Context, command, holeFiller string) (*exec.Cmd, error) {
-	if holeFiller != "" {
-		command = strings.ReplaceAll(command, holeFiller, "\\ ")
-	}
+func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
+	command = strings.ReplaceAll(command, "__BLANK__", "\\ ")
 	cmdList := utils.Tokenize(command)
-	if holeFiller != "" {
-		command = strings.ReplaceAll(command, holeFiller, "\\ ")
-		cmdList[0] = strings.ReplaceAll(cmdList[0], holeFiller, "\\ ")
-	}
+	command = strings.ReplaceAll(command, "__BLANK__", "\\ ")
+	cmdList[0] = strings.ReplaceAll(cmdList[0], "__BLANK__", "\\ ")
 	var err error
 	cmdList, err = utils.TrimQuotesAll(cmdList)
 	if err != nil {

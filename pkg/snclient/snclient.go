@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -1093,7 +1092,6 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 	cmdAndArgs := strings.Fields(command)
 	var cmdPath string
 	var cmdPathReplacement string
-	var holeFiller string
 	for pieceNo := 0; pieceNo < len(cmdAndArgs); pieceNo++ {
 		cmdPath = strings.Join(cmdAndArgs[0:pieceNo+1], " ")
 		realPath, err := exec.LookPath(cmdPath)
@@ -1119,13 +1117,10 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 		}
 	}
 	if cmdPathReplacement != "" {
-		if strings.Contains(cmdPathReplacement, " ") {
-			holeFiller = fmt.Sprintf("#_%c%c%c%c_#", rand.Intn(10)+'0', rand.Intn(26)+'a', rand.Intn(26)+'a', rand.Intn(26)+'a') //nolint
-		}
-		command = strings.Replace(command, cmdPath, strings.ReplaceAll(cmdPathReplacement, " ", holeFiller), 1)
+		command = strings.Replace(command, cmdPath, strings.ReplaceAll(cmdPathReplacement, " ", "__BLANK__"), 1)
 	}
 
-	cmd, err := makeCmd(ctx, command, holeFiller)
+	cmd, err := makeCmd(ctx, command)
 	log.Tracef("command object:\n path: %s\n args: %s\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr)
 
 	return cmd, err
