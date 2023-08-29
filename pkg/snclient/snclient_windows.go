@@ -2,7 +2,6 @@ package snclient
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -204,7 +203,8 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 	var err error
 	cmdList, err = utils.TrimQuotesAll(cmdList)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to trim quotes from cmdList")
+		return nil, err
+		//		return nil, errors.Wrap(err, "failed to trim quotes from cmdList")
 	}
 	cmdList[0] = strings.ReplaceAll(cmdList[0], "/", "\\")
 	cmdList[0] = strings.ReplaceAll(cmdList[0], "__BLANK__", " ")
@@ -247,7 +247,8 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		scArgs, _ := syscallCommandLineToArgv(command)
 		//scArgs[0] = "\"" + strings.ReplaceAll(scArgs[0], "__BLANK__", " ") + "\""
 		scArgs[0] = strings.ReplaceAll(scArgs[0], "__BLANK__", " ")
-		scArgs[0] = "'" + strings.ReplaceAll(scArgs[0], "/", "\\") + "'"
+		//		scArgs[0] = "'" + strings.ReplaceAll(scArgs[0], "/", "\\") + "'"
+		scArgs[0] = strings.ReplaceAll(scArgs[0], "/", "\\")
 		args := append([]string{"/c"}, scArgs...)
 		cmd := exec.CommandContext(ctx, shell, args...)
 		//              cmd = exec.CommandContext(ctx, shell, "/c", scArgs...)

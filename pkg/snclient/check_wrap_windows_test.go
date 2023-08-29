@@ -20,7 +20,10 @@ func setupConfig(scriptsDir, scriptsType string) string {
 CheckExternalScripts = enabled
 
 [/paths]
-script= %s
+scripts = %s
+
+[/settings/external scripts/wrappings]
+exe = %%SCRIPT%% %%ARGS%%
 
 [/settings/external scripts/scripts]
 check_doesnotexist = /a/path/that/does/not/exist/nonexisting_script "no" "no"
@@ -78,6 +81,36 @@ func TestCheckExternalWindowsTimeout(t *testing.T) {
 	res := snc.RunCheck("timeoutscript", []string{})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state matches")
 	assert.Equalf(t, "UNKNOWN: script run into timeout after 1s\n", string(res.BuildPluginOutput()), "output matches")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWindowsExe(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+
+	config := setupConfig(scriptsDir, "exe")
+	snc := StartTestAgent(t, config)
+
+	runTestCheckExternalDefault(t, snc)
+	runTestCheckExternalArgs(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWindowsExePathWithSpaces(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	holesDir := filepath.Join(testDir, "t", "scri pts")
+
+	teardown := setupTeardown(t, holesDir)
+	defer teardown()
+	_ = copy.Copy(scriptsDir, holesDir)
+
+	config := setupConfig(holesDir, "exe")
+	snc := StartTestAgent(t, config)
+
+	runTestCheckExternalDefault(t, snc)
 
 	StopTestAgent(t, snc)
 }
