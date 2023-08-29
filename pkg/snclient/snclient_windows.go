@@ -214,6 +214,9 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 	name := cmdList[0]
 	if len(cmdList) == 1 {
 		// binaries and bat can be run in a simple way
+		if isBatchFile(name) {
+			return exec.CommandContext(ctx, QuotePathWithSpaces(name)), nil
+		}
 		if !isPsFile(name) {
 			return exec.CommandContext(ctx, name), nil
 		}
@@ -299,4 +302,19 @@ func syscallCommandLineToArgv(cmd string) ([]string, error) {
 		args = append(args, syscall.UTF16ToString((*v)[:]))
 	}
 	return args, nil
+}
+
+func QuotePathWithSpaces(path string) string {
+	components := strings.Split(path, `\`)
+	quotedComponents := make([]string, len(components))
+
+	for i, component := range components {
+		if strings.Contains(component, " ") {
+			quotedComponents[i] = `"` + component + `"`
+		} else {
+			quotedComponents[i] = component
+		}
+	}
+
+	return strings.Join(quotedComponents, `\`)
 }
