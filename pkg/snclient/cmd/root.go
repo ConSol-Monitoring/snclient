@@ -214,6 +214,15 @@ func injectDoubleSlashAfterRunCmd(rootCmd *cobra.Command) {
 	os.Args = osargs
 }
 
+// set logging to stdout, useful for non-daemon commands
+func setStdoutLogger() {
+	agentFlags.LogFile = "stdout"
+	agentFlags.LogFormat = snclient.LogColors + `[%{Time "15:04:05.000"}][%{S}] %{Message}` + snclient.LogColorReset
+	if agentFlags.Verbose > 2 {
+		agentFlags.LogFormat = snclient.LogColors + `[%{Time "15:04:05.000"}][%{S}][%{ShortFile}:%{Line}] %{Message}` + snclient.LogColorReset
+	}
+}
+
 var usageTemplate = `Usage:{{if .Runnable}}
   {{.UseLine}}{{end}}{{if gt (len .Aliases) 0}}
 
