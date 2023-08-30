@@ -1,6 +1,6 @@
 This file documents the revision history for the SNClient+ agent.
 
-next:
+0.07       Wed Aug 30 20:45:50 CEST 2023
           - add support for perf-config option
           - add support for case insensitive regular expression matches
           - add support for case insensitive string matches
