@@ -4,6 +4,7 @@ next:
           - add support for perf-config option
           - add support for case insensitive regular expression matches
           - add support for case insensitive string matches
+          - add support for builtin check_nsc_web
           - improve documentation
           - check_disk: ignore drives which have problems but are not required
 

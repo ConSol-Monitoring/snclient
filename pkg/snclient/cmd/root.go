@@ -81,11 +81,13 @@ func addFlags(cmd *cobra.Command, flags *snclient.AgentFlags) {
 }
 
 func Execute() error {
+	injectDoubleSlashAfterRunCmd(rootCmd)
 	sanitizeOSArgs()
 	maybeInjectRootAlias(rootCmd, "server")
 	return rootCmd.Execute()
 }
 
+// inject given command unless there is one already
 func maybeInjectRootAlias(rootCmd *cobra.Command, inject string) {
 	cmd, args, err := rootCmd.Find(os.Args[1:])
 	if err != nil {
@@ -116,6 +118,7 @@ func maybeInjectRootAlias(rootCmd *cobra.Command, inject string) {
 	os.Args = append([]string{os.Args[0], inject}, os.Args[1:]...)
 }
 
+// replace -option=... with --option=...
 func sanitizeOSArgs() {
 	// sanitize some args
 	replace := map[string]string{}
@@ -144,6 +147,71 @@ func sanitizeOSArgs() {
 			}
 		}
 	}
+}
+
+// adds -- after ./snclient run ... to separate cmd args from cobra args
+func injectDoubleSlashAfterRunCmd(rootCmd *cobra.Command) {
+	cmd, _, err := rootCmd.Find(os.Args[1:])
+	if err != nil {
+		return
+	}
+
+	// only used in the "test" command
+	if cmd.Name() != "test" {
+		return
+	}
+
+	// check if there isn't any -- already in the args
+	for _, a := range os.Args {
+		if a == "--" {
+			return
+		}
+	}
+
+	// search start of cmd args
+	found := 0
+	for i, a := range os.Args {
+		if strings.HasPrefix(a, "-") {
+			continue
+		}
+		if a == cmd.Name() {
+			found = i
+			break
+		}
+		for _, n := range cmd.Aliases {
+			if a == n {
+				found = i
+				break
+			}
+		}
+		if found > 0 {
+			break
+		}
+	}
+
+	if found == 0 {
+		return
+	}
+
+	// check if there is a plugin name after ./snclient ... run
+	found2 := -1
+	for i, a := range os.Args[found+1:] {
+		if !strings.HasPrefix(a, "-") {
+			found2 = i
+			break
+		}
+	}
+
+	if found2 == -1 {
+		return
+	}
+
+	index := found + found2 + 1
+
+	osargs := append([]string{}, os.Args[0:index]...)
+	osargs = append(osargs, "--")
+	osargs = append(osargs, os.Args[index:]...)
+	os.Args = osargs
 }
 
 var usageTemplate = `Usage:{{if .Runnable}}
