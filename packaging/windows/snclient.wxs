@@ -22,6 +22,8 @@
         <UI Id="InstallDialog">
             <UIRef Id="MyWixUI_InstallDir" />
         </UI>
+        <WixVariable Id="WixUIBannerBmp" Value="packaging\windows\banner.bmp" />
+        <WixVariable Id="WixUIDialogBmp" Value="packaging\windows\dialog.bmp" />
         <MediaTemplate EmbedCab="yes" />
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="$(var.PlatformProgramFilesFolder)">
