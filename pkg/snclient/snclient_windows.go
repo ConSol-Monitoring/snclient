@@ -204,9 +204,10 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		//        return nil, errors.Wrap(err, "failed to trim quotes from cmdList")
 	}
 
-	cmdName := cmdList[0]
+	cmdName := strings.ReplaceAll(cmdList[0], `\`, `/`)
 	if len(cmdList) == 1 {
-		cmdName = strings.ReplaceAll(cmdList[0], "__BLANK__", " ")
+		cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
+		//cmdName =
 		// binaries and bat can be run in a simple way
 		cmd := exec.CommandContext(ctx, cmdName)
 		if isBatchFile(cmdName) {
@@ -222,10 +223,9 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		cmd = exec.CommandContext(ctx, shell)
 		cmd.Args = nil
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo "%q"`, syscall.EscapeArg(cmd.Path), cmdName),
+			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo -Command "%s"; exit($LASTEXITCODE)`, syscall.EscapeArg(cmd.Path), cmdName),
 			HideWindow: true,
 		}
-
 		return cmd, nil
 	}
 
@@ -250,20 +250,21 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		return cmd, nil
 	}
 	if isPsFile(cmdName) {
-		argsEscaped := make([]string, len(cmdArgs)+1)
-		argsEscaped[0] = syscall.EscapeArg(cmdName)
-		for i, a := range cmdArgs {
-			//argsEscaped[i+1] = syscall.EscapeArg(a)
-			argsEscaped[i+1] = a
+		argsEscaped := make([]string, len(cmdArgs))
+		for i, ca := range cmdArgs {
+			argsEscaped[i] = `'` + ca + `'`
 		}
 
 		shell := "powershell"
 		cmd := exec.CommandContext(ctx, shell)
 		cmd.Args = nil
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo "%q"`, syscall.EscapeArg(cmd.Path), strings.Join(argsEscaped, " ")),
+			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo "%q"; exit($LASTEXITCODE)`, syscall.EscapeArg(cmd.Path), cmdName+" "+strings.Join(argsEscaped, " ")),
 			HideWindow: true,
 		}
+		return cmd, nil
+
+		//	CmdLine:    `C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NoLogo -Command "C:/Users/lausser/GolandProjects/snclient/pkg/snclient/t/scripts/check_dummy.ps1 2 'i am critical'"; exit($LASTEXITCODE)`,
 	}
 	cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
