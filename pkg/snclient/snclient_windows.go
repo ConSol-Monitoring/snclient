@@ -211,7 +211,7 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		// binaries and bat can be run in a simple way
 		cmd := exec.CommandContext(ctx, cmdName)
 		if isBatchFile(cmdName) {
-			// calling a bat file without argumentes must be done without escaping/quoting and without cmd.exe
+			// calling a bat file without arguments must be done without escaping/quoting and without cmd.exe
 			return cmd, nil
 		}
 		if !isPsFile(cmdName) {
@@ -222,8 +222,11 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		shell := "powershell"
 		cmd = exec.CommandContext(ctx, shell)
 		cmd.Args = nil
+		cmdDir := filepath.Dir(cmdName)
+		cmdName = filepath.Base(cmdName)
+		cmd.Dir = cmdDir
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo -Command "%s"; exit($LASTEXITCODE)`, syscall.EscapeArg(cmd.Path), cmdName),
+			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo -Command "./%s"; exit($LASTEXITCODE)`, syscall.EscapeArg(cmd.Path), cmdName),
 			HideWindow: true,
 		}
 		return cmd, nil
@@ -250,24 +253,35 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		return cmd, nil
 	}
 	if isPsFile(cmdName) {
-		argsEscaped := make([]string, len(cmdArgs))
-		for i, ca := range cmdArgs {
-			argsEscaped[i] = `'` + ca + `'`
-		}
 
-		shell := "powershell"
+		for i, ca := range cmdArgs {
+			cmdArgs[i] = `'` + ca + `'`
+		}
+		//============= scriptpath if cmdName startswith scriptpath, basename und chdir
+		shell := "cmd"
 		cmd := exec.CommandContext(ctx, shell)
 		cmd.Args = nil
+		cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
+		cmdDir := filepath.Dir(cmdName)
+		cmdName = filepath.Base(cmdName)
+		cmd.Dir = cmdDir
+		cmdLine := fmt.Sprintf(`%s /C powershell -Command "& %s"; exit($LASTEXITCODE)`, shell, `'./`+cmdName+`'`+" "+strings.Join(cmdArgs, " "))
+
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo "%q"; exit($LASTEXITCODE)`, syscall.EscapeArg(cmd.Path), cmdName+" "+strings.Join(argsEscaped, " ")),
+			CmdLine:    cmdLine,
 			HideWindow: true,
 		}
 		return cmd, nil
 
-		//	CmdLine:    `C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NoLogo -Command "C:/Users/lausser/GolandProjects/snclient/pkg/snclient/t/scripts/check_dummy.ps1 2 'i am critical'"; exit($LASTEXITCODE)`,
 	}
 	cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
+	if strings.Contains(command, `|`) {
+		cmd = exec.CommandContext(ctx, cmdName, cmdArgs...)
+	}
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow: true,
+	}
 	return cmd, nil
 }
 
