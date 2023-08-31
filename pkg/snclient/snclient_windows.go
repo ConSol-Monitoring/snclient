@@ -196,84 +196,77 @@ func processTimeoutKill(process *os.Process) {
 // makeCmd handles the case where the program is a Windows batch os ps1 file
 // and the implication it has on argument quoting.
 func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
-	//command = strings.ReplaceAll(command, "__BLANK__", "\\ ")
 	cmdList := utils.Tokenize(command)
-	//command = strings.ReplaceAll(command, "__BLANK__", "\\ ")
-	//cmdList[0] = strings.ReplaceAll(cmdList[0], "__BLANK__", "\\ ")
-	command = strings.ReplaceAll(command, "__BLANK__", " ")
-	cmdList[0] = strings.ReplaceAll(cmdList[0], "__BLANK__", " ")
 	var err error
 	cmdList, err = utils.TrimQuotesAll(cmdList)
 	if err != nil {
 		return nil, err
-		//		return nil, errors.Wrap(err, "failed to trim quotes from cmdList")
+		//        return nil, errors.Wrap(err, "failed to trim quotes from cmdList")
 	}
-	cmdList[0] = strings.ReplaceAll(cmdList[0], "/", "\\")
-	cmdList[0] = strings.ReplaceAll(cmdList[0], "__BLANK__", " ")
 
-	name := cmdList[0]
+	cmdName := cmdList[0]
 	if len(cmdList) == 1 {
+		cmdName = strings.ReplaceAll(cmdList[0], "__BLANK__", " ")
 		// binaries and bat can be run in a simple way
-		if isBatchFile(name) {
-			return exec.CommandContext(ctx, QuotePathWithSpaces(name)), nil
+		cmd := exec.CommandContext(ctx, cmdName)
+		if isBatchFile(cmdName) {
+			// calling a bat file without argumentes must be done without escaping/quoting and without cmd.exe
+			return cmd, nil
 		}
-		if !isPsFile(name) {
-			return exec.CommandContext(ctx, name), nil
+		if !isPsFile(cmdName) {
+			// exe files as well
+			return cmd, nil
 		}
 		//  powershell requires wrapping
 		shell := "powershell"
-		cmd := exec.CommandContext(ctx, shell)
+		cmd = exec.CommandContext(ctx, shell)
 		cmd.Args = nil
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo "%q"`, syscall.EscapeArg(cmd.Path), name),
+			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo "%q"`, syscall.EscapeArg(cmd.Path), cmdName),
 			HideWindow: true,
 		}
 
 		return cmd, nil
 	}
-	args := cmdList[1:]
-	cmd := exec.CommandContext(ctx, name, args...)
-	if !isBatchFile(name) && !isPsFile(name) {
-		return cmd, nil
-	}
 
-	argsEscaped := make([]string, len(args)+1)
-	argsEscaped[0] = syscall.EscapeArg(name)
-	for i, a := range args {
-		//argsEscaped[i+1] = syscall.EscapeArg(a)
-		argsEscaped[i+1] = a
-	}
+	cmdArgs := cmdList[1:]
 
-	if isBatchFile(name) {
+	if isBatchFile(cmdName) {
 		shell := os.Getenv("COMSPEC")
 		if shell == "" {
 			shell = "cmd.exe" // Will be expanded by exec.LookPath in exec.Command
 		}
-		scArgs, _ := syscallCommandLineToArgv(command)
-		//scArgs[0] = "\"" + strings.ReplaceAll(scArgs[0], "__BLANK__", " ") + "\""
-		scArgs[0] = strings.ReplaceAll(scArgs[0], "__BLANK__", " ")
-		//		scArgs[0] = "'" + strings.ReplaceAll(scArgs[0], "/", "\\") + "'"
-		scArgs[0] = strings.ReplaceAll(scArgs[0], "/", "\\")
-		args := append([]string{"/c"}, scArgs...)
-		cmd := exec.CommandContext(ctx, shell, args...)
-		//              cmd = exec.CommandContext(ctx, shell, "/c", scArgs...)
-		return cmd, nil
+		cmd := exec.CommandContext(ctx, shell, "")
+		for i, ca := range cmdArgs {
+			cmdArgs[i] = syscall.EscapeArg(ca)
+		}
+		cmdName = strings.ReplaceAll(cmdName, "__BLANK__", "^ ")
+		cmdLine := fmt.Sprintf(`%s /c %s %s`, shell, cmdName, strings.Join(cmdArgs, " "))
 		cmd.Args = nil
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			//CmdLine:    fmt.Sprintf(`%s /c %q`, syscall.EscapeArg(cmd.Path), strings.Join(argsEscaped, " ")),
-			CmdLine:    fmt.Sprintf(`%s /c %q`, syscall.EscapeArg(cmd.Path), strings.Join(argsEscaped, " ")),
+			CmdLine:    cmdLine,
 			HideWindow: true,
 		}
-	} else if isPsFile(name) {
+		return cmd, nil
+	}
+	if isPsFile(cmdName) {
+		argsEscaped := make([]string, len(cmdArgs)+1)
+		argsEscaped[0] = syscall.EscapeArg(cmdName)
+		for i, a := range cmdArgs {
+			//argsEscaped[i+1] = syscall.EscapeArg(a)
+			argsEscaped[i+1] = a
+		}
+
 		shell := "powershell"
-		cmd = exec.CommandContext(ctx, shell)
+		cmd := exec.CommandContext(ctx, shell)
 		cmd.Args = nil
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo "%q"`, syscall.EscapeArg(cmd.Path), strings.Join(argsEscaped, " ")),
 			HideWindow: true,
 		}
 	}
-
+	cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
+	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
 	return cmd, nil
 }
 
@@ -305,7 +298,7 @@ func syscallCommandLineToArgv(cmd string) ([]string, error) {
 }
 
 func QuotePathWithSpaces(path string) string {
-	components := strings.Split(path, `\`)
+	components := strings.Split(path, `/`)
 	quotedComponents := make([]string, len(components))
 
 	for i, component := range components {
@@ -316,5 +309,20 @@ func QuotePathWithSpaces(path string) string {
 		}
 	}
 
-	return strings.Join(quotedComponents, `\`)
+	return strings.Join(quotedComponents, `/`)
+}
+
+func EscapePathWithSpaces(path string) string {
+	components := strings.Split(path, `/`)
+	quotedComponents := make([]string, len(components))
+
+	for i, component := range components {
+		if strings.Contains(component, " ") {
+			quotedComponents[i] = strings.ReplaceAll(component, " ", "^ ")
+		} else {
+			quotedComponents[i] = component
+		}
+	}
+
+	return strings.Join(quotedComponents, `/`)
 }
