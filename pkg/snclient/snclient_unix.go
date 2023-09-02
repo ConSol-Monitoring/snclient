@@ -109,7 +109,7 @@ func processTimeoutKill(process *os.Process) {
 }
 
 func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
-	command = strings.ReplaceAll(command, "__BLANK__", "\\ ")
+	command = strings.ReplaceAll(command, "__SNCLIENT_BLANK__", "\\ ")
 	cmdList := []string{"/bin/sh", "-c", command}
 	cmd := exec.CommandContext(ctx, cmdList[0], cmdList[1:]...) // #nosec G204
 	// prevent child from receiving signals meant for the agent only

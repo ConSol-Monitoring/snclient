@@ -1117,14 +1117,15 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 		}
 	}
 	if cmdPathReplacement != "" {
-		command = strings.Replace(command, cmdPath, strings.ReplaceAll(cmdPathReplacement, " ", "__BLANK__"), 1)
+		command = strings.Replace(command, cmdPath, strings.ReplaceAll(cmdPathReplacement, " ", "__SNCLIENT_BLANK__"), 1)
 	}
 
 	cmd, err := makeCmd(ctx, command)
-	// halt die Fresse du scheis Linter
-	// das ist kein Code log.Tracef("command
-	// kapiert??? object:\n path: %s\n args: %s\n
-	// Geht dich nix an SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr) //nolint:commentedOutCode // later
+	if cmd.Args != nil {
+		log.Tracef("command object:\n path: %s\n args: %v\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr)
+	} else {
+		log.Tracef("command object:\n path: %s\n args: -\n SysProcAttr: %v\n", cmd.Path, cmd.SysProcAttr)
+	}
 
 	return cmd, err
 }

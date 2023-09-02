@@ -196,40 +196,19 @@ func processTimeoutKill(process *os.Process) {
 // makeCmd handles the case where the program is a Windows batch os ps1 file
 // and the implication it has on argument quoting.
 func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
-	// funktioniertcmdList := utils.Tokenize(command)
-	command = strings.ReplaceAll(command, "; exit", " ; exit")
-	command = strings.ReplaceAll(command, ";exit", " ; exit")
-	cmdList, _ := syscallCommandLineToArgv(command) // owacht
-
+	cmdList, _ := syscallCommandLineToArgv(command)
 	var err error
 	cmdList, err = utils.TrimQuotesAll(cmdList)
 	if err != nil {
-		return nil, err
-		//        return nil, errors.Wrap(err, "failed to trim quotes from cmdList")
+		return nil, fmt.Errorf("trimming arguments: %s", err.Error())
 	}
-	cmdName := strings.ReplaceAll(cmdList[0], `\`, `/`)
-
+	cmdName := cmdList[0]
 	if len(cmdList) == 1 {
-		cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
-		// binaries and bat can be run in a simple way
-		cmd := exec.CommandContext(ctx, cmdName)
-		if isBatchFile(cmdName) || !isPsFile(cmdName) {
-			return cmd, nil
-		}
-		shell := "powershell"
-		cmd = exec.CommandContext(ctx, shell)
-		cmd.Args = nil
-		cmdLine := fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". '%s'; exit($LASTEXITCODE)"`, cmdName)
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    cmdLine,
-			HideWindow: true,
-		}
-		return cmd, nil
+		return makeCmdNoParams(ctx, cmdName)
 	}
-
 	cmdArgs := cmdList[1:]
 	if isBatchFile(cmdName) {
-		cmdName = strings.ReplaceAll(cmdName, "__BLANK__", "^ ")
+		cmdName = strings.ReplaceAll(cmdName, "__SNCLIENT_BLANK__", "^ ")
 		shell := os.Getenv("COMSPEC")
 		if shell == "" {
 			shell = "cmd.exe" // Will be expanded by exec.LookPath in exec.Command
@@ -239,61 +218,56 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		}
 		cmd := exec.CommandContext(ctx, shell, "")
 		cmd.Args = nil
-		cmdLine := fmt.Sprintf(`%s /c %s %s`, shell, cmdName, strings.Join(cmdArgs, " "))
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    cmdLine,
 			HideWindow: true,
+			CmdLine:    fmt.Sprintf(`%s /c %s %s`, shell, cmdName, strings.Join(cmdArgs, " ")),
 		}
+
 		return cmd, nil
 	}
 	if isPsFile(cmdName) {
-
 		for i, ca := range cmdArgs {
 			cmdArgs[i] = `'` + ca + `'`
 		}
-		cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
+		cmdName = strings.ReplaceAll(cmdName, "__SNCLIENT_BLANK__", " ")
 		cmd := exec.CommandContext(ctx, "powershell")
 		cmd.Args = nil
-		cmdLine := fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". %s; exit($LASTEXITCODE)"`, `'`+cmdName+`'`+" "+strings.Join(cmdArgs, " "))
-		//cmdLine = fmt.Sprintf(`powershell -NonInteractive -File "%s" %s; exit($LASTEXITCODE)`, cmdName, strings.Join(cmdArgs, " "))
-
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine: cmdLine,
-			//HideWindow: true,
+			HideWindow: true,
+			CmdLine: fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". '%s' %s; exit($LASTEXITCODE)"`,
+				cmdName, strings.Join(cmdArgs, " ")),
 		}
+
 		return cmd, nil
-
 	}
-
-	cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
-	// insert -NoExit -WindowStype normal
-	found := true
-	cmdArgs, _ = syscallCommandLineToArgv(command) // unused
-	//fmt.Println(scArgs)
+	cmdName = strings.ReplaceAll(cmdName, "__SNCLIENT_BLANK__", " ")
 	for i, ca := range cmdArgs {
-		cmdArgs[i] = strings.ReplaceAll(ca, "__BLANK__", " ")
+		cmdArgs[i] = strings.ReplaceAll(ca, "__SNCLIENT_BLANK__", " ")
 	}
-
-	if !found {
-		result := []string{}
-		inserted := false
-
-		for _, str := range cmdArgs {
-			if str == "-nologo" && !inserted {
-				result = append(result, "-NoExit")
-				result = append(result, "-WindowStyle")
-				result = append(result, "normal")
-				inserted = true
-			}
-			result = append(result, str)
-		}
-		cmdArgs = result
-	}
-	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
-	//	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
+	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		//HideWindow: true,
+		HideWindow: true,
 	}
+
+	return cmd, nil
+}
+
+func makeCmdNoParams(ctx context.Context, cmdName string) (*exec.Cmd, error) {
+	cmdName = strings.ReplaceAll(cmdName, "__SNCLIENT_BLANK__", " ")
+	cmd := exec.CommandContext(ctx, cmdName) // exe and bat even with space in the path can run like this
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow: true,
+	}
+	if isBatchFile(cmdName) || !isPsFile(cmdName) {
+		return cmd, nil
+	}
+	cmd = exec.CommandContext(ctx, "powershell")
+	cmd.Args = nil
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow: true,
+		CmdLine:    fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". '%s'; exit($LASTEXITCODE)"`, cmdName),
+	}
+
 	return cmd, nil
 }
 
@@ -311,41 +285,27 @@ func isPsFile(path string) bool {
 
 func syscallCommandLineToArgv(cmd string) ([]string, error) {
 	var argc int32
-	argv, err := syscall.CommandLineToArgv(&syscall.StringToUTF16(cmd)[0], &argc)
+	argv, err := syscall.CommandLineToArgv(&syscall.StringToUTF16(cmd)[0], &argc) //nolint:staticcheck // copied from a test in the golang repo
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("syscall.CommandLineToArgv: %s", err.Error())
 	}
-	defer syscall.LocalFree(syscall.Handle(uintptr(unsafe.Pointer(argv))))
+	defer syscall.LocalFree(syscall.Handle(uintptr(unsafe.Pointer(argv)))) //nolint:errcheck // copied from golang repo
 
-	var args []string
+	var args []string //nolint:prealloc // copied from golang repo
 	for _, v := range (*argv)[:argc] {
 		args = append(args, syscall.UTF16ToString((*v)[:]))
 	}
+
 	return args, nil
 }
 
 func QuotePathWithSpaces(path string) string {
-	components := strings.Split(path, `/`)
+	components := strings.Split(path, `\`)
 	quotedComponents := make([]string, len(components))
 
 	for i, component := range components {
 		if strings.Contains(component, " ") {
 			quotedComponents[i] = `"` + component + `"`
-		} else {
-			quotedComponents[i] = component
-		}
-	}
-
-	return strings.Join(quotedComponents, `/`)
-}
-
-func EscapePathWithSpaces(path string) string {
-	components := strings.Split(path, `/`)
-	quotedComponents := make([]string, len(components))
-
-	for i, component := range components {
-		if strings.Contains(component, " ") {
-			quotedComponents[i] = strings.ReplaceAll(component, " ", "^ ")
 		} else {
 			quotedComponents[i] = component
 		}
