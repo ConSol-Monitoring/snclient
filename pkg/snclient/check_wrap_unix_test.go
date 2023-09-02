@@ -74,7 +74,7 @@ func TestMain(m *testing.M) {
 
 	// run teardown code
 	_ = os.Remove("t/scripts/check_dummy.exe")
-	_ = os.Remove("t/scripts/subdir")
+	_ = os.RemoveAll("t/scripts/subdir")
 
 	// exit with the same exit code as the tests
 	os.Exit(exitCode)
