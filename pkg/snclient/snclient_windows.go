@@ -193,9 +193,14 @@ func processTimeoutKill(process *os.Process) {
 	LogDebug(process.Signal(syscall.SIGKILL))
 }
 
-// makeCmd handles the case where the program is a Windows batch os ps1 file
-// and the implication it has on argument quoting.
 func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
+	if strings.Contains(command, "LASTEXITCODE") || strings.Contains(command, "lastexitcode") {
+		// This is a hack. Without it, neither syscallCommandLineToArgv nor Tokenize will
+		// properly parse ...check_sometjing.ps1 "para meter"; exit($LASTEXITCODE)...
+		// Result will be [..., `"para meter;"`, ....
+		command = strings.ReplaceAll(command, "; exit", " ; exit")
+		command = strings.ReplaceAll(command, ";exit", " ; exit")
+	}
 	cmdList, _ := syscallCommandLineToArgv(command)
 	var err error
 	cmdList, err = utils.TrimQuotesAll(cmdList)
