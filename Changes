@@ -1,5 +1,13 @@
 This file documents the revision history for the SNClient+ agent.
 
+0.07       Wed Aug 30 20:45:50 CEST 2023
+          - add support for perf-config option
+          - add support for case insensitive regular expression matches
+          - add support for case insensitive string matches
+          - add support for builtin check_nsc_web
+          - improve documentation
+          - check_disk: ignore drives which have problems but are not required
+
 0.06       Thu Jul 27 08:31:28 CEST 2023
           - relative include paths are now considered to be in the parent ini-file
           - wmi: improve error handling

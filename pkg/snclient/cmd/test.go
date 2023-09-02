@@ -50,11 +50,7 @@ snclient do check_files path=/tmp crit='count > 100'
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
-			agentFlags.LogFile = "stdout"
-			agentFlags.LogFormat = snclient.LogColors + `[%{Time "15:04:05.000"}][%{S}] %{Message}` + snclient.LogColorReset
-			if agentFlags.Verbose > 2 {
-				agentFlags.LogFormat = snclient.LogColors + `[%{Time "15:04:05.000"}][%{S}][%{ShortFile}:%{Line}] %{Message}` + snclient.LogColorReset
-			}
+			setStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
 
 			if len(args) == 0 {

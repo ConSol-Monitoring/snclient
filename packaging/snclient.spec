@@ -63,6 +63,9 @@ case "$*" in
   *) echo case "$*" not handled in post
 esac
 
+%{__mkdir_p} /var/log/snclient
+touch /var/log/snclient/snclient.log
+
 %preun
 case "$*" in
   0)
@@ -81,6 +84,7 @@ case "$*" in
   0)
     # post uninstall
     systemctl --system daemon-reload >/dev/null || true
+    rm -rf /var/log/snclient
     ;;
   1)
     # post update

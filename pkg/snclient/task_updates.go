@@ -263,6 +263,10 @@ func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool,
 		}
 	} else {
 		log.Infof("[update] version %s successfully downloaded: %s", newVersion, updateFile)
+		err = u.Apply(updateFile)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return newVersion, nil
@@ -725,6 +729,21 @@ func (u *UpdateHandler) ApplyRestart(bin string) error {
 	}
 
 	u.snc.CleanExit(ExitCodeOK)
+
+	return nil
+}
+
+func (u *UpdateHandler) Apply(bin string) error {
+	log.Tracef("[update] start updated file %s %v", bin)
+	cmd := exec.Cmd{
+		Path: bin,
+		Args: []string{"update"},
+		Env:  os.Environ(),
+	}
+	err := cmd.Start()
+	if err != nil {
+		return fmt.Errorf("starting updater failed: %s", err.Error())
+	}
 
 	return nil
 }
