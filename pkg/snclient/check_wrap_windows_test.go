@@ -178,7 +178,7 @@ func TestCheckExternalWindowsPs(t *testing.T) {
 	testDir, _ := os.Getwd()
 	scriptsDir := filepath.Join(testDir, "t", "scripts")
 
-	config := setupConfig(scriptsDir, "bat")
+	config := setupConfig(scriptsDir, "ps1")
 	snc := StartTestAgent(t, config)
 
 	runTestCheckExternalDefault(t, snc)
@@ -191,7 +191,7 @@ func TestCheckExternalWrappedWindowsPs(t *testing.T) {
 	testDir, _ := os.Getwd()
 	scriptsDir := filepath.Join(testDir, "t", "scripts")
 
-	config := setupConfig(scriptsDir, "bat")
+	config := setupConfig(scriptsDir, "ps1")
 	snc := StartTestAgent(t, config)
 
 	runTestCheckExternalWrapped(t, snc)
@@ -208,7 +208,7 @@ func TestCheckExternalWindowsPsPathWithSpaces(t *testing.T) {
 	defer teardown()
 	_ = copy.Copy(scriptsDir, holesDir)
 
-	config := setupConfig(holesDir, "bat")
+	config := setupConfig(holesDir, "ps1")
 	snc := StartTestAgent(t, config)
 
 	runTestCheckExternalDefault(t, snc)
@@ -225,7 +225,7 @@ func TestCheckExternalWrappedWindowsPsPathWithSpaces(t *testing.T) {
 	defer teardown()
 	_ = copy.Copy(scriptsDir, holesDir)
 
-	config := setupConfig(holesDir, "bat")
+	config := setupConfig(holesDir, "ps1")
 	snc := StartTestAgent(t, config)
 
 	runTestCheckExternalWrapped(t, snc)

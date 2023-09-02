@@ -196,56 +196,50 @@ func processTimeoutKill(process *os.Process) {
 // makeCmd handles the case where the program is a Windows batch os ps1 file
 // and the implication it has on argument quoting.
 func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
-	cmdList := utils.Tokenize(command)
+	// funktioniertcmdList := utils.Tokenize(command)
+	command = strings.ReplaceAll(command, "; exit", " ; exit")
+	command = strings.ReplaceAll(command, ";exit", " ; exit")
+	cmdList, _ := syscallCommandLineToArgv(command) // owacht
+
 	var err error
 	cmdList, err = utils.TrimQuotesAll(cmdList)
 	if err != nil {
 		return nil, err
 		//        return nil, errors.Wrap(err, "failed to trim quotes from cmdList")
 	}
-
 	cmdName := strings.ReplaceAll(cmdList[0], `\`, `/`)
+
 	if len(cmdList) == 1 {
 		cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
-		//cmdName =
 		// binaries and bat can be run in a simple way
 		cmd := exec.CommandContext(ctx, cmdName)
-		if isBatchFile(cmdName) {
-			// calling a bat file without arguments must be done without escaping/quoting and without cmd.exe
+		if isBatchFile(cmdName) || !isPsFile(cmdName) {
 			return cmd, nil
 		}
-		if !isPsFile(cmdName) {
-			// exe files as well
-			return cmd, nil
-		}
-		//  powershell requires wrapping
 		shell := "powershell"
 		cmd = exec.CommandContext(ctx, shell)
 		cmd.Args = nil
-		cmdDir := filepath.Dir(cmdName)
-		cmdName = filepath.Base(cmdName)
-		cmd.Dir = cmdDir
+		cmdLine := fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". '%s'; exit($LASTEXITCODE)"`, cmdName)
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    fmt.Sprintf(`%s -NoProfile -NoLogo -Command "./%s"; exit($LASTEXITCODE)`, syscall.EscapeArg(cmd.Path), cmdName),
+			CmdLine:    cmdLine,
 			HideWindow: true,
 		}
 		return cmd, nil
 	}
 
 	cmdArgs := cmdList[1:]
-
 	if isBatchFile(cmdName) {
+		cmdName = strings.ReplaceAll(cmdName, "__BLANK__", "^ ")
 		shell := os.Getenv("COMSPEC")
 		if shell == "" {
 			shell = "cmd.exe" // Will be expanded by exec.LookPath in exec.Command
 		}
-		cmd := exec.CommandContext(ctx, shell, "")
 		for i, ca := range cmdArgs {
 			cmdArgs[i] = syscall.EscapeArg(ca)
 		}
-		cmdName = strings.ReplaceAll(cmdName, "__BLANK__", "^ ")
-		cmdLine := fmt.Sprintf(`%s /c %s %s`, shell, cmdName, strings.Join(cmdArgs, " "))
+		cmd := exec.CommandContext(ctx, shell, "")
 		cmd.Args = nil
+		cmdLine := fmt.Sprintf(`%s /c %s %s`, shell, cmdName, strings.Join(cmdArgs, " "))
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			CmdLine:    cmdLine,
 			HideWindow: true,
@@ -257,30 +251,48 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		for i, ca := range cmdArgs {
 			cmdArgs[i] = `'` + ca + `'`
 		}
-		//============= scriptpath if cmdName startswith scriptpath, basename und chdir
-		shell := "cmd"
-		cmd := exec.CommandContext(ctx, shell)
-		cmd.Args = nil
 		cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
-		cmdDir := filepath.Dir(cmdName)
-		cmdName = filepath.Base(cmdName)
-		cmd.Dir = cmdDir
-		cmdLine := fmt.Sprintf(`%s /C powershell -Command "& %s"; exit($LASTEXITCODE)`, shell, `'./`+cmdName+`'`+" "+strings.Join(cmdArgs, " "))
+		cmd := exec.CommandContext(ctx, "powershell")
+		cmd.Args = nil
+		cmdLine := fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". %s; exit($LASTEXITCODE)"`, `'`+cmdName+`'`+" "+strings.Join(cmdArgs, " "))
+		//cmdLine = fmt.Sprintf(`powershell -NonInteractive -File "%s" %s; exit($LASTEXITCODE)`, cmdName, strings.Join(cmdArgs, " "))
 
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    cmdLine,
-			HideWindow: true,
+			CmdLine: cmdLine,
+			//HideWindow: true,
 		}
 		return cmd, nil
 
 	}
+
 	cmdName = strings.ReplaceAll(cmdName, "__BLANK__", " ")
-	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
-	if strings.Contains(command, `|`) {
-		cmd = exec.CommandContext(ctx, cmdName, cmdArgs...)
+	// insert -NoExit -WindowStype normal
+	found := true
+	cmdArgs, _ = syscallCommandLineToArgv(command) // unused
+	//fmt.Println(scArgs)
+	for i, ca := range cmdArgs {
+		cmdArgs[i] = strings.ReplaceAll(ca, "__BLANK__", " ")
 	}
+
+	if !found {
+		result := []string{}
+		inserted := false
+
+		for _, str := range cmdArgs {
+			if str == "-nologo" && !inserted {
+				result = append(result, "-NoExit")
+				result = append(result, "-WindowStyle")
+				result = append(result, "normal")
+				inserted = true
+			}
+			result = append(result, str)
+		}
+		cmdArgs = result
+	}
+	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
+	//	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow: true,
+		//HideWindow: true,
 	}
 	return cmd, nil
 }

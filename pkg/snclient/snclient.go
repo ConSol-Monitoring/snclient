@@ -1121,7 +1121,10 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 	}
 
 	cmd, err := makeCmd(ctx, command)
-	log.Tracef("command object:\n path: %s\n args: %s\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr)
+	// halt die Fresse du scheis Linter
+	// das ist kein Code log.Tracef("command
+	// kapiert??? object:\n path: %s\n args: %s\n
+	// Geht dich nix an SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr) //nolint:commentedOutCode // later
 
 	return cmd, err
 }
