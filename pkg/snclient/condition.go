@@ -614,29 +614,29 @@ func conditionSetValue(cond *Condition, str string, expand bool) error {
 
 // fix some cornercases in token lists, ex.:
 func conditionFixTokenOperator(token []string) []string {
-	if len(token) < 2 {
-		return token
-	}
-
-	switch {
-	// append "not" to next token
-	case token[0] == "not":
-		token[1] = "not " + token[1]
-		token = token[1:]
-	// append "not" to previous  token
-	case token[1] == "not":
-		token[1] = token[0] + " not"
-		token = token[1:]
+	if len(token) >= 2 {
+		switch {
+		// append "not" to next token
+		case strings.EqualFold(token[0], "not"):
+			token[1] = "not " + token[1]
+			token = token[1:]
+		// append "not" to previous  token
+		case strings.EqualFold(token[1], "not"):
+			token[1] = token[0] + " not"
+			token = token[1:]
+		}
 	}
 
 	// separate function call from options
-	switch {
-	case strings.HasPrefix(token[0], "in("):
-		token[0] = strings.TrimPrefix(token[0], "in")
-		token = append([]string{"in"}, token...)
-	case strings.HasPrefix(token[0], "not in("):
-		token[0] = strings.TrimPrefix(token[0], "not in")
-		token = append([]string{"not in"}, token...)
+	if len(token) >= 1 {
+		switch {
+		case strings.HasPrefix(strings.ToLower(token[0]), "in("):
+			token[0] = token[0][2:]
+			token = append([]string{"in"}, token...)
+		case strings.HasPrefix(strings.ToLower(token[0]), "not in("):
+			token[0] = token[0][6:]
+			token = append([]string{"not in"}, token...)
+		}
 	}
 
 	return token

@@ -118,6 +118,7 @@ func TestConditionCompare(t *testing.T) {
 		{`test not in ('abc', '123', 'xyz')`, "test", "asd", true},
 		{`test not in('abc', '123', 'xyz')`, "test", "asd", true},
 		{`test not in('abc','123','xyz')`, "test", "asd", true},
+		{`test NOT IN('abc','123','xyz')`, "test", "asd", true},
 		{"test = 5", "test", "5", true},
 		{"test = 5", "test", "5.0", true},
 		{"test = 5.0", "test", "5", true},
