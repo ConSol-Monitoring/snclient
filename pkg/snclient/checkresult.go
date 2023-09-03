@@ -29,6 +29,7 @@ type CheckResult struct {
 	State   int64
 	Output  string
 	Metrics []*CheckMetric
+	Raw     *CheckData
 }
 
 func (cr *CheckResult) Finalize(macros ...map[string]string) {

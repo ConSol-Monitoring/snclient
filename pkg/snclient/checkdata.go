@@ -51,6 +51,8 @@ type CheckData struct {
 	showHelp        bool
 	timeout         float64
 	perfConfig      []PerfConfig
+	hasInventory    bool
+	output          string
 }
 
 func (cd *CheckData) Finalize() (*CheckResult, error) {
@@ -64,6 +66,11 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 
 	// apply final filter
 	cd.listData = cd.Filter(cd.filter, cd.listData)
+
+	cd.result.Raw = cd
+	if cd.output == "inventory_json" {
+		return cd.result, nil
+	}
 
 	if len(cd.listData) > 0 {
 		log.Tracef("list data:")
@@ -393,6 +400,8 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 				return nil, err
 			}
 			cd.perfConfig = append(cd.perfConfig, perf...)
+		case "output":
+			cd.output = argValue
 		default:
 			parsed, err := cd.parseAnyArg(appendArgs, argExpr, keyword, argValue)
 			switch {

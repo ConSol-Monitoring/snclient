@@ -38,8 +38,9 @@ func (l *CheckService) Build() *CheckData {
 	l.excludes = []string{}
 
 	return &CheckData{
-		name:        "check_service",
-		description: "Checks the state of one or multiple linux (systemctl) services.",
+		name:         "check_service",
+		description:  "Checks the state of one or multiple linux (systemctl) services.",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

@@ -16,8 +16,9 @@ type CheckNetwork struct{}
 
 func (l *CheckNetwork) Build() *CheckData {
 	return &CheckData{
-		name:        "check_network",
-		description: "Checks the state and metrics of network interfaces.",
+		name:         "check_network",
+		description:  "Checks the state and metrics of network interfaces.",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

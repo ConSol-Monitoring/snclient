@@ -23,8 +23,9 @@ func (l *CheckProcess) Build() *CheckData {
 	l.processes = []string{}
 
 	return &CheckData{
-		name:        "check_process",
-		description: "Checks the state and metrics of one or multiple processes.",
+		name:         "check_process",
+		description:  "Checks the state and metrics of one or multiple processes.",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
@@ -44,6 +45,7 @@ func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 	if err != nil {
 		return nil, fmt.Errorf("fetching processes failed: %s", err.Error())
 	}
+	// TODO: ... make like windows
 
 	resultProcs := make(map[string]int, 0)
 	for _, proc := range procs {

@@ -42,8 +42,9 @@ func (l *CheckService) Build() *CheckData {
 	l.excludes = []string{}
 
 	return &CheckData{
-		name:        "check_service",
-		description: "Checks the state of one or multiple windows services.",
+		name:         "check_service",
+		description:  "Checks the state of one or multiple windows services.",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

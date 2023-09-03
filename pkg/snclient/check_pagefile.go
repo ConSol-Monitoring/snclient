@@ -18,8 +18,9 @@ type CheckPagefile struct{}
 
 func (l *CheckPagefile) Build() *CheckData {
 	return &CheckData{
-		name:        "check_pagefile",
-		description: "Checks the pagefile usage.",
+		name:         "check_pagefile",
+		description:  "Checks the pagefile usage.",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

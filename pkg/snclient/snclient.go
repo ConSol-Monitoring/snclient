@@ -177,6 +177,8 @@ func NewAgent(flags *AgentFlags) *Agent {
 
 	snc.osSignalChannel = make(chan os.Signal, 1)
 
+	log.Tracef("os args: %#v", os.Args)
+
 	return snc
 }
 

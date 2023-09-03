@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	AvailableChecks["CheckDummy"] = CheckEntry{"CheckDummy", new(CheckDummy)}
+	AvailableChecks["check_dummy"] = CheckEntry{"check_dummy", new(CheckDummy)}
 }
 
 type CheckDummy struct {

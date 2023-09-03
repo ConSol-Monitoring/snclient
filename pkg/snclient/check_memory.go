@@ -22,8 +22,9 @@ func (l *CheckMemory) Build() *CheckData {
 	l.memType = []string{"committed", "physical"}
 
 	return &CheckData{
-		name:        "check_memory",
-		description: "Checks the memory usage on the host.",
+		name:         "check_memory",
+		description:  "Checks the memory usage on the host.",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

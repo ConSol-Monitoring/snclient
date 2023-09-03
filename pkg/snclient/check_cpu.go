@@ -19,8 +19,9 @@ func (l *CheckCPU) Build() *CheckData {
 	l.times = []string{"5m", "1m", "5s"}
 
 	return &CheckData{
-		name:        "check_cpu",
-		description: "Checks the cpu usage metrics.",
+		name:         "check_cpu",
+		description:  "Checks the cpu usage metrics.",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

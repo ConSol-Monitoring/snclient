@@ -74,7 +74,7 @@ build: vendor go.work snclient.ini server.crt server.key
 		( cd ./cmd/$$CMD && CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD ) ; \
 	done
 
-# run build watch, ex. with tracing: make build-watch -- -vv
+# run build watch, ex. with tracing: make build-watch -- -vv -logfile stderr
 build-watch: vendor
 	ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient.ini | entr -sr "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"
 

@@ -137,6 +137,7 @@ func (l *HandlerWeb) GetMappings(*Agent) []URLMapping {
 	return []URLMapping{
 		{URL: "/query/{command}", Handler: l.handlerLegacy},
 		{URL: "/api/v1/queries/{command}/commands/execute", Handler: l.handlerV1},
+		{URL: "/api/v1/inventory", Handler: l.handlerV1},
 		{URL: "/index.html", Handler: l.handlerGeneric},
 		{URL: "/", Handler: l.handlerGeneric},
 	}
@@ -305,6 +306,15 @@ func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	switch req.URL.Path {
+	case "/api/v1/inventory":
+		l.serveInventory(res, req)
+	default:
+		l.serveCommand(res, req)
+	}
+}
+
+func (l *HandlerWebV1) serveCommand(res http.ResponseWriter, req *http.Request) {
 	command := chi.URLParam(req, "command")
 	args := queryParam2CommandArgs(req)
 	result := l.Handler.snc.RunCheckWithContext(req.Context(), command, args)
@@ -319,5 +329,33 @@ func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				Perf:    l.Handler.metrics2PerfV1(result.Metrics),
 			},
 		},
+	}))
+}
+
+func (l *HandlerWebV1) serveInventory(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+
+	inventory := make(map[string]interface{})
+	for k := range AvailableChecks {
+		check := AvailableChecks[k]
+		meta := check.Handler.Build()
+		if meta.hasInventory {
+			name := strings.TrimPrefix(check.Name, "check_")
+			meta.output = "inventory_json"
+			meta.filter = []*Condition{{isNone: true}}
+			data, err := check.Handler.Check(req.Context(), l.Handler.snc, meta, []Argument{})
+			if err != nil && (data == nil || data.Raw == nil) {
+				log.Tracef("inventory %s returned error: %s", check.Name, err.Error())
+
+				continue
+			}
+
+			inventory[name] = data.Raw.listData
+		}
+	}
+
+	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		"inventory": inventory,
 	}))
 }

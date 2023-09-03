@@ -33,8 +33,9 @@ func (l *CheckDrivesize) Build() *CheckData {
 	l.magic = float64(1)
 
 	return &CheckData{
-		name:        "check_drivesize",
-		description: "Checks the disk drive/volumes usage on a host.",
+		name:         "check_drivesize",
+		description:  "Checks the disk drive/volumes usage on a host.",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

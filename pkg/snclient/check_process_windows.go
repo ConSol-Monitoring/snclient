@@ -30,8 +30,9 @@ func (l *CheckProcess) Build() *CheckData {
 	l.processes = []string{}
 
 	return &CheckData{
-		name:        "check_process",
-		description: "Check state/metrics of one or more of the processes running on the computer.",
+		name:         "check_process",
+		description:  "Check state/metrics of one or more of the processes running on the computer.",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
