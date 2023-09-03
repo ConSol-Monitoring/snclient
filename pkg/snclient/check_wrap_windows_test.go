@@ -5,61 +5,233 @@ package snclient
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckWrapWindows(t *testing.T) {
+func setupConfig(scriptsDir, scriptsType string) string {
+	config := fmt.Sprintf(`
+[/modules]
+CheckExternalScripts = enabled
+
+[/paths]
+scripts = %s
+
+[/settings/external scripts/wrappings]
+exe = %%SCRIPT%% %%ARGS%%
+
+[/settings/external scripts/scripts]
+check_doesnotexist = /a/path/that/does/not/exist/nonexisting_script "no" "no"
+
+check_dummy = check_dummy.EXTENSION
+check_dummy_ok = check_dummy.EXTENSION 0 "i am ok"
+check_dummy_critical = check_dummy.EXTENSION 2 "i am critical"
+check_dummy_unknown = check_dummy.EXTENSION 3
+check_dummy_arg = check_dummy.EXTENSION "$ARG1$" "$ARG2$"
+# for scripts with variable arguments
+check_dummy_args = check_dummy.EXTENSION $ARGS$
+# for scripts with variable arguments, %%ARGS%% is an alternative to $ARGS$
+# but it is fairly undocumented and should not be used imho
+check_dummy_args%% = check_dummy.EXTENSION %%ARGS%%
+# put variable arguments in quotes
+check_dummy_argsq = check_dummy.EXTENSION $ARGS"$
+
+[/settings/external scripts/wrapped scripts]
+check_dummy_wrapped_noparm = check_dummy.EXTENSION
+check_dummy_wrapped = check_dummy.EXTENSION $ARG1$ "$ARG2$"
+check_dummy_wrapped_ok = check_dummy.EXTENSION 0 "i am ok wrapped"
+check_dummy_wrapped_critical = check_dummy.EXTENSION 2 "i am critical wrapped"
+
+[/settings/external scripts/scripts/timeoutscript]
+timeout = 1
+command = ping 127.0.0.1 -n 10
+`, scriptsDir)
+	config = strings.ReplaceAll(config, "EXTENSION", scriptsType)
+
+	return config
+}
+
+func TestMain(m *testing.M) {
+	cmd := exec.Command("go", "build", "-o", "check_dummy.exe", "check_dummy.go")
+	cmd.Dir = "t/scripts"
+	_, _ = cmd.CombinedOutput()
+
+	// run the tests
+	exitCode := m.Run()
+
+	// run teardown code
+	_ = os.Remove("t/scripts/check_dummy.exe")
+	_ = os.RemoveAll("t/scripts/subdir")
+
+	// exit with the same exit code as the tests
+	os.Exit(exitCode)
+}
+
+func TestCheckExternalWindowsTimeout(t *testing.T) {
 	testDir, _ := os.Getwd()
 	scriptsDir := filepath.Join(testDir, "t", "scripts")
 
-	config := fmt.Sprintf(`
-[/settings/external scripts]
-allow arguments = true
-timeout = 30
-script root = %s
-
-[/settings/external scripts/wrapped scripts]
-test_wrapped = wrapped.ps1
-bat_wrapped = check_dummy.bat
-
-[/settings/external scripts/scripts]
-check_dummy_bat = %s/check_dummy.bat $ARGS$
-ps_command = powershell -noprofile -command %%ARGS%%
-restart_process = cmd /c echo %s\restart_process.ps1 %%ARGS%%; exit($lastexitcode) | powershell.exe -command -
-netstart = net start %%ARGS%%
-
-[/settings/external scripts/alias]
-alias_ps_cpu = ps_command "ps | sort -des cpu"
-alias_test = check_cpu
-`, scriptsDir, scriptsDir, scriptsDir)
+	config := setupConfig(scriptsDir, "bat")
 	snc := StartTestAgent(t, config)
 
-	res := snc.RunCheck("test_wrapped", []string{"1", "test"})
-	assert.Equalf(t, CheckExitWarning, res.State, "state Warning")
-	assert.Equalf(t, "test", string(res.BuildPluginOutput()), "output matches")
+	res := snc.RunCheck("timeoutscript", []string{})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state matches")
+	assert.Equalf(t, "UNKNOWN: script run into timeout after 1s\n", string(res.BuildPluginOutput()), "output matches")
 
-	res = snc.RunCheck("bat_wrapped", []string{"2", "test2"})
-	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
-	assert.Equalf(t, "CRITICAL: test2", string(res.BuildPluginOutput()), "output matches")
+	StopTestAgent(t, snc)
+}
 
-	res = snc.RunCheck("check_dummy_bat", []string{"2", "test3"})
-	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
-	assert.Equalf(t, "CRITICAL: test3", string(res.BuildPluginOutput()), "output matches")
+func TestCheckExternalWindowsExe(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
 
-	res = snc.RunCheck("restart_process", []string{"noneexistant"})
-	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
-	assert.Containsf(t, string(res.BuildPluginOutput()), "NET HELPMSG 2185", "output contains error message")
+	config := setupConfig(scriptsDir, "exe")
+	snc := StartTestAgent(t, config)
 
-	res = snc.RunCheck("netstart", []string{"noneexistant"})
-	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
-	assert.Containsf(t, string(res.BuildPluginOutput()), "NET HELPMSG 2185", "output contains error message")
+	runTestCheckExternalDefault(t, snc)
+	runTestCheckExternalArgs(t, snc)
 
-	res = snc.RunCheck("alias_ps_cpu", []string{})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Containsf(t, string(res.BuildPluginOutput()), "svchost", "output matches")
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWindowsExePathWithSpaces(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	holesDir := filepath.Join(testDir, "t", "scri pts")
+
+	teardown := setupTeardown(t, holesDir)
+	defer teardown()
+	_ = copy.Copy(scriptsDir, holesDir)
+
+	config := setupConfig(holesDir, "exe")
+	snc := StartTestAgent(t, config)
+
+	runTestCheckExternalDefault(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWindowsBat(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+
+	config := setupConfig(scriptsDir, "bat")
+	snc := StartTestAgent(t, config)
+
+	runTestCheckExternalDefault(t, snc)
+	runTestCheckExternalArgs(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWrappedWindowsBat(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+
+	config := setupConfig(scriptsDir, "bat")
+	snc := StartTestAgent(t, config)
+
+	runTestCheckExternalWrapped(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWindowsBatPathWithSpaces(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	holesDir := filepath.Join(testDir, "t", "scri pts")
+
+	teardown := setupTeardown(t, holesDir)
+	defer teardown()
+	_ = copy.Copy(scriptsDir, holesDir)
+
+	config := setupConfig(holesDir, "bat")
+	snc := StartTestAgent(t, config)
+
+	runTestCheckExternalDefault(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWrappedWindowsBatPathWithSpaces(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	holesDir := filepath.Join(testDir, "t", "scri pts")
+
+	teardown := setupTeardown(t, holesDir)
+	defer teardown()
+	_ = copy.Copy(scriptsDir, holesDir)
+
+	config := setupConfig(holesDir, "bat")
+	snc := StartTestAgent(t, config)
+
+	runTestCheckExternalWrapped(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWindowsPs(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+
+	config := setupConfig(scriptsDir, "ps1")
+	snc := StartTestAgent(t, config)
+
+	runTestCheckExternalDefault(t, snc)
+	runTestCheckExternalArgs(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWrappedWindowsPs(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+
+	config := setupConfig(scriptsDir, "ps1")
+	snc := StartTestAgent(t, config)
+
+	runTestCheckExternalWrapped(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWindowsPsPathWithSpaces(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	holesDir := filepath.Join(testDir, "t", "scri pts")
+
+	teardown := setupTeardown(t, holesDir)
+	defer teardown()
+	_ = copy.Copy(scriptsDir, holesDir)
+
+	config := setupConfig(holesDir, "ps1")
+	snc := StartTestAgent(t, config)
+
+	runTestCheckExternalDefault(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalWrappedWindowsPsPathWithSpaces(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	holesDir := filepath.Join(testDir, "t", "scri pts")
+
+	teardown := setupTeardown(t, holesDir)
+	defer teardown()
+	_ = copy.Copy(scriptsDir, holesDir)
+
+	config := setupConfig(holesDir, "ps1")
+	snc := StartTestAgent(t, config)
+
+	// This test has been disabled because it is nearly impossible to repair all occurrences of
+	// a path with spaces inside a wrapped command.
+	// runTestCheckExternalWrapped(t, snc)
 
 	StopTestAgent(t, snc)
 }

@@ -103,8 +103,8 @@ var (
 	// macros can be either ${...} or %(...)
 	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_: ]+\s*\}|%\(\s*[a-zA-Z\-_: ]+\s*\)`)
 
-	// runtime macros can be %...%
-	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z\-_: ]+(?:%|\$)`)
+	// runtime macros can be %...% or $...$ or $ARGS"$
+	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z0-9"\-_: ]+(?:%|\$)`)
 )
 
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
@@ -974,25 +974,20 @@ func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeou
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	cmdList := []string{"/bin/sh", "-c", command}
-	if runtime.GOOS == "windows" {
-		cmdList = utils.Tokenize(command)
-		cmdList, err = utils.TrimQuotesAll(cmdList)
-		if err != nil {
-			return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
-		}
+	scriptsPath, ok := snc.Config.Section("/paths").GetString("scripts")
+	if !ok {
+		scriptsPath, _ = os.Getwd()
 	}
-	log.Tracef("exec.Command: %#v", cmdList)
-	cmd := exec.CommandContext(ctx, cmdList[0], cmdList[1:]...) //nolint:gosec // tainted input is configurable
+	cmd, err := MakeCmd(ctx, command, scriptsPath)
+	if err != nil {
+		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
+	}
 
 	// byte buffer for output
 	var errbuf bytes.Buffer
 	var outbuf bytes.Buffer
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
-
-	// prevent child from receiving signals meant for the agent only
-	setSysProcAttr(cmd)
 
 	err = cmd.Start()
 	if err != nil && cmd.ProcessState == nil {
@@ -1085,4 +1080,52 @@ func (snc *Agent) verifyPassword(confPassword, userPassword string) bool {
 	log.Errorf("password mismatch -> 403")
 
 	return false
+}
+
+// MakeCmd returns the Cmd struct to execute the named program with
+// the given arguments.
+//
+// It first tries to find relative filenames in the PATH or in ${scripts}
+// If the first try did not succeed then it assumes we have a path with spaces
+// and appends argument after argument until a valid command path is found.
+func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error) {
+	cmdAndArgs := strings.Fields(command)
+	var cmdPath string
+	var cmdPathReplacement string
+	for pieceNo := 0; pieceNo < len(cmdAndArgs); pieceNo++ {
+		cmdPath = strings.Join(cmdAndArgs[0:pieceNo+1], " ")
+		realPath, err := exec.LookPath(cmdPath)
+
+		if err == nil {
+			// can be abs., /usr/bin/echo or %scripts%/check_xy
+			// or rel., echo, timeout, anything in $PATH
+			cmdPathReplacement = realPath
+
+			break
+		}
+
+		if filepath.IsAbs(cmdPath) {
+			continue
+		}
+
+		// try a relative lookup in %scripts%
+		realPath, err = exec.LookPath(filepath.Join(scriptsPath, cmdPath))
+		if err == nil {
+			cmdPathReplacement = realPath
+
+			break
+		}
+	}
+	if cmdPathReplacement != "" {
+		command = strings.Replace(command, cmdPath, strings.ReplaceAll(cmdPathReplacement, " ", "__SNCLIENT_BLANK__"), 1)
+	}
+
+	cmd, err := makeCmd(ctx, command)
+	if cmd.Args != nil {
+		log.Tracef("command object:\n path: %s\n args: %v\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr)
+	} else {
+		log.Tracef("command object:\n path: %s\n args: -\n SysProcAttr: %v\n", cmd.Path, cmd.SysProcAttr)
+	}
+
+	return cmd, err
 }

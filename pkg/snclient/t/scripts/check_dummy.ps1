@@ -3,7 +3,9 @@ param (
     [ValidateSet("0", "1", "2", "3")]
     [string]$state,
     [Parameter(Position = 1)]
-    [string]$message = ""
+    [string]$message = "",
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$additionalParameters
 )
 
 if ($state -notin ("0", "1", "2", "3")) {
