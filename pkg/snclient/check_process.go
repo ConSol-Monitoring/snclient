@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
 	"golang.org/x/exp/slices"
@@ -16,11 +18,13 @@ func init() {
 }
 
 type CheckProcess struct {
-	processes []string
+	processes   []string
+	timeZoneStr string
 }
 
 func (l *CheckProcess) Build() *CheckData {
 	l.processes = []string{}
+	l.timeZoneStr = "Local"
 
 	return &CheckData{
 		name:         "check_process",
@@ -30,47 +34,102 @@ func (l *CheckProcess) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]interface{}{
-			"process": &l.processes,
+			"process":  &l.processes,
+			"timezone": &l.timeZoneStr,
 		},
-		okSyntax:     "%(status): ${list}",
-		detailSyntax: "${name}: ${count}",
+		okSyntax:     "%(status): all processes are ok.",
+		detailSyntax: "${exe}=${state}",
 		topSyntax:    "${status}: ${problem_list}",
 		emptyState:   3,
 		emptySyntax:  "check_process failed to find anything with this filter.",
 	}
 }
 
-func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	procs, err := process.Processes()
 	if err != nil {
 		return nil, fmt.Errorf("fetching processes failed: %s", err.Error())
 	}
-	// TODO: ... make like windows
+	timeZone, err := time.LoadLocation(l.timeZoneStr)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
+	}
 
-	resultProcs := make(map[string]int, 0)
 	for _, proc := range procs {
-		exe, err := proc.Exe()
+		filename, err := proc.Exe()
 		if err != nil {
 			continue
 		}
-		exe = filepath.Base(exe)
+		exe := filepath.Base(filename)
 		if len(l.processes) > 0 && !slices.Contains(l.processes, exe) {
 			continue
 		}
 
-		_, ok := resultProcs[exe]
-		if !ok {
-			resultProcs[exe] = 0
+		cmdLine, err := proc.Cmdline()
+		if err != nil {
+			log.Debugf("check_process: cmd line error: %s")
 		}
-		resultProcs[exe]++
-	}
 
-	for exe, count := range resultProcs {
+		states, err := proc.Status()
+		if err != nil {
+			log.Debugf("check_process: status error: %s")
+		}
+		state := []string{}
+		for _, s := range states {
+			state = append(state, convertStatusChar(s))
+		}
+
+		ctime, err := proc.CreateTime()
+		if err != nil {
+			log.Debugf("check_process: CreateTime error: %s")
+		}
+
+		username, err := proc.UsernameWithContext(ctx)
+		if err != nil {
+			log.Debugf("check_process: Username error: %s")
+		}
+
+		mem, err := proc.MemoryInfo()
+		if err != nil {
+			log.Debugf("check_process: Username error: %s")
+			mem = &process.MemoryInfoStat{}
+		}
+
 		check.listData = append(check.listData, map[string]string{
-			"name":  exe,
-			"count": fmt.Sprintf("%d", count),
+			"process":      exe,
+			"state":        strings.Join(state, ","),
+			"command_line": cmdLine,
+			"creation":     time.Unix(ctime, 0).In(timeZone).Format("2006-01-02 15:04:05 MST"),
+			"exe":          exe,
+			"filename":     filename,
+			"pid":          fmt.Sprintf("%d", proc.Pid),
+			"username":     username,
+			"virtual":      fmt.Sprintf("%d", mem.VMS),
+			"rss":          fmt.Sprintf("%d", mem.RSS),
+			"pagefile":     fmt.Sprintf("%d", mem.Swap),
 		})
 	}
 
 	return check.Finalize()
+}
+
+func convertStatusChar(letter string) string {
+	switch strings.ToLower(letter) {
+	case "i", "idle":
+		return "idle"
+	case "l", "lock":
+		return "lock"
+	case "r", "running":
+		return "running"
+	case "s", "sleep":
+		return "sleep"
+	case "t", "stop":
+		return "stop"
+	case "w", "wait":
+		return "wait"
+	case "z", "zombie":
+		return "zombie"
+	default:
+		return "unknown"
+	}
 }

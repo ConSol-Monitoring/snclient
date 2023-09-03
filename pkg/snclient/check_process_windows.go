@@ -39,9 +39,9 @@ func (l *CheckProcess) Build() *CheckData {
 		args: map[string]interface{}{
 			"process": &l.processes,
 		},
-		detailSyntax: "%(process)=%(state)",
+		detailSyntax: "${exe}=${state}",
 		topSyntax:    "%(status): %(problem_list)",
-		okSyntax:     "%(status): ${list}",
+		okSyntax:     "%(status): all processes are ok.",
 		emptySyntax:  "No processes found",
 		emptyState:   CheckExitUnknown,
 	}
