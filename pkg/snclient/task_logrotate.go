@@ -72,6 +72,10 @@ func (l *LogrotateHandler) mainLoop() {
 
 			return
 		case <-ticker.C:
+			// skip rotation if we don't log into a file atm
+			if targetWriter == os.Stdout || targetWriter != os.Stderr {
+				continue
+			}
 			logFile, _ := l.snc.Config.Section("/settings/log").GetString("file name")
 			fileInfo, err := os.Stat(logFile)
 			if err != nil {
