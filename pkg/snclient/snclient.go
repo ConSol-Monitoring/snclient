@@ -950,26 +950,39 @@ func fixReturnCodes(output *string, exitCode *int64, state *os.ProcessState) {
 	}
 	if *exitCode == 126 {
 		*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Make sure the plugin you're trying to run is executable.\n%s", *exitCode, *output)
-		*exitCode = 2
+		*exitCode = CheckExitCritical
 
 		return
 	}
 	if *exitCode == 127 {
 		*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", *exitCode, *output)
-		*exitCode = 2
+		*exitCode = CheckExitCritical
 
 		return
 	}
 	if waitStatus, ok := state.Sys().(syscall.WaitStatus); ok {
 		if waitStatus.Signaled() {
 			*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Plugin exited by signal: %s.\n%s", waitStatus.Signal(), waitStatus.Signal(), *output)
-			*exitCode = 2
+			*exitCode = CheckExitCritical
 
 			return
 		}
 	}
 	*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds.\n%s", *exitCode, *output)
-	*exitCode = 3
+	*exitCode = CheckExitUnknown
+}
+
+func catchOutputErrors(command string, stderr *string, exitCode *int64) {
+	// cmd.exe did not find script
+	if *exitCode == 0 &&
+		(strings.HasPrefix(command, "cmd ") || strings.HasPrefix(command, "cmd.exe ")) &&
+		strings.Contains(*stderr, "ObjectNotFound") &&
+		strings.Contains(*stderr, "CommandNotFoundException") &&
+		strings.Contains(*stderr, "FullyQualifiedErrorId") {
+		*exitCode = ExitCodeUnknown
+
+		return
+	}
 }
 
 func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
@@ -1019,6 +1032,8 @@ func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeou
 	// extract stdout and stderr
 	stdout = string(bytes.TrimSpace((bytes.Trim(outbuf.Bytes(), "\x00"))))
 	stderr = string(bytes.TrimSpace((bytes.Trim(errbuf.Bytes(), "\x00"))))
+
+	catchOutputErrors(command, &stderr, &exitCode)
 
 	log.Tracef("exit: %d", exitCode)
 	log.Tracef("stdout: %s", stdout)
