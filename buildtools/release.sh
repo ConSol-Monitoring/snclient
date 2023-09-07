@@ -25,7 +25,7 @@ if grep "^next:" Changes >/dev/null 2>&1; then
 	sed -i Changes -e "s/^next:.*/${VERSIONHEADER}/"
 else
 	# no next: entry found, replace second line with new entry
-	sed -i Changes -e "2s/^/\n${VERSIONHEADER}\n          - ...\n/"
+	sed -i Changes -e "2s/^/\n${VERSIONHEADER}\n         - ...\n/"
 fi
 git add Changes pkg/snclient/snclient.go
 git commit -vs -m "release v${NEWVERSION}"

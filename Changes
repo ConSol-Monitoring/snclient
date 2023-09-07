@@ -1,35 +1,44 @@
 This file documents the revision history for the SNClient+ agent.
 
-0.07       Wed Aug 30 20:45:50 CEST 2023
-          - add support for perf-config option
-          - add support for case insensitive regular expression matches
-          - add support for case insensitive string matches
-          - add support for builtin check_nsc_web
-          - improve documentation
-          - check_disk: ignore drives which have problems but are not required
+0.08     Thu Sep  7 15:08:07 CEST 2023
+         - catch some standard cmd.exe errors
+         - skip logrotation if output is not a file
+         - make filter keywords are case insensitive
+         - improve scripts paths containing spaces
+         - add /api/v1/inventory rest path
+         - packaging: create logfile folder
+         - fix restart after running update from cli
 
-0.06       Thu Jul 27 08:31:28 CEST 2023
-          - relative include paths are now considered to be in the parent ini-file
-          - wmi: improve error handling
+0.07     Wed Aug 30 20:45:50 CEST 2023
+         - add support for perf-config option
+         - add support for case insensitive regular expression matches
+         - add support for case insensitive string matches
+         - add support for builtin check_nsc_web
+         - improve documentation
+         - check_disk: ignore drives which have problems but are not required
 
-0.05       Fri Jul 21 20:24:19 CEST 2023
-          - add configuration dialog to .msi installer
-          - setup windows firewall rules during installation
-          - add wildcard support for includes
-          - add conf.d directory support for includes
-          - added check_tasksched
-          - added nrpe mode to test cmd
-          - fix osx installer (#27)
-          - fix linux check_drivesize (#14)
-          - fix missing byte in nrpe response (#21)
+0.06     Thu Jul 27 08:31:28 CEST 2023
+         - relative include paths are now considered to be in the parent ini-file
+         - wmi: improve error handling
 
-0.04       Wed Jul  5 19:13:44 CEST 2023
+0.05     Fri Jul 21 20:24:19 CEST 2023
+         - add configuration dialog to .msi installer
+         - setup windows firewall rules during installation
+         - add wildcard support for includes
+         - add conf.d directory support for includes
+         - added check_tasksched
+         - added nrpe mode to test cmd
+         - fix osx installer (#27)
+         - fix linux check_drivesize (#14)
+         - fix missing byte in nrpe response (#21)
+
+0.04     Wed Jul  5 19:13:44 CEST 2023
          - implement external scripts
          - add support for client certificates
          - add hashed passwords
          - improve internal checks
 
-0.03       Mon Jun 12 22:23:02 CEST 2023
+0.03     Mon Jun 12 22:23:02 CEST 2023
          - implement filter and thresholds
          - packaging
            - add windows service mode
@@ -37,7 +46,7 @@ This file documents the revision history for the SNClient+ agent.
          - add log rotation
          - add optional automatic updates
 
-0.02       Sun Apr  2 22:48:22 CEST 2023
+0.02     Sun Apr  2 22:48:22 CEST 2023
          - add packaging
            - windows
            - rpm
