@@ -359,12 +359,17 @@ func (snc *Agent) Init() (*AgentRunSet, error) {
 
 	// no config supplied, check default locations, first match wins
 	if len(files) == 0 {
-		for _, f := range defaultLocations {
-			_, err := os.Stat(f)
+		for _, file := range defaultLocations {
+			_, err := os.Stat(file)
 			if os.IsNotExist(err) {
 				continue
 			}
-			files = append(files, f)
+			// check if its readable
+			_, err = os.Open(file)
+			if err != nil {
+				continue
+			}
+			files = append(files, file)
 
 			break
 		}
@@ -372,7 +377,7 @@ func (snc *Agent) Init() (*AgentRunSet, error) {
 
 	// still empty
 	if len(files) == 0 && snc.flags.Mode == ModeServer {
-		return nil, fmt.Errorf("no config file supplied (--config=..) and no config file found in default locations (%s)",
+		return nil, fmt.Errorf("no config file supplied (--config=..) and no readable config file found in default locations (%s)",
 			strings.Join(defaultLocations, ", "))
 	}
 
