@@ -72,9 +72,18 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 		return cd.result, nil
 	}
 
+	return cd.finalizeOutput()
+}
+
+func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	if len(cd.listData) > 0 {
 		log.Tracef("list data:")
 		for _, entry := range cd.listData {
+			if skipped, ok := entry["_skip"]; ok {
+				if skipped == "1" {
+					continue
+				}
+			}
 			// not yet filtered errors are fatal
 			if errMsg, ok := entry["_error"]; ok {
 				return nil, fmt.Errorf("%s", errMsg)

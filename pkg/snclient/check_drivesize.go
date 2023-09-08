@@ -20,10 +20,11 @@ func init() {
 }
 
 type CheckDrivesize struct {
-	drives   []string
-	excludes []string
-	total    bool
-	magic    float64
+	drives        []string
+	excludes      []string
+	total         bool
+	magic         float64
+	hasCustomPath bool
 }
 
 func (l *CheckDrivesize) Build() *CheckData {
@@ -31,6 +32,27 @@ func (l *CheckDrivesize) Build() *CheckData {
 	l.excludes = []string{}
 	l.total = false
 	l.magic = float64(1)
+
+	excludedFsTypes := []string{
+		"binfmt_misc",
+		"bpf",
+		"cgroup2fs",
+		"configfs",
+		"debugfs",
+		"devpts",
+		"efivarfs",
+		"fusectl",
+		"hugetlbfs",
+		"mqueue",
+		"proc",
+		"pstorefs",
+		"ramfs",
+		"rpc_pipefs",
+		"securityfs",
+		"sysfs",
+		"tmpfs",
+		"tracefs",
+	}
 
 	return &CheckData{
 		name:         "check_drivesize",
@@ -45,6 +67,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"total":   &l.total,
 			"magic":   &l.magic,
 		},
+		defaultFilter:   "fstype not in (" + utils.List2String(excludedFsTypes) + ")",
 		defaultWarning:  "used_pct > 80",
 		defaultCritical: "used_pct > 90",
 		okSyntax:        "%(status): All %(count) drive(s) are ok",
@@ -92,6 +115,16 @@ func (l *CheckDrivesize) Check(_ context.Context, snc *Agent, check *CheckData, 
 		check.result.Metrics = append(check.result.Metrics, tmpMetrics...)
 	}
 
+	// remove errored paths unless custom path is specified
+	if !l.hasCustomPath {
+		for i, entry := range check.listData {
+			if errMsg, ok := entry["_error"]; ok {
+				log.Debugf("drivesize failed for %s: %s", entry["drive_or_id"], errMsg)
+				check.listData[i]["_skip"] = "1"
+			}
+		}
+	}
+
 	return check.Finalize()
 }
 
@@ -122,6 +155,7 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[st
 		case "all-volumes":
 			// nothing appropriate on linux
 		default:
+			l.hasCustomPath = true
 			err := l.setCustomPath(drive, requiredDisks)
 			if err != nil {
 				return nil, err

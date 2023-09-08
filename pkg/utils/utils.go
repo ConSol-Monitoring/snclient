@@ -497,3 +497,15 @@ func SortRanked(list []string, ranks map[string]int) []string {
 
 	return sorted
 }
+
+// List2String converts a list of strings into a single quoted comma separated list: 'a', 'b', 'c'...
+func List2String(list []string) (res string) {
+	for i, e := range list {
+		if i > 0 {
+			res += ", "
+		}
+		res += "'" + e + "'"
+	}
+
+	return res
+}
