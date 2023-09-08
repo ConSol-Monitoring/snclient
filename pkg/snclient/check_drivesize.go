@@ -32,6 +32,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 	l.excludes = []string{}
 	l.total = false
 	l.magic = float64(1)
+	l.hasCustomPath = false
 
 	excludedFsTypes := []string{
 		"binfmt_misc",
@@ -317,6 +318,7 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 		"free":          humanize.IBytesF(uint64(free), 3),
 		"free_bytes":    fmt.Sprintf("%d", free),
 		"free_pct":      fmt.Sprintf("%f", float64(free)*100/(float64(total))),
+		"fstype":        "total",
 	}
 	check.listData = append(check.listData, drive)
 

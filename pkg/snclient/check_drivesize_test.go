@@ -24,7 +24,7 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK: No drives found", "output matches")
 
-	res = snc.RunCheck("check_drivesize", []string{"warn=free>0", "total", "filter=drive not like '/run'"})
+	res = snc.RunCheck("check_drivesize", []string{"warn=free>0", "total"})
 	assert.Contains(t, string(res.BuildPluginOutput()), "/ used %", "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), "total free", "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), "/ free", "output matches")
