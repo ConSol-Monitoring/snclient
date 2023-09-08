@@ -137,7 +137,7 @@ func (l *HandlerWeb) GetMappings(*Agent) []URLMapping {
 	return []URLMapping{
 		{URL: "/query/{command}", Handler: l.handlerLegacy},
 		{URL: "/api/v1/queries/{command}/commands/execute", Handler: l.handlerV1},
-		{URL: "/api/v1/inventory", Handler: l.handlerV1},
+		{URL: "/api/v1/*", Handler: l.handlerV1},
 		{URL: "/index.html", Handler: l.handlerGeneric},
 		{URL: "/", Handler: l.handlerGeneric},
 	}
@@ -296,6 +296,9 @@ type HandlerWebV1 struct {
 func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// check basic auth password
 	_, password, _ := req.BasicAuth()
+	if password == "" {
+		password = req.Header.Get("Password")
+	}
 	if !l.Handler.snc.verifyPassword(l.Handler.password, password) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		res.Header().Set("Content-Type", "application/json")
@@ -306,7 +309,8 @@ func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	switch req.URL.Path {
+	path := strings.TrimSuffix(req.URL.Path, "/")
+	switch path {
 	case "/api/v1/inventory":
 		l.serveInventory(res, req)
 	default:
