@@ -6,6 +6,7 @@ import (
 	standardlog "log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -97,13 +98,20 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 		file = snc.flags.LogFile
 	}
 
+	logColorOn := LogColors
+	logColorReset := LogColorReset
+	if runtime.GOOS == "windows" {
+		logColorOn = ""
+		logColorReset = ""
+	}
+
 	var logFormatter factorlog.Formatter
 	switch file {
 	case "stdout", "":
-		logFormatter = BuildFormatter(LogColors + DateTimeLogFormat + LogFormat + LogColorReset)
+		logFormatter = BuildFormatter(logColorOn + DateTimeLogFormat + LogFormat + logColorReset)
 		targetWriter = os.Stdout
 	case "stderr":
-		logFormatter = BuildFormatter(LogColors + DateTimeLogFormat + LogFormat + LogColorReset)
+		logFormatter = BuildFormatter(logColorOn + DateTimeLogFormat + LogFormat + logColorReset)
 		targetWriter = os.Stderr
 	case "stdout-journal":
 		logFormatter = BuildFormatter(LogFormat)
