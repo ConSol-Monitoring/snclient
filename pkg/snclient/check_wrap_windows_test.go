@@ -73,18 +73,18 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
-unc TestCheckExternalWindowsCwd(t *testing.T) {
-        testDir, _ := os.Getwd()
-        scriptsDir := filepath.Join(testDir, "t", "scripts")
+func TestCheckExternalWindowsCwd(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
 
-        config := setupConfig(scriptsDir, "sh")
-        snc := StartTestAgent(t, config)
+	config := setupConfig(scriptsDir, "sh")
+	snc := StartTestAgent(t, config)
 
-        res := snc.RunCheck("check_cwd", []string{})
-        assert.Equalf(t, CheckExitOK, res.State, "state matches")
-        assert.Equalf(t, "i am in the scripts folder", string(res.BuildPluginOutput()), "output matches")
+	res := snc.RunCheck("check_cwd", []string{})
+	assert.Equalf(t, CheckExitOK, res.State, "state matches")
+	assert.Equalf(t, "i am in the scripts folder", string(res.BuildPluginOutput()), "output matches")
 
-        StopTestAgent(t, snc)
+	StopTestAgent(t, snc)
 }
 
 func TestCheckExternalWindowsTimeout(t *testing.T) {
