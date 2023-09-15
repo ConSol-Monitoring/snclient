@@ -1142,7 +1142,7 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 		command = strings.Replace(command, cmdPath, strings.ReplaceAll(cmdPathReplacement, " ", "__SNCLIENT_BLANK__"), 1)
 	}
 
-	cmd, err := makeCmd(ctx, command)
+	cmd, err := makeCmd(ctx, command, scriptsPath)
 	if cmd.Args != nil {
 		log.Tracef("command object:\n path: %s\n args: %v\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr)
 	} else {
