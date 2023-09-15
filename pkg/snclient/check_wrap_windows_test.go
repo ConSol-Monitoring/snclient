@@ -27,6 +27,7 @@ exe = %%SCRIPT%% %%ARGS%%
 
 [/settings/external scripts/scripts]
 check_doesnotexist = /a/path/that/does/not/exist/nonexisting_script "no" "no"
+check_cwd = type pluginoutput
 
 check_dummy = check_dummy.EXTENSION
 check_dummy_ok = check_dummy.EXTENSION 0 "i am ok"
@@ -70,6 +71,20 @@ func TestMain(m *testing.M) {
 
 	// exit with the same exit code as the tests
 	os.Exit(exitCode)
+}
+
+unc TestCheckExternalWindowsCwd(t *testing.T) {
+        testDir, _ := os.Getwd()
+        scriptsDir := filepath.Join(testDir, "t", "scripts")
+
+        config := setupConfig(scriptsDir, "sh")
+        snc := StartTestAgent(t, config)
+
+        res := snc.RunCheck("check_cwd", []string{})
+        assert.Equalf(t, CheckExitOK, res.State, "state matches")
+        assert.Equalf(t, "i am in the scripts folder", string(res.BuildPluginOutput()), "output matches")
+
+        StopTestAgent(t, snc)
 }
 
 func TestCheckExternalWindowsTimeout(t *testing.T) {
