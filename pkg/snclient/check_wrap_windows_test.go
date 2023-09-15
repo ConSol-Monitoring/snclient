@@ -27,7 +27,7 @@ exe = %%SCRIPT%% %%ARGS%%
 
 [/settings/external scripts/scripts]
 check_doesnotexist = /a/path/that/does/not/exist/nonexisting_script "no" "no"
-check_cwd = type pluginoutput
+check_cwd = cmd /c type pluginoutput
 
 check_dummy = check_dummy.EXTENSION
 check_dummy_ok = check_dummy.EXTENSION 0 "i am ok"
