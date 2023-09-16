@@ -1009,6 +1009,7 @@ func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeou
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
 
+	cmd.Dir = scriptsPath
 	err = cmd.Start()
 	if err != nil && cmd.ProcessState == nil {
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
@@ -1142,7 +1143,7 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 		command = strings.Replace(command, cmdPath, strings.ReplaceAll(cmdPathReplacement, " ", "__SNCLIENT_BLANK__"), 1)
 	}
 
-	cmd, err := makeCmd(ctx, command, scriptsPath)
+	cmd, err := makeCmd(ctx, command)
 	if cmd.Args != nil {
 		log.Tracef("command object:\n path: %s\n args: %v\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr)
 	} else {

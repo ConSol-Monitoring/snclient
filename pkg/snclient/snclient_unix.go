@@ -108,11 +108,10 @@ func processTimeoutKill(process *os.Process) {
 	}(process.Pid)
 }
 
-func makeCmd(ctx context.Context, command, workingDir string) (*exec.Cmd, error) {
+func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 	command = strings.ReplaceAll(command, "__SNCLIENT_BLANK__", "\\ ")
 	cmdList := []string{"/bin/sh", "-c", command}
 	cmd := exec.CommandContext(ctx, cmdList[0], cmdList[1:]...) // #nosec G204
-	cmd.Dir = workingDir
 	// prevent child from receiving signals meant for the agent only
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
