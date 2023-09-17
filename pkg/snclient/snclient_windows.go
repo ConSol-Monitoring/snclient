@@ -193,7 +193,7 @@ func processTimeoutKill(process *os.Process) {
 	LogDebug(process.Signal(syscall.SIGKILL))
 }
 
-func makeCmd(ctx context.Context, command, workingDir string) (*exec.Cmd, error) {
+func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 	if strings.Contains(command, "LASTEXITCODE") || strings.Contains(command, "lastexitcode") {
 		// This is a hack. Without it, neither syscallCommandLineToArgv nor Tokenize will
 		// properly parse ...check_sometjing.ps1 "para meter"; exit($LASTEXITCODE)...
@@ -222,7 +222,6 @@ func makeCmd(ctx context.Context, command, workingDir string) (*exec.Cmd, error)
 			cmdArgs[i] = syscall.EscapeArg(ca)
 		}
 		cmd := exec.CommandContext(ctx, shell, "")
-		cmd.Dir = workingDir
 		cmd.Args = nil
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			HideWindow: true,
@@ -237,7 +236,6 @@ func makeCmd(ctx context.Context, command, workingDir string) (*exec.Cmd, error)
 		}
 		cmdName = strings.ReplaceAll(cmdName, "__SNCLIENT_BLANK__", " ")
 		cmd := exec.CommandContext(ctx, "powershell")
-		cmd.Dir = workingDir
 		cmd.Args = nil
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			HideWindow: true,
@@ -252,7 +250,6 @@ func makeCmd(ctx context.Context, command, workingDir string) (*exec.Cmd, error)
 		cmdArgs[i] = strings.ReplaceAll(ca, "__SNCLIENT_BLANK__", " ")
 	}
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
-	cmd.Dir = workingDir
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow: true,
 	}
