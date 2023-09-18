@@ -34,10 +34,10 @@ my_check2 = myscripts\check_custom.bat
 
 ```plaintext
 [/settings/external-scripts/scripts/my_check1]
-command = check_custom.bat
+my_check1 = check_custom.bat
 
 [/settings/external-scripts/scripts/my_check2]
-command = myscripts\check_custom.bat
+my_check2 = myscripts\check_custom.bat
 ```
 
 Both formats achieve the same outcome by adding two new commands, `my_check1` and `my_check2`, which execute the `check_custom.bat` script. Usually you use the short format, but if you want to provide individual options to a command, the long format is the way to go.
@@ -48,18 +48,7 @@ You can manage script arguments in two ways: embedding them directly into the co
 
 ```plaintext
 [/settings/external-scripts]
-allow-arguments = true
-```
-
-### Running Scripts with Specific User Privileges
-
-To execute a script with specific user privileges, use the verbose format and specify the `user` and `password`:
-
-```plaintext
-[/settings/external-scripts/scripts/custom_check_as_user]
-command = scripts\check_custom.bat
-user = Administrator
-password = YourSecurePassword
+allow arguments = true
 ```
 
 ### Configuration Reference
@@ -110,6 +99,7 @@ check_dummy_args = check_dummy.bat $ARGS$
 check_dummy_args%% = check_dummy.exe %ARGS%
 # put variable arguments in quotes
 check_dummy_argsq = check_dummy.ps1 $ARGS"$
+restart_service = NET START "$ARG1$"
 ```
 
 **Wrapped Scripts**
@@ -129,5 +119,6 @@ check_dummy_wrapped_ok = check_dummy.bat 0 "i am ok wrapped"
 check_dummy_wrapped_critical = check_dummy.vbs 2 "i am critical wrapped"
 ```
 
+Other than with NSClient++ you don't need to use wrapping for Powershell scripts.
 ---
 
