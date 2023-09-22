@@ -102,6 +102,11 @@ build-windows-amd64: vendor
 		( cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.amd64.exe ) ; \
 	done
 
+build-windows-arm64: vendor
+	set -e; for CMD in $(CMDS); do \
+		( cd ./cmd/$$CMD && GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.arm64.exe ) ; \
+	done
+
 build-freebsd-i386: vendor
 	set -e; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.freebsd.i386 ) ; \
