@@ -93,7 +93,7 @@ func TestCheckExternalUnixCwd(t *testing.T) {
 	res := snc.RunCheck("check_cwd_rel", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
 	assert.Equalf(t, "i am in the scripts folder", string(res.BuildPluginOutput()), "output matches")
-	res := snc.RunCheck("check_cwd_abs", []string{})
+	res = snc.RunCheck("check_cwd_abs", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
 	assert.Equalf(t, "i am in the scripts folder", string(res.BuildPluginOutput()), "output matches")
 
