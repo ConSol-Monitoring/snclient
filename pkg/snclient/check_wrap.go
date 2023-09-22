@@ -39,10 +39,12 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		macros["SCRIPT"] = cmdToken[0]
 		macros["ARGS"] = strings.Join(cmdToken[1:], " ")
 		ext := strings.TrimPrefix(filepath.Ext(cmdToken[0]), ".")
+		log.Debugf("command wrapping for extension: %s", ext)
 		wrapping, ok := snc.Config.Section("/settings/external scripts/wrappings").GetString(ext)
 		if !ok {
 			return nil, fmt.Errorf("no wrapping found for extension: %s", ext)
 		}
+		log.Debugf("%s wrapper: %s", ext, wrapping)
 		command = ReplaceRuntimeMacros(wrapping, macros)
 	} else {
 		macros["ARGS"] = strings.Join(check.rawArgs, " ")
@@ -54,6 +56,7 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 
 			return quoteds
 		}(check.rawArgs), " ")
+		log.Debugf("command before macros expanded: %s", l.commandString)
 		command = ReplaceRuntimeMacros(l.commandString, macros)
 	}
 
