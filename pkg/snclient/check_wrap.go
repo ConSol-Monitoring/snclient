@@ -57,17 +57,6 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		command = ReplaceRuntimeMacros(l.commandString, macros)
 	}
 
-	// not available in nsclient, but can be useful in snclient
-	if strings.Contains(command, "scripts") {
-		scriptsDir, ok := snc.Config.Section("/settings/external scripts").GetString("scripts")
-		if ok {
-			macrosScriptsDir := map[string]string{
-				"scripts": scriptsDir,
-			}
-			command = ReplaceMacros(command, macrosScriptsDir)
-		}
-	}
-
 	// set default timeout
 	timeoutSeconds, ok, err := l.config.GetInt("timeout")
 	if err != nil || !ok {
