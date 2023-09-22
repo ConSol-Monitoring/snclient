@@ -31,7 +31,8 @@ exe = %%SCRIPT%% %%ARGS%%
 timeout = 1111111
 [/settings/external scripts/scripts]
 check_doesnotexist = /a/path/that/does/not/exist/nonexisting_script "no" "no"
-check_cwd = cat pluginoutput
+check_cwd_rel = cat pluginoutput
+check_cwd_abs = cat ${scripts}/pluginoutput
 
 check_dummy = check_dummy.EXTENSION
 check_dummy_ok = check_dummy.EXTENSION 0 "i am ok"
@@ -89,7 +90,10 @@ func TestCheckExternalUnixCwd(t *testing.T) {
 	config := setupConfig(scriptsDir, "sh")
 	snc := StartTestAgent(t, config)
 
-	res := snc.RunCheck("check_cwd", []string{})
+	res := snc.RunCheck("check_cwd_rel", []string{})
+	assert.Equalf(t, CheckExitOK, res.State, "state matches")
+	assert.Equalf(t, "i am in the scripts folder", string(res.BuildPluginOutput()), "output matches")
+	res := snc.RunCheck("check_cwd_abs", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
 	assert.Equalf(t, "i am in the scripts folder", string(res.BuildPluginOutput()), "output matches")
 
