@@ -28,7 +28,8 @@ exe = %%SCRIPT%% %%ARGS%%
 
 [/settings/external scripts/scripts]
 check_doesnotexist = /a/path/that/does/not/exist/nonexisting_script "no" "no"
-check_cwd = cmd /c type pluginoutput
+check_cwd_rel = cmd /c type pluginoutput
+check_cwd_abs = cmd /c type ${scripts}\pluginoutput
 
 check_dummy = check_dummy.EXTENSION
 check_dummy_ok = check_dummy.EXTENSION 0 "i am ok"
@@ -81,7 +82,10 @@ func TestCheckExternalWindowsCwd(t *testing.T) {
 	config := setupConfig(scriptsDir, "sh")
 	snc := StartTestAgent(t, config)
 
-	res := snc.RunCheck("check_cwd", []string{})
+	res := snc.RunCheck("check_cwd_rel", []string{})
+	assert.Equalf(t, CheckExitOK, res.State, "state matches")
+	assert.Equalf(t, "i am in the scripts folder", string(res.BuildPluginOutput()), "output matches")
+	res = snc.RunCheck("check_cwd_abs", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
 	assert.Equalf(t, "i am in the scripts folder", string(res.BuildPluginOutput()), "output matches")
 
