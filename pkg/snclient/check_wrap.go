@@ -87,7 +87,10 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		}
 	}
 	if stderr != "" {
-		stdout += "\n[" + stderr + "]"
+		if stdout != "" {
+			stdout += "\n"
+		}
+		stdout += "[" + stderr + "]"
 	}
 	fixReturnCodes(&stdout, &exitCode, procState)
 
