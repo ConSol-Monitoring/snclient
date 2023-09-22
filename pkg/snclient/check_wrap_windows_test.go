@@ -21,6 +21,7 @@ CheckExternalScripts = enabled
 
 [/paths]
 scripts = %s
+shared-path = %%(scripts)
 
 [/settings/external scripts/wrappings]
 exe = %%SCRIPT%% %%ARGS%%

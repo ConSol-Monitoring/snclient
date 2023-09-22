@@ -428,30 +428,18 @@ func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
 		section.MergeData(defaults)
 	}
 
-	// set paths
-	pathSection := config.Section("/paths")
-	exe, ok := pathSection.GetString("exe-path")
-	switch {
-	case ok && exe != "":
-		log.Warnf("exe-path should not be set manually")
-
-		fallthrough
-	default:
-		pathSection.Set("exe-path", GlobalMacros["exe-path"])
-	}
-
-	// set defaults for empty path settings
-	for _, key := range []string{"exe-path", "shared-path", "scripts", "certificate-path"} {
-		val, ok := pathSection.GetString(key)
-		if !ok || val == "" {
-			pathSection.Set(key, pathSection.data["exe-path"])
-		}
-	}
+	// set defaults in path section
+	pathSection := snc.setDefaultPaths(config, files)
 
 	// replace macros in path section early
 	for key, val := range pathSection.data {
 		val = ReplaceMacros(val, pathSection.data, GlobalMacros)
 		pathSection.Set(key, val)
+	}
+
+	// shared path must exist
+	if err := utils.IsFolder(pathSection.data["shared-path"]); err != nil {
+		return nil, fmt.Errorf("shared-path %s", err.Error())
 	}
 
 	// replace other sections
@@ -994,10 +982,7 @@ func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeou
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	scriptsPath, ok := snc.Config.Section("/paths").GetString("scripts")
-	if !ok {
-		scriptsPath, _ = os.Getwd()
-	}
+	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
 	cmd, err := MakeCmd(ctx, command, scriptsPath)
 	if err != nil {
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
@@ -1009,7 +994,11 @@ func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeou
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
 
-	cmd.Dir = scriptsPath
+	workDir, _ := snc.Config.Section("/paths").GetString("shared-path")
+	if err := utils.IsFolder(workDir); err != nil {
+		return "", "", ExitCodeUnknown, nil, fmt.Errorf("invalid shared-path %s: %s", workDir, err.Error())
+	}
+	cmd.Dir = workDir
 	err = cmd.Start()
 	if err != nil && cmd.ProcessState == nil {
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
@@ -1103,6 +1092,47 @@ func (snc *Agent) verifyPassword(confPassword, userPassword string) bool {
 	log.Errorf("password mismatch -> 403")
 
 	return false
+}
+
+// setDefaultPaths sets and returns defaults from the /paths config section
+func (snc *Agent) setDefaultPaths(config *Config, configFiles []string) *ConfigSection {
+	// set default exe-path path
+	pathSection := config.Section("/paths")
+	exe, ok := pathSection.GetString("exe-path")
+	switch {
+	case ok && exe != "":
+		log.Warnf("exe-path should not be set manually, it will be overwritten anyway")
+
+		fallthrough
+	default:
+		pathSection.Set("exe-path", GlobalMacros["exe-path"])
+	}
+
+	// set default shared-path path to base dir of first config file or current directory as fallback.
+	shared, ok := pathSection.GetString("shared-path")
+	if !ok || shared == "" {
+		switch {
+		case len(configFiles) > 0:
+			pathSection.Set("shared-path", filepath.Dir(configFiles[0]))
+		default:
+			path, _ := os.Getwd()
+			pathSection.Set("shared-path", path)
+		}
+	}
+
+	// scripts points to %{shared-path}/scripts unless set otherwise
+	scripts, ok := pathSection.GetString("scripts")
+	if !ok || scripts == "" {
+		pathSection.Set("scripts", filepath.Join(pathSection.data["shared-path"], "scripts"))
+	}
+
+	// scripts points to %{shared-path}/scripts unless set otherwise
+	certs, ok := pathSection.GetString("certificate-path")
+	if !ok || certs == "" {
+		pathSection.Set("certificate-path", pathSection.data["shared-path"])
+	}
+
+	return pathSection
 }
 
 // MakeCmd returns the Cmd struct to execute the named program with

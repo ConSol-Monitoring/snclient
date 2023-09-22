@@ -509,3 +509,17 @@ func List2String(list []string) (res string) {
 
 	return res
 }
+
+// IsFolder returns an err if the path does not exist or is not a folder
+func IsFolder(path string) error {
+	path = filepath.Join(path, ".")
+	stat, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("%s does not exist: %s", path, err.Error())
+	}
+	if !stat.IsDir() {
+		return fmt.Errorf("%s is not a directory", path)
+	}
+
+	return nil
+}

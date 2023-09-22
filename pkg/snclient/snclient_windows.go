@@ -275,6 +275,7 @@ func makeCmdNoParams(ctx context.Context, cmdName string) (*exec.Cmd, error) {
 
 	return cmd, nil
 }
+
 func isBatchFile(path string) bool {
 	ext := filepath.Ext(path)
 
