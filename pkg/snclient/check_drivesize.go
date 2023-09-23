@@ -51,7 +51,6 @@ func (l *CheckDrivesize) Build() *CheckData {
 		"rpc_pipefs",
 		"securityfs",
 		"sysfs",
-		"tmpfs",
 		"tracefs",
 	}
 
@@ -68,12 +67,14 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"total":   &l.total,
 			"magic":   &l.magic,
 		},
+		argsFilter:      []string{"drive"},
 		defaultFilter:   "fstype not in (" + utils.List2String(excludedFsTypes) + ")",
 		defaultWarning:  "used_pct > 80",
 		defaultCritical: "used_pct > 90",
 		okSyntax:        "%(status): All %(count) drive(s) are ok",
 		detailSyntax:    "%(drive_or_name) %(used)/%(size) used",
 		topSyntax:       "${status}: ${problem_list}",
+		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status): No drives found",
 	}
 }

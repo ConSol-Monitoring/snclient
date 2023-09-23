@@ -63,12 +63,14 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"total":   &l.total,
 			"magic":   &l.magic,
 		},
+		argsFilter:      []string{"drive"},
 		defaultFilter:   "( mounted = 1  or media_type = 0 )",
 		defaultWarning:  "used > 80",
 		defaultCritical: "used > 90",
 		okSyntax:        "%(status): All %(count) drive(s) are ok",
 		detailSyntax:    "%(drive_or_name) %(used)/%(size) used",
 		topSyntax:       "${status}: ${problem_list}",
+		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status): No drives found",
 	}
 }

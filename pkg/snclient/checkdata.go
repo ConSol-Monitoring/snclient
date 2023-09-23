@@ -33,6 +33,7 @@ type CheckData struct {
 	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
 	args            map[string]interface{}
 	rawArgs         []string
+	argsFilter      []string     // argsFilter set a list of arg attributes which (if set) will prevent using the default filter
 	filter          []*Condition // if set, only show entries matching this filter set
 	warnThreshold   []*Condition
 	defaultWarning  string
@@ -335,6 +336,7 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 	cd.rawArgs = args
 	appendArgs := map[string]bool{}
 	argList := make([]Argument, 0, len(args))
+	applyDefaultFilter := true
 	for _, argExpr := range args {
 		argExpr = cd.removeQuotes(argExpr)
 		split := strings.SplitN(argExpr, "=", 2)
@@ -343,6 +345,9 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		}
 		keyword := cd.removeQuotes(split[0])
 		argValue := cd.removeQuotes(split[1])
+		if slices.Contains(cd.argsFilter, keyword) {
+			applyDefaultFilter = false
+		}
 		switch keyword {
 		case "help":
 			cd.showHelp = true
@@ -392,6 +397,7 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 				cd.showAll = showAll
 			}
 		case "filter":
+			applyDefaultFilter = false
 			cond, err := NewCondition(argValue)
 			if err != nil {
 				return nil, err
@@ -424,7 +430,7 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		}
 	}
 
-	err := cd.setFallbacks()
+	err := cd.setFallbacks(applyDefaultFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -513,8 +519,8 @@ func (cd *CheckData) removeQuotes(str string) string {
 }
 
 // setFallbacks sets default filter/warn/crit thresholds unless already set.
-func (cd *CheckData) setFallbacks() error {
-	if len(cd.filter) == 0 && cd.defaultFilter != "" {
+func (cd *CheckData) setFallbacks(applyDefaultFilter bool) error {
+	if applyDefaultFilter && cd.defaultFilter != "" {
 		cond, err := NewCondition(cd.defaultFilter)
 		if err != nil {
 			return err
