@@ -18,8 +18,9 @@ type CheckUptime struct{}
 
 func (l *CheckUptime) Build() *CheckData {
 	return &CheckData{
-		name:        "check_uptime",
-		description: "Check computer uptime (time since last reboot).",
+		name:         "check_uptime",
+		description:  "Check computer uptime (time since last reboot).",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

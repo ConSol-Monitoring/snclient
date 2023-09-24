@@ -16,8 +16,9 @@ type CheckOSVersion struct{}
 
 func (l *CheckOSVersion) Build() *CheckData {
 	return &CheckData{
-		name:        "check_os_version",
-		description: "Checks the os system version.",
+		name:         "check_os_version",
+		description:  "Checks the os system version.",
+		hasInventory: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
