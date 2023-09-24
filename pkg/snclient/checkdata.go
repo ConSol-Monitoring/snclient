@@ -21,6 +21,15 @@ var (
 	DefaultCheckTimeout = float64(60)
 )
 
+// InventoryMode sets available inventory move
+type InventoryMode uint8
+
+const (
+	NoInventory      InventoryMode = iota
+	ListInventory                  // calls this check and uses listDetails
+	ScriptsInventory               // does not call this check and puts it into the scripts section
+)
+
 type CommaStringList []string
 
 // CheckData contains the runtime data of a generic check plugin
@@ -52,7 +61,7 @@ type CheckData struct {
 	showHelp        bool
 	timeout         float64
 	perfConfig      []PerfConfig
-	hasInventory    bool
+	hasInventory    InventoryMode
 	output          string
 }
 

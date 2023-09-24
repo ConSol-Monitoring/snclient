@@ -44,7 +44,7 @@ func (l *CheckService) Build() *CheckData {
 	return &CheckData{
 		name:         "check_service",
 		description:  "Checks the state of one or multiple windows services.",
-		hasInventory: true,
+		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

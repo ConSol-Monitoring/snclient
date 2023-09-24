@@ -18,7 +18,7 @@ func (l *CheckOSVersion) Build() *CheckData {
 	return &CheckData{
 		name:         "check_os_version",
 		description:  "Checks the os system version.",
-		hasInventory: true,
+		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

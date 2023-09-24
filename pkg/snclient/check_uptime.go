@@ -20,7 +20,7 @@ func (l *CheckUptime) Build() *CheckData {
 	return &CheckData{
 		name:         "check_uptime",
 		description:  "Check computer uptime (time since last reboot).",
-		hasInventory: true,
+		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

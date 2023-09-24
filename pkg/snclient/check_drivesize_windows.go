@@ -53,7 +53,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 	return &CheckData{
 		name:         "check_drivesize",
 		description:  "Checks the disk drive/volumes usage on a windows host.",
-		hasInventory: true,
+		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

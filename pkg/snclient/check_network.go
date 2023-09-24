@@ -18,7 +18,7 @@ func (l *CheckNetwork) Build() *CheckData {
 	return &CheckData{
 		name:         "check_network",
 		description:  "Checks the state and metrics of network interfaces.",
-		hasInventory: true,
+		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

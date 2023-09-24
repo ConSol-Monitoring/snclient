@@ -13,13 +13,17 @@ import (
 type CheckWrap struct {
 	noCopy        noCopy
 	snc           *Agent
+	name          string
 	commandString string
 	config        *ConfigSection
 	wrapped       bool
 }
 
 func (l *CheckWrap) Build() *CheckData {
-	return &CheckData{}
+	return &CheckData{
+		name:         l.name,
+		hasInventory: ScriptsInventory,
+	}
 }
 
 // CheckWrap wraps existing scripts created by the ExternalScriptsHandler

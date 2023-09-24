@@ -20,7 +20,7 @@ func (l *CheckPagefile) Build() *CheckData {
 	return &CheckData{
 		name:         "check_pagefile",
 		description:  "Checks the pagefile usage.",
-		hasInventory: true,
+		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

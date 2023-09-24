@@ -24,7 +24,7 @@ func (l *CheckMemory) Build() *CheckData {
 	return &CheckData{
 		name:         "check_memory",
 		description:  "Checks the memory usage on the host.",
-		hasInventory: true,
+		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
