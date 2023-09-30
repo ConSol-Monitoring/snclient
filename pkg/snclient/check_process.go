@@ -56,18 +56,32 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 	}
 
 	for _, proc := range procs {
-		filename, err := proc.Exe()
-		if err != nil {
-			continue
-		}
-		exe := filepath.Base(filename)
-		if len(l.processes) > 0 && !slices.Contains(l.processes, exe) {
-			continue
-		}
-
 		cmdLine, err := proc.Cmdline()
 		if err != nil {
 			log.Debugf("check_process: cmd line error: %s")
+		}
+
+		exe := ""
+		filename, err := proc.Exe()
+		if err == nil {
+			exe = filepath.Base(filename)
+		} else {
+			cmd, err := proc.CmdlineSlice()
+			if err != nil && len(cmd) >= 1 {
+				exe = cmd[0]
+			}
+		}
+		if exe == "" {
+			name, err := proc.Name()
+			if err != nil {
+				log.Debugf("check_process: name error: %s")
+			} else {
+				exe = fmt.Sprintf("[%s]", name)
+			}
+		}
+
+		if len(l.processes) > 0 && !slices.Contains(l.processes, exe) {
+			continue
 		}
 
 		states, err := proc.Status()
@@ -89,6 +103,12 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 			log.Debugf("check_process: Username error: %s")
 		}
 
+		uids, err := proc.Uids()
+		if err != nil {
+			log.Debugf("check_process: uids error: %s")
+			uids = []int32{-1}
+		}
+
 		mem, err := proc.MemoryInfo()
 		if err != nil {
 			log.Debugf("check_process: Username error: %s")
@@ -103,6 +123,7 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 			"exe":          exe,
 			"filename":     filename,
 			"pid":          fmt.Sprintf("%d", proc.Pid),
+			"uid":          fmt.Sprintf("%d", uids[0]),
 			"username":     username,
 			"virtual":      fmt.Sprintf("%d", mem.VMS),
 			"rss":          fmt.Sprintf("%d", mem.RSS),
