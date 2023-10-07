@@ -3,6 +3,8 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -65,6 +67,15 @@ func (l *CheckNetwork) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 		}
 		found[int.Name] = true
 
+		speed := "-1"
+		// grab speed from /sys/class/net/<dev>/speed if possible
+		if runtime.GOOS == "linux" {
+			dat, err := os.ReadFile(fmt.Sprintf("/sys/class/net/%s/speed", int.Name))
+			if err == nil {
+				speed = strings.TrimSpace(string(dat))
+			}
+		}
+
 		check.listData = append(check.listData, map[string]string{
 			"MAC":               int.HardwareAddr,
 			"enabled":           strconv.FormatBool(slices.Contains(int.Flags, "up")),
@@ -72,7 +83,7 @@ func (l *CheckNetwork) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 			"net_connection_id": int.Name,
 			"received":          strconv.FormatUint(IOList[intnr].BytesRecv, 10),
 			"sent":              strconv.FormatUint(IOList[intnr].BytesSent, 10),
-			"speed":             "-1",
+			"speed":             speed,
 			"flags":             strings.Join(int.Flags, ","),
 		})
 	}
