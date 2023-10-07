@@ -1,5 +1,12 @@
 This file documents the revision history for the SNClient+ agent.
 
+next:
+         - use shared path as working directory when running external scripts
+         - check_network: add name/exclude and speed
+         - check_process: fix showing all processes
+         - check_drivesize: do not apply default filter if disk is specified
+
+
 0.08     Thu Sep  7 15:08:07 CEST 2023
          - catch some standard cmd.exe errors
          - skip logrotation if output is not a file
