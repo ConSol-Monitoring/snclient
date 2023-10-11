@@ -225,7 +225,7 @@ jobs:
 
       - run: |
           Write-Host "Verify snclient.msi"
-          & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa snclient.msi
+          & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa ${{ env.BIN }}.msi
 
       - uses: actions/upload-artifact@v3
         with:
