@@ -26,6 +26,13 @@ SNClient is written in golang which comes which some benefits regarding security
     need to set them manually.
 
 
+## Code Signing
+
+The windows builds (both snclient.exe and the .msi installer) and can be verified
+with the [snclient.pem](snclient.pem).
+
+
+
 ## Recommendations
 
 
@@ -78,3 +85,4 @@ to exploit existing commands.
 
     [/settings/default]
     allow nasty characters = false
+

@@ -432,3 +432,15 @@ release_notes.txt: Changes
 
 client1.pem:
 	openssl req -new -nodes -x509 -out client1.pem -keyout client1.key -days 20000 -subj "/C=DE/ST=Bavaria/L=Earth/O=SNClient/OU=IT"
+
+sign.pfx:
+	mkdir sign
+	openssl genrsa -out sign/ca.key 4096
+	openssl req -key sign/ca.key -new -x509 -days 20000 -sha256 -out sign/cacert.pem -subj "/C=DE/ST=Bavaria/L=Munich/O=snclient/OU=IT/CN=Root CA SNClient Code Sign"
+	openssl req -newkey rsa:2048 -nodes -keyout sign/sign.key -out sign/sign.csr -subj "/CN=snclient"
+	openssl x509 -req -CAcreateserial -CA sign/cacert.pem -CAkey sign/ca.key -days 20000 -in sign/sign.csr -out sign/sign.crt
+	rm -f sign/sign.csr sign/sign.srl
+	openssl pkcs12 -export -out sign.pfx -inkey sign/sign.key -in sign/sign.crt
+
+sign.pfx_sha1: sign.pfx
+	openssl x509 -fingerprint -in sign.pfx -noout | tr -d ':'

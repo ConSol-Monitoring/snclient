@@ -122,6 +122,46 @@ jobs:
           if-no-files-found: error
 
 
+  sign-win:
+    strategy:
+      fail-fast: false
+      matrix:
+        go-os: [windows]
+        go-arch: [386, amd64]
+    needs: [get-version, build-win]
+    runs-on: windows-latest
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
+        with:
+          name: "${{ env.BIN }}"
+          path: "."
+
+      - run: |
+          certutil -addstore "Root" .\docs\security\snclient.pem
+
+      - uses: Minionguyjpro/signtool-code-sign@1.0.7
+        with:
+          certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
+          cert-password: '${{ secrets.WIN_SIGN_PASSWORD }}'
+          cert-sha1: '${{ secrets.WIN_SIGN_CERTHASH }}'
+          cert-description: 'SNClient+ Agent (https://omd.consol.de/docs/snclient/)'
+          timestamp-server: 'http://timestamp.digicert.com'
+          folder: "./"
+
+      - run: |
+          Write-Host "Verify snclient.exe"
+          & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa snclient.exe
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: "${{ env.BIN }}"
+          path: "snclient.exe"
+          if-no-files-found: error
+
+
   dist-win:
     needs: [get-version]
     runs-on: ubuntu-latest
@@ -146,7 +186,7 @@ jobs:
       matrix:
         go-os: [windows]
         go-arch: [386, amd64]
-    needs: [get-version, build-win, dist-win, test, test-win, test-osx]
+    needs: [get-version, build-win, dist-win, sign-win, test, test-win, test-osx]
     runs-on: windows-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -162,6 +202,9 @@ jobs:
           path: "windist"
 
       - run: |
+          certutil -addstore "Root" .\docs\security\snclient.pem
+
+      - run: |
           Write-Host "Building ${{ env.BIN }}.msi"
           & .\packaging\windows\build_msi.ps1 `
             -out "${{ env.BIN }}.msi" `
@@ -170,6 +213,19 @@ jobs:
             -minor "${{needs.get-version.outputs.minor}}" `
             -rev "${{needs.get-version.outputs.revision}}" `
             -sha "${{ needs.get-version.outputs.sha }}"
+
+      - uses: Minionguyjpro/signtool-code-sign@1.0.7
+        with:
+          certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
+          cert-password: '${{ secrets.WIN_SIGN_PASSWORD }}'
+          cert-sha1: '${{ secrets.WIN_SIGN_CERTHASH }}'
+          cert-description: 'SNClient+ Agent (https://omd.consol.de/docs/snclient/)'
+          timestamp-server: 'http://timestamp.digicert.com'
+          folder: "./"
+
+      - run: |
+          Write-Host "Verify snclient.msi"
+          & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa snclient.msi
 
       - uses: actions/upload-artifact@v3
         with:
