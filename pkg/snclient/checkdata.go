@@ -314,6 +314,9 @@ func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string
 // Filter data map by conditions and return filtered list.
 // ALl items not matching given filter will be removed.
 func (cd *CheckData) Filter(conditions []*Condition, data []map[string]string) []map[string]string {
+	if len(conditions) == 0 {
+		return data
+	}
 	result := make([]map[string]string, 0)
 
 	for num := range data {
