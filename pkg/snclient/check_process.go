@@ -64,6 +64,10 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 		exe := ""
 		filename, err := proc.Exe()
 		if err == nil {
+			// in case the binary has been removed / updated meanwhile it shows up as "".../path/bin (deleted)""
+			// %> ls -la /proc/857375/exe
+			// lrwxrwxrwx 1 user group 0 Oct 11 20:40 /proc/857375/exe -> '/usr/bin/ssh (deleted)'
+			filename = strings.TrimSuffix(filename, " (deleted)")
 			exe = filepath.Base(filename)
 		} else {
 			cmd, err := proc.CmdlineSlice()
@@ -130,6 +134,14 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 			"pagefile":     fmt.Sprintf("%d", mem.Swap),
 		})
 	}
+
+	check.listData = check.Filter(check.filter, check.listData)
+	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+		Name:     "count",
+		Value:    len(check.listData),
+		Warning:  check.warnThreshold,
+		Critical: check.critThreshold,
+	})
 
 	return check.Finalize()
 }
