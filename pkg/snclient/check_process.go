@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"pkg/convert"
+
 	"github.com/shirou/gopsutil/v3/process"
 	"golang.org/x/exp/slices"
 )
@@ -54,6 +56,8 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 	if err != nil {
 		return nil, fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
 	}
+
+	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"rss", "virtual", "pagefile"})
 
 	for _, proc := range procs {
 		cmdLine, err := proc.Cmdline()
@@ -139,9 +143,42 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 		Name:     "count",
 		Value:    len(check.listData),
+		Min:      &Zero,
 		Warning:  check.warnThreshold,
 		Critical: check.critThreshold,
 	})
+
+	if check.HasThreshold("rss") {
+		totalRss := int64(0)
+		for _, p := range check.listData {
+			val := convert.Float64(p["rss"])
+			totalRss += int64(val)
+		}
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:     "rss",
+			Unit:     "B",
+			Value:    totalRss,
+			Min:      &Zero,
+			Warning:  check.warnThreshold,
+			Critical: check.critThreshold,
+		})
+	}
+
+	if check.HasThreshold("virtual") {
+		totalVirtual := int64(0)
+		for _, p := range check.listData {
+			val := convert.Float64(p["virtual"])
+			totalVirtual += int64(val)
+		}
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:     "virtual",
+			Unit:     "B",
+			Value:    totalVirtual,
+			Min:      &Zero,
+			Warning:  check.warnThreshold,
+			Critical: check.critThreshold,
+		})
+	}
 
 	return check.Finalize()
 }
