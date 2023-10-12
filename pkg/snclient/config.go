@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
@@ -99,13 +100,24 @@ func (config *Config) ToString() string {
 }
 
 func (config *Config) WriteINI(iniPath string) error {
+	// only update file if content has changed
+	configData := strings.TrimSpace(config.ToString())
+	currentData, err := os.ReadFile(iniPath)
+	if err == nil {
+		// file exists and was readable
+		currentData = bytes.TrimSpace(currentData)
+		if string(currentData) == configData {
+			return nil
+		}
+	}
+
 	file, err := os.Create(iniPath)
 	if err != nil {
 		return fmt.Errorf("failed to write ini %s: %s", iniPath, err.Error())
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(config.ToString())
+	_, err = file.WriteString(configData)
 	if err != nil {
 		return fmt.Errorf("failed to write ini %s: %s", iniPath, err.Error())
 	}
