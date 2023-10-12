@@ -270,31 +270,7 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 
 	for name, section := range tmpConfig.SectionsByPrefix("/") {
 		targetSection := targetConfig.Section(name)
-		for _, key := range section.Keys() {
-			switch key {
-			case "password":
-				val, _ := section.GetString(key)
-				if val != snclient.DefaultPassword {
-					if val != "" {
-						val = toPassword(val)
-					}
-					targetSection.Insert(key, val)
-				}
-			case "use ssl", "WEBServer", "NRPEServer", "PrometheusServer":
-				val, _ := section.GetString(key)
-				targetSection.Insert(key, toBool(val))
-			case "port", "allowed hosts":
-				val, _ := section.GetString(key)
-				targetSection.Insert(key, val)
-			case "installer":
-				val, _ := section.GetString(key)
-				if val != "" {
-					targetSection.Insert(key, val)
-				}
-			default:
-				snc.Log.Errorf("unhandled merge ini key: %s", key)
-			}
-		}
+		handleMergeSection(snc, section, targetSection)
 	}
 
 	err = targetConfig.WriteINI(targetFile)
@@ -308,6 +284,36 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 	}
 
 	return nil
+}
+
+func handleMergeSection(snc *snclient.Agent, section, targetSection *snclient.ConfigSection) {
+	for _, key := range section.Keys() {
+		switch key {
+		case "password":
+			val, _ := section.GetString(key)
+			if val == snclient.DefaultPassword {
+				continue
+			}
+
+			if val != "" {
+				val = toPassword(val)
+			}
+			targetSection.Insert(key, val)
+		case "use ssl", "WEBServer", "NRPEServer", "PrometheusServer":
+			val, _ := section.GetString(key)
+			targetSection.Insert(key, toBool(val))
+		case "port", "allowed hosts":
+			val, _ := section.GetString(key)
+			targetSection.Insert(key, val)
+		case "installer":
+			val, _ := section.GetString(key)
+			if val != "" {
+				targetSection.Insert(key, val)
+			}
+		default:
+			snc.Log.Errorf("unhandled merge ini key: %s", key)
+		}
+	}
 }
 
 func toPassword(val string) string {
