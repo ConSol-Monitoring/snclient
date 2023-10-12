@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	standardlog "log"
@@ -145,6 +146,10 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 		logFormatter = BuildFormatter(snc.flags.LogFormat)
 	}
 
+	if runtime.GOOS == "windows" {
+		targetWriter = NewWindowsLineEndingWriter(targetWriter)
+	}
+
 	log.SetFormatter(logFormatter)
 	log.SetOutput(targetWriter)
 }
@@ -228,4 +233,20 @@ func NewStandardLog(level string) *standardlog.Logger {
 	logger := standardlog.New(writer, "", 0)
 
 	return logger
+}
+
+// Custom writer that replaces \n with \r\n
+type WindowsLineEndingWriter struct {
+	writer io.Writer
+}
+
+func NewWindowsLineEndingWriter(writer io.Writer) *WindowsLineEndingWriter {
+	return &WindowsLineEndingWriter{writer: writer}
+}
+
+func (w *WindowsLineEndingWriter) Write(p []byte) (int, error) {
+	// Replace all occurrences of \n with \r\n in the input
+	p = bytes.ReplaceAll(p, []byte("\n"), []byte("\r\n"))
+
+	return w.writer.Write(p) //nolint:wrapcheck // just a simple wrapper
 }
