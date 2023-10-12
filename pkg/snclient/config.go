@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -94,6 +95,11 @@ func (config *Config) ToString() string {
 		section := strings.TrimSpace(config.Section(name).String())
 		data += section
 		data += "\n\n\n"
+	}
+
+	// keep windows newlines in the ini file
+	if runtime.GOOS == "windows" {
+		data = strings.ReplaceAll(data, "\n", "\r\n")
 	}
 
 	return data
