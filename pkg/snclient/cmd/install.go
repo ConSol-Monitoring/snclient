@@ -73,7 +73,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 				}
 			}
 
-			addFireWallRules(snc)
+			addFireWallRule(snc)
 			snc.Log.Infof("installer finished successfully")
 			os.Exit(0)
 		},
@@ -87,7 +87,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 			agentFlags.Mode = snclient.ModeOneShot
 			snc := snclient.NewAgent(agentFlags)
 
-			addFireWallRules(snc)
+			addFireWallRule(snc)
 			snc.Log.Infof("firewall setup ready")
 			os.Exit(0)
 		},
@@ -326,43 +326,20 @@ func toBool(val string) string {
 	}
 }
 
-func addFireWallRules(snc *snclient.Agent) {
-	for _, name := range listenerNames {
-		enabled, _, err := snc.Config.Section("/modules").GetBool(name + "Server")
-		if err != nil {
-			snc.Log.Debugf("/modules/%sServer: %s", name, err.Error())
-
-			continue
-		}
-		if !enabled {
-			continue
-		}
-
-		port, ok, err := snc.Config.Section("/settings/" + name + "/server").GetInt("port")
-		if err != nil {
-			snc.Log.Debugf("/settings/%s/server/port: %s", name, err.Error())
-
-			continue
-		}
-		if ok {
-			err := addFireWallRule(snc, name, port)
-			if err != nil {
-				snc.Log.Errorf("addFireWallRule: %s%s: %s", FIREWALLPREFIX, name, err.Error())
-			}
-		}
+func addFireWallRule(snc *snclient.Agent) error {
+	removeFireWallRules(snc)
+	snc.Log.Debugf("adding firewall rule '%s'", FIREWALLPREFIX)
+	_, _, execPath, err := utils.GetExecutablePath()
+	if err != nil {
+		return fmt.Errorf("could not detect path to executable: %s", err.Error())
 	}
-}
-
-func addFireWallRule(snc *snclient.Agent, name string, port int64) error {
-	removeFireWallRule(snc, name)
-	snc.Log.Debugf("adding firewall rule '%s%s' for port: %d", FIREWALLPREFIX, name, port)
 	os.Chdir("C:\\") // avoid: exec: "netsh": cannot run executable found relative to current directory
 	cmd := exec.Command("netsh", "advfirewall", "firewall", "add", "rule",
 		"dir=in",
 		"action=allow",
 		"protocol=TCP",
-		fmt.Sprintf("localport=%d", port),
-		fmt.Sprintf("name=%s%s", FIREWALLPREFIX, name),
+		fmt.Sprintf("program=\"%s\"", execPath),
+		fmt.Sprintf("name=%s", FIREWALLPREFIX),
 	)
 
 	output, err := cmd.CombinedOutput()
@@ -377,11 +354,18 @@ func addFireWallRule(snc *snclient.Agent, name string, port int64) error {
 }
 
 func removeFireWallRules(snc *snclient.Agent) {
+	// previously we added firewall rules for each listen port, so remove them again here
 	for _, name := range listenerNames {
 		err := removeFireWallRule(snc, name)
 		if err != nil {
-			snc.Log.Errorf("removeFireWallRule: %s%s: %s", FIREWALLPREFIX, name, err.Error())
+			snc.Log.Debugf("removeFireWallRule: %s%s: %s", FIREWALLPREFIX, name, err.Error())
 		}
+	}
+
+	// current firewall rule has no port and uses program only
+	err := removeFireWallRule(snc, "")
+	if err != nil {
+		snc.Log.Debugf("removeFireWallRule: %s: %s", FIREWALLPREFIX, err.Error())
 	}
 }
 
