@@ -450,7 +450,9 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 	cd.applyConditionAlias()
 
 	// increase logLevel temporary if debug arg is set
-	raiseLogLevel(cd.debug)
+	if cd.debug != "" {
+		raiseLogLevel(cd.debug)
+	}
 
 	return argList, nil
 }
