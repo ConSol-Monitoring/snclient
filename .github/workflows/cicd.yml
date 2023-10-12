@@ -139,9 +139,6 @@ jobs:
           name: "${{ env.BIN }}"
           path: "."
 
-      - run: |
-          certutil -addstore "Root" .\docs\security\snclient.pem
-
       - uses: Minionguyjpro/signtool-code-sign@1.0.7
         with:
           certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
@@ -200,9 +197,6 @@ jobs:
         with:
           name: "windist"
           path: "windist"
-
-      - run: |
-          certutil -addstore "Root" .\docs\security\snclient.pem
 
       - run: |
           Write-Host "Building ${{ env.BIN }}.msi"

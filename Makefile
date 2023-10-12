@@ -433,6 +433,7 @@ release_notes.txt: Changes
 client1.pem:
 	openssl req -new -nodes -x509 -out client1.pem -keyout client1.key -days 20000 -subj "/C=DE/ST=Bavaria/L=Earth/O=SNClient/OU=IT"
 
+# selfsigned certificate for code signing
 sign.pfx:
 	mkdir sign
 	openssl genrsa -out sign/ca.key 4096

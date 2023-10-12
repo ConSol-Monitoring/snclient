@@ -29,7 +29,9 @@ SNClient is written in golang which comes which some benefits regarding security
 ## Code Signing
 
 The windows builds (both snclient.exe and the .msi installer) and can be verified
-with the [snclient.pem](snclient.pem).
+with the signtool.exe from the windows developer sdk, ex.:
+
+    signtool.exe verify /pa snclient.exe
 
 
 
@@ -85,4 +87,3 @@ to exploit existing commands.
 
     [/settings/default]
     allow nasty characters = false
-
