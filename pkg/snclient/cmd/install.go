@@ -275,7 +275,10 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 			case "password":
 				val, _ := section.GetString(key)
 				if val != snclient.DefaultPassword {
-					targetSection.Insert(key, toPassword(val))
+					if val != "" {
+						val = toPassword(val)
+					}
+					targetSection.Insert(key, val)
 				}
 			case "use ssl", "WEBServer", "NRPEServer", "PrometheusServer":
 				val, _ := section.GetString(key)
