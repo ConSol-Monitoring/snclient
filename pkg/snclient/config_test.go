@@ -78,6 +78,28 @@ Key3 = Value3
 	assert.Equalf(t, "Value4", val4, "got val4")
 }
 
+func TestConfigDefaultPassword(t *testing.T) {
+	defaultConfig := `
+[/settings/WEB/server]
+password = CHANGEME
+	`
+	customConfig := `
+[/settings/default]
+password = test
+	`
+
+	cfg := NewConfig(false)
+	err := cfg.ParseINI(strings.NewReader(defaultConfig), "default.ini")
+	assert.NoErrorf(t, err, "default config parsed")
+
+	err = cfg.ParseINI(strings.NewReader(customConfig), "custom.ini")
+	assert.NoErrorf(t, err, "custom config parsed")
+
+	section := cfg.Section("/settings/WEB/server")
+	val, _ := section.GetString("password")
+	assert.Equalf(t, "test", val, "got custom password")
+}
+
 func TestConfigIncludeFile(t *testing.T) {
 	testDir, _ := os.Getwd()
 	configsDir := filepath.Join(testDir, "t", "configs")

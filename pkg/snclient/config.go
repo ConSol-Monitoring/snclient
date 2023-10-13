@@ -518,7 +518,7 @@ func (cs *ConfigSection) HasKey(key string) (ok bool) {
 // GetString parses string from config section, it returns the value if found and sets ok to true.
 func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	val, ok = cs.data[key]
-	if ok {
+	if ok && cs.isUsable(key, val) {
 		macros := make([]map[string]string, 0)
 		if cs.cfg != nil {
 			macros = append(macros, cs.cfg.Section("/paths").data)
@@ -560,6 +560,15 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	}
 
 	return val, ok
+}
+
+// returns true if value is usable
+func (cs *ConfigSection) isUsable(key, val string) bool {
+	if key == "password" && val == DefaultPassword {
+		return false
+	}
+
+	return true
 }
 
 // GetInt parses int64 from config section, it returns the value if found and sets ok to true.

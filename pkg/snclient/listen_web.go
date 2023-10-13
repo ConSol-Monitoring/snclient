@@ -120,6 +120,7 @@ func (l *HandlerWeb) Defaults() ConfigData {
 
 func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection, _ *Config) error {
 	l.snc = snc
+	l.password = DefaultPassword
 	if password, ok := conf.GetString("password"); ok {
 		l.password = password
 	}
