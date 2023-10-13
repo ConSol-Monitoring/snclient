@@ -56,10 +56,10 @@
                         <RemoveFile Id="RemoveIni" Name="tmp_installer.ini" On="uninstall" />
                         <IniFile Id="WriteIni01" Section="/includes" Key="installer" Value="[INCLUDES]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni02" Section="/settings/default" Key="allowed hosts" Value="[ALLOWEDHOSTS]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni06" Section="/settings/default" Key="password" Value="[PASSWORD]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni03" Section="/modules" Key="WEBServer" Value="[WEBSERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni04" Section="/settings/WEB/server" Key="port" Value="[WEBSERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni05" Section="/settings/WEB/server" Key="use ssl" Value="[WEBSERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni06" Section="/settings/WEB/server" Key="password" Value="[PASSWORD]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni07" Section="/modules" Key="NRPEServer" Value="[NRPESERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni08" Section="/settings/NRPE/server" Key="port" Value="[NRPESERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
                         <IniFile Id="WriteIni09" Section="/settings/NRPE/server" Key="use ssl" Value="[NRPESERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
