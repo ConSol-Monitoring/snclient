@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -209,6 +210,10 @@ port = 443
 ; only comment1
 ; only comment2
 `
+	if runtime.GOOS == "windows" {
+		// assume original config file has windows newlines
+		configText = strings.ReplaceAll(configText, "\n", "\r\n")
+	}
 
 	cfg := NewConfig(false)
 	err := cfg.ParseINI(strings.NewReader(configText), "test.ini")
@@ -238,6 +243,11 @@ use ssl = enabled
 ; only comment2
 test = ./test.ini
 `
+	if runtime.GOOS == "windows" {
+		// assume original config file has windows newlines
+		changedConfig = strings.ReplaceAll(changedConfig, "\n", "\r\n")
+	}
+
 	cfg.Section("/settings/WEB/server").Insert("port", "1234")
 	cfg.Section("/settings/WEB/server").Insert("use ssl", "enabled")
 	cfg.Section("/includes").Insert("test", "./test.ini")
@@ -255,8 +265,12 @@ func TestConfigPackaging(t *testing.T) {
 
 	data, err := os.ReadFile(pkgCfgFile)
 	assert.NoErrorf(t, err, "read ini without error")
-	// ignore windows newlines when checking for equality
-	origConfig := strings.ReplaceAll(strings.TrimSpace(string(data)), "\r\n", "\n")
+	origConfig := strings.TrimSpace(string(data))
+
+	if runtime.GOOS == "windows" {
+		// assume original config file has windows newlines
+		origConfig = strings.ReplaceAll(origConfig, "\n", "\r\n")
+	}
 
 	cfg := NewConfig(false)
 	err = cfg.ParseINI(file, pkgCfgFile)
