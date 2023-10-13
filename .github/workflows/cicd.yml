@@ -167,7 +167,7 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GOVERSION }}
-      - run: sudo apt-get install help2man
+      - run: sudo apt-get install help2man tofrodos
       - run: |
           echo "Creating dist folder for windows"
           make windist
