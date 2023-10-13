@@ -291,6 +291,7 @@ func TestConfigPackaging(t *testing.T) {
 
 	if runtime.GOOS == "windows" {
 		// assume original config file has windows newlines
+		origConfig = strings.ReplaceAll(origConfig, "\r\n", "\n")
 		origConfig = strings.ReplaceAll(origConfig, "\n", "\r\n")
 	}
 
