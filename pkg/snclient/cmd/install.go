@@ -74,7 +74,10 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 				}
 			}
 
-			addFireWallRule(snc)
+			err = addFireWallRule(snc)
+			if err != nil {
+				snc.Log.Errorf("failed to add firewall: %s", err.Error())
+			}
 			snc.Log.Infof("installer finished successfully")
 			os.Exit(0)
 		},
@@ -89,7 +92,10 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
 
-			addFireWallRule(snc)
+			err := addFireWallRule(snc)
+			if err != nil {
+				snc.Log.Errorf("failed to add firewall: %s", err.Error())
+			}
 			snc.Log.Infof("firewall setup ready")
 			os.Exit(0)
 		},
@@ -350,8 +356,9 @@ func addFireWallRule(snc *snclient.Agent) error {
 		"dir=in",
 		"action=allow",
 		"protocol=TCP",
-		"description='SNClient+ Remote Access'",
-		fmt.Sprintf("program=\"%s\"", execPath),
+		"profile=any",
+		"description=SNClient+ Remote Access",
+		fmt.Sprintf("program=%s", execPath),
 		fmt.Sprintf("name=%s", FIREWALLPREFIX),
 	}
 	cmd := exec.Command("netsh", cmdLine...)
