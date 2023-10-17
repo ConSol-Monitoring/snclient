@@ -28,7 +28,7 @@ snclient hash
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
-			setStdoutLogger()
+			setInteractiveStdoutLogger()
 			input := ""
 			if len(args) > 0 {
 				input = args[0]

@@ -128,7 +128,7 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 		targetWriter = fHandle
 	}
 
-	if isInteractive() {
+	if IsInteractive() {
 		if targetWriter != os.Stdout && targetWriter != os.Stderr {
 			doOnce.Do(func() {
 				abs, _ := filepath.Abs(file)

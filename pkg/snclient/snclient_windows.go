@@ -14,6 +14,7 @@ import (
 
 	"pkg/utils"
 
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
 )
 
@@ -82,10 +83,16 @@ func (snc *Agent) RunAsWinService() {
 	}
 }
 
-func isInteractive() bool {
-	inService, _ := svc.IsWindowsService()
+func IsInteractive() bool {
+	if inService, _ := svc.IsWindowsService(); inService {
+		return false
+	}
 
-	return !inService
+	if _, err := windows.GetStdHandle(windows.STD_INPUT_HANDLE); err != nil {
+		return false
+	}
+
+	return true
 }
 
 func setupUsrSignalChannel(_ chan os.Signal) {

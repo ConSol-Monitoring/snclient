@@ -35,7 +35,7 @@ snclient update --downgrade=0.2
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
-			setStdoutLogger()
+			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
 			executable := snclient.GlobalMacros["exe-full"]
 			if strings.Contains(executable, ".update") {

@@ -16,7 +16,7 @@ import (
 	"pkg/utils"
 )
 
-func isInteractive() bool {
+func IsInteractive() bool {
 	o, _ := os.Stdout.Stat()
 	// check if attached to terminal.
 	return (o.Mode() & os.ModeCharDevice) == os.ModeCharDevice

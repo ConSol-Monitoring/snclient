@@ -52,6 +52,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 		Hidden: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
+			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
 
 			installConfig := parseInstallerArgs(args)
@@ -85,6 +86,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 		Short: "add firewall exceptions for enabled tcp listeners, ex.: " + strings.Join(listenerNames, ", "),
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
+			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
 
 			addFireWallRule(snc)
