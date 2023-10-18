@@ -101,7 +101,7 @@ var (
 	GlobalMacros = getGlobalMacros()
 
 	// macros can be either ${...} or %(...)
-	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_: ]+\s*\}|%\(\s*[a-zA-Z\-_: ]+\s*\)`)
+	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_: /]+\s*\}|%\(\s*[a-zA-Z\-_: ]+\s*\)`)
 
 	// runtime macros can be %...% or $...$ or $ARGS"$
 	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z0-9"\-_: ]+(?:%|\$)`)
@@ -841,7 +841,7 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 	}
 }
 
-/* replaceMacros replaces variables in given string.
+/* replaceMacros replaces variables in given string (config ini file style macros).
  * possible macros are:
  *   ${macro}
  *   %(macro)
@@ -849,19 +849,7 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 func ReplaceMacros(value string, macroSets ...map[string]string) string {
 	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
 		orig := str
-		str = strings.TrimSpace(str)
-
-		switch {
-		// ${...} macros
-		case strings.HasPrefix(str, "${"):
-			str = strings.TrimPrefix(str, "${")
-			str = strings.TrimSuffix(str, "}")
-		// %(...) macros
-		case strings.HasPrefix(str, "%("):
-			str = strings.TrimPrefix(str, "%(")
-			str = strings.TrimSuffix(str, ")")
-		}
-		str = strings.TrimSpace(str)
+		str = extractMacroString(str)
 
 		return getMacrosetsValue(str, orig, macroSets...)
 	})
@@ -869,7 +857,25 @@ func ReplaceMacros(value string, macroSets ...map[string]string) string {
 	return value
 }
 
-/* ReplaceRuntimeMacros replaces runtime variables in given string.
+func extractMacroString(str string) string {
+	str = strings.TrimSpace(str)
+
+	switch {
+	// ${...} macros
+	case strings.HasPrefix(str, "${"):
+		str = strings.TrimPrefix(str, "${")
+		str = strings.TrimSuffix(str, "}")
+	// %(...) macros
+	case strings.HasPrefix(str, "%("):
+		str = strings.TrimPrefix(str, "%(")
+		str = strings.TrimSuffix(str, ")")
+	}
+	str = strings.TrimSpace(str)
+
+	return (str)
+}
+
+/* ReplaceRuntimeMacros replaces runtime variables in given string (check output template style macros).
  * possible macros are:
  *   %macro%
  *   $macro$

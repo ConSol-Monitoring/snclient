@@ -356,6 +356,39 @@ func (config *Config) SectionNamesSorted() []string {
 	return utils.SortRanked(keys, ranks)
 }
 
+/* ReplaceOnDemandConfigMacros replaces any config variable macro in given string (config ini file style macros).
+ * possible macros are:
+ *   ${/settings/section/attribute}
+ *   %(/settings/section/attribute)
+ */
+func (config *Config) ReplaceOnDemandConfigMacros(value string) string {
+	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
+		orig := str
+		str = extractMacroString(str)
+
+		if !strings.HasPrefix(str, "/settings/") {
+			return orig
+		}
+
+		sectionName := path.Dir(str)
+		attribute := path.Base(str)
+
+		section := config.Section(sectionName)
+		val, ok := section.GetString(attribute)
+		if !ok {
+			return orig
+		}
+
+		macroSets := map[string]string{
+			str: val,
+		}
+
+		return getMacrosetsValue(str, orig, macroSets)
+	})
+
+	return value
+}
+
 // ConfigSection contains a single config section.
 type ConfigSection struct {
 	cfg      *Config
@@ -525,6 +558,7 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 		}
 		macros = append(macros, GlobalMacros)
 		val = ReplaceMacros(val, macros...)
+		val = cs.cfg.ReplaceOnDemandConfigMacros(val)
 
 		return val, ok
 	}
