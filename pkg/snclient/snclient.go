@@ -101,7 +101,7 @@ var (
 	GlobalMacros = getGlobalMacros()
 
 	// macros can be either ${...} or %(...)
-	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_: /]+\s*\}|%\(\s*[a-zA-Z\-_: ]+\s*\)`)
+	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_: /]+\s*\}|%\(\s*[a-zA-Z\-_: /]+\s*\)`)
 
 	// runtime macros can be %...% or $...$ or $ARGS"$
 	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z0-9"\-_: ]+(?:%|\$)`)
@@ -904,7 +904,7 @@ func ReplaceRuntimeMacros(value string, macroSets ...map[string]string) string {
 
 func getMacrosetsValue(macro, orig string, macroSets ...map[string]string) string {
 	flag := ""
-	flags := strings.SplitN(macro, ":", 1)
+	flags := strings.SplitN(macro, ":", 2)
 	if len(flags) == 2 {
 		macro = flags[0]
 		flag = strings.ToLower(flags[1])

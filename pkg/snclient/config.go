@@ -75,6 +75,7 @@ type Config struct {
 	sections        map[string]*ConfigSection
 	alreadyIncluded map[string]string
 	recursive       bool // read includes as they appear in the config
+	defaultMacros   *map[string]string
 }
 
 func NewConfig(recursive bool) *Config {
@@ -362,16 +363,23 @@ func (config *Config) SectionNamesSorted() []string {
  *   %(/settings/section/attribute)
  */
 func (config *Config) ReplaceOnDemandConfigMacros(value string) string {
-	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
-		orig := str
-		str = extractMacroString(str)
+	value = reMacro.ReplaceAllStringFunc(value, func(macro string) string {
+		orig := macro
+		macro = extractMacroString(macro)
 
-		if !strings.HasPrefix(str, "/settings/") {
+		if !strings.HasPrefix(macro, "/settings/") {
 			return orig
 		}
 
-		sectionName := path.Dir(str)
-		attribute := path.Base(str)
+		flag := ""
+		flags := strings.SplitN(macro, ":", 2)
+		if len(flags) == 2 {
+			macro = flags[0]
+			flag = strings.ToLower(flags[1])
+		}
+
+		sectionName := path.Dir(macro)
+		attribute := path.Base(macro)
 
 		section := config.Section(sectionName)
 		val, ok := section.GetString(attribute)
@@ -380,13 +388,42 @@ func (config *Config) ReplaceOnDemandConfigMacros(value string) string {
 		}
 
 		macroSets := map[string]string{
-			str: val,
+			macro: val,
 		}
 
-		return getMacrosetsValue(str, orig, macroSets)
+		if flag != "" {
+			macro = fmt.Sprintf("%s:%s", macro, flag)
+		}
+
+		return getMacrosetsValue(macro, orig, macroSets)
 	})
 
 	return value
+}
+
+// DefaultMacros returns a map of default macros.
+// basically the /paths section and hostnames.
+func (config *Config) DefaultMacros() map[string]string {
+	if config.defaultMacros != nil {
+		return *config.defaultMacros
+	}
+
+	defaultMacros := map[string]string{
+		"hostname": "",
+	}
+	for key, val := range config.Section("/paths").data {
+		defaultMacros[key] = val
+	}
+
+	config.defaultMacros = &defaultMacros
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Warnf("failed to get hostname: %s", err.Error())
+	}
+	defaultMacros["hostname"] = hostname
+
+	return *config.defaultMacros
 }
 
 // ConfigSection contains a single config section.
@@ -554,7 +591,7 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	if ok && cs.isUsable(key, val) {
 		macros := make([]map[string]string, 0)
 		if cs.cfg != nil {
-			macros = append(macros, cs.cfg.Section("/paths").data)
+			macros = append(macros, cs.cfg.DefaultMacros())
 		}
 		macros = append(macros, GlobalMacros)
 		val = ReplaceMacros(val, macros...)
