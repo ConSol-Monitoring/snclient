@@ -118,8 +118,6 @@ func (lm *LoadableModule) Init(snc *Agent, conf *Config) (Module, error) {
 
 	err := handler.Init(snc, modConf, conf)
 	if err != nil {
-		handler.Stop()
-
 		return nil, fmt.Errorf("%s init failed: %s", lm.Name(), err.Error())
 	}
 

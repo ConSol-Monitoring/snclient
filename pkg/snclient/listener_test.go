@@ -2,7 +2,9 @@ package snclient
 
 import (
 	"fmt"
+	"net"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,4 +35,31 @@ func TestListenerConfig(t *testing.T) {
 	} {
 		assert.Equalf(t, check.expect, listen.CheckAllowedHosts(check.addr), fmt.Sprintf("CheckAllowedHosts(%s) -> %v", check.addr, check.expect))
 	}
+}
+
+func TestListenerSharedPort(t *testing.T) {
+	config := `
+	[/modules]
+	WEBServer = enabled
+	ExporterExporterServer = enabled
+	PrometheusServer = enabled
+
+	[/settings/WEB/server]
+	port = 45666
+	use ssl = false
+
+	[/settings/Prometheus/server]
+	port = 45666
+	use ssl = false
+
+	[/settings/ExporterExporter/server]
+	port = ${/settings/WEB/server/port}
+	use ssl = ${/settings/WEB/server/use ssl}
+	`
+	snc := StartTestAgent(t, config)
+
+	_, err := net.DialTimeout("tcp", "127.0.0.1:45666", 10*time.Second)
+	assert.NoErrorf(t, err, "connection established")
+
+	StopTestAgent(t, snc)
 }
