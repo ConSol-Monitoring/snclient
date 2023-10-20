@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,20 +27,35 @@ type HandlerPrometheus struct {
 	noCopy   noCopy
 	handler  http.Handler
 	listener *Listener
+	password string
+	snc      *Agent
 }
 
 func NewHandlerPrometheus() Module {
-	handler := &HandlerPrometheus{
-		handler: promhttp.InstrumentMetricHandler(
-			prometheus.DefaultRegisterer,
-			promhttp.HandlerFor(
-				prometheus.DefaultGatherer,
-				promhttp.HandlerOpts{EnableOpenMetrics: true},
-			),
+	promHandler := promhttp.InstrumentMetricHandler(
+		prometheus.DefaultRegisterer,
+		promhttp.HandlerFor(
+			prometheus.DefaultGatherer,
+			promhttp.HandlerOpts{EnableOpenMetrics: true},
 		),
-	}
+	)
 
-	return handler
+	listen := &HandlerPrometheus{}
+	listen.handler = http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		if !verifyRequestPassword(listen.snc, req, listen.password) {
+			http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			res.Header().Set("Content-Type", "application/json")
+			LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+				"error": "permission denied",
+			}))
+
+			return
+		}
+
+		promHandler.ServeHTTP(res, req)
+	})
+
+	return listen
 }
 
 func (l *HandlerPrometheus) Type() string {
@@ -73,6 +89,11 @@ func (l *HandlerPrometheus) Defaults() ConfigData {
 }
 
 func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config, set *ModuleSet) error {
+	l.snc = snc
+	l.password = DefaultPassword
+	if password, ok := conf.GetString("password"); ok {
+		l.password = password
+	}
 	registerMetrics()
 	infoCount.WithLabelValues(VERSION, Build).Set(1)
 

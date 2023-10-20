@@ -113,7 +113,6 @@ func (l *HandlerWeb) Defaults() ConfigData {
 	defaults := ConfigData{
 		"port":                   "8443",
 		"use ssl":                "1",
-		"password":               DefaultPassword,
 		"allow arguments":        "true",
 		"allow nasty characters": "false",
 	}
@@ -237,14 +236,25 @@ func (l *HandlerWeb) metrics2PerfV1(metrics []*CheckMetric) map[string]interface
 	return result
 }
 
+func verifyRequestPassword(snc *Agent, req *http.Request, requiredPassword string) bool {
+	// check basic auth password
+	_, password, _ := req.BasicAuth()
+	if password == "" {
+		// fallback to clear text  password from http header
+		password = req.Header.Get("Password")
+	}
+
+	return snc.verifyPassword(requiredPassword, password)
+}
+
 type HandlerWebLegacy struct {
 	noCopy  noCopy
 	Handler *HandlerWeb
 }
 
 func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	// check clear text password
-	if !l.Handler.snc.verifyPassword(l.Handler.password, req.Header.Get("Password")) {
+	// verify password
+	if !verifyRequestPassword(l.Handler.snc, req, l.Handler.password) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		res.Header().Set("Content-Type", "application/json")
 		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
@@ -299,12 +309,8 @@ type HandlerWebV1 struct {
 }
 
 func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	// check basic auth password
-	_, password, _ := req.BasicAuth()
-	if password == "" {
-		password = req.Header.Get("Password")
-	}
-	if !l.Handler.snc.verifyPassword(l.Handler.password, password) {
+	// check password
+	if !verifyRequestPassword(l.Handler.snc, req, l.Handler.password) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		res.Header().Set("Content-Type", "application/json")
 		LogError(json.NewEncoder(res).Encode(map[string]interface{}{

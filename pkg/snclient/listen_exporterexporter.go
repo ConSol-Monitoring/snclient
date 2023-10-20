@@ -14,6 +14,8 @@ type HandlerExporterExporter struct {
 	handler   http.Handler
 	listener  *Listener
 	urlPrefix string
+	password  string
+	snc       *Agent
 }
 
 func NewHandlerExporterExporter() Module {
@@ -56,6 +58,12 @@ func (l *HandlerExporterExporter) Defaults() ConfigData {
 }
 
 func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, set *ModuleSet) error {
+	l.snc = snc
+	l.password = DefaultPassword
+	if password, ok := conf.GetString("password"); ok {
+		l.password = password
+	}
+
 	listener, err := SharedWebListener(snc, conf, l, set)
 	if err != nil {
 		return err

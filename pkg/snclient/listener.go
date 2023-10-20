@@ -29,7 +29,9 @@ var DefaultListenTCPConfig = ConfigData{
 	"use ssl":             "0",
 }
 
-var DefaultListenHTTPConfig = ConfigData{}
+var DefaultListenHTTPConfig = ConfigData{
+	"password": DefaultPassword,
+}
 
 func init() {
 	DefaultListenHTTPConfig.Merge(DefaultListenTCPConfig)
