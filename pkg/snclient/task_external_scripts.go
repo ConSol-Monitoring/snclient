@@ -35,7 +35,7 @@ func (e *ExternalScriptsHandler) Defaults() ConfigData {
 	return defaults
 }
 
-func (e *ExternalScriptsHandler) Init(snc *Agent, defaultScriptConfig *ConfigSection, conf *Config) error {
+func (e *ExternalScriptsHandler) Init(snc *Agent, defaultScriptConfig *ConfigSection, conf *Config, _ *ModuleSet) error {
 	e.snc = snc
 
 	if err := e.registerScriptPath(defaultScriptConfig, conf); err != nil {

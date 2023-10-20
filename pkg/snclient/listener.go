@@ -41,7 +41,7 @@ type Listener struct {
 	snc               *Agent
 	connType          string
 	listen            net.Listener
-	handler           RequestHandler
+	handler           []RequestHandler
 	port              int64
 	bindAddress       string
 	cacheAllowedHosts bool
@@ -55,7 +55,7 @@ func NewListener(snc *Agent, conf *ConfigSection, r RequestHandler) (*Listener, 
 	listen := Listener{
 		listen:   nil,
 		snc:      snc,
-		handler:  r,
+		handler:  []RequestHandler{r},
 		connType: r.Type(),
 	}
 
@@ -64,6 +64,25 @@ func NewListener(snc *Agent, conf *ConfigSection, r RequestHandler) (*Listener, 
 	}
 
 	return &listen, nil
+}
+
+// SharedWebListener returns a shared web Listener object.
+func SharedWebListener(snc *Agent, conf *ConfigSection, webHandler RequestHandler, set *ModuleSet) (*Listener, error) {
+	listener, err := NewListener(snc, conf, webHandler)
+	name := listener.BindString()
+	existing := set.Get(name)
+	if existing == nil {
+		return listener, err
+	}
+	if reqHander, ok := existing.(RequestHandler); ok {
+		if handler := reqHander.Listener(); handler != nil {
+			handler.handler = append(handler.handler, webHandler)
+
+			return handler, nil
+		}
+	}
+
+	return listener, err
 }
 
 func (l *Listener) setListenConfig(conf *ConfigSection) error {
@@ -200,11 +219,17 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 func (l *Listener) Stop() {
 	if l.listen != nil {
 		l.listen.Close()
+		l.listen = nil
 	}
 }
 
 // Start listening.
 func (l *Listener) Start() error {
+	if l.listen != nil {
+		log.Tracef("listener %s on %s already started", l.connType, l.BindString())
+
+		return nil
+	}
 	log.Infof("starting %s listener on %s", l.connType, l.BindString())
 	sslOptions := ""
 	if l.tlsConfig != nil && l.tlsConfig.ClientCAs != nil {
@@ -222,8 +247,6 @@ func (l *Listener) Start() error {
 		}
 	}
 
-	l.listen = nil
-
 	if l.tlsConfig != nil {
 		listen, err := tls.Listen("tcp", l.BindString(), l.tlsConfig)
 		if err != nil {
@@ -238,12 +261,12 @@ func (l *Listener) Start() error {
 		l.listen = listen
 	}
 
-	switch handler := l.handler.(type) {
+	switch handler := l.handler[0].(type) {
 	case RequestHandlerHTTP:
 		go func() {
 			defer l.snc.logPanicExit()
 
-			l.startListenerHTTP(handler)
+			l.startListenerHTTP(l.handler)
 		}()
 	case RequestHandlerTCP:
 		go func() {
@@ -300,18 +323,29 @@ func (l *Listener) handleTCPCon(con net.Conn, handler RequestHandlerTCP) {
 	log.Debugf("%s connection from %s finished in %9s", l.connType, con.RemoteAddr().String(), time.Since(startTime))
 }
 
-func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
+func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 	mux := chi.NewRouter()
 
-	// Add generic logger.
-	mappings := handler.GetMappings(l.snc)
+	// Add generic logger
 	mux.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			l.WrappedHTTPHandler(next, w, r)
 		})
 	})
-	for _, mapping := range mappings {
-		mux.Handle(mapping.URL, mapping.Handler)
+
+	mappingsInUse := map[string]string{}
+	for _, hdl := range handler {
+		if webhandler, ok := hdl.(RequestHandlerHTTP); ok {
+			mappings := webhandler.GetMappings(l.snc)
+			for _, mapping := range mappings {
+				log.Tracef("mapping url %s%-20s -> %s", webhandler.BindString(), mapping.URL, webhandler.Type())
+				if prev, ok := mappingsInUse[mapping.URL]; ok {
+					log.Warnf("url %s is mapped multiple times (previously assigned to %s), use url prefix to avoid this.", mapping.URL, prev)
+				}
+				mappingsInUse[mapping.URL] = webhandler.Type()
+				mux.Handle(mapping.URL, mapping.Handler)
+			}
+		}
 	}
 
 	server := &http.Server{
@@ -343,7 +377,7 @@ func (l *Listener) startListenerHTTP(handler RequestHandlerHTTP) {
 
 func (l *Listener) CheckConnection(con net.Conn) bool {
 	if !l.CheckAllowedHosts(con.RemoteAddr().String()) {
-		log.Warnf("%s connection from %s not allowed", l.handler.Type(), con.RemoteAddr().String())
+		log.Warnf("connection from %s to %s not allowed", con.RemoteAddr().String(), l.BindString())
 
 		return false
 	}

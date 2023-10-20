@@ -50,6 +50,10 @@ func (l *HandlerPrometheus) BindString() string {
 	return l.listener.BindString()
 }
 
+func (l *HandlerPrometheus) Listener() *Listener {
+	return l.listener
+}
+
 func (l *HandlerPrometheus) Start() error {
 	return l.listener.Start()
 }
@@ -68,11 +72,11 @@ func (l *HandlerPrometheus) Defaults() ConfigData {
 	return defaults
 }
 
-func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config) error {
+func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config, set *ModuleSet) error {
 	registerMetrics()
 	infoCount.WithLabelValues(VERSION, Build).Set(1)
 
-	listener, err := NewListener(snc, conf, l)
+	listener, err := SharedWebListener(snc, conf, l, set)
 	if err != nil {
 		return err
 	}

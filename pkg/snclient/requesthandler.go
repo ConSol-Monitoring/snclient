@@ -10,6 +10,7 @@ type RequestHandler interface {
 	Module
 	Type() string
 	BindString() string
+	Listener() *Listener
 }
 
 // RequestHandlerTCP handles a single client connection.

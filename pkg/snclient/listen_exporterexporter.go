@@ -31,6 +31,10 @@ func (l *HandlerExporterExporter) BindString() string {
 	return l.listener.BindString()
 }
 
+func (l *HandlerExporterExporter) Listener() *Listener {
+	return l.listener
+}
+
 func (l *HandlerExporterExporter) Start() error {
 	return l.listener.Start()
 }
@@ -51,8 +55,8 @@ func (l *HandlerExporterExporter) Defaults() ConfigData {
 	return defaults
 }
 
-func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Config) error {
-	listener, err := NewListener(snc, conf, l)
+func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, set *ModuleSet) error {
+	listener, err := SharedWebListener(snc, conf, l, set)
 	if err != nil {
 		return err
 	}
@@ -65,8 +69,7 @@ func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Confi
 
 func (l *HandlerExporterExporter) GetMappings(*Agent) []URLMapping {
 	return []URLMapping{
-		{URL: l.urlPrefix + "/", Handler: l.handler},
-		{URL: l.urlPrefix + "/metrics", Handler: l.handler},
+		{URL: l.urlPrefix + "/list", Handler: l.handler},
 		{URL: l.urlPrefix + "/proxy", Handler: l.handler},
 	}
 }
@@ -78,16 +81,14 @@ type HandlerWebExporterExporter struct {
 
 func (l *HandlerWebExporterExporter) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	switch req.URL.Path {
-	case "/":
+	case "/list":
 		res.WriteHeader(http.StatusOK)
-	case "/metrics":
-		res.WriteHeader(http.StatusNotFound)
-		LogError2(res.Write([]byte("404 - /metrics is not implemented")))
+		LogError2(res.Write([]byte("coming soon...\n")))
 	case "/proxy":
 		res.WriteHeader(http.StatusOK)
-		LogError2(res.Write([]byte("coming soon...")))
+		LogError2(res.Write([]byte("coming soon...\n")))
 	default:
 		res.WriteHeader(http.StatusNotFound)
-		LogError2(res.Write([]byte("404 - nothing here")))
+		LogError2(res.Write([]byte("404 - nothing here\n")))
 	}
 }

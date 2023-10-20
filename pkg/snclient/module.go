@@ -7,7 +7,7 @@ import (
 // Module is a generic module interface to abstract optional agent functionality
 type Module interface {
 	Defaults() ConfigData
-	Init(*Agent, *ConfigSection, *Config) error
+	Init(*Agent, *ConfigSection, *Config, *ModuleSet) error
 	Start() error
 	Stop()
 }
@@ -57,7 +57,12 @@ func (ms *ModuleSet) Get(name string) (task Module) {
 
 func (ms *ModuleSet) Add(name string, task Module) error {
 	if _, ok := ms.modules[name]; ok {
-		return fmt.Errorf("duplicate %s module with name: %s", ms.name, name)
+		if mod, ok := task.(RequestHandler); ok {
+			name = name + ":" + mod.Type()
+		}
+		if _, ok := ms.modules[name]; ok {
+			return fmt.Errorf("duplicate %s module with name: %s", ms.name, name)
+		}
 	}
 	ms.modules[name] = task
 
@@ -109,14 +114,14 @@ func (lm *LoadableModule) Name() string {
 }
 
 // Init creates the actual TaskHandler for this task
-func (lm *LoadableModule) Init(snc *Agent, conf *Config) (Module, error) {
+func (lm *LoadableModule) Init(snc *Agent, conf *Config, set *ModuleSet) (Module, error) {
 	handler := lm.Creator()
 
 	modConf := conf.Section(lm.ConfigKey).Clone()
 	modConf.MergeSection(conf.Section("/settings/default"))
 	modConf.MergeData(handler.Defaults())
 
-	err := handler.Init(snc, modConf, conf)
+	err := handler.Init(snc, modConf, conf, set)
 	if err != nil {
 		return nil, fmt.Errorf("%s init failed: %s", lm.Name(), err.Error())
 	}

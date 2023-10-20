@@ -95,6 +95,10 @@ func (l *HandlerWeb) BindString() string {
 	return l.listener.BindString()
 }
 
+func (l *HandlerWeb) Listener() *Listener {
+	return l.listener
+}
+
 func (l *HandlerWeb) Start() error {
 	return l.listener.Start()
 }
@@ -118,14 +122,14 @@ func (l *HandlerWeb) Defaults() ConfigData {
 	return defaults
 }
 
-func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection, _ *Config) error {
+func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection, _ *Config, set *ModuleSet) error {
 	l.snc = snc
 	l.password = DefaultPassword
 	if password, ok := conf.GetString("password"); ok {
 		l.password = password
 	}
 
-	listener, err := NewListener(snc, conf, l)
+	listener, err := SharedWebListener(snc, conf, l, set)
 	if err != nil {
 		return err
 	}

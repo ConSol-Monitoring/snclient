@@ -34,7 +34,7 @@ func (l *LogrotateHandler) Defaults() ConfigData {
 	return defaults
 }
 
-func (l *LogrotateHandler) Init(snc *Agent, section *ConfigSection, _ *Config) error {
+func (l *LogrotateHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *ModuleSet) error {
 	l.snc = snc
 	l.stopChannel = make(chan bool)
 

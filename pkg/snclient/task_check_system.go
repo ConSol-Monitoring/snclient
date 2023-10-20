@@ -28,7 +28,7 @@ func (c *CheckSystemHandler) Defaults() ConfigData {
 	return defaults
 }
 
-func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config) error {
+func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *ModuleSet) error {
 	c.snc = snc
 	c.stopChannel = make(chan bool)
 

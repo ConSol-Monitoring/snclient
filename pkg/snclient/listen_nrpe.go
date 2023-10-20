@@ -37,7 +37,7 @@ func (l *HandlerNRPE) Defaults() ConfigData {
 	return defaults
 }
 
-func (l *HandlerNRPE) Init(snc *Agent, conf *ConfigSection, _ *Config) error {
+func (l *HandlerNRPE) Init(snc *Agent, conf *ConfigSection, _ *Config, _ *ModuleSet) error {
 	l.snc = snc
 	l.conf = conf
 	listener, err := NewListener(snc, conf, l)
@@ -55,6 +55,10 @@ func (l *HandlerNRPE) Type() string {
 
 func (l *HandlerNRPE) BindString() string {
 	return l.listener.BindString()
+}
+
+func (l *HandlerNRPE) Listener() *Listener {
+	return l.listener
 }
 
 func (l *HandlerNRPE) Start() error {

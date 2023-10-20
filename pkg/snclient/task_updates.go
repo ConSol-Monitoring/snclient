@@ -92,7 +92,7 @@ func (u *UpdateHandler) Defaults() ConfigData {
 	return defaults
 }
 
-func (u *UpdateHandler) Init(snc *Agent, section *ConfigSection, _ *Config) error {
+func (u *UpdateHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *ModuleSet) error {
 	u.snc = snc
 	ctx, cancel := context.WithCancel(context.Background())
 	u.ctx = &ctx

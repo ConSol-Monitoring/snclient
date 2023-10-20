@@ -498,7 +498,7 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 			continue
 		}
 
-		mod, err := entry.Init(snc, conf)
+		mod, err := entry.Init(snc, conf, modules)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
 		}
