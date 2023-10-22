@@ -984,15 +984,19 @@ func catchOutputErrors(command string, stderr *string, exitCode *int64) {
 	}
 }
 
-func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
-	defer cancel()
-
+func (snc *Agent) runExternalCommandString(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
 	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
 	cmd, err := MakeCmd(ctx, command, scriptsPath)
 	if err != nil {
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
 	}
+
+	return snc.runExternalCommand(ctx, cmd, timeout)
+}
+
+func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	defer cancel()
 
 	// byte buffer for output
 	var errbuf bytes.Buffer
@@ -1034,7 +1038,7 @@ func (snc *Agent) runExternalCommand(ctx context.Context, command string, timeou
 	stdout = string(bytes.TrimSpace((bytes.Trim(outbuf.Bytes(), "\x00"))))
 	stderr = string(bytes.TrimSpace((bytes.Trim(errbuf.Bytes(), "\x00"))))
 
-	catchOutputErrors(command, &stderr, &exitCode)
+	catchOutputErrors(cmd.Path, &stderr, &exitCode)
 
 	log.Tracef("exit: %d", exitCode)
 	log.Tracef("stdout: %s", stdout)

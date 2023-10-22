@@ -62,7 +62,7 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	l.snc = snc
 
 	if len(l.services) == 0 || slices.Contains(l.services, "*") {
-		output, stderr, _, _, err := snc.runExternalCommand(ctx, "systemctl --type=service --plain --no-pager --quiet", systemctlTimeout)
+		output, stderr, _, _, err := snc.runExternalCommandString(ctx, "systemctl --type=service --plain --no-pager --quiet", systemctlTimeout)
 		if err != nil {
 			return &CheckResult{
 				State:  CheckExitUnknown,
@@ -118,7 +118,7 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 }
 
 func (l *CheckService) addService(ctx context.Context, check *CheckData, service string, services, excludes []string) error {
-	output, stderr, _, _, err := l.snc.runExternalCommand(ctx, fmt.Sprintf("systemctl status %s.service", service), systemctlTimeout)
+	output, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("systemctl status %s.service", service), systemctlTimeout)
 	if err != nil {
 		return fmt.Errorf("systemctl failed: %s\n%s", err.Error(), stderr)
 	}

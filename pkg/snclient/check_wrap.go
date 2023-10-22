@@ -70,7 +70,7 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		timeoutSeconds = 60
 	}
 
-	stdout, stderr, exitCode, procState, err := l.snc.runExternalCommand(ctx, command, timeoutSeconds)
+	stdout, stderr, exitCode, procState, err := l.snc.runExternalCommandString(ctx, command, timeoutSeconds)
 	if err != nil {
 		exitCode = CheckExitUnknown
 		switch {

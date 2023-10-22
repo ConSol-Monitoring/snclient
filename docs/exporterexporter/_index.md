@@ -42,3 +42,17 @@ exporter_modules/http.yaml:
         http:
             port: 9100
             path: '/metrics'
+
+## Incompatibilities
+
+### No Verification
+
+This module basically works the same as the standalone exporter exporter, except
+it does not implement verification. Files and requests are passed through as is
+and not checked if it contains valid prometheus metrics.
+
+### Changed Index Path
+
+Since this exporter exporter (optionally) shares the web server with the rest of
+the SNClient+, the `/` url path is in use already. The available exporter
+modules can therefore be requested with the `/list` path.

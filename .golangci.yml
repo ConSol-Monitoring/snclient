@@ -10,7 +10,7 @@ linters-settings:
     min-len: 8
     min-occurrences: 12
   lll:
-    line-length: 165
+    line-length: 170
   funlen:
     lines: 80
   gomoddirectives:
