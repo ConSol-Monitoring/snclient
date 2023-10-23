@@ -1,12 +1,15 @@
 This file documents the revision history for the SNClient+ agent.
 
-0.10       Sun Oct 22 21:22:47 CEST 2023
+next:
+         - support filter regex syntax: attr ~~ /value/
+
+0.10     Sun Oct 22 21:22:47 CEST 2023
          - windows: add firewall on program, not ports
          - add on demand macros
          - add prometheus exporter exporter listener
          - add support for shared listeners
 
-0.09       Sat Oct  7 13:44:18 CEST 2023
+0.09     Sat Oct  7 13:44:18 CEST 2023
          - use shared path as working directory when running external scripts
          - check_network: add name/exclude and speed
          - check_process: fix showing all processes
