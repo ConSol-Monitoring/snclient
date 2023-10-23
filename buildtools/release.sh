@@ -19,7 +19,7 @@ if [ "v$OLDVERSION" = "v$NEWVERSION" -o "x$NEWVERSION" = "x" ]; then
 fi
 
 sed -i -e 's/VERSION =.*/VERSION = "'$NEWVERSION'"/g' pkg/snclient/snclient.go
-VERSIONHEADER=$(printf "%-10s %s" ${NEWVERSION} "$(date)")
+VERSIONHEADER=$(printf "%-8s %s" ${NEWVERSION} "$(date)")
 if grep "^next:" Changes >/dev/null 2>&1; then
 	# replace next: with version
 	sed -i Changes -e "s/^next:.*/${VERSIONHEADER}/"
