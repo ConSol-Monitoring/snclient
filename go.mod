@@ -24,7 +24,7 @@ replace pkg/wmi => ./pkg/wmi
 replace github.com/Shopify/sarama => github.com/elastic/sarama v1.19.1-0.20220310193331-ebc2b0d8eef3
 
 require (
-	github.com/daixiang0/gci v0.10.1
+	github.com/daixiang0/gci v0.11.2
 	github.com/golangci/golangci-lint v1.52.2
 	golang.org/x/tools v0.9.1
 	golang.org/x/vuln v0.1.0
