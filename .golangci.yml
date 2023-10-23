@@ -39,6 +39,7 @@ linters:
     - nonamedreturns
     - nosnakecase
     - paralleltest
+    - perfsprint
     - scopelint
     - structcheck
     - tagliatelle

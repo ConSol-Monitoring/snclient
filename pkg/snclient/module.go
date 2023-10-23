@@ -7,7 +7,7 @@ import (
 // Module is a generic module interface to abstract optional agent functionality
 type Module interface {
 	Defaults() ConfigData
-	Init(*Agent, *ConfigSection, *Config, *ModuleSet) error
+	Init(snc *Agent, section *ConfigSection, cfg *Config, set *ModuleSet) error
 	Start() error
 	Stop()
 }

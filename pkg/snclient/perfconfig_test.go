@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckPerfConfigParser(t *testing.T) {
 	perf, err := NewPerfConfig("used(unit:G;suffix:'s'; prefix:'pre') used %(ignored:true) *(unit:GiB)  ")
-	assert.NoErrorf(t, err, "no error in NewPerfConfig")
+	require.NoErrorf(t, err, "no error in NewPerfConfig")
 
 	exp := []PerfConfig{
 		{Selector: "used", Unit: "G", Suffix: "s", Prefix: "pre", Magic: 1},

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfigBasic(t *testing.T) {
@@ -23,7 +24,7 @@ Key3 = 'Value3'
 	cfg := NewConfig(true)
 	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
 
-	assert.NoErrorf(t, err, "config parsed")
+	require.NoErrorf(t, err, "config parsed")
 
 	expData := ConfigData{
 		"Key1": "Value1",
@@ -41,8 +42,8 @@ Key1 = "Value1
 	cfg := NewConfig(true)
 	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
 
-	assert.Errorf(t, err, "config error found")
-	assert.ErrorContains(t, err, "config error in testfile.ini:3: unclosed quotes")
+	require.Errorf(t, err, "config error found")
+	require.ErrorContains(t, err, "config error in testfile.ini:3: unclosed quotes")
 }
 
 func TestConfigStringParent(t *testing.T) {
@@ -62,7 +63,7 @@ Key3 = Value3
 	`
 	cfg := NewConfig(true)
 	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
-	assert.NoErrorf(t, err, "config parsed")
+	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/sub1/other")
 	val3, _ := section.GetString("Key3")
@@ -90,10 +91,10 @@ password = test
 
 	cfg := NewConfig(false)
 	err := cfg.ParseINI(strings.NewReader(defaultConfig), "default.ini")
-	assert.NoErrorf(t, err, "default config parsed")
+	require.NoErrorf(t, err, "default config parsed")
 
 	err = cfg.ParseINI(strings.NewReader(customConfig), "custom.ini")
-	assert.NoErrorf(t, err, "custom config parsed")
+	require.NoErrorf(t, err, "custom config parsed")
 
 	section := cfg.Section("/settings/WEB/server")
 	val, _ := section.GetString("password")
@@ -119,10 +120,10 @@ custom_ini = %s/nrpe_web_ports.ini
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
 	err := iniFile.Close()
-	assert.NoErrorf(t, err, "config written")
+	require.NoErrorf(t, err, "config written")
 	cfg := NewConfig(true)
 	err = cfg.ReadINI(iniFile.Name())
-	assert.NoErrorf(t, err, "config parsed")
+	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/NRPE/server")
 	nrpePort, _ := section.GetString("port")
@@ -156,10 +157,10 @@ custom_ini_dir = %s
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
 	err := iniFile.Close()
-	assert.NoErrorf(t, err, "config written")
+	require.NoErrorf(t, err, "config written")
 	cfg := NewConfig(true)
 	err = cfg.ReadINI(iniFile.Name())
-	assert.NoErrorf(t, err, "config parsed")
+	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/NRPE/server")
 	nrpePort, _ := section.GetString("port")
@@ -194,10 +195,10 @@ custom_ini_wc = %s/nrpe_web_ports_*.ini
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
 	err := iniFile.Close()
-	assert.NoErrorf(t, err, "config written")
+	require.NoErrorf(t, err, "config written")
 	cfg := NewConfig(true)
 	err = cfg.ReadINI(iniFile.Name())
-	assert.NoErrorf(t, err, "config parsed")
+	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/NRPE/server")
 	nrpePort, _ := section.GetString("port")
@@ -240,7 +241,7 @@ port = 443
 	cfg := NewConfig(false)
 	err := cfg.ParseINI(strings.NewReader(configText), "test.ini")
 
-	assert.NoErrorf(t, err, "parsed ini without error")
+	require.NoErrorf(t, err, "parsed ini without error")
 	assert.Equalf(t, strings.TrimSpace(configText), strings.TrimSpace(cfg.ToString()), "config did no change")
 
 	changedConfig := `
@@ -283,10 +284,10 @@ func TestConfigPackaging(t *testing.T) {
 	pkgCfgFile := filepath.Join(pkgDir, "snclient.ini")
 
 	file, err := os.Open(pkgCfgFile)
-	assert.NoErrorf(t, err, "open ini without error")
+	require.NoErrorf(t, err, "open ini without error")
 
 	data, err := os.ReadFile(pkgCfgFile)
-	assert.NoErrorf(t, err, "read ini without error")
+	require.NoErrorf(t, err, "read ini without error")
 	origConfig := strings.TrimSpace(string(data))
 
 	if runtime.GOOS == "windows" {
@@ -299,7 +300,7 @@ func TestConfigPackaging(t *testing.T) {
 	err = cfg.ParseINI(file, pkgCfgFile)
 	file.Close()
 
-	assert.NoErrorf(t, err, "parse ini without error")
+	require.NoErrorf(t, err, "parse ini without error")
 	assert.Equalf(t, origConfig, strings.TrimSpace(cfg.ToString()), "default config should not change when opened and saved unchanged")
 }
 
@@ -309,12 +310,12 @@ func TestConfigRelativeIncludes(t *testing.T) {
 	pkgCfgFile := filepath.Join(pkgDir, "snclient_incl.ini")
 
 	file, err := os.Open(pkgCfgFile)
-	assert.NoErrorf(t, err, "open ini without error")
+	require.NoErrorf(t, err, "open ini without error")
 
 	cfg := NewConfig(true)
 	err = cfg.ParseINI(file, pkgCfgFile)
 	file.Close()
-	assert.NoErrorf(t, err, "config parsed")
+	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/WEB/server")
 	webPort, _ := section.GetString("port")

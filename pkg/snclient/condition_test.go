@@ -7,6 +7,7 @@ import (
 	"pkg/convert"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConditionParse(t *testing.T) {
@@ -61,7 +62,7 @@ func TestConditionParse(t *testing.T) {
 		},
 	} {
 		cond, err := NewCondition(check.input)
-		assert.NoErrorf(t, err, "ConditionParse should throw no error")
+		require.NoErrorf(t, err, "ConditionParse should throw no error")
 		assert.Equal(t, check.expect, cond, fmt.Sprintf("ConditionParse(%s) -> %v", check.input, check.expect))
 	}
 }
@@ -90,7 +91,7 @@ func TestConditionParseErrors(t *testing.T) {
 		{"a > 0 && b < 0 || x > 3", nil},
 	} {
 		cond, err := NewCondition(check.threshold)
-		assert.Errorf(t, err, "ConditionParse should error")
+		require.Errorf(t, err, "ConditionParse should error")
 		assert.Nilf(t, cond, fmt.Sprintf("ConditionParse(%s) errors should not return condition", check.threshold))
 	}
 }
@@ -142,7 +143,7 @@ func TestConditionCompare(t *testing.T) {
 		{"'test space' < 5", "test space", "2", true},
 	} {
 		threshold, err := NewCondition(check.threshold)
-		assert.NoErrorf(t, err, "parsed threshold")
+		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
 		compare := map[string]string{check.key: check.value}
 		assert.Equalf(t, check.expect, threshold.Match(compare), fmt.Sprintf("Compare(%s) -> (%v) %v", check.threshold, check.value, check.expect))
@@ -162,7 +163,7 @@ func TestConditionThresholdString(t *testing.T) {
 		{"test < 20 and test > 10", "test", "@10:20"},
 	} {
 		threshold, err := NewCondition(check.threshold)
-		assert.NoErrorf(t, err, "parsed threshold")
+		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
 		perfRange := ThresholdString(check.name, []*Condition{threshold}, convert.Num2String)
 		assert.Equalf(t, check.expect, perfRange, fmt.Sprintf("ThresholdString(%s) -> (%v) = %v", check.threshold, perfRange, check.expect))

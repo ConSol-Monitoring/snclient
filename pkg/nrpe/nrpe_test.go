@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNRPERequestV2(t *testing.T) {
@@ -19,11 +20,11 @@ func TestNRPERequestV2(t *testing.T) {
 	pkgBytes[1035] = 'M'
 
 	pkg, err := ReadNrpePacket(bytes.NewReader(pkgBytes))
-	assert.NoErrorf(t, err, "read ok")
+	require.NoErrorf(t, err, "read ok")
 
 	assert.Equalf(t, uint16(2), pkg.Version(), "parsed package version")
 
-	assert.NoErrorf(t, pkg.Verify(NrpeQueryPacket), "verify ok")
+	require.NoErrorf(t, pkg.Verify(NrpeQueryPacket), "verify ok")
 
 	cmd, args := pkg.Data()
 	assert.Equalf(t, "_NRPE_CHECK", cmd, "parsed package command")
@@ -36,11 +37,11 @@ func TestNRPERequestV3(t *testing.T) {
 	copy(pkgBytes, header)
 
 	pkg, err := ReadNrpePacket(bytes.NewReader(pkgBytes))
-	assert.NoErrorf(t, err, "read ok")
+	require.NoErrorf(t, err, "read ok")
 
 	assert.Equalf(t, uint16(3), pkg.Version(), "parsed package version")
 
-	assert.NoErrorf(t, pkg.Verify(NrpeQueryPacket), "verify ok")
+	require.NoErrorf(t, pkg.Verify(NrpeQueryPacket), "verify ok")
 
 	cmd, args := pkg.Data()
 	assert.Equalf(t, "check_index", cmd, "parsed package command")
@@ -53,11 +54,11 @@ func TestNRPERequestV4(t *testing.T) {
 	copy(pkgBytes, header)
 
 	pkg, err := ReadNrpePacket(bytes.NewReader(pkgBytes))
-	assert.NoErrorf(t, err, "read ok")
+	require.NoErrorf(t, err, "read ok")
 
 	assert.Equalf(t, uint16(4), pkg.Version(), "parsed package version")
 
-	assert.NoErrorf(t, pkg.Verify(NrpeQueryPacket), "verify ok")
+	require.NoErrorf(t, pkg.Verify(NrpeQueryPacket), "verify ok")
 
 	cmd, args := pkg.Data()
 	assert.Equalf(t, "check_index", cmd, "parsed package command")
@@ -67,11 +68,11 @@ func TestNRPERequestV4(t *testing.T) {
 func TestNRPEResponseV2(t *testing.T) {
 	pkgBytes, _ := os.ReadFile("data/v2.0")
 	pkg, err := ReadNrpePacket(bytes.NewReader(pkgBytes))
-	assert.NoErrorf(t, err, "read ok")
+	require.NoErrorf(t, err, "read ok")
 
 	assert.Equalf(t, uint16(2), pkg.Version(), "parsed package version")
 
-	assert.NoErrorf(t, pkg.Verify(NrpeResponsePacket), "verify ok")
+	require.NoErrorf(t, pkg.Verify(NrpeResponsePacket), "verify ok")
 
 	data, args := pkg.Data()
 	assert.Equalf(t, "USERS WARNING - 8 users currently logged in |users=8;5;10;0", data, "parsed package data")
@@ -81,11 +82,11 @@ func TestNRPEResponseV2(t *testing.T) {
 func TestNRPEResponseV2_II(t *testing.T) {
 	pkgBytes, _ := os.ReadFile("data/v2.1")
 	pkg, err := ReadNrpePacket(bytes.NewReader(pkgBytes))
-	assert.NoErrorf(t, err, "read ok")
+	require.NoErrorf(t, err, "read ok")
 
 	assert.Equalf(t, uint16(2), pkg.Version(), "parsed package version")
 
-	assert.NoErrorf(t, pkg.Verify(NrpeResponsePacket), "verify ok")
+	require.NoErrorf(t, pkg.Verify(NrpeResponsePacket), "verify ok")
 
 	exp := "OK - here is the testfile content:\n"
 	for i := 1; i <= 7; i++ {
@@ -100,11 +101,11 @@ func TestNRPEResponseV2_II(t *testing.T) {
 func TestNRPEResponseV4(t *testing.T) {
 	pkgBytes, _ := os.ReadFile("data/v4")
 	pkg, err := ReadNrpePacket(bytes.NewReader(pkgBytes))
-	assert.NoErrorf(t, err, "read ok")
+	require.NoErrorf(t, err, "read ok")
 
 	assert.Equalf(t, uint16(4), pkg.Version(), "parsed package version")
 
-	assert.NoErrorf(t, pkg.Verify(NrpeResponsePacket), "verify ok")
+	require.NoErrorf(t, pkg.Verify(NrpeResponsePacket), "verify ok")
 
 	exp := "OK - here is the testfile content:\n"
 	for i := 1; i <= 47; i++ {

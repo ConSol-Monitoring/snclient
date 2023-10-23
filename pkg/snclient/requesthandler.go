@@ -16,7 +16,7 @@ type RequestHandler interface {
 // RequestHandlerTCP handles a single client connection.
 type RequestHandlerTCP interface {
 	RequestHandler
-	ServeTCP(*Agent, net.Conn)
+	ServeTCP(snc *Agent, conn net.Conn)
 }
 
 type URLMapping struct {
@@ -27,5 +27,5 @@ type URLMapping struct {
 // RequestHandlerHTTP handles a single client connection using http(s).
 type RequestHandlerHTTP interface {
 	RequestHandler
-	GetMappings(*Agent) []URLMapping
+	GetMappings(snc *Agent) []URLMapping
 }

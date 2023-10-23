@@ -7,17 +7,18 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCmdVersion(t *testing.T) {
 	out, err := RunCommand(t, rootCmd, []string{"-V"})
-	assert.NoError(t, err, "command runs without error")
+	require.NoError(t, err, "command runs without error")
 	assert.Contains(t, out, "SNClient+ v", "output matches")
 }
 
 func TestCmdHelp(t *testing.T) {
 	out, err := RunCommand(t, rootCmd, []string{"-h"})
-	assert.NoError(t, err, "command runs without error")
+	require.NoError(t, err, "command runs without error")
 	assert.Contains(t, out, "Usage:", "output matches")
 }
 

@@ -9,6 +9,7 @@ import (
 	"pkg/nrpe"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandlerNRPE(t *testing.T) {
@@ -33,14 +34,14 @@ use ssl = false
 	snc := StartTestAgent(t, config)
 
 	con, err := net.DialTimeout("tcp", "127.0.0.1:45666", 10*time.Second)
-	assert.NoErrorf(t, err, "connection established")
+	require.NoErrorf(t, err, "connection established")
 
 	req := nrpe.BuildPacketV4(nrpe.NrpeQueryPacket, 0, []byte("check_snclient_version"))
 	err = req.Write(con)
-	assert.NoErrorf(t, err, "request send")
+	require.NoErrorf(t, err, "request send")
 
 	res, err := nrpe.ReadNrpePacket(con)
-	assert.NoErrorf(t, err, "response read")
+	require.NoErrorf(t, err, "response read")
 	cmd, _ := res.Data()
 	assert.Regexpf(t, regexp.MustCompile("^SNClient"), cmd, "response matches")
 

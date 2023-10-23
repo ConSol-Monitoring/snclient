@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -21,17 +22,17 @@ func StartTestAgent(t *testing.T, config string) *Agent {
 WEBServer = disabled
 `
 	tmpConfig, err := os.CreateTemp("", "testconfig")
-	assert.NoErrorf(t, err, "tmp config created")
+	require.NoErrorf(t, err, "tmp config created")
 	_, err = tmpConfig.WriteString(testDefaultConfig)
-	assert.NoErrorf(t, err, "tmp defaults written")
+	require.NoErrorf(t, err, "tmp defaults written")
 	_, err = tmpConfig.WriteString(config)
-	assert.NoErrorf(t, err, "tmp config written")
+	require.NoErrorf(t, err, "tmp config written")
 	err = tmpConfig.Close()
-	assert.NoErrorf(t, err, "tmp config created")
+	require.NoErrorf(t, err, "tmp config created")
 	defer os.Remove(tmpConfig.Name())
 
 	tmpPidfile, err := os.CreateTemp("", "testpid")
-	assert.NoErrorf(t, err, "tmp pidfile created")
+	require.NoErrorf(t, err, "tmp pidfile created")
 	tmpPidfile.Close()
 	os.Remove(tmpPidfile.Name())
 
@@ -77,20 +78,20 @@ password3 = SHA256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00
 	defer restoreLogLevel()
 
 	p0, _ := conf.GetString("password0")
-	assert.Equalf(t, true, snc.verifyPassword(p0, "test"), "password check disabled -> ok")
-	assert.Equalf(t, true, snc.verifyPassword(p0, ""), "password check disabled -> ok")
+	assert.Truef(t, snc.verifyPassword(p0, "test"), "password check disabled -> ok")
+	assert.Truef(t, snc.verifyPassword(p0, ""), "password check disabled -> ok")
 
 	p1, _ := conf.GetString("password1")
-	assert.Equalf(t, false, snc.verifyPassword(p1, "test"), "default password still set -> not ok")
-	assert.Equalf(t, false, snc.verifyPassword(p1, DefaultPassword), "default password still set -> not ok")
+	assert.Falsef(t, snc.verifyPassword(p1, "test"), "default password still set -> not ok")
+	assert.Falsef(t, snc.verifyPassword(p1, DefaultPassword), "default password still set -> not ok")
 
 	p2, _ := conf.GetString("password2")
-	assert.Equalf(t, true, snc.verifyPassword(p2, "secret"), "simple password -> ok")
-	assert.Equalf(t, false, snc.verifyPassword(p2, "wrong"), "simple password wrong")
+	assert.Truef(t, snc.verifyPassword(p2, "secret"), "simple password -> ok")
+	assert.Falsef(t, snc.verifyPassword(p2, "wrong"), "simple password wrong")
 
 	p3, _ := conf.GetString("password3")
-	assert.Equalf(t, true, snc.verifyPassword(p3, "test"), "hashed password -> ok")
-	assert.Equalf(t, false, snc.verifyPassword(p3, "wrong"), "hashed password wrong")
+	assert.Truef(t, snc.verifyPassword(p3, "test"), "hashed password -> ok")
+	assert.Falsef(t, snc.verifyPassword(p3, "wrong"), "hashed password wrong")
 
 	StopTestAgent(t, snc)
 }

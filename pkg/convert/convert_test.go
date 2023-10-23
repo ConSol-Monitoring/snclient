@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConvertFloat64E(t *testing.T) {
@@ -23,11 +24,11 @@ func TestConvertFloat64E(t *testing.T) {
 	for _, tst := range tests {
 		res, err := Float64E(tst.in)
 		if tst.err {
-			assert.Error(t, err)
+			require.Error(t, err)
 		} else {
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
-		assert.Equalf(t, tst.res, res, "Float64E: %s", tst.in)
+		assert.InDeltaf(t, tst.res, res, 0.00001, "Float64E: %s", tst.in)
 	}
 }
 
@@ -49,9 +50,9 @@ func TestConvertBoolE(t *testing.T) {
 	for _, tst := range tests {
 		res, err := BoolE(tst.in)
 		if tst.err {
-			assert.Error(t, err)
+			require.Error(t, err)
 		} else {
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 		assert.Equalf(t, tst.res, res, "BoolE: %v -> %v", tst.in, res)
 	}
@@ -74,9 +75,9 @@ func TestNum2String(t *testing.T) {
 	for _, tst := range tests {
 		res, err := Num2StringE(tst.in)
 		if tst.err {
-			assert.Error(t, err)
+			require.Error(t, err)
 		} else {
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 		assert.Equalf(t, tst.res, res, "Num2StringE: %T(%v) -> %v", tst.in, tst.in, res)
 	}

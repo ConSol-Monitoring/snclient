@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseBytes(t *testing.T) {
@@ -23,9 +24,9 @@ func TestParseBytes(t *testing.T) {
 	for _, tst := range tests {
 		res, err := ParseBytes(tst.in)
 		if tst.err {
-			assert.Error(t, err)
+			require.Error(t, err)
 		} else {
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 		assert.Equalf(t, tst.res, res, "ParseBytes: %s -> %d", tst.in, res)
 	}

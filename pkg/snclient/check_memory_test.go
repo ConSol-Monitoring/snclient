@@ -6,13 +6,14 @@ import (
 
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckMemory(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	swap, err := mem.SwapMemory()
-	assert.Nil(t, err, "acquiring swap info failed")
+	require.NoErrorf(t, err, "acquiring swap info failed")
 
 	hasSwap := false
 	expectedOKOutput := `^OK: physical = \d+(\.\d+)? [KMGTi]*B \|`

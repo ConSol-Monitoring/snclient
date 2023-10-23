@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestListenerConfig(t *testing.T) {
@@ -21,7 +22,7 @@ func TestListenerConfig(t *testing.T) {
 
 	listen := Listener{}
 	err := listen.setListenConfig(conf)
-	assert.NoErrorf(t, err, "setListenConfig should not return an error")
+	require.NoErrorf(t, err, "setListenConfig should not return an error")
 
 	for _, check := range []struct {
 		expect bool
@@ -59,7 +60,7 @@ func TestListenerSharedPort(t *testing.T) {
 	snc := StartTestAgent(t, config)
 
 	_, err := net.DialTimeout("tcp", "127.0.0.1:45666", 10*time.Second)
-	assert.NoErrorf(t, err, "connection established")
+	require.NoErrorf(t, err, "connection established")
 
 	StopTestAgent(t, snc)
 }

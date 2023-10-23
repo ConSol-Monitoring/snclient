@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUtilsExpandDuration(t *testing.T) {
@@ -21,8 +22,8 @@ func TestUtilsExpandDuration(t *testing.T) {
 
 	for _, tst := range tests {
 		res, err := ExpandDuration(tst.in)
-		assert.NoError(t, err)
-		assert.Equalf(t, tst.res, res, "ExpandDuration: %s", tst.in)
+		require.NoError(t, err)
+		assert.InDeltaf(t, tst.res, res, 0.00001, "ExpandDuration: %s", tst.in)
 	}
 }
 
@@ -44,7 +45,7 @@ func TestUtilsIsFloatVal(t *testing.T) {
 
 func TestUtilsExecPath(t *testing.T) {
 	execPath, _, _, err := GetExecutablePath()
-	assert.NoErrorf(t, err, "GetExecutablePath works")
+	require.NoErrorf(t, err, "GetExecutablePath works")
 
 	assert.NotEmptyf(t, execPath, "GetExecutablePath")
 }
@@ -62,7 +63,7 @@ func TestToPrecision(t *testing.T) {
 
 	for _, tst := range tests {
 		res := ToPrecision(tst.in, tst.precision)
-		assert.Equalf(t, tst.res, res, "ToPrecision: %v (precision: %d) -> %v", tst.in, tst.precision, res)
+		assert.InDeltaf(t, tst.res, res, 0.00001, "ToPrecision: %v (precision: %d) -> %v", tst.in, tst.precision, res)
 	}
 }
 
@@ -97,7 +98,7 @@ func TestParseVersion(t *testing.T) {
 
 	for _, tst := range tests {
 		res := ParseVersion(tst.in)
-		assert.Equalf(t, tst.res, res, "ParseVersion: %v -> %v", tst.in, res)
+		assert.InDeltaf(t, tst.res, res, 0.00001, "ParseVersion: %v -> %v", tst.in, res)
 	}
 }
 
@@ -142,9 +143,9 @@ func TestTrimQuotes(t *testing.T) {
 		res, err := TrimQuotes(tst.in)
 		switch tst.err {
 		case true:
-			assert.Errorf(t, err, "TrimQuotes should error on %s", tst.in)
+			require.Errorf(t, err, "TrimQuotes should error on %s", tst.in)
 		case false:
-			assert.Nilf(t, err, "TrimQuotes should not error on %s", tst.in)
+			require.NoErrorf(t, err, "TrimQuotes should not error on %s", tst.in)
 			assert.Equalf(t, tst.res, res, "TrimQuotes: %v -> %v", tst.in, res)
 		}
 	}
