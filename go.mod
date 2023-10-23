@@ -1,6 +1,6 @@
 module github.com/consol-monitoring/snclient
 
-go 1.20
+go 1.21
 
 replace pkg/dump => ./pkg/dump
 

@@ -6,8 +6,8 @@ GOVERSION:=$(shell \
     go version | \
     awk -F'go| ' '{ split($$5, a, /\./); printf ("%04d%04d", a[1], a[2]); exit; }' \
 )
-MINGOVERSION:=00010020
-MINGOVERSIONSTR:=1.20
+MINGOVERSION:=00010021
+MINGOVERSIONSTR:=1.21
 BUILD:=$(shell git rev-parse --short HEAD)
 REVISION:=$(shell ./buildtools/get_version | awk -F . '{ print $$3 }')
 # see https://github.com/go-modules-by-example/index/blob/master/010_tools/README.md
