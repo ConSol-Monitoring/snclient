@@ -38,13 +38,13 @@ func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config,
 	}
 	c.bufferLength = bufferLength
 
+	// create counter
+	c.update(true)
+
 	return nil
 }
 
 func (c *CheckSystemHandler) Start() error {
-	// create counter
-	c.update(true)
-
 	go c.mainLoop()
 
 	return nil
