@@ -1,6 +1,6 @@
 module utils
 
-go 1.19
+go 1.20
 
 require (
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038

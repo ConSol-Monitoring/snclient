@@ -1,6 +1,6 @@
 module snclient
 
-go 1.19
+go 1.20
 
 require (
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9

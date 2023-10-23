@@ -1,6 +1,6 @@
 module eventlog
 
-go 1.19
+go 1.20
 
 require (
 	github.com/elastic/beats/v7 v7.17.14
