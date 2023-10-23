@@ -144,7 +144,7 @@ func NewCondition(input string) (*Condition, error) {
 
 	// convert /pattern/i regex into coresponding condition
 	switch cond.operator { //nolint:exhaustive // only relevant for regex conditions
-	case RegexMatch, RegexMatchNot:
+	case RegexMatch, RegexMatchNot, RegexMatchNoCase, RegexMatchNotNoCase:
 		condStr := fmt.Sprintf("%v", cond.value)
 		if strings.HasPrefix(condStr, "/") && strings.HasSuffix(condStr, "/i") {
 			condStr = strings.TrimPrefix(condStr, "/")
@@ -624,6 +624,24 @@ func conditionFixTokenOperator(token []string) []string {
 		case strings.EqualFold(token[1], "not"):
 			token[1] = token[0] + " not"
 			token = token[1:]
+		}
+
+		// support regex matches of form: attr ~~ /value/modifier
+		switch token[0] {
+		case "~", "~~", "!~", "!~~":
+			if strings.HasPrefix(token[1], "/") {
+				// consume all remaining token till an ending / is found
+				for len(token) > 2 {
+					token[1] = token[1] + " " + token[2]
+					token = append(token[:2], token[3:]...)
+					// check if token now ends with / or /i - we only support i option so far
+					if strings.HasSuffix(token[1], "/") || strings.HasSuffix(token[1], "/i") {
+						break
+					}
+				}
+			}
+		default:
+			// keep like it is
 		}
 	}
 
