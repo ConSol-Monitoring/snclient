@@ -26,8 +26,8 @@ replace github.com/Shopify/sarama => github.com/elastic/sarama v1.19.1-0.2022031
 require (
 	github.com/daixiang0/gci v0.10.1
 	github.com/golangci/golangci-lint v1.52.2
-	golang.org/x/tools v0.9.1
-	golang.org/x/vuln v0.1.0
+	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846
+	golang.org/x/vuln v1.0.1
 	mvdan.cc/gofumpt v0.5.0
 	pkg/dump v0.0.0-00010101000000-000000000000
 	pkg/snclient/cmd v0.0.0-00010101000000-000000000000
@@ -225,9 +225,9 @@ require (
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/exp v0.0.0-20230519143937-03e91628a987 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
-	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/term v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
