@@ -8,3 +8,10 @@ updates:
     pull-request-branch-name:
       separator: "-"
     open-pull-requests-limit: 10
+
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+      time: '10:00'
+    open-pull-requests-limit: 10
