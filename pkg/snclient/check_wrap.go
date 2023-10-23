@@ -21,8 +21,9 @@ type CheckWrap struct {
 
 func (l *CheckWrap) Build() *CheckData {
 	return &CheckData{
-		name:         l.name,
-		hasInventory: ScriptsInventory,
+		name:            l.name,
+		hasInventory:    ScriptsInventory,
+		argsPassthrough: true,
 	}
 }
 

@@ -10,7 +10,9 @@ type CheckAlias struct {
 }
 
 func (a *CheckAlias) Build() *CheckData {
-	return &CheckData{}
+	return &CheckData{
+		argsPassthrough: true,
+	}
 }
 
 func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {

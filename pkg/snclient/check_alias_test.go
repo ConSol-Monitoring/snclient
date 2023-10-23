@@ -52,17 +52,17 @@ nasty characters = []{}
 	)
 
 	// arguments allowed
-	res = snc.RunCheck("alias_cpu3", []string{"test argument"})
+	res = snc.RunCheck("alias_cpu3", []string{"filter=none"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Equalf(t, "OK: CPU load is ok.", res.Output, "plugin output")
 
 	// nasty char
-	res = snc.RunCheck("alias_cpu3", []string{"nasty argument $"})
+	res = snc.RunCheck("alias_cpu3", []string{"filter=core!=$"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
 	assert.Equalf(t, "Exception processing request: Request contained illegal characters (check the allow nasty characters option).", res.Output, "plugin output")
 
 	// nasty char list changed
-	res = snc.RunCheck("alias_cpu4", []string{"nasty argument $"})
+	res = snc.RunCheck("alias_cpu4", []string{"filter=core!=$"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 
 	StopTestAgent(t, snc)

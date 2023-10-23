@@ -17,8 +17,9 @@ type CheckDummy struct {
 
 func (l *CheckDummy) Build() *CheckData {
 	return &CheckData{
-		name:        "check_dummy",
-		description: "This check simply sets the state to the given value and outputs the remaining arguments.",
+		name:            "check_dummy",
+		description:     "This check simply sets the state to the given value and outputs the remaining arguments.",
+		argsPassthrough: true,
 	}
 }
 

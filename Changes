@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient+ agent.
 
 next:
          - support filter regex syntax: attr ~~ /value/
+         - return error if using unknown check arguments
 
 0.10     Sun Oct 22 21:22:47 CEST 2023
          - windows: add firewall on program, not ports

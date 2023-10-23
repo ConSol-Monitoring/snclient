@@ -41,6 +41,7 @@ type CheckData struct {
 	defaultFilter   string
 	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
 	args            map[string]interface{}
+	argsPassthrough bool // allow arbitrary arguments without complaining about unknown argument
 	rawArgs         []string
 	argsFilter      []string     // argsFilter set a list of arg attributes which (if set) will prevent using the default filter
 	filter          []*Condition // if set, only show entries matching this filter set
@@ -436,6 +437,8 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 				return nil, err
 			case parsed:
 				// ok
+			case !cd.argsPassthrough:
+				return nil, fmt.Errorf("unknown argument: %s", keyword)
 			default:
 				argList = append(argList, Argument{key: keyword, value: argValue})
 			}
