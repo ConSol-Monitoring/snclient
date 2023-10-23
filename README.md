@@ -1,4 +1,5 @@
 # SNClient+
+
 [![CICD Pipeline](https://github.com/Consol-Monitoring/snclient/actions/workflows/cicd.yml/badge.svg?branch=main)](https://github.com/Consol-Monitoring/snclient/actions/workflows/cicd.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Consol-Monitoring/snclient)](https://goreportcard.com/report/github.com/Consol-Monitoring/snclient)
 [![Latest Release](https://img.shields.io/github/v/release/Consol-Monitoring/snclient?sort=semver)](https://github.com/Consol-Monitoring/snclient/releases)
@@ -7,7 +8,6 @@
 <a href="https://omd.consol.de/docs/snclient/logo/"><img src="./docs/logo/snclient.svg" style="float:right; margin: 3px; height: 100px; width: 100px;"></a>
 
 SNClient+ (Secure Naemon Client) is a general purpose monitoring agent designed as replacement for NRPE and NSClient++.
-
 
 ## Supported Operating Systems
 
@@ -20,18 +20,19 @@ SNClient+ (Secure Naemon Client) is a general purpose monitoring agent designed 
 
 ## Supported Protocols
 
- - Prometheus HTTP(s)
- - NRPE (v2/v4)
- - NSCP Rest API via HTTP(s) (checks only)
+- Prometheus HTTP(s)
+- NRPE (v2/v4)
+- NSCP Rest API via HTTP(s) (checks only)
 
 ## Installation
+
 There are prebuild binaries and packages for the all supported systems (see above) on the
 [release page](https://github.com/Consol-Monitoring/snclient/releases).
-
 
 Further details are covered in the [documentation](https://omd.consol.de/docs/snclient/).
 
 ## Implementation Status
+
 W: work in progress
 X: completed
 
@@ -56,11 +57,12 @@ X: completed
 | check_wmi              |    X    |         |         |         |
 | check_wrap             |    X    |    X    |    X    |    X    |
 
-
 ## Roadmap
+
 Find a brief overview of what is planned and what is done already:
 
 ### Stage 1
+
 - [X] support NRPE clients
 - [X] support NSCP rest api clients
 - [X] support basic Prometheus metrics
@@ -85,6 +87,7 @@ Find a brief overview of what is planned and what is done already:
 - [ ] review check plugin status
 
 ### Stage 2
+
 - [ ] add basic prometheus exporters
   - [ ] exporter_exporter
   - [ ] windows_exporter
@@ -93,10 +96,12 @@ Find a brief overview of what is planned and what is done already:
 - [ ] add config include folder
 
 ### Stage 3
+
 - [ ] add basic prometheus exporters
 - [ ] self update from github
 
 ### Miscellaneous
+
 - [ ] check usr signal handler
 - [ ] improve configuration
   - [ ] add config validator
@@ -106,6 +111,7 @@ Find a brief overview of what is planned and what is done already:
 - [ ] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, amd64 -> aarch64
 
 ## Not gonna happen
+
 The following things will most likely not be part of snclient any time:
 
 - CheckMK support
