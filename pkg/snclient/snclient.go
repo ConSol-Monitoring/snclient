@@ -498,6 +498,7 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 			continue
 		}
 
+		log.Tracef("init: %s %s", name, entry.Name())
 		mod, err := entry.Init(snc, conf, modules)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
