@@ -40,13 +40,13 @@ X: completed
 |------------------------|---------|---------|---------|---------|
 | check_alias            |    X    |    X    |    X    |    X    |
 | check_cpu              |    X    |    X    |    X    |    X    |
-| check_drivesize        |    X    |    W    |    W    |    W    |
+| check_drivesize        |    X    |    X    |    X    |    X    |
 | check_dummy            |    X    |    X    |    X    |    X    |
 | check_eventlog         |    W    |         |         |         |
 | check_files            |    W    |    W    |    W    |    W    |
 | check_index            |    X    |    X    |    X    |    X    |
 | check_memory           |    X    |    X    |    X    |    X    |
-| check_network          |    W    |    W    |    W    |    W    |
+| check_network          |    X    |    X    |    X    |    X    |
 | check_os_version       |    X    |    X    |    X    |    X    |
 | check_pagefile         |    X    |         |         |         |
 | check_process          |    W    |    W    |    W    |    W    |
