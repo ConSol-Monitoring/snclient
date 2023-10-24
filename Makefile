@@ -59,9 +59,13 @@ updatedeps: versioncheck
 	go get -u ./...
 	go get -t -u ./...
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
+		go mod download; \
+		go get -u $$dir; \
+		go get -t -u $$dir; \
 		( cd ./$$dir && go mod tidy ); \
 	done
 	go mod tidy
+	rm -f pkg/*/go.sum
 
 vendor: go.work
 	go mod download

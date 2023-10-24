@@ -28,3 +28,4 @@ snclient.wixobj
 snclient.wixpdb
 sign/
 sign.pfx
+pkg/*/go.sum
