@@ -51,7 +51,7 @@ func init() {
 			snc := snclient.NewAgent(agentFlags)
 
 			installConfig := parseInstallerArgs(args)
-			if installConfig["REMOVE"] != "ALL" {
+			if installConfig["REMOVE"] != "ALL" || installConfig["WIX_UPGRADE_DETECTED"] != "" {
 				snc.Log.Infof("skipping uninstall: %#v", installConfig)
 				os.Exit(0)
 			}

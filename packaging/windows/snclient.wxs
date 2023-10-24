@@ -10,6 +10,7 @@
     <Product Name="SNClient+" Id="*" UpgradeCode="F4BF03F6-D3DA-44FF-A444-9B64119DA0CE" Language="1033" Codepage="1252" Version="$(var.MajorVersion).$(var.MinorVersion).$(var.RevisionNumber)" Manufacturer="ConSol Consulting &amp; Solutions Software GmbH">
         <Package InstallScope="perMachine" InstallerVersion="200" Compressed="yes" />
         <MajorUpgrade AllowDowngrades="yes" />
+        <Property Id="REBOOT" Value="ReallySuppress" />
         <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
         <Property Id="WEBSERVER" Value="1" />
         <Property Id="WEBSERVERPORT" Value="8443" />
@@ -82,7 +83,7 @@
         </Feature>
         <SetProperty Id="CustomInstallerAction" Sequence="execute" Before="CustomInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; install pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED];&quot;" />
         <CustomAction Id="CustomInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
-        <SetProperty Id="CustomUnInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; uninstall pkg &quot;INSTALLDIR=[INSTALLDIR] WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]&quot;" Sequence="execute" Before="CustomUnInstallerAction" />
+        <SetProperty Id="CustomUnInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; uninstall pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]&quot;" Sequence="execute" Before="CustomUnInstallerAction" />
         <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <InstallExecuteSequence>
             <Custom Action="CustomUnInstallerAction" Before="RemoveFiles"></Custom>
