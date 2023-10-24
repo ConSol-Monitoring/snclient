@@ -48,6 +48,7 @@ var (
 	log               = factorlog.New(os.Stdout, BuildFormatter(DateTimeLogFormat+LogFormat))
 	targetWriter      io.Writer
 	restoreLevel      string
+	LogFileHandle     *os.File
 )
 
 func setLogLevel(level string) {
@@ -126,6 +127,7 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 			return
 		}
 		targetWriter = fHandle
+		LogFileHandle = fHandle
 	}
 
 	if IsInteractive() {

@@ -34,16 +34,16 @@
                         <ServiceInstall Description="SNClient+ (Secure Naemon Client) is a general purpose monitoring agent." ErrorControl="ignore" Arguments="winservice" Name="snclient" Id="SNClientService" Interactive="no" Start="auto" Type="ownProcess" Vital="no"></ServiceInstall>
                         <ServiceControl Id="StartSNClientService" Name="snclient" Stop="both" Remove="uninstall" Wait="yes" />
                     </Component>
-                    <Component Id="SampleCaCertificate" Guid="5754CA78-7BEF-44B2-A01B-9C156E7C859B" NeverOverwrite="yes">
+                    <Component Id="SampleCaCertificate" Guid="5754CA78-7BEF-44B2-A01B-9C156E7C859B" NeverOverwrite="yes" Permanent="yes">
                         <File Id="cacertPem" Name="cacert.pem" DiskId="1" Source="windist\cacert.pem" KeyPath="yes" />
                     </Component>
-                    <Component Id="SampleConfigurationIni" Guid="E64B4DBF-C6CF-41E5-9032-6D83C39B9323" NeverOverwrite="yes">
+                    <Component Id="SampleConfigurationIni" Guid="E64B4DBF-C6CF-41E5-9032-6D83C39B9323" NeverOverwrite="yes" Permanent="yes">
                         <File Id="snclientIni" Name="snclient.ini" DiskId="1" Source="windist\snclient.ini" KeyPath="yes" />
                     </Component>
-                    <Component Id="SampleServerCertificate" Guid="F58FD191-91AA-4F97-9FD8-78E2AE509AA7" NeverOverwrite="yes">
+                    <Component Id="SampleServerCertificate" Guid="F58FD191-91AA-4F97-9FD8-78E2AE509AA7" NeverOverwrite="yes" Permanent="yes">
                         <File Id="serverCrt" Name="server.crt" DiskId="1" Source="windist\server.crt" KeyPath="yes" />
                     </Component>
-                    <Component Id="SampleServerKey" Guid="D06D3104-E240-4A11-BC54-62CB5FBD6AD5" NeverOverwrite="yes">
+                    <Component Id="SampleServerKey" Guid="D06D3104-E240-4A11-BC54-62CB5FBD6AD5" NeverOverwrite="yes" Permanent="yes">
                         <File Id="serverKey" Name="server.key" DiskId="1" Source="windist\server.key" KeyPath="yes" />
                     </Component>
                     <Component Id="LicenseFile" Guid="384396D1-F506-4AF4-B3D3-D2CEC9E881F5">

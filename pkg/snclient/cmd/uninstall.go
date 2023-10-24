@@ -51,7 +51,7 @@ func init() {
 			snc := snclient.NewAgent(agentFlags)
 
 			installConfig := parseInstallerArgs(args)
-			if installConfig["REMOVE"] != "ALL" || installConfig["WIX_UPGRADE_DETECTED"] != "" {
+			if installConfig["REMOVE"] != "ALL" || installConfig["UPGRADINGPRODUCTCODE"] != "" {
 				snc.Log.Infof("skipping uninstall: %#v", installConfig)
 				os.Exit(0)
 			}
@@ -74,8 +74,16 @@ func init() {
 
 			// close log file so we can delete it
 			snc.Log.SetOutput(os.Stderr)
-			logFile := filepath.Join(installConfig["INSTALLDIR"], "snclient.log")
-			_ = os.Remove(logFile)
+			if snclient.LogFileHandle != nil {
+				snclient.LogFileHandle.Close()
+				snclient.LogFileHandle = nil
+			}
+			// since files are installed with Permanent=yes, we need to remove them manually now
+			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "cacert.pem"))
+			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "server.crt"))
+			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "server.key"))
+			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "snclient.ini"))
+			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "snclient.log"))
 
 			os.Exit(0)
 		},
