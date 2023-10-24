@@ -71,6 +71,9 @@ func NewListener(snc *Agent, conf *ConfigSection, r RequestHandler) (*Listener, 
 // SharedWebListener returns a shared web Listener object.
 func SharedWebListener(snc *Agent, conf *ConfigSection, webHandler RequestHandler, set *ModuleSet) (*Listener, error) {
 	listener, err := NewListener(snc, conf, webHandler)
+	if err != nil {
+		return nil, err
+	}
 	name := listener.BindString()
 	existing := set.Get(name)
 	if existing == nil {
