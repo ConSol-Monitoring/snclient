@@ -59,9 +59,9 @@ updatedeps: versioncheck
 	go get -u ./...
 	go get -t -u ./...
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
-		go mod download; \
-		go get -u $$dir; \
-		go get -t -u $$dir; \
+		( cd ./$$dir && go mod download ); \
+		( cd ./$$dir && go get -u ); \
+		( cd ./$$dir && go get -t -u ); \
 		( cd ./$$dir && go mod tidy ); \
 	done
 	go mod tidy
