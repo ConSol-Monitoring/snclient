@@ -15,8 +15,9 @@ type CheckNSCWeb struct{}
 
 func (l *CheckNSCWeb) Build() *CheckData {
 	return &CheckData{
-		name:        "check_nsc_web",
-		description: "Runs check_nsc_web to perform checks on other snclient agents.",
+		name:            "check_nsc_web",
+		description:     "Runs check_nsc_web to perform checks on other snclient agents.",
+		argsPassthrough: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
