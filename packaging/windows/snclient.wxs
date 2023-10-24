@@ -55,18 +55,18 @@
                     <Component Id="TmpIni" Guid="03714F56-80C4-42FB-9E1C-CA1497874900">
                         <CreateFolder Directory="INSTALLDIR" />
                         <RemoveFile Id="RemoveIni" Name="tmp_installer.ini" On="uninstall" />
-                        <IniFile Id="WriteIni01" Section="/includes" Key="installer" Value="[INCLUDES]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni02" Section="/settings/default" Key="allowed hosts" Value="[ALLOWEDHOSTS]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni06" Section="/settings/default" Key="password" Value="[PASSWORD]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni03" Section="/modules" Key="WEBServer" Value="[WEBSERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni04" Section="/settings/WEB/server" Key="port" Value="[WEBSERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni05" Section="/settings/WEB/server" Key="use ssl" Value="[WEBSERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni07" Section="/modules" Key="NRPEServer" Value="[NRPESERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni08" Section="/settings/NRPE/server" Key="port" Value="[NRPESERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni09" Section="/settings/NRPE/server" Key="use ssl" Value="[NRPESERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni10" Section="/modules" Key="PrometheusServer" Value="[PROMETHEUSSERVER]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni11" Section="/settings/Prometheus/server" Key="port" Value="[PROMETHEUSSERVERPORT]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
-                        <IniFile Id="WriteIni12" Section="/settings/Prometheus/server" Key="use ssl" Value="[PROMETHEUSSERVERSSL]" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" />
+                        <IniFile Id="WriteIni01" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/includes"                   Key="installer"         Value="[INCLUDES]" />
+                        <IniFile Id="WriteIni02" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/settings/default"           Key="allowed hosts"     Value="[ALLOWEDHOSTS]" />
+                        <IniFile Id="WriteIni06" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/settings/default"           Key="password"          Value="[PASSWORD]" />
+                        <IniFile Id="WriteIni03" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/modules"                    Key="WEBServer"         Value="[WEBSERVER]" />
+                        <IniFile Id="WriteIni04" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/settings/WEB/server"        Key="port"              Value="[WEBSERVERPORT]" />
+                        <IniFile Id="WriteIni05" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/settings/WEB/server"        Key="use ssl"           Value="[WEBSERVERSSL]" />
+                        <IniFile Id="WriteIni07" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/modules"                    Key="NRPEServer"        Value="[NRPESERVER]" />
+                        <IniFile Id="WriteIni08" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/settings/NRPE/server"       Key="port"              Value="[NRPESERVERPORT]" />
+                        <IniFile Id="WriteIni09" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/settings/NRPE/server"       Key="use ssl"           Value="[NRPESERVERSSL]" />
+                        <IniFile Id="WriteIni10" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/modules"                    Key="PrometheusServer"  Value="[PROMETHEUSSERVER]" />
+                        <IniFile Id="WriteIni11" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/settings/Prometheus/server" Key="port"              Value="[PROMETHEUSSERVERPORT]" />
+                        <IniFile Id="WriteIni12" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/settings/Prometheus/server" Key="use ssl"           Value="[PROMETHEUSSERVERSSL]" />
                     </Component>
                 </Directory>
             </Directory>
@@ -86,7 +86,7 @@
         <SetProperty Id="CustomUnInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; uninstall pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]&quot;" Sequence="execute" Before="CustomUnInstallerAction" />
         <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <InstallExecuteSequence>
-            <Custom Action="CustomUnInstallerAction" Before="RemoveFiles"></Custom>
+            <Custom Action="CustomUnInstallerAction" Before="RemoveFiles">REMOVE="ALL"</Custom>
             <Custom Action="CustomInstallerAction" Before="InstallFinalize"></Custom>
         </InstallExecuteSequence>
     </Product>
