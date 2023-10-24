@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"pkg/utils"
 	"pkg/wmi"
@@ -88,7 +89,7 @@ func (l *CheckService) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 		}
 
 		for _, service := range serviceList {
-			if slices.Contains(l.excludes, service) {
+			if slices.Contains(l.excludes, strings.TrimSpace(service)) {
 				log.Tracef("service %s excluded by 'exclude' argument", service)
 
 				continue
