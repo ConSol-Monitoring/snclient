@@ -101,7 +101,7 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 
 	logColorOn := LogColors
 	logColorReset := LogColorReset
-	if runtime.GOOS == "windows" {
+	if !IsInteractive() {
 		logColorOn = ""
 		logColorReset = ""
 	}
