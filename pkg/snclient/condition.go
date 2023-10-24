@@ -14,7 +14,8 @@ import (
 
 var (
 	reConditionValueUnit = regexp.MustCompile(`^(\d+\.\d+|\d+)\s*(\D+)$`)
-	reConditionKeyword   = regexp.MustCompile(`^([A-Za-z_]+)([!=><]+)(.+)$`)
+	reCuddleKeyword      = regexp.MustCompile(`^([A-Za-z_]+)([!=><~]+)(.*)$`)
+	reCuddleOperator     = regexp.MustCompile(`^([!=><~]+)(.*?)$`)
 )
 
 // Condition defines a condition as used in filters or thresholds
@@ -436,16 +437,26 @@ func conditionNext(token []string) (cond *Condition, remaining []string, err err
 	token = token[1:]
 
 	// keyword might cuddle with operator
-	match := reConditionKeyword.FindStringSubmatch(keyword)
+	match := reCuddleKeyword.FindStringSubmatch(keyword)
 	if len(match) > 0 {
 		keyword = match[1]
-		token = append([]string{match[2], match[3]}, token...)
+		if match[3] == "" {
+			token = append([]string{match[2]}, token...)
+		} else {
+			token = append([]string{match[2], match[3]}, token...)
+		}
 	}
 
 	if len(token) == 0 {
 		return nil, nil, fmt.Errorf("unexpected end of condition after '%s'", keyword)
 	}
 	query := keyword
+
+	// operator might cuddle with value
+	match = reCuddleOperator.FindStringSubmatch(token[0])
+	if len(match) > 0 && match[2] != "" {
+		token = append([]string{match[1], match[2]}, token[1:]...)
+	}
 
 	// trim quotes from keyword
 	keyword, err = utils.TrimQuotes(keyword)
