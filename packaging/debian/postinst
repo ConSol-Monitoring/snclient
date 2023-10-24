@@ -22,7 +22,7 @@ case "$1" in
         fi
       fi
 
-      systemctl --system daemon-reload >/dev/null || true
+      systemctl --system daemon-reload >/dev/null 2>&1 || true
       deb-systemd-invoke start snclient
     ;;
 

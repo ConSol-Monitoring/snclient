@@ -1,3 +1,3 @@
 #!/bin/sh
 set -e
-systemctl --system daemon-reload >/dev/null || true
+systemctl --system daemon-reload >/dev/null 2>&1 || true
