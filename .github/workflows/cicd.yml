@@ -369,6 +369,10 @@ jobs:
           path: "windist"
       - uses: actions/download-artifact@v3
         with:
+          name: "${{ env.BIN }}"
+          path: "windist"
+      - uses: actions/download-artifact@v3
+        with:
           name: "${{ env.BIN }}.msi"
       - name: "Integration tests"
         run: |
