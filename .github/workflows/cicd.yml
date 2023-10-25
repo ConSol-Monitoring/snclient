@@ -336,12 +336,8 @@ jobs:
 
 
   integration-test:
-    strategy:
-      matrix:
-        go-os: [windows]
-        go-arch: [amd64]
     runs-on: ubuntu-latest
-    needs: [get-version]
+    needs: [get-version,pkg-deb,pkg-rpm]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
