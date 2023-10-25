@@ -89,16 +89,16 @@ Find a brief overview of what is planned and what is done already:
 ### Stage 2
 
 - [ ] add basic prometheus exporters
-  - [ ] exporter_exporter
+  - [X] exporter_exporter
   - [ ] windows_exporter
   - [ ] node_exporter
   - [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
-- [ ] add config include folder
+- [X] add config include folder
 
 ### Stage 3
 
 - [ ] add basic prometheus exporters
-- [ ] self update from github
+- [X] self update from github
 
 ### Miscellaneous
 
