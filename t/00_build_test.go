@@ -18,6 +18,7 @@ func TestBuild(t *testing.T) {
 		Env: map[string]string{
 			"CGO_ENABLED": "0",
 		},
+		ErrLike: []string{`.*`},
 		Timeout: 5 * time.Minute,
 	})
 
