@@ -96,6 +96,9 @@ func runCmd(t *testing.T, opt *cmd) {
 	}
 
 	if opt.Exit != -1 {
+		if opt.Exit != res.ExitCode {
+			logCmd(t, check, res)
+		}
 		assert.Equalf(t, opt.Exit, res.ExitCode, fmt.Sprintf("exit code is: %d", opt.Exit))
 	}
 
