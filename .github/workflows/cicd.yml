@@ -347,8 +347,9 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GOVERSION }}
-      - run: |
-      	  cd t
+      - name: "Integration tests"
+        run: |
+          cd t
           go test -v
 
 
@@ -376,7 +377,7 @@ jobs:
       - name: "Integration tests"
         run: |
           Move-Item -Path ${{ env.BIN }}.msi -Destination .\snclient.msi
-      	  cd t
+          cd t
           go test -v ; if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: powershell
 
