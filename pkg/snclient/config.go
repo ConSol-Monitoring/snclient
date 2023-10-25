@@ -143,6 +143,7 @@ func (config *Config) ReadINI(iniPath string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", iniPath, err.Error())
 	}
+	defer file.Close()
 	fileStat, err := file.Stat()
 	if err != nil {
 		return fmt.Errorf("%s: %s", iniPath, err.Error())
