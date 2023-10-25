@@ -29,7 +29,7 @@ func (l *CheckNSCWeb) Check(ctx context.Context, snc *Agent, check *CheckData, _
 	if !val {
 		return &CheckResult{
 			State:  CheckExitUnknown,
-			Output: "Builtin check plugins are disabled by CheckBuiltinPlugins from the [/modules] section.",
+			Output: "You need to enable CheckBuiltinPlugins in the [/modules] section in order to use this command.",
 		}, nil
 	}
 
@@ -37,7 +37,7 @@ func (l *CheckNSCWeb) Check(ctx context.Context, snc *Agent, check *CheckData, _
 	if val {
 		return &CheckResult{
 			State:  CheckExitUnknown,
-			Output: "Builtin check plugin check_nsc_web is disabled.",
+			Output: "Builtin check plugin check_nsc_web is disabled in [/settings/builtin plugins/check_nsc_web].",
 		}, nil
 	}
 

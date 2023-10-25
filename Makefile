@@ -244,7 +244,7 @@ golangci: tools
 	# golangci combines a few static code analyzer
 	# See https://github.com/golangci/golangci-lint
 	#
-	set -e; for dir in $$(ls -1d pkg/*); do \
+	set -e; for dir in $$(ls -1d pkg/* t); do \
 		echo $$dir; \
 		if [ $$dir != "pkg/eventlog" ]; then \
 			echo "  - GOOS=linux"; \

@@ -1,0 +1,15 @@
+# tests
+
+This folder contains e2e test cases run against the final binary or installer
+pkg.
+
+Run the tests with:
+
+    go test -v
+
+Note: this tests will (at least on windows) build and install a .msi file.
+
+## Requirements
+
+- go
+- wix.exe (windows)
