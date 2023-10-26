@@ -78,7 +78,7 @@ func (l *HandlerNodeExporter) Stop() {
 
 func (l *HandlerNodeExporter) StopProc() {
 	if l.cmd != nil && l.cmd.Process != nil {
-		LogError(l.cmd.Process.Kill())
+		LogDebug(l.cmd.Process.Kill())
 	}
 	l.cmd = nil
 	l.pid = 0
