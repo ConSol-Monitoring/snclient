@@ -226,9 +226,6 @@ jobs:
           name: "${{ env.BIN }}.msi"
           path: "${{ env.BIN }}.msi"
           if-no-files-found: error
-      - uses: geekyeggo/delete-artifact@v2
-        with:
-            name: ${{ env.BIN }}
 
 
   pkg-deb:
@@ -391,6 +388,19 @@ jobs:
         with:
             name: "windist"
 
+  clean-tmp-winbin:
+    strategy:
+      matrix:
+        go-os: [windows]
+        go-arch: [386, amd64]
+    needs: [get-version, integration-test-windows]
+    runs-on: windows-latest
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+    steps:
+      - uses: geekyeggo/delete-artifact@v2
+        with:
+            name: ${{ env.BIN }}
 
   make-release:
     if: startsWith(github.ref, 'refs/tags/')
