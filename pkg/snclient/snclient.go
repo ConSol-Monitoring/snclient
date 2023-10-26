@@ -365,10 +365,11 @@ func (snc *Agent) Init() (*AgentRunSet, error) {
 				continue
 			}
 			// check if its readable
-			_, err = os.Open(file)
+			fp, err := os.Open(file)
 			if err != nil {
 				continue
 			}
+			fp.Close()
 			files = append(files, file)
 
 			break

@@ -139,12 +139,7 @@ func (config *Config) ReadINI(iniPath string) error {
 	}
 	config.alreadyIncluded[iniPath] = "command args"
 	log.Tracef("stat config path: %s", iniPath)
-	file, err := os.Open(iniPath)
-	if err != nil {
-		return fmt.Errorf("%s: %s", iniPath, err.Error())
-	}
-	defer file.Close()
-	fileStat, err := file.Stat()
+	fileStat, err := os.Stat(iniPath)
 	if err != nil {
 		return fmt.Errorf("%s: %s", iniPath, err.Error())
 	}
@@ -171,7 +166,11 @@ func (config *Config) ReadINI(iniPath string) error {
 	}
 
 	log.Debugf("reading config: %s", iniPath)
-	err = config.ParseINI(file, iniPath)
+	file, err := os.ReadFile(iniPath)
+	if err != nil {
+		return fmt.Errorf("%s: %s", iniPath, err.Error())
+	}
+	err = config.ParseINI(bytes.NewReader(file), iniPath)
 	if err != nil {
 		return fmt.Errorf("config error in file %s: %s", iniPath, err.Error())
 	}
