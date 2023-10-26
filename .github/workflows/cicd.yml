@@ -113,6 +113,11 @@ jobs:
           go-version: ${{ env.GOVERSION }}
       - run: |
           echo "Building ${{ env.BIN }}.exe"
+          make tools
+          rm -rf winres
+          cp -rp packaging/windows/winres .
+          ./tools/go-winres make  --arch 386,amd64,arm64
+          cp rsrc_windows*.syso cmd/snclient/
           make GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} build
           mv snclient snclient.exe
       - uses: actions/upload-artifact@v3

@@ -12,6 +12,7 @@ import (
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "golang.org/x/tools/cmd/goimports"
 	_ "golang.org/x/vuln/cmd/govulncheck"
+	_ "github.com/tc-hib/go-winres"
 	_ "mvdan.cc/gofumpt"
 	_ "pkg/dump"
 )

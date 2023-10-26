@@ -99,17 +99,20 @@ build-linux-i386: vendor
 		( cd ./cmd/$$CMD && GOOS=linux GOARCH=386 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.linux.i386 ) ; \
 	done
 
-build-windows-i386: vendor
+build-windows-i386: vendor rsrc_windows_386.syso
+	cp rsrc_windows_386.syso cmd/snclient/
 	set -e; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.i386.exe ) ; \
 	done
 
-build-windows-amd64: vendor
+build-windows-amd64: vendor rsrc_windows_amd64.syso
+	cp rsrc_windows_amd64.syso cmd/snclient/
 	set -e; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.amd64.exe ) ; \
 	done
 
-build-windows-arm64: vendor
+build-windows-arm64: vendor rsrc_windows_arm64.syso
+	cp rsrc_windows_arm64.syso cmd/snclient/
 	set -e; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.arm64.exe ) ; \
 	done
@@ -123,6 +126,19 @@ build-darwin-aarch64: vendor
 	set -e; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
 	done
+
+winres: tools
+	rm -rf winres
+	cp -rp packaging/windows/winres .
+
+rsrc_windows_386.syso: winres tools
+	./tools/go-winres make --arch 386
+
+rsrc_windows_amd64.syso: winres tools
+	./tools/go-winres make --arch amd64
+
+rsrc_windows_arm64.syso: winres tools
+	./tools/go-winres make --arch arm64
 
 test: vendor
 	go test -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd
@@ -217,6 +233,9 @@ clean:
 	rm -rf build-deb/
 	rm -rf build-rpm/
 	rm -f release_notes.txt
+	rm -rf winres
+	rm -f rsrc_windows*.syso
+	rm -rf cmd/snclient/rsrc_windows*.syso
 
 GOVET=go vet -all
 fmt: tools
