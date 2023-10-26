@@ -78,6 +78,7 @@ func init() {
 				snclient.LogFileHandle.Close()
 				snclient.LogFileHandle = nil
 			}
+
 			// since files are installed with Permanent=yes, we need to remove them manually now
 			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "cacert.pem"))
 			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "server.crt"))
