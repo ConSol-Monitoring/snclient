@@ -113,11 +113,9 @@ func TestMSIinstaller(t *testing.T) {
 	for _, file := range requiredFiles {
 		assert.NoFileExistsf(t, `C:\Program Files\snclient\`+file, file+" has been removed")
 	}
+	assert.NoFileExistsf(t, `C:\Program Files\snclient\`, "snclient folder has been removed")
 
 	// remove remaining files
 	os.Remove("../snclient_update.msi")
-	os.Remove("../snclient.msi")
-	os.Remove("snclient")
 	os.Remove("snclient.ini")
-	os.Remove("snclient.exe")
 }
