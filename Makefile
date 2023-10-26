@@ -38,6 +38,10 @@ endif
 BUILD_FLAGS=-ldflags "-s -w -X pkg/snclient.Build=$(BUILD) -X pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=3m $(BUILD_FLAGS)
 
+NODE_EXPORTER_VERSION=1.6.1
+NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH).tar.gz
+NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)/$(NODE_EXPORTER_FILE)
+
 all: build
 
 CMDS = $(shell cd ./cmd && ls -1)
@@ -238,6 +242,7 @@ clean:
 	rm -rf winres
 	rm -f rsrc_windows*.syso
 	rm -rf cmd/snclient/rsrc_windows*.syso
+	rm -f node_exporter-*.tar.gz
 
 GOVET=go vet -all
 fmt: tools
@@ -348,7 +353,7 @@ server.key: | dist
 
 deb: | dist
 	mkdir -p \
-		build-deb/etc/snclient \
+		build-deb/etc/snclient/prometheus \
 		build-deb/usr/bin \
 		build-deb/lib/systemd/system \
 		build-deb/etc/logrotate.d \
@@ -357,6 +362,11 @@ deb: | dist
 		build-deb/usr/share/man/man1 \
 		build-deb/usr/share/man/man8 \
 		build-deb/usr/share/lintian/overrides/
+
+	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
+	tar zxvf $(NODE_EXPORTER_FILE)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)/node_exporter build-deb/etc/snclient/prometheus/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)
 
 	rm -rf ./build-deb/DEBIAN
 	cp -r ./packaging/debian ./build-deb/DEBIAN
@@ -377,6 +387,7 @@ deb: | dist
 	sed -i build-deb/DEBIAN/control -e 's|^Version: .*|Version: $(VERSION)|'
 
 	chmod 644 build-deb/etc/snclient/*
+	chmod 755 build-deb/etc/snclient/prometheus
 
 	cp -p dist/snclient.1 build-deb/usr/share/man/man1/snclient.1
 	gzip -n -9 build-deb/usr/share/man/man1/snclient.1

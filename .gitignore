@@ -31,3 +31,4 @@ sign.pfx
 pkg/*/go.sum
 winres/
 rsrc_windows*.syso
+node_exporter-*
