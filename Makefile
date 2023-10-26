@@ -244,13 +244,13 @@ fmt: tools
 	set -e; for CMD in $(CMDS); do \
 		$(GOVET) ./cmd/$$CMD; \
 	done
-	set -e; for dir in $(shell ls -d1 pkg/*); do \
+	set -e; for dir in $(shell ls -d1 pkg/* t/); do \
 		$(GOVET) ./$$dir; \
 	done
-	gofmt -w -s ./cmd/ ./pkg/
-	./tools/gofumpt -w ./cmd/ ./pkg/
-	./tools/gci write ./cmd/. ./pkg/.  --skip-generated
-	goimports -w ./cmd/ ./pkg/
+	gofmt -w -s ./cmd/ ./pkg/ ./t/
+	./tools/gofumpt -w ./cmd/ ./pkg/ ./t/
+	./tools/gci write ./cmd/. ./pkg/. ./t/.  --skip-generated
+	goimports -w ./cmd/ ./pkg/ ./t/.
 
 versioncheck:
 	@[ $$( printf '%s\n' $(GOVERSION) $(MINGOVERSION) | sort | head -n 1 ) = $(MINGOVERSION) ] || { \

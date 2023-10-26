@@ -3,12 +3,17 @@ package main
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var localINIPath = `C:\Program Files\snclient\snclient_local.ini`
+const (
+	localINIPath = `C:\Program Files\snclient\snclient_local.ini`
+
+	buildMSITimeout = 3 * time.Minute
+)
 
 var requiredFiles = []string{
 	"snclient.exe",
@@ -74,7 +79,8 @@ func TestMSIinstaller(t *testing.T) {
 			"-rev", "101",
 			"-sha", "deadbeef",
 		},
-		Like: []string{"Windows Installer", "snclient.wxs"},
+		Like:    []string{"Windows Installer", "snclient.wxs"},
+		Timeout: buildMSITimeout,
 	})
 
 	// install update from msi file
