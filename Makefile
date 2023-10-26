@@ -64,6 +64,8 @@ updatedeps: versioncheck
 		( cd ./$$dir && go get -t -u ); \
 		( cd ./$$dir && go mod tidy ); \
 	done
+	go get -u ./buildtools/
+	go get -u ./t/
 	go mod tidy
 	rm -f pkg/*/go.sum
 
