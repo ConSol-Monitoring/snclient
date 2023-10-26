@@ -25,6 +25,7 @@ const (
 )
 
 type HandlerNodeExporter struct {
+	name         string
 	agentPath    string
 	agentArgs    string
 	agentAddress string
@@ -40,13 +41,15 @@ type HandlerNodeExporter struct {
 }
 
 func NewHandlerNodeExporter() Module {
-	l := &HandlerNodeExporter{}
+	l := &HandlerNodeExporter{
+		name: "nodeexporter",
+	}
 
 	return l
 }
 
 func (l *HandlerNodeExporter) Type() string {
-	return "nodeexporter"
+	return l.name
 }
 
 func (l *HandlerNodeExporter) BindString() string {
@@ -226,10 +229,10 @@ func (l *HandlerNodeExporter) procMemWatcher() {
 		}
 
 		if memInfo.RSS > l.agentMaxMem {
-			log.Warnf("nodeexporter memory usage - rss: %s, vms: %s -> restarting the process", humanize.BytesF(memInfo.RSS, 2), humanize.BytesF(memInfo.VMS, 2))
+			log.Warnf(l.name+" memory usage - rss: %s, vms: %s -> restarting the process", humanize.BytesF(memInfo.RSS, 2), humanize.BytesF(memInfo.VMS, 2))
 			l.StopProc()
 		} else {
-			log.Tracef("nodeexporter memory usage - rss: %s, vms: %s", humanize.BytesF(memInfo.RSS, 2), humanize.BytesF(memInfo.VMS, 2))
+			log.Tracef(l.name+" memory usage - rss: %s, vms: %s", humanize.BytesF(memInfo.RSS, 2), humanize.BytesF(memInfo.VMS, 2))
 		}
 	}
 }
