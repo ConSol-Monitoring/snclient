@@ -20,11 +20,13 @@ func init() {
 }
 
 type CheckDrivesize struct {
-	drives        []string
-	excludes      []string
-	total         bool
-	magic         float64
-	hasCustomPath bool
+	drives           []string
+	excludes         []string
+	total            bool
+	magic            float64
+	mounted          bool
+	ignoreUnreadable bool
+	hasCustomPath    bool
 }
 
 func (l *CheckDrivesize) Build() *CheckData {
@@ -32,6 +34,8 @@ func (l *CheckDrivesize) Build() *CheckData {
 	l.excludes = []string{}
 	l.total = false
 	l.magic = float64(1)
+	l.mounted = false
+	l.ignoreUnreadable = false
 	l.hasCustomPath = false
 
 	excludedFsTypes := []string{
@@ -62,10 +66,12 @@ func (l *CheckDrivesize) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]interface{}{
-			"drive":   &l.drives,
-			"exclude": &l.excludes,
-			"total":   &l.total,
-			"magic":   &l.magic,
+			"drive":             &l.drives,
+			"exclude":           &l.excludes,
+			"total":             &l.total,
+			"magic":             &l.magic,
+			"mounted":           &l.mounted,          // deprecated and unused, but should not result in unknown argument
+			"ignore-unreadable": &l.ignoreUnreadable, // same
 		},
 		argsFilter:      []string{"drive"},
 		defaultFilter:   "fstype not in (" + utils.List2String(excludedFsTypes) + ")",
