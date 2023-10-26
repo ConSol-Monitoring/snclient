@@ -42,7 +42,7 @@ all: build
 
 CMDS = $(shell cd ./cmd && ls -1)
 
-tools: versioncheck vendor go.work
+tools: | versioncheck vendor go.work
 	go mod download
 	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }'); do \
 		go install $$DEP; \
@@ -127,18 +127,18 @@ build-darwin-aarch64: vendor
 		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
 	done
 
-winres: tools
+winres: | tools
 	rm -rf winres
 	cp -rp packaging/windows/winres .
 
-rsrc_windows_386.syso: winres tools
-	./tools/go-winres make --arch 386
+rsrc_windows_386.syso: winres | tools
+	${TOOLSFOLDER}/go-winres make --arch 386
 
-rsrc_windows_amd64.syso: winres tools
-	./tools/go-winres make --arch amd64
+rsrc_windows_amd64.syso: winres | tools
+	${TOOLSFOLDER}/go-winres make --arch amd64
 
-rsrc_windows_arm64.syso: winres tools
-	./tools/go-winres make --arch arm64
+rsrc_windows_arm64.syso: winres | tools
+	${TOOLSFOLDER}/go-winres make --arch arm64
 
 test: vendor
 	go test -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd
