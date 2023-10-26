@@ -1,10 +1,12 @@
 package snclient
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"os"
@@ -253,6 +255,7 @@ func (snc *Agent) RunBackground() {
 func (snc *Agent) mainLoop() MainStateType {
 	// just wait till someone hits ctrl+c or we have to reload
 	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -276,7 +279,6 @@ func (snc *Agent) mainLoop() MainStateType {
 
 				return exitCode
 			case Shutdown, ShutdownGraceFully:
-				ticker.Stop()
 				snc.stop()
 
 				return exitCode
@@ -816,6 +818,8 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 	files = append(files, snc.initSet.files...)
 	files = append(files, binFile)
 	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
 	for {
 		<-ticker.C
 		if !snc.IsRunning() {
@@ -1193,4 +1197,29 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 	}
 
 	return cmd, err
+}
+
+// redirect log output from 3rd party process to main log file
+func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ...interface{}), pipeFn func() (io.ReadCloser, error)) {
+	pipe, err := pipeFn()
+	if err != nil {
+		log.Errorf("failed to connect to %s: %w: %s", name, err, err.Error())
+
+		return
+	}
+	read := bufio.NewReader(pipe)
+	go func() {
+		defer snc.logPanicExit()
+		for {
+			line, _, err := read.ReadLine()
+			if err != nil {
+				break
+			}
+
+			lineStr := string(line)
+			if len(line) > 0 {
+				logFn("%s%s", prefix, lineStr)
+			}
+		}
+	}()
 }

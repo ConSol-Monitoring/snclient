@@ -351,7 +351,7 @@ func checkModuleConfig(name string, cfg *exporterModuleConfig) error {
 		cfg.HTTP.ReverseProxy = &httputil.ReverseProxy{
 			Transport:    &http.Transport{TLSClientConfig: tlsConfig},
 			Director:     dirFunc,
-			ErrorHandler: cfg.getReverseProxyErrorHandlerFunc(),
+			ErrorHandler: getReverseProxyErrorHandlerFunc(cfg.name),
 		}
 	case "exec":
 		if len(cfg.Exec.XXX) != 0 {
@@ -428,24 +428,16 @@ func (cfg *exporterModuleConfig) getReverseProxyDirectorFunc() (func(*http.Reque
 	}, nil
 }
 
-const (
-	// VerificationErrorMsg to send in response body when verification of proxied server
-	// response is failed
-	VerificationErrorMsg = "Internal Server Error: " +
-		"Response from proxied server failed verification. " +
-		"See server logs for details"
-)
-
-func (cfg *exporterModuleConfig) getReverseProxyErrorHandlerFunc() func(http.ResponseWriter, *http.Request, error) {
+func getReverseProxyErrorHandlerFunc(name string) func(http.ResponseWriter, *http.Request, error) {
 	return func(res http.ResponseWriter, _ *http.Request, err error) {
 		if errors.Is(err, context.DeadlineExceeded) {
-			log.Errorf("Request time out for module '%s'", cfg.name)
+			log.Errorf("Request time out for module '%s'", name)
 			http.Error(res, http.StatusText(http.StatusGatewayTimeout), http.StatusGatewayTimeout)
 
 			return
 		}
 
-		log.Errorf("Proxy error for module '%s': %v", cfg.name, err)
+		log.Errorf("Proxy error for module '%s': %v", name, err)
 		http.Error(res, http.StatusText(http.StatusBadGateway), http.StatusBadGateway)
 	}
 }
