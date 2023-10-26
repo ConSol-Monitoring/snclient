@@ -25,17 +25,19 @@ var requiredFiles = []string{
 	"README.md",
 }
 
-// this test requires the wix.exe to be installed
+// this test requires the wix.exe (including .net 3.5) to be installed
+// further requirements are:
+// - snclient.msi
+// - windist folder to build new msi
 // it builds the msi file, tries a installation and removes it afterwards
 func TestMSIinstaller(t *testing.T) {
 	bin := getBinary()
 	require.FileExistsf(t, bin, "snclient binary must exist")
 
-	require.FileExistsf(t, "../snclient.msi", "snclient.msi binary must exist")
+	require.FileExistsf(t, "snclient.msi", "snclient.msi binary must exist")
 
 	// install msi file
 	runCmd(t, &cmd{
-		Dir:  "..",
 		Cmd:  "msiexec",
 		Args: []string{"/i", "snclient.msi", "/qn"},
 	})
@@ -67,13 +69,13 @@ func TestMSIinstaller(t *testing.T) {
 		Like: []string{`^SNClient\+ v`},
 	})
 
-	// build second msi file to test upgrade
+	// build second msi file (from the parent folder) to test upgrade
 	runCmd(t, &cmd{
 		Dir: "..",
 		Cmd: `powershell`,
 		Args: []string{
 			`.\packaging\windows\build_msi.ps1`,
-			"-out", "snclient_update.msi",
+			"-out", `.\t\snclient_update.msi`,
 			"-major", "0",
 			"-minor", "1",
 			"-rev", "101",
@@ -85,7 +87,6 @@ func TestMSIinstaller(t *testing.T) {
 
 	// install update from msi file
 	runCmd(t, &cmd{
-		Dir:  "..",
 		Cmd:  `msiexec`,
 		Args: []string{"/i", "snclient_update.msi", "/qn"},
 	})
@@ -111,7 +112,6 @@ func TestMSIinstaller(t *testing.T) {
 
 	// uninstall msi file
 	runCmd(t, &cmd{
-		Dir:  "..",
 		Cmd:  `msiexec`,
 		Args: []string{"/x", "snclient_update.msi", "/qn"},
 	})
@@ -122,6 +122,6 @@ func TestMSIinstaller(t *testing.T) {
 	assert.NoFileExistsf(t, `C:\Program Files\snclient\`, "snclient folder has been removed")
 
 	// remove remaining files
-	os.Remove("../snclient_update.msi")
+	os.Remove("snclient_update.msi")
 	os.Remove("snclient.ini")
 }

@@ -378,7 +378,7 @@ jobs:
           name: "${{ env.BIN }}.msi"
       - name: "Integration tests"
         run: |
-          Move-Item -Path ${{ env.BIN }}.msi -Destination .\snclient.msi
+          Move-Item -Path ${{ env.BIN }}.msi -Destination .\t\snclient.msi
           cd t
           go test -v ; if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: powershell

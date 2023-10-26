@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 func TestBuild(t *testing.T) {
 	bin := getBinary()
+	os.Remove(bin)
 
 	runCmd(t, &cmd{
 		Cmd:  "go",
