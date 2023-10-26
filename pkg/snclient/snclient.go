@@ -434,10 +434,14 @@ func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
 	// set defaults in path section
 	pathSection := snc.setDefaultPaths(config, files)
 
+	// build default macros
+	config.DefaultMacros()
+
 	// replace macros in path section early
 	for key, val := range pathSection.data {
 		val = ReplaceMacros(val, pathSection.data, GlobalMacros)
 		pathSection.Set(key, val)
+		(*config.defaultMacros)[key] = val
 	}
 
 	// shared path must exist
@@ -447,10 +451,7 @@ func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
 
 	// replace other sections
 	for _, section := range config.sections {
-		for key, val := range section.data {
-			val = ReplaceMacros(val, pathSection.data, GlobalMacros)
-			section.Set(key, val)
-		}
+		config.ReplaceDefaultMacros(section)
 	}
 
 	for key, val := range pathSection.data {

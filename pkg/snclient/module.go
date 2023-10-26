@@ -120,6 +120,7 @@ func (lm *LoadableModule) Init(snc *Agent, conf *Config, set *ModuleSet) (Module
 	modConf := conf.Section(lm.ConfigKey).Clone()
 	modConf.MergeSection(conf.Section("/settings/default"))
 	modConf.MergeData(handler.Defaults())
+	conf.ReplaceDefaultMacros(modConf)
 
 	err := handler.Init(snc, modConf, conf, set)
 	if err != nil {

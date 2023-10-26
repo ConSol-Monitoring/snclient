@@ -403,6 +403,16 @@ func (config *Config) ReplaceOnDemandConfigMacros(value string) string {
 
 // DefaultMacros returns a map of default macros.
 // basically the /paths section and hostnames.
+func (config *Config) ReplaceDefaultMacros(section *ConfigSection) {
+	defaultMacros := config.DefaultMacros()
+	for key, val := range section.data {
+		val = ReplaceMacros(val, defaultMacros)
+		section.Set(key, val)
+	}
+}
+
+// DefaultMacros returns a map of default macros.
+// basically the /paths section and hostnames.
 func (config *Config) DefaultMacros() map[string]string {
 	if config.defaultMacros != nil {
 		return *config.defaultMacros
@@ -412,6 +422,10 @@ func (config *Config) DefaultMacros() map[string]string {
 		"hostname": "",
 	}
 	for key, val := range config.Section("/paths").data {
+		defaultMacros[key] = val
+	}
+
+	for key, val := range GlobalMacros {
 		defaultMacros[key] = val
 	}
 
