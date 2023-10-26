@@ -288,6 +288,11 @@ func (l *Listener) Start() error {
 
 func (l *Listener) startListenerTCP(handler RequestHandlerTCP) {
 	for {
+		if l.listen == nil {
+			log.Infof("stopping %s listener on %s", l.connType, l.BindString())
+
+			return
+		}
 		con, err := l.listen.Accept()
 
 		var opErr *net.OpError
