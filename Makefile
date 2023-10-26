@@ -406,6 +406,12 @@ rpm: | dist
 	sed -i dist/snclient.spec -e 's|^BuildArch: .*|BuildArch: $(RPM_ARCH)|'
 	cp -rp dist snclient-$(VERSION)
 	rm -f snclient-$(VERSION)/ca.key
+
+	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
+	tar zxvf $(NODE_EXPORTER_FILE)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)/node_exporter snclient-$(VERSION)/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)
+
 	tar cfz snclient-$(VERSION).tar.gz snclient-$(VERSION)
 	rm -rf snclient-$(VERSION)
 	mkdir -p $(RPM_TOPDIR)/{SOURCES,BUILD,RPMS,SRPMS,SPECS}
