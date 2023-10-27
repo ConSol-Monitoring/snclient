@@ -42,6 +42,10 @@ NODE_EXPORTER_VERSION=1.6.1
 NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH).tar.gz
 NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)/$(NODE_EXPORTER_FILE)
 
+WINDOWS_EXPORTER_VERSION=0.24.0
+WINDOWS_EXPORTER_FILE=windows_exporter-$(WINDOWS_EXPORTER_VERSION)
+WINDOWS_EXPORTER_URL=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION)/
+
 all: build
 
 CMDS = $(shell cd ./cmd && ls -1)
@@ -333,6 +337,11 @@ windist: | dist
 	echo '{\rtf1\ansi\deff0\nouicompat{\fonttbl{\f0\fnil\fcharset0 Courier New;}}' > windist/LICENSE.rtf
 	echo '\pard\f0\fs22\lang1033' >> windist/LICENSE.rtf
 	while read line; do printf "%s\n" "$$line\par"; done < LICENSE >> windist/LICENSE.rtf
+
+	test -f windist/$(WINDOWS_EXPORTER_FILE)-386.exe   || curl -s -L -O windist/$(WINDOWS_EXPORTER_URL)-386.exe
+	test -f windist/$(WINDOWS_EXPORTER_FILE)-amd64.exe || curl -s -L -O windist/$(WINDOWS_EXPORTER_URL)-amd64.exe
+	test -f windist/$(WINDOWS_EXPORTER_FILE)-arm64.exe || curl -s -L -O windist/$(WINDOWS_EXPORTER_URL)-arm64.exe
+
 	sed -i windist/snclient.ini \
 		-e 's/\/etc\/snclient/${exe-path}/g' \
 		-e 's/^file name =.*/file name = $${shared-path}\/snclient.log/g' \
@@ -364,6 +373,7 @@ deb: | dist
 		build-deb/usr/share/man/man8 \
 		build-deb/usr/share/lintian/overrides/
 
+	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
 	tar zxvf $(NODE_EXPORTER_FILE)
 	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)/node_exporter build-deb/usr/lib/snclient/node_exporter
 	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)
