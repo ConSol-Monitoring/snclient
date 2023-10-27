@@ -93,11 +93,11 @@ build: vendor go.work snclient.ini server.crt server.key
 
 # run build watch, ex. with tracing: make build-watch -- -vv -logfile stderr
 build-watch: vendor
-	ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient.ini | entr -sr "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"
+	ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"
 
 # run build watch with other build targets, ex.: make build-watch-make -- build-windows-amd64
 build-watch-make: vendor
-	ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient.ini | entr -sr "$(MAKE) $(filter-out $@,$(MAKECMDGOALS))"
+	ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr "$(MAKE) $(filter-out $@,$(MAKECMDGOALS))"
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \

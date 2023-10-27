@@ -5,9 +5,11 @@ func init() {
 }
 
 func NewHandlerWindowsExporter() Module {
-	l := &HandlerNodeExporter{
-		name: "windowsexporter",
+	mod := &HandlerManagedExporter{
+		name:           "windowsexporter",
+		urlPrefix:      "/node",
+		agentExtraArgs: "--web.listen-address=${agent address}",
 	}
 
-	return l
+	return mod
 }
