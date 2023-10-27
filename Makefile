@@ -37,6 +37,7 @@ endif
 
 BUILD_FLAGS=-ldflags "-s -w -X pkg/snclient.Build=$(BUILD) -X pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
+GOTEST=CGO_ENABLED=0 go test
 
 NODE_EXPORTER_VERSION=1.6.1
 NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH).tar.gz
@@ -156,16 +157,16 @@ rsrc_windows_arm64.syso: winres | tools
 	${TOOLSFOLDER}/go-winres make --arch arm64
 
 test: vendor
-	go test -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd
+	$(GOTEST) -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd
 	if grep -rn TODO: ./cmd/ ./pkg/ ./packaging/ ; then exit 1; fi
 	if grep -rn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 
 # test with filter
 testf: vendor
-	go test -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS" | grep -v "^FAIL"
+	$(GOTEST) -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS" | grep -v "^FAIL"
 
 longtest: vendor
-	go test -v $(TEST_FLAGS) pkg/* pkg/*/cmd
+	$(GOTEST) -v $(TEST_FLAGS) pkg/* pkg/*/cmd
 
 citest: vendor
 	#
@@ -215,18 +216,18 @@ citest: vendor
 	#
 
 benchmark:
-	go test $(TEST_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/* pkg/*/cmd
+	$(GOTEST) $(TEST_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/* pkg/*/cmd
 
 racetest:
-	go test -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/* pkg/*/cmd
+	$(GOTEST) -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/* pkg/*/cmd
 
 covertest:
-	go test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
+	$(GOTEST) -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
 	go tool cover -func=cover.out
 	go tool cover -html=cover.out -o coverage.html
 
 coverweb:
-	go test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
+	$(GOTEST) -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
 	go tool cover -html=cover.out
 
 clean:
