@@ -68,6 +68,11 @@
                         <IniFile Id="WriteIni11" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/settings/Prometheus/server" Key="port"              Value="[PROMETHEUSSERVERPORT]" />
                         <IniFile Id="WriteIni12" Action="addLine" Directory="INSTALLDIR" Name="tmp_installer.ini" Section="/settings/Prometheus/server" Key="use ssl"           Value="[PROMETHEUSSERVERSSL]" />
                     </Component>
+                    <Directory Id="exporterFolder" Name="exporter">
+                        <Component Id="WindowsExporter" Guid="2ACBF324-E79D-4C91-94EC-F198EB449CD0" Win64="$(var.Win64)">
+                            <File Id="WindowsExporterExe" Name="windows_exporter.exe" DiskId="1" Source="windist\windows_exporter.exe" KeyPath="yes" />
+                        </Component>
+                    </Directory>
                 </Directory>
             </Directory>
         </Directory>
