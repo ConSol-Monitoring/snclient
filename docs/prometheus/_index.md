@@ -11,10 +11,10 @@ There are several prometheus integrations in SNClient+.
 
 ## Overview
 
-- [Builtin Windows Exporter](#windows exporter)
-- [Builtin Node Exporter](#node exporter)
-- [Managed Exporters](#managed exporters)
-- [ExporterExporter](#exporter exporter)
+- [Builtin Windows Exporter](#windows-exporter)
+- [Builtin Node Exporter](#node-exporter)
+- [Managed Exporters](#managed-exporters)
+- [ExporterExporter](#exporter-exporter)
 - [Prometheus Metrics of SNClient+](#metrics)
 
 ## Windows Exporter
