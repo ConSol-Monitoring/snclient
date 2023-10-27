@@ -338,9 +338,10 @@ windist: | dist
 	echo '\pard\f0\fs22\lang1033' >> windist/LICENSE.rtf
 	while read line; do printf "%s\n" "$$line\par"; done < LICENSE >> windist/LICENSE.rtf
 
-	test -f windist/windows_exporter-386.exe   || curl -s -L -o windist/windows_exporter-386.exe   windist/$(WINDOWS_EXPORTER_URL)-386.exe
-	test -f windist/windows_exporter-amd64.exe || curl -s -L -o windist/windows_exporter-amd64.exe windist/$(WINDOWS_EXPORTER_URL)-amd64.exe
-	test -f windist/windows_exporter-arm64.exe || curl -s -L -o windist/windows_exporter-arm64.exe windist/$(WINDOWS_EXPORTER_URL)-arm64.exe
+	test -f windist/windows_exporter-386.exe   || curl -s -L -o windist/windows_exporter-386.exe   $(WINDOWS_EXPORTER_URL)/$(WINDOWS_EXPORTER_FILE)-386.exe
+	test -f windist/windows_exporter-amd64.exe || curl -s -L -o windist/windows_exporter-amd64.exe $(WINDOWS_EXPORTER_URL)/$(WINDOWS_EXPORTER_FILE)-amd64.exe
+	test -f windist/windows_exporter-arm64.exe || curl -s -L -o windist/windows_exporter-arm64.exe $(WINDOWS_EXPORTER_URL)/$(WINDOWS_EXPORTER_FILE)-arm64.exe
+	cd windist && sha256sum -c ../packaging/windows/sha256sums.txt
 
 	sed -i windist/snclient.ini \
 		-e 's/\/etc\/snclient/${exe-path}/g' \

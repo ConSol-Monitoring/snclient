@@ -1,4 +1,5 @@
 addFilter("E: statically-linked-binary /usr/bin/snclient")
+addFilter("E: statically-linked-binary /usr/lib/snclient/node_exporter")
 addFilter("E: no-changelogname-tag")
 addFilter("E: non-readable /etc/snclient/cacert.pem")
 addFilter("non-readable /etc/snclient/server.crt")
