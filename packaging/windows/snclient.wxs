@@ -84,6 +84,7 @@
             <ComponentRef Id="SampleServerKey" />
             <ComponentRef Id="LicenseFile" />
             <ComponentRef Id="ReadmeFile" />
+            <ComponentRef Id="WindowsExporterExe" />
             <ComponentRef Id="TmpIni" />
         </Feature>
         <SetProperty Id="CustomInstallerAction" Sequence="execute" Before="CustomInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; install pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED];&quot;" />
