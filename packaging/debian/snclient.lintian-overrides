@@ -1,2 +1,3 @@
 snclient: statically-linked-binary [usr/bin/snclient]
+snclient: statically-linked-binary [/usr/lib/snclient/node_exporter]
 snclient: bugs-field-does-not-refer-to-debian-infrastructure https://github.com/Consol-Monitoring/snclient/issues

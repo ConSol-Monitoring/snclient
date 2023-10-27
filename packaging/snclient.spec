@@ -30,8 +30,8 @@ It supports Prometheus, NRPE and a REST API HTTP(s) protocol to run checks.
 %{__mkdir_p} -m 0755 %{buildroot}/etc/snclient
 %{__install} -D -m 0644 -p snclient.ini cacert.pem server.crt server.key %{buildroot}/etc/snclient
 
-%{__mkdir_p} -m 0755 %{buildroot}/etc/snclient/prometheus
-%{__install} -D -m 0755 -p node_exporter %{buildroot}/etc/snclient/prometheus/
+%{__mkdir_p} -m 0755 %{buildroot}/usr/lib/snclient
+%{__install} -D -m 0755 -p node_exporter %{buildroot}/usr/lib/snclient/
 
 %{__mkdir_p} -m 0755 %{buildroot}/etc/logrotate.d
 %{__install} -D -m 0644 -p snclient.logrotate %{buildroot}/etc/logrotate.d/snclient
@@ -102,7 +102,7 @@ exit 0
 %files
 %defattr(-,root,root)
 %attr(0755,root,root) /usr/bin/snclient
-%attr(0755,root,root) /etc/snclient/prometheus/node_exporter
+%attr(0755,root,root) /usr/lib/snclient/node_exporter
 %attr(0644,root,root) /lib/systemd/system/snclient.service
 %dir %config(noreplace) /etc/snclient
 %config(noreplace) %attr(0600,root,root) /etc/snclient/snclient.ini
