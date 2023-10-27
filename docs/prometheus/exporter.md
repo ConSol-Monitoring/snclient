@@ -1,13 +1,16 @@
 ---
 title: ExporterExporter
-linkTitle: ExporterExporter
-weight: 300
+linkTitle: ExpExp
+weight: 400
 tags:
   - prometheus
   - exporter
 ---
 
-The exporter exporter is a simple reverse proxy for prometheus exporter.
+The exporter exporter is a simple reverse proxy for prometheus exporters not
+managed by SNClient+.
+
+It makes multiple exporters accessible via a single proxy url.
 
 Example configuration:
 
@@ -27,7 +30,7 @@ Example configuration:
     ; modules dir - set folder with yaml module definitions
     modules dir = ${shared-path}/exporter_modules
 
-The exporter uses tha standard http settings with an additional `modules dir` to
+The exporter uses the standard http settings with an additional `modules dir` to
 configure the exported modules.
 
 For compatibility reasons, the modules itself are in yaml format as described
