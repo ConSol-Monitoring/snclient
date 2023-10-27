@@ -223,7 +223,8 @@ benchmark:
 	$(GOTEST) $(TEST_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/* pkg/*/cmd
 
 racetest:
-	$(GOTEST) -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/* pkg/*/cmd
+	# go: -race requires cgo, so do not use the macro here
+	go test -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/* pkg/*/cmd
 
 covertest:
 	$(GOTEST) -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
