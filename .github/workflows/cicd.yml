@@ -380,6 +380,7 @@ jobs:
       - name: "Integration tests"
         run: |
           Move-Item -Path ${{ env.BIN }}.msi -Destination .\t\snclient.msi
+          Copy-Item .\windist\windows_exporter-${{ matrix.go-arch }}.exe .\windist\windows_exporter.exe
           cd t
           go test -v ; if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: powershell
