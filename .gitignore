@@ -18,6 +18,7 @@ dist/
 windist/
 build-deb/
 snclient.ini
+snclient_local.ini
 server.crt
 server.key
 release_notes.txt
