@@ -341,7 +341,7 @@ windist: | dist
 	test -f windist/windows_exporter-386.exe   || curl -s -L -o windist/windows_exporter-386.exe   $(WINDOWS_EXPORTER_URL)/$(WINDOWS_EXPORTER_FILE)-386.exe
 	test -f windist/windows_exporter-amd64.exe || curl -s -L -o windist/windows_exporter-amd64.exe $(WINDOWS_EXPORTER_URL)/$(WINDOWS_EXPORTER_FILE)-amd64.exe
 	test -f windist/windows_exporter-arm64.exe || curl -s -L -o windist/windows_exporter-arm64.exe $(WINDOWS_EXPORTER_URL)/$(WINDOWS_EXPORTER_FILE)-arm64.exe
-	cd windist && sha256sum -c ../packaging/windows/sha256sums.txt
+	cd windist && sha256sum --ignore-missing -c ../packaging/sha256sums.txt
 
 	sed -i windist/snclient.ini \
 		-e 's/\/etc\/snclient/${exe-path}/g' \
@@ -375,6 +375,7 @@ deb: | dist
 		build-deb/usr/share/lintian/overrides/
 
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
+	sha256sum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
 	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)/node_exporter build-deb/usr/lib/snclient/node_exporter
 	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)
@@ -418,6 +419,7 @@ rpm: | dist
 	rm -f snclient-$(VERSION)/ca.key
 
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
+	sha256sum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
 	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)/node_exporter snclient-$(VERSION)/node_exporter
 	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)
