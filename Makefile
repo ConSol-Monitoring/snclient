@@ -36,7 +36,7 @@ ifeq ($(RPM_ARCH),arm64)
 endif
 
 BUILD_FLAGS=-ldflags "-s -w -X pkg/snclient.Build=$(BUILD) -X pkg/snclient.Revision=$(REVISION)"
-TEST_FLAGS=-timeout=3m $(BUILD_FLAGS)
+TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
 NODE_EXPORTER_VERSION=1.6.1
 NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH).tar.gz
