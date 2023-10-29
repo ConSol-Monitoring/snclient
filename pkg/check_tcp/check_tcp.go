@@ -179,6 +179,10 @@ func (opts *tcpOpts) run() *checkers.Checker {
 	if opts.UnixSock != "" {
 		proto = "unix"
 		addr = opts.UnixSock
+	} else {
+		if opts.Port == 0 {
+			return checkers.Unknown("port is required.")
+		}
 	}
 	timeout := time.Duration(opts.Timeout * float64(time.Second))
 	start := time.Now()
