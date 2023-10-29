@@ -1,8 +1,7 @@
 ---
+title: Compatibility
 linkTitle: Compatibility
 ---
-
-# Compatibility
 
 SNClient+ tries hard to be backwards compatible with the NSClient++, however there are a couple of things different. Some things which seemed useful and do no harm, others do not make sense anymore.
 

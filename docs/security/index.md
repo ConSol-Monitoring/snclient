@@ -1,8 +1,7 @@
 ---
+title: Security
 linkTitle: Security
 ---
-
-# Security
 
 ## General
 

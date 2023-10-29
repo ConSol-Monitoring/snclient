@@ -1,8 +1,7 @@
 ---
+title: Configuration Files
 linkTitle: Configuration
 ---
-
-# Configuration
 
 ## General
 

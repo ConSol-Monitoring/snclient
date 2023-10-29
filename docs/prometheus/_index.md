@@ -48,12 +48,12 @@ You can then scrape windows metrics from `http://<ip>:8443/node/metrics`.
 Managed exporters are exporters started and managed by SNClient+. They will get
 a unique assigned url in the main webserver of SNClient+.
 
-[Read more about managed exporters](managed.md).
+[Read more about managed exporters](managed).
 
 ## Exporter Exporter
 
 The exporter_exporter (expexp) is a reverse proxy for already existing exporters.
-[Read more about this exporter](exporter.md).
+[Read more about this exporter](exporter).
 
 The exporter exporter is for exporters not managed by SNClient+.
 

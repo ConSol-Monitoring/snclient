@@ -1,24 +1,23 @@
 ---
+title: Installation
 linkTitle: Installation
 ---
-
-# Installation
 
 ## Using Binary Packages
 
 Using packages is the recommended way to install SNClient+.
 
 ### Stable Releases
+
 Installation packages from stable releases can be found here:
 
-- https://github.com/ConSol-Monitoring/snclient/releases
+- [SNClient Releases Page](https://github.com/ConSol-Monitoring/snclient/releases)
 
 You might need to expand the assets to find the download links.
 ![Assets](download.png "Expand Assets")
 
-
-
 ### Development Snapshots
+
 During development each code commit produces build artifacts if all tests were
 successful.
 
@@ -27,30 +26,27 @@ to test something.
 
 Installing the development snapshot is straight forward:
 
-1. Open https://github.com/ConSol-Monitoring/snclient/actions/workflows/cicd.yml?query=branch%3Amain
+1. Open the [SNClient+ Github Actions](https://github.com/ConSol-Monitoring/snclient/actions/workflows/cicd.yml?query=branch%3Amain) page
 2. Choose first green build like in
-	![Actions](actions.png "Choose latest green build")
+   ![Actions](actions.png "Choose latest green build")
 3. Scroll down and choose the download which matches your architecture:
-	![Actions](action_download.png "Choose download")
+   ![Actions](action_download.png "Choose download")
 4. Install just like the stable release files.
-
 
 ## Building SNClient From Source
 
 Building snclient from source is covered in detail here: [Building from source](build)
 
-
 ## Firewall
 
-The windows .msi package will add the firewall exceptions automatically. If you changed
-the listener configuration, like ports or the enabled listeners, ex.: NRPE, Web
-you can update the firewall configuration with this command:
+The windows .msi package will add the firewall exceptions automatically. in
+case you need to re-install the firewall exception, you can run this command:
 
-	C:\Program Files\snclient> .\snclient.exe install firewall
+    C:\Program Files\snclient> .\snclient.exe install firewall
 
 If you don't need the exceptions anymore, there is an uninstall command as well:
 
-	C:\Program Files\snclient> .\snclient.exe uninstall firewall
+    C:\Program Files\snclient> .\snclient.exe uninstall firewall
 
 ## Advanced Windows Installation
 
@@ -66,7 +62,7 @@ as public property.
 
 ex.:
 
-	msiexec.exe /i snclient.msi /l*V snclient_installer.log /qn PASSWORD="test" INCLUDES="https://company.local/snclient_local.ini"
+    msiexec.exe /i snclient.msi /l*V snclient_installer.log /qn PASSWORD="test" INCLUDES="https://company.local/snclient_local.ini"
 
 Installs the .msi and logs everything into the snclient_installer.log logfile. It
 also sets the initial password and sets a ini file fetched by https.
