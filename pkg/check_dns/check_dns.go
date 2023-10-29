@@ -88,25 +88,19 @@ func (opts *dnsOpts) run() *checkers.Checker {
 		6: -e 3.3.3.3 -e 4.4.4.4 -e 5.5.5.5 -> CRITICAL
 	**/
 	if len(opts.ExpectedString) != 0 {
-		supportedQueryType := map[string]int{"A": 1, "AAAA": 1}
+		supportedQueryType := map[string]int{"A": 1, "AAAA": 1, "MX": 1, "CNAME": 1}
 		_, ok := supportedQueryType[strings.ToUpper(opts.QueryType)]
 		if !ok {
-			return checkers.Critical(fmt.Sprintf("%s is not supported query type. Only A, AAAA is supported for expectation.", opts.QueryType))
+			return checkers.Critical(fmt.Sprintf("%s is not supported query type. Only A, AAAA, MX, CNAME are supported query types.", opts.QueryType))
 		}
 		match := 0
 		for _, expectedString := range opts.ExpectedString {
 			for _, answer := range r.Answer {
-				var anserWithoutHeader string
-				expectMatch := expectedString
-				switch t := answer.(type) {
-				case *dns.A:
-					anserWithoutHeader = t.A.String()
-				case *dns.AAAA:
-					anserWithoutHeader = t.AAAA.String()
-				default:
-					return checkers.Critical(fmt.Sprintf("%s is not supported query type. Only A, AAAA is supported for expectation.", opts.QueryType))
+				anserWithoutHeader, _, err := dnsAnswer(answer)
+				if err != nil {
+					return checkers.Critical(err.Error())
 				}
-				if anserWithoutHeader == expectMatch {
+				if anserWithoutHeader == expectedString {
 					match += 1
 				}
 			}
@@ -130,10 +124,36 @@ func (opts *dnsOpts) run() *checkers.Checker {
 		checkSt = checkers.CRITICAL
 	}
 
-	msg := fmt.Sprintf("HEADER-> %s\n", r.MsgHdr.String())
+	msg := ""
+	if len(r.Answer) > 0 {
+		res, dnsType, err := dnsAnswer(r.Answer[0])
+		if err != nil {
+			msg = err.Error()
+		} else {
+			msg = fmt.Sprintf("%s returns %s (%s)\n", opts.Host, res, dnsType)
+		}
+	} else {
+		msg = fmt.Sprintf("%s (%s) returns no answer from %s\n", opts.Host, opts.QueryType, nameserver)
+	}
+	msg += fmt.Sprintf("HEADER-> %s\n", r.MsgHdr.String())
 	for _, answer := range r.Answer {
 		msg += fmt.Sprintf("ANSWER-> %s\n", answer)
 	}
 
 	return checkers.NewChecker(checkSt, msg)
+}
+
+func dnsAnswer(answer dns.RR) (string, string, error) {
+	switch t := answer.(type) {
+	case *dns.A:
+		return t.A.String(), "A", nil
+	case *dns.AAAA:
+		return t.AAAA.String(), "AAAA", nil
+	case *dns.MX:
+		return t.Mx, "MX", nil
+	case *dns.CNAME:
+		return t.Target, "CNAME", nil
+	default:
+		return "", "", fmt.Errorf("%T is not supported query type. Only A, AAAA, MX, CNAME is supported for expectation.", t)
+	}
 }
