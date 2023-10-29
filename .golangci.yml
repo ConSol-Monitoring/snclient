@@ -111,3 +111,6 @@ issues:
       linters:
         - dupword
         - funlen
+    - path: check_tcp\.go
+      linters:
+        - nolintlint

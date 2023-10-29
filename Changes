@@ -1,5 +1,8 @@
 This file documents the revision history for the SNClient+ agent.
 
+next:
+         - add built-in check_http / check_tcp
+
 0.11     Fri Oct 27 20:27:21 CEST 2023
          - support filter regex syntax: attr ~~ /value/
          - return error if using unknown check arguments

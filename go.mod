@@ -20,6 +20,8 @@ replace pkg/utils => ./pkg/utils
 
 replace pkg/wmi => ./pkg/wmi
 
+replace pkg/check_tcp => ./pkg/check_tcp
+
 // elastic/beats only works with its own fork of sarama
 replace github.com/Shopify/sarama => github.com/elastic/sarama v1.19.1-0.20220310193331-ebc2b0d8eef3
 
@@ -142,6 +144,7 @@ require (
 	github.com/lufeee/execinquery v1.2.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
 	github.com/macabu/inamedparam v0.1.2 // indirect
+	github.com/mackerelio/checkers v0.2.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/maratori/testableexamples v1.0.0 // indirect
 	github.com/maratori/testpackage v1.1.1 // indirect
@@ -163,6 +166,7 @@ require (
 	github.com/nishanths/predeclared v0.2.2 // indirect
 	github.com/nunnatsa/ginkgolinter v0.14.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/petermattis/goid v0.0.0-20230904192822-1876fd5063bc // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -259,6 +263,7 @@ require (
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
 	mvdan.cc/unparam v0.0.0-20230917202934-3ee2d22f45fb // indirect
+	pkg/check_tcp v0.0.0-00010101000000-000000000000 // indirect
 	pkg/convert v0.0.0-00010101000000-000000000000 // indirect
 	pkg/eventlog v0.0.0-00010101000000-000000000000 // indirect
 	pkg/humanize v0.0.0-00010101000000-000000000000 // indirect
