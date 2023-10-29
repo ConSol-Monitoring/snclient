@@ -111,6 +111,6 @@ issues:
       linters:
         - dupword
         - funlen
-    - path: check_tcp\.go
+    - path: (check_tcp|check_dns|nameserver.*)\.go
       linters:
         - nolintlint

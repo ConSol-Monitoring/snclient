@@ -20,6 +20,8 @@ replace pkg/utils => ./pkg/utils
 
 replace pkg/wmi => ./pkg/wmi
 
+replace pkg/check_dns => ./pkg/check_dns
+
 replace pkg/check_tcp => ./pkg/check_tcp
 
 // elastic/beats only works with its own fork of sarama
@@ -156,6 +158,7 @@ require (
 	github.com/mbilski/exhaustivestruct v1.2.0 // indirect
 	github.com/mgechev/revive v1.3.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
+	github.com/miekg/dns v1.1.56 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moricho/tparallel v0.3.1 // indirect
@@ -250,6 +253,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/image v0.13.0 // indirect
 	golang.org/x/mod v0.13.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sync v0.4.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
@@ -263,6 +267,7 @@ require (
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
 	mvdan.cc/unparam v0.0.0-20230917202934-3ee2d22f45fb // indirect
+	pkg/check_dns v0.0.0-00010101000000-000000000000 // indirect
 	pkg/check_tcp v0.0.0-00010101000000-000000000000 // indirect
 	pkg/convert v0.0.0-00010101000000-000000000000 // indirect
 	pkg/eventlog v0.0.0-00010101000000-000000000000 // indirect

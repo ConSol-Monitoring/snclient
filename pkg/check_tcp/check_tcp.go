@@ -33,6 +33,8 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 	return int(ckr.Status)
 }
 
+// adopted from https://raw.githubusercontent.com/mackerelio/go-check-plugins/master/check-tcp/lib/
+// Apache-2.0 license
 type tcpOpts struct {
 	Service  string `long:"service" description:"Service name. e.g. ftp, smtp, pop, imap and so on"`
 	Hostname string `short:"H" long:"hostname" description:"Host name or IP Address"`
