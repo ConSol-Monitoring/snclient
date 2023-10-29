@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 
@@ -18,7 +17,8 @@ import (
 func Check(ctx context.Context, output io.Writer, args []string) int {
 	opts, err := parseArgs(args)
 	if err != nil {
-		os.Exit(1)
+		fmt.Fprintf(output, err.Error())
+		return 2
 	}
 
 	ckr := opts.run()
