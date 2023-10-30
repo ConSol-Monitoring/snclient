@@ -29,6 +29,7 @@ replace github.com/Shopify/sarama => github.com/elastic/sarama v1.19.1-0.2022031
 
 require (
 	github.com/daixiang0/gci v0.11.2
+	github.com/florentsolt/colorgo v0.0.0-20190915162800-0863107568c6
 	github.com/golangci/golangci-lint v1.55.1
 	github.com/stretchr/testify v1.8.4
 	github.com/tc-hib/go-winres v0.3.1
@@ -209,6 +210,7 @@ require (
 	github.com/sivchari/tenv v1.7.1 // indirect
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231029180838-9bde49d5f2ed // indirect
 	github.com/sonatard/noctx v0.0.2 // indirect
+	github.com/songgao/go.pipeline v0.0.0-20220429045509-ad6449c973e2 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/sourcegraph/go-diff v0.7.0 // indirect
 	github.com/spf13/afero v1.10.0 // indirect

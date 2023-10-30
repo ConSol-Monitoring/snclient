@@ -47,54 +47,60 @@ WINDOWS_EXPORTER_FILE=windows_exporter-$(WINDOWS_EXPORTER_VERSION)
 WINDOWS_EXPORTER_URL=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION)/
 
 SED=sed -i
-GOBUILD=CGO_ENABLED=0 go build
-GOTEST=CGO_ENABLED=0 go test
+GO=go
+ifneq "$(wildcard ./tools/colorgo )" ""
+  GO=COLORGO_FILE=magenta colorgo
+endif
+GOBUILD=CGO_ENABLED=0 $(GO) build
+GOTEST=CGO_ENABLED=0 $(GO) test
 ifeq ($(shell uname),Darwin)
   SED=sed -i ""
   # cgo is required to retrieve cpu information
-  GOBUILD=go build
-  GOTEST=go test
+  GOBUILD=$(GO) build
+  GOTEST=$(GO) test
 endif
+
+ENTR=ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr
 
 all: build
 
 CMDS = $(shell cd ./cmd && ls -1)
 
 tools: | versioncheck vendor go.work
-	go mod download
+	$(GO) mod download
 	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }'); do \
-		go install $$DEP; \
+		$(GO) install $$DEP; \
 	done
-	go mod tidy
-	go mod vendor
+	$(GO) mod tidy
+	$(GO) mod vendor
 
 updatedeps: versioncheck
 	$(MAKE) clean
-	go mod download
+	$(GO) mod download
 	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }'); do \
-		go get $$DEP; \
+		$(GO) get $$DEP; \
 	done
-	go get -u ./...
-	go get -t -u ./...
+	$(GO) get -u ./...
+	$(GO) get -t -u ./...
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
-		( cd ./$$dir && go mod download ); \
-		( cd ./$$dir && go get -u ); \
-		( cd ./$$dir && go get -t -u ); \
-		( cd ./$$dir && go mod tidy ); \
+		( cd ./$$dir && $(GO) mod download ); \
+		( cd ./$$dir && $(GO) get -u ); \
+		( cd ./$$dir && $(GO) get -t -u ); \
+		( cd ./$$dir && $(GO) mod tidy ); \
 	done
-	go get -u ./buildtools/
-	go get -u ./t/
-	go mod tidy
+	$(GO) get -u ./buildtools/
+	$(GO) get -u ./t/
+	$(GO) mod tidy
 	rm -f pkg/*/go.sum
 
 vendor: go.work
-	go mod download
-	go mod tidy
-	go mod vendor
+	$(GO) mod download
+	$(GO) mod tidy
+	$(GO) mod vendor
 
 go.work: pkg/*
 	echo "go $(MINGOVERSIONSTR)" > go.work
-	go work use . pkg/* pkg/*/*/.
+	$(GO) work use . pkg/* pkg/*/*/.
 
 build: vendor go.work snclient.ini server.crt server.key
 	set -xe; for CMD in $(CMDS); do \
@@ -102,12 +108,16 @@ build: vendor go.work snclient.ini server.crt server.key
 	done
 
 # run build watch, ex. with tracing: make build-watch -- -vv -logfile stderr
-build-watch: vendor
-	ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"
+build-watch: vendor tools
+	$(ENTR) "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"
 
 # run build watch with other build targets, ex.: make build-watch-make -- build-windows-amd64
-build-watch-make: vendor
-	ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr "$(MAKE) $(filter-out $@,$(MAKECMDGOALS))"
+build-watch-make: vendor tools
+	$(ENTR) "$(MAKE) $(filter-out $@,$(MAKECMDGOALS))"
+
+# run build watch with any command, ex.: make build-watch-cmd -- "make build-windows-amd64 && cp snclient.exe ..."
+build-watch-cmd: vendor tools
+	$(ENTR) "$(filter-out $@,$(MAKECMDGOALS))"
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
@@ -224,16 +234,16 @@ benchmark:
 
 racetest:
 	# go: -race requires cgo, so do not use the macro here
-	go test -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/* pkg/*/cmd
+	$(GO) test -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/* pkg/*/cmd
 
 covertest:
 	$(GOTEST) -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
-	go tool cover -func=cover.out
-	go tool cover -html=cover.out -o coverage.html
+	$(GO) tool cover -func=cover.out
+	$(GO) tool cover -html=cover.out -o coverage.html
 
 coverweb:
 	$(GOTEST) -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
-	go tool cover -html=cover.out
+	$(GO) tool cover -html=cover.out
 
 clean:
 	set -e; for CMD in $(CMDS); do \
@@ -261,7 +271,7 @@ clean:
 	rm -rf cmd/snclient/rsrc_windows*.syso
 	rm -f node_exporter-*.tar.gz
 
-GOVET=go vet -all
+GOVET=$(GO) vet -all
 fmt: tools
 	set -e; for CMD in $(CMDS); do \
 		$(GOVET) ./cmd/$$CMD; \
