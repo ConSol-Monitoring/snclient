@@ -1,5 +1,5 @@
 ﻿---
-title: check_http
+title: check_tcp
 ---
 
 This builtin check command wraps the `check_tcp` plugin from https://github.com/taku-k/go-check-plugins/tree/master/check-tcp

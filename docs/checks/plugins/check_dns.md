@@ -1,5 +1,5 @@
 ﻿---
-title: check_http
+title: check_dns
 ---
 
 This builtin check command wraps the `check_dns` plugin from https://github.com/mackerelio/go-check-plugins/tree/master/check-dns
