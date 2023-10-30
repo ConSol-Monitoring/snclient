@@ -61,15 +61,15 @@ func (l *CheckDrivesize) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		args: map[string]interface{}{
-			"drive":             &l.drives,
-			"exclude":           &l.excludes,
-			"total":             &l.total,
-			"magic":             &l.magic,
-			"mounted":           &l.mounted,          // deprecated and unused, but should not result in unknown argument
-			"ignore-unreadable": &l.ignoreUnreadable, // same
+		args: map[string]CheckArgument{
+			"drive":   {value: &l.drives, isFilter: true, description: "The drives to check"},
+			"exclude": {value: &l.excludes, description: "List of drives to exclude from check"},
+			"total":   {value: &l.total, description: "Include the total of all matching drives"},
+			"magic": {value: &l.magic, description: "Magic number for use with scaling drive sizes. " +
+				"Note there is also a more generic magic factor in the perf-config option."},
+			"mounted":           {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
+			"ignore-unreadable": {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
 		},
-		argsFilter:      []string{"drive"},
 		defaultFilter:   "( mounted = 1  or media_type = 0 )",
 		defaultWarning:  "used > 80",
 		defaultCritical: "used > 90",

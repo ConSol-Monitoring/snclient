@@ -32,11 +32,11 @@ func (l *CheckNetwork) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		args: map[string]interface{}{
-			"dev":     &l.names,
-			"device":  &l.names,
-			"name":    &l.names,
-			"exclude": &l.excludes,
+		args: map[string]CheckArgument{
+			"dev":     {value: &l.names, description: "Alias for device"},
+			"device":  {value: &l.names, description: "The device to check. Default is all"},
+			"name":    {value: &l.names, description: "Alias for device"},
+			"exclude": {value: &l.excludes, description: "Exclude device by name"},
 		},
 		okSyntax:     "%(status): %(list)",
 		detailSyntax: "%(name) >%(sent) <%(received) bps",

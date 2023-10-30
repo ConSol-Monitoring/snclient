@@ -43,13 +43,13 @@ func (l *CheckFiles) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		args: map[string]interface{}{
-			"path":      &l.paths,
-			"file":      &l.paths,
-			"paths":     &l.pathList,
-			"pattern":   &l.pattern,
-			"max-depth": &l.maxDepth,
-			"timezone":  &l.timeZoneStr,
+		args: map[string]CheckArgument{
+			"path":      {value: &l.paths, description: "Path in which to search for files"},
+			"file":      {value: &l.paths, description: "Alias for path"},
+			"paths":     {value: &l.pathList, description: "A comma separated list of paths"},
+			"pattern":   {value: &l.pattern, description: "Pattern of files to search for"},
+			"max-depth": {value: &l.maxDepth, description: "Maximum recursion depth"},
+			"timezone":  {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
 		},
 		detailSyntax: "%(name)",
 		okSyntax:     "%(status): All %(count) files are ok",

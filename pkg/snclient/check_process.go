@@ -35,9 +35,9 @@ func (l *CheckProcess) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		args: map[string]interface{}{
-			"process":  &l.processes,
-			"timezone": &l.timeZoneStr,
+		args: map[string]CheckArgument{
+			"process":  {value: &l.processes, description: "The process to check, set to * to check all. Default: *"},
+			"timezone": {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
 		},
 		okSyntax:     "%(status): all processes are ok.",
 		detailSyntax: "${exe}=${state}",

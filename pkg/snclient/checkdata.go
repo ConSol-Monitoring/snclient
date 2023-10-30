@@ -3,6 +3,7 @@ package snclient
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -32,6 +33,12 @@ const (
 
 type CommaStringList []string
 
+type CheckArgument struct {
+	value       interface{} // reference to storage pointer
+	description string      // used in help
+	isFilter    bool        // if true, default filter is not used when this argument is set
+}
+
 // CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
 	noCopy          noCopy
@@ -40,10 +47,9 @@ type CheckData struct {
 	debug           string
 	defaultFilter   string
 	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
-	args            map[string]interface{}
+	args            map[string]CheckArgument
 	argsPassthrough bool // allow arbitrary arguments without complaining about unknown argument
 	rawArgs         []string
-	argsFilter      []string     // argsFilter set a list of arg attributes which (if set) will prevent using the default filter
 	filter          []*Condition // if set, only show entries matching this filter set
 	warnThreshold   []*Condition
 	defaultWarning  string
@@ -358,7 +364,7 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		}
 		keyword := cd.removeQuotes(split[0])
 		argValue := cd.removeQuotes(split[1])
-		if slices.Contains(cd.argsFilter, keyword) {
+		if a, ok := cd.args[keyword]; ok && a.isFilter {
 			applyDefaultFilter = false
 		}
 		switch keyword {
@@ -467,7 +473,7 @@ func (cd *CheckData) parseAnyArg(appendArgs map[string]bool, argExpr, keyword, a
 		return false, nil
 	}
 
-	switch argRef := arg.(type) {
+	switch argRef := arg.value.(type) {
 	case *[]string:
 		if _, ok := appendArgs[keyword]; !ok {
 			// first time this arg occurs, empty default lists
@@ -790,5 +796,44 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 }
 
 func (cd *CheckData) Help() string {
-	return fmt.Sprintf("check:\n\n  %s\n\nusage:\n\n  %s [<options>] [<filter>]\n\ndescription:\n\n  %s", cd.name, cd.name, cd.description)
+	out := ""
+	out += fmt.Sprintf("## Check\n\n%s\n\n", cd.name)
+	out += fmt.Sprintf("## Usage\n\n%s [<options>] [<filter>]\n\n", cd.name)
+	out += fmt.Sprintf("## Description\n\n%s\n\n", cd.description)
+
+	out += "## Argument Defaults\n\n"
+	out += "| Argument      | Default Value        |\n| ------------- | -------------------- |\n"
+	if cd.defaultFilter != "" {
+		out += fmt.Sprintf("%-15s | %-20s | \n", "filter", cd.defaultFilter)
+	}
+	if cd.defaultWarning != "" {
+		out += fmt.Sprintf("%-15s | %-20s |\n", "warning", cd.defaultWarning)
+	}
+	if cd.defaultCritical != "" {
+		out += fmt.Sprintf("%-15s | %-20s |\n", "critical", cd.defaultCritical)
+	}
+	out += fmt.Sprintf("%-15s | %-20s |\n", "empty-state", fmt.Sprintf("%d (%s)", cd.emptyState, convert.StateString(cd.emptyState)))
+	out += fmt.Sprintf("%-15s | %-20s |\n", "empty-syntax", cd.emptySyntax)
+	out += fmt.Sprintf("%-15s | %-20s |\n", "top-syntax", cd.topSyntax)
+	out += fmt.Sprintf("%-15s | %-20s |\n", "ok-syntax", cd.okSyntax)
+	out += fmt.Sprintf("%-15s | %-20s |\n", "detail-syntax", cd.detailSyntax)
+	out += "\n"
+
+	if cd.args != nil && len(cd.args) > 0 {
+		out += "## Check Specific Arguments\n\n"
+		out += "| Argument      | Description          |\n| ------------- | -------------------- |\n"
+		keys := []string{}
+		for k := range cd.args {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			a := cd.args[k]
+			out += fmt.Sprintf("%-15s | %-20s |\n", k, a.description)
+		}
+	}
+
+	out = strings.TrimSpace(out)
+
+	return out
 }

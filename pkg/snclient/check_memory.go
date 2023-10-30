@@ -28,8 +28,8 @@ func (l *CheckMemory) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		args: map[string]interface{}{
-			"type": &l.memType,
+		args: map[string]CheckArgument{
+			"type": {value: &l.memType, description: "Type of memory to check. Default: committed,physical"},
 		},
 		defaultWarning:  "used > 80%",
 		defaultCritical: "used > 90%",

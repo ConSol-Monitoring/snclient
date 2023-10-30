@@ -30,12 +30,12 @@ func (l *CheckWMI) Build() *CheckData {
 	return &CheckData{
 		name:        "check_wmi",
 		description: "Check status and metrics by running wmi queries.",
-		args: map[string]interface{}{
-			"query":     &l.query,
-			"target":    &l.target,
-			"namespace": &l.namespace,
-			"user":      &l.user,
-			"password":  &l.password,
+		args: map[string]CheckArgument{
+			"query":     {value: &l.query, description: "The WMI query to execute"},
+			"target":    {value: &l.target, description: "Unused and not supported for now"},
+			"namespace": {value: &l.namespace, description: "Unused and not supported for now"},
+			"user":      {value: &l.user, description: "Unused and not supported for now"},
+			"password":  {value: &l.password, description: "Unused and not supported for now"},
 		},
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -49,14 +49,6 @@ func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Ar
 	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckWMI")
 	if !enabled {
 		return nil, fmt.Errorf("module CheckWMI is not enabled in /modules section")
-	}
-
-	for _, k := range []string{"target", "user", "password", "namespace"} {
-		if check.args[k] != nil {
-			if str, ok := check.args[k].(*string); !ok || *str != "" {
-				return nil, fmt.Errorf("CheckWMI: '%s' attribute is not supported", k)
-			}
-		}
 	}
 
 	if l.query == "" {

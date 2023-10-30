@@ -36,8 +36,8 @@ func (l *CheckProcess) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		args: map[string]interface{}{
-			"process": &l.processes,
+		args: map[string]CheckArgument{
+			"process": {value: &l.processes, description: "The process to check, set to * to check all. Default: *"},
 		},
 		detailSyntax: "${exe}=${state}",
 		topSyntax:    "%(status): %(problem_list)",

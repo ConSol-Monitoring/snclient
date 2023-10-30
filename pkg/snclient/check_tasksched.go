@@ -27,8 +27,8 @@ func (l *CheckTasksched) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		args: map[string]interface{}{
-			"timezone": &l.timeZoneStr,
+		args: map[string]CheckArgument{
+			"timezone": {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
 		},
 		defaultFilter:   "enabled = true",
 		defaultCritical: "exit_code < 0",

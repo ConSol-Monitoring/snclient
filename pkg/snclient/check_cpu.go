@@ -25,8 +25,8 @@ func (l *CheckCPU) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		args: map[string]interface{}{
-			"time": &l.times,
+		args: map[string]CheckArgument{
+			"time": {value: &l.times, description: "The times to check, default: 5m,1m,5s"},
 		},
 		defaultFilter:   "core = 'total'",
 		defaultWarning:  "load > 80",

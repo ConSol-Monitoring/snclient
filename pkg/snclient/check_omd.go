@@ -33,10 +33,9 @@ func (l *CheckOMD) Build() *CheckData {
 		name:         "check_omd",
 		description:  "Check omd site status.",
 		hasInventory: ListInventory,
-		args: map[string]interface{}{
-			"site": &l.siteFilter,
+		args: map[string]CheckArgument{
+			"site": {value: &l.siteFilter, isFilter: true, description: "Show this site only"},
 		},
-		argsFilter: []string{"site"},
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

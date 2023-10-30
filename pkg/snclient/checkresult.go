@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"convert"
 	"pkg/utils"
 )
 
@@ -77,16 +78,7 @@ func (cr *CheckResult) ApplyPerfConfig(perfCfg []PerfConfig) error {
 }
 
 func (cr *CheckResult) StateString() string {
-	switch cr.State {
-	case 0:
-		return "OK"
-	case 1:
-		return "WARNING"
-	case 2:
-		return "CRITICAL"
-	}
-
-	return "UNKNOWN"
+	return convert.StateString(cr.State)
 }
 
 func (cr *CheckResult) EscalateStatus(state int64) {

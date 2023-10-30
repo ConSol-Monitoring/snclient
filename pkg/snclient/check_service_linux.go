@@ -44,9 +44,9 @@ func (l *CheckService) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		args: map[string]interface{}{
-			"service": &l.services,
-			"exclude": &l.excludes,
+		args: map[string]CheckArgument{
+			"service": {value: &l.services, description: "Name of the service to check (set to * to check all services). Default: *"},
+			"exclude": {value: &l.excludes, description: "List of services to exclude from the check (mainly used when service is set to *)"},
 		},
 		defaultFilter:   "none",
 		defaultCritical: "state not in ('running', 'oneshot', 'static') && preset != 'disabled'",
