@@ -3,8 +3,13 @@ title: SNClient+
 linkTitle: SNClient+
 weight: 300
 tags:
-  - windows
   - nsclient
+  - snclient
+  - naemon
+  - promtheus
+  - windows
+  - linux
+  - osx
 ---
 
 SNClient+ is a (drop-in for most use cases) replacement for the well-known
