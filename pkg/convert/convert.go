@@ -48,9 +48,9 @@ func BoolE(raw interface{}) (bool, error) {
 		return val, nil
 	default:
 		switch strings.ToLower(fmt.Sprintf("%v", raw)) {
-		case "1", "enable", "enabled", "true", "yes":
+		case "1", "enable", "enabled", "true", "yes", "on":
 			return true, nil
-		case "0", "disable", "disabled", "false", "no":
+		case "0", "disable", "disabled", "false", "no", "off":
 			return false, nil
 		}
 	}
@@ -86,4 +86,18 @@ func Num2StringE(raw interface{}) (string, error) {
 
 		return Num2StringE(fNum)
 	}
+}
+
+// StateString returns the string corresponding to a monitoring plugin exit code
+func StateString(state int64) string {
+	switch state {
+	case 0:
+		return "OK"
+	case 1:
+		return "WARNING"
+	case 2:
+		return "CRITICAL"
+	}
+
+	return "UNKNOWN"
 }
