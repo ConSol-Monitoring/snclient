@@ -69,9 +69,19 @@ func (l *CheckService) Build() *CheckData {
 	}
 }
 
+// MgrConnectReadOnly establishes a read-only connection to the 
+// local service control manager.
+func MgrConnectReadOnly() (*mgr.Mgr, error) { 
+	h, err := windows.OpenSCManager(nil, nil, windows.GENERIC_READ) 
+	if err != nil { 
+		return nil, err 
+	} 
+	return &mgr.Mgr{Handle: h}, nil 
+} 
+
 func (l *CheckService) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	// collect service state
-	ctrlMgr, err := mgr.Connect()
+	ctrlMgr, err := MgrConnectReadOnly()
 	if err != nil {
 		return &CheckResult{
 			State:  int64(3),
