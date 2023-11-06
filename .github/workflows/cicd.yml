@@ -2,10 +2,7 @@ name: Test, Build, Package, Release
 
 on:
   push:
-    branches:
-      - "*"
-    tags:
-      - "*"
+  pull_request:
 
 # set go version for all steps
 env:
