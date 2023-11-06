@@ -47,7 +47,7 @@ require (
 	github.com/Abirdcfly/dupword v0.0.13 // indirect
 	github.com/Antonboom/errname v0.1.12 // indirect
 	github.com/Antonboom/nilnil v0.1.7 // indirect
-	github.com/Antonboom/testifylint v0.2.3 // indirect
+	github.com/Antonboom/testifylint v1.0.1 // indirect
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/DataDog/zstd v1.5.5 // indirect
 	github.com/Djarvur/go-err113 v0.0.0-20210108212216-aea10b59be24 // indirect
@@ -85,8 +85,8 @@ require (
 	github.com/elastic/go-ucfg v0.8.6 // indirect
 	github.com/elastic/go-windows v1.0.1 // indirect
 	github.com/esimonov/ifshort v1.0.4 // indirect
-	github.com/ettle/strcase v0.1.1 // indirect
-	github.com/fatih/color v1.15.0 // indirect
+	github.com/ettle/strcase v0.2.0 // indirect
+	github.com/fatih/color v1.16.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/firefart/nonamedreturns v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -115,7 +115,7 @@ require (
 	github.com/golangci/revgrep v0.5.2 // indirect
 	github.com/golangci/unconvert v0.0.0-20180507085042-28b1c447d1f4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/gordonklaus/ineffassign v0.0.0-20230610083614-0e73809eb601 // indirect
+	github.com/gordonklaus/ineffassign v0.1.0 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
 	github.com/gostaticanalysis/comment v1.4.2 // indirect
 	github.com/gostaticanalysis/forcetypeassert v0.1.0 // indirect
@@ -215,7 +215,7 @@ require (
 	github.com/sourcegraph/go-diff v0.7.0 // indirect
 	github.com/spf13/afero v1.10.0 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
-	github.com/spf13/cobra v1.7.0 // indirect
+	github.com/spf13/cobra v1.8.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.17.0 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
@@ -245,7 +245,7 @@ require (
 	github.com/ykadowak/zerologlint v0.1.3 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	gitlab.com/bosi/decorder v0.4.1 // indirect
-	go-simpler.org/sloglint v0.2.0 // indirect
+	go-simpler.org/sloglint v0.3.0 // indirect
 	go.elastic.co/ecszap v1.0.2 // indirect
 	go.tmz.dev/musttag v0.7.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
@@ -254,12 +254,12 @@ require (
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/exp/typeparams v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/image v0.13.0 // indirect
-	golang.org/x/mod v0.13.0 // indirect
+	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sync v0.4.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/sync v0.5.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

@@ -6,7 +6,7 @@ require (
 	github.com/elastic/beats/v7 v7.17.14
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/pkg/errors v0.9.1
-	golang.org/x/sys v0.13.0
+	golang.org/x/sys v0.14.0
 )
 
 require (
