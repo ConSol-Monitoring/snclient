@@ -74,8 +74,9 @@ func (l *CheckService) Build() *CheckData {
 func MgrConnectReadOnly() (*mgr.Mgr, error) {
 	h, err := windows.OpenSCManager(nil, nil, windows.GENERIC_READ)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("windows.OpenSCManager: %s", err.Error())
 	}
+
 	return &mgr.Mgr{Handle: h}, nil
 }
 
