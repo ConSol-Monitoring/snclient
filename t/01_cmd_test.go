@@ -29,7 +29,7 @@ func TestCommandFlags(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: []string{"run", "check_dummy", "help"},
-		Like: []string{"check_dummy", "usage"},
+		Like: []string{"check_dummy", "Usage"},
 		Exit: 3,
 	})
 
