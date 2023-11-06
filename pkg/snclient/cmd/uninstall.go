@@ -30,12 +30,17 @@ func init() {
 
 			snc.Log.Infof("uninstaller: stop")
 			if hasService(WINSERVICE) {
-				err := stopService("snclient")
+				err := stopService(WINSERVICE)
 				if err != nil {
 					snc.Log.Errorf("failed to stops service: %s", err.Error())
 				}
 			}
 			snc.Log.Infof("stop completed")
+
+			err := removeService(WINSERVICE)
+			if err != nil {
+				snc.Log.Errorf("failed to remove service: %s", err.Error())
+			}
 
 			os.Exit(0)
 		},

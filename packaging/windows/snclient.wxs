@@ -11,6 +11,7 @@
         <Package InstallScope="perMachine" InstallerVersion="200" Compressed="yes" />
         <MajorUpgrade AllowDowngrades="yes" />
         <Property Id="REBOOT" Value="ReallySuppress" />
+        <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
         <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
         <Property Id="WEBSERVER" Value="1" />
         <Property Id="WEBSERVERPORT" Value="8443" />
@@ -31,8 +32,6 @@
                 <Directory Id="INSTALLDIR" Name="snclient">
                     <Component Id="MainExecutable" Guid="B74E8F62-9C75-4C20-8128-3E5CBA81D6D9" Win64="$(var.Win64)">
                         <File Id="SNClientExe" Name="snclient.exe" DiskId="1" Source="windist\snclient.exe" KeyPath="yes" />
-                        <ServiceInstall Description="SNClient+ (Secure Naemon Client) is a general purpose monitoring agent." ErrorControl="ignore" Arguments="winservice" Name="snclient" Id="SNClientService" Interactive="no" Start="auto" Type="ownProcess" Vital="no"></ServiceInstall>
-                        <ServiceControl Id="StartSNClientService" Name="snclient" Stop="both" Remove="uninstall" Wait="yes" />
                     </Component>
                     <Component Id="SampleCaCertificate" Guid="5754CA78-7BEF-44B2-A01B-9C156E7C859B" NeverOverwrite="yes" Permanent="yes">
                         <File Id="cacertPem" Name="cacert.pem" DiskId="1" Source="windist\cacert.pem" KeyPath="yes" />
@@ -87,12 +86,15 @@
             <ComponentRef Id="WindowsExporter" />
             <ComponentRef Id="TmpIni" />
         </Feature>
+        <SetProperty Id="CustomPreUpdateAction" Sequence="execute" Before="CustomPreUpdateAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; install pre &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED];&quot;" />
+        <CustomAction Id="CustomPreUpdateAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <SetProperty Id="CustomInstallerAction" Sequence="execute" Before="CustomInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; install pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED];&quot;" />
         <CustomAction Id="CustomInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
-        <SetProperty Id="CustomUnInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; uninstall pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]&quot;" Sequence="execute" Before="CustomUnInstallerAction" />
+        <SetProperty Id="CustomUnInstallerAction" Sequence="execute" Before="CustomUnInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; uninstall pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]&quot;" />
         <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <InstallExecuteSequence>
-            <Custom Action="CustomUnInstallerAction" Before="RemoveFiles">REMOVE="ALL"</Custom>
+            <Custom Action="CustomPreUpdateAction" After="InstallInitialize"></Custom>
+            <Custom Action="CustomUnInstallerAction" Before="RemoveFiles"><![CDATA[REMOVE ~= "ALL" AND (NOT UPGRADINGPRODUCTCODE)]]></Custom>
             <Custom Action="CustomInstallerAction" Before="InstallFinalize"></Custom>
         </InstallExecuteSequence>
     </Product>

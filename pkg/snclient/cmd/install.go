@@ -52,7 +52,6 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 		Hidden: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
-			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
 
 			installConfig := parseInstallerArgs(args)
@@ -67,10 +66,22 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 			// reload config
 			snc.Init()
 
-			if hasService(WINSERVICE) && serviceEnabled(WINSERVICE) {
-				err := restartService(WINSERVICE)
+			if hasService(WINSERVICE) {
+				if serviceEnabled(WINSERVICE) {
+					err := restartService(WINSERVICE)
+					if err != nil {
+						snc.Log.Errorf("failed to (re)start service: %s", err.Error())
+					}
+				}
+			} else {
+				err := installService(WINSERVICE)
 				if err != nil {
-					snc.Log.Errorf("failed to (re)start service: %s", err.Error())
+					snc.Log.Errorf("failed to install service: %s", err.Error())
+				}
+
+				err = startService(WINSERVICE)
+				if err != nil {
+					snc.Log.Errorf("failed to start service: %s", err.Error())
 				}
 			}
 
@@ -79,6 +90,29 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 				snc.Log.Errorf("failed to add firewall: %s", err.Error())
 			}
 			snc.Log.Infof("installer finished successfully")
+			os.Exit(0)
+		},
+	})
+
+	// install pre
+	installCmd.AddCommand(&cobra.Command{
+		Use:    "pre [args]",
+		Short:  "called from the msi installer, stop services",
+		Hidden: true,
+		Run: func(cmd *cobra.Command, args []string) {
+			agentFlags.Mode = snclient.ModeOneShot
+			snc := snclient.NewAgent(agentFlags)
+
+			installConfig := parseInstallerArgs(args)
+			snc.Log.Infof("starting pre script: %#v", installConfig)
+
+			if hasService(WINSERVICE) {
+				err := stopService(WINSERVICE)
+				if err != nil {
+					snc.Log.Infof("failed to stop service: %s", err.Error())
+				}
+			}
+			snc.Log.Infof("pre script finished successfully")
 			os.Exit(0)
 		},
 	})
@@ -240,6 +274,34 @@ func restartService(name string) error {
 		return err
 	}
 	return startService(name)
+}
+
+func installService(name string) error {
+	if hasService(name) {
+		return nil
+	}
+	svcMgr, err := mgr.Connect()
+	if err != nil {
+		return err
+	}
+	defer svcMgr.Disconnect()
+
+	_, _, execPath, err := utils.GetExecutablePath()
+	_, err = svcMgr.CreateService(
+		name,
+		execPath,
+		mgr.Config{
+			StartType:        windows.SERVICE_AUTO_START,
+			DelayedAutoStart: true,
+			Description:      "SNClient+ (Secure Naemon Client) is a general purpose monitoring agent.",
+			SidType:          windows.SERVICE_SID_TYPE_UNRESTRICTED,
+		},
+		"winservice",
+	)
+	if err != nil {
+		return fmt.Errorf("windows.CreateService: %s", err.Error())
+	}
+	return nil
 }
 
 func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {

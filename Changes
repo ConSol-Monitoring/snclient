@@ -3,6 +3,8 @@ This file documents the revision history for the SNClient+ agent.
 next:
          - add built-in check_http / check_tcp / check_dns
          - add check_omd check
+         - msi windows installer:
+           - do not change windows service during updates
 
 0.11     Fri Oct 27 20:27:21 CEST 2023
          - support filter regex syntax: attr ~~ /value/
