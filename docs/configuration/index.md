@@ -42,7 +42,7 @@ The location for a custom file would be: `C:\Program Files\snclient\snclient_loc
 
 The location for a custom file would be: `/etc/snclient/snclient_local.ini`
 
-## Inheritence
+## Inheritance
 
 The configuration is splitted into multiple sections, but in order to
 avoid having duplicate password or allowed hosts entries, inheritance can
