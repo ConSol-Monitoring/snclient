@@ -570,6 +570,7 @@ func (snc *Agent) Version() string {
 	if Revision != "" {
 		return fmt.Sprintf("v%s.%s", VERSION, Revision)
 	}
+
 	return fmt.Sprintf("v%s", VERSION)
 }
 
