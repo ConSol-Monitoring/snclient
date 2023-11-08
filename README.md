@@ -66,7 +66,6 @@ Find a brief overview of what is planned and what is done already:
 - [X] support NRPE clients
 - [X] support NSCP rest api clients
 - [X] support basic Prometheus metrics
-- [ ] finish builtin checks
 - [X] implement reading nsclient.ini files
 - [X] implement ssl/tls support
 - [X] implement authenticaton / authorization
@@ -83,25 +82,23 @@ Find a brief overview of what is planned and what is done already:
 - [X] implement log rotation for file logger
 - [X] self update (from configurable url)
 - [X] implement perf-config
+- [ ] finish builtin checks
 - [ ] implement help with examples and filters
 - [ ] review check plugin status
 
 ### Stage 2
 
-- [ ] add basic prometheus exporters
+- [X] add basic prometheus exporters
   - [X] exporter_exporter
-  - [ ] windows_exporter
-  - [ ] node_exporter
+  - [X] windows_exporter
+  - [X] node_exporter
   - [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
 - [X] add config include folder
 
 ### Stage 3
 
-- [ ] add basic prometheus exporters
 - [X] self update from github
-
-### Miscellaneous
-
+- [ ] open telemetry
 - [ ] check usr signal handler
 - [ ] improve configuration
   - [ ] add config validator
