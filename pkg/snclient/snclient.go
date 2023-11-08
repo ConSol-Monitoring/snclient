@@ -567,7 +567,10 @@ func (snc *Agent) deletePidFile() {
 
 // Version returns version including Revision number
 func (snc *Agent) Version() string {
-	return fmt.Sprintf("v%s.%s", VERSION, Revision)
+	if Revision != "" {
+		return fmt.Sprintf("v%s.%s", VERSION, Revision)
+	}
+	return fmt.Sprintf("v%s", VERSION)
 }
 
 // PrintVersion prints the version.
