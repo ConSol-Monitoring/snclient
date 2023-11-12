@@ -325,3 +325,7 @@ func QuotePathWithSpaces(path string) string {
 
 	return strings.Join(quotedComponents, `/`)
 }
+
+func setCmdUser(_ *exec.Cmd, _ string) error {
+	return fmt.Errorf("droping privileges is not supported on windows")
+}

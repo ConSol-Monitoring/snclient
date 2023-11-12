@@ -4,15 +4,18 @@ package snclient
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
 	"runtime"
 	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
 
+	"pkg/convert"
 	"pkg/utils"
 )
 
@@ -119,4 +122,29 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 	}
 
 	return cmd, nil
+}
+
+func setCmdUser(cmd *exec.Cmd, username string) error {
+	usr, err := user.Lookup(username)
+	if err != nil {
+		return fmt.Errorf("user.lookup: %s: %s", username, err.Error())
+	}
+
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+
+	uid, err := convert.Float64E(usr.Uid)
+	if err != nil {
+		return fmt.Errorf("cannot convert uid to number for user %s (uid:%s): %s", username, usr.Uid, err.Error())
+	}
+
+	gid, err := convert.Float64E(usr.Gid)
+	if err != nil {
+		return fmt.Errorf("cannot convert gid to number for user %s (gid:%s): %s", username, usr.Gid, err.Error())
+	}
+
+	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}
+
+	return nil
 }

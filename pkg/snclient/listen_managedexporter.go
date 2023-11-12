@@ -27,6 +27,7 @@ type HandlerManagedExporter struct {
 	agentAddress   string
 	agentMaxMem    uint64
 	agentExtraArgs string
+	agentUser      string
 	cmd            *exec.Cmd
 	pid            int
 	snc            *Agent
@@ -127,6 +128,10 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 		l.agentAddress = agentAddress
 	}
 
+	if agentUser, ok := conf.GetString("agent user"); ok {
+		l.agentUser = agentUser
+	}
+
 	uri, err := url.Parse("http://" + l.agentAddress + "/metrics")
 	if err != nil {
 		return fmt.Errorf("cannot parse agent url: %s", err.Error())
@@ -163,6 +168,16 @@ func (l *HandlerManagedExporter) procMainLoop() {
 			args = append(args, extra)
 		}
 		cmd := exec.Command(l.agentPath, args...) //nolint:gosec // input source is the config file
+
+		if l.agentUser != "" {
+			if err := setCmdUser(cmd, l.agentUser); err != nil {
+				err = fmt.Errorf("failed to drop privileges for %s agent: %s", l.Type(), err.Error())
+				log.Errorf("agent startup error: %s", err)
+
+				return
+			}
+		}
+
 		log.Debugf("starting %s agent: %s", l.Type(), cmd.Path)
 		l.snc.passthroughLogs("stdout", "["+l.Type()+"] ", log.Debugf, cmd.StdoutPipe)
 		l.snc.passthroughLogs("stderr", "["+l.Type()+"] ", l.logPass, cmd.StderrPipe)

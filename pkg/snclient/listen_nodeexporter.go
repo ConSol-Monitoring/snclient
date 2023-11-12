@@ -9,6 +9,7 @@ func NewHandlerNodeExporter() Module {
 		name:           "nodeexporter",
 		urlPrefix:      "/node",
 		agentExtraArgs: "--web.listen-address=${agent address}",
+		agentUser:      "nobody",
 	}
 
 	return mod
