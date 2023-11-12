@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -145,12 +146,18 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 		details["failed_services"] = strings.Join(failed, ", ")
 		details["failed_services_txt"] = ", failed services: " + details["failed_services"]
 	}
-	l.addMetrics(ctx, check, site)
+	l.addLivestatusMetrics(ctx, check, site)
 }
 
-func (l *CheckOMD) addMetrics(ctx context.Context, check *CheckData, site string) {
+func (l *CheckOMD) addLivestatusMetrics(ctx context.Context, check *CheckData, site string) {
+	socketPath := fmt.Sprintf("/omd/sites/%s/tmp/run/live", site)
+	if _, err := os.Stat(socketPath); os.IsNotExist(err) {
+		log.Debugf("livestatus socket %s does not exist: %s", socketPath, err.Error())
+
+		return
+	}
 	query := "GET status\nColumns: host_checks_rate service_checks_rate num_hosts num_services\n"
-	data, err := l.livestatusQuery(ctx, query, fmt.Sprintf("/omd/sites/%s/tmp/run/live", site))
+	data, err := l.livestatusQuery(ctx, query, socketPath)
 	if err != nil {
 		log.Warnf("livestatus query for site %s failed: %s", site, err.Error())
 
