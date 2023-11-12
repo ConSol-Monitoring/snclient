@@ -95,19 +95,15 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 	}
 	check.listData = append(check.listData, details)
 
-	autostartRaw, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("omd config %s show AUTOSTART", site), defaultOMDCommandTimeout)
-	if err != nil {
-		details["_error"] = err.Error()
+	// check requires root permission
+	if os.Geteuid() != 0 {
+		details["_error"] = "check_omd requires root permissions"
 
 		return
 	}
-	if stderr != "" {
-		details["_error"] = stderr
 
+	if !l.setAutostart(ctx, site, details) {
 		return
-	}
-	if convert.Bool(autostartRaw) {
-		details["autostart"] = "1"
 	}
 
 	statusRaw, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("omd -b status %s", site), defaultOMDCommandTimeout)
@@ -262,4 +258,23 @@ func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string
 	}
 
 	return data, nil
+}
+
+func (l *CheckOMD) setAutostart(ctx context.Context, site string, details map[string]string) bool {
+	autostartRaw, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("omd config %s show AUTOSTART", site), defaultOMDCommandTimeout)
+	if err != nil {
+		details["_error"] = err.Error()
+
+		return false
+	}
+	if stderr != "" {
+		details["_error"] = stderr
+
+		return false
+	}
+	if convert.Bool(autostartRaw) {
+		details["autostart"] = "1"
+	}
+
+	return true
 }
