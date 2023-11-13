@@ -177,7 +177,7 @@ test: vendor
 
 # test with filter
 testf: vendor
-	$(GOTEST) -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS" | grep -v "^FAIL"
+	$(GOTEST) -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS"
 
 longtest: vendor
 	$(GOTEST) -v $(TEST_FLAGS) pkg/* pkg/*/cmd
