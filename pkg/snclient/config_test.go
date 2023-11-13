@@ -328,3 +328,12 @@ func TestConfigRelativeIncludes(t *testing.T) {
 	ces, _ := modules.GetString("CheckExternalScripts")
 	assert.Equalf(t, "enabled", ces, "got CheckExternalScripts")
 }
+
+func TestEmptyConfig(t *testing.T) {
+	configText := `; INI
+`
+	cfg := NewConfig(true)
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
+
+	require.NoErrorf(t, err, "empty ini parsed")
+}

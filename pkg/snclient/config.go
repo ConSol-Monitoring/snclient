@@ -256,6 +256,9 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 	}
 
 	if len(currentComments) > 0 {
+		if currentSection == nil {
+			currentSection = config.Section("")
+		}
 		currentSection.comments["_END"] = currentComments
 	}
 
