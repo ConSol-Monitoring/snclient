@@ -49,6 +49,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 		"fusectl",
 		"hugetlbfs",
 		"mqueue",
+		"nfsd",
 		"proc",
 		"pstorefs",
 		"ramfs",
