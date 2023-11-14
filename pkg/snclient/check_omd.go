@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"pkg/convert"
+
+	"golang.org/x/exp/slices"
 )
 
 func init() {
@@ -25,8 +27,9 @@ const (
 )
 
 type CheckOMD struct {
-	snc        *Agent
-	siteFilter []string
+	snc           *Agent
+	siteFilter    []string
+	serviceFilter []string
 }
 
 func (l *CheckOMD) Build() *CheckData {
@@ -35,7 +38,8 @@ func (l *CheckOMD) Build() *CheckData {
 		description:  "Check omd site status.",
 		hasInventory: ListInventory,
 		args: map[string]CheckArgument{
-			"site": {value: &l.siteFilter, isFilter: true, description: "Show this site only"},
+			"site":    {value: &l.siteFilter, isFilter: true, description: "Show this site only"},
+			"exclude": {value: &l.serviceFilter, description: "Skip this omd service"},
 		},
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -117,26 +121,30 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 	failed := []string{}
 	for _, stateRaw := range strings.Split(statusRaw, "\n") {
 		state := strings.Split(stateRaw, " ")
+		service := state[0]
+		if len(l.serviceFilter) > 0 && slices.Contains(l.serviceFilter, service) {
+			continue
+		}
 		res, err := convert.Float64E(state[1])
 		if err != nil {
 			details["_error"] = fmt.Sprintf("cannot parse service status: %s (%s)", state[1], err.Error())
 
 			return
 		}
-		states[state[0]] = int(res)
-		if res > 0 && state[0] != "OVERALL" {
-			failed = append(failed, state[0])
+		states[service] = int(res)
+		if res > 0 && service != "OVERALL" {
+			failed = append(failed, service)
 		}
 	}
 
-	switch states["OVERALL"] {
-	case 0:
+	switch {
+	case len(failed) == 0:
 		details["state"] = "0"
 		details["status"] = "running"
-	case 1:
+	case len(failed) == len(states):
 		details["state"] = "2"
 		details["status"] = "stopped"
-	case 2:
+	default:
 		details["state"] = "1"
 		details["status"] = "partially running"
 		details["failed_services"] = strings.Join(failed, ", ")
