@@ -1,7 +1,7 @@
 ---
 title: ExporterExporter
 linkTitle: ExpExp
-weight: 400
+weight: 360
 tags:
   - prometheus
   - exporter

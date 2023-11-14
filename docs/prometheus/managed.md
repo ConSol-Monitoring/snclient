@@ -1,7 +1,7 @@
 ---
 title: ManagedExporter
 linkTitle: Managed
-weight: 400
+weight: 350
 tags:
   - prometheus
   - exporter

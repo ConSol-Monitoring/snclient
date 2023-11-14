@@ -19,29 +19,15 @@ There are several prometheus integrations in SNClient+.
 
 ## Windows Exporter
 
-When SNClient+ on windows there is a builtin windows exporter which can be
-enabled by:
+When running SNClient+ on windows there is a builtin windows exporter.
 
-    [/modules]
-    WindowsExporterServer = enabled
-
-    [/settings/WindowsExporter/server]
-    ; adjust further settings here
-
-You can then scrape windows metrics from `http://<ip>:8443/node/metrics`.
+[Read more about the windows exporter](windows).
 
 ## Node Exporter
 
-When SNClient+ on linux there is a builtin node exporter which can be
-enabled by:
+When running SNClient+ on linux there is a builtin node exporter.
 
-    [/modules]
-    NodeExporterServer = enabled
-
-    [/settings/NodeExporter/server]
-    ; adjust further settings here
-
-You can then scrape windows metrics from `http://<ip>:8443/node/metrics`.
+[Read more about the windows exporter](linux).
 
 ## Managed Exporters
 
