@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient+ agent.
 
 next:
          - drop privileges when running node exporter
+         - fix reading empty config files (#58)
 
 0.12     Tue Nov  7 23:52:33 CET 2023
          - add built-in check_http / check_tcp / check_dns
