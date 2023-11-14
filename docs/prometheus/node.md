@@ -1,17 +1,18 @@
 ---
-title: Linux
-linkTitle: Linux
+title: Linux/OSX
+linkTitle: Linux/OSX
 weight: 340
 tags:
   - prometheus
   - linux
+  - osx
   - node_exporter
   - exporter
 ---
 
 ## Node Exporter
 
-When running SNClient+ on linux there is a builtin node exporter which can be
+When running SNClient+ on linux or osx there is a builtin node exporter which can be
 enabled by:
 
     [/modules]
@@ -30,7 +31,7 @@ The node exporter will run as user `nobody` unless you set `agent user` otherwis
 
 The prometheus scrape config might look like this:
 
-    - job_name: 'linux'
+    - job_name: 'node'
         # Override the global default and scrape targets from this job every 5 seconds.
         scrape_interval: 5s
 

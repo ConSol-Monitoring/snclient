@@ -18,6 +18,7 @@ export PATH := $(GOBIN):$(PATH)
 
 VERSION ?= $(shell ./buildtools/get_version)
 ARCH    ?= $(shell go env GOARCH)
+GOOS    ?= $(shell go env GOOS)
 DEBFILE ?= snclient-$(VERSION)-$(BUILD)-$(ARCH).deb
 DEB_ARCH=$(ARCH)
 ifeq ($(DEB_ARCH),386)
@@ -38,8 +39,8 @@ endif
 BUILD_FLAGS=-ldflags "-s -w -X pkg/snclient.Build=$(BUILD) -X pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
-NODE_EXPORTER_VERSION=1.6.1
-NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH).tar.gz
+NODE_EXPORTER_VERSION=1.7.0
+NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(ARCH).tar.gz
 NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)/$(NODE_EXPORTER_FILE)
 
 WINDOWS_EXPORTER_VERSION=0.24.0
@@ -470,6 +471,12 @@ osx: | dist
 		build-pkg/etc/snclient \
 		build-pkg/usr/local/share/man/man1 \
 		build-pkg/usr/local/share/man/man8
+
+	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
+	shasum --ignore-missing -c packaging/sha256sums.txt
+	tar zxvf $(NODE_EXPORTER_FILE)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(ARCH)/node_exporter build-pkg/usr/local/bin/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(ARCH)
 
 	cp packaging/osx/com.snclient.snclient.plist build-pkg/Library/LaunchDaemons/
 

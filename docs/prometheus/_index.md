@@ -25,9 +25,9 @@ When running SNClient+ on windows there is a builtin windows exporter.
 
 ## Node Exporter
 
-When running SNClient+ on linux there is a builtin node exporter.
+When running SNClient+ on linux or osx there is a builtin node exporter.
 
-[Read more about the windows exporter](linux).
+[Read more about the windows exporter](node).
 
 ## Managed Exporters
 
