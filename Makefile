@@ -488,6 +488,7 @@ osx: | dist
 
 	$(SED) \
 		-e 's/^max size =.*/max size = 10MiB/g' \
+		-e 's|/usr/lib/snclient/node_exporter|/usr/local/bin/node_exporter|g' \
 		build-pkg/etc/snclient/snclient.ini
 
 	cp -p dist/snclient.1 build-pkg/usr/local/share/man/man1/snclient.1
