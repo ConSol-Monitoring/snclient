@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"humanize"
+	"pkg/humanize"
 	"pkg/utils"
 
 	cpuinfo "github.com/shirou/gopsutil/v3/cpu"
@@ -41,7 +41,7 @@ func (l *CheckLoad) Build() *CheckData {
 			"-w|--warning":       {value: &l.warning, description: "Warning threshold: WLOAD1,WLOAD5,WLOAD15"},
 			"-c|--critical":      {value: &l.critical, description: "Critical threshold: CLOAD1,CLOAD5,CLOAD15"},
 			"-r|--percpu":        {value: &l.perCPU, description: "Divide the load averages by the number of CPUs"},
-			"-n|--procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes."},
+			"-n|--procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
 		},
 		defaultFilter: "none",
 		detailSyntax:  "${type} load average: ${load1}, ${load5}, ${load15}",

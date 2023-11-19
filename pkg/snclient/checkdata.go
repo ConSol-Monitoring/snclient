@@ -918,23 +918,7 @@ func (cd *CheckData) Help(format ShowHelp) string {
 func (cd *CheckData) helpHeader(format ShowHelp) string {
 	out := ""
 	if format == Markdown {
-		out += fmt.Sprintf("---\ntitle: %s\n---\n\n", strings.TrimPrefix(cd.name, "check_"))
-		out += fmt.Sprintf("## %s\n\n", cd.name)
-		out += fmt.Sprintf("%s\n\n", cd.description)
-		if cd.examples != "" {
-			out += "- [Examples](#examples)\n"
-		}
-		out += "- [Argument Defaults](#argument-defaults)\n"
-		if cd.attributes != nil && len(cd.attributes) > 0 {
-			out += "- [Attributes](#attributes)\n"
-		}
-		out += "\n"
-
-		if cd.examples != "" {
-			out += "## Examples\n\n"
-			out += cd.examples
-			out += "\n\n"
-		}
+		out += cd.helpHeaderMarkdown(format)
 	} else {
 		out += fmt.Sprintf("## Check\n\n%s\n\n", cd.name)
 		out += fmt.Sprintf("## Usage\n\n%s [<options>] [<filter>]\n\n", cd.name)
@@ -944,61 +928,162 @@ func (cd *CheckData) helpHeader(format ShowHelp) string {
 	return out
 }
 
-func (cd *CheckData) helpDefaultArguments(_ ShowHelp) string {
+func (cd *CheckData) helpHeaderMarkdown(format ShowHelp) string {
 	out := ""
-	out += "## Argument Defaults\n\n"
-	out += "| Argument        | Default Value        |\n| --------------- | -------------------- |\n"
-	if cd.defaultFilter != "" {
-		out += fmt.Sprintf("| %-15s | %-20s |\n", "filter", cd.defaultFilter)
+	out += fmt.Sprintf("---\ntitle: %s\n---\n\n", strings.TrimPrefix(cd.name, "check_"))
+	out += fmt.Sprintf("## %s\n\n", cd.name)
+	out += fmt.Sprintf("%s\n\n", cd.description)
+	if cd.examples != "" {
+		out += "- [Examples](#examples)\n"
 	}
-	if cd.defaultWarning != "" {
-		out += fmt.Sprintf("| %-15s | %-20s |\n", "warning", cd.defaultWarning)
+	out += "- [Argument Defaults](#argument-defaults)\n"
+	if cd.attributes != nil && len(cd.attributes) > 0 {
+		out += "- [Attributes](#attributes)\n"
 	}
-	if cd.defaultCritical != "" {
-		out += fmt.Sprintf("| %-15s | %-20s |\n", "critical", cd.defaultCritical)
+	out += "\n"
+
+	if cd.implemented > 0 {
+		out += cd.helpImplemented(format)
 	}
-	out += fmt.Sprintf("| %-15s | %-20s |\n", "empty-state", fmt.Sprintf("%d (%s)", cd.emptyState, convert.StateString(cd.emptyState)))
-	out += fmt.Sprintf("| %-15s | %-20s |\n", "empty-syntax", cd.emptySyntax)
-	out += fmt.Sprintf("| %-15s | %-20s |\n", "top-syntax", cd.topSyntax)
-	out += fmt.Sprintf("| %-15s | %-20s |\n", "ok-syntax", cd.okSyntax)
-	out += fmt.Sprintf("| %-15s | %-20s |\n", "detail-syntax", cd.detailSyntax)
+
+	if cd.examples != "" {
+		out += "## Examples\n\n"
+		out += cd.examples
+		out += "\n\n"
+	}
+
+	return out
+}
+
+func (cd *CheckData) helpImplemented(format ShowHelp) string {
+	out := ""
+	type implTableData struct {
+		windows string
+		linux   string
+		freebsd string
+		osx     string
+	}
+	header := []utils.ASCIITableHeader{
+		{Name: "Windows", Field: "windows", Centered: true},
+		{Name: "Linux", Field: "linux", Centered: true},
+		{Name: "FreeBSD", Field: "freebsd", Centered: true},
+		{Name: "MacOSX", Field: "osx", Centered: true},
+	}
+	implemented := implTableData{}
+	if cd.implemented&Windows > 0 {
+		implemented.windows = ":white_check_mark: "
+	}
+	if cd.implemented&Linux > 0 {
+		implemented.linux = ":white_check_mark: "
+	}
+	if cd.implemented&FreeBSD > 0 {
+		implemented.freebsd = ":white_check_mark: "
+	}
+	if cd.implemented&Darwin > 0 {
+		implemented.osx = ":white_check_mark: "
+	}
+	table, err := utils.ASCIITable(header, []implTableData{implemented}, format == Markdown)
+	if err != nil {
+		log.Errorf("ascii table failed: %s", err.Error())
+	}
+	out += table
 	out += "\n"
 
 	return out
 }
 
-func (cd *CheckData) helpSpecificArguments(_ ShowHelp) string {
+func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
+	out := ""
+	out += "## Argument Defaults\n\n"
+
+	type defaultArg struct {
+		name     string
+		defaults string
+	}
+	defaultArgs := []defaultArg{}
+
+	if cd.defaultFilter != "" {
+		defaultArgs = append(defaultArgs, defaultArg{name: "filter", defaults: cd.defaultFilter})
+	}
+	if cd.defaultWarning != "" {
+		defaultArgs = append(defaultArgs, defaultArg{name: "warning", defaults: cd.defaultWarning})
+	}
+	if cd.defaultCritical != "" {
+		defaultArgs = append(defaultArgs, defaultArg{name: "critcal", defaults: cd.defaultCritical})
+	}
+	defaultArgs = append(defaultArgs,
+		defaultArg{name: "empty-state", defaults: fmt.Sprintf("%d (%s)", cd.emptyState, convert.StateString(cd.emptyState))},
+		defaultArg{name: "empty-syntax", defaults: cd.emptySyntax},
+		defaultArg{name: "top-syntax", defaults: cd.topSyntax},
+		defaultArg{name: "ok-syntax", defaults: cd.okSyntax},
+		defaultArg{name: "detail-syntax", defaults: cd.detailSyntax},
+	)
+
+	header := []utils.ASCIITableHeader{
+		{Name: "Argument", Field: "name"},
+		{Name: "Default Value", Field: "defaults"},
+	}
+	table, err := utils.ASCIITable(header, defaultArgs, format == Markdown)
+	if err != nil {
+		log.Errorf("ascii table failed: %s", err.Error())
+	}
+	out += table
+	out += "\n"
+
+	return out
+}
+
+func (cd *CheckData) helpSpecificArguments(format ShowHelp) string {
 	out := ""
 	if cd.args != nil && len(cd.args) > 0 {
 		out += "## Check Specific Arguments\n\n"
-		out += "| Argument        | Description          |\n"
-		out += "| --------------- | -------------------- |\n"
 		keys := []string{}
 		for k := range cd.args {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
+		type attr struct {
+			name        string
+			description string
+		}
+		attributes := []attr{}
 		for _, k := range keys {
 			a := cd.args[k]
-			out += fmt.Sprintf("| %-15s | %-20s |\n", k, a.description)
+			attributes = append(attributes, attr{name: k, description: a.description})
 		}
+
+		header := []utils.ASCIITableHeader{
+			{Name: "Argument", Field: "name"},
+			{Name: "Description", Field: "description"},
+		}
+		table, err := utils.ASCIITable(header, attributes, format == Markdown)
+		if err != nil {
+			log.Errorf("ascii table failed: %s", err.Error())
+		}
+		out += table
 		out += "\n"
 	}
 
 	return out
 }
 
-func (cd *CheckData) helpAttributes(_ ShowHelp) string {
+func (cd *CheckData) helpAttributes(format ShowHelp) string {
 	out := ""
 	if cd.attributes != nil && len(cd.attributes) > 0 {
 		out += "## Attributes\n\n"
 		out += "### Check Specific Attributes\n\n"
 		out += "these can be used in filters and thresholds (along with the default attributes):\n\n"
-		out += "| Attribute       | Default     | Description          |\n"
-		out += "| --------------- | ----------- | -------------------- |\n"
-		for _, a := range cd.attributes {
-			out += fmt.Sprintf("| %-15s | %-11s | %-20s |\n", a.name, a.defaults, a.description)
+
+		header := []utils.ASCIITableHeader{
+			{Name: "Attribute", Field: "name"},
+			{Name: "Default", Field: "defaults"},
+			{Name: "Description", Field: "description"},
 		}
+		table, err := utils.ASCIITable(header, cd.attributes, format == Markdown)
+		if err != nil {
+			log.Errorf("ascii table failed: %s", err.Error())
+		}
+		out += table
 		out += "\n"
 	}
 
