@@ -669,7 +669,7 @@ func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 // RunCheckWithContext calls check by name and returns the check result
 func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string) *CheckResult {
 	res := snc.runCheck(ctx, name, args)
-	if res.Raw == nil || !res.Raw.showHelp {
+	if res.Raw == nil || res.Raw.showHelp == 0 {
 		res.Finalize()
 	}
 
@@ -696,11 +696,11 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 		}
 	}
 
-	if chk.showHelp {
+	if chk.showHelp > 0 {
 		return &CheckResult{
 			Raw:    chk,
 			State:  CheckExitUnknown,
-			Output: chk.Help(),
+			Output: chk.Help(chk.showHelp),
 		}
 	}
 

@@ -63,6 +63,8 @@ endif
 
 ENTR=ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr
 
+.PHONY=docs
+
 all: build
 
 CMDS = $(shell cd ./cmd && ls -1)
@@ -534,3 +536,12 @@ sign.pfx:
 
 sign.pfx_sha1: sign.pfx
 	openssl x509 -fingerprint -in sign.pfx -noout | tr -d ':'
+
+DOC_COMMANDS=\
+	check_load \
+
+docs: build
+	set -ex; \
+	for CHK in $(DOC_COMMANDS); do \
+		./snclient run $$CHK help=md > docs/checks/commands/$$CHK.md || : ; \
+	done

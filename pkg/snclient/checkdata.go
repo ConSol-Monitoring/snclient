@@ -39,6 +39,36 @@ type CheckArgument struct {
 	isFilter    bool        // if true, default filter is not used when this argument is set
 }
 
+// Implemented defines the available supported operating systems
+type Implemented uint8
+
+// Implemented defines the available supported operating systems
+const (
+	_ Implemented = iota
+	Windows
+	Linux
+	Darwin
+	FreeBSD
+
+	ALL = Windows | Linux | Darwin | FreeBSD
+)
+
+// ShowHelp defines available help options
+type ShowHelp uint8
+
+// ShowHelp defines available help options
+const (
+	_ ShowHelp = iota
+	Markdown
+	PluginHelp
+)
+
+type CheckAttribute struct {
+	name        string
+	description string
+	defaults    string
+}
+
 // CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
 	noCopy          noCopy
@@ -67,11 +97,14 @@ type CheckData struct {
 	listCombine     string // join string for detail list
 	showAll         bool
 	result          *CheckResult
-	showHelp        bool
+	showHelp        ShowHelp
 	timeout         float64
 	perfConfig      []PerfConfig
 	hasInventory    InventoryMode
 	output          string
+	implemented     Implemented
+	attributes      []CheckAttribute
+	examples        string
 }
 
 func (cd *CheckData) Finalize() (*CheckResult, error) {
@@ -381,7 +414,12 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		}
 		switch keyword {
 		case "help":
-			cd.showHelp = true
+			switch argValue {
+			case "markdown", "md":
+				cd.showHelp = Markdown
+			default:
+				cd.showHelp = PluginHelp
+			}
 
 			return nil, nil
 		case "ok":
@@ -865,33 +903,76 @@ func (cd *CheckData) expandArgDefinitions() {
 	}
 }
 
-func (cd *CheckData) Help() string {
-	out := ""
-	out += fmt.Sprintf("## Check\n\n%s\n\n", cd.name)
-	out += fmt.Sprintf("## Usage\n\n%s [<options>] [<filter>]\n\n", cd.name)
-	out += fmt.Sprintf("## Description\n\n%s\n\n", cd.description)
+// generate help, set docs to true to generate markdown docs page, otherwise check plugin help page will be generated.
+func (cd *CheckData) Help(format ShowHelp) string {
+	out := cd.helpHeader(format)
+	out += cd.helpDefaultArguments(format)
+	out += cd.helpSpecificArguments(format)
+	out += cd.helpAttributes(format)
 
+	out = strings.TrimSpace(out)
+
+	return out
+}
+
+func (cd *CheckData) helpHeader(format ShowHelp) string {
+	out := ""
+	if format == Markdown {
+		out += fmt.Sprintf("---\ntitle: %s\n---\n\n", strings.TrimPrefix(cd.name, "check_"))
+		out += fmt.Sprintf("## %s\n\n", cd.name)
+		out += fmt.Sprintf("%s\n\n", cd.description)
+		if cd.examples != "" {
+			out += "- [Examples](#examples)\n"
+		}
+		out += "- [Argument Defaults](#argument-defaults)\n"
+		if cd.attributes != nil && len(cd.attributes) > 0 {
+			out += "- [Attributes](#attributes)\n"
+		}
+		out += "\n"
+
+		if cd.examples != "" {
+			out += "## Examples\n\n"
+			out += cd.examples
+			out += "\n\n"
+		}
+	} else {
+		out += fmt.Sprintf("## Check\n\n%s\n\n", cd.name)
+		out += fmt.Sprintf("## Usage\n\n%s [<options>] [<filter>]\n\n", cd.name)
+		out += fmt.Sprintf("## Description\n\n%s\n\n", cd.description)
+	}
+
+	return out
+}
+
+func (cd *CheckData) helpDefaultArguments(_ ShowHelp) string {
+	out := ""
 	out += "## Argument Defaults\n\n"
-	out += "| Argument      | Default Value        |\n| ------------- | -------------------- |\n"
+	out += "| Argument        | Default Value        |\n| --------------- | -------------------- |\n"
 	if cd.defaultFilter != "" {
-		out += fmt.Sprintf("%-15s | %-20s | \n", "filter", cd.defaultFilter)
+		out += fmt.Sprintf("| %-15s | %-20s |\n", "filter", cd.defaultFilter)
 	}
 	if cd.defaultWarning != "" {
-		out += fmt.Sprintf("%-15s | %-20s |\n", "warning", cd.defaultWarning)
+		out += fmt.Sprintf("| %-15s | %-20s |\n", "warning", cd.defaultWarning)
 	}
 	if cd.defaultCritical != "" {
-		out += fmt.Sprintf("%-15s | %-20s |\n", "critical", cd.defaultCritical)
+		out += fmt.Sprintf("| %-15s | %-20s |\n", "critical", cd.defaultCritical)
 	}
-	out += fmt.Sprintf("%-15s | %-20s |\n", "empty-state", fmt.Sprintf("%d (%s)", cd.emptyState, convert.StateString(cd.emptyState)))
-	out += fmt.Sprintf("%-15s | %-20s |\n", "empty-syntax", cd.emptySyntax)
-	out += fmt.Sprintf("%-15s | %-20s |\n", "top-syntax", cd.topSyntax)
-	out += fmt.Sprintf("%-15s | %-20s |\n", "ok-syntax", cd.okSyntax)
-	out += fmt.Sprintf("%-15s | %-20s |\n", "detail-syntax", cd.detailSyntax)
+	out += fmt.Sprintf("| %-15s | %-20s |\n", "empty-state", fmt.Sprintf("%d (%s)", cd.emptyState, convert.StateString(cd.emptyState)))
+	out += fmt.Sprintf("| %-15s | %-20s |\n", "empty-syntax", cd.emptySyntax)
+	out += fmt.Sprintf("| %-15s | %-20s |\n", "top-syntax", cd.topSyntax)
+	out += fmt.Sprintf("| %-15s | %-20s |\n", "ok-syntax", cd.okSyntax)
+	out += fmt.Sprintf("| %-15s | %-20s |\n", "detail-syntax", cd.detailSyntax)
 	out += "\n"
 
+	return out
+}
+
+func (cd *CheckData) helpSpecificArguments(_ ShowHelp) string {
+	out := ""
 	if cd.args != nil && len(cd.args) > 0 {
 		out += "## Check Specific Arguments\n\n"
-		out += "| Argument      | Description          |\n| ------------- | -------------------- |\n"
+		out += "| Argument        | Description          |\n"
+		out += "| --------------- | -------------------- |\n"
 		keys := []string{}
 		for k := range cd.args {
 			keys = append(keys, k)
@@ -899,11 +980,27 @@ func (cd *CheckData) Help() string {
 		sort.Strings(keys)
 		for _, k := range keys {
 			a := cd.args[k]
-			out += fmt.Sprintf("%-15s | %-20s |\n", k, a.description)
+			out += fmt.Sprintf("| %-15s | %-20s |\n", k, a.description)
 		}
+		out += "\n"
 	}
 
-	out = strings.TrimSpace(out)
+	return out
+}
+
+func (cd *CheckData) helpAttributes(_ ShowHelp) string {
+	out := ""
+	if cd.attributes != nil && len(cd.attributes) > 0 {
+		out += "## Attributes\n\n"
+		out += "### Check Specific Attributes\n\n"
+		out += "these can be used in filters and thresholds (along with the default attributes):\n\n"
+		out += "| Attribute       | Default     | Description          |\n"
+		out += "| --------------- | ----------- | -------------------- |\n"
+		for _, a := range cd.attributes {
+			out += fmt.Sprintf("| %-15s | %-11s | %-20s |\n", a.name, a.defaults, a.description)
+		}
+		out += "\n"
+	}
 
 	return out
 }
