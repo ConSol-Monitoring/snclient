@@ -103,7 +103,7 @@ var (
 	GlobalMacros = getGlobalMacros()
 
 	// macros can be either ${...} or %(...)
-	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z\-_: /]+\s*\}|%\(\s*[a-zA-Z\-_: /]+\s*\)`)
+	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z0-9\-_: /]+\s*\}|%\(\s*[a-zA-Z\-_: /]+\s*\)`)
 
 	// runtime macros can be %...% or $...$ or $ARGS"$
 	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z0-9"\-_: ]+(?:%|\$)`)

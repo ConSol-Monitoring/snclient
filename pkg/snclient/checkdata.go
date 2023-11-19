@@ -48,7 +48,8 @@ type CheckData struct {
 	defaultFilter   string
 	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
 	args            map[string]CheckArgument
-	argsPassthrough bool // allow arbitrary arguments without complaining about unknown argument
+	extraArgs       map[string]CheckArgument // internal, map of expanded args
+	argsPassthrough bool                     // allow arbitrary arguments without complaining about unknown argument
 	rawArgs         []string
 	filter          []*Condition // if set, only show entries matching this filter set
 	warnThreshold   []*Condition
@@ -63,6 +64,7 @@ type CheckData struct {
 	emptyState      int64
 	details         map[string]string
 	listData        []map[string]string
+	listCombine     string // join string for detail list
 	showAll         bool
 	result          *CheckResult
 	showHelp        bool
@@ -163,9 +165,12 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		}
 	}
 
+	if cd.listCombine == "" {
+		cd.listCombine = ", "
+	}
 	result := map[string]string{
 		"count":         fmt.Sprintf("%d", len(list)),
-		"list":          strings.Join(list, ", "),
+		"list":          strings.Join(list, cd.listCombine),
 		"ok_count":      fmt.Sprintf("%d", len(okList)),
 		"ok_list":       "",
 		"warn_count":    fmt.Sprintf("%d", len(warnList)),
@@ -356,15 +361,22 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 	appendArgs := map[string]bool{}
 	argList := make([]Argument, 0, len(args))
 	applyDefaultFilter := true
-	for _, argExpr := range args {
-		argExpr = cd.removeQuotes(argExpr)
+	cd.expandArgDefinitions()
+	numArgs := len(args)
+	for idx := 0; idx < numArgs; idx++ {
+		argExpr := cd.removeQuotes(args[idx])
 		split := strings.SplitN(argExpr, "=", 2)
-		if len(split) == 1 {
-			split = append(split, "")
-		}
 		keyword := cd.removeQuotes(split[0])
-		argValue := cd.removeQuotes(split[1])
+		argValue, newIdx, err := cd.fetchNextArg(args, split, keyword, idx, numArgs)
+		if err != nil {
+			return nil, err
+		}
+		idx = newIdx
+		argValue = cd.removeQuotes(argValue)
 		if a, ok := cd.args[keyword]; ok && a.isFilter {
+			applyDefaultFilter = false
+		}
+		if a, ok := cd.extraArgs[keyword]; ok && a.isFilter {
 			applyDefaultFilter = false
 		}
 		switch keyword {
@@ -466,11 +478,40 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 	return argList, nil
 }
 
+func (cd *CheckData) fetchNextArg(args, split []string, keyword string, idx, numArgs int) (argVal string, newIdx int, err error) {
+	if len(split) == 2 {
+		return split[1], idx, nil
+	}
+	arg, ok := cd.args[keyword]
+	if !ok {
+		arg, ok = cd.extraArgs[keyword]
+		if !ok {
+			return "", idx, nil
+		}
+	}
+
+	_, ok = arg.value.(*bool)
+	if ok {
+		return "", idx, nil
+	}
+
+	// known arg and not a bool value -> consume next value
+	idx++
+	if idx >= numArgs {
+		return "", idx, fmt.Errorf("argument value expected for %s", keyword)
+	}
+
+	return args[idx], idx, nil
+}
+
 // parseAnyArg parses args into the args map with custom arguments
 func (cd *CheckData) parseAnyArg(appendArgs map[string]bool, argExpr, keyword, argValue string) (bool, error) {
 	arg, ok := cd.args[keyword]
 	if !ok {
-		return false, nil
+		arg, ok = cd.extraArgs[keyword]
+		if !ok {
+			return false, nil
+		}
 	}
 
 	switch argRef := arg.value.(type) {
@@ -740,6 +781,22 @@ func (cd *CheckData) TransformThreshold(srcThreshold []*Condition, srcName, targ
 	return transformed
 }
 
+// replaces source keywords in threshold with new keyword
+func (cd *CheckData) TransformMultipleKeywords(srcKeywords []string, targetKeyword string, srcThreshold []*Condition) (threshold []*Condition) {
+	transformed := cd.CloneThreshold(srcThreshold)
+	applyChange := func(cond *Condition) bool {
+		if !slices.Contains(srcKeywords, cond.keyword) {
+			return true
+		}
+		cond.keyword = targetKeyword
+
+		return true
+	}
+	cd.VisitAll(transformed, applyChange)
+
+	return transformed
+}
+
 func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, total float64) {
 	percent := float64(0)
 	if threshold == "used" {
@@ -793,6 +850,19 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 			Max:           &Hundred,
 		},
 	)
+}
+
+// expand arg definitions separated by pipe symbol
+// ex.: -w|--warning
+func (cd *CheckData) expandArgDefinitions() {
+	cd.extraArgs = make(map[string]CheckArgument)
+	for k, arg := range cd.args {
+		keys := strings.Split(k, "|")
+		for _, key := range keys {
+			key = strings.TrimSpace(key)
+			cd.extraArgs[key] = arg
+		}
+	}
 }
 
 func (cd *CheckData) Help() string {

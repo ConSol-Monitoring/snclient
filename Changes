@@ -4,6 +4,7 @@ next:
          - drop privileges when running node exporter
          - update node exporter to 1.7.0
          - add node exporter to osx packages
+         - add check_load plugin
          - fix reading empty config files (#58)
 
 0.12     Tue Nov  7 23:52:33 CET 2023

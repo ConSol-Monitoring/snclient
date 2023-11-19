@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"bytes"
 	"regexp"
 	"strconv"
 	"strings"
@@ -31,16 +32,19 @@ type CheckResult struct {
 	Output  string
 	Metrics []*CheckMetric
 	Raw     *CheckData
+	Details string
 }
 
 func (cr *CheckResult) Finalize(macros ...map[string]string) {
 	if macros != nil {
 		cr.Output = ReplaceMacros(cr.Output, macros...)
+		cr.Details = ReplaceMacros(cr.Details, macros...)
 	}
 	finalMacros := map[string]string{
 		"status": cr.StateString(),
 	}
 	cr.Output = ReplaceMacros(cr.Output, finalMacros)
+	cr.Details = ReplaceMacros(cr.Details, finalMacros)
 }
 
 func (cr *CheckResult) ApplyPerfConfig(perfCfg []PerfConfig) error {
@@ -89,16 +93,24 @@ func (cr *CheckResult) EscalateStatus(state int64) {
 
 func (cr *CheckResult) BuildPluginOutput() []byte {
 	output := []byte(cr.Output)
+	if cr.Details != "" {
+		output = append(output, '\n')
+		output = append(output, []byte(cr.Details)...)
+	}
 	if len(cr.Metrics) > 0 {
+		lines := bytes.Split(output, []byte("\n"))
+		firstLine := lines[0]
 		perf := make([]string, 0, len(cr.Metrics))
 		for _, m := range cr.Metrics {
 			perf = append(perf, m.String())
 		}
-		if len(output) > 0 {
-			output = append(output, ' ')
+		if len(firstLine) > 0 {
+			firstLine = append(firstLine, ' ')
 		}
-		output = append(output, '|')
-		output = append(output, []byte(strings.Join(perf, " "))...)
+		firstLine = append(firstLine, '|')
+		firstLine = append(firstLine, []byte(strings.Join(perf, " "))...)
+		lines[0] = firstLine
+		output = bytes.Join(lines, []byte("\n"))
 	}
 
 	return output
