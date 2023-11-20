@@ -18,8 +18,15 @@ type CheckDummy struct {
 func (l *CheckDummy) Build() *CheckData {
 	return &CheckData{
 		name:            "check_dummy",
+		usage:           "check_dummy <exit code> <plugin output...>",
 		description:     "This check simply sets the state to the given value and outputs the remaining arguments.",
 		argsPassthrough: true,
+		implemented:     ALL,
+		exampleDefault: `
+    check_dummy 0 some example output
+    some example output
+	`,
+		exampleArgs: `0 'some example output'`,
 	}
 }
 
@@ -38,7 +45,7 @@ func (l *CheckDummy) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 	}
 
 	if len(check.rawArgs) > 1 {
-		output = strings.Join(check.rawArgs[0:], " ")
+		output = strings.Join(check.rawArgs[1:], " ")
 	}
 
 	return &CheckResult{

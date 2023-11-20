@@ -73,6 +73,7 @@ type CheckData struct {
 	noCopy          noCopy
 	name            string
 	description     string
+	usage           string
 	debug           string
 	defaultFilter   string
 	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
@@ -917,11 +918,18 @@ func (cd *CheckData) Help(format ShowHelp) string {
 
 func (cd *CheckData) helpHeader(format ShowHelp) string {
 	out := ""
+	if cd.usage == "" {
+		cd.usage = fmt.Sprintf("%s [<options>] [<filter>]", cd.name)
+	}
 	if format == Markdown {
 		out += cd.helpHeaderMarkdown(format)
 	} else {
-		out += fmt.Sprintf("Usage: %s [<options>] [<filter>]\n\n", cd.name)
+		out += fmt.Sprintf("Usage:\n\n    %s\n\n", cd.usage)
 		out += fmt.Sprintf("    %s\n\n", cd.description)
+		if cd.exampleDefault != "" {
+			out += "Example:\n\n"
+			out += fmt.Sprintf("    %s\n\n", strings.TrimSpace(cd.exampleDefault))
+		}
 	}
 
 	return out
@@ -1007,6 +1015,11 @@ func (cd *CheckData) helpImplemented(format ShowHelp) string {
 
 func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
 	out := ""
+
+	if cd.argsPassthrough {
+		return out
+	}
+
 	if format == Markdown {
 		out += "## Argument Defaults\n\n"
 	} else {

@@ -544,11 +544,13 @@ sign.pfx_sha1: sign.pfx
 
 DOC_COMMANDS=\
 	check_cpu \
+	check_dummy \
 	check_load \
 	check_os_version \
 
 docs: build
-	set -ex; \
+	set -e; \
 	for CHK in $(DOC_COMMANDS); do \
+		echo "updating docs/checks/commands/$$CHK.md"; \
 		./snclient run $$CHK help=md > docs/checks/commands/$$CHK.md || : ; \
 	done
