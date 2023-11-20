@@ -6,6 +6,7 @@ title: load
 
 Checks the cpu load metrics.
 
+- [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Attributes](#attributes)
 
@@ -15,16 +16,39 @@ Checks the cpu load metrics.
 |:-------------------:|:-------------------:|:-------------------:|:-------------------:|
 | :white_check_mark:  | :white_check_mark:  | :white_check_mark:  | :white_check_mark:  |
 
+## Examples
+
+### Default Check
+
+    check_load
+    OK: total load average: 2.36, 1.26, 1.01 |'load1'=2.36;;;0 'load5'=1.26;;;0 'load15'=1.01;;;0
+
+### Example using NRPE and Naemon
+
+Naemon Config
+
+    define command{
+        command_name    check_nrpe
+        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+    }
+
+    define service {
+        host_name               testhost
+        service_description     check_load
+        use                     generic-service
+        check_command           check_nrpe!check_load!'warn=load > 20' 'crit=load > 30'
+    }
+
 ## Argument Defaults
 
-| Argument      | Default Value                                       |
-| ------------- | --------------------------------------------------- |
-| filter        | none                                                |
-| empty-state   | 0 (OK)                                              |
-| empty-syntax  |                                                     |
-| top-syntax    | ${status}: ${list}                                  |
-| ok-syntax     |                                                     |
-| detail-syntax | ${type} load average: ${load1}, ${load5}, ${load15} |
+| Argument      | Default Value                                           |
+| ------------- | ------------------------------------------------------- |
+| filter        | none                                                    |
+| empty-state   | 0 (OK)                                                  |
+| empty-syntax  |                                                         |
+| top-syntax    | \${status}: \${list}                                    |
+| ok-syntax     |                                                         |
+| detail-syntax | \${type} load average: \${load1}, \${load5}, \${load15} |
 
 ## Check Specific Arguments
 

@@ -104,7 +104,8 @@ type CheckData struct {
 	output          string
 	implemented     Implemented
 	attributes      []CheckAttribute
-	examples        string
+	exampleDefault  string
+	exampleArgs     string
 }
 
 func (cd *CheckData) Finalize() (*CheckResult, error) {
@@ -920,9 +921,8 @@ func (cd *CheckData) helpHeader(format ShowHelp) string {
 	if format == Markdown {
 		out += cd.helpHeaderMarkdown(format)
 	} else {
-		out += fmt.Sprintf("## Check\n\n%s\n\n", cd.name)
-		out += fmt.Sprintf("## Usage\n\n%s [<options>] [<filter>]\n\n", cd.name)
-		out += fmt.Sprintf("## Description\n\n%s\n\n", cd.description)
+		out += fmt.Sprintf("Usage: %s [<options>] [<filter>]\n\n", cd.name)
+		out += fmt.Sprintf("    %s\n\n", cd.description)
 	}
 
 	return out
@@ -933,9 +933,7 @@ func (cd *CheckData) helpHeaderMarkdown(format ShowHelp) string {
 	out += fmt.Sprintf("---\ntitle: %s\n---\n\n", strings.TrimPrefix(cd.name, "check_"))
 	out += fmt.Sprintf("## %s\n\n", cd.name)
 	out += fmt.Sprintf("%s\n\n", cd.description)
-	if cd.examples != "" {
-		out += "- [Examples](#examples)\n"
-	}
+	out += "- [Examples](#examples)\n"
 	out += "- [Argument Defaults](#argument-defaults)\n"
 	if cd.attributes != nil && len(cd.attributes) > 0 {
 		out += "- [Attributes](#attributes)\n"
@@ -946,11 +944,26 @@ func (cd *CheckData) helpHeaderMarkdown(format ShowHelp) string {
 		out += cd.helpImplemented(format)
 	}
 
-	if cd.examples != "" {
-		out += "## Examples\n\n"
-		out += cd.examples
-		out += "\n\n"
+	out += "## Examples\n\n"
+	if cd.exampleDefault != "" {
+		out += "### Default Check\n\n"
+		out += fmt.Sprintf("    %s\n\n", strings.TrimSpace(cd.exampleDefault))
 	}
+	out += "### Example using NRPE and Naemon\n\n"
+	out += fmt.Sprintf(`Naemon Config
+
+    define command{
+        command_name    check_nrpe
+        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+    }
+
+    define service {
+        host_name               testhost
+        service_description     %s
+        use                     generic-service
+        check_command           check_nrpe!%s!%s
+    }`, cd.name, cd.name, cd.exampleArgs)
+	out += "\n\n"
 
 	return out
 }
@@ -995,7 +1008,11 @@ func (cd *CheckData) helpImplemented(format ShowHelp) string {
 
 func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
 	out := ""
-	out += "## Argument Defaults\n\n"
+	if format == Markdown {
+		out += "## Argument Defaults\n\n"
+	} else {
+		out += "Argument Defaults:\n\n"
+	}
 
 	type defaultArg struct {
 		name     string
@@ -1028,7 +1045,11 @@ func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
 	if err != nil {
 		log.Errorf("ascii table failed: %s", err.Error())
 	}
-	out += table
+	if format == Markdown {
+		out += table
+	} else {
+		out += "    " + strings.TrimSpace(strings.Join(strings.Split(table, "\n"), "\n    ")) + "\n\n"
+	}
 	out += "\n"
 
 	return out
@@ -1037,7 +1058,11 @@ func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
 func (cd *CheckData) helpSpecificArguments(format ShowHelp) string {
 	out := ""
 	if cd.args != nil && len(cd.args) > 0 {
-		out += "## Check Specific Arguments\n\n"
+		if format == Markdown {
+			out += "## Check Specific Arguments\n\n"
+		} else {
+			out += "Check Specific Arguments:\n\n"
+		}
 		keys := []string{}
 		for k := range cd.args {
 			keys = append(keys, k)
@@ -1061,7 +1086,11 @@ func (cd *CheckData) helpSpecificArguments(format ShowHelp) string {
 		if err != nil {
 			log.Errorf("ascii table failed: %s", err.Error())
 		}
-		out += table
+		if format == Markdown {
+			out += table
+		} else {
+			out += "    " + strings.TrimSpace(strings.Join(strings.Split(table, "\n"), "\n    ")) + "\n\n"
+		}
 		out += "\n"
 	}
 
@@ -1071,8 +1100,12 @@ func (cd *CheckData) helpSpecificArguments(format ShowHelp) string {
 func (cd *CheckData) helpAttributes(format ShowHelp) string {
 	out := ""
 	if cd.attributes != nil && len(cd.attributes) > 0 {
-		out += "## Attributes\n\n"
-		out += "### Check Specific Attributes\n\n"
+		if format == Markdown {
+			out += "## Attributes\n\n"
+			out += "### Check Specific Attributes\n\n"
+		} else {
+			out += "Check Specific Attributes:\n\n    "
+		}
 		out += "these can be used in filters and thresholds (along with the default attributes):\n\n"
 
 		header := []utils.ASCIITableHeader{
@@ -1084,7 +1117,11 @@ func (cd *CheckData) helpAttributes(format ShowHelp) string {
 		if err != nil {
 			log.Errorf("ascii table failed: %s", err.Error())
 		}
-		out += table
+		if format == Markdown {
+			out += table
+		} else {
+			out += "    " + strings.TrimSpace(strings.Join(strings.Split(table, "\n"), "\n    ")) + "\n\n"
+		}
 		out += "\n"
 	}
 

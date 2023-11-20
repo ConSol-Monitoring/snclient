@@ -88,6 +88,8 @@ func asciiTableRowValue(escape bool, rowVal reflect.Value, head ASCIITableHeader
 
 	if escape {
 		value = strings.ReplaceAll(value, "|", "\\|")
+		value = strings.ReplaceAll(value, "$", "\\$")
+		value = strings.ReplaceAll(value, "*", "\\*")
 	}
 
 	return value, nil

@@ -54,6 +54,11 @@ func (l *CheckLoad) Build() *CheckData {
 			{name: "load15", description: "average load value over 15 minutes", defaults: ""},
 			{name: "load", description: "maximum value of load1, load5 and load15", defaults: ""},
 		},
+		exampleDefault: `
+    check_load
+    OK: total load average: 2.36, 1.26, 1.01 |'load1'=2.36;;;0 'load5'=1.26;;;0 'load15'=1.01;;;0
+	`,
+		exampleArgs: `'warn=load > 20' 'crit=load > 30'`,
 	}
 }
 
