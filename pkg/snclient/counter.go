@@ -85,3 +85,84 @@ func (c *Counter) AvgForDuration(duration float64) float64 {
 
 	return sum / count
 }
+
+type CounterAny struct {
+	noCopy noCopy
+
+	retentionTime float64
+	data          *list.List
+}
+
+type CounterValueAny struct {
+	timestamp time.Time
+	value     interface{}
+}
+
+// NewCounterAny creates a new CounterAny with given retention time
+func NewCounterAny(retentionTime float64) *CounterAny {
+	c := &CounterAny{
+		data:          list.New(),
+		retentionTime: retentionTime,
+	}
+
+	return c
+}
+
+// Set adds a new value with current timestamp
+func (c *CounterAny) Set(val interface{}) {
+	c.data.PushBack(&CounterValueAny{
+		timestamp: time.Now(),
+		value:     val,
+	})
+	c.Trim()
+}
+
+// Trim removes all entries older than now-duration
+func (c *CounterAny) Trim() {
+	trimAfter := time.Now().Add(-1 * time.Duration(c.retentionTime) * time.Second)
+
+	cur := c.data.Front()
+	for {
+		if cur == nil {
+			break
+		}
+		if val, ok := cur.Value.(*CounterValueAny); ok {
+			if val.timestamp.Before(trimAfter) {
+				c.data.Remove(cur)
+			} else {
+				return
+			}
+		}
+		cur = cur.Next()
+	}
+}
+
+// GetLast returns last (latest) value
+func (c *CounterAny) GetLast() *CounterValueAny {
+	cur := c.data.Back()
+	if val, ok := cur.Value.(*CounterValueAny); ok {
+		return val
+	}
+
+	return nil
+}
+
+// GetAt returns first value closest to given date
+func (c *CounterAny) GetAt(useAfter time.Time) *CounterValueAny {
+	cur := c.data.Back()
+	var last *CounterValueAny
+	for {
+		if cur == nil {
+			break
+		}
+		if val, ok := cur.Value.(*CounterValueAny); ok {
+			if val.timestamp.Before(useAfter) {
+				return last
+			}
+			last = val
+		}
+		cur = cur.Prev()
+	}
+
+	return nil
+}

@@ -7,6 +7,11 @@ import (
 	cpuinfo "github.com/shirou/gopsutil/v3/cpu"
 )
 
+const (
+	// CPUMeasureInterval sets the ticker measuring the CPU counter
+	CPUMeasureInterval = 1 * time.Second
+)
+
 type CheckSystemHandler struct {
 	noCopy noCopy
 
@@ -55,7 +60,7 @@ func (c *CheckSystemHandler) Stop() {
 }
 
 func (c *CheckSystemHandler) mainLoop() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(CPUMeasureInterval)
 	defer ticker.Stop()
 
 	for {
@@ -73,7 +78,7 @@ func (c *CheckSystemHandler) mainLoop() {
 }
 
 func (c *CheckSystemHandler) update(create bool) {
-	data, err := c.fetch()
+	data, times, err := c.fetch()
 	if err != nil {
 		log.Warnf("[CheckSystem] reading cpu info failed: %s", err.Error())
 
@@ -84,30 +89,37 @@ func (c *CheckSystemHandler) update(create bool) {
 		for key := range data {
 			c.snc.Counter.Create("cpu", key, c.bufferLength)
 		}
+		c.snc.Counter.CreateAny("cpuinfo", "info", c.bufferLength)
 	}
 
 	for key, val := range data {
 		c.snc.Counter.Set("cpu", key, val)
 	}
+	c.snc.Counter.SetAny("cpuinfo", "info", times)
 }
 
-func (c *CheckSystemHandler) fetch() (data map[string]float64, err error) {
+func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo.TimesStat, err error) {
 	data = map[string]float64{}
 
 	infoAll, err := cpuinfo.Percent(0, false)
 	if err != nil {
-		return nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
+		return nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
 	}
 	data["total"] = infoAll[0]
 
 	info, err := cpuinfo.Percent(0, true)
 	if err != nil {
-		return nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
+		return nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
 	}
 
 	for i, d := range info {
 		data[fmt.Sprintf("core%d", i)] = d
 	}
 
-	return data, nil
+	times, err := cpuinfo.Times(false)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
+	}
+
+	return data, &times[0], nil
 }
