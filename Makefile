@@ -381,6 +381,10 @@ snclient: build snclient.ini
 
 snclient.ini:
 	cp packaging/snclient.ini .
+	$(SED) \
+		-e 's/^shared\-path =.*/shared\-path = ./g' \
+		-e 's/^file name =.*/file name = .\/snclient.log/g' \
+		./snclient.ini
 
 server.crt: | dist
 	cp dist/server.crt .

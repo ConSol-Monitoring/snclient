@@ -986,6 +986,7 @@ func (cd *CheckData) helpImplemented(format ShowHelp) string {
 	if err != nil {
 		log.Errorf("ascii table failed: %s", err.Error())
 	}
+	out += "## Implementation\n\n"
 	out += table
 	out += "\n"
 
