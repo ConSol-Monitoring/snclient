@@ -7,7 +7,6 @@ import (
 	"pkg/humanize"
 
 	"github.com/shirou/gopsutil/v3/mem"
-	"golang.org/x/exp/slices"
 )
 
 func init() {
@@ -19,22 +18,45 @@ type CheckMemory struct {
 }
 
 func (l *CheckMemory) Build() *CheckData {
-	l.memType = []string{"committed", "physical"}
+	l.memType = []string{"physical", "committed"}
 
 	return &CheckData{
 		name:         "check_memory",
 		description:  "Checks the memory usage on the host.",
+		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"type": {value: &l.memType, description: "Type of memory to check. Default: committed,physical"},
+			"type": {value: &l.memType, description: "Type of memory to check. Default: physical,committed"},
 		},
 		defaultWarning:  "used > 80%",
 		defaultCritical: "used > 90%",
 		detailSyntax:    "%(type) = %(used)",
 		topSyntax:       "${status}: ${list}",
+		attributes: []CheckAttribute{
+			{name: "<type>", description: "used bytes with the type as key"},
+			{name: "type", description: "checked type, either 'physical' or 'committed' (swap)"},
+			{name: "used", description: "Used memory in human readable bytes (IEC)"},
+			{name: "used_bytes", description: "Used memory in bytes (IEC)"},
+			{name: "used_pct", description: "Used memory in percent"},
+			{name: "free", description: "Free memory in human readable bytes (IEC)"},
+			{name: "free_bytes", description: "Free memory in bytes (IEC)"},
+			{name: "free_pct", description: "Free memory in percent"},
+			{name: "size", description: "Total memory in human readable bytes (IEC)"},
+			{name: "size_bytes", description: "Total memory in bytes (IEC)"},
+		},
+		exampleDefault: `
+    check_memory
+    OK: physical = 6.98 GiB, committed = 719.32 MiB|...
+
+Changing the return syntax to get more information:
+
+    check_memory 'top-syntax=${list}' 'detail-syntax=${type} free: ${free} used: ${used} size: ${size}'
+    physical free: 35.00 B used: 7.01 GiB size: 31.09 GiB, committed free: 27.00 B used: 705.57 MiB size: 977.00 MiB |...
+	`,
+		exampleArgs: `'warn=used > 80%' 'crit=used > 90%'`,
 	}
 }
 
@@ -56,11 +78,17 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 		return nil, fmt.Errorf("total physical memory is zero")
 	}
 
-	if slices.Contains(l.memType, "committed") && swap.Total > 0 {
-		l.addMemType(check, "committed", swap.Used, swap.Free, swap.Total)
-	}
-	if slices.Contains(l.memType, "physical") {
-		l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total)
+	for _, memType := range l.memType {
+		switch memType {
+		case "physical":
+			l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total)
+		case "committed":
+			if swap.Total > 0 {
+				l.addMemType(check, "committed", swap.Used, swap.Free, swap.Total)
+			}
+		default:
+			return nil, fmt.Errorf("unknown type, please use 'physical' or 'committed'")
+		}
 	}
 
 	return check.Finalize()

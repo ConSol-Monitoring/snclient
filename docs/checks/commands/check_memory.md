@@ -1,33 +1,32 @@
-﻿---
+---
 title: memory
 ---
 
-# check_memory
+## check_memory
 
-Check free/used memory on the host.
+Checks the memory usage on the host.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Attributes](#attributes)
 
-### Implementation
+## Implementation
 
-| Windows | Linux | FreeBSD | MacOSX |
-|:-------:|:-----:|:-------:|:------:|
+| Windows            | Linux              | FreeBSD            | MacOSX             |
+|:------------------:|:------------------:|:------------------:|:------------------:|
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Examples
 
-### Default check
+### Default Check
 
     check_memory
-    OK: physical = 12 GB, committed = 17 GB |'physical'=11639271424B;;;0;17032155136
+    OK: physical = 6.98 GiB, committed = 719.32 MiB|...
 
 Changing the return syntax to get more information:
 
-    check_memory "top-syntax=${list}" "detail-syntax=${type} free: ${free} used: ${used}size: ${size}"
-    physical free: 5 GB used: 12 GB size: 17 GB, committed free: 10 GB used: 17 GB size: 27 GB |'physical'=11546886144B;;;0;17032155136
-
+    check_memory 'top-syntax=${list}' 'detail-syntax=${type} free: ${free} used: ${used} size: ${size}'
+    physical free: 35.00 B used: 7.01 GiB size: 31.09 GiB, committed free: 27.00 B used: 705.57 MiB size: 977.00 MiB |...
 
 ### Example using NRPE and Naemon
 
@@ -39,33 +38,45 @@ Naemon Config
     }
 
     define service {
-            host_name               testhost
-            service_description     check_memory_testhost
-            check_command           check_nrpe!check_memory!'warn=used > 80%' 'crit=used > 90%'
+        host_name               testhost
+        service_description     check_memory
+        use                     generic-service
+        check_command           check_nrpe!check_memory!'warn=used > 80%' 'crit=used > 90%'
     }
-
-Return
-
-    OK: physical = 12 GB, committed = 17 GB |'physical'=11639271424B;;;0;17032155136
 
 ## Argument Defaults
 
-| Argument | Default Value |
-| --- | --- |
-warning | used > 80% |
-critical | used > 90% |
-top-syntax | \${status}: ${list} |
-detail-syntax | %(type) = %(used) |
+| Argument      | Default Value        |
+| ------------- | -------------------- |
+| warning       | used > 80%           |
+| critcal       | used > 90%           |
+| empty-state   | 0 (OK)               |
+| empty-syntax  |                      |
+| top-syntax    | \${status}: \${list} |
+| ok-syntax     |                      |
+| detail-syntax | %(type) = %(used)    |
+
+## Check Specific Arguments
+
+| Argument | Description                                          |
+| -------- | ---------------------------------------------------- |
+| type     | Type of memory to check. Default: physical,committed |
 
 ## Attributes
 
-#### Check specific attributes
+### Check Specific Attributes
 
-| Attribute | Description |
-| --- | --- |
-| free | Free Memory in bytes (IEC/SI/%) |
-| free_pct | Free memory in pct |
-| used | Used Memory in bytes (IEC/SI/%) |
-| used_pct | Used memory in pct |
-| size | Total size of memory |
-| type | The type of memory |
+these can be used in filters and thresholds (along with the default attributes):
+
+| Attribute  | Description                                           |
+| ---------- | ----------------------------------------------------- |
+| <type>     | used bytes with the type as key                       |
+| type       | checked type, either 'physical' or 'committed' (swap) |
+| used       | Used memory in human readable bytes (IEC)             |
+| used_bytes | Used memory in bytes (IEC)                            |
+| used_pct   | Used memory in percent                                |
+| free       | Free memory in human readable bytes (IEC)             |
+| free_bytes | Free memory in bytes (IEC)                            |
+| free_pct   | Free memory in percent                                |
+| size       | Total memory in human readable bytes (IEC)            |
+| size_bytes | Total memory in bytes (IEC)                           |

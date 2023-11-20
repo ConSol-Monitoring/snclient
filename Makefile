@@ -546,6 +546,7 @@ DOC_COMMANDS=\
 	check_cpu \
 	check_dummy \
 	check_load \
+	check_memory \
 	check_os_version \
 
 docs: build
