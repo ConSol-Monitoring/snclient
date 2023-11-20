@@ -86,6 +86,36 @@ func (c *Counter) AvgForDuration(duration float64) float64 {
 	return sum / count
 }
 
+// GetLast returns last (latest) value
+func (c *Counter) GetLast() *CounterValue {
+	cur := c.data.Back()
+	if val, ok := cur.Value.(*CounterValue); ok {
+		return val
+	}
+
+	return nil
+}
+
+// GetAt returns first value closest to given date
+func (c *Counter) GetAt(useAfter time.Time) *CounterValue {
+	cur := c.data.Back()
+	var last *CounterValue
+	for {
+		if cur == nil {
+			break
+		}
+		if val, ok := cur.Value.(*CounterValue); ok {
+			if val.timestamp.Before(useAfter) {
+				return last
+			}
+			last = val
+		}
+		cur = cur.Prev()
+	}
+
+	return nil
+}
+
 type CounterAny struct {
 	noCopy noCopy
 

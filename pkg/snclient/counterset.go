@@ -37,6 +37,13 @@ func (cs *CounterSet) CreateAny(category, key string, duration float64) {
 	cat[key] = counter
 }
 
+func (cs *CounterSet) Delete(category, key string) {
+	cat, ok := cs.counter[category]
+	if ok {
+		delete(cat, key)
+	}
+}
+
 func (cs *CounterSet) Keys(category string) (keys []string) {
 	if cat, ok := cs.counter[category]; ok {
 		for key := range cat {

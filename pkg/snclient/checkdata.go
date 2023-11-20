@@ -1081,6 +1081,7 @@ func (cd *CheckData) helpSpecificArguments(format ShowHelp) string {
 		} else {
 			out += "    None\n\n"
 		}
+
 		return out
 	}
 

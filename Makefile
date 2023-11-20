@@ -547,6 +547,7 @@ DOC_COMMANDS=\
 	check_dummy \
 	check_load \
 	check_memory \
+	check_network \
 	check_omd \
 	check_os_version \
 	check_snclient_version \

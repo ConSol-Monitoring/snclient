@@ -5,6 +5,7 @@ import (
 	"time"
 
 	cpuinfo "github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/net"
 )
 
 const (
@@ -78,7 +79,7 @@ func (c *CheckSystemHandler) mainLoop() {
 }
 
 func (c *CheckSystemHandler) update(create bool) {
-	data, times, err := c.fetch()
+	data, times, netdata, err := c.fetch()
 	if err != nil {
 		log.Warnf("[CheckSystem] reading cpu info failed: %s", err.Error())
 
@@ -96,20 +97,39 @@ func (c *CheckSystemHandler) update(create bool) {
 		c.snc.Counter.Set("cpu", key, val)
 	}
 	c.snc.Counter.SetAny("cpuinfo", "info", times)
+
+	trimData := time.Now().Add(-30 * time.Minute)
+	for key, val := range netdata {
+		// create interface on demand
+		if c.snc.Counter.Get("net", key) == nil {
+			c.snc.Counter.Create("net", key, c.bufferLength)
+		}
+		c.snc.Counter.Set("net", key, val)
+
+		// clean old interfaces
+		for _, key := range c.snc.Counter.Keys("net") {
+			counter := c.snc.Counter.Get("net", key)
+			if last := counter.GetLast(); last != nil {
+				if last.timestamp.Before(trimData) {
+					c.snc.Counter.Delete("net", key)
+				}
+			}
+		}
+	}
 }
 
-func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo.TimesStat, err error) {
+func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo.TimesStat, netdata map[string]float64, err error) {
 	data = map[string]float64{}
 
 	infoAll, err := cpuinfo.Percent(0, false)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
+		return nil, nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
 	}
 	data["total"] = infoAll[0]
 
 	info, err := cpuinfo.Percent(0, true)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
+		return nil, nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
 	}
 
 	for i, d := range info {
@@ -118,8 +138,16 @@ func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo
 
 	times, err := cpuinfo.Times(false)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
+		return nil, nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
 	}
 
-	return data, &times[0], nil
+	netdata = map[string]float64{}
+	interfaceList, _ := net.Interfaces()
+	IOList, err := net.IOCounters(true)
+	for intnr, int := range interfaceList {
+		netdata[int.Name+"_recv"] = float64(IOList[intnr].BytesRecv)
+		netdata[int.Name+"_sent"] = float64(IOList[intnr].BytesSent)
+	}
+
+	return data, &times[0], netdata, nil
 }
