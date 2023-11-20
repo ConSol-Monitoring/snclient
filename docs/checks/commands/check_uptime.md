@@ -1,27 +1,27 @@
-﻿---
+---
 title: uptime
 ---
 
-# check_uptime
+## check_uptime
 
-Check time since the host last booted.
+Check computer uptime (time since last reboot).
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Attributes](#attributes)
 
-### Implementation
+## Implementation
 
-| Windows | Linux | FreeBSD | MacOSX |
-|:-------:|:-----:|:-------:|:------:|
+| Windows            | Linux              | FreeBSD            | MacOSX             |
+|:------------------:|:------------------:|:------------------:|:------------------:|
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Examples
 
-### Default check
+### Default Check
 
     check_uptime
-    OK: uptime: 5w 6d 18:19h, boot: 2023-04-28 15:15:42 (UTC)
+    OK: uptime: 3d 02:30h, boot: 2023-11-17 19:33:46 (UTC) |'uptime'=268241s;172800:;86400:
 
 ### Example using NRPE and Naemon
 
@@ -33,29 +33,36 @@ Naemon Config
     }
 
     define service {
-            host_name               testhost
-            service_description     check_uptime_testhost
-            check_command           check_nrpe!check_uptime!'warn=uptime < 180s' 'crit=uptime < 60s'
+        host_name               testhost
+        service_description     check_uptime
+        use                     generic-service
+        check_command           check_nrpe!check_uptime!'warn=uptime < 180s' 'crit=uptime < 60s'
     }
-
-Return
-
-    OK: uptime: 5w 6d 18:19h, boot: 2023-04-28 15:15:42 (UTC)
 
 ## Argument Defaults
 
-| Argument | Default Value |
-| --- | --- |
-warning | uptime < 2d |
-critical | uptime < 1d |
-top-syntax | \${status}: ${list} |
-detail-syntax | uptime: \${uptime}, boot: ${boot} (UTC) |
+| Argument      | Default Value                            |
+| ------------- | ---------------------------------------- |
+| warning       | uptime < 2d                              |
+| critcal       | uptime < 1d                              |
+| empty-state   | 0 (OK)                                   |
+| empty-syntax  |                                          |
+| top-syntax    | \${status}: \${list}                     |
+| ok-syntax     |                                          |
+| detail-syntax | uptime: \${uptime}, boot: \${boot} (UTC) |
+
+## Check Specific Arguments
+
+None
 
 ## Attributes
 
-#### Check specific attributes
+### Check Specific Attributes
 
-| Attribute | Description |
-| --- | --- |
-| boot | System boot time |
-| uptime | Time since last boot |
+these can be used in filters and thresholds (along with the default attributes):
+
+| Attribute    | Description                         |
+| ------------ | ----------------------------------- |
+| uptime       | Human readable time since last boot |
+| uptime_value | Uptime in seconds                   |
+| boot         | Human readable date of last boot    |

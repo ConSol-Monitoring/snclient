@@ -20,6 +20,7 @@ func (l *CheckUptime) Build() *CheckData {
 	return &CheckData{
 		name:         "check_uptime",
 		description:  "Check computer uptime (time since last reboot).",
+		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -28,6 +29,16 @@ func (l *CheckUptime) Build() *CheckData {
 		defaultCritical: "uptime < 1d",
 		topSyntax:       "${status}: ${list}",
 		detailSyntax:    "uptime: ${uptime}, boot: ${boot} (UTC)",
+		attributes: []CheckAttribute{
+			{name: "uptime", description: "Human readable time since last boot"},
+			{name: "uptime_value", description: "Uptime in seconds"},
+			{name: "boot", description: "Human readable date of last boot"},
+		},
+		exampleDefault: `
+    check_uptime
+    OK: uptime: 3d 02:30h, boot: 2023-11-17 19:33:46 (UTC) |'uptime'=268241s;172800:;86400:
+	`,
+		exampleArgs: `'warn=uptime < 180s' 'crit=uptime < 60s'`,
 	}
 }
 

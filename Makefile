@@ -548,6 +548,7 @@ DOC_COMMANDS=\
 	check_load \
 	check_memory \
 	check_os_version \
+	check_uptime \
 
 docs: build
 	set -e; \
