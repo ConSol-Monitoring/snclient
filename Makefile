@@ -543,6 +543,7 @@ sign.pfx_sha1: sign.pfx
 	openssl x509 -fingerprint -in sign.pfx -noout | tr -d ':'
 
 DOC_COMMANDS=\
+	check_cpu \
 	check_load \
 	check_os_version \
 

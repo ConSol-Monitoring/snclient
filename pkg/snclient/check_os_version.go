@@ -25,10 +25,10 @@ func (l *CheckOSVersion) Build() *CheckData {
 		},
 		topSyntax: "${status}: ${platform} ${version} (arch: ${arch})",
 		attributes: []CheckAttribute{
-			{name: "platform", description: "Platform of the OS", defaults: ""},
-			{name: "family", description: "OS Family", defaults: ""},
-			{name: "version", description: "Full version number", defaults: ""},
-			{name: "arch", description: "OS architecture", defaults: ""},
+			{name: "platform", description: "Platform of the OS"},
+			{name: "family", description: "OS Family"},
+			{name: "version", description: "Full version number"},
+			{name: "arch", description: "OS architecture"},
 		},
 		exampleDefault: `
     check_os_version

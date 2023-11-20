@@ -65,10 +65,10 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute | Default | Description                              |
-| --------- | ------- | ---------------------------------------- |
-| type      |         | type will be either 'total' or 'scaled'  |
-| load1     |         | average load value over 1 minute         |
-| load5     |         | average load value over 5 minutes        |
-| load15    |         | average load value over 15 minutes       |
-| load      |         | maximum value of load1, load5 and load15 |
+| Attribute | Description                              |
+| --------- | ---------------------------------------- |
+| type      | type will be either 'total' or 'scaled'  |
+| load1     | average load value over 1 minute         |
+| load5     | average load value over 5 minutes        |
+| load15    | average load value over 15 minutes       |
+| load      | maximum value of load1, load5 and load15 |

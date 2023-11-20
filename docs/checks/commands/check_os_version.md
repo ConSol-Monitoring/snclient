@@ -59,9 +59,9 @@ None
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute | Default | Description         |
-| --------- | ------- | ------------------- |
-| platform  |         | Platform of the OS  |
-| family    |         | OS Family           |
-| version   |         | Full version number |
-| arch      |         | OS architecture     |
+| Attribute | Description         |
+| --------- | ------------------- |
+| platform  | Platform of the OS  |
+| family    | OS Family           |
+| version   | Full version number |
+| arch      | OS architecture     |

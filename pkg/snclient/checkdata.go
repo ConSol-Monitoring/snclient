@@ -66,7 +66,6 @@ const (
 type CheckAttribute struct {
 	name        string
 	description string
-	defaults    string
 }
 
 // CheckData contains the runtime data of a generic check plugin
@@ -1121,7 +1120,6 @@ func (cd *CheckData) helpAttributes(format ShowHelp) string {
 
 	header := []utils.ASCIITableHeader{
 		{Name: "Attribute", Field: "name"},
-		{Name: "Default", Field: "defaults"},
 		{Name: "Description", Field: "description"},
 	}
 	table, err := utils.ASCIITable(header, cd.attributes, format == Markdown)

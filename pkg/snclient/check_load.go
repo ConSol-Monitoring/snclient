@@ -48,11 +48,11 @@ func (l *CheckLoad) Build() *CheckData {
 		topSyntax:     "${status}: ${list}",
 		listCombine:   " - ",
 		attributes: []CheckAttribute{
-			{name: "type", description: "type will be either 'total' or 'scaled'", defaults: ""},
-			{name: "load1", description: "average load value over 1 minute", defaults: ""},
-			{name: "load5", description: "average load value over 5 minutes", defaults: ""},
-			{name: "load15", description: "average load value over 15 minutes", defaults: ""},
-			{name: "load", description: "maximum value of load1, load5 and load15", defaults: ""},
+			{name: "type", description: "type will be either 'total' or 'scaled'"},
+			{name: "load1", description: "average load value over 1 minute"},
+			{name: "load5", description: "average load value over 5 minutes"},
+			{name: "load15", description: "average load value over 15 minutes"},
+			{name: "load", description: "maximum value of load1, load5 and load15"},
 		},
 		exampleDefault: `
     check_load
