@@ -45,6 +45,7 @@ X: completed
 | check_eventlog         |    W    |         |         |         |
 | check_files            |    W    |    W    |    W    |    W    |
 | check_index            |    X    |    X    |    X    |    X    |
+| check_load             |    X    |    X    |    X    |    X    |
 | check_memory           |    X    |    X    |    X    |    X    |
 | check_network          |    X    |    X    |    X    |    X    |
 | check_os_version       |    X    |    X    |    X    |    X    |
