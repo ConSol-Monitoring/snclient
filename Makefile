@@ -549,6 +549,7 @@ DOC_COMMANDS=\
 	check_memory \
 	check_omd \
 	check_os_version \
+	check_snclient_version \
 	check_uptime \
 
 docs: build

@@ -15,6 +15,9 @@ func TestDocsExists(t *testing.T) {
 		if name == "check_index" {
 			continue
 		}
+		if name == "check_nscp_version" {
+			continue
+		}
 		pluginFile := fmt.Sprintf("../../docs/checks/plugins/%s.md", name)
 		commandFile := fmt.Sprintf("../../docs/checks/commands/%s.md", name)
 		isPlugin := false
