@@ -18,11 +18,22 @@ func (l *CheckOSVersion) Build() *CheckData {
 	return &CheckData{
 		name:         "check_os_version",
 		description:  "Checks the os system version.",
+		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		topSyntax: "${status}: ${platform} ${version} (arch: ${arch})",
+		attributes: []CheckAttribute{
+			{name: "platform", description: "Platform of the OS", defaults: ""},
+			{name: "family", description: "OS Family", defaults: ""},
+			{name: "version", description: "Full version number", defaults: ""},
+			{name: "arch", description: "OS architecture", defaults: ""},
+		},
+		exampleDefault: `
+    check_os_version
+    OK - Microsoft Windows 10 Pro 10.0.19045.2728 Build 19045.2728 (arch: amd64)
+	`,
 	}
 }
 

@@ -544,6 +544,7 @@ sign.pfx_sha1: sign.pfx
 
 DOC_COMMANDS=\
 	check_load \
+	check_os_version \
 
 docs: build
 	set -ex; \

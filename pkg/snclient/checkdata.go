@@ -984,16 +984,16 @@ func (cd *CheckData) helpImplemented(format ShowHelp) string {
 	}
 	implemented := implTableData{}
 	if cd.implemented&Windows > 0 {
-		implemented.windows = ":white_check_mark: "
+		implemented.windows = ":white_check_mark:"
 	}
 	if cd.implemented&Linux > 0 {
-		implemented.linux = ":white_check_mark: "
+		implemented.linux = ":white_check_mark:"
 	}
 	if cd.implemented&FreeBSD > 0 {
-		implemented.freebsd = ":white_check_mark: "
+		implemented.freebsd = ":white_check_mark:"
 	}
 	if cd.implemented&Darwin > 0 {
-		implemented.osx = ":white_check_mark: "
+		implemented.osx = ":white_check_mark:"
 	}
 	table, err := utils.ASCIITable(header, []implTableData{implemented}, format == Markdown)
 	if err != nil {
@@ -1057,73 +1057,83 @@ func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
 
 func (cd *CheckData) helpSpecificArguments(format ShowHelp) string {
 	out := ""
-	if cd.args != nil && len(cd.args) > 0 {
-		if format == Markdown {
-			out += "## Check Specific Arguments\n\n"
-		} else {
-			out += "Check Specific Arguments:\n\n"
-		}
-		keys := []string{}
-		for k := range cd.args {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		type attr struct {
-			name        string
-			description string
-		}
-		attributes := []attr{}
-		for _, k := range keys {
-			a := cd.args[k]
-			attributes = append(attributes, attr{name: k, description: a.description})
-		}
 
-		header := []utils.ASCIITableHeader{
-			{Name: "Argument", Field: "name"},
-			{Name: "Description", Field: "description"},
-		}
-		table, err := utils.ASCIITable(header, attributes, format == Markdown)
-		if err != nil {
-			log.Errorf("ascii table failed: %s", err.Error())
-		}
-		if format == Markdown {
-			out += table
-		} else {
-			out += "    " + strings.TrimSpace(strings.Join(strings.Split(table, "\n"), "\n    ")) + "\n\n"
-		}
-		out += "\n"
+	if format == Markdown {
+		out += "## Check Specific Arguments\n\n"
+	} else {
+		out += "Check Specific Arguments:\n\n"
 	}
+	if cd.args == nil || len(cd.args) == 0 {
+		if format == Markdown {
+			out += "None\n\n"
+		} else {
+			out += "    None\n\n"
+		}
+		return out
+	}
+
+	keys := []string{}
+	for k := range cd.args {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	type attr struct {
+		name        string
+		description string
+	}
+	attributes := []attr{}
+	for _, k := range keys {
+		a := cd.args[k]
+		attributes = append(attributes, attr{name: k, description: a.description})
+	}
+
+	header := []utils.ASCIITableHeader{
+		{Name: "Argument", Field: "name"},
+		{Name: "Description", Field: "description"},
+	}
+	table, err := utils.ASCIITable(header, attributes, format == Markdown)
+	if err != nil {
+		log.Errorf("ascii table failed: %s", err.Error())
+	}
+	if format == Markdown {
+		out += table
+	} else {
+		out += "    " + strings.TrimSpace(strings.Join(strings.Split(table, "\n"), "\n    ")) + "\n\n"
+	}
+	out += "\n"
 
 	return out
 }
 
 func (cd *CheckData) helpAttributes(format ShowHelp) string {
 	out := ""
-	if cd.attributes != nil && len(cd.attributes) > 0 {
-		if format == Markdown {
-			out += "## Attributes\n\n"
-			out += "### Check Specific Attributes\n\n"
-		} else {
-			out += "Check Specific Attributes:\n\n    "
-		}
-		out += "these can be used in filters and thresholds (along with the default attributes):\n\n"
-
-		header := []utils.ASCIITableHeader{
-			{Name: "Attribute", Field: "name"},
-			{Name: "Default", Field: "defaults"},
-			{Name: "Description", Field: "description"},
-		}
-		table, err := utils.ASCIITable(header, cd.attributes, format == Markdown)
-		if err != nil {
-			log.Errorf("ascii table failed: %s", err.Error())
-		}
-		if format == Markdown {
-			out += table
-		} else {
-			out += "    " + strings.TrimSpace(strings.Join(strings.Split(table, "\n"), "\n    ")) + "\n\n"
-		}
-		out += "\n"
+	if cd.attributes == nil || len(cd.attributes) == 0 {
+		return out
 	}
+
+	if format == Markdown {
+		out += "## Attributes\n\n"
+		out += "### Check Specific Attributes\n\n"
+	} else {
+		out += "Check Specific Attributes:\n\n    "
+	}
+	out += "these can be used in filters and thresholds (along with the default attributes):\n\n"
+
+	header := []utils.ASCIITableHeader{
+		{Name: "Attribute", Field: "name"},
+		{Name: "Default", Field: "defaults"},
+		{Name: "Description", Field: "description"},
+	}
+	table, err := utils.ASCIITable(header, cd.attributes, format == Markdown)
+	if err != nil {
+		log.Errorf("ascii table failed: %s", err.Error())
+	}
+	if format == Markdown {
+		out += table
+	} else {
+		out += "    " + strings.TrimSpace(strings.Join(strings.Split(table, "\n"), "\n    ")) + "\n\n"
+	}
+	out += "\n"
 
 	return out
 }
