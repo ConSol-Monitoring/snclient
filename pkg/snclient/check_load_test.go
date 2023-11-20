@@ -26,9 +26,9 @@ func TestCheckLoad(t *testing.T) {
 			for i := 1; i <= 10; i++ {
 				b := make([]byte, 2000)
 				_, err := rand.Read(b)
-				require.NoErrorf(t, err, "rand.Read: %s", err.Error())
+				require.NoErrorf(t, err, "rand.Read ok")
 				_, err = utils.Sha256Sum(string(b))
-				require.NoErrorf(t, err, "utils.Sha256Sum: %s", err.Error())
+				require.NoErrorf(t, err, "utils.Sha256Sum ok")
 			}
 			res := snc.RunCheck("check_load", []string{"warn=load > 0", "crit=load > 0"})
 			if res.State != CheckExitOK {
