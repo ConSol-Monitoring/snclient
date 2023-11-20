@@ -36,6 +36,7 @@ func (l *CheckOMD) Build() *CheckData {
 	return &CheckData{
 		name:         "check_omd",
 		description:  "Check omd site status.",
+		implemented:  ALL,
 		hasInventory: ListInventory,
 		args: map[string]CheckArgument{
 			"site":    {value: &l.siteFilter, isFilter: true, description: "Show this site only"},
@@ -51,6 +52,23 @@ func (l *CheckOMD) Build() *CheckData {
 		detailSyntax:    "site ${site}: ${status}${failed_services_txt}",
 		emptyState:      3,
 		emptySyntax:     "check_omd failed to find any site with this filter.",
+		attributes: []CheckAttribute{
+			{name: "site", description: "OMD site name"},
+			{name: "autostart", description: "Configuration value of 'autostart': 0/1"},
+			{name: "state", description: "Return code of omd status, 0 - running, 1 - partially running, 2 - stopped, 3 - unknown"},
+			{name: "status", description: "Text status: (running, partially running, stopped, unknown)"},
+			{name: "failed_services", description: "List of failed services"},
+			{name: "failed_services_txt", description: "More usable form of failed services list"},
+		},
+		exampleDefault: `
+    check_omd
+    OK - site demo: running |...
+
+Check **specific** site by site filter:
+
+    check_omd site=mode
+    OK - site demo: running |...
+	`,
 	}
 }
 

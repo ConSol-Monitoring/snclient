@@ -55,6 +55,7 @@ X: completed
 | check_snclient_version |    X    |    X    |    X    |    X    |
 | check_tasksched        |         |         |         |         |
 | check_uptime           |    X    |    X    |    X    |    X    |
+| check_omd              |         |    X    |         |         |
 | check_wmi              |    X    |         |         |         |
 | check_wrap             |    X    |    X    |    X    |    X    |
 
