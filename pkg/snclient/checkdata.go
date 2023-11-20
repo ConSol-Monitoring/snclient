@@ -44,7 +44,7 @@ type Implemented uint8
 
 // Implemented defines the available supported operating systems
 const (
-	_ Implemented = iota
+	_ Implemented = 1 << iota
 	Windows
 	Linux
 	Darwin

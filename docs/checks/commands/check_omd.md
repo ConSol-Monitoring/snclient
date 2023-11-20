@@ -12,9 +12,9 @@ Check omd site status.
 
 ## Implementation
 
-| Windows            | Linux              | FreeBSD            | MacOSX             |
-|:------------------:|:------------------:|:------------------:|:------------------:|
-| :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| Windows | Linux              | FreeBSD | MacOSX |
+|:-------:|:------------------:|:-------:|:------:|
+|         | :white_check_mark: |         |        |
 
 ## Examples
 

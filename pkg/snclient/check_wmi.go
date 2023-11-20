@@ -30,6 +30,7 @@ func (l *CheckWMI) Build() *CheckData {
 	return &CheckData{
 		name:        "check_wmi",
 		description: "Check status and metrics by running wmi queries.",
+		implemented: Windows,
 		args: map[string]CheckArgument{
 			"query":     {value: &l.query, description: "The WMI query to execute"},
 			"target":    {value: &l.target, description: "Unused and not supported for now"},
@@ -42,6 +43,10 @@ func (l *CheckWMI) Build() *CheckData {
 		},
 		topSyntax:    "${list}",
 		detailSyntax: "%(line)",
+		exampleDefault: `
+    check_wmi 'query=select FreeSpace, DeviceID FROM Win32_LogicalDisk'
+    OK: ...
+	`,
 	}
 }
 

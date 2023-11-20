@@ -36,7 +36,7 @@ func (l *CheckOMD) Build() *CheckData {
 	return &CheckData{
 		name:         "check_omd",
 		description:  "Check omd site status.",
-		implemented:  ALL,
+		implemented:  Linux,
 		hasInventory: ListInventory,
 		args: map[string]CheckArgument{
 			"site":    {value: &l.siteFilter, isFilter: true, description: "Show this site only"},

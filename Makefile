@@ -552,6 +552,7 @@ DOC_COMMANDS=\
 	check_os_version \
 	check_snclient_version \
 	check_uptime \
+	check_wmi \
 
 docs: build
 	set -e; \
