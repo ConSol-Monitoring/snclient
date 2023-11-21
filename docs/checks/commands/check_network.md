@@ -76,6 +76,6 @@ these can be used in filters and thresholds (along with the default attributes):
 | total_received    | Total bytes received                                  |
 | sent              | Bytes sent per second                                 |
 | total_sent        | Total bytes sent                                      |
-| speed             | Network interface speed (linux only)                  |
+| speed             | Network interface speed                               |
 | flags             | Interface flags                                       |
 | total             | Sum of sent and received bytes per second             |

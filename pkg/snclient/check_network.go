@@ -3,8 +3,6 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -59,7 +57,7 @@ func (l *CheckNetwork) Build() *CheckData {
 			{name: "total_received", description: "Total bytes received"},
 			{name: "sent", description: "Bytes sent per second"},
 			{name: "total_sent", description: "Total bytes sent"},
-			{name: "speed", description: "Network interface speed (linux only)"},
+			{name: "speed", description: "Network interface speed"},
 			{name: "flags", description: "Interface flags"},
 			{name: "total", description: "Sum of sent and received bytes per second"},
 		},
@@ -93,13 +91,10 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		}
 		found[int.Name] = true
 
-		speed := "-1"
-		// grab speed from /sys/class/net/<dev>/speed if possible
-		if runtime.GOOS == "linux" {
-			dat, err := os.ReadFile(fmt.Sprintf("/sys/class/net/%s/speed", int.Name))
-			if err == nil {
-				speed = strings.TrimSpace(string(dat))
-			}
+		speed, err := l.interfaceSpeed(int.Index, int.Name)
+		if err != nil {
+			log.Debugf("failed to get interface speed for %s: %s", int.Name, err.Error())
+			speed = -1
 		}
 
 		recvRate := float64(0)
@@ -131,7 +126,7 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 			"sent":              humanize.IBytes(uint64(sentRate)) + "/s",
 			"total_sent":        fmt.Sprintf("%d", IOList[intnr].BytesSent),
 			"total":             fmt.Sprintf("%.2f", recvRate+sentRate),
-			"speed":             speed,
+			"speed":             fmt.Sprintf("%d", speed),
 			"flags":             strings.Join(int.Flags, ","),
 		})
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
