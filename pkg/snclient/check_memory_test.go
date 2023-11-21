@@ -20,8 +20,8 @@ func TestCheckMemory(t *testing.T) {
 	expectedCriticalOutput := `^CRITICAL: physical = \d+(\.\d+)? [KMGTi]*B \|`
 	if swap.Total > 0 {
 		hasSwap = true
-		expectedOKOutput = `^OK: committed = \d+(\.\d+)? [KMGTi]*B, physical = \d+(\.\d+)? [KMGTi]*B \|`
-		expectedCriticalOutput = `^CRITICAL: committed = \d+(\.\d+)? [KMGTi]*B, physical = \d+(\.\d+)? [KMGTi]*B \|`
+		expectedOKOutput = `^OK: physical = \d+(\.\d+)? [KMGTi]*B, committed = \d+(\.\d+)? [KMGTi]*B \|`
+		expectedCriticalOutput = `^CRITICAL: physical = \d+(\.\d+)? [KMGTi]*B, committed = \d+(\.\d+)? [KMGTi]*B \|`
 	}
 
 	res := snc.RunCheck("check_memory", []string{"warn=used > 101", "crit=used > 102"})
