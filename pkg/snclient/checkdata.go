@@ -960,15 +960,15 @@ func (cd *CheckData) helpHeaderMarkdown(format ShowHelp) string {
 	out += fmt.Sprintf(`Naemon Config
 
     define command{
-        command_name    check_nrpe
-        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_nrpe
+        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
     }
 
     define service {
-        host_name               testhost
-        service_description     %s
-        use                     generic-service
-        check_command           check_nrpe!%s!%s
+        host_name            testhost
+        service_description  %s
+        use                  generic-service
+        check_command        check_nrpe!%s!%s
     }`, cd.name, cd.name, cd.exampleArgs)
 	out += "\n\n"
 

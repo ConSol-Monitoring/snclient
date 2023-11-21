@@ -28,15 +28,15 @@ Check status of scheduled jobs
 Naemon Config
 
     define command{
-        command_name    check_nrpe
-        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_nrpe
+        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
     }
 
     define service {
-        host_name               testhost
-        service_description     check_tasksched
-        use                     generic-service
-        check_command           check_nrpe!check_tasksched!'crit=exit_code != 0'
+        host_name            testhost
+        service_description  check_tasksched
+        use                  generic-service
+        check_command        check_nrpe!check_tasksched!'crit=exit_code != 0'
     }
 
 ## Argument Defaults

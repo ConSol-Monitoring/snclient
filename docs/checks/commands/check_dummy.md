@@ -27,15 +27,15 @@ This check simply sets the state to the given value and outputs the remaining ar
 Naemon Config
 
     define command{
-        command_name    check_nrpe
-        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_nrpe
+        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
     }
 
     define service {
-        host_name               testhost
-        service_description     check_dummy
-        use                     generic-service
-        check_command           check_nrpe!check_dummy!0 'some example output'
+        host_name            testhost
+        service_description  check_dummy
+        use                  generic-service
+        check_command        check_nrpe!check_dummy!0 'some example output'
     }
 
 ## Check Specific Arguments

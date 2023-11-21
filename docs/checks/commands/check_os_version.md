@@ -28,15 +28,15 @@ Checks the os system version.
 Naemon Config
 
     define command{
-        command_name    check_nrpe
-        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_nrpe
+        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
     }
 
     define service {
-        host_name               testhost
-        service_description     check_os_version
-        use                     generic-service
-        check_command           check_nrpe!check_os_version!
+        host_name            testhost
+        service_description  check_os_version
+        use                  generic-service
+        check_command        check_nrpe!check_os_version!
     }
 
 ## Argument Defaults

@@ -28,15 +28,15 @@ Checks the disk drive/volumes usage on a host.
 Naemon Config
 
     define command{
-        command_name    check_nrpe
-        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_nrpe
+        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
     }
 
     define service {
-        host_name               testhost
-        service_description     check_drivesize
-        use                     generic-service
-        check_command           check_nrpe!check_drivesize!'warn=used_pct > 90' 'crit=used_pct > 95'
+        host_name            testhost
+        service_description  check_drivesize
+        use                  generic-service
+        check_command        check_nrpe!check_drivesize!'warn=used_pct > 90' 'crit=used_pct > 95'
     }
 
 ## Argument Defaults
