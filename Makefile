@@ -550,6 +550,7 @@ DOC_COMMANDS=\
 	check_network \
 	check_omd \
 	check_os_version \
+	check_pagefile \
 	check_snclient_version \
 	check_uptime \
 	check_wmi \
