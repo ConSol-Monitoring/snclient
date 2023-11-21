@@ -553,6 +553,7 @@ DOC_COMMANDS=\
 	check_os_version \
 	check_pagefile \
 	check_snclient_version \
+	check_tasksched \
 	check_uptime \
 	check_wmi \
 

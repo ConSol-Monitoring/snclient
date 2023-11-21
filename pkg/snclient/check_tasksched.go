@@ -1,13 +1,9 @@
-//go:build windows
-
 package snclient
 
 import (
 	"context"
 	"fmt"
-	"time"
-
-	"github.com/capnspacehook/taskmaster"
+	"runtime"
 )
 
 func init() {
@@ -23,7 +19,8 @@ func (l *CheckTasksched) Build() *CheckData {
 
 	return &CheckData{
 		name:        "check_tasksched",
-		description: "checks scheduled tasks",
+		description: "Check status of scheduled jobs",
+		implemented: Windows,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
@@ -38,85 +35,40 @@ func (l *CheckTasksched) Build() *CheckData {
 		okSyntax:        "%(status): All tasks are ok",
 		emptySyntax:     "%(status): No tasks found",
 		emptyState:      CheckExitWarning,
+		attributes: []CheckAttribute{
+			{name: "application", description: "Name of the application that the task is associated with"},
+			{name: "comment", description: "Comment or description for the work item"},
+			{name: "creator", description: "Creator of the work item"},
+			{name: "enabled", description: "Flag wether this job is enabled (true/false)"},
+			{name: "exit_code", description: "The last jobs exit code"},
+			{name: "exit_string", description: "The last jobs exit code as string"},
+			{name: "folder", description: "Task folder"},
+			{name: "max_run_time", description: "Maximum length of time the task can run"},
+			{name: "most_recent_run_time", description: "Most recent time the work item began running"},
+			{name: "priority", description: "Task priority"},
+			{name: "title", description: "Task title"},
+			{name: "hidden", description: "Indicates that the task will not be visible in the UI (true/false)"},
+			{name: "missed_runs", description: "Number of times the registered task has missed a scheduled run"},
+			{name: "task_status", description: "Task status as string"},
+			{name: "next_run_time", description: "Time when the registered task is next scheduled to run"},
+		},
+		exampleDefault: `
+    check_tasksched
+    OK: All tasks are ok
+	`,
+		exampleArgs: `'crit=exit_code != 0'`,
 	}
 }
 
 func (l *CheckTasksched) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	timeZone, err := time.LoadLocation(l.timeZoneStr)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
+	if runtime.GOOS != "windows" {
+		return nil, fmt.Errorf("check_tasksched is a windows only check")
 	}
 
-	// connect to task scheduler
-	taskSvc, err := taskmaster.Connect()
+	err := l.addTasks(check)
 	if err != nil {
-		return &CheckResult{
-			State:  int64(3),
-			Output: fmt.Sprintf("Failed to open task scheduler: %s", err),
-		}, nil
-	}
-
-	taskList, err := taskSvc.GetRegisteredTasks()
-	if err != nil {
-		return &CheckResult{
-			State:  int64(3),
-			Output: fmt.Sprintf("Failed to fetch scheduled task list: %s", err),
-		}, nil
-	}
-
-	for index := range taskList {
-		entry := map[string]string{
-			"application":          taskList[index].Name,
-			"comment":              taskList[index].Definition.RegistrationInfo.Description,
-			"creator":              taskList[index].Definition.RegistrationInfo.Author,
-			"enabled":              fmt.Sprintf("%t", taskList[index].Enabled),
-			"exit_code":            l.taskExitCode(taskList[index].LastTaskResult),
-			"exit_string":          taskList[index].LastTaskResult.String(),
-			"folder":               taskList[index].Path,
-			"max_run_time":         taskList[index].Definition.Settings.TimeLimit.String(),
-			"most_recent_run_time": taskList[index].LastRunTime.In(timeZone).Format("2006-01-02 15:04:05 MST"),
-			"priority":             fmt.Sprintf("%d", taskList[index].Definition.Settings.Priority),
-			"title":                taskList[index].Name,
-			"hidden":               fmt.Sprintf("%t", taskList[index].Definition.Settings.Hidden),
-			"missed_runs":          fmt.Sprintf("%d", taskList[index].MissedRuns),
-			"task_status":          taskList[index].State.String(),
-			"next_run_time":        taskList[index].NextRunTime.In(timeZone).Format("2006-01-02 15:04:05 MST"),
-		}
-		check.listData = append(check.listData, entry)
+		return nil, err
 	}
 
 	return check.Finalize()
-}
-
-func (l *CheckTasksched) taskExitCode(taskResult taskmaster.TaskResult) string {
-	switch taskResult {
-	case taskmaster.SCHED_S_SUCCESS:
-		return "0"
-	case taskmaster.SCHED_S_TASK_READY:
-		return "1"
-	case taskmaster.SCHED_S_TASK_RUNNING:
-		return "2"
-	case taskmaster.SCHED_S_TASK_DISABLED:
-		return "3"
-	case taskmaster.SCHED_S_TASK_HAS_NOT_RUN:
-		return "4"
-	case taskmaster.SCHED_S_TASK_NO_MORE_RUNS:
-		return "5"
-	case taskmaster.SCHED_S_TASK_NOT_SCHEDULED:
-		return "6"
-	case taskmaster.SCHED_S_TASK_TERMINATED:
-		return "7"
-	case taskmaster.SCHED_S_TASK_NO_VALID_TRIGGERS:
-		return "8"
-	case taskmaster.SCHED_S_EVENT_TRIGGER:
-		return "9"
-	case taskmaster.SCHED_S_SOME_TRIGGERS_FAILED:
-		return "10"
-	case taskmaster.SCHED_S_BATCH_LOGON_PROBLEM:
-		return "11"
-	case taskmaster.SCHED_S_TASK_QUEUED:
-		return "12"
-	default:
-		return "-1"
-	}
 }
