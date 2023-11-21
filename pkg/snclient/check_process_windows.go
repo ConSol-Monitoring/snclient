@@ -11,40 +11,11 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func init() {
-	AvailableChecks["check_process"] = CheckEntry{"check_process", new(CheckProcess)}
-}
-
 var ProcessStates = map[string]string{
 	"stopped": "0",
 	"started": "1",
 	"0":       "stopped",
 	"1":       "started",
-}
-
-type CheckProcess struct {
-	processes []string
-}
-
-func (l *CheckProcess) Build() *CheckData {
-	l.processes = []string{}
-
-	return &CheckData{
-		name:         "check_process",
-		description:  "Check state/metrics of one or more of the processes running on the computer.",
-		hasInventory: ListInventory,
-		result: &CheckResult{
-			State: CheckExitOK,
-		},
-		args: map[string]CheckArgument{
-			"process": {value: &l.processes, description: "The process to check, set to * to check all. Default: *"},
-		},
-		detailSyntax: "${exe}=${state}",
-		topSyntax:    "%(status): %(problem_list)",
-		okSyntax:     "%(status): all processes are ok.",
-		emptySyntax:  "No processes found",
-		emptyState:   CheckExitUnknown,
-	}
 }
 
 func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {

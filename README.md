@@ -50,7 +50,7 @@ X: completed
 | check_network          |    X    |    X    |    X    |    X    |
 | check_os_version       |    X    |    X    |    X    |    X    |
 | check_pagefile         |    X    |         |         |         |
-| check_process          |    W    |    W    |    W    |    W    |
+| check_process          |    X    |    X    |    X    |    X    |
 | check_service          |    X    |    X    |         |         |
 | check_snclient_version |    X    |    X    |    X    |    X    |
 | check_tasksched        |         |         |         |         |

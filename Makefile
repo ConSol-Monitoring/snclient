@@ -559,6 +559,7 @@ DOC_COMMANDS=\
 	check_omd \
 	check_os_version \
 	check_pagefile \
+	check_process \
 	check_snclient_version \
 	check_tasksched \
 	check_uptime \
