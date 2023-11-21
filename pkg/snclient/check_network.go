@@ -17,6 +17,10 @@ func init() {
 	AvailableChecks["check_network"] = CheckEntry{"check_network", new(CheckNetwork)}
 }
 
+const (
+	TrafficRateDuration = 30 * time.Second
+)
+
 type CheckNetwork struct {
 	snc      *Agent
 	names    []string
@@ -53,9 +57,9 @@ func (l *CheckNetwork) Build() *CheckData {
 			{name: "enabled", description: "True if the network interface is enabled (true/false)"},
 			{name: "name", description: "Name of the interface"},
 			{name: "net_connection_id", description: "same as name"},
-			{name: "received", description: "Bytes received per second"},
+			{name: "received", description: "Bytes received per second (calculated over the last " + TrafficRateDuration.String() + ")"},
 			{name: "total_received", description: "Total bytes received"},
-			{name: "sent", description: "Bytes sent per second"},
+			{name: "sent", description: "Bytes sent per second (calculated over the last " + TrafficRateDuration.String() + ")"},
 			{name: "total_sent", description: "Total bytes sent"},
 			{name: "speed", description: "Network interface speed"},
 			{name: "flags", description: "Interface flags"},
@@ -99,18 +103,18 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 		recvRate := float64(0)
 		recv1 := l.snc.Counter.Get("net", int.Name+"_recv").GetLast()
-		recv2 := l.snc.Counter.Get("net", int.Name+"_recv").GetAt(time.Now().Add(-30 * time.Second))
+		recv2 := l.snc.Counter.Get("net", int.Name+"_recv").GetAt(time.Now().Add(-TrafficRateDuration))
 		if recv1 != nil && recv2 != nil && recv1.timestamp.After(recv2.timestamp) {
-			recvRate = recv1.value - recv2.value/float64(recv1.timestamp.Unix()) - float64(recv2.timestamp.Unix())
+			recvRate = (recv1.value - recv2.value) / float64(recv1.timestamp.Unix()-recv2.timestamp.Unix())
 		}
 		if recvRate < 0 {
 			recvRate = 0
 		}
 		sentRate := float64(0)
 		sent1 := l.snc.Counter.Get("net", int.Name+"_sent").GetLast()
-		sent2 := l.snc.Counter.Get("net", int.Name+"_sent").GetAt(time.Now().Add(-30 * time.Second))
+		sent2 := l.snc.Counter.Get("net", int.Name+"_sent").GetAt(time.Now().Add(-TrafficRateDuration))
 		if sent1 != nil && sent2 != nil && sent1.timestamp.After(sent2.timestamp) {
-			sentRate = sent1.value - sent2.value/float64(sent1.timestamp.Unix()) - float64(sent2.timestamp.Unix())
+			sentRate = (sent1.value - sent2.value) / float64(sent1.timestamp.Unix()-sent2.timestamp.Unix())
 		}
 		if sentRate < 0 {
 			sentRate = 0
