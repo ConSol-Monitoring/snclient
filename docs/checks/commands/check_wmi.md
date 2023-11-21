@@ -19,8 +19,8 @@ Check status and metrics by running wmi queries.
 
 ### Default Check
 
-    check_wmi 'query=select FreeSpace, DeviceID FROM Win32_LogicalDisk'
-    OK: ...
+    check_wmi "query=select FreeSpace, DeviceID FROM Win32_LogicalDisk WHERE DeviceID = 'C:'"
+    27955118080, C:
 
 ### Example using NRPE and Naemon
 

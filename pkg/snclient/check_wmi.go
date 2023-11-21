@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"strings"
 
 	"pkg/wmi"
@@ -44,13 +45,16 @@ func (l *CheckWMI) Build() *CheckData {
 		topSyntax:    "${list}",
 		detailSyntax: "%(line)",
 		exampleDefault: `
-    check_wmi 'query=select FreeSpace, DeviceID FROM Win32_LogicalDisk'
-    OK: ...
+    check_wmi "query=select FreeSpace, DeviceID FROM Win32_LogicalDisk WHERE DeviceID = 'C:'"
+    27955118080, C:
 	`,
 	}
 }
 
 func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	if runtime.GOOS != "windows" {
+		return nil, fmt.Errorf("check_pagefile is a windows only check")
+	}
 	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckWMI")
 	if !enabled {
 		return nil, fmt.Errorf("module CheckWMI is not enabled in /modules section")
