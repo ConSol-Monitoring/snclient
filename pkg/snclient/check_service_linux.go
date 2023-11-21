@@ -176,7 +176,7 @@ func (l *CheckService) isRequired(check *CheckData, entry map[string]string, ser
 		return false
 	}
 
-	if !check.MatchMapCondition(check.filter, entry) {
+	if !check.MatchMapCondition(check.filter, entry, true) {
 		log.Tracef("service %s excluded by filter", name)
 
 		return false

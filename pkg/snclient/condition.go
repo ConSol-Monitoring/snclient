@@ -167,14 +167,14 @@ func NewCondition(input string) (*Condition, error) {
 	return cond, nil
 }
 
-// Match checks if given map matches current condition
-func (c *Condition) Match(data map[string]string) bool {
+// Match checks if given map matches current condition, notExists sets the result in case an attribute does not exist
+func (c *Condition) Match(data map[string]string, notExists bool) bool {
 	if c.isNone {
 		return false
 	}
 	if len(c.group) > 0 {
 		for i := range c.group {
-			res := c.group[i].matchSingle(data)
+			res := c.group[i].matchSingle(data, notExists)
 			if !res && c.groupOperator == GroupAnd {
 				return false
 			}
@@ -188,17 +188,18 @@ func (c *Condition) Match(data map[string]string) bool {
 		return c.groupOperator == GroupAnd
 	}
 
-	return c.matchSingle(data)
+	return c.matchSingle(data, notExists)
 }
 
 // matchSingle checks a single condition and does not recurse into logical groups
-func (c *Condition) matchSingle(data map[string]string) bool {
+// notExists sets the result in case an attribute does not exist
+func (c *Condition) matchSingle(data map[string]string, notExists bool) bool {
 	if c.isNone {
 		return true
 	}
 	varStr, ok := c.getVarValue(data)
 	if !ok {
-		return false
+		return notExists
 	}
 	condStr := fmt.Sprintf("%v", c.value)
 	varNum, err1 := strconv.ParseFloat(varStr, 64)

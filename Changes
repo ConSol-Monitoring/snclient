@@ -6,6 +6,7 @@ next:
          - add node exporter to osx packages
          - add check_load plugin
          - improve docs and help pages
+         - add folder size support to check_files (#38)
          - fix reading empty config files (#58)
          - fix packaging for debian <= 12
 

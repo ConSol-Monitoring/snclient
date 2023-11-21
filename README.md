@@ -43,7 +43,7 @@ X: completed
 | check_drivesize        |    X    |    X    |    X    |    X    |
 | check_dummy            |    X    |    X    |    X    |    X    |
 | check_eventlog         |    W    |         |         |         |
-| check_files            |    W    |    W    |    W    |    W    |
+| check_files            |    X    |    X    |    X    |    X    |
 | check_index            |    X    |    X    |    X    |    X    |
 | check_load             |    X    |    X    |    X    |    X    |
 | check_memory           |    X    |    X    |    X    |    X    |

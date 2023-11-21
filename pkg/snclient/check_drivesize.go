@@ -300,7 +300,7 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 	drive["fstype"] = usage.Fstype
 
 	// check filter before adding metrics
-	if !check.MatchMapCondition(check.filter, drive) {
+	if !check.MatchMapCondition(check.filter, drive, true) {
 		return
 	}
 
@@ -366,7 +366,7 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 	check.listData = append(check.listData, drive)
 
 	// check filter before adding metrics
-	if !check.MatchMapCondition(check.filter, drive) {
+	if !check.MatchMapCondition(check.filter, drive, true) {
 		return
 	}
 

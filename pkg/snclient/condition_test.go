@@ -150,7 +150,7 @@ func TestConditionCompare(t *testing.T) {
 		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
 		compare := map[string]string{check.key: check.value}
-		assert.Equalf(t, check.expect, threshold.Match(compare), fmt.Sprintf("Compare(%s) -> (%v) %v", check.threshold, check.value, check.expect))
+		assert.Equalf(t, check.expect, threshold.Match(compare, false), fmt.Sprintf("Compare(%s) -> (%v) %v", check.threshold, check.value, check.expect))
 	}
 }
 

@@ -553,6 +553,7 @@ DOC_COMMANDS=\
 	check_cpu \
 	check_dummy \
 	check_drivesize \
+	check_files \
 	check_load \
 	check_memory \
 	check_network \

@@ -304,19 +304,19 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []
 	data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 
 	for i := range warnCond {
-		if warnCond[i].Match(data) {
+		if warnCond[i].Match(data, false) {
 			data["_state"] = fmt.Sprintf("%d", CheckExitWarning)
 		}
 	}
 
 	for i := range critCond {
-		if critCond[i].Match(data) {
+		if critCond[i].Match(data, false) {
 			data["_state"] = fmt.Sprintf("%d", CheckExitCritical)
 		}
 	}
 
 	for i := range okCond {
-		if okCond[i].Match(data) {
+		if okCond[i].Match(data, false) {
 			data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 		}
 	}
@@ -335,7 +335,7 @@ func (cd *CheckData) MatchFilterMap(data map[string]string) bool {
 		if cond.isNone {
 			return true
 		}
-		if cond.Match(data) {
+		if cond.Match(data, false) {
 			return true
 		}
 	}
@@ -343,13 +343,13 @@ func (cd *CheckData) MatchFilterMap(data map[string]string) bool {
 	return false
 }
 
-// MatchMapCondition returns true if listEntry matches filter
-func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string]string) bool {
+// MatchMapCondition returns true if listEntry matches filter, notExists sets the result in case an attribute does not exist
+func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string]string, notExists bool) bool {
 	for i := range conditions {
 		if conditions[i].isNone {
 			continue
 		}
-		if !conditions[i].Match(entry) {
+		if !conditions[i].Match(entry, notExists) {
 			return false
 		}
 	}
@@ -366,7 +366,7 @@ func (cd *CheckData) Filter(conditions []*Condition, data []map[string]string) [
 	result := make([]map[string]string, 0)
 
 	for num := range data {
-		if cd.MatchMapCondition(conditions, data[num]) {
+		if cd.MatchMapCondition(conditions, data[num], false) {
 			result = append(result, data[num])
 		}
 	}
