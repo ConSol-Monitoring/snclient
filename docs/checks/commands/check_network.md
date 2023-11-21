@@ -66,16 +66,16 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute         | Description                                           |
-| ----------------- | ----------------------------------------------------- |
-| MAC               | The MAC address                                       |
-| enabled           | True if the network interface is enabled (true/false) |
-| name              | Name of the interface                                 |
-| net_connection_id | same as name                                          |
-| received          | Bytes received per second                             |
-| total_received    | Total bytes received                                  |
-| sent              | Bytes sent per second                                 |
-| total_sent        | Total bytes sent                                      |
-| speed             | Network interface speed                               |
-| flags             | Interface flags                                       |
-| total             | Sum of sent and received bytes per second             |
+| Attribute         | Description                                              |
+| ----------------- | -------------------------------------------------------- |
+| MAC               | The MAC address                                          |
+| enabled           | True if the network interface is enabled (true/false)    |
+| name              | Name of the interface                                    |
+| net_connection_id | same as name                                             |
+| received          | Bytes received per second (calculated over the last 30s) |
+| total_received    | Total bytes received                                     |
+| sent              | Bytes sent per second (calculated over the last 30s)     |
+| total_sent        | Total bytes sent                                         |
+| speed             | Network interface speed                                  |
+| flags             | Interface flags                                          |
+| total             | Sum of sent and received bytes per second                |
