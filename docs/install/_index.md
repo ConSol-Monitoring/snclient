@@ -7,6 +7,8 @@ linkTitle: Installation
 
 Using packages is the recommended way to install SNClient+.
 
+Find a list of [supported OS distributions](supported) here.
+
 ### Stable Releases
 
 Installation packages from stable releases can be found here:
