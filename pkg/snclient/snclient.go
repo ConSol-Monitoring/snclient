@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"pkg/utils"
 	"regexp"
 	"runtime"
 	"runtime/debug"
@@ -22,6 +21,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"pkg/utils"
 
 	"github.com/kdar/factorlog"
 	deadlock "github.com/sasha-s/go-deadlock"

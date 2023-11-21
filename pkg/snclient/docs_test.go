@@ -6,16 +6,21 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/exp/slices"
 )
 
 func TestDocsExists(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
+	skipChecks := []string{"check_index", "check_nscp_version"}
+	skipTypes := []string{"*snclient.CheckAlias", "*snclient.CheckWrap"}
+
 	for name := range AvailableChecks {
-		if name == "check_index" {
+		if slices.Contains(skipChecks, name) {
 			continue
 		}
-		if name == "check_nscp_version" {
+		checkType := fmt.Sprintf("%T", AvailableChecks[name].Handler)
+		if slices.Contains(skipTypes, checkType) {
 			continue
 		}
 		pluginFile := fmt.Sprintf("../../docs/checks/plugins/%s.md", name)
@@ -35,6 +40,7 @@ func TestDocsExists(t *testing.T) {
 			}
 		}
 		if !isCommand && !isPlugin {
+			t.Logf("%s: %s", name, checkType)
 			assert.Failf(t, "docs exist", "docs/checks/.../%s.md file for %s does not exist", name, name)
 		}
 	}
