@@ -5,7 +5,9 @@ next:
          - update node exporter to 1.7.0
          - add node exporter to osx packages
          - add check_load plugin
+         - improve docs and help pages
          - fix reading empty config files (#58)
+         - fix packaging for debian <= 12
 
 0.12     Tue Nov  7 23:52:33 CET 2023
          - add built-in check_http / check_tcp / check_dns
