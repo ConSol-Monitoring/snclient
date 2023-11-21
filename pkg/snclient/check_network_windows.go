@@ -3,7 +3,7 @@ package snclient
 import (
 	"fmt"
 
-	"convert"
+	"pkg/convert"
 	"pkg/wmi"
 )
 
