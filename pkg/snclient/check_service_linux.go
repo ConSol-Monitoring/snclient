@@ -38,8 +38,12 @@ func (l *CheckService) Build() *CheckData {
 	l.excludes = []string{}
 
 	return &CheckData{
-		name:         "check_service",
-		description:  "Checks the state of one or multiple linux (systemctl) services.",
+		name: "check_service",
+		description: `Checks the state of one or multiple linux (systemctl) services.
+
+There is a specific [check_service for windows](check_service_windows) as well.`,
+		implemented:  Linux,
+		docTitle:     "service (linux)",
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -55,6 +59,32 @@ func (l *CheckService) Build() *CheckData {
 		okSyntax:        "%(status): All %(count) service(s) are ok.",
 		emptySyntax:     "%(status): No services found",
 		emptyState:      CheckExitUnknown,
+		attributes: []CheckAttribute{
+			{name: "name", description: "The name of the service"},
+			{name: "service", description: "Alias for name"},
+			{name: "desc", description: "Description of the service"},
+			{name: "state", description: "The state of the service, one of: stopped, starting, oneshot, running or unknown"},
+			{name: "created", description: "Date when service was created"},
+			{name: "preset", description: "The preset attribute of the service, one of: enabled or disabled"},
+			{name: "pid", description: "The pid of the service"},
+			{name: "mem", description: "The memory usage in human readable bytes"},
+			{name: "mem_bytes", description: "The memory usage in bytes"},
+		},
+		exampleDefault: `
+    check_service
+    OK: All 74 service(s) are ok.
+
+Or check a specific service and get some metrics:
+
+    check_service service=docker ok-syntax='%(status): %(list)' detail-syntax='%(name) - memory: %(mem) - created: %(created)'
+    OK: docker - memory: 805.2M - created: Fri 2023-11-17 20:34:01 CET |'docker'=4 'docker mem'=805200000B
+
+Check memory usage of specific service:
+
+    check_service service=docker warn='mem > 1GB' warn='mem > 2GB'
+    OK: All 1 service(s) are ok. |'docker'=4 'docker mem'=793700000B;1000000000;2000000000;0
+	`,
+		exampleArgs: "service=docker",
 	}
 }
 
@@ -147,12 +177,17 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, service
 	if err != nil {
 		memBytes = 0
 	}
+	listEntry["mem_bytes"] = fmt.Sprintf("%d", memBytes)
 	check.result.Metrics = append(
 		check.result.Metrics,
 		&CheckMetric{
-			Name:  fmt.Sprintf("%s mem", service),
-			Value: float64(memBytes),
-			Unit:  "B",
+			ThresholdName: "mem",
+			Name:          fmt.Sprintf("%s mem", service),
+			Value:         float64(memBytes),
+			Unit:          "B",
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+			Min:           &Zero,
 		},
 	)
 
@@ -222,14 +257,15 @@ func (l *CheckService) svcStateFloat(serviceState string) float64 {
 
 func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[string]string) {
 	listEntry = map[string]string{
-		"name":    name,
-		"service": name,
-		"state":   "unknown",
-		"created": "",
-		"preset":  "",
-		"desc":    "",
-		"pid":     "",
-		"mem":     "",
+		"name":      name,
+		"service":   name,
+		"state":     "unknown",
+		"created":   "",
+		"preset":    "",
+		"desc":      "",
+		"pid":       "",
+		"mem":       "",
+		"mem_bytes": "",
 	}
 
 	match := reSvcDetails.FindStringSubmatch(output)

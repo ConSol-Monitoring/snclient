@@ -572,3 +572,4 @@ docs: build
 		echo "updating docs/checks/commands/$$CHK.md"; \
 		./snclient run $$CHK help=md > docs/checks/commands/$$CHK.md || : ; \
 	done
+	./snclient run check_service help=md > docs/checks/commands/check_service_linux.md || :

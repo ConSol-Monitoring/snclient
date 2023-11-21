@@ -1,86 +1,89 @@
-﻿---
-title: service (Linux)
+---
+title: service (linux)
 ---
 
-# check_service (Linux)
+## check_service
 
-Check the state of one or more of the linux (systemctl) services.
+Checks the state of one or multiple linux (systemctl) services.
+
+There is a specific [check_service for windows](check_service_windows) as well.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Attributes](#attributes)
 
-### Implementation
+## Implementation
 
-| Windows | Linux | FreeBSD | MacOSX |
-|:-------:|:-----:|:-------:|:------:|
-|  :x:  |  :white_check_mark:  |  :x:  |  :x:  |
-
-There is a [check_service for windows](check_service_windows) as well.
+| Windows | Linux              | FreeBSD | MacOSX |
+|:-------:|:------------------:|:-------:|:------:|
+|         | :white_check_mark: |         |        |
 
 ## Examples
 
-### Default check
+### Default Check
 
     check_service
-    OK: All 15 service(s) are ok.
+    OK: All 74 service(s) are ok.
 
-Checking a single service:
+Or check a specific service and get some metrics:
 
-    check_service service=postfix
-    OK: All 1 service(s) are ok.
+    check_service service=docker ok-syntax='%(status): %(list)' detail-syntax='%(name) - memory: %(mem) - created: %(created)'
+    OK: docker - memory: 805.2M - created: Fri 2023-11-17 20:34:01 CET |'docker'=4 'docker mem'=805200000B
 
+Check memory usage of specific service:
+
+    check_service service=docker warn='mem > 1GB' warn='mem > 2GB'
+    OK: All 1 service(s) are ok. |'docker'=4 'docker mem'=793700000B;1000000000;2000000000;0
 
 ### Example using NRPE and Naemon
 
 Naemon Config
 
     define command{
-        command_name    check_nrpe
-        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_nrpe
+        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
     }
 
     define service {
-            host_name               testhost
-            service_description     check_service_testhost
-            check_command           check_nrpe!check_service!'service=postfix' 'crit=status != running'
+        host_name            testhost
+        service_description  check_service
+        use                  generic-service
+        check_command        check_nrpe!check_service!service=docker
     }
-
-Return
-
-    OK: All 1 service(s) are ok.
 
 ## Argument Defaults
 
-| Argument | Default Value |
-| --- | --- |
-filter | none |
-warning | none |
-critical | state not in ('running', 'oneshot', 'static') && preset != 'disabled' |
-empty-state | 3 (Unknown) |
-top-syntax | %(status): %(crit_list) |
-ok-syntax | %(status): All %(count) service(s) are ok. |
-empty-syntax | %(status): No services found |
-detail-syntax | \${name}=\${state} (${start_type}) |
+| Argument      | Default Value                                                         |
+| ------------- | --------------------------------------------------------------------- |
+| filter        | none                                                                  |
+| critcal       | state not in ('running', 'oneshot', 'static') && preset != 'disabled' |
+| empty-state   | 3 (UNKNOWN)                                                           |
+| empty-syntax  | %(status): No services found                                          |
+| top-syntax    | %(status): %(crit_list)                                               |
+| ok-syntax     | %(status): All %(count) service(s) are ok.                            |
+| detail-syntax | \${name}=\${state}                                                    |
 
-### **Check specific arguments**
+## Check Specific Arguments
 
-| Argument | Default Value | Description |
-| --- | --- | --- |
-| service | | Name of the service to check (set to * to check all services) |
-| exclude | | List of services to exclude from the check (mainly used when service is set to *) |
+| Argument | Description                                                                        |
+| -------- | ---------------------------------------------------------------------------------- |
+| exclude  | List of services to exclude from the check (mainly used when service is set to \*) |
+| service  | Name of the service to check (set to \* to check all services). Default: \*        |
 
+## Attributes
 
-## Filter
+### Check Specific Attributes
 
-#### **Check specific filter**
+these can be used in filters and thresholds (along with the default attributes):
 
-| Filter Attribute | Description |
-| ---------------- | ----------- |
-| name | The name of the service |
-| service | Same as name |
-| desc | Description of the service |
-| state | The state of the service, one of: stopped, starting, oneshot, running or unknown |
-| preset | The preset attribute of the service, one of: enabled or disabled |
-| pid | The pid of the service |
-| mem | The memory usage |
+| Attribute | Description                                                                      |
+| --------- | -------------------------------------------------------------------------------- |
+| name      | The name of the service                                                          |
+| service   | Alias for name                                                                   |
+| desc      | Description of the service                                                       |
+| state     | The state of the service, one of: stopped, starting, oneshot, running or unknown |
+| created   | Date when service was created                                                    |
+| preset    | The preset attribute of the service, one of: enabled or disabled                 |
+| pid       | The pid of the service                                                           |
+| mem       | The memory usage in human readable bytes                                         |
+| mem_bytes | The memory usage in bytes                                                        |

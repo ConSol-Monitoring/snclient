@@ -73,6 +73,7 @@ type CheckData struct {
 	noCopy          noCopy
 	name            string
 	description     string
+	docTitle        string
 	usage           string
 	debug           string
 	defaultFilter   string
@@ -937,7 +938,11 @@ func (cd *CheckData) helpHeader(format ShowHelp) string {
 
 func (cd *CheckData) helpHeaderMarkdown(format ShowHelp) string {
 	out := ""
-	out += fmt.Sprintf("---\ntitle: %s\n---\n\n", strings.TrimPrefix(cd.name, "check_"))
+	title := strings.TrimPrefix(cd.name, "check_")
+	if cd.docTitle != "" {
+		title = cd.docTitle
+	}
+	out += fmt.Sprintf("---\ntitle: %s\n---\n\n", strings.TrimSpace(title))
 	out += fmt.Sprintf("## %s\n\n", cd.name)
 	out += fmt.Sprintf("%s\n\n", cd.description)
 	out += "- [Examples](#examples)\n"
