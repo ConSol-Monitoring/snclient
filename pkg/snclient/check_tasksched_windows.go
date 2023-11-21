@@ -18,12 +18,12 @@ func (l *CheckTasksched) addTasks(check *CheckData) error {
 	// connect to task scheduler
 	taskSvc, err := taskmaster.Connect()
 	if err != nil {
-		return fmt.Errorf("Failed to open task scheduler: %s", err.Error())
+		return fmt.Errorf("failed to open task scheduler: %s", err.Error())
 	}
 
 	taskList, err := taskSvc.GetRegisteredTasks()
 	if err != nil {
-		return fmt.Errorf("Failed to fetch scheduled task list: %s", err.Error())
+		return fmt.Errorf("failed to fetch scheduled task list: %s", err.Error())
 	}
 
 	for index := range taskList {

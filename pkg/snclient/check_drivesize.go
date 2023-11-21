@@ -29,16 +29,8 @@ type CheckDrivesize struct {
 	hasCustomPath    bool
 }
 
-func (l *CheckDrivesize) Build() *CheckData {
-	l.drives = []string{"all"}
-	l.excludes = []string{}
-	l.total = false
-	l.magic = float64(1)
-	l.mounted = false
-	l.ignoreUnreadable = false
-	l.hasCustomPath = false
-
-	excludedFsTypes := []string{
+func (l *CheckDrivesize) defaultExcludedFsTypes() []string {
+	return []string{
 		"binfmt_misc",
 		"bpf",
 		"cgroup2fs",
@@ -58,6 +50,16 @@ func (l *CheckDrivesize) Build() *CheckData {
 		"sysfs",
 		"tracefs",
 	}
+}
+
+func (l *CheckDrivesize) Build() *CheckData {
+	l.drives = []string{"all"}
+	l.excludes = []string{}
+	l.total = false
+	l.magic = float64(1)
+	l.mounted = false
+	l.ignoreUnreadable = false
+	l.hasCustomPath = false
 
 	return &CheckData{
 		name:         "check_drivesize",
@@ -76,7 +78,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"mounted":           {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
 			"ignore-unreadable": {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
 		},
-		defaultFilter:   "fstype not in (" + utils.List2String(excludedFsTypes) + ")",
+		defaultFilter:   "fstype not in (" + utils.List2String(l.defaultExcludedFsTypes()) + ")",
 		defaultWarning:  "used_pct > 80",
 		defaultCritical: "used_pct > 90",
 		okSyntax:        "%(status): All %(count) drive(s) are ok",
