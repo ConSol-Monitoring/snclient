@@ -2,27 +2,26 @@
 title: drivesize
 ---
 
-# check_drivesize
+## check_drivesize
 
-Check the size (free-space) of a drive or volume.
+Checks the disk drive/volumes usage on a host.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Attributes](#attributes)
 
-### Implementation
+## Implementation
 
-| Windows | Linux | FreeBSD | MacOSX |
-|:-------:|:-----:|:-------:|:------:|
-| :white_check_mark: | :construction: | :construction: | :construction: |
+| Windows            | Linux              | FreeBSD            | MacOSX             |
+|:------------------:|:------------------:|:------------------:|:------------------:|
+| :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Examples
 
-### Default check
+### Default Check
 
-    check_drivesize drive=c:
-    OK: All 1 drive(s) are ok
-
+    check_drivesize drive=/
+    OK: All 1 drive(s) are ok |'/ used'=296820846592B;;;0;489570443264 '/ used %'=60.6%;;;0;100
 
 ### Example using NRPE and Naemon
 
@@ -34,59 +33,61 @@ Naemon Config
     }
 
     define service {
-            host_name               testhost
-            service_description     check_drivesize_testhost
-            check_command           check_nrpe!check_drivesize!'drive=*' 'warn=used > 80' 'crit=used > 95'
+        host_name               testhost
+        service_description     check_drivesize
+        use                     generic-service
+        check_command           check_nrpe!check_drivesize!'warn=used_pct > 90' 'crit=used_pct > 95'
     }
-
-Return
-
-    OK: All 1 drive(s) are ok
 
 ## Argument Defaults
 
-| Argument | Default Value |
-| --- | --- |
-filter | ( mounted = 1  or media_type = 0 ) |
-warning | used > 80 |
-critical | used > 90 |
-top-syntax | \${status} ${problem_list} |
-ok-syntax | %(status) All %(count) drive(s) are ok |
-empty-syntax | %(status): No drives found |
-detail-syntax | %(drive_or_name) %(used)/%(size) used |
+| Argument      | Default Value                                                                                                                                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| filter        | fstype not in ('binfmt_misc', 'bpf', 'cgroup2fs', 'configfs', 'debugfs', 'devpts', 'efivarfs', 'fusectl', 'hugetlbfs', 'mqueue', 'nfsd', 'proc', 'pstorefs', 'ramfs', 'rpc_pipefs', 'securityfs', 'sysfs', 'tracefs') |
+| warning       | used_pct > 80                                                                                                                                                                                                         |
+| critcal       | used_pct > 90                                                                                                                                                                                                         |
+| empty-state   | 3 (UNKNOWN)                                                                                                                                                                                                           |
+| empty-syntax  | %(status): No drives found                                                                                                                                                                                            |
+| top-syntax    | \${status}: \${problem_list}                                                                                                                                                                                          |
+| ok-syntax     | %(status): All %(count) drive(s) are ok                                                                                                                                                                               |
+| detail-syntax | %(drive_or_name) %(used)/%(size) used                                                                                                                                                                                 |
 
-### Check specific arguments
+## Check Specific Arguments
 
-| Argument | Description |
-| --- | --- |
-| drive | The drives to check |
-| magic | Magic number for use with scaling drive sizes. Note there is also a more generic magic factor in the perf-config option. |
-| exclude | List of drives to exclude from check |
-| total | Include the total of all matching drives |
+| Argument          | Description                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| drive             | The drives to check                                                                                                      |
+| exclude           | List of drives to exclude from check                                                                                     |
+| ignore-unreadable | Deprecated, use filter instead                                                                                           |
+| magic             | Magic number for use with scaling drive sizes. Note there is also a more generic magic factor in the perf-config option. |
+| mounted           | Deprecated, use filter instead                                                                                           |
+| total             | Include the total of all matching drives                                                                                 |
 
 ## Attributes
 
-### Check specific attributes
+### Check Specific Attributes
 
-| Attribute | Description |
-| --- | --- |
-| id | Drive or id of drive |
-| name | Descriptive name of drive |
-| drive | Name of the drive |
-| drive_or_id | Drive letter if present if not use id |
-| drive_or_name | Drive letter if present if not use name |
-| media_type | The media type |
-| type | Type of drive |
-| letter | Letter the drive is mounted on |
-| size | Total size of drive (human readable) |
-| size_bytes | Total size of drive in bytes |
-| used | Total used of drive (human readable) |
-| used_bytes | Total used of drive in bytes |
-| used_pct | Total used of drive in percent |
-| free | Total free of drive (human readable) |
-| free_bytes | Total free of drive in bytes |
-| free_pct | Total free of drive in percent |
+these can be used in filters and thresholds (along with the default attributes):
 
-### Notes
-
-If no unit is specified, `used` and `free` default to percent, so `warning=used > 15` and `warning=used > 15%` is the same.
+| Attribute       | Description                             |
+| --------------- | --------------------------------------- |
+| drive           | Technical name of drive                 |
+| name            | Descriptive name of drive               |
+| id              | Drive or id of drive                    |
+| drive_or_id     | Drive letter if present if not use id   |
+| drive_or_name   | Drive letter if present if not use name |
+| fstype          | Filesystem type                         |
+| free            | Free (human readable) bytes             |
+| free_bytes      | Number of free bytes                    |
+| free_pct        | Free bytes in percent                   |
+| inodes_free     | Number of free inodes                   |
+| inodes_free_pct | Number of free inodes in percent        |
+| inodes_total    | Number of total free inodes             |
+| inodes_used     | Number of used inodes                   |
+| inodes_used_pct | Number of used inodes in percent        |
+| mounted         | Flag wether drive is mounter (0/1)      |
+| size            | Total size in human readable bytes      |
+| size_bytes      | Total size in bytes                     |
+| used            | Used (human readable) bytes             |
+| used_bytes      | Number of used bytes                    |
+| used_pct        | Used bytes in percent                   |

@@ -62,6 +62,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 	return &CheckData{
 		name:         "check_drivesize",
 		description:  "Checks the disk drive/volumes usage on a host.",
+		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -83,6 +84,33 @@ func (l *CheckDrivesize) Build() *CheckData {
 		topSyntax:       "${status}: ${problem_list}",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status): No drives found",
+		attributes: []CheckAttribute{
+			{name: "drive", description: "Technical name of drive"},
+			{name: "name", description: "Descriptive name of drive"},
+			{name: "id", description: "Drive or id of drive"},
+			{name: "drive_or_id", description: "Drive letter if present if not use id"},
+			{name: "drive_or_name", description: "Drive letter if present if not use name"},
+			{name: "fstype", description: "Filesystem type"},
+			{name: "free", description: "Free (human readable) bytes"},
+			{name: "free_bytes", description: "Number of free bytes"},
+			{name: "free_pct", description: "Free bytes in percent"},
+			{name: "inodes_free", description: "Number of free inodes"},
+			{name: "inodes_free_pct", description: "Number of free inodes in percent"},
+			{name: "inodes_total", description: "Number of total free inodes"},
+			{name: "inodes_used", description: "Number of used inodes"},
+			{name: "inodes_used_pct", description: "Number of used inodes in percent"},
+			{name: "mounted", description: "Flag wether drive is mounter (0/1)"},
+			{name: "size", description: "Total size in human readable bytes"},
+			{name: "size_bytes", description: "Total size in bytes"},
+			{name: "used", description: "Used (human readable) bytes"},
+			{name: "used_bytes", description: "Number of used bytes"},
+			{name: "used_pct", description: "Used bytes in percent"},
+		},
+		exampleDefault: `
+    check_drivesize drive=/
+    OK: All 1 drive(s) are ok |'/ used'=296820846592B;;;0;489570443264 '/ used %'=60.6%;;;0;100
+	`,
+		exampleArgs: `'warn=used_pct > 90' 'crit=used_pct > 95'`,
 	}
 }
 
