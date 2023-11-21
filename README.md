@@ -42,22 +42,22 @@ X: completed
 | check_cpu              |    X    |    X    |    X    |    X    |
 | check_drivesize        |    X    |    X    |    X    |    X    |
 | check_dummy            |    X    |    X    |    X    |    X    |
-| check_eventlog         |    W    |         |         |         |
 | check_files            |    X    |    X    |    X    |    X    |
 | check_index            |    X    |    X    |    X    |    X    |
 | check_load             |    X    |    X    |    X    |    X    |
 | check_memory           |    X    |    X    |    X    |    X    |
 | check_network          |    X    |    X    |    X    |    X    |
 | check_os_version       |    X    |    X    |    X    |    X    |
-| check_pagefile         |    X    |         |         |         |
 | check_process          |    X    |    X    |    X    |    X    |
-| check_service          |    X    |    X    |         |         |
 | check_snclient_version |    X    |    X    |    X    |    X    |
-| check_tasksched        |         |         |         |         |
 | check_uptime           |    X    |    X    |    X    |    X    |
-| check_omd              |         |    X    |         |         |
-| check_wmi              |    X    |         |         |         |
 | check_wrap             |    X    |    X    |    X    |    X    |
+| check_service          |    X    |    X    |         |         |
+| check_omd              |         |    X    |         |         |
+| check_eventlog         |    W    |         |         |         |
+| check_tasksched        |    X    |         |         |         |
+| check_wmi              |    X    |         |         |         |
+| check_pagefile         |    X    |         |         |         |
 
 ## Roadmap
 
