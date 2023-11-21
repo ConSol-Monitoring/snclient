@@ -430,6 +430,9 @@ deb: | dist
 	sed -i build-deb/DEBIAN/control -e 's|^Version: .*|Version: $(VERSION)|'
 
 	chmod 644 build-deb/etc/snclient/*
+	chmod 755 \
+		build-deb/usr/bin/snclient \
+		build-deb/usr/lib/snclient/node_exporter
 
 	cp -p dist/snclient.1 build-deb/usr/share/man/man1/snclient.1
 	gzip -n -9 build-deb/usr/share/man/man1/snclient.1
@@ -454,6 +457,10 @@ rpm: | dist
 	tar zxvf $(NODE_EXPORTER_FILE)
 	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)/node_exporter snclient-$(VERSION)/node_exporter
 	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)
+
+	chmod 755 \
+		snclient-$(VERSION)/snclient \
+		snclient-$(VERSION)/node_exporter
 
 	tar cfz snclient-$(VERSION).tar.gz snclient-$(VERSION)
 	rm -rf snclient-$(VERSION)
