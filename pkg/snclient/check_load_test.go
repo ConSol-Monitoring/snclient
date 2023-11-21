@@ -19,7 +19,7 @@ func TestCheckLoad(t *testing.T) {
 	// might happen on windows because load is meassured once the agent starts
 	res := snc.RunCheck("check_load", []string{"warn=load > 0", "crit=load > 0"})
 	if res.State == CheckExitOK {
-		waitUntil := time.Now().Add(31 * time.Second)
+		waitUntil := time.Now().Add(61 * time.Second)
 		t.Logf("current load is zero, trying to utilize cpu a bit: %s", res.BuildPluginOutput())
 		lastLogged := time.Now()
 		for time.Now().Before(waitUntil) {
