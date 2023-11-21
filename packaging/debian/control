@@ -4,6 +4,7 @@ Section: net
 Priority: optional
 Architecture: UNSET
 Depends: logrotate
+Standards-Version: 3.9.8
 Suggests: monitoring-plugins-basic
 Maintainer: Sven Nierlein <sven@consol.de>
 Homepage: https://github.com/Consol-Monitoring/snclient/

@@ -436,7 +436,7 @@ deb: | dist
 	cp -p dist/snclient.8 build-deb/usr/share/man/man8/snclient.8
 	gzip -n -9 build-deb/usr/share/man/man8/snclient.8
 
-	dpkg-deb --build --root-owner-group ./build-deb ./$(DEBFILE)
+	dpkg-deb -Zxz --build --root-owner-group ./build-deb ./$(DEBFILE)
 	rm -rf ./build-deb
 	-( cd packaging && lintian ../$(DEBFILE) )
 
