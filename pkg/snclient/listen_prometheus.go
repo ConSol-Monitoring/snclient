@@ -16,12 +16,44 @@ func init() {
 var (
 	prometheusRegistered bool
 
-	infoCount = prometheus.NewGaugeVec(
+	promInfoCount = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "snclient_info",
 			Help: "information about this agent",
 		},
 		[]string{"version", "build", "os"})
+
+	promHTTPRequestsTotal = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "http_requests_total",
+			Help: "total http requests",
+		},
+		[]string{"code", "path"})
+
+	promHTTPDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "http_response_time_seconds",
+		Help: "Duration of HTTP requests.",
+	}, []string{"code", "path"})
+
+	promTCPRequestsTotal = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "tcp_requests_total",
+			Help: "total tcp requests",
+		},
+		[]string{"module"})
+
+	promTCPDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "tcp_response_time_seconds",
+		Help: "Duration of TCP requests.",
+	}, []string{"module"})
+
+	promCollectors = []prometheus.Collector{
+		promInfoCount,
+		promHTTPRequestsTotal,
+		promHTTPDuration,
+		promTCPRequestsTotal,
+		promTCPDuration,
+	}
 )
 
 type HandlerPrometheus struct {
@@ -97,9 +129,9 @@ func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config, set
 	}
 	registerMetrics()
 	if Revision != "" {
-		infoCount.WithLabelValues(VERSION+"."+Revision, Build, runtime.GOOS).Set(1)
+		promInfoCount.WithLabelValues(VERSION+"."+Revision, Build, runtime.GOOS).Set(1)
 	} else {
-		infoCount.WithLabelValues(VERSION, Build, runtime.GOOS).Set(1)
+		promInfoCount.WithLabelValues(VERSION, Build, runtime.GOOS).Set(1)
 	}
 
 	listener, err := SharedWebListener(snc, conf, l, set)
@@ -126,7 +158,9 @@ func registerMetrics() {
 	prometheusRegistered = true
 
 	// register the metrics
-	if err := prometheus.Register(infoCount); err != nil {
-		log.Errorf("failed to register prometheus metric: %s", err.Error())
+	for _, c := range promCollectors {
+		if err := prometheus.Register(c); err != nil {
+			log.Errorf("failed to register prometheus metric: %s", err.Error())
+		}
 	}
 }

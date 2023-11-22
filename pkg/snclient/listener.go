@@ -335,7 +335,11 @@ func (l *Listener) handleTCPCon(con net.Conn, handler RequestHandlerTCP) {
 
 	handler.ServeTCP(l.snc, con)
 
-	log.Debugf("%s connection from %s finished in %9s", l.connType, con.RemoteAddr().String(), time.Since(startTime))
+	duration := time.Since(startTime)
+	name := handler.Type()
+	promTCPRequestsTotal.WithLabelValues(name).Add(1)
+	promTCPDuration.WithLabelValues(name).Observe(duration.Seconds())
+	log.Debugf("%s connection from %s finished in %9s", l.connType, con.RemoteAddr().String(), duration)
 }
 
 func (l *Listener) startListenerHTTP(handler []RequestHandler) {
@@ -371,16 +375,16 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 		Handler:           mux,
 		ErrorLog:          NewStandardLog("WARN"),
 		ConnState: func(con net.Conn, state http.ConnState) {
-			if state != http.StateNew {
-				return
-			}
+			switch state {
+			case http.StateNew:
+				log.Tracef("incoming %s connection from %s", l.connType, con.RemoteAddr().String())
 
-			log.Tracef("incoming %s connection from %s", l.connType, con.RemoteAddr().String())
+				if !l.CheckConnection(con) {
+					con.Close()
 
-			if !l.CheckConnection(con) {
-				con.Close()
-
-				return
+					return
+				}
+			default:
 			}
 		},
 	}
@@ -450,17 +454,19 @@ func (l *Listener) WrappedHTTPHandler(next http.Handler, res http.ResponseWriter
 		}
 	}
 
-	if log.IsV(LogVerbosityTrace) {
-		resCapture := &ResponseWriterCapture{
-			w: res,
-		}
-		res = resCapture
+	resCapture := &ResponseWriterCapture{
+		w: res,
 	}
+	res = resCapture
 	next.ServeHTTP(res, req)
 
 	if capture, ok := res.(*ResponseWriterCapture); ok {
 		log.Tracef("http response:\n%s", capture.String(req, true))
 	}
 
-	log.Debugf("%s connection from %s finished in %9s", l.connType, req.RemoteAddr, time.Since(startTime))
+	duration := time.Since(startTime)
+	promHTTPRequestsTotal.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), req.URL.Path).Add(1)
+	promHTTPDuration.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), req.URL.Path).Observe(duration.Seconds())
+
+	log.Debugf("%s connection from %s finished in %9s", l.connType, req.RemoteAddr, duration)
 }
