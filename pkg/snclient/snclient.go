@@ -658,6 +658,16 @@ func (snc *Agent) logPanicExit() {
 	}
 }
 
+func (snc *Agent) logPanicRecover() {
+	if r := recover(); r != nil {
+		log.Errorf("********* PANIC *********")
+		log.Errorf("Panic: %s", r)
+		log.Errorf("**** Stack:")
+		log.Errorf("%s", debug.Stack())
+		log.Errorf("*************************")
+	}
+}
+
 // RunCheck calls check by name and returns the check result
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 	ctx, cancel := context.WithTimeout(context.TODO(), 60*time.Second)
