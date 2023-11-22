@@ -6,7 +6,7 @@ tags:
   - nsclient
   - snclient
   - naemon
-  - promtheus
+  - prometheus
   - windows
   - linux
   - osx
@@ -19,4 +19,3 @@ technologies. The programming language used is Golang and all the test and
 build procedures are located at github.com.
 
 Have a look at the [installation howto](install) page for first steps.
-
