@@ -9,6 +9,19 @@
 
 SNClient+ (Secure Naemon Client) is a general purpose monitoring agent designed as replacement for NRPE and NSClient++.
 
+## Contact
+
+* Report a Security Advisory via [GitHub Security](https://github.com/Consol-Monitoring/snclient/security).
+* Mailing list on [Google Groups](https://groups.google.com/group/snclient).
+* Ask a question on [Stack Overflow](https://stackoverflow.com/questions/tagged/snclient)
+* File a Bug in [GitHub Issues](https://github.com/Consol-Monitoring/snclient/issues).
+* Chat with developers on [IRC Libera #snclient](irc://irc.libera.chat/snclient) ([Webchat](https://web.libera.chat/?nick=Guest?#snclient)).
+* Professional Support from [ConSol*](https://www.consol.de/product-solutions/open-source-monitoring/)
+
+## Documentation
+
+All documentation is under `docs/`
+
 ## Supported Operating Systems
 
 |             | i386 | x64 | arm64     |
