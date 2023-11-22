@@ -3,6 +3,7 @@ package snclient
 import (
 	"encoding/json"
 	"net/http"
+	"runtime"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -20,7 +21,7 @@ var (
 			Name: "snclient_info",
 			Help: "information about this agent",
 		},
-		[]string{"version", "build"})
+		[]string{"version", "build", "os"})
 )
 
 type HandlerPrometheus struct {
@@ -95,7 +96,11 @@ func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config, set
 		l.password = password
 	}
 	registerMetrics()
-	infoCount.WithLabelValues(VERSION, Build).Set(1)
+	if Revision != "" {
+		infoCount.WithLabelValues(VERSION+"."+Revision, Build, runtime.GOOS).Set(1)
+	} else {
+		infoCount.WithLabelValues(VERSION, Build, runtime.GOOS).Set(1)
+	}
 
 	listener, err := SharedWebListener(snc, conf, l, set)
 	if err != nil {
