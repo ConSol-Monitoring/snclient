@@ -11,12 +11,14 @@ SNClient+ (Secure Naemon Client) is a general purpose monitoring agent designed 
 
 ## Supported Operating Systems
 
-|         | i386 | x64 | arm64 |
-|---------|------|-----|-------|
-| Linux   |   X  |  X  |   X   |
-| Windows |   X  |  X  |       |
-| FreeBSD |   X  |  X  |   X   |
-| MacOSX  |      |  X  |   X   |
+|             | i386 | x64 | arm64     |
+|-------------|:----:|:---:|:---------:|
+| **Linux**   |   X  |  X  |   X       |
+| **Windows** |   X  |  X  | (use x64) |
+| **FreeBSD** |   X  |  X  |   X       |
+| **MacOSX**  |      |  X  |   X       |
+
+A more detailed list of [supported operating systems](https://omd.consol.de/docs/snclient/install/supported/).
 
 ## Supported Protocols
 
@@ -26,38 +28,38 @@ SNClient+ (Secure Naemon Client) is a general purpose monitoring agent designed 
 
 ## Installation
 
-There are prebuild binaries and packages for the all supported systems (see above) on the
+There are pre-build binaries and packages for the all supported systems (see above) on the
 [release page](https://github.com/Consol-Monitoring/snclient/releases).
 
-Further details are covered in the [documentation](https://omd.consol.de/docs/snclient/).
+Further details are covered in the [documentation](https://omd.consol.de/docs/snclient/install/).
 
 ## Implementation Status
 
 W: work in progress
 X: completed
 
-|                        | Windows |  Linux  |   OSX   |   BSD   |
-|------------------------|---------|---------|---------|---------|
-| check_alias            |    X    |    X    |    X    |    X    |
-| check_cpu              |    X    |    X    |    X    |    X    |
-| check_drivesize        |    X    |    X    |    X    |    X    |
-| check_dummy            |    X    |    X    |    X    |    X    |
-| check_files            |    X    |    X    |    X    |    X    |
-| check_index            |    X    |    X    |    X    |    X    |
-| check_load             |    X    |    X    |    X    |    X    |
-| check_memory           |    X    |    X    |    X    |    X    |
-| check_network          |    X    |    X    |    X    |    X    |
-| check_os_version       |    X    |    X    |    X    |    X    |
-| check_process          |    X    |    X    |    X    |    X    |
-| check_snclient_version |    X    |    X    |    X    |    X    |
-| check_uptime           |    X    |    X    |    X    |    X    |
-| check_wrap             |    X    |    X    |    X    |    X    |
-| check_service          |    X    |    X    |         |         |
-| check_omd              |         |    X    |         |         |
-| check_eventlog         |    W    |         |         |         |
-| check_tasksched        |    X    |         |         |         |
-| check_wmi              |    X    |         |         |         |
-| check_pagefile         |    X    |         |         |         |
+|                            | Windows |  Linux  |   OSX   |   BSD   |
+|----------------------------|:-------:|:-------:|:-------:|:-------:|
+| **check_alias**            |    X    |    X    |    X    |    X    |
+| **check_cpu**              |    X    |    X    |    X    |    X    |
+| **check_drivesize**        |    X    |    X    |    X    |    X    |
+| **check_dummy**            |    X    |    X    |    X    |    X    |
+| **check_files**            |    X    |    X    |    X    |    X    |
+| **check_index**            |    X    |    X    |    X    |    X    |
+| **check_load**             |    X    |    X    |    X    |    X    |
+| **check_memory**           |    X    |    X    |    X    |    X    |
+| **check_network**          |    X    |    X    |    X    |    X    |
+| **check_os_version**       |    X    |    X    |    X    |    X    |
+| **check_process**          |    X    |    X    |    X    |    X    |
+| **check_snclient_version** |    X    |    X    |    X    |    X    |
+| **check_uptime**           |    X    |    X    |    X    |    X    |
+| **check_wrap**             |    X    |    X    |    X    |    X    |
+| **check_service**          |    X    |    X    |         |         |
+| **check_omd**              |         |    X    |         |         |
+| **check_eventlog**         |    W    |         |         |         |
+| **check_tasksched**        |    X    |         |         |         |
+| **check_wmi**              |    X    |         |         |         |
+| **check_pagefile**         |    X    |         |         |         |
 
 ## Roadmap
 
@@ -85,7 +87,7 @@ Find a brief overview of what is planned and what is done already:
 - [X] self update (from configurable url)
 - [X] implement perf-config
 - [ ] finish builtin checks
-- [ ] implement help with examples and filters
+- [X] implement help with examples and filters
 - [ ] review check plugin status
 
 ### Stage 2
@@ -96,12 +98,15 @@ Find a brief overview of what is planned and what is done already:
   - [X] node_exporter
   - [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
 - [X] add config include folder
+- [ ] add check_ping plugin
+- [ ] add ntp check
+- [ ] check usr signal handler
+- [ ] manage certificate via rest api
 
 ### Stage 3
 
 - [X] self update from github
 - [ ] open telemetry
-- [ ] check usr signal handler
 - [ ] improve configuration
   - [ ] add config validator
   - [ ] use strong typed config items
@@ -122,28 +127,3 @@ The following things will most likely not be part of snclient any time:
 - SMTP support
 - Website/Rest API (except doing checks)
 - check_nt support
-
-## Release
-
-A new release can be build by following these steps:
-
-- Verify the test status is green on the [github actions](https://github.com/ConSol-Monitoring/snclient/actions/workflows/cicd.yml) page.
-- If not already there, add a `next:` entry to the changelog.
-
-  (ex.: as in git show b2e1b020ed462196670068034fdee87ee33814ac)
-
-  Then have a look at `git log` and add missing changes.
-
-- Run `make release` and choose a new version. Usually just increment the
-  minor number unless there are breaking changes.
-- Check `git log -1` and `git diff HEAD` if things look good.
-
-  Ex. the changelog should contain the current version tag now.
-
-- Push the release commit with `git push` and `git push --tags`
-
-- Watch the github action build the release packages on the [github actions](https://github.com/ConSol-Monitoring/snclient/actions/workflows/cicd.yml) page.
-
-  The one with the git tag will also create a draft release. So when the action
-  is ready, go to the [releases page](https://github.com/ConSol-Monitoring/snclient/releases)
-  and edit the last tag, scroll down and publish the release.

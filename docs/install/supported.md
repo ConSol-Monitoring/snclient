@@ -12,6 +12,15 @@ on github to update this page.
 If there are no installer package for your system available for download, you might still succeed
 by [building snclient from source](build).
 
+### CPU Architectures
+
+|             | i386 | x64 | arm64     |
+|-------------|:----:|:---:|:---------:|
+| **Linux**   |   X  |  X  |   X       |
+| **Windows** |   X  |  X  | (use x64) |
+| **FreeBSD** |   X  |  X  |   X       |
+| **MacOSX**  |      |  X  |   X       |
+
 ### Windows
 
 Successfully tested on:
