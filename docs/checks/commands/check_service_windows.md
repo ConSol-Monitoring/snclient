@@ -1,26 +1,26 @@
-﻿---
-title: service (Windows)
+---
+title: service (windows)
 ---
 
-# check_service (Windows)
+## check_service
 
-Check the state of one or more of the windows computer services.
+Checks the state of one or multiple windows services.
+
+There is a specific [check_service for linux](check_service_linux) as well.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Attributes](#attributes)
 
-### Implementation
+## Implementation
 
-| Windows | Linux | FreeBSD | MacOSX |
-|:-------:|:-----:|:-------:|:------:|
-|  :white_check_mark:  |  :x:  |  :x:  |  :x:  |
-
-There is a [check_service for linux](check_service_linux) as well.
+| Windows            | Linux | FreeBSD | MacOSX |
+|:------------------:|:-----:|:-------:|:------:|
+| :white_check_mark: |       |         |        |
 
 ## Examples
 
-### Default check
+### Default Check
 
     check_service
     OK: All 15 service(s) are ok.
@@ -30,60 +30,58 @@ Checking a single service:
     check_service service=dhcp
     OK: All 1 service(s) are ok.
 
-
 ### Example using NRPE and Naemon
 
 Naemon Config
 
     define command{
-        command_name    check_nrpe
-        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_nrpe
+        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
     }
 
     define service {
-            host_name               testhost
-            service_description     check_service_testhost
-            check_command           check_nrpe!check_service!'service=dhcp' 'crit=status = dead'
+        host_name            testhost
+        service_description  check_service
+        use                  generic-service
+        check_command        check_nrpe!check_service!service=dhcp
     }
-
-Return
-
-    OK: All 1 service(s) are ok.
-
 
 ## Argument Defaults
 
-| Argument | Default Value |
-| --- | --- |
-filter | none |
-warning | state != 'running' && start_type = 'delayed' |
-critical | state != 'running' && start_type = 'auto' |
-empty-state | 3 (Unknown) |
-top-syntax | %(status): %(crit_list), delayed (%(warn_list)) |
-ok-syntax | %(status): All %(count) service(s) are ok. |
-empty-syntax | %(status): No services found |
-detail-syntax | \${name}=\${state} (${start_type}) |
+| Argument      | Default Value                                   |
+| ------------- | ----------------------------------------------- |
+| filter        | none                                            |
+| warning       | state != 'running' && start_type = 'delayed'    |
+| critcal       | state != 'running' && start_type = 'auto'       |
+| empty-state   | 3 (UNKNOWN)                                     |
+| empty-syntax  | %(status): No services found                    |
+| top-syntax    | %(status): %(crit_list), delayed (%(warn_list)) |
+| ok-syntax     | %(status): All %(count) service(s) are ok.      |
+| detail-syntax | \${name}=\${state} (\${start_type})             |
 
+## Check Specific Arguments
 
-### **Check specific arguments**
+| Argument | Description                                                                        |
+| -------- | ---------------------------------------------------------------------------------- |
+| exclude  | List of services to exclude from the check (mainly used when service is set to \*) |
+| service  | Name of the service to check (set to \* to check all services). Default: \*        |
 
-| Argument | Default Value | Description |
-| --- | --- | --- |
-| service | | Name of the service to check (set to * to check all services) |
-| exclude | | List of services to exclude from the check (mainly used when service is set to *) |
+## Attributes
 
+### Check Specific Attributes
 
-## Filter
+these can be used in filters and thresholds (along with the default attributes):
 
-#### **Check specific filter**
-
-| Filter Attribute | Description |
-| ---------------- | ----------- |
-| name | The name of the service |
-| service | Same as name |
-| state | The state of the service, one of: stopped, starting, stopping, running, continuing, pausing, paused or unknown |
-| desc | Description of the service |
-| delayed | If the service is delayed, can be 0 or 1 |
+| Attribute      | Description                                                                                                                                                       |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| name           | The name of the service                                                                                                                                           |
+| service        | Alias for name                                                                                                                                                    |
+| desc           | Description of the service                                                                                                                                        |
+| state          | The state of the service, one of: stopped, starting, stopping, running, continuing, pausing, paused or unknown                                                    |
+| pid            | The pid of the service                                                                                                                                            |
+| delayed        | If the service is delayed, can be 0 or 1                                                                                                                          |
 | classification | Classification of the service, one of: kernel-driver, system-driver, service-adapter, driver, service-own-process, service-shared-process, service or interactive |
-| pid | The pid of the service |
-| start_type | The configured start type, one of: boot, system, delayed, auto, demand, disabled or unknown |
+| start_type     | The configured start type, one of: boot, system, delayed, auto, demand, disabled or unknown                                                                       |
+| rss            | Memory rss in bytes                                                                                                                                               |
+| vms            | Memory vms in bytes                                                                                                                                               |
+| cpu            | CPU usage in percent                                                                                                                                              |

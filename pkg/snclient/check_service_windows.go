@@ -43,8 +43,12 @@ func (l *CheckService) Build() *CheckData {
 	l.excludes = []string{}
 
 	return &CheckData{
-		name:         "check_service",
-		description:  "Checks the state of one or multiple windows services.",
+		name: "check_service",
+		description: `Checks the state of one or multiple windows services.
+
+There is a specific [check_service for linux](check_service_linux) as well.`,
+		implemented:  Windows,
+		docTitle:     "service (windows)",
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -66,6 +70,29 @@ func (l *CheckService) Build() *CheckData {
 		okSyntax:        "%(status): All %(count) service(s) are ok.",
 		emptySyntax:     "%(status): No services found",
 		emptyState:      CheckExitUnknown,
+		attributes: []CheckAttribute{
+			{name: "name", description: "The name of the service"},
+			{name: "service", description: "Alias for name"},
+			{name: "desc", description: "Description of the service"},
+			{name: "state", description: "The state of the service, one of: stopped, starting, stopping, running, continuing, pausing, paused or unknown"},
+			{name: "pid", description: "The pid of the service"},
+			{name: "delayed", description: "If the service is delayed, can be 0 or 1 "},
+			{name: "classification", description: "Classification of the service, one of: kernel-driver, system-driver, service-adapter, driver, service-own-process, service-shared-process, service or interactive"},
+			{name: "start_type", description: "The configured start type, one of: boot, system, delayed, auto, demand, disabled or unknown"},
+			{name: "rss", description: "Memory rss in bytes"},
+			{name: "vms", description: "Memory vms in bytes"},
+			{name: "cpu", description: "CPU usage in percent"},
+		},
+		exampleDefault: `
+    check_service
+    OK: All 15 service(s) are ok.
+
+Checking a single service:
+
+    check_service service=dhcp
+    OK: All 1 service(s) are ok.
+	`,
+		exampleArgs: "service=dhcp",
 	}
 }
 
@@ -357,11 +384,12 @@ func (l *CheckService) addMetrics(check *CheckData, service string, statusCode *
 	}
 	if cpu != nil {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-			Name:     fmt.Sprintf("%s cpu", service),
-			Value:    utils.ToPrecision(*cpu, 1),
-			Unit:     "%",
-			Warning:  check.warnThreshold,
-			Critical: check.critThreshold,
+			ThresholdName: "cpu",
+			Name:          fmt.Sprintf("%s cpu", service),
+			Value:         utils.ToPrecision(*cpu, 1),
+			Unit:          "%",
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
 		})
 	} else {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
