@@ -309,7 +309,12 @@ func (l *Listener) startListenerTCP(handler RequestHandlerTCP) {
 			return
 		}
 
-		l.handleTCPCon(con, handler)
+		go func(con net.Conn) {
+			// log panices during request, but continue listening
+			defer l.snc.logPanicRecover()
+
+			l.handleTCPCon(con, handler)
+		}(con)
 	}
 }
 
@@ -432,6 +437,9 @@ func (l *Listener) BindString() string {
 
 func (l *Listener) WrappedHTTPHandler(next http.Handler, res http.ResponseWriter, req *http.Request) {
 	startTime := time.Now()
+
+	// log panices during request, but continue listening
+	defer l.snc.logPanicRecover()
 
 	if log.IsV(LogVerbosityTrace) {
 		reqStr, err := httputil.DumpRequest(req, true)
