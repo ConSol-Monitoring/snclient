@@ -177,7 +177,6 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, service
 	if err != nil {
 		memBytes = 0
 	}
-	listEntry["mem_bytes"] = fmt.Sprintf("%d", memBytes)
 	check.result.Metrics = append(
 		check.result.Metrics,
 		&CheckMetric{
@@ -290,6 +289,12 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 	if len(match) > 1 {
 		listEntry["mem"] = match[1]
 	}
+
+	memBytes, err := humanize.ParseBytes(listEntry["mem"])
+	if err != nil {
+		memBytes = 0
+	}
+	listEntry["mem_bytes"] = fmt.Sprintf("%d", memBytes)
 
 	match = reSvcPreset.FindStringSubmatch(output)
 	if len(match) > 1 {
