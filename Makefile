@@ -110,6 +110,11 @@ build: vendor go.work snclient.ini server.crt server.key
 		( cd ./cmd/$$CMD && $(GOBUILD) -trimpath $(BUILD_FLAGS) -o ../../$$CMD ) ; \
 	done
 
+builddebug: vendor go.work snclient.ini server.crt server.key
+	set -xe; for CMD in $(CMDS); do \
+		( cd ./cmd/$$CMD && $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD ) ; \
+	done
+
 # run build watch, ex. with tracing: make build-watch -- -vv -logfile stderr
 build-watch: vendor tools
 	$(ENTR) "$(MAKE) && ./snclient $(filter-out $@,$(MAKECMDGOALS))"

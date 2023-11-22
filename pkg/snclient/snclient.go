@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -599,8 +600,10 @@ func (snc *Agent) checkFlags() {
 				ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
 				WriteTimeout:      DefaultSocketTimeout * time.Second,
 				IdleTimeout:       DefaultSocketTimeout * time.Second,
+				Handler:           http.DefaultServeMux,
 			}
 
+			log.Warnf("pprof profiler listening at http://%s/debug/pprof/ (make sure to use a binary without -trimpath, ex. from make builddebug)", snc.flags.ProfilePort)
 			err := server.ListenAndServe()
 			if err != nil {
 				log.Debugf("http.ListenAndServe finished with: %e", err)
