@@ -57,7 +57,7 @@ None
 
 ## Attributes
 
-### Check Specific Attributes
+### Filter Keywords
 
 these can be used in filters and thresholds (along with the default attributes):
 

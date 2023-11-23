@@ -1137,9 +1137,9 @@ func (cd *CheckData) helpAttributes(format ShowHelp) string {
 
 	if format == Markdown {
 		out += "## Attributes\n\n"
-		out += "### Check Specific Attributes\n\n"
+		out += "### Filter Keywords\n\n"
 	} else {
-		out += "Check Specific Attributes:\n\n    "
+		out += "Filter Keywords:\n\n    "
 	}
 	out += "these can be used in filters and thresholds (along with the default attributes):\n\n"
 
