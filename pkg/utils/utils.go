@@ -38,6 +38,12 @@ var TimeFactors = []struct {
 func ExpandDuration(val string) (res float64, err error) {
 	var num float64
 
+	factor := float64(1)
+	if strings.HasPrefix(val, "-") {
+		factor = -1
+		val = val[1:]
+	}
+
 	for _, f := range TimeFactors {
 		if strings.HasSuffix(val, f.suffix) {
 			num, err = strconv.ParseFloat(strings.TrimSuffix(val, f.suffix), 64)
@@ -46,7 +52,7 @@ func ExpandDuration(val string) (res float64, err error) {
 				return 0, fmt.Errorf("expandDuration: %s", err.Error())
 			}
 
-			return res, nil
+			return factor * res, nil
 		}
 	}
 	if IsDigitsOnly(val) {
@@ -56,7 +62,7 @@ func ExpandDuration(val string) (res float64, err error) {
 			return 0, fmt.Errorf("expandDuration: %s", err.Error())
 		}
 
-		return res, nil
+		return factor * res, nil
 	}
 
 	return 0, fmt.Errorf("expandDuration: cannot parse duration, unknown format in %s", val)

@@ -3,6 +3,7 @@ package eventlog
 import (
 	"encoding/xml"
 	"fmt"
+	"strings"
 
 	"github.com/elastic/beats/v7/libbeat/logp"
 	evsys "github.com/elastic/beats/v7/winlogbeat/sys/winevent"
@@ -152,7 +153,7 @@ func (el *EventLog) getEventFromSubscription(subscription wineventlog.EvtHandle)
 
 	events := make([]*evsys.Event, 0)
 
-	logger := logp.NewLogger("")
+	logger := logp.L()
 	renderer, err := wineventlog.NewRenderer(0, logger)
 	if err != nil {
 		return nil, fmt.Errorf("wineventlog error: %s", err.Error())
@@ -165,9 +166,20 @@ func (el *EventLog) getEventFromSubscription(subscription wineventlog.EvtHandle)
 			break
 		}
 
-		if event, err := renderer.Render(eventHandle); err != nil {
-			el.log.Errorf("Event Log: could not render event: %s", err.Error())
-		} else {
+		event, err := renderer.Render(eventHandle)
+		if err != nil {
+			el.log.Debugf("Event Log: could not render event: %s", err.Error())
+		}
+		if event != nil {
+			// user generated message contains: "[{{eventParam $ 1}}]" maybe there is a renderer but for now
+			// just workaround by joining all eventdata values
+			if strings.HasPrefix(event.Message, "[{{eventParam") || event.Message == "" {
+				message := ""
+				for _, d := range event.EventData.Pairs {
+					message += d.Value
+				}
+				event.Message = message
+			}
 			events = append(events, event)
 		}
 	}
