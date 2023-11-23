@@ -89,6 +89,7 @@ issues:
     - "variable name 'ok' is too short"
     - "Function 'setListenConfig' has too many statements"
     - "Function 'ParseArgs' has too many statements"
+    - "Function 'parseAnyArg' has too many statements"
     - "complexity.*setListenConfig"
     - "complexity.*checkFlags"
     - "complexity.*ParseArgs"

@@ -92,7 +92,7 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 		return nil, fmt.Errorf("couldn't parse scan-range: %s", err.Error())
 	}
 	if lookBack < 0 {
-		lookBack = lookBack * -1
+		lookBack *= -1
 	}
 	scanLookBack := uint64(lookBack)
 
