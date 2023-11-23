@@ -42,7 +42,7 @@ func init() {
 				snc.Log.Errorf("failed to remove service: %s", err.Error())
 			}
 
-			os.Exit(0)
+			snc.CleanExit(0)
 		},
 	})
 
@@ -58,7 +58,7 @@ func init() {
 			installConfig := parseInstallerArgs(args)
 			if installConfig["REMOVE"] != "ALL" || installConfig["UPGRADINGPRODUCTCODE"] != "" {
 				snc.Log.Infof("skipping uninstall: %#v", installConfig)
-				os.Exit(0)
+				snc.CleanExit(0)
 			}
 
 			snc.Log.Infof("starting uninstaller: %#v", installConfig)
@@ -91,7 +91,7 @@ func init() {
 			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "snclient.ini"))
 			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "snclient.log"))
 
-			os.Exit(0)
+			snc.CleanExit(0)
 		},
 	})
 
@@ -107,7 +107,7 @@ func init() {
 			removeFireWallRules(snc)
 
 			snc.Log.Infof("firewall exceptions removed")
-			os.Exit(0)
+			snc.CleanExit(0)
 		},
 	})
 }

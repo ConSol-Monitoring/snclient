@@ -90,7 +90,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 				snc.Log.Errorf("failed to add firewall: %s", err.Error())
 			}
 			snc.Log.Infof("installer finished successfully")
-			os.Exit(0)
+			snc.CleanExit(0)
 		},
 	})
 
@@ -113,7 +113,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 				}
 			}
 			snc.Log.Infof("pre script finished successfully")
-			os.Exit(0)
+			snc.CleanExit(0)
 		},
 	})
 
@@ -131,7 +131,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 				snc.Log.Errorf("failed to add firewall: %s", err.Error())
 			}
 			snc.Log.Infof("firewall setup ready")
-			os.Exit(0)
+			snc.CleanExit(0)
 		},
 	})
 }

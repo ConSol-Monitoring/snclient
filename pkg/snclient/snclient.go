@@ -9,7 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" //nolint:gosec // default muxer is not exposed by default
 	"os"
 	"os/exec"
 	"os/signal"

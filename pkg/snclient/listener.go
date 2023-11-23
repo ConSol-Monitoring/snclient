@@ -375,16 +375,16 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 		Handler:           mux,
 		ErrorLog:          NewStandardLog("WARN"),
 		ConnState: func(con net.Conn, state http.ConnState) {
-			switch state {
-			case http.StateNew:
-				log.Tracef("incoming %s connection from %s", l.connType, con.RemoteAddr().String())
+			if state != http.StateNew {
+				return
+			}
 
-				if !l.CheckConnection(con) {
-					con.Close()
+			log.Tracef("incoming %s connection from %s", l.connType, con.RemoteAddr().String())
 
-					return
-				}
-			default:
+			if !l.CheckConnection(con) {
+				con.Close()
+
+				return
 			}
 		},
 	}

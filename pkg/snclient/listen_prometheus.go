@@ -23,8 +23,8 @@ var (
 		},
 		[]string{"version", "build", "os"})
 
-	promHTTPRequestsTotal = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
+	promHTTPRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
 			Name: "http_requests_total",
 			Help: "total http requests",
 		},
@@ -35,8 +35,8 @@ var (
 		Help: "Duration of HTTP requests.",
 	}, []string{"code", "path"})
 
-	promTCPRequestsTotal = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
+	promTCPRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
 			Name: "tcp_requests_total",
 			Help: "total tcp requests",
 		},

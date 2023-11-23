@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"math"
-	"os"
 	"strings"
 
 	"pkg/snclient"
@@ -57,14 +56,14 @@ snclient do check_files path=/tmp crit='count > 100'
 				if cmd.CalledAs() != "test" {
 					cmd.Usage()
 
-					os.Exit(snclient.ExitCodeUnknown)
+					snc.CleanExit(snclient.ExitCodeUnknown)
 				}
 				testPrompt(cmd, snc)
 
 				return
 			}
 			rc := testRunCheck(cmd, snc, args)
-			os.Exit(rc)
+			snc.CleanExit(rc)
 		},
 	}
 	rootCmd.AddCommand(testCmd)

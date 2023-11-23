@@ -3,9 +3,10 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"pkg/eventlog"
 	"pkg/wmi"
-	"strconv"
 
 	"github.com/elastic/beats/v7/winlogbeat/sys/winevent"
 )

@@ -40,7 +40,7 @@ snclient update --downgrade=0.2
 			executable := snclient.GlobalMacros["exe-full"]
 			if strings.Contains(executable, ".update") {
 				snc.CheckUpdateBinary("update")
-				os.Exit(0)
+				snc.CleanExit(0)
 			}
 			task := snc.Tasks.Get("Updates")
 			switch mod := task.(type) {
@@ -64,18 +64,18 @@ snclient update --downgrade=0.2
 				)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "update check failed: %s\n", err.Error())
-					os.Exit(3)
+					snc.CleanExit(3)
 				}
 				if version == "" {
 					fmt.Fprintf(os.Stdout, "no new updates available\n")
-					os.Exit(0)
+					snc.CleanExit(0)
 				}
 				if checkOnly {
 					fmt.Fprintf(os.Stdout, "new update available to version: %s\n", version)
-					os.Exit(1)
+					snc.CleanExit(1)
 				}
 				fmt.Fprintf(os.Stdout, "update to version %s applied successfully\n", version)
-				os.Exit(0)
+				snc.CleanExit(0)
 			}
 		},
 	}
