@@ -7,6 +7,8 @@ next:
          - add check_load plugin
          - improve docs and help pages
          - add folder size support to check_files (#38)
+         - add basic promethes metrics
+         - check_eventlog: finish implementing
          - fix reading empty config files (#58)
          - fix packaging for debian <= 12
 
