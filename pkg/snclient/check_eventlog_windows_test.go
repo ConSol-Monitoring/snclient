@@ -9,10 +9,11 @@ import (
 
 func TestCheckEventlog(t *testing.T) {
 	snc := Agent{}
-	res := snc.RunCheck("check_eventlog", []string{})
+	// match nothing for now...
+	res := snc.RunCheck("check_eventlog", []string{"filter=id < 0"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: Event log seems fine`),
+		regexp.MustCompile(`^OK: No entries found`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
