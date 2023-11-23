@@ -35,9 +35,9 @@ A more detailed list of [supported operating systems](https://omd.consol.de/docs
 
 ## Supported Protocols
 
-- Prometheus HTTP(s)
-- NRPE (v2/v4)
-- NSCP Rest API via HTTP(s) (checks only)
+* Prometheus HTTP(s)
+* NRPE (v2/v4)
+* NSCP Rest API via HTTP(s) (checks only)
 
 ## Installation
 
@@ -69,7 +69,7 @@ X: completed
 | **check_wrap**             |    X    |    X    |    X    |    X    |
 | **check_service**          |    X    |    X    |         |         |
 | **check_omd**              |         |    X    |         |         |
-| **check_eventlog**         |    W    |         |         |         |
+| **check_eventlog**         |    X    |         |         |         |
 | **check_tasksched**        |    X    |         |         |         |
 | **check_wmi**              |    X    |         |         |         |
 | **check_pagefile**         |    X    |         |         |         |
@@ -80,63 +80,63 @@ Find a brief overview of what is planned and what is done already:
 
 ### Stage 1
 
-- [X] support NRPE clients
-- [X] support NSCP rest api clients
-- [X] support basic Prometheus metrics
-- [X] implement reading nsclient.ini files
-- [X] implement ssl/tls support
-- [X] implement authenticaton / authorization
-  - [X] basic auth
-  - [X] client certificates
-  - [X] allowed hosts
-  - [X] allow arguments
-  - [X] allow nasty characters
-- [X] add build pipeline
-  - [X] build windows msi packages
-  - [X] build debian/ubuntu .deb packages
-  - [X] build rhel/sles .rpm packages
-  - [X] build osx .pkg packages
-- [X] implement log rotation for file logger
-- [X] self update (from configurable url)
-- [X] implement perf-config
-- [ ] finish builtin checks
-- [X] implement help with examples and filters
-- [ ] review check plugin status
+* [X] support NRPE clients
+* [X] support NSCP rest api clients
+* [X] support basic Prometheus metrics
+* [X] implement reading nsclient.ini files
+* [X] implement ssl/tls support
+* [X] implement authenticaton / authorization
+  * [X] basic auth
+  * [X] client certificates
+  * [X] allowed hosts
+  * [X] allow arguments
+  * [X] allow nasty characters
+* [X] add build pipeline
+  * [X] build windows msi packages
+  * [X] build debian/ubuntu .deb packages
+  * [X] build rhel/sles .rpm packages
+  * [X] build osx .pkg packages
+* [X] implement log rotation for file logger
+* [X] self update (from configurable url)
+* [X] implement perf-config
+* [ ] finish builtin checks
+* [X] implement help with examples and filters
+* [ ] review check plugin status
 
 ### Stage 2
 
-- [X] add basic prometheus exporters
-  - [X] exporter_exporter
-  - [X] windows_exporter
-  - [X] node_exporter
-  - [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
-- [X] add config include folder
-- [ ] add check_ping plugin
-- [ ] add ntp check
-- [ ] check usr signal handler
-- [ ] manage certificate via rest api
+* [X] add basic prometheus exporters
+  * [X] exporter_exporter
+  * [X] windows_exporter
+  * [X] node_exporter
+  * [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
+* [X] add config include folder
+* [ ] add check_ping plugin
+* [ ] add ntp check
+* [ ] check usr signal handler
+* [ ] manage certificate via rest api
 
 ### Stage 3
 
-- [X] self update from github
-- [ ] open telemetry
-- [ ] improve configuration
-  - [ ] add config validator
-  - [ ] use strong typed config items
-- [ ] osx
-  - [ ] check pkg uninstall
-- [ ] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, amd64 -> aarch64
+* [X] self update from github
+* [ ] open telemetry
+* [ ] improve configuration
+  * [ ] add config validator
+  * [ ] use strong typed config items
+* [ ] osx
+  * [ ] check pkg uninstall
+* [ ] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, amd64 -> aarch64
 
 ## Not gonna happen
 
 The following things will most likely not be part of snclient any time:
 
-- CheckMK support
-- Embedded LUA support
-- Embedded Python support
-- Graphite support
-- NRDP support
-- NSCA support
-- SMTP support
-- Website/Rest API (except doing checks)
-- check_nt support
+* CheckMK support
+* Embedded LUA support
+* Embedded Python support
+* Graphite support
+* NRDP support
+* NSCA support
+* SMTP support
+* Website/Rest API (except doing checks)
+* check_nt support

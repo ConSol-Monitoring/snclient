@@ -2,9 +2,10 @@ package snclient
 
 import (
 	"context"
-	"strconv"
-
+	"fmt"
 	"pkg/eventlog"
+	"pkg/wmi"
+	"strconv"
 
 	"github.com/elastic/beats/v7/winlogbeat/sys/winevent"
 )
@@ -21,6 +22,7 @@ func (l *CheckEventlog) Build() *CheckData {
 	return &CheckData{
 		name:        "check_eventlog",
 		description: "Checks the windows eventlog entries.",
+		implemented: Windows,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
@@ -38,6 +40,17 @@ func (l *CheckEventlog) Build() *CheckData {
 
 func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	events := []*winevent.Event{}
+
+	if len(l.files) == 0 {
+		query := "SELECT LogfileName FROM Win32_NTEventLogFile"
+		res, err := wmi.Query(query)
+		if err != nil {
+			return nil, fmt.Errorf("wmi query failed: %s", err.Error())
+		}
+		for _, row := range wmi.ResultToMap(res) {
+			l.files = append(l.files, row["LogfileName"])
+		}
+	}
 
 	for _, file := range l.files {
 		e := eventlog.NewEventLog(file, log)
