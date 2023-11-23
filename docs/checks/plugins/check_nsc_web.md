@@ -2,8 +2,6 @@
 title: check_nsc_web
 ---
 
-# check_nsc_web
-
 This builtin check command wraps the `check_nsc_web` plugin from https://github.com/ConSol-Monitoring/check_nsc_web
 
 ### Implementation
