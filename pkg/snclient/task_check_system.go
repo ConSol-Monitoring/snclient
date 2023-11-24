@@ -98,7 +98,8 @@ func (c *CheckSystemHandler) update(create bool) {
 	}
 	c.snc.Counter.SetAny("cpuinfo", "info", times)
 
-	trimData := time.Now().Add(-30 * time.Minute)
+	// remove interface not updated within the bufferLength
+	trimData := time.Now().Add(time.Duration(c.bufferLength) * time.Second)
 	for key, val := range netdata {
 		// create interface on demand
 		if c.snc.Counter.Get("net", key) == nil {
