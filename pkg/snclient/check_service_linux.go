@@ -368,7 +368,7 @@ func (l *CheckService) addProcMetrics(pidStr string, listEntry map[string]string
 		return fmt.Errorf("pid is not a positive number: %s", pidStr)
 	}
 
-	proc, err := process.NewProcess(int32(pid))
+	proc, err := process.NewProcess(pid)
 	if err != nil {
 		log.Tracef("%s", fmt.Errorf("pid not found %d: %s", pid, err.Error()).Error())
 
