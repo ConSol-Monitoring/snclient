@@ -486,6 +486,9 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 				return nil, err
 			}
 			cd.perfConfig = append(cd.perfConfig, perf...)
+		case "perf-syntax":
+			// not yet supported
+			log.Warnf("not yet supported perf-syntax option used in: %s", strings.Join(cd.rawArgs, " "))
 		case "output":
 			cd.output = argValue
 		default:
