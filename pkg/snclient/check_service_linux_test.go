@@ -1,10 +1,8 @@
 package snclient
 
 import (
-	"fmt"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -52,8 +50,8 @@ Jun 29 08:12:45 host systemd[1]: Started blah-service.service.
 		"desc":    "",
 		"state":   "oneshot",
 		"preset":  "enabled",
-		"created": "1688019165",
-		"age":     fmt.Sprintf("%d", time.Now().Unix()-1688019165),
+		"created": "",
+		"age":     "",
 		"pid":     "",
 		"cpu":     "",
 		"rss":     "",
@@ -88,9 +86,9 @@ Jun 29 08:24:22 host systemd[1]: Started uuidd.service - Daemon for generating U
 		"desc":    "Daemon for generating UUIDs",
 		"state":   "running",
 		"preset":  "enabled",
-		"created": "1688019862",
+		"created": "",
 		"pid":     "152880000", // fake pid which does not exist
-		"age":     fmt.Sprintf("%d", time.Now().Unix()-1688019862),
+		"age":     "",
 		"cpu":     "",
 		"rss":     "",
 		"vms":     "",
@@ -123,8 +121,8 @@ Jun 29 08:12:48 host systemd[1]: Failed to start openipmi.service - LSB: OpenIPM
 		"desc":    "LSB: OpenIPMI Driver init script",
 		"state":   "stopped",
 		"preset":  "",
-		"created": "1688019168",
-		"age":     fmt.Sprintf("%d", time.Now().Unix()-1688019168),
+		"created": "",
+		"age":     "",
 		"pid":     "",
 		"cpu":     "",
 		"rss":     "",
@@ -161,9 +159,9 @@ func TestCheckServiceLinuxSystemCtlOutput_4(t *testing.T) {
 		"desc":    "Postfix Mail Transport Agent",
 		"state":   "running",
 		"preset":  "disabled",
-		"created": "1688112861",
+		"created": "",
 		"pid":     "140900000", // fake pid must not exist, otherwise mem/cpu would be filled
-		"age":     fmt.Sprintf("%d", time.Now().Unix()-1688112861),
+		"age":     "",
 		"cpu":     "",
 		"rss":     "",
 		"vms":     "",

@@ -24,7 +24,6 @@ var (
 	reSvcMainPid   = regexp.MustCompile(`Main\sPID:\s(\d+)`)
 	reSvcPidMaster = regexp.MustCompile(`─(\d+).+\(master\)`)
 	reSvcPreset    = regexp.MustCompile(`\s+preset:\s+(\w+)\)`)
-	reSvcSince     = regexp.MustCompile(`since\s+([^;]+);`)
 	reSvcTasks     = regexp.MustCompile(`Tasks:\s*(\d+)`)
 	reSvcStatic    = regexp.MustCompile(`;\sstatic\)`)
 )
@@ -168,6 +167,14 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, service
 	}
 
 	listEntry := l.parseSystemCtlStatus(service, output)
+
+	// fetch memory / cpu for main process
+	if listEntry["state"] == "running" {
+		err := l.addProcMetrics(ctx, listEntry["pid"], listEntry)
+		if err != nil {
+			log.Warnf("failed to add proc metrics: %s", err.Error())
+		}
+	}
 
 	if !l.isRequired(check, listEntry, services, excludes) {
 		return nil
@@ -321,12 +328,6 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 		listEntry["pid"] = match[1]
 	}
 
-	// fetch memory / cpu for main process
-	err := l.addProcMetrics(listEntry["pid"], listEntry)
-	if err != nil {
-		log.Warnf("failed to add proc metrics: %s", err.Error())
-	}
-
 	match = reSvcTasks.FindStringSubmatch(output)
 	if len(match) > 1 {
 		listEntry["tasks"] = match[1]
@@ -337,17 +338,6 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 		listEntry["preset"] = match[1]
 	}
 
-	match = reSvcSince.FindStringSubmatch(output)
-	if len(match) > 1 {
-		createTime, err := time.Parse("Mon 2006-01-02 15:04:05 MST", match[1])
-		if err != nil {
-			log.Warnf("unable to parse systemctl date '%s': %s", match[1], err.Error())
-		} else {
-			listEntry["created"] = fmt.Sprintf("%d", createTime.Unix())
-			listEntry["age"] = fmt.Sprintf("%d", time.Now().Unix()-createTime.Unix())
-		}
-	}
-
 	match = reSvcStatic.FindStringSubmatch(output)
 	if len(match) > 0 {
 		listEntry["state"] = "static"
@@ -356,7 +346,7 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 	return listEntry
 }
 
-func (l *CheckService) addProcMetrics(pidStr string, listEntry map[string]string) error {
+func (l *CheckService) addProcMetrics(ctx context.Context, pidStr string, listEntry map[string]string) error {
 	if pidStr == "" {
 		return nil
 	}
@@ -375,15 +365,22 @@ func (l *CheckService) addProcMetrics(pidStr string, listEntry map[string]string
 		return nil
 	}
 
-	cpuP, err := proc.CPUPercent()
+	cpuP, err := proc.CPUPercentWithContext(ctx)
 	if err == nil {
 		listEntry["cpu"] = fmt.Sprintf("%.1f", cpuP)
 	}
 
-	mem, _ := proc.MemoryInfo()
+	mem, _ := proc.MemoryInfoWithContext(ctx)
 	if mem != nil {
 		listEntry["rss"] = fmt.Sprintf("%d", mem.RSS)
 		listEntry["vms"] = fmt.Sprintf("%d", mem.VMS)
+	}
+
+	createTimeMillis, err := proc.CreateTimeWithContext(ctx)
+	if err == nil {
+		createTimeUnix := createTimeMillis / 1e3
+		listEntry["created"] = fmt.Sprintf("%d", createTimeUnix)
+		listEntry["age"] = fmt.Sprintf("%d", time.Now().Unix()-createTimeUnix)
 	}
 
 	return nil
