@@ -118,10 +118,26 @@ Macro values can be altered by adding a colon separated suffix.
 
 Support operators are:
 
-- `:lc` - make value lowercase
-- `:uc` - make value uppercase
+| Suffix      | Example                               | Description |
+| ----------- | ------------------------------------- | ------------|
+| `:lc`       | Word -> word                          | make value lowercase
+| `:uc`       | test -> TEST                          | make value uppercase
+| `:h`        | 1000 -> 1k                            | make a number more human readably
+| `:duration` | 125 -> 2m 5s                          | convert amount of seconds into human readable duration
+| `:date`     | 1700834034 -> 2023-11-24 14:53:54 CET | convert unix timestamp into human readable date (local timezone)
+| `:utc`      | 1700834034 -> 2023-11-24 13:53:54 UTC | convert unix timestamp into human readable date (utc timezone)
 
 for example, define a dummy command which prints the hostname in lower case letters:
 
     [/settings/external scripts/alias]
     alias_hostname = check_dummy 0 "host:${hostname:lc}"
+
+Operators can be put together:
+
+    $(datemacro:date:uc)
+
+This converts $(datemacro) to a human readable date and make everything uppercase.
+
+You can also use the pipe symbol to use multiple operators in a row, ex.:
+
+    $(macroname | date | uc)

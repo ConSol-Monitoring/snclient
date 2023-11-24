@@ -27,13 +27,13 @@ There is a specific [check_service for windows](check_service_windows) as well.
 
 Or check a specific service and get some metrics:
 
-    check_service service=docker ok-syntax='%(status): %(list)' detail-syntax='%(name) - memory: %(mem) - created: %(created)'
-    OK: docker - memory: 805.2M - created: Fri 2023-11-17 20:34:01 CET |'docker'=4 'docker mem'=805200000B
+    check_service service=docker ok-syntax='${top-syntax}' top-syntax='%(status): %(list)' detail-syntax='%(name) %(state) - memory: %(rss:h)B - age: %(age:duration)'
+    OK: docker running - memory: 805.2MB - created: Fri 2023-11-17 20:34:01 CET |'docker'=4 'docker rss'=805200000B
 
 Check memory usage of specific service:
 
-    check_service service=docker warn='mem > 1GB' warn='mem > 2GB'
-    OK: All 1 service(s) are ok. |'docker'=4 'docker mem'=793700000B;1000000000;2000000000;0
+    check_service service=docker warn='rss > 1GB' warn='rss > 2GB'
+    OK: All 1 service(s) are ok. |'docker'=4 'docker rss'=59691008B;;;0 'docker vms'=3166244864B;;;0 'docker cpu'=0.7%;;;0 'docker tasks'=20;;;0
 
 ### Example using NRPE and Naemon
 
@@ -82,8 +82,11 @@ these can be used in filters and thresholds (along with the default attributes):
 | service   | Alias for name                                                                   |
 | desc      | Description of the service                                                       |
 | state     | The state of the service, one of: stopped, starting, oneshot, running or unknown |
-| created   | Date when service was created                                                    |
-| preset    | The preset attribute of the service, one of: enabled or disabled                 |
 | pid       | The pid of the service                                                           |
-| mem       | The memory usage in human readable bytes                                         |
-| mem_bytes | The memory usage in bytes                                                        |
+| created   | Date when service was started (unix timestamp)                                   |
+| age       | Seconds since service was started                                                |
+| rss       | Memory rss in bytes (main process)                                               |
+| vms       | Memory vms in bytes (main process)                                               |
+| cpu       | CPU usage in percent (main process)                                              |
+| preset    | The preset attribute of the service, one of: enabled or disabled                 |
+| tasks     | Number of tasks for this service                                                 |

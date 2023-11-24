@@ -46,7 +46,7 @@ Naemon Config
 | filter        | none                                                    |
 | empty-state   | 0 (OK)                                                  |
 | empty-syntax  |                                                         |
-| top-syntax    | \${status}: \${list}                                    |
+| top-syntax    | \${status}: \${list} at \${cores} cores                 |
 | ok-syntax     |                                                         |
 | detail-syntax | \${type} load average: \${load1}, \${load5}, \${load15} |
 
