@@ -114,7 +114,7 @@ func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
 	switch m.Unit {
 	case "B":
 		// convert bytes
-		num := humanize.BytesUnitF(uint64(convert.Float64(rawNum)), m.PerfConfig.Unit, 3)
+		num := humanize.BytesUnitF(uint64(convert.Int64(rawNum)), m.PerfConfig.Unit, 3)
 
 		return convert.Num2String(num), m.PerfConfig.Unit
 	case "s":

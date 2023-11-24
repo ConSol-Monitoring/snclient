@@ -126,8 +126,7 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 	if check.HasThreshold("rss") {
 		totalRss := int64(0)
 		for _, p := range check.listData {
-			val := convert.Float64(p["rss"])
-			totalRss += int64(val)
+			totalRss += convert.Int64(p["rss"])
 		}
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:     "rss",
@@ -142,8 +141,7 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 	if check.HasThreshold("virtual") {
 		totalVirtual := int64(0)
 		for _, p := range check.listData {
-			val := convert.Float64(p["virtual"])
-			totalVirtual += int64(val)
+			totalVirtual += convert.Int64(p["virtual"])
 		}
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:     "virtual",

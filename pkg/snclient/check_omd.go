@@ -135,7 +135,7 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 
 		return
 	}
-	states := map[string]int{}
+	states := map[string]int32{}
 	failed := []string{}
 	for _, stateRaw := range strings.Split(statusRaw, "\n") {
 		state := strings.Split(stateRaw, " ")
@@ -143,13 +143,13 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 		if len(l.serviceFilter) > 0 && slices.Contains(l.serviceFilter, service) {
 			continue
 		}
-		res, err := convert.Float64E(state[1])
+		res, err := convert.IntE(state[1])
 		if err != nil {
 			details["_error"] = fmt.Sprintf("cannot parse service status: %s (%s)", state[1], err.Error())
 
 			return
 		}
-		states[service] = int(res)
+		states[service] = res
 		if res > 0 && service != "OVERALL" {
 			failed = append(failed, service)
 		}
@@ -216,13 +216,13 @@ func (l *CheckOMD) addLivestatusMetrics(ctx context.Context, check *CheckData, s
 		},
 		&CheckMetric{
 			Name:     "num_hosts",
-			Value:    convert.Float64(row[2]),
+			Value:    convert.Int64(row[2]),
 			Warning:  check.warnThreshold,
 			Critical: check.critThreshold,
 		},
 		&CheckMetric{
 			Name:     "num_services",
-			Value:    convert.Float64(row[3]),
+			Value:    convert.Int64(row[3]),
 			Warning:  check.warnThreshold,
 			Critical: check.critThreshold,
 		})
@@ -265,7 +265,7 @@ func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string
 	if len(head) < 2 {
 		return nil, fmt.Errorf("response error in livestatus header: %s", resBytes)
 	}
-	expSize := int64(convert.Float64(string(bytes.TrimSpace(head[1]))))
+	expSize := convert.Int64(string(bytes.TrimSpace(head[1])))
 	body := new(bytes.Buffer)
 	_, err = io.CopyN(body, conn, expSize)
 	if err != nil && errors.Is(err, io.EOF) {

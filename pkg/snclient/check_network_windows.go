@@ -22,11 +22,11 @@ func (l *CheckNetwork) interfaceSpeed(index int, name string) (speed int64, err 
 
 	for _, col := range result[0] {
 		if col.Key == "Speed" {
-			speedF, err := convert.Float64E(col.Value)
+			speed, err = convert.Int64E(col.Value)
 			if err != nil {
 				return speed, fmt.Errorf("converting speed failed %s: %s", col.Value, err.Error())
 			}
-			speed = int64(speedF / 1e6)
+			speed /= 1e6
 		}
 	}
 

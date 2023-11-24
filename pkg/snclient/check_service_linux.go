@@ -188,7 +188,7 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, service
 		&CheckMetric{
 			ThresholdName: "rss",
 			Name:          fmt.Sprintf("%s rss", service),
-			Value:         convert.Float64(listEntry["rss"]),
+			Value:         convert.Int64(listEntry["rss"]),
 			Unit:          "B",
 			Warning:       check.warnThreshold,
 			Critical:      check.critThreshold,
@@ -197,7 +197,7 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, service
 		&CheckMetric{
 			ThresholdName: "vms",
 			Name:          fmt.Sprintf("%s vms", service),
-			Value:         convert.Float64(listEntry["vms"]),
+			Value:         convert.Int64(listEntry["vms"]),
 			Unit:          "B",
 			Warning:       check.warnThreshold,
 			Critical:      check.critThreshold,
@@ -215,7 +215,7 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, service
 		&CheckMetric{
 			ThresholdName: "tasks",
 			Name:          fmt.Sprintf("%s tasks", service),
-			Value:         convert.Float64(listEntry["tasks"]),
+			Value:         convert.Int64(listEntry["tasks"]),
 			Unit:          "",
 			Warning:       check.warnThreshold,
 			Critical:      check.critThreshold,
