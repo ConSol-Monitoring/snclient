@@ -23,6 +23,8 @@ import (
 	"syscall"
 	"time"
 
+	"pkg/convert"
+	"pkg/humanize"
 	"pkg/utils"
 
 	"github.com/kdar/factorlog"
@@ -104,7 +106,7 @@ var (
 	GlobalMacros = getGlobalMacros()
 
 	// macros can be either ${...} or %(...) or all variants of $ / % with () or {}
-	macroChars = `a-zA-Z0-9\-_: /`
+	macroChars = `a-zA-Z0-9\-_: /\|`
 	reMacro    = regexp.MustCompile(`(\$|%)(\{\s*[` + macroChars + `]+\s*\}|\(\s*[` + macroChars + `]+\s*\))`)
 
 	// runtime macros can be %...% or $...$ or $ARGS"$
@@ -941,27 +943,51 @@ func ReplaceRuntimeMacros(value string, macroSets ...map[string]string) string {
 }
 
 func getMacrosetsValue(macro, orig string, macroSets ...map[string]string) string {
-	flag := ""
-	flags := strings.SplitN(macro, ":", 2)
-	if len(flags) == 2 {
-		macro = flags[0]
-		flag = strings.ToLower(flags[1])
-	}
+	// split by : and |
+	flags := strings.FieldsFunc(macro, func(r rune) bool { return r == '|' || r == ':' })
+
+	macro = strings.TrimSpace(flags[0])
+	value := orig
 
 	for _, ms := range macroSets {
 		if repl, ok := ms[macro]; ok {
-			switch flag {
-			case "lc":
-				return strings.ToLower(repl)
-			case "uc":
-				return strings.ToUpper(repl)
-			default:
-				return repl
-			}
+			value = repl
+
+			break
 		}
 	}
 
-	return orig
+	// no macro operator present
+	if len(flags) == 1 {
+		return value
+	}
+
+	for _, flag := range flags[1:] {
+		flag = strings.TrimSpace(flag)
+		switch flag {
+		// lc -> lowercase
+		case "lc":
+			value = strings.ToLower(value)
+		// uc -> lowercase
+		case "uc":
+			value = strings.ToUpper(value)
+		// h -> human readable number
+		case "h":
+			value = humanize.NumF(convert.Int64(value), 2)
+		// date -> unix timestamp to date with local timezone
+		case "date":
+			value = time.Unix(convert.Int64(value), 0).Format("2006-01-02 15:04:05 MST")
+		// date -> unix timestamp to utc date
+		case "utc":
+			value = time.Unix(convert.Int64(value), 0).UTC().Format("2006-01-02 15:04:05 MST")
+		// duration -> seconds into duration string
+		case "duration":
+			value = utils.DurationString(time.Second * time.Duration(convert.Float64(value)))
+		default:
+		}
+	}
+
+	return value
 }
 
 func setProcessErrorResult(err error) (output string) {

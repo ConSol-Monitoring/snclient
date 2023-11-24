@@ -87,7 +87,7 @@ Or check a specific service and get some metrics:
 Check memory usage of specific service:
 
     check_service service=docker warn='rss > 1GB' warn='rss > 2GB'
-    OK: All 1 service(s) are ok. |'docker'=4 'docker rss'=793700000B;1000000000;2000000000;0
+    OK: All 1 service(s) are ok. |'docker'=4 'docker rss'=59691008B;;;0 'docker vms'=3166244864B;;;0 'docker cpu'=0.7%;;;0 'docker tasks'=20;;;0
 	`,
 		exampleArgs: "service=docker",
 	}
@@ -149,6 +149,11 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		}
 	}
 
+	if len(l.services) == 0 && !check.showAll {
+		check.addCountMetrics = true
+		check.addProblemCountMetrics = true
+	}
+
 	return check.Finalize()
 }
 
@@ -170,6 +175,7 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, service
 
 	check.listData = append(check.listData, listEntry)
 
+	// do not add metrics for all services unless requested
 	if len(services) == 0 && !check.showAll {
 		return nil
 	}
@@ -333,9 +339,9 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 
 	match = reSvcSince.FindStringSubmatch(output)
 	if len(match) > 1 {
-		createTime, err := time.Parse("Mon 2006-01-02 03:04:05 MST", match[1])
+		createTime, err := time.Parse("Mon 2006-01-02 15:04:05 MST", match[1])
 		if err != nil {
-			log.Warnf("unable to parse systemctl date '%s': ", match[1], err.Error())
+			log.Warnf("unable to parse systemctl date '%s': %s", match[1], err.Error())
 		} else {
 			listEntry["created"] = fmt.Sprintf("%d", createTime.Unix())
 			listEntry["age"] = fmt.Sprintf("%d", time.Now().Unix()-createTime.Unix())
@@ -364,7 +370,9 @@ func (l *CheckService) addProcMetrics(pidStr string, listEntry map[string]string
 
 	proc, err := process.NewProcess(int32(pid))
 	if err != nil {
-		return fmt.Errorf("pid not found %d: %s", pid, err.Error())
+		log.Tracef("%s", fmt.Errorf("pid not found %d: %s", pid, err.Error()).Error())
+
+		return nil
 	}
 
 	cpuP, err := proc.CPUPercent()

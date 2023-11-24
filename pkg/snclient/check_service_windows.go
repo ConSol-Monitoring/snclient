@@ -88,7 +88,7 @@ There is a specific [check_service for linux](check_service_linux) as well.`,
 		},
 		exampleDefault: `
     check_service
-    OK: All 15 service(s) are ok.
+    OK: All 15 service(s) are ok |'count'=15;;;0 'failed'=0;;;0
 
 Checking a single service:
 
@@ -164,6 +164,11 @@ func (l *CheckService) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if len(l.services) == 0 && !check.showAll {
+		check.addCountMetrics = true
+		check.addProblemCountMetrics = true
 	}
 
 	return check.Finalize()

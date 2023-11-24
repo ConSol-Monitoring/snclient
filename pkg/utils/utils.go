@@ -128,6 +128,7 @@ func DurationString(dur time.Duration) string {
 	seconds -= hours * 3600
 
 	minutes := seconds / 60
+	seconds -= minutes * 60
 
 	switch {
 	case years > 0:
@@ -136,8 +137,12 @@ func DurationString(dur time.Duration) string {
 		return fmt.Sprintf("%dw %dd", weeks, days)
 	case days > 0:
 		return fmt.Sprintf("%dd %02d:%02dh", days+weeks*7, hours, minutes)
-	default:
+	case hours > 0:
 		return fmt.Sprintf("%02d:%02dh", hours, minutes)
+	case minutes > 0:
+		return fmt.Sprintf("%dm %02ds", minutes, seconds)
+	default:
+		return fmt.Sprintf("%ds", seconds)
 	}
 }
 

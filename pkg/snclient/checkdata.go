@@ -70,43 +70,45 @@ type CheckAttribute struct {
 
 // CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
-	noCopy          noCopy
-	name            string
-	description     string
-	docTitle        string
-	usage           string
-	debug           string
-	defaultFilter   string
-	conditionAlias  map[string]map[string]string // replacement map of equivalent condition values
-	args            map[string]CheckArgument
-	extraArgs       map[string]CheckArgument // internal, map of expanded args
-	argsPassthrough bool                     // allow arbitrary arguments without complaining about unknown argument
-	rawArgs         []string
-	filter          []*Condition // if set, only show entries matching this filter set
-	warnThreshold   []*Condition
-	defaultWarning  string
-	critThreshold   []*Condition
-	defaultCritical string
-	okThreshold     []*Condition
-	detailSyntax    string
-	topSyntax       string
-	okSyntax        string
-	emptySyntax     string
-	emptyState      int64
-	details         map[string]string
-	listData        []map[string]string
-	listCombine     string // join string for detail list
-	showAll         bool
-	result          *CheckResult
-	showHelp        ShowHelp
-	timeout         float64
-	perfConfig      []PerfConfig
-	hasInventory    InventoryMode
-	output          string
-	implemented     Implemented
-	attributes      []CheckAttribute
-	exampleDefault  string
-	exampleArgs     string
+	noCopy                 noCopy
+	name                   string
+	description            string
+	docTitle               string
+	usage                  string
+	debug                  string
+	defaultFilter          string
+	conditionAlias         map[string]map[string]string // replacement map of equivalent condition values
+	args                   map[string]CheckArgument
+	extraArgs              map[string]CheckArgument // internal, map of expanded args
+	argsPassthrough        bool                     // allow arbitrary arguments without complaining about unknown argument
+	rawArgs                []string
+	filter                 []*Condition // if set, only show entries matching this filter set
+	warnThreshold          []*Condition
+	defaultWarning         string
+	critThreshold          []*Condition
+	defaultCritical        string
+	okThreshold            []*Condition
+	detailSyntax           string
+	topSyntax              string
+	okSyntax               string
+	emptySyntax            string
+	emptyState             int64
+	details                map[string]string
+	listData               []map[string]string
+	listCombine            string // join string for detail list
+	showAll                bool
+	addCountMetrics        bool
+	addProblemCountMetrics bool
+	result                 *CheckResult
+	showHelp               ShowHelp
+	timeout                float64
+	perfConfig             []PerfConfig
+	hasInventory           InventoryMode
+	output                 string
+	implemented            Implemented
+	attributes             []CheckAttribute
+	exampleDefault         string
+	exampleArgs            string
 }
 
 func (cd *CheckData) Finalize() (*CheckResult, error) {
@@ -243,6 +245,29 @@ func (cd *CheckData) buildListMacros() map[string]string {
 
 	result["problem_list"] = strings.Join(problemList, " ")
 	result["detail_list"] = strings.Join(detailList, " ")
+
+	if cd.addCountMetrics {
+		cd.result.Metrics = append(cd.result.Metrics,
+			&CheckMetric{
+				Name:     "count",
+				Value:    len(list),
+				Warning:  cd.warnThreshold,
+				Critical: cd.critThreshold,
+				Min:      &Zero,
+			},
+		)
+	}
+	if cd.addProblemCountMetrics {
+		cd.result.Metrics = append(cd.result.Metrics,
+			&CheckMetric{
+				Name:     "failed",
+				Value:    len(critList) + len(warnList),
+				Warning:  cd.warnThreshold,
+				Critical: cd.critThreshold,
+				Min:      &Zero,
+			},
+		)
+	}
 
 	return result
 }

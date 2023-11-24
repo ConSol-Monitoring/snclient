@@ -337,3 +337,29 @@ func TestEmptyConfig(t *testing.T) {
 
 	require.NoErrorf(t, err, "empty ini parsed")
 }
+
+func TestMacros(t *testing.T) {
+	macros := map[string]string{
+		"seconds":   "130",
+		"unix time": "1700834034",
+	}
+
+	tests := []struct {
+		In     string
+		Expect string
+	}{
+		{In: "$(seconds)", Expect: "130"},
+		{In: "-${seconds}-", Expect: "-130-"},
+		{In: "$(seconds:duration)", Expect: "2m 10s"},
+		{In: "$(unix time:utc)", Expect: "2023-11-24 13:53:54 UTC"},
+		{In: "$(unix time:utc:uc)", Expect: "2023-11-24 13:53:54 UTC"},
+		{In: "$(unix time:utc:lc)", Expect: "2023-11-24 13:53:54 utc"},
+		{In: "$(unix time : utc : lc)", Expect: "2023-11-24 13:53:54 utc"},
+		{In: "$(unix time | utc | lc)", Expect: "2023-11-24 13:53:54 utc"},
+	}
+
+	for _, tst := range tests {
+		res := ReplaceMacros(tst.In, macros)
+		assert.Equalf(t, tst.Expect, res, "replacing: %s", tst.In)
+	}
+}

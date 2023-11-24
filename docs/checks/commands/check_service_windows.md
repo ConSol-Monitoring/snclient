@@ -23,7 +23,7 @@ There is a specific [check_service for linux](check_service_linux) as well.
 ### Default Check
 
     check_service
-    OK: All 15 service(s) are ok.
+    OK: All 15 service(s) are ok |'count'=15;;;0 'failed'=0;;;0
 
 Checking a single service:
 

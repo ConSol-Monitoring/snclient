@@ -109,9 +109,24 @@ func ParseBytes(raw string) (uint64, error) {
 	return 0, fmt.Errorf("unhandled size name: %v", extra)
 }
 
+// Num(82854982) -> 83 M
+func Num(num int64) string {
+	return NumF(num, 0)
+}
+
+func NumF(num int64, precision int) string {
+	prefix := ""
+	if num < 0 {
+		num *= -1
+		prefix = "-"
+	}
+
+	return prefix + humanizeBytes(uint64(num), 1000, []string{"", "k", "M", "G", "T", "P", "E"}, precision)
+}
+
 // Bytes(82854982) -> 83 MB
 func Bytes(num uint64) string {
-	return humanizeBytes(num, 1000, []string{"B", "kB", "MB", "GB", "TB", "PB", "EB"}, 0)
+	return BytesF(num, 0)
 }
 
 // Bytes(82854982, 3) -> 83.000 MiB
@@ -121,7 +136,7 @@ func BytesF(num uint64, precision int) string {
 
 // IBytes(82854982) -> 79 MiB
 func IBytes(num uint64) string {
-	return humanizeBytes(num, 1024, []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"}, 0)
+	return IBytesF(num, 0)
 }
 
 // IBytes(82854982, 3) -> 79.000 MiB
@@ -150,7 +165,7 @@ func BytesUnitF(num uint64, targetUnit string, precision int) float64 {
 
 func humanizeBytes(num uint64, base float64, sizes []string, precision int) string {
 	if num < 10 {
-		return fmt.Sprintf("%d B", num)
+		return fmt.Sprintf("%d %s", num, sizes[0])
 	}
 	exp := math.Floor(logn(float64(num), base))
 	suffix := sizes[int(exp)]
