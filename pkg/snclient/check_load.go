@@ -10,7 +10,6 @@ import (
 	"pkg/humanize"
 	"pkg/utils"
 
-	"github.com/shirou/gopsutil/v3/cpu"
 	cpuinfo "github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/process"
@@ -107,7 +106,10 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 		}
 	}
 
-	cores, err := cpu.CountsWithContext(ctx, true)
+	cores, err := cpuinfo.CountsWithContext(ctx, true)
+	if err != nil {
+		log.Warnf("cpuinfo.Counts: %s", err.Error())
+	}
 	check.details = map[string]string{
 		"cores": fmt.Sprintf("%d", cores),
 	}
