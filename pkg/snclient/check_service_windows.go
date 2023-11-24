@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"pkg/utils"
 	"pkg/wmi"
 
-	"github.com/shirou/gopsutil/v3/process"
 	"golang.org/x/exp/slices"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
@@ -28,8 +26,6 @@ type WindowsServiceDetails struct {
 	Name   string
 	Status *svc.Status
 	Config *mgr.Config
-	Memory *process.MemoryInfoStat
-	CPU    *float64
 }
 
 type CheckService struct {
@@ -110,7 +106,7 @@ func MgrConnectReadOnly() (*mgr.Mgr, error) {
 	return &mgr.Mgr{Handle: h}, nil
 }
 
-func (l *CheckService) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckService) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	// collect service state
 	ctrlMgr, err := MgrConnectReadOnly()
 	if err != nil {
@@ -136,7 +132,7 @@ func (l *CheckService) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 				continue
 			}
 
-			err = l.addService(check, ctrlMgr, service, l.services, l.excludes)
+			err = l.addService(ctx, check, ctrlMgr, service, l.services, l.excludes)
 			if err != nil {
 				return nil, err
 			}
@@ -160,7 +156,7 @@ func (l *CheckService) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 			continue
 		}
 
-		err = l.addService(check, ctrlMgr, service, l.services, l.excludes)
+		err = l.addService(ctx, check, ctrlMgr, service, l.services, l.excludes)
 		if err != nil {
 			return nil, err
 		}
@@ -192,30 +188,14 @@ func (l *CheckService) getServiceDetails(ctrlMgr *mgr.Mgr, service string) (*Win
 		log.Tracef("failed to retrieve service configuration for %s: %s", service, err.Error())
 	}
 
-	// retrieve process metrics
-	var mem *process.MemoryInfoStat
-	var cpu *float64
-	if statusCode.State == windows.SERVICE_RUNNING {
-		proc, _ := process.NewProcess(int32(statusCode.ProcessId))
-		if proc != nil {
-			mem, _ = proc.MemoryInfo()
-			cpuP, err := proc.CPUPercent()
-			if err == nil {
-				cpu = &cpuP
-			}
-		}
-	}
-
 	return &WindowsServiceDetails{
 		Name:   realName,
 		Status: &statusCode,
 		Config: &conf,
-		Memory: mem,
-		CPU:    cpu,
 	}, nil
 }
 
-func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service string, services, excludes []string) error {
+func (l *CheckService) addService(ctx context.Context, check *CheckData, ctrlMgr *mgr.Mgr, service string, services, excludes []string) error {
 	details, err := l.getServiceDetails(ctrlMgr, service)
 	if err != nil {
 		if len(services) == 0 {
@@ -240,12 +220,13 @@ func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service st
 		"pid":            fmt.Sprintf("%d", details.Status.ProcessId),
 		"start_type":     l.svcStartType(details.Config.StartType, details.Config.DelayedAutoStart),
 	}
-	if details.Memory != nil {
-		listEntry["rss"] = fmt.Sprintf("%d", details.Memory.RSS)
-		listEntry["vms"] = fmt.Sprintf("%d", details.Memory.VMS)
-	}
-	if details.CPU != nil {
-		listEntry["cpu"] = fmt.Sprintf("%f", *details.CPU)
+
+	// fetch memory / cpu for main process
+	if details.Status.State == windows.SERVICE_RUNNING {
+		err := l.addProcMetrics(ctx, listEntry["pid"], listEntry)
+		if err != nil {
+			log.Warnf("failed to add proc metrics: %s", err.Error())
+		}
 	}
 
 	if !l.isRequired(check, listEntry, services, excludes) {
@@ -254,39 +235,14 @@ func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service st
 
 	check.listData = append(check.listData, listEntry)
 
+	// do not add metrics for all services unless requested
 	if len(services) == 0 && !check.showAll {
 		return nil
 	}
 
-	l.addMetrics(check, service, details.Status, details.Memory, details.CPU)
+	l.addServiceMetrics(service, float64(details.Status.State), check, listEntry)
 
 	return nil
-}
-
-func (l *CheckService) isRequired(check *CheckData, entry map[string]string, services, excludes []string) bool {
-	name := entry["name"]
-	desc := entry["desc"]
-	if slices.Contains(excludes, name) || slices.Contains(excludes, desc) {
-		log.Tracef("service %s excluded by exclude list", name)
-
-		return false
-	}
-	if slices.Contains(services, "*") {
-		return true
-	}
-	if len(services) > 0 && !slices.Contains(services, name) && !slices.Contains(services, desc) {
-		log.Tracef("service %s excluded by not matching service list", name)
-
-		return false
-	}
-
-	if !check.MatchMapCondition(check.filter, entry, true) {
-		log.Tracef("service %s excluded by filter", name)
-
-		return false
-	}
-
-	return true
 }
 
 func (l *CheckService) svcClassification(serviceType uint32) string {
@@ -352,59 +308,6 @@ func (l *CheckService) svcStartType(startType uint32, delayed bool) string {
 	}
 
 	return "unknown"
-}
-
-func (l *CheckService) addMetrics(check *CheckData, service string, statusCode *svc.Status, mem *process.MemoryInfoStat, cpu *float64) {
-	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-		Name:  service,
-		Value: float64(statusCode.State),
-	})
-	if mem != nil {
-		check.result.Metrics = append(
-			check.result.Metrics,
-			&CheckMetric{
-				Name:     fmt.Sprintf("%s rss", service),
-				Value:    float64(mem.RSS),
-				Unit:     "B",
-				Warning:  check.TransformThreshold(check.warnThreshold, "rss", fmt.Sprintf("%s rss", service), "B", "B", 0),
-				Critical: check.TransformThreshold(check.warnThreshold, "rss", fmt.Sprintf("%s rss", service), "B", "B", 0),
-			},
-			&CheckMetric{
-				Name:     fmt.Sprintf("%s vms", service),
-				Value:    float64(mem.VMS),
-				Unit:     "B",
-				Warning:  check.TransformThreshold(check.warnThreshold, "vms", fmt.Sprintf("%s vms", service), "B", "B", 0),
-				Critical: check.TransformThreshold(check.warnThreshold, "vms", fmt.Sprintf("%s vms", service), "B", "B", 0),
-			},
-		)
-	} else {
-		check.result.Metrics = append(
-			check.result.Metrics,
-			&CheckMetric{
-				Name:  fmt.Sprintf("%s rss", service),
-				Value: "U",
-			},
-			&CheckMetric{
-				Name:  fmt.Sprintf("%s vms", service),
-				Value: "U",
-			},
-		)
-	}
-	if cpu != nil {
-		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-			ThresholdName: "cpu",
-			Name:          fmt.Sprintf("%s cpu", service),
-			Value:         utils.ToPrecision(*cpu, 1),
-			Unit:          "%",
-			Warning:       check.warnThreshold,
-			Critical:      check.critThreshold,
-		})
-	} else {
-		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-			Name:  fmt.Sprintf("%s cpu", service),
-			Value: "U",
-		})
-	}
 }
 
 func (l *CheckService) FindService(ctrlMgr *mgr.Mgr, name string) (string, *windows.Handle, error) {
