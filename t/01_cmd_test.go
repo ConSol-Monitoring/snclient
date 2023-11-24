@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -38,4 +39,6 @@ func TestCommandFlags(t *testing.T) {
 		Args: []string{"run", "check_snclient_version"},
 		Like: []string{`SNClient\+ v`},
 	})
+
+	os.Remove("snclient.ini")
 }

@@ -38,6 +38,7 @@ type cmd struct {
 	Like    []string // stdout must contain these lines (regexp)
 	ErrLike []string // stderr must contain these lines (regexp), if nil, stderr must be empty
 	Exit    int64    // exit code must match this number, set to -1 to accept all exit code (default 0)
+	Unlike  []string // stdout must not contain these lines (regexp)
 
 	// optional values when running a cmd
 	Timeout time.Duration     // maximum run duration (default 30sec)
@@ -45,7 +46,7 @@ type cmd struct {
 }
 
 // runCmd runs a test command defined from the Cmd struct
-func runCmd(t *testing.T, opt *cmd) {
+func runCmd(t *testing.T, opt *cmd) *cmdResult {
 	t.Helper()
 	assert.NotEmptyf(t, opt.Cmd, "command must not be empty")
 
@@ -70,15 +71,16 @@ func runCmd(t *testing.T, opt *cmd) {
 
 	// extract stdout and stderr
 	res := &cmdResult{
-		Stdout: outbuf.String(),
-		Stderr: errbuf.String(),
+		ExitCode: -1,
+		Stdout:   outbuf.String(),
+		Stderr:   errbuf.String(),
 	}
 
 	if err != nil && check.ProcessState == nil {
 		logCmd(t, check, res)
 		require.NoErrorf(t, err, fmt.Sprintf("command wait: %s", opt.Cmd))
 
-		return
+		return res
 	}
 
 	state := check.ProcessState
@@ -88,7 +90,7 @@ func runCmd(t *testing.T, opt *cmd) {
 		logCmd(t, check, res)
 		assert.Fail(t, fmt.Sprintf("command run into timeout after %s", opt.Timeout.String()))
 
-		return
+		return res
 	}
 
 	if waitStatus, ok := state.Sys().(syscall.WaitStatus); ok {
@@ -103,7 +105,11 @@ func runCmd(t *testing.T, opt *cmd) {
 	}
 
 	for _, l := range opt.Like {
-		assert.Regexpf(t, l, res.Stdout, "stdout contains: "+l)
+		assert.Regexpf(t, l, res.Stdout, "stdout must contain: "+l)
+	}
+
+	for _, l := range opt.Unlike {
+		assert.NotRegexpf(t, l, res.Stdout, "stdout must not contain: "+l)
 	}
 
 	if len(opt.ErrLike) == 0 {
@@ -113,6 +119,8 @@ func runCmd(t *testing.T, opt *cmd) {
 			assert.Regexpf(t, l, res.Stderr, "stderr contains: "+l)
 		}
 	}
+
+	return res
 }
 
 func prepareCmd(ctx context.Context, opt *cmd) (check *exec.Cmd, outbuf, errbuf *bytes.Buffer) {
