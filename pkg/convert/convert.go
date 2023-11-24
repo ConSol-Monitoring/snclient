@@ -58,6 +58,32 @@ func Int64E(raw interface{}) (int64, error) {
 	}
 }
 
+// Int converts anything into a int
+// errors will fall back to 0
+func Int(raw interface{}) int {
+	val, _ := IntE(raw)
+
+	return val
+}
+
+// IntE converts anything into a int
+// errors will be returned
+func IntE(raw interface{}) (int, error) {
+	switch val := raw.(type) {
+	case int:
+		return val, nil
+	case int32:
+		return int(val), nil
+	default:
+		num, err := strconv.ParseInt(fmt.Sprintf("%v", val), 10, 32)
+		if err != nil {
+			return 0, fmt.Errorf("cannot parse int64 value from %v (%T)", raw, raw)
+		}
+
+		return int(num), nil
+	}
+}
+
 // Bool converts anything into a bool
 // errors will fall back to false
 func Bool(raw interface{}) bool {

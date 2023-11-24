@@ -360,7 +360,7 @@ func (l *CheckService) addProcMetrics(pidStr string, listEntry map[string]string
 	if pidStr == "" {
 		return nil
 	}
-	pid, err := convert.Int64E(pidStr)
+	pid, err := convert.IntE(pidStr)
 	if err != nil {
 		return fmt.Errorf("pid is not a number: %s: %s", pidStr, err.Error())
 	}
