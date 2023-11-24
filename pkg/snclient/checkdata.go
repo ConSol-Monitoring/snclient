@@ -627,7 +627,7 @@ func (cd *CheckData) parseAnyArg(appendArgs map[string]bool, argExpr, keyword, a
 		}
 		*argRef = i
 	case *int:
-		i, err := strconv.ParseInt(argValue, 10, 64)
+		i, err := strconv.ParseInt(argValue, 10, 32)
 		if err != nil {
 			return true, fmt.Errorf("parseInt %s: %s", argExpr, err.Error())
 		}
