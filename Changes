@@ -1,5 +1,9 @@
 This file documents the revision history for the SNClient+ agent.
 
+next:
+         - check_service (linux): add rss/vms/cpu/task metric and remove generic mem metric
+         - add support for %{} macros and $() as well
+
 0.13     Thu Nov 23 22:20:21 CET 2023
          - drop privileges when running node exporter
          - update node exporter to 1.7.0

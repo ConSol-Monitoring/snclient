@@ -7,14 +7,14 @@ in warning, critical or ok thresholds.
 
 ## Syntax
 
-All filter follow the syntax `<attribute> <operator> <value>`. For a list and explaination
+All filter follow the syntax `<attribute> <operator> <value>`. For a list and explanation
 of allowed operators see [the operator list](#operator).
 
 The list of possible attributes is documented along with the [check plugins](../checks/).
 
 ex.:
 
-	status = 'started'
+    status = 'started'
 
 ## Logical Operator
 
@@ -27,7 +27,7 @@ To combine multiple filter you can use logical operator and brackets.
 
 ex.:
 
-	(status = 'started' or status = 'pending') and usage > 5%
+    (status = 'started' or status = 'pending') and usage > 5%
 
 ## Operator
 

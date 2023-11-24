@@ -115,8 +115,12 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	if cd.details == nil {
 		cd.details = map[string]string{}
 	}
+	cd.details["top-syntax"] = cd.topSyntax
+	cd.details["ok-syntax"] = cd.okSyntax
+	cd.details["empty-syntax"] = cd.emptySyntax
+	cd.details["detail-syntax"] = cd.detailSyntax
 	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
-	log.Tracef("details: %v", cd.details)
+	log.Tracef("details: %#v", cd.details)
 
 	// apply final filter
 	cd.listData = cd.Filter(cd.filter, cd.listData)
@@ -143,7 +147,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 				return nil, fmt.Errorf("%s", errMsg)
 			}
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
-			log.Tracef(" - %v", entry)
+			log.Tracef(" - %#v", entry)
 		}
 	}
 
@@ -153,7 +157,6 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	} else {
 		finalMacros = cd.buildListMacros()
 	}
-
 	err := cd.result.ApplyPerfConfig(cd.perfConfig)
 	if err != nil {
 		return nil, fmt.Errorf("%s", err.Error())
@@ -176,6 +179,8 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	default:
 		cd.result.Output = cd.topSyntax
 	}
+
+	log.Tracef("output template: %s", cd.result.Output)
 
 	cd.result.Finalize(cd.details, finalMacros)
 
@@ -397,6 +402,8 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 	argList := make([]Argument, 0, len(args))
 	applyDefaultFilter := true
 	cd.expandArgDefinitions()
+	topSupplied := false
+	okSupplied := false
 	numArgs := len(args)
 	for idx := 0; idx < numArgs; idx++ {
 		argExpr := cd.removeQuotes(args[idx])
@@ -451,8 +458,10 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			cd.detailSyntax = argValue
 		case "top-syntax":
 			cd.topSyntax = argValue
+			topSupplied = true
 		case "ok-syntax":
 			cd.okSyntax = argValue
+			okSupplied = true
 		case "empty-syntax":
 			cd.emptySyntax = argValue
 		case "empty-state":
@@ -504,6 +513,10 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 				argList = append(argList, Argument{key: keyword, value: argValue})
 			}
 		}
+	}
+
+	if topSupplied && !okSupplied {
+		cd.okSyntax = cd.topSyntax
 	}
 
 	err := cd.setFallbacks(applyDefaultFilter)

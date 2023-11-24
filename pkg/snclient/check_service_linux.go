@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
-	"pkg/humanize"
+	"pkg/convert"
 
+	"github.com/shirou/gopsutil/v3/process"
 	"golang.org/x/exp/slices"
 )
 
@@ -21,9 +23,9 @@ var (
 	reSvcDetails   = regexp.MustCompile(`(?s)^.*?\.service(?:\s\-\s(.*?)|)\n.*Active:\s*([A-Za-z() :-]+)(?:\ssince|\n)`)
 	reSvcMainPid   = regexp.MustCompile(`Main\sPID:\s(\d+)`)
 	reSvcPidMaster = regexp.MustCompile(`─(\d+).+\(master\)`)
-	reSvcMemory    = regexp.MustCompile(`Memory:\s([\w.]+)`)
 	reSvcPreset    = regexp.MustCompile(`\s+preset:\s+(\w+)\)`)
 	reSvcSince     = regexp.MustCompile(`since\s+([^;]+);`)
+	reSvcTasks     = regexp.MustCompile(`Tasks:\s*(\d+)`)
 	reSvcStatic    = regexp.MustCompile(`;\sstatic\)`)
 )
 
@@ -64,11 +66,14 @@ There is a specific [check_service for windows](check_service_windows) as well.`
 			{name: "service", description: "Alias for name"},
 			{name: "desc", description: "Description of the service"},
 			{name: "state", description: "The state of the service, one of: stopped, starting, oneshot, running or unknown"},
-			{name: "created", description: "Date when service was created"},
-			{name: "preset", description: "The preset attribute of the service, one of: enabled or disabled"},
 			{name: "pid", description: "The pid of the service"},
-			{name: "mem", description: "The memory usage in human readable bytes"},
-			{name: "mem_bytes", description: "The memory usage in bytes"},
+			{name: "created", description: "Date when service was started (unix timestamp)"},
+			{name: "age", description: "Seconds since service was started"},
+			{name: "rss", description: "Memory rss in bytes (main process)"},
+			{name: "vms", description: "Memory vms in bytes (main process)"},
+			{name: "cpu", description: "CPU usage in percent (main process)"},
+			{name: "preset", description: "The preset attribute of the service, one of: enabled or disabled"},
+			{name: "tasks", description: "Number of tasks for this service"},
 		},
 		exampleDefault: `
     check_service
@@ -76,13 +81,13 @@ There is a specific [check_service for windows](check_service_windows) as well.`
 
 Or check a specific service and get some metrics:
 
-    check_service service=docker ok-syntax='%(status): %(list)' detail-syntax='%(name) - memory: %(mem) - created: %(created)'
-    OK: docker - memory: 805.2M - created: Fri 2023-11-17 20:34:01 CET |'docker'=4 'docker mem'=805200000B
+    check_service service=docker ok-syntax='${top-syntax}' top-syntax='%(status): %(list)' detail-syntax='%(name) %(state) - memory: %(rss:h)B - age: %(age:duration)'
+    OK: docker running - memory: 805.2MB - created: Fri 2023-11-17 20:34:01 CET |'docker'=4 'docker rss'=805200000B
 
 Check memory usage of specific service:
 
-    check_service service=docker warn='mem > 1GB' warn='mem > 2GB'
-    OK: All 1 service(s) are ok. |'docker'=4 'docker mem'=793700000B;1000000000;2000000000;0
+    check_service service=docker warn='rss > 1GB' warn='rss > 2GB'
+    OK: All 1 service(s) are ok. |'docker'=4 'docker rss'=793700000B;1000000000;2000000000;0
 	`,
 		exampleArgs: "service=docker",
 	}
@@ -169,21 +174,43 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, service
 		return nil
 	}
 
-	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-		Name:  service,
-		Value: l.svcStateFloat(listEntry["state"]),
-	})
-	memBytes, err := humanize.ParseBytes(listEntry["mem"])
-	if err != nil {
-		memBytes = 0
-	}
-	check.result.Metrics = append(
-		check.result.Metrics,
+	check.result.Metrics = append(check.result.Metrics,
 		&CheckMetric{
-			ThresholdName: "mem",
-			Name:          fmt.Sprintf("%s mem", service),
-			Value:         float64(memBytes),
+			Name:  service,
+			Value: l.svcStateFloat(listEntry["state"]),
+		},
+		&CheckMetric{
+			ThresholdName: "rss",
+			Name:          fmt.Sprintf("%s rss", service),
+			Value:         convert.Float64(listEntry["rss"]),
 			Unit:          "B",
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+			Min:           &Zero,
+		},
+		&CheckMetric{
+			ThresholdName: "vms",
+			Name:          fmt.Sprintf("%s vms", service),
+			Value:         convert.Float64(listEntry["vms"]),
+			Unit:          "B",
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+			Min:           &Zero,
+		},
+		&CheckMetric{
+			ThresholdName: "cpu",
+			Name:          fmt.Sprintf("%s cpu", service),
+			Value:         convert.Float64(listEntry["cpu"]),
+			Unit:          "%",
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+			Min:           &Zero,
+		},
+		&CheckMetric{
+			ThresholdName: "tasks",
+			Name:          fmt.Sprintf("%s tasks", service),
+			Value:         convert.Float64(listEntry["tasks"]),
+			Unit:          "",
 			Warning:       check.warnThreshold,
 			Critical:      check.critThreshold,
 			Min:           &Zero,
@@ -256,15 +283,18 @@ func (l *CheckService) svcStateFloat(serviceState string) float64 {
 
 func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[string]string) {
 	listEntry = map[string]string{
-		"name":      name,
-		"service":   name,
-		"state":     "unknown",
-		"created":   "",
-		"preset":    "",
-		"desc":      "",
-		"pid":       "",
-		"mem":       "",
-		"mem_bytes": "",
+		"name":    name,
+		"service": name,
+		"state":   "unknown",
+		"created": "",
+		"age":     "",
+		"preset":  "",
+		"desc":    "",
+		"pid":     "",
+		"rss":     "",
+		"vms":     "",
+		"cpu":     "",
+		"tasks":   "",
 	}
 
 	match := reSvcDetails.FindStringSubmatch(output)
@@ -285,16 +315,16 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 		listEntry["pid"] = match[1]
 	}
 
-	match = reSvcMemory.FindStringSubmatch(output)
-	if len(match) > 1 {
-		listEntry["mem"] = match[1]
+	// fetch memory / cpu for main process
+	err := l.addProcMetrics(listEntry["pid"], listEntry)
+	if err != nil {
+		log.Warnf("failed to add proc metrics: %s", err.Error())
 	}
 
-	memBytes, err := humanize.ParseBytes(listEntry["mem"])
-	if err != nil {
-		memBytes = 0
+	match = reSvcTasks.FindStringSubmatch(output)
+	if len(match) > 1 {
+		listEntry["tasks"] = match[1]
 	}
-	listEntry["mem_bytes"] = fmt.Sprintf("%d", memBytes)
 
 	match = reSvcPreset.FindStringSubmatch(output)
 	if len(match) > 1 {
@@ -303,7 +333,13 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 
 	match = reSvcSince.FindStringSubmatch(output)
 	if len(match) > 1 {
-		listEntry["created"] = match[1]
+		createTime, err := time.Parse("Mon 2006-01-02 03:04:05 MST", match[1])
+		if err != nil {
+			log.Warnf("unable to parse systemctl date '%s': ", match[1], err.Error())
+		} else {
+			listEntry["created"] = fmt.Sprintf("%d", createTime.Unix())
+			listEntry["age"] = fmt.Sprintf("%d", time.Now().Unix()-createTime.Unix())
+		}
 	}
 
 	match = reSvcStatic.FindStringSubmatch(output)
@@ -312,4 +348,35 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 	}
 
 	return listEntry
+}
+
+func (l *CheckService) addProcMetrics(pidStr string, listEntry map[string]string) error {
+	if pidStr == "" {
+		return nil
+	}
+	pid, err := convert.Int64E(pidStr)
+	if err != nil {
+		return fmt.Errorf("pid is not a number: %s: %s", pidStr, err.Error())
+	}
+	if pid <= 0 {
+		return fmt.Errorf("pid is not a positive number: %s", pidStr)
+	}
+
+	proc, err := process.NewProcess(int32(pid))
+	if err != nil {
+		return fmt.Errorf("pid not found %d: %s", pid, err.Error())
+	}
+
+	cpuP, err := proc.CPUPercent()
+	if err == nil {
+		listEntry["cpu"] = fmt.Sprintf("%.1f", cpuP)
+	}
+
+	mem, _ := proc.MemoryInfo()
+	if mem != nil {
+		listEntry["rss"] = fmt.Sprintf("%d", mem.RSS)
+		listEntry["vms"] = fmt.Sprintf("%d", mem.VMS)
+	}
+
+	return nil
 }

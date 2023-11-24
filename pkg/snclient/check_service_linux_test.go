@@ -1,8 +1,10 @@
 package snclient
 
 import (
+	"fmt"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -45,15 +47,18 @@ Jun 29 08:12:45 host systemd[1]: Started blah-service.service.
 	entry := cs.parseSystemCtlStatus("blah", output)
 
 	expect := map[string]string{
-		"name":      "blah",
-		"service":   "blah",
-		"desc":      "",
-		"state":     "oneshot",
-		"preset":    "enabled",
-		"created":   "Thu 2023-06-29 08:12:45 CEST",
-		"pid":       "",
-		"mem":       "",
-		"mem_bytes": "0",
+		"name":    "blah",
+		"service": "blah",
+		"desc":    "",
+		"state":   "oneshot",
+		"preset":  "enabled",
+		"created": "1688019165",
+		"age":     fmt.Sprintf("%d", time.Now().Unix()-1688019165),
+		"pid":     "",
+		"cpu":     "",
+		"rss":     "",
+		"vms":     "",
+		"tasks":   "",
 	}
 	assert.Equalf(t, expect, entry, "parsed systemctl output")
 }
@@ -64,7 +69,7 @@ func TestCheckServiceLinuxSystemCtlOutput_2(t *testing.T) {
 	Active: active (running) since Thu 2023-06-29 08:24:22 CEST; 1 day 4h ago
 TriggeredBy: ● uuidd.socket
 	  Docs: man:uuidd(8)
-  Main PID: 15288 (uuidd)
+  Main PID: 152880000 (uuidd)
 	 Tasks: 1 (limit: 18801)
 	Memory: 540.0K
 	   CPU: 106ms
@@ -78,15 +83,18 @@ Jun 29 08:24:22 host systemd[1]: Started uuidd.service - Daemon for generating U
 	entry := cs.parseSystemCtlStatus("uuidd", output)
 
 	expect := map[string]string{
-		"name":      "uuidd",
-		"service":   "uuidd",
-		"desc":      "Daemon for generating UUIDs",
-		"state":     "running",
-		"preset":    "enabled",
-		"created":   "Thu 2023-06-29 08:24:22 CEST",
-		"pid":       "15288",
-		"mem":       "540.0K",
-		"mem_bytes": "540000",
+		"name":    "uuidd",
+		"service": "uuidd",
+		"desc":    "Daemon for generating UUIDs",
+		"state":   "running",
+		"preset":  "enabled",
+		"created": "1688019862",
+		"pid":     "152880000", // fake pid which does not exist
+		"age":     fmt.Sprintf("%d", time.Now().Unix()-1688019862),
+		"cpu":     "",
+		"rss":     "",
+		"vms":     "",
+		"tasks":   "1",
 	}
 	assert.Equalf(t, expect, entry, "parsed systemctl output")
 }
@@ -110,15 +118,18 @@ Jun 29 08:12:48 host systemd[1]: Failed to start openipmi.service - LSB: OpenIPM
 	entry := cs.parseSystemCtlStatus("openipmi", output)
 
 	expect := map[string]string{
-		"name":      "openipmi",
-		"service":   "openipmi",
-		"desc":      "LSB: OpenIPMI Driver init script",
-		"state":     "stopped",
-		"preset":    "",
-		"created":   "Thu 2023-06-29 08:12:48 CEST",
-		"pid":       "",
-		"mem":       "",
-		"mem_bytes": "0",
+		"name":    "openipmi",
+		"service": "openipmi",
+		"desc":    "LSB: OpenIPMI Driver init script",
+		"state":   "stopped",
+		"preset":  "",
+		"created": "1688019168",
+		"age":     fmt.Sprintf("%d", time.Now().Unix()-1688019168),
+		"pid":     "",
+		"cpu":     "",
+		"rss":     "",
+		"vms":     "",
+		"tasks":   "",
 	}
 	assert.Equalf(t, expect, entry, "parsed systemctl output")
 }
@@ -130,7 +141,7 @@ func TestCheckServiceLinuxSystemCtlOutput_4(t *testing.T) {
    Process: 1048 ExecStart=/usr/sbin/postfix start (code=exited, status=0/SUCCESS)
    Process: 1035 ExecStartPre=/usr/libexec/postfix/chroot-update (code=exited, status=0/SUCCESS)
    Process: 1016 ExecStartPre=/usr/libexec/postfix/aliasesdb (code=exited, status=0/SUCCESS)
-  Main PID: 1409 (master)
+  Main PID: 140900000 (master)
 	CGroup: /system.slice/postfix.service
 			├─ 1409 /usr/libexec/postfix/master -w
 			├─ 1421 qmgr -l -t unix -u
@@ -145,15 +156,18 @@ func TestCheckServiceLinuxSystemCtlOutput_4(t *testing.T) {
 	entry := cs.parseSystemCtlStatus("postfix", output)
 
 	expect := map[string]string{
-		"name":      "postfix",
-		"service":   "postfix",
-		"desc":      "Postfix Mail Transport Agent",
-		"state":     "running",
-		"preset":    "disabled",
-		"created":   "Fri 2023-06-30 10:14:21 CEST",
-		"pid":       "1409",
-		"mem":       "",
-		"mem_bytes": "0",
+		"name":    "postfix",
+		"service": "postfix",
+		"desc":    "Postfix Mail Transport Agent",
+		"state":   "running",
+		"preset":  "disabled",
+		"created": "1688112861",
+		"pid":     "140900000", // fake pid must not exist, otherwise mem/cpu would be filled
+		"age":     fmt.Sprintf("%d", time.Now().Unix()-1688112861),
+		"cpu":     "",
+		"rss":     "",
+		"vms":     "",
+		"tasks":   "",
 	}
 	assert.Equalf(t, expect, entry, "parsed systemctl output")
 }
@@ -168,15 +182,18 @@ func TestCheckServiceLinuxSystemCtlOutput_5(t *testing.T) {
 	entry := cs.parseSystemCtlStatus("systemd-fsck@dev-disk-by\x2duuid-A811\x2d4B23", output)
 
 	expect := map[string]string{
-		"name":      "systemd-fsck@dev-disk-by\x2duuid-A811\x2d4B23",
-		"service":   "systemd-fsck@dev-disk-by\x2duuid-A811\x2d4B23",
-		"desc":      "File System Check on /dev/disk/byx2duuid/A811x2d4B23",
-		"state":     "static",
-		"preset":    "",
-		"created":   "",
-		"pid":       "",
-		"mem":       "",
-		"mem_bytes": "0",
+		"name":    "systemd-fsck@dev-disk-by\x2duuid-A811\x2d4B23",
+		"service": "systemd-fsck@dev-disk-by\x2duuid-A811\x2d4B23",
+		"desc":    "File System Check on /dev/disk/byx2duuid/A811x2d4B23",
+		"state":   "static",
+		"preset":  "",
+		"created": "",
+		"pid":     "",
+		"age":     "",
+		"cpu":     "",
+		"rss":     "",
+		"vms":     "",
+		"tasks":   "",
 	}
 	assert.Equalf(t, expect, entry, "parsed systemctl output")
 }

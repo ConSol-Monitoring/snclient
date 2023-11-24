@@ -37,7 +37,10 @@ type CheckResult struct {
 
 func (cr *CheckResult) Finalize(macros ...map[string]string) {
 	if macros != nil {
-		cr.Output = ReplaceMacros(cr.Output, macros...)
+		// replace macros twice to make nested assignments work
+		for range []int64{1, 2} {
+			cr.Output = ReplaceMacros(cr.Output, macros...)
+		}
 		cr.Details = ReplaceMacros(cr.Details, macros...)
 	}
 	finalMacros := map[string]string{

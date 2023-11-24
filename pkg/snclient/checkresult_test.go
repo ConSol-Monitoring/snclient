@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckResultValueOnly(t *testing.T) {
@@ -126,4 +127,23 @@ func TestCheckResultMultiple(t *testing.T) {
 	assert.Equalf(t, expect, checkRes.Metrics, "parsed metrics")
 	assert.Equalf(t, "", checkRes.Output, "plugin output is trimmed now")
 	assert.Equalf(t, `|'free'=317MB 'used bytes'=42GB 'total bytes'=11.5GB;10:20;@5:30`, string(checkRes.BuildPluginOutput()), "plugin output")
+}
+
+func TestCheckResultNestedMacro(t *testing.T) {
+	check := &CheckData{
+		result:       &CheckResult{},
+		topSyntax:    "%(status): %{list} %(top level macro)",
+		detailSyntax: "$(test)",
+		okSyntax:     "${top-syntax}",
+		listData: []map[string]string{
+			{"test": "123"},
+		},
+		details: map[string]string{
+			"top level macro": "topLvl Macro",
+		},
+	}
+	result, err := check.Finalize()
+	require.NoErrorf(t, err, "Finalize worked")
+
+	assert.Equalf(t, `OK: 123 topLvl Macro`, string(result.BuildPluginOutput()), "plugin output")
 }

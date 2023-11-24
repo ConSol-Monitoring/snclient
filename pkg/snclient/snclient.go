@@ -103,11 +103,13 @@ var (
 
 	GlobalMacros = getGlobalMacros()
 
-	// macros can be either ${...} or %(...)
-	reMacro = regexp.MustCompile(`\$\{\s*[a-zA-Z0-9\-_: /]+\s*\}|%\(\s*[a-zA-Z\-_: /]+\s*\)`)
+	// macros can be either ${...} or %(...) or all variants of $ / % with () or {}
+	macroChars = `a-zA-Z0-9\-_: /`
+	reMacro    = regexp.MustCompile(`(\$|%)(\{\s*[` + macroChars + `]+\s*\}|\(\s*[` + macroChars + `]+\s*\))`)
 
 	// runtime macros can be %...% or $...$ or $ARGS"$
-	reRuntimeMacro = regexp.MustCompile(`(?:%|\$)[a-zA-Z0-9"\-_: ]+(?:%|\$)`)
+	runtimeMacroChars = macroChars + `"`
+	reRuntimeMacro    = regexp.MustCompile(`%[` + runtimeMacroChars + `]+%|\$[` + runtimeMacroChars + `]+\$`)
 )
 
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
@@ -870,8 +872,8 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 
 /* replaceMacros replaces variables in given string (config ini file style macros).
  * possible macros are:
- *   ${macro}
- *   %(macro)
+ *   ${macro} / $(macro)
+ *   %(macro) / %{macro}
  */
 func ReplaceMacros(value string, macroSets ...map[string]string) string {
 	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
@@ -888,13 +890,22 @@ func extractMacroString(str string) string {
 	str = strings.TrimSpace(str)
 
 	switch {
-	// ${...} macros
-	case strings.HasPrefix(str, "${"):
-		str = strings.TrimPrefix(str, "${")
+	// $... macros
+	case strings.HasPrefix(str, "$"):
+		str = strings.TrimPrefix(str, "$")
+	// %... macros
+	case strings.HasPrefix(str, "%"):
+		str = strings.TrimPrefix(str, "%")
+	}
+
+	switch {
+	// {...} macros
+	case strings.HasPrefix(str, "{"):
+		str = strings.TrimPrefix(str, "{")
 		str = strings.TrimSuffix(str, "}")
-	// %(...) macros
-	case strings.HasPrefix(str, "%("):
-		str = strings.TrimPrefix(str, "%(")
+	// (...) macros
+	case strings.HasPrefix(str, "("):
+		str = strings.TrimPrefix(str, "(")
 		str = strings.TrimSuffix(str, ")")
 	}
 	str = strings.TrimSpace(str)

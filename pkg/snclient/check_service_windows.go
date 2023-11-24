@@ -76,13 +76,15 @@ There is a specific [check_service for linux](check_service_linux) as well.`,
 			{name: "desc", description: "Description of the service"},
 			{name: "state", description: "The state of the service, one of: stopped, starting, stopping, running, continuing, pausing, paused or unknown"},
 			{name: "pid", description: "The pid of the service"},
+			{name: "created", description: "Date when service was started"},
+			{name: "age", description: "Seconds since service was started"},
+			{name: "rss", description: "Memory rss in bytes"},
+			{name: "vms", description: "Memory vms in bytes"},
+			{name: "cpu", description: "CPU usage in percent"},
 			{name: "delayed", description: "If the service is delayed, can be 0 or 1 "},
 			{name: "classification", description: "Classification of the service, one of: " +
 				"kernel-driver, system-driver, service-adapter, driver, service-own-process, service-shared-process, service or interactive"},
 			{name: "start_type", description: "The configured start type, one of: boot, system, delayed, auto, demand, disabled or unknown"},
-			{name: "rss", description: "Memory rss in bytes"},
-			{name: "vms", description: "Memory vms in bytes"},
-			{name: "cpu", description: "CPU usage in percent"},
 		},
 		exampleDefault: `
     check_service
@@ -234,11 +236,11 @@ func (l *CheckService) addService(check *CheckData, ctrlMgr *mgr.Mgr, service st
 		"start_type":     l.svcStartType(details.Config.StartType, details.Config.DelayedAutoStart),
 	}
 	if details.Memory != nil {
-		listEntry["rss"] = fmt.Sprintf("%dB", details.Memory.RSS)
-		listEntry["vms"] = fmt.Sprintf("%dB", details.Memory.VMS)
+		listEntry["rss"] = fmt.Sprintf("%d", details.Memory.RSS)
+		listEntry["vms"] = fmt.Sprintf("%d", details.Memory.VMS)
 	}
 	if details.CPU != nil {
-		listEntry["cpu"] = fmt.Sprintf("%f%%", *details.CPU)
+		listEntry["cpu"] = fmt.Sprintf("%f", *details.CPU)
 	}
 
 	if !l.isRequired(check, listEntry, services, excludes) {

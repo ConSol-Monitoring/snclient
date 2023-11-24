@@ -83,6 +83,7 @@ Supported macro variants:
 
 - `${macroname}`
 - `%(macroname)`
+- all variants of `$` / `%` and `{}` / `()` are interchangeable
 
 Available macros are:
 
