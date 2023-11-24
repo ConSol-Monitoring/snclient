@@ -4,11 +4,13 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"runtime"
 	"strings"
 
 	"pkg/humanize"
 	"pkg/utils"
 
+	"github.com/shirou/gopsutil/v3/cpu"
 	cpuinfo "github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/process"
@@ -17,8 +19,11 @@ import (
 
 func init() {
 	AvailableChecks["check_load"] = CheckEntry{"check_load", new(CheckLoad)}
+
 	// starts a ticker (at least on windows to calculate averages)
-	go load.Avg() //nolint:errcheck // we do not want to log anything yet, if it continues to fail, it will be logged later
+	if runtime.GOOS == "windows" {
+		go load.Avg() //nolint:errcheck // we do not want to log anything yet, if it continues to fail, it will be logged later
+	}
 }
 
 type CheckLoad struct {
@@ -45,7 +50,7 @@ func (l *CheckLoad) Build() *CheckData {
 		},
 		defaultFilter: "none",
 		detailSyntax:  "${type} load average: ${load1}, ${load5}, ${load15}",
-		topSyntax:     "${status}: ${list}",
+		topSyntax:     "${status}: ${list} at ${cores} cores",
 		listCombine:   " - ",
 		attributes: []CheckAttribute{
 			{name: "type", description: "type will be either 'total' or 'scaled'"},
@@ -100,6 +105,11 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 		if err != nil {
 			return nil, fmt.Errorf("procs: %s", err.Error())
 		}
+	}
+
+	cores, err := cpu.CountsWithContext(ctx, true)
+	check.details = map[string]string{
+		"cores": fmt.Sprintf("%d", cores),
 	}
 
 	return check.Finalize()
@@ -206,6 +216,10 @@ func (l *CheckLoad) transformThreshold(arg, prefix string, threshold *[]*Conditi
 		return nil
 	}
 	splitted := strings.Split(arg, ",")
+	if len(splitted) == 1 {
+		// use same threshold for 1m, 5m and 15m
+		splitted = append(splitted, splitted[0], splitted[0])
+	}
 	if len(splitted) != 3 {
 		return fmt.Errorf("warning threshold must be: %s1,%s5,%s15", prefix, prefix, prefix)
 	}
