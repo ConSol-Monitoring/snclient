@@ -101,24 +101,7 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 			speed = -1
 		}
 
-		recvRate := float64(0)
-		recv1 := l.snc.Counter.Get("net", int.Name+"_recv").GetLast()
-		recv2 := l.snc.Counter.Get("net", int.Name+"_recv").GetAt(time.Now().Add(-TrafficRateDuration))
-		if recv1 != nil && recv2 != nil && recv1.timestamp.After(recv2.timestamp) {
-			recvRate = (recv1.value - recv2.value) / float64(recv1.timestamp.Unix()-recv2.timestamp.Unix())
-		}
-		if recvRate < 0 {
-			recvRate = 0
-		}
-		sentRate := float64(0)
-		sent1 := l.snc.Counter.Get("net", int.Name+"_sent").GetLast()
-		sent2 := l.snc.Counter.Get("net", int.Name+"_sent").GetAt(time.Now().Add(-TrafficRateDuration))
-		if sent1 != nil && sent2 != nil && sent1.timestamp.After(sent2.timestamp) {
-			sentRate = (sent1.value - sent2.value) / float64(sent1.timestamp.Unix()-sent2.timestamp.Unix())
-		}
-		if sentRate < 0 {
-			sentRate = 0
-		}
+		recvRate, sentRate := l.getTrafficRates(int.Name)
 
 		check.listData = append(check.listData, map[string]string{
 			"MAC":               int.HardwareAddr,
@@ -172,4 +155,19 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	}
 
 	return check.Finalize()
+}
+
+func (l *CheckNetwork) getTrafficRates(name string) (received, sent float64) {
+	received, _ = l.snc.Counter.GetRate("net", name+"_recv", TrafficRateDuration)
+	sent, _ = l.snc.Counter.GetRate("net", name+"_sent", TrafficRateDuration)
+
+	if received < 0 {
+		received = 0
+	}
+
+	if sent < 0 {
+		sent = 0
+	}
+
+	return
 }
