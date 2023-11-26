@@ -14,10 +14,6 @@ func init() {
 	AvailableChecks["check_cpu_utilization"] = CheckEntry{"check_cpu_utilization", new(CheckCPUUtilization)}
 }
 
-const (
-	CPURateDuration = 30 * time.Second
-)
-
 type CPUUtilizationResult struct {
 	total  float64
 	user   float64
@@ -28,10 +24,13 @@ type CPUUtilizationResult struct {
 }
 
 type CheckCPUUtilization struct {
-	snc *Agent
+	snc      *Agent
+	avgRange string
 }
 
 func (l *CheckCPUUtilization) Build() *CheckData {
+	l.avgRange = "1m"
+
 	return &CheckData{
 		name:         "check_cpu_utilization",
 		description:  "Checks the cpu utilization metrics.",
@@ -39,6 +38,9 @@ func (l *CheckCPUUtilization) Build() *CheckData {
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
+		},
+		args: map[string]CheckArgument{
+			"range": {value: &l.avgRange, description: "Sets time range to calculate average (default is 1m)"},
 		},
 		defaultWarning:  "total > 90",
 		defaultCritical: "total > 95",
@@ -54,9 +56,9 @@ func (l *CheckCPUUtilization) Build() *CheckData {
 		},
 		exampleDefault: `
     check_cpu_utilization
-    OK: CPU load is ok. |'total 5m'=13%;80;90 'total 1m'=13%;80;90 'total 5s'=13%;80;90
+    OK - user: 29% - system: 11% - iowait: 3% - steal: 0% - guest: 0% |'user'=28.83%;;;0;...
 	`,
-		exampleArgs: `'warn=total > 90%' 'crit=total > 95'`,
+		exampleArgs: `'warn=total > 90%' 'crit=total > 95%'`,
 	}
 }
 
@@ -66,12 +68,21 @@ func (l *CheckCPUUtilization) Check(_ context.Context, snc *Agent, check *CheckD
 		return nil, fmt.Errorf("no cpu counter available, make sure CheckSystem / CheckSystemUnix in /modules config is enabled")
 	}
 
-	l.addCPUUtilizationMetrics(check)
+	lookBack, err := utils.ExpandDuration(l.avgRange)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse range: %s", err.Error())
+	}
+	if lookBack < 0 {
+		lookBack *= -1
+	}
+	scanLookBack := uint64(lookBack)
+
+	l.addCPUUtilizationMetrics(check, scanLookBack)
 
 	return check.Finalize()
 }
 
-func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData) {
+func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLookBack uint64) {
 	entry := map[string]string{
 		"total":  "0",
 		"user":   "0",
@@ -82,7 +93,7 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData) {
 	}
 	check.listData = append(check.listData, entry)
 
-	cpuMetrics, ok := l.getMetrics()
+	cpuMetrics, ok := l.getMetrics(scanLookBack)
 	if !ok {
 		return
 	}
@@ -146,7 +157,7 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData) {
 	)
 }
 
-func (l *CheckCPUUtilization) getMetrics() (res *CPUUtilizationResult, ok bool) {
+func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizationResult, ok bool) {
 	res = &CPUUtilizationResult{}
 
 	counter1 := l.snc.Counter.GetAny("cpuinfo", "info")
@@ -156,7 +167,7 @@ func (l *CheckCPUUtilization) getMetrics() (res *CPUUtilizationResult, ok bool) 
 	}
 
 	cpuinfo1 := counter1.GetLast()
-	cpuinfo2 := counter2.GetAt(time.Now().Add(-CPURateDuration))
+	cpuinfo2 := counter2.GetAt(time.Now().Add(-time.Duration(scanLookBack) * time.Second))
 	if cpuinfo1 == nil || cpuinfo2 == nil {
 		return nil, false
 	}

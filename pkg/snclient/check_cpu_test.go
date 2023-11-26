@@ -43,3 +43,12 @@ func TestCheckCPU(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckCPUUtilization(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	res := snc.RunCheck("check_cpu_utilization", []string{"warn=none", "crit=none", "range=1m"})
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - user:", "output matches")
+
+	StopTestAgent(t, snc)
+}

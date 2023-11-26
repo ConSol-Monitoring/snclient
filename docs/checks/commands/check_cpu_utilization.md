@@ -21,7 +21,7 @@ Checks the cpu utilization metrics.
 ### Default Check
 
     check_cpu_utilization
-    OK: CPU load is ok. |'total 5m'=13%;80;90 'total 1m'=13%;80;90 'total 5s'=13%;80;90
+    OK - user: 29% - system: 11% - iowait: 3% - steal: 0% - guest: 0% |'user'=28.83%;;;0;...
 
 ### Example using NRPE and Naemon
 
@@ -36,7 +36,7 @@ Naemon Config
         host_name            testhost
         service_description  check_cpu_utilization
         use                  generic-service
-        check_command        check_nrpe!check_cpu_utilization!'warn=total > 90%' 'crit=total > 95'
+        check_command        check_nrpe!check_cpu_utilization!'warn=total > 90%' 'crit=total > 95%'
     }
 
 ## Argument Defaults
@@ -53,7 +53,9 @@ Naemon Config
 
 ## Check Specific Arguments
 
-None
+| Argument | Description                                          |
+| -------- | ---------------------------------------------------- |
+| range    | Sets time range to calculate average (default is 1m) |
 
 ## Attributes
 
