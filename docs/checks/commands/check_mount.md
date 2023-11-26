@@ -20,7 +20,7 @@ Checks the status for a mounted filesystem
 
 ### Default Check
 
-    check_mount mount=/ options=rw,relatime
+    check_mount mount=/ options=rw,relatime fstype=ext4
     OK - mounts are as expected
 
 ### Example using NRPE and Naemon
@@ -55,6 +55,7 @@ Naemon Config
 
 | Argument | Description                 |
 | -------- | --------------------------- |
+| fstype   | The fstype to expect        |
 | mount    | The mount point to check    |
 | options  | The mount options to expect |
 

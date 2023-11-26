@@ -15,6 +15,7 @@ func init() {
 type CheckMount struct {
 	mountPoint    string
 	expectOptions string
+	expectFSType  string
 }
 
 func (l *CheckMount) Build() *CheckData {
@@ -29,6 +30,7 @@ func (l *CheckMount) Build() *CheckData {
 		args: map[string]CheckArgument{
 			"mount":   {value: &l.mountPoint, description: "The mount point to check"},
 			"options": {value: &l.expectOptions, description: "The mount options to expect"},
+			"fstype":  {value: &l.expectFSType, description: "The fstype to expect"},
 		},
 		detailSyntax:    "mount ${mount} ${issues}",
 		okSyntax:        "${status} - mounts are as expected",
@@ -45,7 +47,7 @@ func (l *CheckMount) Build() *CheckData {
 			{name: "issues", description: "Issues found"},
 		},
 		exampleDefault: `
-    check_mount mount=/ options=rw,relatime
+    check_mount mount=/ options=rw,relatime fstype=ext4
     OK - mounts are as expected
 	`,
 		exampleArgs: `'mount=/' 'options=rw,relatime'`,
@@ -100,6 +102,9 @@ func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []
 			if len(exceeding) > 0 {
 				issues = append(issues, fmt.Sprintf("exceeding options: %s", strings.Join(exceeding, ", ")))
 			}
+		}
+		if l.expectFSType != "" && l.expectFSType != partition.Fstype {
+			issues = append(issues, fmt.Sprintf("expected fstype differs: %s != %s", l.expectFSType, partition.Fstype))
 		}
 		if len(issues) > 0 {
 			entry["issues"] = strings.Join(issues, ", ")
