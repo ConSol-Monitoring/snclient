@@ -6,6 +6,7 @@ next:
          - add duration / date / human number macro post processors
          - add support for %{} macros and $() as well
          - add check_cpu_utilization
+         - add check_mount
 
 0.13     Thu Nov 23 22:20:21 CET 2023
          - drop privileges when running node exporter

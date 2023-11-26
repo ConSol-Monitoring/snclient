@@ -55,7 +55,7 @@ func TestDaemonRequests(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: append(baseArgs, "check_network", "warn=total > 100000000", "crit=total > 100000000"),
-		Like: []string{`OK: lo >\d+ B/s <\d+ B\/s`},
+		Like: []string{`OK: \w+ >\d+ B/s <\d+ B\/s`},
 	})
 
 	stopBackgroundDaemon(t)

@@ -562,6 +562,7 @@ DOC_COMMANDS=\
 	check_files \
 	check_load \
 	check_memory \
+	check_mount \
 	check_network \
 	check_omd \
 	check_os_version \
