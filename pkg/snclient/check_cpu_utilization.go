@@ -189,12 +189,19 @@ func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizati
 		return nil, false
 	}
 
-	res.user = ((info1.User - info2.User) / duration) * 100
-	res.system = ((info1.System - info2.System) / duration) * 100
-	res.iowait = ((info1.Iowait - info2.Iowait) / duration) * 100
-	res.steal = ((info1.Steal - info2.Steal) / duration) * 100
-	res.guest = ((info1.Guest - info2.Guest) / duration) * 100
-	res.total = res.user + res.system + res.iowait + res.steal + res.guest
+	numCPU, err := cpuinfo.Counts(true)
+	if err != nil {
+		log.Warnf("cpuinfo count failed: %s", err.Error())
+
+		return nil, false
+	}
+
+	res.user = (((info1.User - info2.User) / duration) * 100) / float64(numCPU)
+	res.system = (((info1.System - info2.System) / duration) * 100) / float64(numCPU)
+	res.iowait = (((info1.Iowait - info2.Iowait) / duration) * 100) / float64(numCPU)
+	res.steal = (((info1.Steal - info2.Steal) / duration) * 100) / float64(numCPU)
+	res.guest = (((info1.Guest - info2.Guest) / duration) * 100) / float64(numCPU)
+	res.total = (res.user + res.system + res.iowait + res.steal + res.guest) / float64(numCPU)
 
 	return res, true
 }
