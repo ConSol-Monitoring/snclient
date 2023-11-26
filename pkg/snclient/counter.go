@@ -182,17 +182,18 @@ func (c *CounterAny) GetAt(useAfter time.Time) *CounterValueAny {
 	cur := c.data.Back()
 	var last *CounterValueAny
 	for {
-		if cur == nil {
-			break
-		}
 		if val, ok := cur.Value.(*CounterValueAny); ok {
 			if val.timestamp.Before(useAfter) {
 				return last
 			}
 			last = val
 		}
-		cur = cur.Prev()
+		prev := cur.Prev()
+		if prev == nil {
+			break
+		}
+		cur = prev
 	}
 
-	return nil
+	return last
 }

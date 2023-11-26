@@ -1,5 +1,7 @@
 package snclient
 
+import "time"
+
 type CounterSet struct {
 	noCopy     noCopy
 	counter    map[string]map[string]*Counter
@@ -62,6 +64,27 @@ func (cs *CounterSet) Get(category, key string) *Counter {
 	}
 
 	return nil
+}
+
+// calculate rate for given lookback timerange
+func (cs *CounterSet) GetRate(category, key string, lookback time.Duration) (res float64, ok bool) {
+	counter := cs.Get(category, key)
+
+	if counter == nil {
+		return res, false
+	}
+
+	if lookback < 0 {
+		lookback *= -1
+	}
+
+	val1 := counter.GetLast()
+	val2 := counter.GetAt(time.Now().Add(-lookback))
+	if val1 != nil && val2 != nil && val1.timestamp.After(val2.timestamp) {
+		res = (val1.value - val2.value) / float64(val1.timestamp.Unix()-val2.timestamp.Unix())
+	}
+
+	return res, true
 }
 
 func (cs *CounterSet) Set(category, key string, value float64) {
