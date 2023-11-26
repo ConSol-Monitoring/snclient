@@ -45,6 +45,8 @@ type cmd struct {
 	// optional values when running a cmd
 	Timeout time.Duration     // maximum run duration (default 30sec)
 	Env     map[string]string // environment values
+
+	CmdChannel chan *exec.Cmd // if set, cmd will be pushed there
 }
 
 // runCmd runs a test command defined from the Cmd struct
@@ -59,6 +61,10 @@ func runCmd(t *testing.T, opt *cmd) *cmdResult {
 	defer cancel()
 
 	check, outbuf, errbuf := prepareCmd(ctx, opt)
+
+	if opt.CmdChannel != nil {
+		opt.CmdChannel <- check
+	}
 
 	t.Logf("run: %s", check.String())
 	err := check.Start()
@@ -196,7 +202,7 @@ func writeFile(t *testing.T, path, content string) {
 var (
 	daemonPid     = 0
 	daemonPidFile = "snclient.lock"
-	daemonResChan = make(chan *cmdResult, 1)
+	daemonCmdChan = make(chan *exec.Cmd, 1)
 )
 
 func startBackgroundDaemon(t *testing.T) (pid int) {
@@ -206,12 +212,12 @@ func startBackgroundDaemon(t *testing.T) (pid int) {
 	// start daemon
 	go func() {
 		res := runCmd(t, &cmd{ //nolint:testifylint // assertions outside of main goroutine secured by channel
-			Cmd:    bin,
-			Args:   []string{"-vv", "-logfile", "stdout", "-pidfile", daemonPidFile},
-			Like:   []string{"starting", "listener on", "got sigterm", "snclient exited"},
-			Unlike: []string{"PANIC"},
+			Cmd:        bin,
+			Args:       []string{"-vv", "-logfile", "stdout", "-pidfile", daemonPidFile},
+			Like:       []string{"starting", "listener on", "got sigterm", "snclient exited"},
+			Unlike:     []string{"PANIC"},
+			CmdChannel: daemonCmdChan,
 		})
-		daemonResChan <- res
 		assert.Emptyf(t, res.Stderr, "stderr should be empty")
 		t.Logf("daemon finished")
 	}()
@@ -238,17 +244,17 @@ func startBackgroundDaemon(t *testing.T) (pid int) {
 	return daemonPid
 }
 
-func stopBackgroundDaemon(t *testing.T) *cmdResult {
+func stopBackgroundDaemon(t *testing.T) bool {
 	t.Helper()
 	t.Logf("test done, shuting down")
-	process, err := os.FindProcess(daemonPid)
-	require.NoErrorf(t, err, "find daemon process")
 
-	err = process.Signal(syscall.SIGTERM)
+	cmd := <-daemonCmdChan
+
+	require.NotNilf(t, cmd, "daemon cmd should not be nil")
+
+	err := cmd.Process.Kill()
 	require.NoErrorf(t, err, "killing daemon")
 	os.Remove(daemonPidFile)
 
-	res := <-daemonResChan
-
-	return res
+	return true
 }
