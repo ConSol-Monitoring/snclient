@@ -3,12 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"pkg/utils"
-	"syscall"
 	"testing"
-	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,43 +29,14 @@ func TestDaemonRequests(t *testing.T) {
 	require.FileExistsf(t, bin, "snclient binary must exist")
 
 	writeFile(t, `snclient.ini`, localDaemonINI)
-	pidFile := "snclient.lock"
-	pid := 0
 
-	// start daemon
-	go func() {
-		res := runCmd(t, &cmd{
-			Cmd:    bin,
-			Args:   []string{"-vv", "-logfile", "stdout", "-pidfile", pidFile},
-			Like:   []string{"starting", "listener on", "got sigterm", "snclient exited"},
-			Unlike: []string{"PANIC"},
-		})
-		t.Logf("daemon finished")
-		assert.Emptyf(t, res.Stderr, "stderr should be empty")
-	}()
+	startBackgroundDaemon(t)
 
-	startTimeOut := time.Now().Add(10 * time.Second)
-	for {
-		if time.Now().After(startTimeOut) {
-			break
-		}
-		pidN, err := utils.ReadPid(pidFile)
-		if err == nil {
-			pid = pidN
-
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-
-	require.Greaterf(t, pid, 0, "daemon started")
-
-	t.Logf("daemon started with pid: %d", pid)
-	time.Sleep(500 * time.Millisecond)
+	baseArgs := []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-u", fmt.Sprintf("http://127.0.0.1:%d", localDaemonPort)}
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-u", fmt.Sprintf("http://127.0.0.1:%d", localDaemonPort)},
+		Args: baseArgs,
 		Like: []string{`OK: REST API reachable on http:`},
 	})
 
@@ -79,13 +46,18 @@ func TestDaemonRequests(t *testing.T) {
 		Like: []string{`{"inventory":`},
 	})
 
-	t.Logf("test done, shuting down")
-	process, err := os.FindProcess(pid)
-	require.NoErrorf(t, err, "find daemon process")
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: append(baseArgs, "check_cpu", "warn=load > 100", "crit=load > 100"),
+		Like: []string{`OK: CPU load is ok.`},
+	})
 
-	err = process.Signal(syscall.SIGTERM)
-	require.NoErrorf(t, err, "killing daemon")
-	os.Remove(pidFile)
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: append(baseArgs, "check_network", "warn=total > 100000000", "crit=total > 100000000"),
+		Like: []string{`OK: lo >\d+ B/s <\d+ B\/s`},
+	})
+
+	stopBackgroundDaemon(t)
 	os.Remove("snclient.ini")
-	time.Sleep(500 * time.Millisecond)
 }

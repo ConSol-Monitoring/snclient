@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"pkg/utils"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -189,4 +191,64 @@ func writeFile(t *testing.T, path, content string) {
 
 	err := os.WriteFile(path, []byte(content), 0o600)
 	require.NoErrorf(t, err, fmt.Sprintf("writing file %s succeeded", path))
+}
+
+var (
+	daemonPid     = 0
+	daemonPidFile = "snclient.lock"
+	daemonResChan = make(chan *cmdResult, 1)
+)
+
+func startBackgroundDaemon(t *testing.T) (pid int) {
+	t.Helper()
+	bin := getBinary()
+
+	// start daemon
+	go func() {
+		res := runCmd(t, &cmd{ //nolint:testifylint // assertions outside of main goroutine secured by channel
+			Cmd:    bin,
+			Args:   []string{"-vv", "-logfile", "stdout", "-pidfile", daemonPidFile},
+			Like:   []string{"starting", "listener on", "got sigterm", "snclient exited"},
+			Unlike: []string{"PANIC"},
+		})
+		daemonResChan <- res
+		assert.Emptyf(t, res.Stderr, "stderr should be empty")
+		t.Logf("daemon finished")
+	}()
+
+	startTimeOut := time.Now().Add(10 * time.Second)
+	for {
+		if time.Now().After(startTimeOut) {
+			break
+		}
+		pid, err := utils.ReadPid(daemonPidFile)
+		if err == nil {
+			daemonPid = pid
+
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	require.Greaterf(t, daemonPid, 0, "daemon started")
+
+	t.Logf("daemon started with pid: %d", daemonPid)
+	time.Sleep(500 * time.Millisecond)
+
+	return daemonPid
+}
+
+func stopBackgroundDaemon(t *testing.T) *cmdResult {
+	t.Helper()
+	t.Logf("test done, shuting down")
+	process, err := os.FindProcess(daemonPid)
+	require.NoErrorf(t, err, "find daemon process")
+
+	err = process.Signal(syscall.SIGTERM)
+	require.NoErrorf(t, err, "killing daemon")
+	os.Remove(daemonPidFile)
+
+	res := <-daemonResChan
+
+	return res
 }

@@ -556,6 +556,7 @@ sign.pfx_sha1: sign.pfx
 
 DOC_COMMANDS=\
 	check_cpu \
+	check_cpu_utilization \
 	check_dummy \
 	check_drivesize \
 	check_files \
