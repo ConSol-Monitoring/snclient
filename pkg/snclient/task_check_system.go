@@ -107,15 +107,8 @@ func (c *CheckSystemHandler) update(create bool) {
 		}
 		c.snc.Counter.Set("net", key, val)
 
-		// clean old interfaces
-		for _, key := range c.snc.Counter.Keys("net") {
-			counter := c.snc.Counter.Get("net", key)
-			if last := counter.GetLast(); last != nil {
-				if last.timestamp.Before(trimData) {
-					c.snc.Counter.Delete("net", key)
-				}
-			}
-		}
+		// clean old values
+		c.snc.Counter.Get("net", key).Trim()
 	}
 }
 
