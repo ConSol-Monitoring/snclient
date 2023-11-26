@@ -183,6 +183,7 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GOVERSION }}
+      - run: sudo apt-get update
       - run: sudo apt-get install help2man tofrodos
       - run: |
           echo "Creating dist folder for windows"
@@ -259,6 +260,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}"
+      - run: sudo apt-get update
       - run: sudo apt-get install help2man devscripts
       - run: |
           echo "Building ${{ env.BIN }}.deb"
@@ -321,6 +323,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: "${{ env.BIN }}"
+      - run: sudo apt-get update
       - run: sudo apt-get install help2man
       - run: |
           echo "Building ${{ env.BIN }}.rpm"
