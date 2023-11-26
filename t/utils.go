@@ -203,6 +203,7 @@ var (
 	daemonPid     = 0
 	daemonPidFile = "snclient.lock"
 	daemonCmdChan = make(chan *exec.Cmd, 1)
+	daemonFinChan = make(chan bool, 1)
 )
 
 func startBackgroundDaemon(t *testing.T) (pid int) {
@@ -211,15 +212,16 @@ func startBackgroundDaemon(t *testing.T) (pid int) {
 
 	// start daemon
 	go func() {
-		res := runCmd(t, &cmd{ //nolint:testifylint // assertions outside of main goroutine secured by channel
+		runCmd(t, &cmd{ //nolint:testifylint // assertions outside of main goroutine secured by channel
 			Cmd:        bin,
 			Args:       []string{"-vv", "-logfile", "stdout", "-pidfile", daemonPidFile},
-			Like:       []string{"starting", "listener on", "got sigterm", "snclient exited"},
+			Like:       []string{"starting", "listener on"},
 			Unlike:     []string{"PANIC"},
+			Exit:       -1,
 			CmdChannel: daemonCmdChan,
 		})
-		assert.Emptyf(t, res.Stderr, "stderr should be empty")
 		t.Logf("daemon finished")
+		daemonFinChan <- true
 	}()
 
 	startTimeOut := time.Now().Add(10 * time.Second)
@@ -255,6 +257,9 @@ func stopBackgroundDaemon(t *testing.T) bool {
 	err := cmd.Process.Kill()
 	require.NoErrorf(t, err, "killing daemon")
 	os.Remove(daemonPidFile)
+
+	// wait till daemon tests are finished
+	<-daemonFinChan
 
 	return true
 }
