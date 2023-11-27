@@ -8,12 +8,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"pkg/utils"
 	"runtime"
 	"syscall"
 	"testing"
 	"time"
-
-	"pkg/utils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -212,7 +211,7 @@ func startBackgroundDaemon(t *testing.T) (pid int) {
 
 	// start daemon
 	go func() {
-		runCmd(t, &cmd{ //nolint:testifylint // assertions outside of main goroutine secured by channel
+		res := runCmd(t, &cmd{ //nolint:testifylint // assertions outside of main goroutine secured by channel
 			Cmd:        bin,
 			Args:       []string{"-vv", "-logfile", "stdout", "-pidfile", daemonPidFile},
 			Like:       []string{"starting", "listener on"},
@@ -220,6 +219,7 @@ func startBackgroundDaemon(t *testing.T) (pid int) {
 			Exit:       -1,
 			CmdChannel: daemonCmdChan,
 		})
+		require.NotNilf(t, res, "got daemon result")
 		t.Logf("daemon finished")
 		daemonFinChan <- true
 	}()
