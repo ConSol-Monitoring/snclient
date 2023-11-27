@@ -309,14 +309,14 @@ golangci: tools
 		echo $$dir; \
 		if [ $$dir != "pkg/eventlog" ]; then \
 			echo "  - GOOS=linux"; \
-			( cd $$dir && GOOS=linux golangci-lint run ./... ); \
+			( cd $$dir && GOOS=linux golangci-lint run --timeout=5m ./... ); \
 			echo "  - GOOS=darwin"; \
-			( cd $$dir && GOOS=darwin golangci-lint run ./... ); \
+			( cd $$dir && GOOS=darwin golangci-lint run --timeout=5m ./... ); \
 			echo "  - GOOS=freebsd"; \
-			( cd $$dir && GOOS=freebsd golangci-lint run ./... ); \
+			( cd $$dir && GOOS=freebsd golangci-lint run --timeout=5m ./... ); \
 		fi; \
 		echo "  - GOOS=windows"; \
-		( cd $$dir && GOOS=windows golangci-lint run ./... ); \
+		( cd $$dir && GOOS=windows golangci-lint run --timeout=5m ./... ); \
 	done
 
 govulncheck: tools
