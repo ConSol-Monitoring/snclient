@@ -80,9 +80,15 @@ func (cs *CounterSet) GetRate(category, key string, lookback time.Duration) (res
 
 	val1 := counter.GetLast()
 	val2 := counter.GetAt(time.Now().Add(-lookback))
-	if val1 != nil && val2 != nil && val1.timestamp.After(val2.timestamp) {
-		res = (val1.value - val2.value) / float64(val1.timestamp.Unix()-val2.timestamp.Unix())
+	if val1 == nil || val2 == nil {
+		return res, false
 	}
+
+	if val1.timestamp.Before(val2.timestamp) {
+		return res, false
+	}
+
+	res = (val1.value - val2.value) / float64(val1.timestamp.Unix()-val2.timestamp.Unix())
 
 	return res, true
 }

@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	// CPUMeasureInterval sets the ticker measuring the CPU counter
-	CPUMeasureInterval = 1 * time.Second
+	// SystemMetricsMeasureInterval sets the ticker measuring the CPU counter
+	SystemMetricsMeasureInterval = 1 * time.Second
 )
 
 type CheckSystemHandler struct {
@@ -61,7 +61,7 @@ func (c *CheckSystemHandler) Stop() {
 }
 
 func (c *CheckSystemHandler) mainLoop() {
-	ticker := time.NewTicker(CPUMeasureInterval)
+	ticker := time.NewTicker(SystemMetricsMeasureInterval)
 	defer ticker.Stop()
 
 	for {
@@ -99,7 +99,7 @@ func (c *CheckSystemHandler) update(create bool) {
 	c.snc.Counter.SetAny("cpuinfo", "info", times)
 
 	// remove interface not updated within the bufferLength
-	trimData := time.Now().Add(time.Duration(c.bufferLength) * time.Second)
+	trimData := time.Now().Add(-time.Duration(c.bufferLength) * time.Second)
 	for key, val := range netdata {
 		// create interface on demand
 		if c.snc.Counter.Get("net", key) == nil {
@@ -112,6 +112,7 @@ func (c *CheckSystemHandler) update(create bool) {
 			counter := c.snc.Counter.Get("net", key)
 			if last := counter.GetLast(); last != nil {
 				if last.timestamp.Before(trimData) {
+					log.Tracef("removed old net device: %s (last update: %s)", key, last.timestamp.String())
 					c.snc.Counter.Delete("net", key)
 				}
 			}

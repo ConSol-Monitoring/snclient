@@ -101,19 +101,20 @@ func (c *Counter) GetAt(useAfter time.Time) *CounterValue {
 	cur := c.data.Back()
 	var last *CounterValue
 	for {
-		if cur == nil {
-			break
-		}
 		if val, ok := cur.Value.(*CounterValue); ok {
 			if val.timestamp.Before(useAfter) {
 				return last
 			}
 			last = val
 		}
-		cur = cur.Prev()
+		prev := cur.Prev()
+		if prev == nil {
+			break
+		}
+		cur = prev
 	}
 
-	return nil
+	return last
 }
 
 type CounterAny struct {
