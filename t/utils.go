@@ -8,11 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"pkg/utils"
 	"runtime"
 	"syscall"
 	"testing"
 	"time"
+
+	"pkg/utils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -219,7 +220,7 @@ func startBackgroundDaemon(t *testing.T) (pid int) {
 			Exit:       -1,
 			CmdChannel: daemonCmdChan,
 		})
-		require.NotNilf(t, res, "got daemon result")
+		require.NotNilf(t, res, "got daemon result") //nolint:testifylint // assertions outside of main goroutine secured by channel
 		t.Logf("daemon finished")
 		daemonFinChan <- true
 	}()
