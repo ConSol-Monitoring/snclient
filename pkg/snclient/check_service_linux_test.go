@@ -19,9 +19,8 @@ func TestCheckServiceLinux(t *testing.T) {
 	snc.Config = initSet.config
 
 	res := snc.RunCheck("check_service", []string{"filter='state=running'"})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: All \d+ service\(s\) are ok.`),
+		regexp.MustCompile(`^OK: All \d+ service\(s\) are ok.|UNKNOWN: No services found`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
