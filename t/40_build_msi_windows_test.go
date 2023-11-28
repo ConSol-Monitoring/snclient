@@ -28,13 +28,16 @@ var requiredFiles = []string{
 // this test requires the wix.exe (including .net 3.5) to be installed
 // further requirements are:
 // - snclient.msi
-// - windist folder to build new msi
+// - windist folder to build new msi (incl. snclient.exe and windows_exporter.exe)
 // it builds the msi file, tries a installation and removes it afterwards
 func TestMSIinstaller(t *testing.T) {
 	bin := getBinary()
 	require.FileExistsf(t, bin, "snclient binary must exist")
-
 	require.FileExistsf(t, "snclient.msi", "snclient.msi binary must exist")
+	require.FileExistsf(t, "snclient.exe", "snclient.exe binary must exist")
+	require.DirExistsf(t, "../windist", "windist folder must exist")
+	require.FileExistsf(t, "../windist/snclient.exe", "windist/snclient.exe must exist")
+	require.FileExistsf(t, "../windist/windows_exporter.exe", "windist/windows_exporter.exe must exist")
 
 	// install msi file
 	runCmd(t, &cmd{
@@ -61,6 +64,26 @@ func TestMSIinstaller(t *testing.T) {
 	// restart with new config
 	runCmd(t, &cmd{Cmd: "net", Args: []string{"stop", "snclient"}})
 	runCmd(t, &cmd{Cmd: "net", Args: []string{"start", "snclient"}})
+
+	// wait a couple of seconds till daemon answers
+	waitUntilResponse := func() {
+		waitStart := time.Now()
+		waitUntil := time.Now().Add(10 * time.Second)
+		for time.Now().Before(waitUntil) {
+			res := runCmd(t, &cmd{
+				Cmd:  bin,
+				Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
+				Exit: -1,
+			})
+			if res.ExitCode == 0 {
+				t.Logf("daemon responded after %s", time.Now().Sub(waitStart))
+
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	waitUntilResponse()
 
 	// verify response
 	runCmd(t, &cmd{
@@ -94,6 +117,8 @@ func TestMSIinstaller(t *testing.T) {
 	for _, file := range requiredFiles {
 		require.FileExistsf(t, `C:\Program Files\snclient\`+file, file+" still exists")
 	}
+
+	waitUntilResponse()
 
 	// verify response
 	runCmd(t, &cmd{

@@ -15,7 +15,7 @@ func TestBuild(t *testing.T) {
 
 	runCmd(t, &cmd{
 		Cmd:  "go",
-		Args: []string{"build", "-o", bin},
+		Args: []string{"build", "-buildvcs=false", "-o", bin}, // avoid: error obtaining VCS status: exit status 128
 		Dir:  filepath.Join("..", "cmd", "snclient"),
 		Env: map[string]string{
 			"CGO_ENABLED": "0",
