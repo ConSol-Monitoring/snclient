@@ -98,23 +98,22 @@ func (c *CheckSystemHandler) update(create bool) {
 	}
 	c.snc.Counter.SetAny("cpuinfo", "info", times)
 
-	// remove interface not updated within the bufferLength
-	trimData := time.Now().Add(-time.Duration(c.bufferLength) * time.Second)
+	// add interface traffic data
 	for key, val := range netdata {
-		// create interface on demand
 		if c.snc.Counter.Get("net", key) == nil {
 			c.snc.Counter.Create("net", key, c.bufferLength)
 		}
 		c.snc.Counter.Set("net", key, val)
+	}
 
-		// clean old interfaces
-		for _, key := range c.snc.Counter.Keys("net") {
-			counter := c.snc.Counter.Get("net", key)
-			if last := counter.GetLast(); last != nil {
-				if last.timestamp.Before(trimData) {
-					log.Tracef("removed old net device: %s (last update: %s)", key, last.timestamp.String())
-					c.snc.Counter.Delete("net", key)
-				}
+	// remove interface not updated within the bufferLength
+	trimData := time.Now().Add(-time.Duration(c.bufferLength) * time.Second)
+	for _, key := range c.snc.Counter.Keys("net") {
+		counter := c.snc.Counter.Get("net", key)
+		if last := counter.GetLast(); last != nil {
+			if last.timestamp.Before(trimData) {
+				log.Tracef("removed old net device: %s (last update: %s)", key, last.timestamp.String())
+				c.snc.Counter.Delete("net", key)
 			}
 		}
 	}
