@@ -76,7 +76,7 @@ func TestMSIinstaller(t *testing.T) {
 				Exit: -1,
 			})
 			if res.ExitCode == 0 {
-				t.Logf("daemon responded after %s", time.Now().Sub(waitStart))
+				t.Logf("daemon responded after %s", time.Since(waitStart))
 
 				break
 			}
