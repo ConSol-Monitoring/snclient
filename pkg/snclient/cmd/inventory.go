@@ -28,7 +28,7 @@ snclient inventory mounts
 			snc := snclient.NewAgent(agentFlags)
 
 			inventory := snc.BuildInventory(context.Background(), args)
-			encoder := json.NewEncoder(rootCmd.OutOrStderr())
+			encoder := json.NewEncoder(rootCmd.OutOrStdout())
 			encoder.SetIndent("", "  ")
 			err := encoder.Encode(inventory)
 			if err != nil {
