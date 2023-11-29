@@ -31,6 +31,7 @@ import (
 	deadlock "github.com/sasha-s/go-deadlock"
 	daemon "github.com/sevlyar/go-daemon"
 	"github.com/shirou/gopsutil/v3/host"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -1280,4 +1281,44 @@ func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ..
 			}
 		}
 	}()
+}
+
+// returns inventory structure
+func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[string]interface{} {
+	scripts := make([]string, 0)
+	inventory := make(map[string]interface{})
+	for k := range AvailableChecks {
+		check := AvailableChecks[k]
+		meta := check.Handler.Build()
+		switch meta.hasInventory {
+		case NoInventory:
+			// skipped
+		case ListInventory:
+			name := strings.TrimPrefix(check.Name, "check_")
+			if modules != nil && len(modules) > 0 && !slices.Contains(modules, name) {
+				continue
+			}
+			meta.output = "inventory_json"
+			meta.filter = []*Condition{{isNone: true}}
+			data, err := check.Handler.Check(ctx, snc, meta, []Argument{})
+			if err != nil && (data == nil || data.Raw == nil) {
+				log.Tracef("inventory %s returned error: %s", check.Name, err.Error())
+
+				continue
+			}
+
+			inventory[name] = data.Raw.listData
+		case ScriptsInventory:
+			scripts = append(scripts, check.Name)
+		}
+	}
+
+	if modules == nil || len(modules) == 0 || slices.Contains(modules, "scripts") {
+		inventory["scripts"] = scripts
+	}
+
+	return (map[string]interface{}{
+		"inventory": inventory,
+		"localtime": time.Now().Unix(),
+	})
 }

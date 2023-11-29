@@ -1,0 +1,43 @@
+package cmd
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+
+	"pkg/snclient"
+
+	"github.com/spf13/cobra"
+)
+
+func init() {
+	invCmd := &cobra.Command{
+		Use:   "inventory [<module>]",
+		Short: "Gather inventory and print as json strucure",
+		Long: `Inventory returns the same output as the rest path /api/v1/inventory
+
+# print inventory
+snclient inventory
+
+# print inventory for mounts only
+snclient inventory mounts
+`,
+		Run: func(cmd *cobra.Command, args []string) {
+			agentFlags.Mode = snclient.ModeOneShot
+			setInteractiveStdoutLogger()
+			snc := snclient.NewAgent(agentFlags)
+
+			inventory := snc.BuildInventory(context.Background(), args)
+			encoder := json.NewEncoder(rootCmd.OutOrStderr())
+			encoder.SetIndent("", "  ")
+			err := encoder.Encode(inventory)
+			if err != nil {
+				fmt.Fprintf(rootCmd.OutOrStderr(), "ERROR: %s\n", err.Error())
+				snc.CleanExit(1)
+			}
+
+			snc.CleanExit(0)
+		},
+	}
+	rootCmd.AddCommand(invCmd)
+}

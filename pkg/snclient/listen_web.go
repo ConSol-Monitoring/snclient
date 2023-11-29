@@ -351,34 +351,7 @@ func (l *HandlerWebV1) serveInventory(res http.ResponseWriter, req *http.Request
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 
-	scripts := make([]string, 0)
-	inventory := make(map[string]interface{})
-	for k := range AvailableChecks {
-		check := AvailableChecks[k]
-		meta := check.Handler.Build()
-		switch meta.hasInventory {
-		case NoInventory:
-			// skipped
-		case ListInventory:
-			name := strings.TrimPrefix(check.Name, "check_")
-			meta.output = "inventory_json"
-			meta.filter = []*Condition{{isNone: true}}
-			data, err := check.Handler.Check(req.Context(), l.Handler.snc, meta, []Argument{})
-			if err != nil && (data == nil || data.Raw == nil) {
-				log.Tracef("inventory %s returned error: %s", check.Name, err.Error())
+	inventory := l.Handler.snc.BuildInventory(req.Context(), nil)
 
-				continue
-			}
-
-			inventory[name] = data.Raw.listData
-		case ScriptsInventory:
-			scripts = append(scripts, check.Name)
-		}
-	}
-
-	inventory["scripts"] = scripts
-
-	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
-		"inventory": inventory,
-	}))
+	LogError(json.NewEncoder(res).Encode(inventory))
 }
