@@ -1295,7 +1295,7 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 			// skipped
 		case ListInventory:
 			name := strings.TrimPrefix(check.Name, "check_")
-			if modules != nil && len(modules) > 0 && !slices.Contains(modules, name) {
+			if len(modules) > 0 && !slices.Contains(modules, name) {
 				continue
 			}
 			meta.output = "inventory_json"
@@ -1313,7 +1313,7 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 		}
 	}
 
-	if modules == nil || len(modules) == 0 || slices.Contains(modules, "scripts") {
+	if len(modules) == 0 || slices.Contains(modules, "scripts") {
 		inventory["scripts"] = scripts
 	}
 
