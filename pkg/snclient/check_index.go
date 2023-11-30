@@ -7,11 +7,15 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_index"] = CheckEntry{"check_index", new(CheckIndex)}
+	AvailableChecks["check_index"] = CheckEntry{"check_index", NewCheckIndex}
 }
 
 type CheckIndex struct {
 	noCopy noCopy
+}
+
+func NewCheckIndex() CheckHandler {
+	return &CheckIndex{}
 }
 
 func (l *CheckIndex) Build() *CheckData {

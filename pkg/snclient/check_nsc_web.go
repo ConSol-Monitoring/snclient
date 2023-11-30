@@ -5,10 +5,10 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_nsc_web"] = CheckEntry{"check_nsc_web", NewCheckNSCWeb()}
+	AvailableChecks["check_nsc_web"] = CheckEntry{"check_nsc_web", NewCheckNSCWeb}
 }
 
-func NewCheckNSCWeb() *CheckBuiltin {
+func NewCheckNSCWeb() CheckHandler {
 	return &CheckBuiltin{
 		name:        "check_nsc_web",
 		description: "Runs check_nsc_web to perform checks on other snclient agents.",

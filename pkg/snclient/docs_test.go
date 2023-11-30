@@ -19,7 +19,7 @@ func TestDocsExists(t *testing.T) {
 		if slices.Contains(skipChecks, name) {
 			continue
 		}
-		checkType := fmt.Sprintf("%T", AvailableChecks[name].Handler)
+		checkType := fmt.Sprintf("%T", AvailableChecks[name].Handler())
 		if slices.Contains(skipTypes, checkType) {
 			continue
 		}

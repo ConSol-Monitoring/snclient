@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_cpu_utilization"] = CheckEntry{"check_cpu_utilization", new(CheckCPUUtilization)}
+	AvailableChecks["check_cpu_utilization"] = CheckEntry{"check_cpu_utilization", NewCheckCPUUtilization}
 }
 
 type CPUUtilizationResult struct {
@@ -28,9 +28,13 @@ type CheckCPUUtilization struct {
 	avgRange string
 }
 
-func (l *CheckCPUUtilization) Build() *CheckData {
-	l.avgRange = "1m"
+func NewCheckCPUUtilization() CheckHandler {
+	return &CheckCPUUtilization{
+		avgRange: "1m",
+	}
+}
 
+func (l *CheckCPUUtilization) Build() *CheckData {
 	return &CheckData{
 		name:         "check_cpu_utilization",
 		description:  "Checks the cpu utilization metrics.",

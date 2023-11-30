@@ -7,16 +7,20 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_tasksched"] = CheckEntry{"check_tasksched", new(CheckTasksched)}
+	AvailableChecks["check_tasksched"] = CheckEntry{"check_tasksched", NewCheckTasksched}
 }
 
 type CheckTasksched struct {
 	timeZoneStr string
 }
 
-func (l *CheckTasksched) Build() *CheckData {
-	l.timeZoneStr = "Local"
+func NewCheckTasksched() CheckHandler {
+	return &CheckTasksched{
+		timeZoneStr: "Local",
+	}
+}
 
+func (l *CheckTasksched) Build() *CheckData {
 	return &CheckData{
 		name:        "check_tasksched",
 		description: "Check status of scheduled jobs",

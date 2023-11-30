@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_omd"] = CheckEntry{"check_omd", new(CheckOMD)}
+	AvailableChecks["check_omd"] = CheckEntry{"check_omd", NewCheckOMD}
 }
 
 const (
@@ -30,6 +30,10 @@ type CheckOMD struct {
 	snc           *Agent
 	siteFilter    []string
 	serviceFilter []string
+}
+
+func NewCheckOMD() CheckHandler {
+	return &CheckOMD{}
 }
 
 func (l *CheckOMD) Build() *CheckData {

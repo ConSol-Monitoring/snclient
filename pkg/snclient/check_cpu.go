@@ -8,16 +8,20 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_cpu"] = CheckEntry{"check_cpu", new(CheckCPU)}
+	AvailableChecks["check_cpu"] = CheckEntry{"check_cpu", NewCheckCPU}
 }
 
 type CheckCPU struct {
 	times []string
 }
 
-func (l *CheckCPU) Build() *CheckData {
-	l.times = []string{"5m", "1m", "5s"}
+func NewCheckCPU() CheckHandler {
+	return &CheckCPU{
+		times: []string{"5m", "1m", "5s"},
+	}
+}
 
+func (l *CheckCPU) Build() *CheckData {
 	return &CheckData{
 		name:         "check_cpu",
 		description:  "Checks the cpu usage metrics.",

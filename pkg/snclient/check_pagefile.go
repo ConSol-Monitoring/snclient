@@ -10,10 +10,14 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_pagefile"] = CheckEntry{"check_pagefile", new(CheckPagefile)}
+	AvailableChecks["check_pagefile"] = CheckEntry{"check_pagefile", NewCheckPagefile}
 }
 
 type CheckPagefile struct{}
+
+func NewCheckPagefile() CheckHandler {
+	return &CheckPagefile{}
+}
 
 func (l *CheckPagefile) Build() *CheckData {
 	return &CheckData{

@@ -9,13 +9,17 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_mount"] = CheckEntry{"check_mount", new(CheckMount)}
+	AvailableChecks["check_mount"] = CheckEntry{"check_mount", NewCheckMount}
 }
 
 type CheckMount struct {
 	mountPoint    string
 	expectOptions string
 	expectFSType  string
+}
+
+func NewCheckMount() CheckHandler {
+	return &CheckMount{}
 }
 
 func (l *CheckMount) Build() *CheckData {

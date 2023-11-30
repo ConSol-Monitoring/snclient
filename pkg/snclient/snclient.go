@@ -707,7 +707,8 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 		}
 	}
 
-	chk := check.Handler.Build()
+	handler := check.Handler()
+	chk := handler.Build()
 	parsedArgs, err := chk.ParseArgs(args)
 	if err != nil {
 		return &CheckResult{
@@ -727,7 +728,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(chk.timeout)*time.Second)
 	defer cancel()
 
-	res, err := check.Handler.Check(ctx, snc, chk, parsedArgs)
+	res, err := handler.Check(ctx, snc, chk, parsedArgs)
 	if err != nil {
 		return &CheckResult{
 			State:  CheckExitUnknown,
@@ -1318,7 +1319,8 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 	inventory := make(map[string]interface{})
 	for k := range AvailableChecks {
 		check := AvailableChecks[k]
-		meta := check.Handler.Build()
+		handler := check.Handler()
+		meta := handler.Build()
 		switch meta.hasInventory {
 		case NoInventory:
 			// skipped
@@ -1329,7 +1331,7 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 			}
 			meta.output = "inventory_json"
 			meta.filter = []*Condition{{isNone: true}}
-			data, err := check.Handler.Check(ctx, snc, meta, []Argument{})
+			data, err := handler.Check(ctx, snc, meta, []Argument{})
 			if err != nil && (data == nil || data.Raw == nil) {
 				log.Tracef("inventory %s returned error: %s", check.Name, err.Error())
 

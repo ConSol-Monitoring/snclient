@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_eventlog"] = CheckEntry{"check_eventlog", new(CheckEventlog)}
+	AvailableChecks["check_eventlog"] = CheckEntry{"check_eventlog", NewCheckEventlog}
 }
 
 type CheckEventlog struct {
@@ -22,11 +22,14 @@ type CheckEventlog struct {
 	truncateMessage int
 }
 
-func (l *CheckEventlog) Build() *CheckData {
-	l.files = []string{}
-	l.timeZoneStr = "Local"
-	l.scanRange = "-24h"
+func NewCheckEventlog() CheckHandler {
+	return &CheckEventlog{
+		timeZoneStr: "Local",
+		scanRange:   "-24h",
+	}
+}
 
+func (l *CheckEventlog) Build() *CheckData {
 	return &CheckData{
 		name:        "check_eventlog",
 		description: "Checks the windows eventlog entries.",

@@ -1,7 +1,7 @@
 package snclient
 
 func init() {
-	AvailableChecks["check_process"] = CheckEntry{"check_process", new(CheckProcess)}
+	AvailableChecks["check_process"] = CheckEntry{"check_process", NewCheckProcess}
 }
 
 type CheckProcess struct {
@@ -9,10 +9,13 @@ type CheckProcess struct {
 	timeZoneStr string
 }
 
-func (l *CheckProcess) Build() *CheckData {
-	l.processes = []string{}
-	l.timeZoneStr = "Local"
+func NewCheckProcess() CheckHandler {
+	return &CheckProcess{
+		timeZoneStr: "Local",
+	}
+}
 
+func (l *CheckProcess) Build() *CheckData {
 	return &CheckData{
 		name:         "check_process",
 		description:  "Checks the state and metrics of one or multiple processes.",

@@ -16,7 +16,7 @@ linters-settings:
   gomoddirectives:
     replace-local: true
   ireturn:
-    allow: "error,empty,Module"
+    allow: "error,empty,Module,CheckHandler"
 linters:
   enable-all: true
   fast: false

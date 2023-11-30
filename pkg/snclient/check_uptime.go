@@ -11,10 +11,14 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_uptime"] = CheckEntry{"check_uptime", new(CheckUptime)}
+	AvailableChecks["check_uptime"] = CheckEntry{"check_uptime", NewCheckUptime}
 }
 
 type CheckUptime struct{}
+
+func NewCheckUptime() CheckHandler {
+	return &CheckUptime{}
+}
 
 func (l *CheckUptime) Build() *CheckData {
 	return &CheckData{

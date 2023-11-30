@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_load"] = CheckEntry{"check_load", new(CheckLoad)}
+	AvailableChecks["check_load"] = CheckEntry{"check_load", NewCheckLoad}
 
 	// starts a ticker (at least on windows to calculate averages)
 	if runtime.GOOS == "windows" {
@@ -30,6 +30,10 @@ type CheckLoad struct {
 	critical string
 	perCPU   bool
 	numProcs int64
+}
+
+func NewCheckLoad() CheckHandler {
+	return &CheckLoad{}
 }
 
 func (l *CheckLoad) Build() *CheckData {

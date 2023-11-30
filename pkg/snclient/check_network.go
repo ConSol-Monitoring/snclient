@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_network"] = CheckEntry{"check_network", new(CheckNetwork)}
+	AvailableChecks["check_network"] = CheckEntry{"check_network", NewCheckNetwork}
 }
 
 const (
@@ -27,10 +27,11 @@ type CheckNetwork struct {
 	excludes []string
 }
 
-func (l *CheckNetwork) Build() *CheckData {
-	l.names = []string{}
-	l.excludes = []string{}
+func NewCheckNetwork() CheckHandler {
+	return &CheckNetwork{}
+}
 
+func (l *CheckNetwork) Build() *CheckData {
 	return &CheckData{
 		name:         "check_network",
 		description:  "Checks the state and metrics of network interfaces.",

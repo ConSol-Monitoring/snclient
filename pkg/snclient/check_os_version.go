@@ -9,10 +9,14 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_os_version"] = CheckEntry{"check_os_version", new(CheckOSVersion)}
+	AvailableChecks["check_os_version"] = CheckEntry{"check_os_version", NewCheckOSVersion}
 }
 
 type CheckOSVersion struct{}
+
+func NewCheckOSVersion() CheckHandler {
+	return &CheckOSVersion{}
+}
 
 func (l *CheckOSVersion) Build() *CheckData {
 	return &CheckData{

@@ -13,7 +13,7 @@ type CheckHandler interface {
 
 type CheckEntry struct {
 	Name    string
-	Handler CheckHandler
+	Handler func() CheckHandler
 }
 
 type Argument struct {

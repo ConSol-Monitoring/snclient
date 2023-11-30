@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_wmi"] = CheckEntry{"check_wmi", new(CheckWMI)}
+	AvailableChecks["check_wmi"] = CheckEntry{"check_wmi", NewCheckWMI}
 }
 
 type CheckWMI struct {
@@ -21,13 +21,11 @@ type CheckWMI struct {
 	namespace string
 }
 
-func (l *CheckWMI) Build() *CheckData {
-	l.query = ""
-	l.target = ""
-	l.user = ""
-	l.password = ""
-	l.namespace = ""
+func NewCheckWMI() CheckHandler {
+	return &CheckWMI{}
+}
 
+func (l *CheckWMI) Build() *CheckData {
 	return &CheckData{
 		name:        "check_wmi",
 		description: "Check status and metrics by running wmi queries.",

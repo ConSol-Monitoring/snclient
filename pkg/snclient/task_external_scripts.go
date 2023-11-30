@@ -82,7 +82,7 @@ func (e *ExternalScriptsHandler) registerScripts(conf *Config) error {
 		cmdConf := conf.Section(sectionName)
 		if command, ok := cmdConf.GetString("command"); ok {
 			log.Tracef("registered script: %s -> %s", name, command)
-			AvailableChecks[name] = CheckEntry{name, &CheckWrap{name: name, commandString: command, config: cmdConf}}
+			AvailableChecks[name] = CheckEntry{name, func() CheckHandler { return &CheckWrap{name: name, commandString: command, config: cmdConf} }}
 		} else {
 			return fmt.Errorf("missing command in external script %s", name)
 		}
@@ -110,7 +110,9 @@ func (e *ExternalScriptsHandler) registerWrapped(conf *Config) error {
 		cmdConf := conf.Section(sectionName)
 		if command, ok := cmdConf.GetString("command"); ok {
 			log.Tracef("registered wrapped script: %s -> %s", name, command)
-			AvailableChecks[name] = CheckEntry{name, &CheckWrap{name: name, commandString: command, wrapped: true, config: cmdConf}}
+			AvailableChecks[name] = CheckEntry{name, func() CheckHandler {
+				return &CheckWrap{name: name, commandString: command, wrapped: true, config: cmdConf}
+			}}
 		} else {
 			return fmt.Errorf("missing command in wrapped external script %s", name)
 		}
@@ -139,7 +141,7 @@ func (e *ExternalScriptsHandler) registerAliases(conf *Config) error {
 		if command, ok := cmdConf.GetString("command"); ok {
 			f := utils.Tokenize(command)
 			log.Tracef("registered wrapped script: %s -> %s", name, command)
-			AvailableChecks[name] = CheckEntry{name, &CheckAlias{command: f[0], args: f[1:], config: cmdConf}}
+			AvailableChecks[name] = CheckEntry{name, func() CheckHandler { return &CheckAlias{command: f[0], args: f[1:], config: cmdConf} }}
 		} else {
 			return fmt.Errorf("missing command in alias script %s", name)
 		}

@@ -8,11 +8,15 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_dummy"] = CheckEntry{"check_dummy", new(CheckDummy)}
+	AvailableChecks["check_dummy"] = CheckEntry{"check_dummy", NewCheckDummy}
 }
 
 type CheckDummy struct {
 	noCopy noCopy
+}
+
+func NewCheckDummy() CheckHandler {
+	return &CheckDummy{}
 }
 
 func (l *CheckDummy) Build() *CheckData {

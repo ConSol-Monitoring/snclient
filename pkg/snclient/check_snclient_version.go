@@ -3,11 +3,15 @@ package snclient
 import "context"
 
 func init() {
-	AvailableChecks["check_snclient_version"] = CheckEntry{"check_snclient_version", new(CheckSNClientVersion)}
+	AvailableChecks["check_snclient_version"] = CheckEntry{"check_snclient_version", NewCheckSNClientVersion}
 	AvailableChecks["check_nscp_version"] = AvailableChecks["check_snclient_version"]
 }
 
 type CheckSNClientVersion struct{}
+
+func NewCheckSNClientVersion() CheckHandler {
+	return &CheckSNClientVersion{}
+}
 
 func (l *CheckSNClientVersion) Build() *CheckData {
 	return &CheckData{

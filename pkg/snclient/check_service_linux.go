@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_service"] = CheckEntry{"check_service", new(CheckService)}
+	AvailableChecks["check_service"] = CheckEntry{"check_service", NewCheckService}
 }
 
 const systemctlTimeout = 30
@@ -30,10 +30,11 @@ type CheckService struct {
 	excludes []string
 }
 
-func (l *CheckService) Build() *CheckData {
-	l.services = []string{}
-	l.excludes = []string{}
+func NewCheckService() CheckHandler {
+	return &CheckService{}
+}
 
+func (l *CheckService) Build() *CheckData {
 	return &CheckData{
 		name: "check_service",
 		description: `Checks the state of one or multiple linux (systemctl) services.

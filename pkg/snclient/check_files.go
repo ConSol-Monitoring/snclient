@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_files"] = CheckEntry{"check_files", new(CheckFiles)}
+	AvailableChecks["check_files"] = CheckEntry{"check_files", NewCheckFiles}
 }
 
 type FileInfoUnified struct {
@@ -31,13 +31,16 @@ type CheckFiles struct {
 	timeZoneStr string
 }
 
-func (l *CheckFiles) Build() *CheckData {
-	l.paths = []string{}
-	l.pathList = CommaStringList{}
-	l.pattern = "*"
-	l.maxDepth = int64(-1)
-	l.timeZoneStr = "Local"
+func NewCheckFiles() CheckHandler {
+	return &CheckFiles{
+		pathList:    CommaStringList{},
+		pattern:     "*",
+		maxDepth:    int64(-1),
+		timeZoneStr: "Local",
+	}
+}
 
+func (l *CheckFiles) Build() *CheckData {
 	return &CheckData{
 		name:        "check_files",
 		description: "Checks files and directories.",

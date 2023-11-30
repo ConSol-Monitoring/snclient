@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_drivesize"] = CheckEntry{"check_drivesize", new(CheckDrivesize)}
+	AvailableChecks["check_drivesize"] = CheckEntry{"check_drivesize", NewCheckDrivesize}
 }
 
 const (
@@ -31,15 +31,14 @@ type CheckDrivesize struct {
 	hasCustomPath    bool
 }
 
-func (l *CheckDrivesize) Build() *CheckData {
-	l.drives = []string{"all"}
-	l.excludes = []string{}
-	l.total = false
-	l.magic = float64(1)
-	l.mounted = false
-	l.ignoreUnreadable = false
-	l.hasCustomPath = false
+func NewCheckDrivesize() CheckHandler {
+	return &CheckDrivesize{
+		magic:  1,
+		drives: []string{"all"},
+	}
+}
 
+func (l *CheckDrivesize) Build() *CheckData {
 	return &CheckData{
 		name:         "check_drivesize",
 		description:  "Checks the disk drive/volumes usage on a host.",

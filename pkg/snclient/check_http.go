@@ -5,10 +5,10 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_http"] = CheckEntry{"check_http", NewCheckHTTP()}
+	AvailableChecks["check_http"] = CheckEntry{"check_http", NewCheckHTTP}
 }
 
-func NewCheckHTTP() *CheckBuiltin {
+func NewCheckHTTP() CheckHandler {
 	return &CheckBuiltin{
 		name:        "check_http",
 		description: "Runs check_http to perform http(s) checks",

@@ -10,16 +10,20 @@ import (
 )
 
 func init() {
-	AvailableChecks["check_memory"] = CheckEntry{"check_memory", new(CheckMemory)}
+	AvailableChecks["check_memory"] = CheckEntry{"check_memory", NewCheckMemory}
 }
 
 type CheckMemory struct {
 	memType []string
 }
 
-func (l *CheckMemory) Build() *CheckData {
-	l.memType = []string{"physical", "committed"}
+func NewCheckMemory() CheckHandler {
+	return &CheckMemory{
+		memType: []string{"physical", "committed"},
+	}
+}
 
+func (l *CheckMemory) Build() *CheckData {
 	return &CheckData{
 		name:         "check_memory",
 		description:  "Checks the memory usage on the host.",
