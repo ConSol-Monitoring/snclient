@@ -342,6 +342,7 @@ func TestMacros(t *testing.T) {
 	macros := map[string]string{
 		"seconds":   "130",
 		"unix time": "1700834034",
+		"float":     "170.05",
 	}
 
 	tests := []struct {
@@ -356,6 +357,10 @@ func TestMacros(t *testing.T) {
 		{In: "$(unix time:utc:lc)", Expect: "2023-11-24 13:53:54 utc"},
 		{In: "$(unix time : utc : lc)", Expect: "2023-11-24 13:53:54 utc"},
 		{In: "$(unix time | utc | lc)", Expect: "2023-11-24 13:53:54 utc"},
+		{In: "$(something else | utc | lc)", Expect: "$(something else | utc | lc)"},
+		{In: "$(float | fmt=%d)", Expect: "170"},
+		{In: "$(float | fmt=%.1f)", Expect: "170.1"},
+		{In: "$(float | fmt=%.2f)", Expect: "170.05"},
 	}
 
 	for _, tst := range tests {

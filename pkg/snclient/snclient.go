@@ -107,12 +107,14 @@ var (
 	GlobalMacros = getGlobalMacros()
 
 	// macros can be either ${...} or %(...) or all variants of $ / % with () or {}
-	macroChars = `a-zA-Z0-9\-_: /\|`
+	macroChars = `a-zA-Z0-9\-_: /\|=\%\.`
 	reMacro    = regexp.MustCompile(`(\$|%)(\{\s*[` + macroChars + `]+\s*\}|\(\s*[` + macroChars + `]+\s*\))`)
 
 	// runtime macros can be %...% or $...$ or $ARGS"$
-	runtimeMacroChars = macroChars + `"`
+	runtimeMacroChars = `a-zA-Z0-9"`
 	reRuntimeMacro    = regexp.MustCompile(`%[` + runtimeMacroChars + `]+%|\$[` + runtimeMacroChars + `]+\$`)
+
+	reFloatFormat = regexp.MustCompile(`^%[.\d]*f$`)
 )
 
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
@@ -950,12 +952,19 @@ func getMacrosetsValue(macro, orig string, macroSets ...map[string]string) strin
 	macro = strings.TrimSpace(flags[0])
 	value := orig
 
+	found := false
 	for _, ms := range macroSets {
 		if repl, ok := ms[macro]; ok {
 			value = repl
+			found = true
 
 			break
 		}
+	}
+
+	// if no macro replacement was found, do not convert flags
+	if !found {
+		return value
 	}
 
 	// no macro operator present
@@ -963,8 +972,19 @@ func getMacrosetsValue(macro, orig string, macroSets ...map[string]string) strin
 		return value
 	}
 
-	for _, flag := range flags[1:] {
+	return (replaceMacroOperators(value, flags[1:]))
+}
+
+func replaceMacroOperators(value string, flags []string) string {
+	for _, flag := range flags {
 		flag = strings.TrimSpace(flag)
+
+		format := ""
+		if strings.HasPrefix(flag, "fmt=") {
+			format = strings.TrimPrefix(flag, "fmt=")
+			flag = "fmt"
+		}
+
 		switch flag {
 		// lc -> lowercase
 		case "lc":
@@ -984,6 +1004,15 @@ func getMacrosetsValue(macro, orig string, macroSets ...map[string]string) strin
 		// duration -> seconds into duration string
 		case "duration":
 			value = utils.DurationString(time.Second * time.Duration(convert.Float64(value)))
+		case "fmt":
+			switch {
+			case format == "%d":
+				value = fmt.Sprintf(format, int64(convert.Float64(value)))
+			case reFloatFormat.MatchString(format):
+				value = fmt.Sprintf(format, convert.Float64(value))
+			default:
+				log.Warnf("unsupported format string used: %s", format)
+			}
 		default:
 		}
 	}

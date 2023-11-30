@@ -33,7 +33,7 @@ func (l *CheckMemory) Build() *CheckData {
 		},
 		defaultWarning:  "used > 80%",
 		defaultCritical: "used > 90%",
-		detailSyntax:    "%(type) = %(used)",
+		detailSyntax:    "%(type) = %(used)/%(size) (%(used_pct | fmt=%.1f )%)",
 		topSyntax:       "${status}: ${list}",
 		attributes: []CheckAttribute{
 			{name: "<type>", description: "used bytes with the type as key"},
