@@ -108,16 +108,14 @@ func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, tota
 		"size_bytes": fmt.Sprintf("%d", total),
 	}
 	check.listData = append(check.listData, entry)
-	if check.HasThreshold("free") {
-		check.AddBytePercentMetrics("free", name, float64(free), float64(total))
+	if check.HasThreshold("free") || check.HasThreshold("free_pct") {
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.critThreshold)
+		check.AddBytePercentMetrics("free", name+"_free", float64(free), float64(total))
 	}
-	if check.HasThreshold("used") {
+	if check.HasThreshold("used") || check.HasThreshold("used_pct") {
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.critThreshold)
 		check.AddBytePercentMetrics("used", name, float64(used), float64(total))
-	}
-	if check.HasThreshold("free_pct") {
-		check.AddPercentMetrics("free_pct", name+"_free_pct", float64(free), float64(total))
-	}
-	if check.HasThreshold("used_pct") {
-		check.AddPercentMetrics("used_pct", name+"_used_pct", float64(free), float64(total))
 	}
 }

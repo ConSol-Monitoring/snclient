@@ -16,12 +16,12 @@ func TestCheckMemory(t *testing.T) {
 	require.NoErrorf(t, err, "acquiring swap info failed")
 
 	hasSwap := false
-	expectedOKOutput := `^OK: physical = \d+(\.\d+)? [KMGTi]*B \|`
-	expectedCriticalOutput := `^CRITICAL: physical = \d+(\.\d+)? [KMGTi]*B \|`
+	expectedOKOutput := `^OK: physical = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\) \|`
+	expectedCriticalOutput := `^CRITICAL: physical = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\) \|`
 	if swap.Total > 0 {
 		hasSwap = true
-		expectedOKOutput = `^OK: physical = \d+(\.\d+)? [KMGTi]*B, committed = \d+(\.\d+)? [KMGTi]*B \|`
-		expectedCriticalOutput = `^CRITICAL: physical = \d+(\.\d+)? [KMGTi]*B, committed = \d+(\.\d+)? [KMGTi]*B \|`
+		expectedOKOutput = `^OK: physical = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\), committed = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\) \|`
+		expectedCriticalOutput = `^CRITICAL: physical = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\), committed = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\) \|`
 	}
 
 	res := snc.RunCheck("check_memory", []string{"warn=used > 101", "crit=used > 102"})
@@ -75,13 +75,13 @@ func TestCheckMemory(t *testing.T) {
 		"output matches",
 	)
 	assert.Regexpf(t,
-		regexp.MustCompile(`'physical_free_pct'=\d+(\.\d+)?%;\d+(\.\d+)?:;\d+(\.\d+)?:;0;100\s*`),
+		regexp.MustCompile(`'physical_free %'=\d+(\.\d+)?%;\d+(\.\d+)?:;\d+(\.\d+)?:;0;100\s*`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
 	if hasSwap {
 		assert.Regexpf(t,
-			regexp.MustCompile(`'committed_free_pct'=\d+(\.\d+)?%;\d+(\.\d+)?:;\d+(\.\d+)?:;0;100\s*`),
+			regexp.MustCompile(`'committed_free %'=\d+(\.\d+)?%;\d+(\.\d+)?:;\d+(\.\d+)?:;0;100\s*`),
 			string(res.BuildPluginOutput()),
 			"output matches",
 		)
