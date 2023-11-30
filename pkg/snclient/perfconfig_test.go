@@ -31,7 +31,7 @@ func TestCheckPerfConfig(t *testing.T) {
 	})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: physical = [\d.]+ \w+ \|'gib_phy'=[\d.]+MB;[\d.]+;[\d.]+;0;[\d.]+$`),
+		regexp.MustCompile(`^OK: physical = [\d.]+ \w+\/[\d.]+ \w+ \([\d.]+%\) \|'gib_phy'=[\d.]+MB;[\d.]+;[\d.]+;0;[\d.]+$`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -45,7 +45,7 @@ func TestCheckPerfConfig(t *testing.T) {
 	})
 	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^WARNING: physical = [\d.]+ \w+ \|'gib_phy'=[\d.]+MB;@[\d.]+:[\d.]+;[\d.]+;0;[\d.]+$`),
+		regexp.MustCompile(`^WARNING: physical = [\d.]+ \w+\/[\d.]+ \w+ \([\d.]+%\) \|'gib_phy'=[\d.]+MB;@[\d.]+:[\d.]+;[\d.]+;0;[\d.]+$`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -59,7 +59,7 @@ func TestCheckPerfConfig(t *testing.T) {
 	})
 	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^WARNING: physical = [\d.]+ \w+ \|'physical'=[\d.]+mib;@[\d.]+:[\d.]+;[\d.]+;0;[\d.]+`),
+		regexp.MustCompile(`^WARNING: physical = [\d.]+ \w+\/[\d.]+ \w+ \([\d.]+%\) \|'physical'=[\d.]+mib;@[\d.]+:[\d.]+;[\d.]+;0;[\d.]+`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)

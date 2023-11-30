@@ -3,8 +3,6 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strconv"
 	"strings"
 	"syscall"
 	"unicode"
@@ -16,10 +14,6 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 	"golang.org/x/sys/windows"
 )
-
-func init() {
-	AvailableChecks["check_drivesize"] = CheckEntry{"check_drivesize", new(CheckDrivesize)}
-}
 
 const (
 	IoctlStorageBase           = 0x2D
@@ -37,106 +31,15 @@ const (
 	FileReadOonlyVolume = uint32(0x00080000)
 )
 
-type CheckDrivesize struct {
-	drives           []string
-	excludes         []string
-	total            bool
-	magic            float64
-	mounted          bool
-	ignoreUnreadable bool
+func (l *CheckDrivesize) getDefaultFilter() string {
+	return "( mounted = 1  or media_type = 0 )"
 }
 
-func (l *CheckDrivesize) Build() *CheckData {
-	l.drives = []string{"all"}
-	l.excludes = []string{}
-	l.total = false
-	l.magic = float64(1)
-	l.mounted = false
-	l.ignoreUnreadable = false
-
-	return &CheckData{
-		name:         "check_drivesize",
-		description:  "Checks the disk drive/volumes usage on a windows host.",
-		hasInventory: ListInventory,
-		result: &CheckResult{
-			State: CheckExitOK,
-		},
-		args: map[string]CheckArgument{
-			"drive":   {value: &l.drives, isFilter: true, description: "The drives to check"},
-			"exclude": {value: &l.excludes, description: "List of drives to exclude from check"},
-			"total":   {value: &l.total, description: "Include the total of all matching drives"},
-			"magic": {value: &l.magic, description: "Magic number for use with scaling drive sizes. " +
-				"Note there is also a more generic magic factor in the perf-config option."},
-			"mounted":           {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
-			"ignore-unreadable": {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
-		},
-		defaultFilter:   "( mounted = 1  or media_type = 0 )",
-		defaultWarning:  "used > 80",
-		defaultCritical: "used > 90",
-		okSyntax:        "%(status): All %(count) drive(s) are ok",
-		detailSyntax:    "%(drive_or_name) %(used)/%(size) used",
-		topSyntax:       "${status}: ${problem_list}",
-		emptyState:      CheckExitUnknown,
-		emptySyntax:     "%(status): No drives found",
-	}
-}
-
-func (l *CheckDrivesize) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckDisk")
-	if !enabled {
-		return nil, fmt.Errorf("module CheckDisk is not enabled in /modules section")
-	}
-
-	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
-	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
-
-	requiredDisks, err := l.getRequiredDisks(l.drives)
-	if err != nil {
-		return nil, err
-	}
-
-	// sort by drive / id
-	keys := make([]string, 0, len(requiredDisks))
-	for k := range requiredDisks {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		drive := requiredDisks[k]
-		if l.isExcluded(drive, l.excludes) {
-			continue
-		}
-		l.addDiskDetails(check, drive, l.magic)
-		drive["flags"] = strings.Join(l.getFlagNames(drive), ", ")
-		check.listData = append(check.listData, drive)
-	}
-
-	if l.total {
-		// totals go first, so save current metrics and add them again
-		tmpMetrics := check.result.Metrics
-		check.result.Metrics = make([]*CheckMetric, 0)
-		l.addTotal(check)
-		check.result.Metrics = append(check.result.Metrics, tmpMetrics...)
-	}
-
-	return check.Finalize()
-}
-
-func (l *CheckDrivesize) isExcluded(drive map[string]string, excludes []string) bool {
-	for _, exclude := range excludes {
-		if strings.EqualFold(exclude, drive["drive"]) {
-			return true
-		}
-		if strings.EqualFold(exclude+":\\", drive["drive"]) {
-			return true
-		}
-		if strings.EqualFold(exclude+"\\", drive["drive"]) {
-			return true
-		}
-	}
-
-	return false
+func (l *CheckDrivesize) getExample() string {
+	return `
+    check_drivesize drive=c: show-all
+    OK: c: 36.801 GiB/63.075 GiB (58.3%) |...
+	`
 }
 
 func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[string]map[string]string, err error) {
@@ -172,7 +75,7 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[st
 	return requiredDisks, nil
 }
 
-func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]string, magic float64) {
+func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, drive map[string]string, magic float64) {
 	// set some defaults
 	drive["id"] = ""
 	drive["name"] = ""
@@ -194,7 +97,10 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 
 	l.setDeviceInfo(drive)
 
-	usage, err := disk.Usage(drive["drive_or_id"])
+	timeoutContext, cancel := context.WithTimeout(ctx, DiskDetailsTimeout)
+	defer cancel()
+
+	usage, err := disk.UsageWithContext(timeoutContext, drive["drive_or_id"])
 	if err != nil {
 		switch {
 		case drive["type"] == "cdrom":
@@ -220,80 +126,14 @@ func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]strin
 	drive["free"] = humanize.IBytesF(uint64(magic*float64(usage.Free)), 3)
 	drive["free_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Free)))
 	drive["free_pct"] = fmt.Sprintf("%f", freePct)
+	drive["flags"] = strings.Join(l.getFlagNames(drive), ", ")
 
 	// check filter before adding metrics
 	if !check.MatchMapCondition(check.filter, drive, true) {
 		return
 	}
 
-	if check.HasThreshold("free") {
-		check.AddBytePercentMetrics("free", drive["drive"]+" free", magic*float64(usage.Free), magic*float64(usage.Total))
-	}
-	if check.HasThreshold("used") {
-		check.AddBytePercentMetrics("used", drive["drive"]+" used", magic*float64(usage.Used), magic*float64(usage.Total))
-	}
-}
-
-func (l *CheckDrivesize) addTotal(check *CheckData) {
-	total := int64(0)
-	free := int64(0)
-	used := int64(0)
-
-	for _, disk := range check.listData {
-		sizeBytes, err := strconv.ParseInt(disk["size_bytes"], 10, 64)
-		if err != nil {
-			continue
-		}
-		freeBytes, err := strconv.ParseInt(disk["free_bytes"], 10, 64)
-		if err != nil {
-			continue
-		}
-		usedBytes, err := strconv.ParseInt(disk["used_bytes"], 10, 64)
-		if err != nil {
-			continue
-		}
-		free += freeBytes
-		total += sizeBytes
-		used += usedBytes
-	}
-
-	if total == 0 {
-		return
-	}
-
-	usedPct := float64(used) * 100 / (float64(total))
-
-	drive := map[string]string{
-		"id":            "total",
-		"name":          "total",
-		"drive_or_id":   "total",
-		"drive_or_name": "total",
-		"drive":         "total",
-		"media_type":    "0",
-		"type":          "total",
-		"letter":        "",
-		"size":          humanize.IBytesF(uint64(total), 3),
-		"size_bytes":    fmt.Sprintf("%d", total),
-		"used":          humanize.IBytesF(uint64(used), 3),
-		"used_bytes":    fmt.Sprintf("%d", used),
-		"used_pct":      fmt.Sprintf("%f", usedPct),
-		"free":          humanize.IBytesF(uint64(free), 3),
-		"free_bytes":    fmt.Sprintf("%d", free),
-		"free_pct":      fmt.Sprintf("%f", float64(free)*100/(float64(total))),
-	}
-	check.listData = append(check.listData, drive)
-
-	// check filter before adding metrics
-	if !check.MatchMapCondition(check.filter, drive, true) {
-		return
-	}
-
-	if check.HasThreshold("free") {
-		check.AddBytePercentMetrics("free", drive["drive"]+" free", float64(free), float64(total))
-	}
-	if check.HasThreshold("used") {
-		check.AddBytePercentMetrics("used", drive["drive"]+" used", float64(used), float64(total))
-	}
+	l.addMetrics(drive["drive"], check, usage, magic)
 }
 
 func (l *CheckDrivesize) setDeviceFlags(drive map[string]string) error {

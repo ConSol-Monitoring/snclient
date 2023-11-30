@@ -118,14 +118,15 @@ Macro values can be altered by adding a colon separated suffix.
 
 Support operators are:
 
-| Suffix      | Example                               | Description |
-| ----------- | ------------------------------------- | ------------|
-| `:lc`       | Word -> word                          | make value lowercase
-| `:uc`       | test -> TEST                          | make value uppercase
-| `:h`        | 1000 -> 1k                            | make a number more human readably
-| `:duration` | 125 -> 2m 5s                          | convert amount of seconds into human readable duration
-| `:date`     | 1700834034 -> 2023-11-24 14:53:54 CET | convert unix timestamp into human readable date (local timezone)
-| `:utc`      | 1700834034 -> 2023-11-24 13:53:54 UTC | convert unix timestamp into human readable date (utc timezone)
+| Suffix       | Example                               | Description |
+| ------------ | ------------------------------------- | ------------|
+| `:lc`        | Word -> word                          | make value lowercase
+| `:uc`        | test -> TEST                          | make value uppercase
+| `:h`         | 1000 -> 1k                            | make a number more human readably
+| `:duration`  | 125 -> 2m 5s                          | convert amount of seconds into human readable duration
+| `:date`      | 1700834034 -> 2023-11-24 14:53:54 CET | convert unix timestamp into human readable date (local timezone)
+| `:utc`       | 1700834034 -> 2023-11-24 13:53:54 UTC | convert unix timestamp into human readable date (utc timezone)
+| `:fmt=<fmt>` | 123.45 -> 123.4                       | apply format, ex.: $(total | fmt=%.1f) (using GOs fmt.Sprintf)
 
 for example, define a dummy command which prints the hostname in lower case letters:
 
@@ -141,3 +142,7 @@ This converts $(datemacro) to a human readable date and make everything uppercas
 You can also use the pipe symbol to use multiple operators in a row, ex.:
 
     $(macroname | date | uc)
+
+Use the generic fmt operator to apply any format on numbers, ex.:
+
+    $(used_pct | fmt=%d)

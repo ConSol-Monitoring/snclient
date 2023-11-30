@@ -20,8 +20,13 @@ Checks the disk drive/volumes usage on a host.
 
 ### Default Check
 
-    check_drivesize drive=/
-    OK: All 1 drive(s) are ok |'/ used'=296820846592B;;;0;489570443264 '/ used %'=60.6%;;;0;100
+    check_drivesize drive=/ show-all
+    OK: / 280.155 GiB/455.948 GiB (64.7%) |...
+
+Check drive including inodes:
+
+    check_drivesize drive=/ warn="used > 90%" "crit=used > 95%" "warn=inodes > 90%" "crit=inodes > 95%"
+    OK: All 1 drive(s) are ok |'/ used'=307515822080B;440613398938;465091921101;0;489570443264 '/ used %'=62.8%;90;95;0;100 '/ inodes'=12.1%;90;95;0;100
 
 ### Example using NRPE and Naemon
 
@@ -50,7 +55,7 @@ Naemon Config
 | empty-syntax  | %(status): No drives found                                                                                                                                                                                            |
 | top-syntax    | \${status}: \${problem_list}                                                                                                                                                                                          |
 | ok-syntax     | %(status): All %(count) drive(s) are ok                                                                                                                                                                               |
-| detail-syntax | %(drive_or_name) %(used)/%(size) used                                                                                                                                                                                 |
+| detail-syntax | %(drive_or_name) %(used)/%(size) (%(used_pct \| fmt=%.1f )%)                                                                                                                                                          |
 
 ## Check Specific Arguments
 
@@ -69,25 +74,32 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute       | Description                             |
-| --------------- | --------------------------------------- |
-| drive           | Technical name of drive                 |
-| name            | Descriptive name of drive               |
-| id              | Drive or id of drive                    |
-| drive_or_id     | Drive letter if present if not use id   |
-| drive_or_name   | Drive letter if present if not use name |
-| fstype          | Filesystem type                         |
-| free            | Free (human readable) bytes             |
-| free_bytes      | Number of free bytes                    |
-| free_pct        | Free bytes in percent                   |
-| inodes_free     | Number of free inodes                   |
-| inodes_free_pct | Number of free inodes in percent        |
-| inodes_total    | Number of total free inodes             |
-| inodes_used     | Number of used inodes                   |
-| inodes_used_pct | Number of used inodes in percent        |
-| mounted         | Flag wether drive is mounter (0/1)      |
-| size            | Total size in human readable bytes      |
-| size_bytes      | Total size in bytes                     |
-| used            | Used (human readable) bytes             |
-| used_bytes      | Number of used bytes                    |
-| used_pct        | Used bytes in percent                   |
+| Attribute       | Description                                                 |
+| --------------- | ----------------------------------------------------------- |
+| drive           | Technical name of drive                                     |
+| name            | Descriptive name of drive                                   |
+| id              | Drive or id of drive                                        |
+| drive_or_id     | Drive letter if present if not use id                       |
+| drive_or_name   | Drive letter if present if not use name                     |
+| fstype          | Filesystem type                                             |
+| free            | Free (human readable) bytes                                 |
+| free_bytes      | Number of free bytes                                        |
+| free_pct        | Free bytes in percent                                       |
+| inodes_free     | Number of free inodes                                       |
+| inodes_free_pct | Number of free inodes in percent                            |
+| inodes_total    | Number of total free inodes                                 |
+| inodes_used     | Number of used inodes                                       |
+| inodes_used_pct | Number of used inodes in percent                            |
+| mounted         | Flag wether drive is mounter (0/1)                          |
+| size            | Total size in human readable bytes                          |
+| size_bytes      | Total size in bytes                                         |
+| used            | Used (human readable) bytes                                 |
+| used_bytes      | Number of used bytes                                        |
+| used_pct        | Used bytes in percent                                       |
+| media_type      | windows only: numeric media type of drive                   |
+| type            | windows only: type of drive, ex.: fixed, cdrom, ramdisk,... |
+| readable        | windows only: flag drive is readable (0/1)                  |
+| writable        | windows only: flag drive is writable (0/1)                  |
+| removable       | windows only: flag drive is removable (0/1)                 |
+| erasable        | windows only: flag wether if drive is erasable (0/1)        |
+| hotplug         | windows only: flag drive is hotplugable (0/1)               |

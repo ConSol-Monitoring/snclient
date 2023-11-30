@@ -1,5 +1,3 @@
-//go:build !windows
-
 package snclient
 
 import (
@@ -8,9 +6,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"pkg/humanize"
-	"pkg/utils"
 
 	"github.com/shirou/gopsutil/v3/disk"
 )
@@ -18,6 +16,10 @@ import (
 func init() {
 	AvailableChecks["check_drivesize"] = CheckEntry{"check_drivesize", new(CheckDrivesize)}
 }
+
+const (
+	DiskDetailsTimeout = 30 * time.Second
+)
 
 type CheckDrivesize struct {
 	drives           []string
@@ -27,29 +29,6 @@ type CheckDrivesize struct {
 	mounted          bool
 	ignoreUnreadable bool
 	hasCustomPath    bool
-}
-
-func (l *CheckDrivesize) defaultExcludedFsTypes() []string {
-	return []string{
-		"binfmt_misc",
-		"bpf",
-		"cgroup2fs",
-		"configfs",
-		"debugfs",
-		"devpts",
-		"efivarfs",
-		"fusectl",
-		"hugetlbfs",
-		"mqueue",
-		"nfsd",
-		"proc",
-		"pstorefs",
-		"ramfs",
-		"rpc_pipefs",
-		"securityfs",
-		"sysfs",
-		"tracefs",
-	}
 }
 
 func (l *CheckDrivesize) Build() *CheckData {
@@ -78,11 +57,11 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"mounted":           {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
 			"ignore-unreadable": {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
 		},
-		defaultFilter:   "fstype not in (" + utils.List2String(l.defaultExcludedFsTypes()) + ")",
+		defaultFilter:   l.getDefaultFilter(),
 		defaultWarning:  "used_pct > 80",
 		defaultCritical: "used_pct > 90",
 		okSyntax:        "%(status): All %(count) drive(s) are ok",
-		detailSyntax:    "%(drive_or_name) %(used)/%(size) used",
+		detailSyntax:    "%(drive_or_name) %(used)/%(size) (%(used_pct | fmt=%.1f )%)",
 		topSyntax:       "${status}: ${problem_list}",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status): No drives found",
@@ -107,22 +86,27 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "used", description: "Used (human readable) bytes"},
 			{name: "used_bytes", description: "Number of used bytes"},
 			{name: "used_pct", description: "Used bytes in percent"},
+
+			{name: "media_type", description: "windows only: numeric media type of drive"},
+			{name: "type", description: "windows only: type of drive, ex.: fixed, cdrom, ramdisk,..."},
+			{name: "readable", description: "windows only: flag drive is readable (0/1)"},
+			{name: "writable", description: "windows only: flag drive is writable (0/1)"},
+			{name: "removable", description: "windows only: flag drive is removable (0/1)"},
+			{name: "erasable", description: "windows only: flag wether if drive is erasable (0/1)"},
+			{name: "hotplug", description: "windows only: flag drive is hotplugable (0/1)"},
 		},
-		exampleDefault: `
-    check_drivesize drive=/
-    OK: All 1 drive(s) are ok |'/ used'=296820846592B;;;0;489570443264 '/ used %'=60.6%;;;0;100
-	`,
-		exampleArgs: `'warn=used_pct > 90' 'crit=used_pct > 95'`,
+		exampleDefault: l.getExample(),
+		exampleArgs:    `'warn=used_pct > 90' 'crit=used_pct > 95'`,
 	}
 }
 
-func (l *CheckDrivesize) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckDisk")
 	if !enabled {
 		return nil, fmt.Errorf("module CheckDisk is not enabled in /modules section")
 	}
 
-	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
+	check.SetDefaultThresholdUnit("%", []string{"used", "free", "inodes", "inodes_free"})
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
 	requiredDisks, err := l.getRequiredDisks(l.drives)
@@ -142,7 +126,7 @@ func (l *CheckDrivesize) Check(_ context.Context, snc *Agent, check *CheckData, 
 		if l.isExcluded(drive, l.excludes) {
 			continue
 		}
-		l.addDiskDetails(check, drive, l.magic)
+		l.addDiskDetails(ctx, check, drive, l.magic)
 		check.listData = append(check.listData, drive)
 	}
 
@@ -180,141 +164,28 @@ func (l *CheckDrivesize) isExcluded(drive map[string]string, excludes []string) 
 	return false
 }
 
-func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[string]map[string]string, err error) {
-	// create map of required disks/volmes with "drive_or_id" as primary key
-	requiredDisks = map[string]map[string]string{}
-
-	for _, drive := range drives {
-		switch drive {
-		case "*", "all", "all-drives":
-			err := l.setDisks(requiredDisks)
-			if err != nil {
-				return nil, err
-			}
-		case "all-volumes":
-			// nothing appropriate on linux
-		default:
-			l.hasCustomPath = true
-			err := l.setCustomPath(drive, requiredDisks)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return requiredDisks, nil
-}
-
-func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (err error) {
-	partitions, err := disk.Partitions(true)
-	if err != nil {
-		return fmt.Errorf("disk partitions failed: %s", err.Error())
-	}
-	for _, partition := range partitions {
-		drive := partition.Mountpoint
-		entry, ok := requiredDisks[drive]
-		if !ok {
-			entry = make(map[string]string)
-		}
-
-		entry["drive"] = drive
-		entry["drive_or_id"] = drive
-		entry["drive_or_name"] = drive
-		requiredDisks[drive] = entry
-	}
-
-	return
-}
-
-func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string) (err error) {
-	// try to find closes matching mount
-	availMounts := map[string]map[string]string{}
-	err = l.setDisks(availMounts)
-	if err != nil {
-		return err
-	}
-
-	var match *map[string]string
-	for i := range availMounts {
-		vol := availMounts[i]
-		if vol["drive"] != "" && strings.HasPrefix(drive, vol["drive"]) {
-			if match == nil || len((*match)["drive"]) < len(vol["drive"]) {
-				match = &vol
-			}
-		}
-		// direct match, no need to search further
-		if drive == vol["drive"] {
-			break
-		}
-	}
-	if match != nil {
-		requiredDisks[drive] = utils.CloneStringMap(*match)
-		requiredDisks[drive]["drive"] = drive
-
-		return nil
-	}
-
-	// add anyway to generate an error later with more default values filled in
-	requiredDisks[drive] = map[string]string{
-		"id":            "",
-		"drive":         drive,
-		"drive_or_id":   drive,
-		"drive_or_name": drive,
-	}
-
-	return nil
-}
-
-func (l *CheckDrivesize) addDiskDetails(check *CheckData, drive map[string]string, magic float64) {
-	// set some defaults
-	drive["id"] = ""
-	drive["name"] = ""
-	drive["mounted"] = "0"
-
-	usage, err := disk.Usage(drive["drive_or_id"])
-	if err != nil {
-		drive["_error"] = fmt.Sprintf("Failed to find disk partition %s: %s", drive["drive_or_id"], err.Error())
-		usage = &disk.UsageStat{}
-	} else {
-		drive["mounted"] = "1"
-	}
-
-	freePct := float64(0)
-	if usage.Total > 0 {
-		freePct = float64(usage.Free) * 100 / (float64(usage.Total))
-	}
-
-	drive["size"] = humanize.IBytesF(uint64(magic*float64(usage.Total)), 3)
-	drive["size_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Total)))
-	drive["used"] = humanize.IBytesF(uint64(magic*float64(usage.Used)), 3)
-	drive["used_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Used)))
-	drive["used_pct"] = fmt.Sprintf("%f", usage.UsedPercent)
-	drive["free"] = humanize.IBytesF(uint64(magic*float64(usage.Free)), 3)
-	drive["free_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Free)))
-	drive["free_pct"] = fmt.Sprintf("%f", freePct)
-	drive["inodes_total"] = fmt.Sprintf("%d", usage.InodesTotal)
-	drive["inodes_used"] = fmt.Sprintf("%d", usage.InodesUsed)
-	drive["inodes_free"] = fmt.Sprintf("%d", usage.InodesFree)
-	drive["inodes_used_pct"] = fmt.Sprintf("%f", usage.InodesUsedPercent)
-	drive["inodes_free_pct"] = fmt.Sprintf("%f", 100-usage.InodesUsedPercent)
-	drive["fstype"] = usage.Fstype
-
-	// check filter before adding metrics
-	if !check.MatchMapCondition(check.filter, drive, true) {
-		return
-	}
+func (l *CheckDrivesize) addMetrics(drive string, check *CheckData, usage *disk.UsageStat, magic float64) {
+	total := usage.Used + usage.Free // use this total instead of usage.Total to account in the root reserved space
 
 	if check.HasThreshold("free") || check.HasThreshold("free_pct") {
-		check.AddBytePercentMetrics("free", drive["drive"]+" free", magic*float64(usage.Free), magic*float64(usage.Total))
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.critThreshold)
+		check.AddBytePercentMetrics("free", drive+" free", magic*float64(usage.Free), magic*float64(total))
 	}
 	if check.HasThreshold("used") || check.HasThreshold("used_pct") {
-		check.AddBytePercentMetrics("used", drive["drive"]+" used", magic*float64(usage.Used), magic*float64(usage.Total))
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.critThreshold)
+		check.AddBytePercentMetrics("used", drive+" used", magic*float64(usage.Used), magic*float64(total))
 	}
-	if check.HasThreshold("inodes_used_pct") {
-		check.AddPercentMetrics("inodes_used_pct", drive["drive"]+" inodes", float64(usage.InodesUsed), float64(usage.InodesTotal))
+	if check.HasThreshold("inodes") || check.HasThreshold("inodes_used") || check.HasThreshold("inodes_used_pct") {
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used"}, "inodes", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used"}, "inodes", check.critThreshold)
+		check.AddPercentMetrics("inodes", drive+" inodes", float64(usage.InodesUsed), float64(usage.InodesTotal))
 	}
-	if check.HasThreshold("inodes_free_pct") {
-		check.AddPercentMetrics("inodes_free_pct", drive["drive"]+" free", float64(usage.InodesUsed), float64(usage.InodesTotal))
+	if check.HasThreshold("inodes_free") || check.HasThreshold("inodes_free_pct") {
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct"}, "inodes_free", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct"}, "inodes_free", check.critThreshold)
+		check.AddPercentMetrics("inodes_free", drive+" inodes free", float64(usage.InodesFree), float64(usage.InodesTotal))
 	}
 }
 

@@ -15,7 +15,7 @@ func TestCheckDrivesize(t *testing.T) {
 	res := snc.RunCheck("check_drivesize", []string{"warn=free > 0", "crit=free > 0", "drive=/"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^CRITICAL: / .*?\/.*? used \|'/ free'=.*?B;0;0;0;.*? '/ free %'=.*?%;0;0;0;100`),
+		regexp.MustCompile(`^CRITICAL: / .*?\/.*? \(\d+\.\d+%\) \|'/ free'=.*?B;0;0;0;.*? '/ free %'=.*?%;0;0;0;100`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -38,6 +38,11 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), `OK: All 1 drive`, "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), `/tmp/ used %`, "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=inodes>100%", "crit=inodes>100%", "drive=/tmp/"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), `OK: All 1 drive`, "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), `'/tmp/ inodes'=`, "output matches")
 
 	StopTestAgent(t, snc)
 }

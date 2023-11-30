@@ -46,15 +46,15 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value        |
-| ------------- | -------------------- |
-| warning       | used > 80%           |
-| critcal       | used > 90%           |
-| empty-state   | 0 (OK)               |
-| empty-syntax  |                      |
-| top-syntax    | \${status}: \${list} |
-| ok-syntax     |                      |
-| detail-syntax | %(type) = %(used)    |
+| Argument      | Default Value                                         |
+| ------------- | ----------------------------------------------------- |
+| warning       | used > 80%                                            |
+| critcal       | used > 90%                                            |
+| empty-state   | 0 (OK)                                                |
+| empty-syntax  |                                                       |
+| top-syntax    | \${status}: \${list}                                  |
+| ok-syntax     |                                                       |
+| detail-syntax | %(type) = %(used)/%(size) (%(used_pct \| fmt=%.1f )%) |
 
 ## Check Specific Arguments
 
