@@ -3,7 +3,6 @@ package snclient
 import (
 	"context"
 	"sort"
-	"strings"
 )
 
 func init() {
@@ -20,14 +19,22 @@ func NewCheckIndex() CheckHandler {
 
 func (l *CheckIndex) Build() *CheckData {
 	return &CheckData{
-		name:        "check_index",
-		description: "returns list of known checks.",
+		name:         "check_index",
+		description:  "returns list of known checks.",
+		implemented:  ALL,
+		detailSyntax: "${name}",
+		topSyntax:    "${list}",
+		listCombine:  "\n",
+		emptyState:   3,
+		emptySyntax:  "no checks found",
+		attributes: []CheckAttribute{
+			{name: "name", description: "name of the check"},
+			{name: "description", description: "description of the check"},
+		},
 	}
 }
 
-func (l *CheckIndex) Check(_ context.Context, _ *Agent, _ *CheckData, _ []Argument) (*CheckResult, error) {
-	state := int64(0)
-
+func (l *CheckIndex) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	keys := make([]string, 0, len(AvailableChecks))
 
 	for k := range AvailableChecks {
@@ -35,10 +42,14 @@ func (l *CheckIndex) Check(_ context.Context, _ *Agent, _ *CheckData, _ []Argume
 	}
 	sort.Strings(keys)
 
-	output := strings.Join(keys, "\n")
+	for _, k := range keys {
+		handler := AvailableChecks[k].Handler()
+		chk := handler.Build()
+		check.listData = append(check.listData, map[string]string{
+			"name":        k,
+			"description": chk.description,
+		})
+	}
 
-	return &CheckResult{
-		State:  state,
-		Output: output,
-	}, nil
+	return check.Finalize()
 }

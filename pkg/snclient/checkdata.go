@@ -127,6 +127,9 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	// apply final filter
 	cd.listData = cd.Filter(cd.filter, cd.listData)
 
+	if cd.result == nil {
+		cd.result = &CheckResult{}
+	}
 	cd.result.Raw = cd
 	if cd.output == "inventory_json" {
 		return cd.result, nil
