@@ -3,13 +3,12 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"pkg/humanize"
+	"pkg/utils"
 	"strings"
 	"syscall"
 	"unicode"
 	"unsafe"
-
-	"pkg/humanize"
-	"pkg/utils"
 
 	"github.com/shirou/gopsutil/v3/disk"
 	"golang.org/x/sys/windows"
@@ -65,6 +64,7 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[st
 			// "c" or "c:"" will use the drive c
 			// "c:\" will use the volume
 			// "c:\path" will use the best matching volume
+			l.hasCustomPath = true
 			err := l.setCustomPath(drive, requiredDisks)
 			if err != nil {
 				return nil, err
