@@ -72,7 +72,11 @@ type HandlerWeb struct {
 	password       string
 	snc            *Agent
 	listener       *Listener
+	allowedHosts   *AllowedHostConfig
 }
+
+// ensure we fully implement the RequestHandlerHTTP type
+var _ RequestHandlerHTTP = &HandlerWeb{}
 
 func NewHandlerWeb() Module {
 	l := &HandlerWeb{}
@@ -134,7 +138,26 @@ func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection, _ *Config, set *Modul
 	}
 	l.listener = listener
 
+	allowedHosts, err := NewAllowedHostConfig(conf)
+	if err != nil {
+		return err
+	}
+	l.allowedHosts = allowedHosts
+
 	return nil
+}
+
+func (l *HandlerWeb) GetAllowedHosts() *AllowedHostConfig {
+	return l.allowedHosts
+}
+
+func (l *HandlerWeb) CheckPassword(req *http.Request, _ URLMapping) bool {
+	switch req.URL.Path {
+	case "/", "/index.html":
+		return true
+	default:
+		return verifyRequestPassword(l.snc, req, l.password)
+	}
 }
 
 func (l *HandlerWeb) GetMappings(*Agent) []URLMapping {
@@ -253,17 +276,6 @@ type HandlerWebLegacy struct {
 }
 
 func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	// verify password
-	if !verifyRequestPassword(l.Handler.snc, req, l.Handler.password) {
-		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-		res.Header().Set("Content-Type", "application/json")
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
-			"error": "permission denied",
-		}))
-
-		return
-	}
-
 	command := chi.URLParam(req, "command")
 	args := queryParam2CommandArgs(req)
 	result := l.Handler.snc.RunCheckWithContext(req.Context(), command, args)
@@ -309,17 +321,6 @@ type HandlerWebV1 struct {
 }
 
 func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	// check password
-	if !verifyRequestPassword(l.Handler.snc, req, l.Handler.password) {
-		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-		res.Header().Set("Content-Type", "application/json")
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
-			"error": "permission denied",
-		}))
-
-		return
-	}
-
 	path := strings.TrimSuffix(req.URL.Path, "/")
 	switch path {
 	case "/api/v1/inventory":

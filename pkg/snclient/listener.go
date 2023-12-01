@@ -3,12 +3,12 @@ package snclient
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/netip"
 	"os"
 	"strconv"
 	"strings"
@@ -39,17 +39,15 @@ func init() {
 
 // Listener is a generic tcp listener and handles all incoming connections.
 type Listener struct {
-	noCopy            noCopy
-	snc               *Agent
-	connType          string
-	listen            net.Listener
-	handler           []RequestHandler
-	port              int64
-	bindAddress       string
-	cacheAllowedHosts bool
-	tlsConfig         *tls.Config
-	allowedHosts      []AllowedHost
-	socketTimeout     time.Duration
+	noCopy        noCopy
+	snc           *Agent
+	connType      string
+	listen        net.Listener
+	handler       []RequestHandler
+	port          int64
+	bindAddress   string
+	tlsConfig     *tls.Config
+	socketTimeout time.Duration
 }
 
 // NewListener creates a new Listener object.
@@ -120,29 +118,6 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 		l.socketTimeout = time.Duration(socketTimeout) * time.Second
 	default:
 		l.socketTimeout = DefaultSocketTimeout * time.Second
-	}
-
-	// parse / set allowed hosts
-	allowed, _ := conf.GetString("allowed hosts")
-	if allowed != "" {
-		for _, allow := range strings.Split(allowed, ",") {
-			allow = strings.TrimSpace(allow)
-			if allow == "" {
-				continue
-			}
-			l.allowedHosts = append(l.allowedHosts, NewAllowedHost(allow))
-		}
-	}
-
-	// parse / set cache allowed hosts
-	cacheAllowedHosts, ok, err := conf.GetBool("cache allowed hosts")
-	switch {
-	case err != nil:
-		return fmt.Errorf("invalid cache allowed hosts specification: %s", err.Error())
-	case ok:
-		l.cacheAllowedHosts = cacheAllowedHosts
-	default:
-		l.cacheAllowedHosts = true
 	}
 
 	// parse / set ssl config
@@ -231,25 +206,21 @@ func (l *Listener) Stop() {
 // Start listening.
 func (l *Listener) Start() error {
 	if l.listen != nil {
-		log.Tracef("listener %s on %s already started", l.connType, l.BindString())
+		log.Tracef("listener %s on %s already running", l.connType, l.BindString())
 
 		return nil
 	}
-	log.Infof("starting %s listener on %s", l.connType, l.BindString())
-	sslOptions := ""
-	if l.tlsConfig != nil && l.tlsConfig.ClientCAs != nil {
-		sslOptions = " (client certificate required)"
-	}
 
-	log.Debugf("ssl: %v%s", l.tlsConfig != nil, sslOptions)
-
-	if len(l.allowedHosts) == 0 {
-		log.Debugf("allowed hosts: all")
-	} else {
-		log.Debugf("allowed hosts:")
-		for _, allow := range l.allowedHosts {
-			log.Debugf("    - %s", allow.String())
+	for _, hdl := range l.handler {
+		log.Infof("starting %s listener on %s", hdl.Type(), l.BindString())
+		sslOptions := ""
+		if l.tlsConfig != nil && l.tlsConfig.ClientCAs != nil {
+			sslOptions = " (client certificate required)"
 		}
+
+		log.Debugf("ssl: %v%s", l.tlsConfig != nil, sslOptions)
+		allowed := hdl.GetAllowedHosts()
+		allowed.Debug()
 	}
 
 	if l.tlsConfig != nil {
@@ -280,7 +251,7 @@ func (l *Listener) Start() error {
 			l.startListenerTCP(handler)
 		}()
 	default:
-		return fmt.Errorf("unsupported type: %T (does not implement any known request handler)", l.handler)
+		return fmt.Errorf("unsupported type: %T (does not implement any known request handler)", l.handler[0])
 	}
 
 	return nil
@@ -323,7 +294,8 @@ func (l *Listener) handleTCPCon(con net.Conn, handler RequestHandlerTCP) {
 
 	log.Tracef("incoming %s connection from %s", l.connType, con.RemoteAddr().String())
 
-	if !l.CheckConnection(con) {
+	allowed := handler.GetAllowedHosts()
+	if !allowed.Check(con.RemoteAddr().String()) {
 		con.Close()
 
 		return
@@ -345,10 +317,10 @@ func (l *Listener) handleTCPCon(con net.Conn, handler RequestHandlerTCP) {
 func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 	mux := chi.NewRouter()
 
-	// Add generic logger
+	// Add generic logger and connection checker
 	mux.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			l.WrappedHTTPHandler(next, w, r)
+			l.LogWrapHTTPHandler(next, w, r)
 		})
 	})
 
@@ -356,13 +328,16 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 	for _, hdl := range handler {
 		if webhandler, ok := hdl.(RequestHandlerHTTP); ok {
 			mappings := webhandler.GetMappings(l.snc)
-			for _, mapping := range mappings {
-				log.Tracef("mapping url %s%-20s -> %s", webhandler.BindString(), mapping.URL, webhandler.Type())
+			for i := range mappings {
+				mapping := mappings[i]
+				log.Tracef("mapping port %-6s handler: %-16s url: %s", webhandler.BindString(), webhandler.Type(), mapping.URL)
 				if prev, ok := mappingsInUse[mapping.URL]; ok {
 					log.Warnf("url %s is mapped multiple times (previously assigned to %s), use url prefix to avoid this.", mapping.URL, prev)
 				}
 				mappingsInUse[mapping.URL] = webhandler.Type()
-				mux.Handle(mapping.URL, mapping.Handler)
+				mux.HandleFunc(mapping.URL, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					l.WrappedCheckHTTPHandler(webhandler, &mapping, w, r)
+				}))
 			}
 		}
 	}
@@ -374,19 +349,6 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 		IdleTimeout:       DefaultSocketTimeout * time.Second,
 		Handler:           mux,
 		ErrorLog:          NewStandardLog("WARN"),
-		ConnState: func(con net.Conn, state http.ConnState) {
-			if state != http.StateNew {
-				return
-			}
-
-			log.Tracef("incoming %s connection from %s", l.connType, con.RemoteAddr().String())
-
-			if !l.CheckConnection(con) {
-				con.Close()
-
-				return
-			}
-		},
 	}
 
 	if err := server.Serve(l.listen); err != nil {
@@ -394,53 +356,15 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 	}
 }
 
-func (l *Listener) CheckConnection(con net.Conn) bool {
-	if !l.CheckAllowedHosts(con.RemoteAddr().String()) {
-		log.Warnf("connection from %s to %s not allowed", con.RemoteAddr().String(), l.BindString())
-
-		return false
-	}
-
-	return true
-}
-
-func (l *Listener) CheckAllowedHosts(remoteAddr string) bool {
-	if len(l.allowedHosts) == 0 {
-		return true
-	}
-
-	idx := strings.LastIndex(remoteAddr, ":")
-	if idx != -1 {
-		remoteAddr = remoteAddr[:idx]
-	}
-
-	if strings.HasPrefix(remoteAddr, "[") && strings.HasSuffix(remoteAddr, "]") {
-		remoteAddr = strings.TrimPrefix(remoteAddr, "[")
-		remoteAddr = strings.TrimSuffix(remoteAddr, "]")
-	}
-
-	addr, err := netip.ParseAddr(remoteAddr)
-	if err != nil {
-		log.Warnf("cannot parse remote address: %s: %s", remoteAddr, err.Error())
-
-		return false
-	}
-
-	for _, allow := range l.allowedHosts {
-		if allow.Contains(addr, l.cacheAllowedHosts) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (l *Listener) BindString() string {
 	return (fmt.Sprintf("%s:%d", l.bindAddress, l.port))
 }
 
-func (l *Listener) WrappedHTTPHandler(next http.Handler, res http.ResponseWriter, req *http.Request) {
+// log wrapper for all web requests
+func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter, req *http.Request) {
 	startTime := time.Now()
+
+	log.Tracef("incoming http(s) connection from %s", req.RemoteAddr)
 
 	// log panices during request, but continue listening
 	defer l.snc.logPanicRecover()
@@ -468,5 +392,31 @@ func (l *Listener) WrappedHTTPHandler(next http.Handler, res http.ResponseWriter
 	promHTTPRequestsTotal.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), req.URL.Path).Add(1)
 	promHTTPDuration.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), req.URL.Path).Observe(duration.Seconds())
 
-	log.Debugf("%s connection from %s finished in %9s", l.connType, req.RemoteAddr, duration)
+	log.Debugf("http(s) connection from %s finished in %9s", req.RemoteAddr, duration)
+}
+
+// wrapper for all known web requests to verfify passwords and allowed hosts
+func (l *Listener) WrappedCheckHTTPHandler(webhandler RequestHandlerHTTP, mapping *URLMapping, res http.ResponseWriter, req *http.Request) {
+	allowed := webhandler.GetAllowedHosts()
+	if !allowed.Check(req.RemoteAddr) {
+		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		res.Header().Set("Content-Type", "application/json")
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"error": "permission denied",
+		}))
+
+		return
+	}
+
+	if !webhandler.CheckPassword(req, *mapping) {
+		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		res.Header().Set("Content-Type", "application/json")
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"error": "permission denied",
+		}))
+
+		return
+	}
+
+	mapping.Handler.ServeHTTP(res, req)
 }

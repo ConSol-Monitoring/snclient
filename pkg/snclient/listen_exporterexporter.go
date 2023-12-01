@@ -41,7 +41,11 @@ type HandlerExporterExporter struct {
 	defaultModule string
 	snc           *Agent
 	modules       map[string]*exporterModuleConfig
+	allowedHosts  *AllowedHostConfig
 }
+
+// ensure we fully implement the RequestHandlerHTTP type
+var _ RequestHandlerHTTP = &HandlerExporterExporter{}
 
 func NewHandlerExporterExporter() Module {
 	l := &HandlerExporterExporter{}
@@ -109,7 +113,21 @@ func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Confi
 		l.modules = modules
 	}
 
+	allowedHosts, err := NewAllowedHostConfig(conf)
+	if err != nil {
+		return err
+	}
+	l.allowedHosts = allowedHosts
+
 	return nil
+}
+
+func (l *HandlerExporterExporter) GetAllowedHosts() *AllowedHostConfig {
+	return l.allowedHosts
+}
+
+func (l *HandlerExporterExporter) CheckPassword(req *http.Request, _ URLMapping) bool {
+	return verifyRequestPassword(l.snc, req, l.password)
 }
 
 func (l *HandlerExporterExporter) GetMappings(*Agent) []URLMapping {

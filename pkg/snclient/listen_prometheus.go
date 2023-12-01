@@ -57,12 +57,16 @@ var (
 )
 
 type HandlerPrometheus struct {
-	noCopy   noCopy
-	handler  http.Handler
-	listener *Listener
-	password string
-	snc      *Agent
+	noCopy       noCopy
+	handler      http.Handler
+	listener     *Listener
+	password     string
+	snc          *Agent
+	allowedHosts *AllowedHostConfig
 }
+
+// ensure we fully implement the RequestHandlerHTTP type
+var _ RequestHandlerHTTP = &HandlerPrometheus{}
 
 func NewHandlerPrometheus() Module {
 	promHandler := promhttp.InstrumentMetricHandler(
@@ -140,7 +144,21 @@ func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config, set
 	}
 	l.listener = listener
 
+	allowedHosts, err := NewAllowedHostConfig(conf)
+	if err != nil {
+		return err
+	}
+	l.allowedHosts = allowedHosts
+
 	return nil
+}
+
+func (l *HandlerPrometheus) GetAllowedHosts() *AllowedHostConfig {
+	return l.allowedHosts
+}
+
+func (l *HandlerPrometheus) CheckPassword(req *http.Request, _ URLMapping) bool {
+	return verifyRequestPassword(l.snc, req, l.password)
 }
 
 func (l *HandlerPrometheus) GetMappings(*Agent) []URLMapping {

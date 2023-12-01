@@ -30,5 +30,9 @@ password = test
 		"output matches",
 	)
 
+	res = snc.RunCheck("check_http", []string{"-H", "localhost", "-p", "45666", "-u", "/api/v1/inventory"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state warning")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "HTTP/1.1 403 Forbidden", "output matches")
+
 	StopTestAgent(t, snc)
 }

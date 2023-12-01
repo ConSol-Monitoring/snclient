@@ -57,7 +57,7 @@ const (
 	BlockProfileRateInterval = 10
 
 	// DefaultSocketTimeout sets the default timeout for tcp sockets.
-	DefaultSocketTimeout = 30
+	DefaultSocketTimeout = 60
 )
 
 var (
@@ -1167,7 +1167,7 @@ func (snc *Agent) verifyPassword(confPassword, userPassword string) bool {
 
 	// no login with default password
 	if confPassword == DefaultPassword {
-		log.Errorf("configured password in ini file matches default password, deny all access -> 403")
+		log.Warnf("configured password in ini file matches default password, deny all access -> 403")
 
 		return false
 	}
@@ -1194,7 +1194,7 @@ func (snc *Agent) verifyPassword(confPassword, userPassword string) bool {
 		return true
 	}
 
-	log.Errorf("password mismatch -> 403")
+	log.Warnf("password mismatch -> 403")
 
 	return false
 }

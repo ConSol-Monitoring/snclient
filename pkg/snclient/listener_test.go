@@ -24,6 +24,9 @@ func TestListenerConfig(t *testing.T) {
 	err := listen.setListenConfig(conf)
 	require.NoErrorf(t, err, "setListenConfig should not return an error")
 
+	ahc, err := NewAllowedHostConfig(conf)
+	require.NoErrorf(t, err, "allowed host config parsed")
+
 	for _, check := range []struct {
 		expect bool
 		addr   string
@@ -34,7 +37,7 @@ func TestListenerConfig(t *testing.T) {
 		{false, "192.168.125.5"},
 		{true, "1.1.1.1"},
 	} {
-		assert.Equalf(t, check.expect, listen.CheckAllowedHosts(check.addr), fmt.Sprintf("CheckAllowedHosts(%s) -> %v", check.addr, check.expect))
+		assert.Equalf(t, check.expect, ahc.Check(check.addr), fmt.Sprintf("CheckAllowedHosts(%s) -> %v", check.addr, check.expect))
 	}
 }
 

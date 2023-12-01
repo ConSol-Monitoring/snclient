@@ -11,6 +11,7 @@ type RequestHandler interface {
 	Type() string
 	BindString() string
 	Listener() *Listener
+	GetAllowedHosts() *AllowedHostConfig
 }
 
 // RequestHandlerTCP handles a single client connection.
@@ -28,4 +29,5 @@ type URLMapping struct {
 type RequestHandlerHTTP interface {
 	RequestHandler
 	GetMappings(snc *Agent) []URLMapping
+	CheckPassword(req *http.Request, handler URLMapping) bool
 }

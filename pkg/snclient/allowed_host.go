@@ -1,10 +1,89 @@
 package snclient
 
 import (
+	"fmt"
 	"net"
 	"net/netip"
 	"strings"
 )
+
+type AllowedHostConfig struct {
+	Allowed  []AllowedHost
+	UseCache bool
+}
+
+func NewAllowedHostConfig(conf *ConfigSection) (*AllowedHostConfig, error) {
+	ahc := &AllowedHostConfig{}
+
+	// parse / set allowed hosts
+	allowed, _ := conf.GetString("allowed hosts")
+	if allowed != "" {
+		for _, allow := range strings.Split(allowed, ",") {
+			allow = strings.TrimSpace(allow)
+			if allow == "" {
+				continue
+			}
+			ahc.Allowed = append(ahc.Allowed, NewAllowedHost(allow))
+		}
+	}
+
+	// parse / set cache allowed hosts
+	cacheAllowedHosts, ok, err := conf.GetBool("cache allowed hosts")
+	switch {
+	case err != nil:
+		return nil, fmt.Errorf("invalid cache allowed hosts specification: %s", err.Error())
+	case ok:
+		ahc.UseCache = cacheAllowedHosts
+	default:
+		ahc.UseCache = true
+	}
+
+	ahc.Debug()
+
+	return ahc, nil
+}
+
+func (ahc *AllowedHostConfig) Check(remoteAddr string) bool {
+	if len(ahc.Allowed) == 0 {
+		return true
+	}
+
+	idx := strings.LastIndex(remoteAddr, ":")
+	if idx != -1 {
+		remoteAddr = remoteAddr[:idx]
+	}
+
+	if strings.HasPrefix(remoteAddr, "[") && strings.HasSuffix(remoteAddr, "]") {
+		remoteAddr = strings.TrimPrefix(remoteAddr, "[")
+		remoteAddr = strings.TrimSuffix(remoteAddr, "]")
+	}
+
+	addr, err := netip.ParseAddr(remoteAddr)
+	if err != nil {
+		log.Warnf("cannot parse remote address: %s: %s", remoteAddr, err.Error())
+
+		return false
+	}
+
+	for _, allow := range ahc.Allowed {
+		if allow.Contains(addr, ahc.UseCache) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (ahc *AllowedHostConfig) Debug() {
+	if len(ahc.Allowed) == 0 {
+		log.Debugf("allowed hosts: all")
+	} else {
+		log.Debugf("allowed hosts:")
+		for _, allow := range ahc.Allowed {
+			log.Debugf("    - %s", allow.String())
+		}
+	}
+}
 
 type AllowedHost struct {
 	Prefix       *netip.Prefix

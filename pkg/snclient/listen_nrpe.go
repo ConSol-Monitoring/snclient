@@ -15,11 +15,15 @@ func init() {
 const NastyCharacters = "$|`&><'\"\\[]{}"
 
 type HandlerNRPE struct {
-	noCopy   noCopy
-	snc      *Agent
-	conf     *ConfigSection
-	listener *Listener
+	noCopy       noCopy
+	snc          *Agent
+	conf         *ConfigSection
+	listener     *Listener
+	allowedHosts *AllowedHostConfig
 }
+
+// ensure we fully implement the RequestHandlerTCP type
+var _ RequestHandlerTCP = &HandlerNRPE{}
 
 func NewHandlerNRPE() Module {
 	return &HandlerNRPE{}
@@ -46,7 +50,17 @@ func (l *HandlerNRPE) Init(snc *Agent, conf *ConfigSection, _ *Config, _ *Module
 	}
 	l.listener = listener
 
+	allowedHosts, err := NewAllowedHostConfig(conf)
+	if err != nil {
+		return err
+	}
+	l.allowedHosts = allowedHosts
+
 	return nil
+}
+
+func (l *HandlerNRPE) GetAllowedHosts() *AllowedHostConfig {
+	return l.allowedHosts
 }
 
 func (l *HandlerNRPE) Type() string {

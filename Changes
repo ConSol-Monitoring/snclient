@@ -11,6 +11,8 @@ next:
          - add check_mount
          - add fmt macro operator to formt numbers
          - add automatic retries to wmi querys
+         - support different allowed hosts settings for each web handler
+         - fix cpu check on osx not returning metrics
 
 0.13     Thu Nov 23 22:20:21 CET 2023
          - drop privileges when running node exporter

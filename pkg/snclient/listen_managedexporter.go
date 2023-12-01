@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"fmt"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
@@ -38,7 +39,11 @@ type HandlerManagedExporter struct {
 	urlPrefix      string
 	listener       *Listener
 	proxy          *httputil.ReverseProxy
+	allowedHosts   *AllowedHostConfig
 }
+
+// ensure we fully implement the RequestHandlerHTTP type
+var _ RequestHandlerHTTP = &HandlerManagedExporter{}
 
 func (l *HandlerManagedExporter) Type() string {
 	return l.name
@@ -145,7 +150,21 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 		ErrorHandler: getReverseProxyErrorHandlerFunc(l.Type()),
 	}
 
+	allowedHosts, err := NewAllowedHostConfig(conf)
+	if err != nil {
+		return err
+	}
+	l.allowedHosts = allowedHosts
+
 	return nil
+}
+
+func (l *HandlerManagedExporter) GetAllowedHosts() *AllowedHostConfig {
+	return l.allowedHosts
+}
+
+func (l *HandlerManagedExporter) CheckPassword(req *http.Request, _ URLMapping) bool {
+	return verifyRequestPassword(l.snc, req, l.password)
 }
 
 func (l *HandlerManagedExporter) GetMappings(*Agent) []URLMapping {
