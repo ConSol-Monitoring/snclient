@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"os/exec"
 	"strings"
 	"sync/atomic"
@@ -169,7 +170,8 @@ func (l *HandlerManagedExporter) procMainLoop() {
 		}
 		cmd := exec.Command(l.agentPath, args...) //nolint:gosec // input source is the config file
 
-		if l.agentUser != "" {
+		// drop privileges when started as root
+		if l.agentUser != "" && os.Geteuid() == 0 {
 			if err := setCmdUser(cmd, l.agentUser); err != nil {
 				err = fmt.Errorf("failed to drop privileges for %s agent: %s", l.Type(), err.Error())
 				log.Errorf("agent startup error: %s", err)
