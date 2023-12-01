@@ -11,7 +11,7 @@ func (l *CheckNetwork) interfaceSpeed(index int, name string) (speed int64, err 
 	speed = -1
 
 	query := fmt.Sprintf("SELECT InterfaceIndex, Name, Speed FROM Win32_NetworkAdapter WHERE InterfaceIndex = %d", index)
-	result, err := wmi.Query(query)
+	result, err := wmi.QueryDefaultRetry(query)
 	if err != nil {
 		return speed, fmt.Errorf("wmi query failed: %s", err.Error())
 	}
@@ -20,15 +20,16 @@ func (l *CheckNetwork) interfaceSpeed(index int, name string) (speed int64, err 
 		return speed, fmt.Errorf("wmi query returned no data (interface %d / %s not found)", index, name)
 	}
 
-	for _, col := range result[0] {
-		if col.Key == "Speed" {
-			speed, err = convert.Int64E(col.Value)
-			if err != nil {
-				return speed, fmt.Errorf("converting speed failed %s: %s", col.Value, err.Error())
-			}
-			speed /= 1e6
-		}
+	val, ok := result[0]["Speed"]
+	if !ok {
+		return speed, fmt.Errorf("wmi query returned no speed column for interface %d / %s", index, name)
 	}
+
+	speed, err = convert.Int64E(val)
+	if err != nil {
+		return speed, fmt.Errorf("converting speed failed %s: %s", val, err.Error())
+	}
+	speed /= 1e6
 
 	return speed, nil
 }

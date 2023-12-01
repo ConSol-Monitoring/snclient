@@ -19,25 +19,27 @@ var ProcessStates = map[string]string{
 }
 
 func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	processData, err := wmi.Query(`Select
-									Name,
-									CommandLine,
-									CreationDate,
-									ExecutablePath,
-									HandleCount,
-									KernelModeTime,
-									PageFileUsage,
-									PeakPageFileUsage,
-									PeakVirtualSize,
-									PeakWorkingSetSize,
-									ProcessId,
-									WorkingSetSize,
-									VirtualSize,
-									UserModeTime,
-									ThreadCount
-								From
-									Win32_Process
-								`)
+	query := `
+		Select
+			Name,
+			CommandLine,
+			CreationDate,
+			ExecutablePath,
+			HandleCount,
+			KernelModeTime,
+			PageFileUsage,
+			PeakPageFileUsage,
+			PeakVirtualSize,
+			PeakWorkingSetSize,
+			ProcessId,
+			WorkingSetSize,
+			VirtualSize,
+			UserModeTime,
+			ThreadCount
+		From
+			Win32_Process
+	`
+	processData, err := wmi.QueryDefaultRetry(query)
 	if err != nil {
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}
@@ -45,17 +47,13 @@ func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 
 	// collect process state
 	for _, process := range processData {
-		var name string
-		for _, proc := range process {
-			if proc.Key == "Name" {
-				name = proc.Value
-				runningProcs[name] = map[string]string{}
-				if slices.Contains(l.processes, "*") {
-					l.processes = append(l.processes, name)
-				}
-			}
+		name := process["Name"]
+		runningProcs[name] = process
+	}
 
-			runningProcs[name][proc.Key] = proc.Value
+	if slices.Contains(l.processes, "*") {
+		for _, process := range processData {
+			l.processes = append(l.processes, process["Name"])
 		}
 	}
 

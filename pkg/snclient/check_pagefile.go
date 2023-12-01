@@ -62,7 +62,7 @@ func (l *CheckPagefile) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
-	querydata, err := wmi.Query("SELECT Name, CurrentUsage, AllocatedBaseSize, PeakUsage FROM Win32_PageFileUsage")
+	querydata, err := wmi.QueryDefaultRetry("SELECT Name, CurrentUsage, AllocatedBaseSize, PeakUsage FROM Win32_PageFileUsage")
 	if err != nil {
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}
@@ -70,16 +70,14 @@ func (l *CheckPagefile) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	totalData := map[string]uint64{"CurrentUsage": 0, "PeakUsage": 0, "AllocatedBaseSize": 0}
 	for _, pagefile := range querydata {
 		pagefileData := map[string]uint64{}
-		var name string
-		for _, data := range pagefile {
-			if data.Key == "Name" {
-				name = data.Value
-
+		name := pagefile["Name"]
+		for key, data := range pagefile {
+			if key == "Name" {
 				continue
 			}
-			value, _ := humanize.ParseBytes(data.Value + "MB")
-			pagefileData[data.Key] = value
-			totalData[data.Key] += value
+			value, _ := humanize.ParseBytes(data + "MB")
+			pagefileData[key] = value
+			totalData[key] += value
 		}
 		l.addPagefile(check, name, pagefileData)
 	}

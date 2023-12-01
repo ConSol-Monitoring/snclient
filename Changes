@@ -10,6 +10,7 @@ next:
          - add check_cpu_utilization
          - add check_mount
          - add fmt macro operator to formt numbers
+         - add automatic retries to wmi querys
 
 0.13     Thu Nov 23 22:20:21 CET 2023
          - drop privileges when running node exporter

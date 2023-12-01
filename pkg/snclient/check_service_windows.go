@@ -358,7 +358,7 @@ func (l *CheckService) GetNameByDisplayName(name string) (string, error) {
 }
 
 func (l *CheckService) ListServicesWithDisplayname() ([]WindowsService, error) {
-	querydata, err := wmi.Query("SELECT Name, DisplayName FROM Win32_Service")
+	querydata, err := wmi.QueryDefaultRetry("SELECT Name, DisplayName FROM Win32_Service")
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch service list")
 	}
@@ -366,14 +366,9 @@ func (l *CheckService) ListServicesWithDisplayname() ([]WindowsService, error) {
 	names := make([]WindowsService, 0)
 
 	for _, row := range querydata {
-		entry := WindowsService{}
-		for _, v := range row {
-			switch v.Key {
-			case "Name":
-				entry.Name = v.Value
-			case "DisplayName":
-				entry.DisplayName = v.Value
-			}
+		entry := WindowsService{
+			Name:        row["Name"],
+			DisplayName: row["DisplayName"],
 		}
 		names = append(names, entry)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
@@ -14,7 +15,29 @@ type Data struct {
 	Value string
 }
 
-func Query(query string) (querydata [][]Data, err error) {
+func QueryDefaultRetry(query string) (querydata []map[string]string, err error) {
+	return QueryWithRetries(query, 3, 1*time.Second)
+}
+
+func QueryWithRetries(query string, retries int, delay time.Duration) (querydata []map[string]string, err error) {
+	var res [][]Data
+	for retries > 0 {
+		res, err = Query(query)
+		if err == nil {
+			return resultToMap(res), nil
+		}
+		retries--
+		if retries == 0 {
+			break
+		}
+		time.Sleep(delay)
+	}
+
+	return resultToMap(res), err
+}
+
+func Query(query string) (res [][]Data, err error) {
+	query = strings.TrimSpace(query)
 	err = ole.CoInitialize(0)
 	if err != nil {
 		return nil, fmt.Errorf("wmi: ole.CoInitialize failed: %s", err.Error())
@@ -50,13 +73,13 @@ func Query(query string) (querydata [][]Data, err error) {
 	defer result.Release()
 
 	countVar, _ := oleutil.GetProperty(result, "Count")
-	count := int(countVar.Val)
+	count := countVar.Val
 
 	re := regexp.MustCompile(`\w+\s+((?:\w+\s*,\s*)*\w+)`)
 	values := strings.Split(re.FindStringSubmatch(query)[1], ",")
 
 	ret := make([][]Data, 0)
-	for i := 0; i < count; i++ {
+	for i := int64(0); i < count; i++ {
 		// item is a SWbemObject, but really a Win32_Process
 		obj, err := processResult(values, result, i)
 		if err != nil {
@@ -68,7 +91,7 @@ func Query(query string) (querydata [][]Data, err error) {
 	return ret, nil
 }
 
-func processResult(values []string, result *ole.IDispatch, i int) (obj []Data, err error) {
+func processResult(values []string, result *ole.IDispatch, i int64) (obj []Data, err error) {
 	itemRaw, err := oleutil.CallMethod(result, "ItemIndex", i)
 	if err != nil {
 		return nil, fmt.Errorf("oleutil.CallMethod failed: %s", err.Error())
@@ -98,7 +121,7 @@ func processResult(values []string, result *ole.IDispatch, i int) (obj []Data, e
 	return obj, nil
 }
 
-func ResultToMap(queryResult [][]Data) []map[string]string {
+func resultToMap(queryResult [][]Data) []map[string]string {
 	ret := make([]map[string]string, 0, len(queryResult))
 
 	for _, result := range queryResult {
