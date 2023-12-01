@@ -66,8 +66,8 @@ ifeq ($(GOOS),darwin)
 endif
 ifeq ($(DARWIN),1)
   # cgo is required to retrieve cpu information
-  GOBUILD=$(GO) build
-  GOTEST=$(GO) test
+  GOBUILD=CGO_ENABLED=1 $(GO) build
+  GOTEST=CGO_ENABLED=1 $(GO) test
 endif
 
 ENTR=ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr
