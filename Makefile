@@ -59,12 +59,12 @@ GOTEST=CGO_ENABLED=0 $(GO) test
 DARWIN=0
 ifeq ($(shell uname),Darwin)
   DARWIN=1
+  SED=sed -i ""
 endif
 ifeq ($(GOOS),darwin)
   DARWIN=1
 endif
 ifeq ($(DARWIN),1)
-  SED=sed -i ""
   # cgo is required to retrieve cpu information
   GOBUILD=$(GO) build
   GOTEST=$(GO) test
