@@ -1,2 +1,3 @@
 #!/bin/bash
+mkdir -p /var/log/snclient
 launchctl load /Library/LaunchDaemons/com.snclient.snclient.plist
