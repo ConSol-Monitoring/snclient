@@ -54,7 +54,16 @@ ifneq "$(wildcard ./tools/colorgo )" ""
 endif
 GOBUILD=CGO_ENABLED=0 $(GO) build
 GOTEST=CGO_ENABLED=0 $(GO) test
+
+# OSX must be build with CGO enabled, otherwise we don't get cpu metrics
+DARWIN=0
 ifeq ($(shell uname),Darwin)
+  DARWIN=1
+endif
+ifeq ($(GOOS),darwin)
+  DARWIN=1
+endif
+ifeq ($(DARWIN),1)
   SED=sed -i ""
   # cgo is required to retrieve cpu information
   GOBUILD=$(GO) build
