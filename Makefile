@@ -494,11 +494,13 @@ osx: | dist
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
 	mv node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(ARCH)/node_exporter build-pkg/usr/local/bin/node_exporter
+	chmod 755 build-pkg/usr/local/bin/node_exporter
 	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(ARCH)
 
 	cp packaging/osx/com.snclient.snclient.plist build-pkg/Library/LaunchDaemons/
 
 	cp dist/snclient build-pkg/usr/local/bin/
+	chmod 755 build-pkg/usr/local/bin/snclient
 
 	cp dist/snclient.ini dist/server.crt dist/server.key dist/cacert.pem build-pkg/etc/snclient
 
