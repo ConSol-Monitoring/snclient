@@ -91,6 +91,7 @@ type CheckData struct {
 	detailSyntax           string
 	topSyntax              string
 	okSyntax               string
+	hasArgsFilter          bool // will be true if any arg supplied which has isFilter set
 	emptySyntax            string
 	emptyState             int64
 	details                map[string]string
@@ -174,7 +175,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	case cd.result.Output != "":
 		// already set, leave it
 		return cd.result, nil
-	case len(cd.filter) > 0 && len(cd.listData) == 0:
+	case (len(cd.filter) > 0 || cd.hasArgsFilter) && len(cd.listData) == 0:
 		cd.result.Output = cd.emptySyntax
 		cd.result.State = cd.emptyState
 	case cd.showAll:
@@ -445,9 +446,11 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		argValue = cd.removeQuotes(argValue)
 		if a, ok := cd.args[keyword]; ok && a.isFilter {
 			applyDefaultFilter = false
+			cd.hasArgsFilter = true
 		}
 		if a, ok := cd.extraArgs[keyword]; ok && a.isFilter {
 			applyDefaultFilter = false
+			cd.hasArgsFilter = true
 		}
 		switch keyword {
 		case "help":
