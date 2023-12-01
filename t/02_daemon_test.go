@@ -9,11 +9,13 @@ import (
 )
 
 var (
-	localDaemonPort     = 40555
-	localDaemonPassword = "test"
-	localDaemonINI      = `
+	localDaemonPort          = 40555
+	localDaemonPassword      = "test"
+	localDaemonAdminPassword = "admin"
+	localDaemonINI           = `
 [/modules]
 CheckBuiltinPlugins = enabled
+WEBAdminServer = enabled
 
 [/settings/default]
 password = ` + localDaemonPassword + `
@@ -21,6 +23,11 @@ password = ` + localDaemonPassword + `
 [/settings/WEB/server]
 use ssl = disabled
 port = ` + fmt.Sprintf("%d", localDaemonPort) + `
+
+[/settings/WEBAdmin/server]
+use ssl = disabled
+port = ` + fmt.Sprintf("%d", localDaemonPort) + `
+password = ` + localDaemonAdminPassword + `
 `
 )
 
@@ -56,6 +63,19 @@ func TestDaemonRequests(t *testing.T) {
 		Cmd:  bin,
 		Args: append(baseArgs, "check_network", "warn=total > 100000000", "crit=total > 100000000"),
 		Like: []string{`OK: \w+ >\d+ \w*B/s <\d+ \w*B\/s`},
+	})
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-r", "-u", fmt.Sprintf("http://127.0.0.1:%d/api/v1/admin/reload", localDaemonPort)},
+		Like: []string{`RESPONSE-ERROR: http request failed: 403 Forbidden`},
+		Exit: 3,
+	})
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-p", localDaemonAdminPassword, "-r", "-u", fmt.Sprintf("http://127.0.0.1:%d/api/v1/admin/reload", localDaemonPort)},
+		Like: []string{`{"success":true}`},
 	})
 
 	stopBackgroundDaemon(t)
