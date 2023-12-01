@@ -11,6 +11,7 @@ next:
          - add check_mount
          - add fmt macro operator to formt numbers
          - add automatic retries to wmi querys
+         - add /api/v1/admin/reload rest endpoint to initialize config changes
          - support different allowed hosts settings for each web handler
          - fix cpu check on osx not returning metrics
 

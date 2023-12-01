@@ -164,7 +164,7 @@ func (l *HandlerWeb) GetMappings(*Agent) []URLMapping {
 	return []URLMapping{
 		{URL: "/query/{command}", Handler: l.handlerLegacy},
 		{URL: "/api/v1/queries/{command}/commands/execute", Handler: l.handlerV1},
-		{URL: "/api/v1/*", Handler: l.handlerV1},
+		{URL: "/api/v1/inventory", Handler: l.handlerV1},
 		{URL: "/index.html", Handler: l.handlerGeneric},
 		{URL: "/", Handler: l.handlerGeneric},
 	}
@@ -311,7 +311,7 @@ func (l *HandlerWebGeneric) ServeHTTP(res http.ResponseWriter, req *http.Request
 		LogError2(res.Write([]byte("snclient working...")))
 	default:
 		res.WriteHeader(http.StatusNotFound)
-		LogError2(res.Write([]byte("404 - nothing here")))
+		LogError2(res.Write([]byte("404 - nothing here\n")))
 	}
 }
 
