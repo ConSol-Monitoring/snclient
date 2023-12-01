@@ -116,11 +116,6 @@ go.work: pkg/*
 
 build: vendor go.work snclient.ini server.crt server.key
 	set -xe; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && $(GOBUILD) -trimpath $(BUILD_FLAGS) -o ../../$$CMD ) ; \
-	done
-
-builddebug: vendor go.work snclient.ini server.crt server.key
-	set -xe; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD ) ; \
 	done
 
@@ -138,40 +133,40 @@ build-watch-cmd: vendor tools
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 $(GOBUILD) -trimpath $(BUILD_FLAGS) -o ../../$$CMD.linux.amd64 ) ; \
+		( cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.linux.amd64 ) ; \
 	done
 
 build-linux-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=linux GOARCH=386 $(GOBUILD) -trimpath $(BUILD_FLAGS) -o ../../$$CMD.linux.i386 ) ; \
+		( cd ./cmd/$$CMD && GOOS=linux GOARCH=386 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.linux.i386 ) ; \
 	done
 
 build-windows-i386: vendor rsrc_windows_386.syso
 	cp rsrc_windows_386.syso cmd/snclient/
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=windows GOARCH=386 $(GOBUILD) -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.i386.exe ) ; \
+		( cd ./cmd/$$CMD && GOOS=windows GOARCH=386 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.windows.i386.exe ) ; \
 	done
 
 build-windows-amd64: vendor rsrc_windows_amd64.syso
 	cp rsrc_windows_amd64.syso cmd/snclient/
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 $(GOBUILD) -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.amd64.exe ) ; \
+		( cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.windows.amd64.exe ) ; \
 	done
 
 build-windows-arm64: vendor rsrc_windows_arm64.syso
 	cp rsrc_windows_arm64.syso cmd/snclient/
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=windows GOARCH=arm64 $(GOBUILD) -trimpath $(BUILD_FLAGS) -o ../../$$CMD.windows.arm64.exe ) ; \
+		( cd ./cmd/$$CMD && GOOS=windows GOARCH=arm64 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.windows.arm64.exe ) ; \
 	done
 
 build-freebsd-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 $(GOBUILD) -trimpath $(BUILD_FLAGS) -o ../../$$CMD.freebsd.i386 ) ; \
+		( cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.freebsd.i386 ) ; \
 	done
 
 build-darwin-aarch64: vendor
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 $(GOBUILD) -trimpath $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
+		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
 	done
 
 winres: | tools
