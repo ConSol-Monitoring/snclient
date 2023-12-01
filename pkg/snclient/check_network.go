@@ -104,7 +104,7 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 		recvRate, sentRate := l.getTrafficRates(int.Name)
 
-		check.listData = append(check.listData, map[string]string{
+		entry := map[string]string{
 			"MAC":               int.HardwareAddr,
 			"enabled":           strconv.FormatBool(slices.Contains(int.Flags, "up")),
 			"name":              int.Name,
@@ -116,7 +116,16 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 			"total":             fmt.Sprintf("%.2f", recvRate+sentRate),
 			"speed":             fmt.Sprintf("%d", speed),
 			"flags":             strings.Join(int.Flags, ","),
-		})
+		}
+
+		if !check.MatchMapCondition(check.filter, entry, true) {
+			log.Tracef("device %s excluded by filter", int.Name)
+
+			continue
+		}
+
+		check.listData = append(check.listData, entry)
+
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			ThresholdName: int.Name,
 			Name:          fmt.Sprintf("%s_traffic_in", int.Name),
