@@ -2,6 +2,7 @@ package convert
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -81,6 +82,34 @@ func IntE(raw interface{}) (int32, error) {
 		}
 
 		return int32(num), nil
+	}
+}
+
+// UInt32 converts anything into a uint32
+// errors will fall back to 0
+func UInt32(raw interface{}) uint32 {
+	val, _ := UInt32E(raw)
+
+	return val
+}
+
+// UInt32E converts anything into a uint32
+// errors will be returned
+func UInt32E(raw interface{}) (uint32, error) {
+	switch val := raw.(type) {
+	case uint32:
+		return val, nil
+	default:
+		num, err := strconv.ParseUint(fmt.Sprintf("%v", val), 10, 32)
+		if err != nil {
+			return 0, fmt.Errorf("cannot parse uint32 value from %v (%T)", raw, raw)
+		}
+
+		if num > math.MaxUint32 {
+			return 0, fmt.Errorf("number to large for uint32")
+		}
+
+		return uint32(num), nil
 	}
 }
 

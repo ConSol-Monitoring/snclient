@@ -134,17 +134,17 @@ func setCmdUser(cmd *exec.Cmd, username string) error {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
 
-	uid, err := convert.IntE(usr.Uid)
+	uid, err := convert.UInt32E(usr.Uid)
 	if err != nil {
 		return fmt.Errorf("cannot convert uid to number for user %s (uid:%s): %s", username, usr.Uid, err.Error())
 	}
 
-	gid, err := convert.IntE(usr.Gid)
+	gid, err := convert.UInt32E(usr.Gid)
 	if err != nil {
 		return fmt.Errorf("cannot convert gid to number for user %s (gid:%s): %s", username, usr.Gid, err.Error())
 	}
 
-	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}
+	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uid, Gid: gid}
 
 	return nil
 }
