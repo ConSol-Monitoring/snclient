@@ -1,6 +1,8 @@
 package snclient
 
-import "time"
+import (
+	"time"
+)
 
 type CounterSet struct {
 	noCopy     noCopy
@@ -88,7 +90,12 @@ func (cs *CounterSet) GetRate(category, key string, lookback time.Duration) (res
 		return res, false
 	}
 
-	res = (val1.value - val2.value) / float64(val1.timestamp.Unix()-val2.timestamp.Unix())
+	durationMillis := float64(val1.timestamp.UnixMilli() - val2.timestamp.UnixMilli())
+	if durationMillis <= 0 {
+		return res, false
+	}
+
+	res = ((val1.value - val2.value) / durationMillis) * 1000
 
 	return res, true
 }
