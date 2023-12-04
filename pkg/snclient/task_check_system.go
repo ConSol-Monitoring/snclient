@@ -2,7 +2,12 @@ package snclient
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+	"strings"
 	"time"
+
+	"pkg/convert"
 
 	cpuinfo "github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/net"
@@ -117,6 +122,10 @@ func (c *CheckSystemHandler) update(create bool) {
 			}
 		}
 	}
+
+	if runtime.GOOS == "linux" {
+		c.addLinuxKernelStats(create)
+	}
 }
 
 func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo.TimesStat, netdata map[string]float64, err error) {
@@ -155,4 +164,32 @@ func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo
 	}
 
 	return data, &times[0], netdata, nil
+}
+
+func (c *CheckSystemHandler) addLinuxKernelStats(create bool) {
+	if create {
+		c.snc.Counter.Create("kernel", "ctxt", c.bufferLength)
+		c.snc.Counter.Create("kernel", "processes", c.bufferLength)
+	}
+
+	stats, err := os.ReadFile("/proc/stat")
+	if err != nil {
+		return
+	}
+
+	lines := strings.Split(string(stats), "\n")
+	for _, line := range lines {
+		row := strings.Fields(line)
+		if len(row) < 1 {
+			continue
+		}
+		switch row[0] {
+		case "ctxt":
+			num := convert.Float64(row[1])
+			c.snc.Counter.Set("kernel", row[0], num)
+		case "processes":
+			num := convert.Float64(row[1])
+			c.snc.Counter.Set("kernel", row[0], num)
+		}
+	}
 }
