@@ -890,6 +890,29 @@ func (cd *CheckData) TransformMultipleKeywords(srcKeywords []string, targetKeywo
 	return transformed
 }
 
+// replaces macros in threshold values, example as in: temperature > ${crit}
+func (cd *CheckData) ExpandMetricMacros(srcThreshold []*Condition, data map[string]string) (threshold []*Condition) {
+	replaced := cd.CloneThreshold(srcThreshold)
+	applyChange := func(cond *Condition) bool {
+		if cond.keyword == "" {
+			return true
+		}
+		if cond.value == nil {
+			return true
+		}
+		switch v := cond.value.(type) {
+		case string:
+			cond.value = ReplaceMacros(v, data)
+		default:
+		}
+
+		return true
+	}
+	cd.VisitAll(replaced, applyChange)
+
+	return replaced
+}
+
 func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, total float64) {
 	percent := float64(0)
 	if threshold == "used" {

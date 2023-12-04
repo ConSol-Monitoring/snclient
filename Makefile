@@ -576,6 +576,7 @@ DOC_COMMANDS=\
 	check_process \
 	check_snclient_version \
 	check_tasksched \
+	check_temperature \
 	check_uptime \
 	check_wmi \
 
