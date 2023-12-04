@@ -176,7 +176,7 @@ jobs:
           path: "."
 
       - name: "Sign snclient.exe"
-        if: "github.event_name != 'pull_request'"
+        if: ${{ github.event_name != 'pull_request' }}
         uses: Minionguyjpro/signtool-code-sign@1.0.7
         with:
           certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
@@ -187,7 +187,7 @@ jobs:
           folder: "./"
 
       - name: "Verify snclient.exe"
-        if: "github.event_name != 'pull_request'"
+        if: ${{ github.event_name != 'pull_request' }}
         run: |
           Write-Host "Verify snclient.exe"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa snclient.exe
