@@ -168,6 +168,7 @@ jobs:
     runs-on: windows-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      certhash: ${{ secrets.WIN_SIGN_CERTHASH }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
@@ -176,7 +177,7 @@ jobs:
           path: "."
 
       - name: "Sign snclient.exe"
-        if: ${{ secrets.WIN_SIGN_CERTIFICATE }}
+        if: ${{ env.certhash != '' }}
         uses: Minionguyjpro/signtool-code-sign@1.0.7
         with:
           certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
@@ -187,7 +188,7 @@ jobs:
           folder: "./"
 
       - name: "Verify snclient.exe"
-        if: ${{ secrets.WIN_SIGN_CERTIFICATE }}
+        if: ${{ env.certhash != '' }}
         run: |
           Write-Host "Verify snclient.exe"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa snclient.exe
@@ -228,6 +229,7 @@ jobs:
     runs-on: windows-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      certhash: ${{ secrets.WIN_SIGN_CERTHASH }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
@@ -251,7 +253,7 @@ jobs:
             -sha "${{ needs.get-version.outputs.sha }}"
 
       - name: "Sign snclient.msi"
-        if: ${{ secrets.WIN_SIGN_CERTIFICATE }}
+        if: ${{ env.certhash != '' }}
         uses: Minionguyjpro/signtool-code-sign@1.0.7
         with:
           certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
@@ -262,7 +264,7 @@ jobs:
           folder: "./"
 
       - name: "Verify snclient.msi"
-        if: ${{ secrets.WIN_SIGN_CERTIFICATE }}
+        if: ${{ env.certhash != '' }}
         run: |
           Write-Host "Verify snclient.msi"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa ${{ env.BIN }}.msi
