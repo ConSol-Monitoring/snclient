@@ -92,6 +92,7 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 		entry["drive"] = drive
 		entry["drive_or_id"] = drive
 		entry["drive_or_name"] = drive
+		entry["fstype"] = partition.Fstype
 		requiredDisks[drive] = entry
 	}
 
@@ -172,7 +173,9 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 	drive["inodes_free"] = fmt.Sprintf("%d", usage.InodesFree)
 	drive["inodes_used_pct"] = fmt.Sprintf("%f", usage.InodesUsedPercent)
 	drive["inodes_free_pct"] = fmt.Sprintf("%f", 100-usage.InodesUsedPercent)
-	drive["fstype"] = usage.Fstype
+	if drive["fstype"] == "" {
+		drive["fstype"] = usage.Fstype
+	}
 
 	// check filter before adding metrics
 	if !check.MatchMapCondition(check.filter, drive, true) {

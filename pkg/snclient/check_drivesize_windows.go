@@ -288,7 +288,9 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	}
 
 	drive["name"] = name
-	drive["fstype"] = syscall.UTF16ToString(fileSystemName)
+	if drive["fstype"] == "" {
+		drive["fstype"] = syscall.UTF16ToString(fileSystemName)
+	}
 	drive["drive_or_name"] = driveOrName
 }
 
@@ -330,6 +332,7 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 		entry["drive_or_id"] = drive
 		entry["drive_or_name"] = drive
 		entry["letter"] = fmt.Sprintf("%c", drive[0])
+		entry["fstype"] = partition.Fstype
 		requiredDisks[drive] = entry
 	}
 
