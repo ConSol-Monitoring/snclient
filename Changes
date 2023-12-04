@@ -10,6 +10,7 @@ next:
          - add check_cpu_utilization
          - add check_mount
          - add check_temperature
+         - add check_kernel_stats
          - add fmt macro operator to formt numbers
          - add automatic retries to wmi querys
          - add /api/v1/admin/reload rest endpoint to initialize config changes
