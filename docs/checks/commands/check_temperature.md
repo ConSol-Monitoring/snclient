@@ -23,9 +23,9 @@ Check temperature sensors.
     check_temperature
     OK - Package id 0: 65.0 °C, Core 0: 62.0 °C, Core 1: 61.0 °C, Core 2: 65.0 °C |...
 
-Show cpu temperature only and apply custom thresholds:
+Show all temperature sensors and apply custom thresholds:
 
-    check_temperature sensor=coretemp warn="temperature > 85" crit="temperature > 90"
+    check_temperature filter=none warn="temperature > 85" crit="temperature > 90"
     OK - Package id 0: 65.0 °C, Core 0: 62.0 °C, Core 1: 61.0 °C, Core 2: 65.0 °C |...
 
 ### Example using NRPE and Naemon
@@ -48,6 +48,7 @@ Naemon Config
 
 | Argument      | Default Value                                     |
 | ------------- | ------------------------------------------------- |
+| filter        | name=coretemp                                     |
 | warning       | temperature > \${min} \|\| temperature > \${crit} |
 | critcal       | temperature > \${min} \|\| temperature > \${crit} |
 | empty-state   | 3 (UNKNOWN)                                       |
