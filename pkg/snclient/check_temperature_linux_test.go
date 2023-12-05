@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,14 +10,17 @@ import (
 
 func TestTemperature(t *testing.T) {
 	snc := StartTestAgent(t, "")
+	defer StopTestAgent(t, snc)
 
 	res := snc.RunCheck("check_temperature", []string{})
+	if res.State == CheckExitUnknown && strings.Contains(string(res.BuildPluginOutput()), "failed to find any sensors") {
+		// no sensors found, cannot test
+		return
+	}
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(t,
 		regexp.MustCompile(`^OK -.*Core 0: [\d.]+ °C`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
-
-	StopTestAgent(t, snc)
 }
