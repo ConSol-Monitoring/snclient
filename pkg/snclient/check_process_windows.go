@@ -51,7 +51,7 @@ func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 		runningProcs[name] = process
 	}
 
-	if slices.Contains(l.processes, "*") {
+	if len(l.processes) == 0 || slices.Contains(l.processes, "*") {
 		for _, process := range processData {
 			l.processes = append(l.processes, process["Name"])
 		}
@@ -64,7 +64,6 @@ func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 		}
 
 		var state float64
-
 		if proc["ProcessId"] == "0" || proc["ThreadCount"] == "0" {
 			state = 0
 		} else {
