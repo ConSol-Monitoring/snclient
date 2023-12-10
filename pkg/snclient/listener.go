@@ -296,6 +296,7 @@ func (l *Listener) handleTCPCon(con net.Conn, handler RequestHandlerTCP) {
 
 	allowed := handler.GetAllowedHosts()
 	if !allowed.Check(con.RemoteAddr().String()) {
+		log.Warnf("ip %s is not in the allowed hosts", con.RemoteAddr().String())
 		con.Close()
 
 		return
@@ -399,6 +400,8 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 func (l *Listener) WrappedCheckHTTPHandler(webhandler RequestHandlerHTTP, mapping *URLMapping, res http.ResponseWriter, req *http.Request) {
 	allowed := webhandler.GetAllowedHosts()
 	if !allowed.Check(req.RemoteAddr) {
+		log.Warnf("ip %s is not in the allowed hosts", req.RemoteAddr)
+
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		res.Header().Set("Content-Type", "application/json")
 		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
