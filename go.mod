@@ -28,7 +28,7 @@ replace pkg/check_tcp => ./pkg/check_tcp
 replace github.com/Shopify/sarama => github.com/elastic/sarama v1.19.1-0.20220310193331-ebc2b0d8eef3
 
 require (
-	github.com/daixiang0/gci v0.11.2
+	github.com/daixiang0/gci v0.12.0
 	github.com/florentsolt/colorgo v0.0.0-20190915162800-0863107568c6
 	github.com/golangci/golangci-lint v1.55.2
 	github.com/stretchr/testify v1.8.4
