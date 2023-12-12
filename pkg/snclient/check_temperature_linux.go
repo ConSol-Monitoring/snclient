@@ -39,8 +39,8 @@ func (l *CheckTemperature) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		defaultFilter:   "name=coretemp",
-		defaultWarning:  "temperature > ${min} || temperature > ${crit}",
-		defaultCritical: "temperature > ${min} || temperature > ${crit}",
+		defaultWarning:  "temperature < ${min} || temperature > ${crit}",
+		defaultCritical: "temperature < ${min} || temperature > ${crit}",
 		topSyntax:       "${status} - ${list}",
 		detailSyntax:    "${label}: ${temperature:fmt=%.1f} °C",
 		emptyState:      3,
@@ -115,6 +115,10 @@ func (l *CheckTemperature) addHwMonFile(check *CheckData, file string) {
 	entry["min"] = fmt.Sprintf("%f", min)
 
 	if len(l.sensors) > 0 && !slices.Contains(l.sensors, label) && !slices.Contains(l.sensors, name) {
+		return
+	}
+
+	if !check.MatchMapCondition(check.filter, entry, true) {
 		return
 	}
 
