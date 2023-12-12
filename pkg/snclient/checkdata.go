@@ -29,6 +29,7 @@ const (
 	NoInventory      InventoryMode = iota
 	ListInventory                  // calls this check and uses listDetails
 	ScriptsInventory               // does not call this check and puts it into the scripts section
+	NoCallInventory                // does not call this check and puts single entry into inventory
 )
 
 type CommaStringList []string

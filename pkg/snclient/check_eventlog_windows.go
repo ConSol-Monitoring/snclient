@@ -37,6 +37,7 @@ func (l *CheckEventlog) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
+		hasInventory: NoCallInventory,
 		args: map[string]CheckArgument{
 			"file":             {value: &l.files, description: "File to read (can be specified multiple times to check multiple files)"},
 			"log":              {value: &l.files, description: "Alias for file"},

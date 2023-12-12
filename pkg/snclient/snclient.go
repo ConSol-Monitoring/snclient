@@ -1339,6 +1339,12 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 			}
 
 			inventory[name] = data.Raw.listData
+		case NoCallInventory:
+			name := strings.TrimPrefix(check.Name, "check_")
+			if len(modules) > 0 && !slices.Contains(modules, name) {
+				continue
+			}
+			inventory[name] = []interface{}{}
 		case ScriptsInventory:
 			scripts = append(scripts, check.Name)
 		}
