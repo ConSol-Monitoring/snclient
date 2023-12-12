@@ -535,6 +535,52 @@ release_notes.txt: Changes
 	tail -n +4 Changes | sed '/^$$/,$$d' | sed -e 's/^         //g' >> release_notes.txt
 	echo '```' >> release_notes.txt
 
+release_blog.md: release_notes.txt
+	$(MAKE) release_blog_text | grep -v '^make' > release_blog.md
+
+release_blog_text: release_notes.txt
+	@echo '---'
+	@echo 'date: $(shell date +"%Y-%d-%m")T00:00:00.000Z'
+	@echo 'title: "SNClient+ $(VERSION) was released"'
+	@echo 'linkTitle: "SNClient+ $(VERSION)"'
+	@echo 'tags:'
+	@echo '  - windows'
+	@echo '  - linux'
+	@echo '  - nsclient'
+	@echo '  - snclient'
+	@echo '---'
+	@echo 'A new release of SNClient+ was released.'
+	@echo ''
+	@echo '### Breaking Changes'
+	@echo ''
+	@echo '* none'
+	@echo ''
+	@echo '### Features'
+	@echo ''
+	@grep "^- add" release_notes.txt | \
+	while read LINE; do \
+		echo $$LINE | sed 's/^- /* /'; \
+	done
+	@echo ''
+	@echo '### Changed'
+	@echo ''
+	@grep "^- " release_notes.txt | grep -v "^- add" | grep -v "^- fix" | \
+	while read LINE; do \
+		echo $$LINE | sed 's/^- /* /'; \
+	done
+	@echo ''
+	@echo '### Bugfixes'
+	@echo ''
+	@grep "^- fix" release_notes.txt | \
+	while read LINE; do \
+		echo $$LINE | sed 's/^- /* /'; \
+	done
+	@echo ''
+	@echo '### Download'
+	@echo ''
+	@echo '<https://github.com/ConSol-Monitoring/snclient/releases/tag/v$(VERSION)>'
+
+
 # just skip unknown make targets
 .DEFAULT:
 	@if [[ "$(MAKECMDGOALS)" =~ ^testf ]]; then \
