@@ -633,6 +633,9 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	}
 	if folder != cs.name {
 		defSection := cs.cfg.Section(folder)
+		if defSection.name == cs.name {
+			return val, ok
+		}
 		val, ok := defSection.GetString(key)
 		if ok {
 			return val, ok
