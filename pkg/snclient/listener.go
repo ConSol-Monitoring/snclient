@@ -126,7 +126,7 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	case err != nil:
 		return fmt.Errorf("invalid use ssl specification: %s", err.Error())
 	case useSsl:
-		if err = l.setListenTLSConfig((conf)); err != nil {
+		if err := l.setListenTLSConfig((conf)); err != nil {
 			return err
 		}
 	}

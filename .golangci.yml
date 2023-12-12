@@ -87,10 +87,10 @@ issues:
     - "noCopy is missing in"
     - 'err113:'
     - "variable name 'ok' is too short"
-    - "Function 'setListenConfig' has too many statements"
+    - "Function 'setListenTLSConfig' has too many statements"
     - "Function 'ParseArgs' has too many statements"
     - "Function 'parseAnyArg' has too many statements"
-    - "complexity.*setListenConfig"
+    - "complexity.*setListenTLSConfig"
     - "complexity.*checkFlags"
     - "complexity.*ParseArgs"
     - "Function 'readConfiguration' has too many statements"
