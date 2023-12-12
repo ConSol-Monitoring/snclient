@@ -14,6 +14,7 @@ next:
          - add fmt macro operator to formt numbers
          - add automatic retries to wmi querys
          - add /api/v1/admin/reload rest endpoint to initialize config changes
+         - add /api/v1/admin/certs/replace rest endpoint to replace certificates
          - support different allowed hosts settings for each web handler
          - fix cpu check on osx not returning metrics
 

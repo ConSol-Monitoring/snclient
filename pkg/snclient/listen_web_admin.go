@@ -1,8 +1,11 @@
 package snclient
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"syscall"
 )
@@ -109,17 +112,127 @@ func (l *HandlerWebAdmin) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 	switch path {
 	case "/api/v1/admin/reload":
 		l.serveReload(res, req)
+	case "/api/v1/admin/certs/replace":
+		l.serveCertsReplace(res, req)
 	default:
 		res.WriteHeader(http.StatusNotFound)
 		LogError2(res.Write([]byte("404 - nothing here\n")))
 	}
 }
 
-func (l *HandlerWebAdmin) serveReload(res http.ResponseWriter, _ *http.Request) {
+func (l *HandlerWebAdmin) serveReload(res http.ResponseWriter, req *http.Request) {
+	if !l.requirePostMethod(res, req) {
+		return
+	}
+
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
 		"success": true,
 	}))
 	l.Handler.snc.osSignalChannel <- syscall.SIGHUP
+}
+
+func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.Request) {
+	if !l.requirePostMethod(res, req) {
+		return
+	}
+
+	// extract json payload
+	decoder := json.NewDecoder(req.Body)
+	decoder.DisallowUnknownFields()
+	type postData struct {
+		CertData string
+		KeyData  string
+		Reload   bool
+	}
+	data := postData{}
+	err := decoder.Decode(&data)
+	if err != nil {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
+	}
+
+	certBytes := []byte{}
+	keyBytes := []byte{}
+	if data.CertData != "" {
+		certBytes, err = base64.StdEncoding.DecodeString(data.CertData)
+		if err != nil {
+			l.sendError(res, fmt.Errorf("failed to base64 decode certdata: %s", err.Error()))
+
+			return
+		}
+	}
+
+	if data.KeyData != "" {
+		keyBytes, err = base64.StdEncoding.DecodeString(data.KeyData)
+		if err != nil {
+			l.sendError(res, fmt.Errorf("failed to base64 decode keydata: %s", err.Error()))
+
+			return
+		}
+	}
+
+	defSection := l.Handler.snc.Config.Section("/settings/default")
+	certFile, _ := defSection.GetString("certificate")
+	keyFile, _ := defSection.GetString("certificate key")
+
+	if data.CertData != "" {
+		if err := os.WriteFile(certFile, certBytes, 0o600); err != nil {
+			l.sendError(res, fmt.Errorf("failed to write certificate %s: %s", certFile, err.Error()))
+
+			return
+		}
+	}
+
+	if data.KeyData != "" {
+		if err := os.WriteFile(keyFile, keyBytes, 0o600); err != nil {
+			l.sendError(res, fmt.Errorf("failed to write certificate key file %s: %s", keyFile, err.Error()))
+
+			return
+		}
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		"success": true,
+	}))
+
+	if data.Reload {
+		l.Handler.snc.osSignalChannel <- syscall.SIGHUP
+	}
+}
+
+// check if request used method POST
+func (l *HandlerWebAdmin) requirePostMethod(res http.ResponseWriter, req *http.Request) bool {
+	if req.Method == http.MethodPost {
+		return true
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusBadRequest)
+	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		"success": false,
+		"error":   "POST method required",
+	}))
+
+	return false
+}
+
+// return error as json result
+func (l *HandlerWebAdmin) sendError(res http.ResponseWriter, err error) {
+	log.Debugf("admin request failed: %s", err.Error())
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusInternalServerError)
+	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		"success": false,
+		"error":   err.Error(),
+	}))
 }
