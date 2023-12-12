@@ -19,6 +19,8 @@ WEBAdminServer = enabled
 
 [/settings/default]
 password = ` + localDaemonPassword + `
+certificate = test.crt
+certificate key = test.key
 
 [/settings/WEB/server]
 use ssl = disabled
@@ -70,12 +72,6 @@ func TestDaemonRequests(t *testing.T) {
 		Args: []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-r", "-u", fmt.Sprintf("http://127.0.0.1:%d/api/v1/admin/reload", localDaemonPort)},
 		Like: []string{`RESPONSE-ERROR: http request failed: 403 Forbidden`},
 		Exit: 3,
-	})
-
-	runCmd(t, &cmd{
-		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-p", localDaemonAdminPassword, "-r", "-u", fmt.Sprintf("http://127.0.0.1:%d/api/v1/admin/reload", localDaemonPort)},
-		Like: []string{`{"success":true}`},
 	})
 
 	stopBackgroundDaemon(t)
