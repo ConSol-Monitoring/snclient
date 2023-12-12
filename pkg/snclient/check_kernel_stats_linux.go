@@ -105,7 +105,7 @@ func (l *CheckKernelStats) Check(_ context.Context, snc *Agent, check *CheckData
 		})
 	}
 
-	if len(l.types) == 0 || slices.Contains(l.types, "processes") {
+	if len(l.types) == 0 || slices.Contains(l.types, "threads") {
 		threads := l.getNumThreads()
 		entry := map[string]string{
 			"name":    "threads",

@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient+ agent.
 
 next:
          - fix check_temperature default thresholds
+         - fix check_kernel_stats listing processes and threads
 
 0.14     Tue Dec 12 19:57:45 CET 2023
          - check_service (linux): add rss/vms/cpu/task metric and remove generic mem metric
