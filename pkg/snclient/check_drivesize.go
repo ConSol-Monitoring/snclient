@@ -147,6 +147,11 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 		}
 	}
 
+	// make sure fstype exists and is lowercase
+	for i := range check.listData {
+		check.listData[i]["fstype"] = strings.ToLower(check.listData[i]["fstype"])
+	}
+
 	return check.Finalize()
 }
 
