@@ -126,40 +126,51 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	case err != nil:
 		return fmt.Errorf("invalid use ssl specification: %s", err.Error())
 	case useSsl:
-		l.tlsConfig = &tls.Config{
-			MinVersion: tls.VersionTLS12,
+		if err = l.setListenTLSConfig((conf)); err != nil {
+			return err
 		}
+	}
 
-		// tls minimum version
-		if tlsMin, ok := conf.GetString("tls min version"); ok {
-			min, err := utils.ParseTLSMinVersion(tlsMin)
-			if err != nil {
-				return fmt.Errorf("invalid tls min version: %s", err.Error())
-			}
-			l.tlsConfig.MinVersion = min
+	return nil
+}
+
+func (l *Listener) setListenTLSConfig(conf *ConfigSection) error {
+	l.tlsConfig = &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	// tls minimum version
+	if tlsMin, ok := conf.GetString("tls min version"); ok {
+		min, err := utils.ParseTLSMinVersion(tlsMin)
+		if err != nil {
+			return fmt.Errorf("invalid tls min version: %s", err.Error())
 		}
+		l.tlsConfig.MinVersion = min
+	}
 
-		/* remove insecure ciphers, but only tls == 1.2
-		 * with tls 1.3 go decides which ciphers will be used
-		 * with tls < 1.2 we allow all ciphers, it unsecure anyway and it seems like an old client needs to connect (default is 1.2)
-		 */
-		if l.tlsConfig.MinVersion == tls.VersionTLS12 {
-			l.tlsConfig.CipherSuites = utils.GetSecureCiphers()
+	/* remove insecure ciphers, but only tls == 1.2
+	 * with tls 1.3 go decides which ciphers will be used
+	 * with tls < 1.2 we allow all ciphers, it unsecure anyway and it seems like an old client needs to connect (default is 1.2)
+	 */
+	if l.tlsConfig.MinVersion == tls.VersionTLS12 {
+		l.tlsConfig.CipherSuites = utils.GetSecureCiphers()
+	}
+
+	// certificate
+	certPath, ok := conf.GetString("certificate")
+	switch {
+	case !ok:
+		return fmt.Errorf("invalid ssl configuration, ssl enabled but no certificate set")
+	case ok:
+		_, err := os.ReadFile(certPath)
+		if err != nil {
+			return fmt.Errorf("cannot read certificate: %s", err.Error())
 		}
+	}
 
-		// certificate
-		certPath, ok := conf.GetString("certificate")
-		switch {
-		case !ok:
-			return fmt.Errorf("invalid ssl configuration, ssl enabled but no certificate set")
-		case ok:
-			_, err := os.ReadFile(certPath)
-			if err != nil {
-				return fmt.Errorf("cannot read certificate: %s", err.Error())
-			}
-		}
-
-		certKey, ok := conf.GetString("certificate key")
+	certKey := certPath
+	if !strings.HasSuffix(certPath, ".pem") {
+		certKey, ok = conf.GetString("certificate key")
 		switch {
 		case !ok:
 			return fmt.Errorf("invalid ssl configuration, ssl enabled but no certificate key set")
@@ -169,27 +180,27 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 				return fmt.Errorf("cannot read certificate key: %s", err.Error())
 			}
 		}
-		cer, err := tls.LoadX509KeyPair(certPath, certKey)
-		if err != nil {
-			return fmt.Errorf("tls.LoadX509KeyPair: %s / %s: %s", certPath, certKey, err.Error())
-		}
-		l.tlsConfig.Certificates = []tls.Certificate{cer}
+	}
+	cer, err := tls.LoadX509KeyPair(certPath, certKey)
+	if err != nil {
+		return fmt.Errorf("tls.LoadX509KeyPair: %s / %s: %s", certPath, certKey, err.Error())
+	}
+	l.tlsConfig.Certificates = []tls.Certificate{cer}
 
-		clientPEMs, ok := conf.GetString("client certificates")
-		if ok {
-			caCertPool := x509.NewCertPool()
-			for _, file := range strings.Split(clientPEMs, ",") {
-				file = strings.TrimSpace(file)
-				caCert, err := os.ReadFile(file)
-				if err != nil {
-					return fmt.Errorf("os.ReadFile: %w", err)
-				}
-				caCertPool.AppendCertsFromPEM(caCert)
+	clientPEMs, ok := conf.GetString("client certificates")
+	if ok {
+		caCertPool := x509.NewCertPool()
+		for _, file := range strings.Split(clientPEMs, ",") {
+			file = strings.TrimSpace(file)
+			caCert, err := os.ReadFile(file)
+			if err != nil {
+				return fmt.Errorf("os.ReadFile: %w", err)
 			}
-
-			l.tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-			l.tlsConfig.ClientCAs = caCertPool
+			caCertPool.AppendCertsFromPEM(caCert)
 		}
+
+		l.tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		l.tlsConfig.ClientCAs = caCertPool
 	}
 
 	return nil
