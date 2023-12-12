@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,7 +40,8 @@ func TestDaemonRequests(t *testing.T) {
 
 	writeFile(t, `snclient.ini`, localDaemonINI)
 
-	startBackgroundDaemon(t)
+	pid := startBackgroundDaemon(t)
+	t.Logf("daemon started: %d", pid)
 
 	baseArgs := []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-u", fmt.Sprintf("http://127.0.0.1:%d", localDaemonPort)}
 
@@ -74,6 +76,7 @@ func TestDaemonRequests(t *testing.T) {
 		Exit: 3,
 	})
 
-	stopBackgroundDaemon(t)
+	ok := stopBackgroundDaemon(t)
+	assert.Truef(t, ok, "stopping worked")
 	os.Remove("snclient.ini")
 }
