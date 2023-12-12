@@ -4,7 +4,7 @@ next:
          - check_service (linux): add rss/vms/cpu/task metric and remove generic mem metric
          - check_service: add more metrics
          - add cli inventory mode
-         - add duration / date / human number macro post processors
+         - add duration / age / date / human number macro post processors
          - add support for %{} macros and $() as well
          - add timeout to check_drivesize for hanging mounts
          - add check_cpu_utilization

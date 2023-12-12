@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -343,6 +344,7 @@ func TestMacros(t *testing.T) {
 		"seconds":   "130",
 		"unix time": "1700834034",
 		"float":     "170.05",
+		"yesterday": fmt.Sprintf("%d", time.Now().Add(-24*time.Hour).Unix()),
 	}
 
 	tests := []struct {
@@ -361,6 +363,7 @@ func TestMacros(t *testing.T) {
 		{In: "$(float | fmt=%d)", Expect: "170"},
 		{In: "$(float | fmt=%.1f)", Expect: "170.1"},
 		{In: "$(float | fmt=%.2f)", Expect: "170.05"},
+		{In: "$(yesterday | age | duration)", Expect: "1d 00:00h"},
 	}
 
 	for _, tst := range tests {

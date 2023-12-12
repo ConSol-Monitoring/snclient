@@ -1005,6 +1005,8 @@ func replaceMacroOperators(value string, flags []string) string {
 		// duration -> seconds into duration string
 		case "duration":
 			value = utils.DurationString(time.Second * time.Duration(convert.Float64(value)))
+		case "age":
+			value = fmt.Sprintf("%d", time.Now().Unix()-convert.Int64(value))
 		case "fmt":
 			switch {
 			case format == "%d":

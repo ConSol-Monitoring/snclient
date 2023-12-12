@@ -124,6 +124,7 @@ Support operators are:
 | `:uc`        | test -> TEST                          | make value uppercase
 | `:h`         | 1000 -> 1k                            | make a number more human readably
 | `:duration`  | 125 -> 2m 5s                          | convert amount of seconds into human readable duration
+| `:age`       | 1700834034 -> 374                     | substract value from current unix timestamp to get the age in seconds
 | `:date`      | 1700834034 -> 2023-11-24 14:53:54 CET | convert unix timestamp into human readable date (local timezone)
 | `:utc`       | 1700834034 -> 2023-11-24 13:53:54 UTC | convert unix timestamp into human readable date (utc timezone)
 | `:fmt=<fmt>` | 123.45 -> 123.4                       | apply format, ex.: $(total | fmt=%.1f) (using GOs fmt.Sprintf)
