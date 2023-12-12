@@ -9,6 +9,8 @@ For the sake of completeness the list of endpoints also contains the available n
 
 ## Endpoints
 
+These endpoints are available if the `WEBServer` is enabled in the modules section.
+
 ### /
 
 Redirects to `/index.hmtl`
@@ -28,27 +30,9 @@ Returns:
 
     snclient working...
 
-### /metrics
+## Checks Endpoints
 
-Returns prometheus metics for snclient itself.
-
-### /node/metrics
-
-Used by the [WindowsExporter](../prometheus/windows/) and [NodeExporter](../prometheus/node/).
-
-Returns prometheus metrics from those exporters.
-
-### /list
-
-Used by the [ExporterExporer](../prometheus/exporter/) server.
-
-Returns list of exporters.
-
-### /proxy
-
-Used by the [ExporterExporer](../prometheus/exporter/) server.
-
-Returns metrics for given exporter.
+These endpoints are available if the `WEBServer` is enabled in the modules section.
 
 ### /query/{command}
 
@@ -118,6 +102,46 @@ Returns:
         },
         "localtime": 1702398235
     }
+
+## Prometheus Endpoints
+
+These endpoints are available if the `PrometheusServer` is enabled in the modules section.
+
+### /metrics
+
+Returns prometheus metics for snclient itself.
+
+## Node Exporter Endpoints
+
+These endpoints are available if the `NodeExporterServer` or `WindowsExporterServer` is enabled in the modules section.
+
+### /node/metrics
+
+Used by the [WindowsExporter](../prometheus/windows/) and [NodeExporter](../prometheus/node/).
+
+Returns prometheus metrics from those exporters.
+
+## Exporter Exporter Endpoints
+
+These endpoints are available if the `ExporterExporterServer` is enabled in the modules section.
+
+### /list
+
+Used by the [ExporterExporer](../prometheus/exporter/) server.
+
+Returns list of exporters.
+
+### /proxy
+
+Used by the [ExporterExporer](../prometheus/exporter/) server.
+
+Returns metrics for given exporter.
+
+## Administrative Endpoints
+
+These endpoints are available if the `WEBAdminServer` is enabled in the modules section.
+
+It is best practice to use a separate password for the administrative tasks.
 
 ### /api/v1/admin/reload
 
