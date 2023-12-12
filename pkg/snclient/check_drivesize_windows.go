@@ -423,8 +423,14 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	l.setVolumes(availVolumes)
 	testDrive := strings.TrimSuffix(drive, "\\")
 	// make first character uppercase because drives are uppercase in the volume list
-	r := []rune(testDrive)
-	testDrive = string(append([]rune{unicode.ToUpper(r[0])}, r[1:]...))
+	switch {
+	case len(testDrive) > 1:
+		r := []rune(testDrive)
+		testDrive = string(append([]rune{unicode.ToUpper(r[0])}, r[1:]...))
+	case len(testDrive) == 1:
+		r := []rune(testDrive)
+		testDrive = string(unicode.ToUpper(r[0]))
+	}
 	var match *map[string]string
 	for i := range availVolumes {
 		vol := availVolumes[i]
