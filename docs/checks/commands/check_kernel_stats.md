@@ -4,7 +4,7 @@ title: kernel_stats
 
 ## check_kernel_stats
 
-Checks the metrics of the linux kernel.
+Checks some metrics of the linux kernel. Currently support context switches, process creations and total number of threads.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
@@ -21,7 +21,7 @@ Checks the metrics of the linux kernel.
 ### Default Check
 
     check_kernel_stats
-    OK: Context Switches 29.2/s, Process Creations 12.7/s |'ctxt'=29.2/s 'processes'=12.7/s
+    OK: Context Switches 29.2/s, Process Creations 12.7/s, Threads 2574 |'ctxt'=29.2/s 'processes'=12.7/s 'threads'=2574;8000;10000;0
 
 ### Example using NRPE and Naemon
 
@@ -43,17 +43,19 @@ Naemon Config
 
 | Argument      | Default Value               |
 | ------------- | --------------------------- |
+| warning       | threads > 8000              |
+| critcal       | threads > 10000             |
 | empty-state   | 3 (UNKNOWN)                 |
 | empty-syntax  | %(status): No metrics found |
 | top-syntax    | %(status): %(list)          |
 | ok-syntax     | %(status): %(list)          |
-| detail-syntax | %(label) %(rate:fmt=%.1f)/s |
+| detail-syntax | %(label) %(human)           |
 
 ## Check Specific Arguments
 
-| Argument | Description                                           |
-| -------- | ----------------------------------------------------- |
-| type     | Select metric type to show, can be: ctxt or processes |
+| Argument | Description                                                    |
+| -------- | -------------------------------------------------------------- |
+| type     | Select metric type to show, can be: ctxt, processes or threads |
 
 ## Attributes
 
@@ -61,9 +63,10 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute | Description         |
-| --------- | ------------------- |
-| name      | Name of the metric  |
-| label     | Label of the metric |
-| rate      | Rate of this metric |
-| current   | Current raw value   |
+| Attribute | Description           |
+| --------- | --------------------- |
+| name      | Name of the metric    |
+| label     | Label of the metric   |
+| rate      | Rate of this metric   |
+| current   | Current raw value     |
+| human     | Human readable number |
