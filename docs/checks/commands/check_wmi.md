@@ -22,6 +22,11 @@ Check status and metrics by running wmi queries.
     check_wmi "query=select FreeSpace, DeviceID FROM Win32_LogicalDisk WHERE DeviceID = 'C:'"
     27955118080, C:
 
+Same query, but use output template for custom plugin output:
+
+    check_wmi "query=select FreeSpace, DeviceID FROM Win32_LogicalDisk WHERE DeviceID = 'C:'" "detail-syntax= %(DeviceID) %(FreeSpace:h)"
+    C: 27.94 G
+
 ### Example using NRPE and Naemon
 
 Naemon Config

@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient+ agent.
 
 next:
+         - change internal wmi library
          - fix check_temperature default thresholds
          - fix check_kernel_stats listing processes and threads
 

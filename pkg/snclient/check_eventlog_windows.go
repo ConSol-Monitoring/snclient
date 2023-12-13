@@ -81,13 +81,16 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	}
 
 	if len(l.files) == 0 {
+		filenames := []struct {
+			LogfileName string
+		}{}
 		query := "SELECT LogfileName FROM Win32_NTEventLogFile"
-		res, err := wmi.QueryDefaultRetry(query)
+		err := wmi.QueryDefaultRetry(query, &filenames)
 		if err != nil {
 			return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 		}
-		for _, row := range res {
-			l.files = append(l.files, row["LogfileName"])
+		for _, row := range filenames {
+			l.files = append(l.files, row.LogfileName)
 		}
 	}
 

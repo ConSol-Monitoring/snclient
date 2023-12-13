@@ -45,13 +45,18 @@ func (l *CheckWMI) Build() *CheckData {
 		exampleDefault: `
     check_wmi "query=select FreeSpace, DeviceID FROM Win32_LogicalDisk WHERE DeviceID = 'C:'"
     27955118080, C:
+
+Same query, but use output template for custom plugin output:
+
+    check_wmi "query=select FreeSpace, DeviceID FROM Win32_LogicalDisk WHERE DeviceID = 'C:'" "detail-syntax= %(DeviceID) %(FreeSpace:h)"
+    C: 27.94 G
 	`,
 	}
 }
 
 func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	if runtime.GOOS != "windows" {
-		return nil, fmt.Errorf("check_pagefile is a windows only check")
+		return nil, fmt.Errorf("check_wmi is a windows only check")
 	}
 	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckWMI")
 	if !enabled {
@@ -62,7 +67,7 @@ func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Ar
 		return nil, fmt.Errorf("wmi query required")
 	}
 
-	querydata, err := wmi.Query(l.query)
+	querydata, err := wmi.RawQuery(l.query)
 	if err != nil {
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}

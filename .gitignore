@@ -22,6 +22,7 @@ snclient_local.ini
 server.crt
 server.key
 release_notes.txt
+release_blog.md
 go.work
 go.work.sum
 *.local

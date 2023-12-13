@@ -13,6 +13,13 @@ func init() {
 	AvailableChecks["check_pagefile"] = CheckEntry{"check_pagefile", NewCheckPagefile}
 }
 
+type win32PageFile struct {
+	Name              string
+	CurrentUsage      uint64
+	AllocatedBaseSize uint64
+	PeakUsage         uint64
+}
+
 type CheckPagefile struct{}
 
 func NewCheckPagefile() CheckHandler {
@@ -62,23 +69,30 @@ func (l *CheckPagefile) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
-	querydata, err := wmi.QueryDefaultRetry("SELECT Name, CurrentUsage, AllocatedBaseSize, PeakUsage FROM Win32_PageFileUsage")
+	// https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-pagefileusage
+	pageSizes := []win32PageFile{}
+	err := wmi.QueryDefaultRetry("SELECT Name, CurrentUsage, AllocatedBaseSize, PeakUsage FROM Win32_PageFileUsage", &pageSizes)
 	if err != nil {
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}
 
-	totalData := map[string]uint64{"CurrentUsage": 0, "PeakUsage": 0, "AllocatedBaseSize": 0}
-	for _, pagefile := range querydata {
+	totalData := map[string]uint64{}
+	for _, pagefile := range pageSizes {
 		pagefileData := map[string]uint64{}
-		name := pagefile["Name"]
-		for key, data := range pagefile {
-			if key == "Name" {
-				continue
-			}
-			value, _ := humanize.ParseBytes(data + "MB")
-			pagefileData[key] = value
-			totalData[key] += value
-		}
+		name := pagefile.Name
+
+		value, _ := humanize.ParseBytes(fmt.Sprintf("%dMB", pagefile.AllocatedBaseSize))
+		pagefileData["AllocatedBaseSize"] = value
+		totalData["AllocatedBaseSize"] += value
+
+		value, _ = humanize.ParseBytes(fmt.Sprintf("%dMB", pagefile.CurrentUsage))
+		pagefileData["CurrentUsage"] = value
+		totalData["CurrentUsage"] += value
+
+		value, _ = humanize.ParseBytes(fmt.Sprintf("%dMB", pagefile.PeakUsage))
+		pagefileData["PeakUsage"] = value
+		totalData["PeakUsage"] += value
+
 		l.addPagefile(check, name, pagefileData)
 	}
 
