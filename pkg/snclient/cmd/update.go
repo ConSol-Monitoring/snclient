@@ -13,7 +13,7 @@ import (
 
 func init() {
 	updateCmd := &cobra.Command{
-		Use:   "update [channel]",
+		Use:   "update [channel|file]",
 		Short: "Fetch and apply update",
 		Long: `Check for updates. If check flag is set, no download will be
 started, but the return will be set so the check can be used
@@ -30,8 +30,8 @@ snclient update
 # check for updates from all available channel including pre releases but do not download.
 snclient update --prerelease --check all
 
-# apply downgrade to version 0.2.
-snclient update --downgrade=0.2
+# apply downgrade to version 0.13.
+snclient update --downgrade=0.13
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
@@ -67,7 +67,7 @@ snclient update --downgrade=0.2
 					snc.CleanExit(3)
 				}
 				if version == "" {
-					fmt.Fprintf(os.Stdout, "no new updates available\n")
+					fmt.Fprintf(os.Stdout, "no new updates available (current version: %s - build: %s)\n", snc.Version(), snclient.Build)
 					snc.CleanExit(0)
 				}
 				if checkOnly {

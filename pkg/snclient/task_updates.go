@@ -213,8 +213,25 @@ func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool,
 		}
 	}
 
+	// channel might be a local file as well
+	updateFile := ""
+	best := &updatesAvailable{}
+	_, err = os.ReadFile(channel)
+	if err == nil {
+		updateFile = channel
+		best = &updatesAvailable{
+			channel: "file",
+			url:     "file://" + updateFile,
+		}
+	}
+
+	// print options summary
 	log.Tracef("[updates] starting update check")
-	log.Tracef("[updates] channel:      %s", channel)
+	if updateFile != "" {
+		log.Tracef("[updates] from file:    %s", updateFile)
+	} else {
+		log.Tracef("[updates] channel:      %s", channel)
+	}
 	log.Tracef("[updates] download:     %v", download)
 	log.Tracef("[updates] auto restart: %v", restarts)
 	if downgrade != "" {
@@ -222,23 +239,31 @@ func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool,
 	} else {
 		log.Tracef("[updates] downgrade:    no")
 	}
+
 	now := time.Now()
 	u.lastUpdate = &now
 
-	available := u.fetchAvailableUpdates(preRelease, channel)
-	if len(available) == 0 {
-		return "", nil
+	// check for updates unless file specified
+	if updateFile == "" {
+		available := u.fetchAvailableUpdates(preRelease, channel)
+		if len(available) == 0 {
+			return "", nil
+		}
+
+		best = u.chooseBestUpdate(available, downgrade)
+		if best == nil {
+			return "", nil
+		}
+
+		if !download {
+			return best.version, nil
+		}
 	}
 
-	best := u.chooseBestUpdate(available, downgrade)
-	if best == nil {
-		return "", nil
-	}
+	return u.finishUpdateCheck(best, restarts)
+}
 
-	if !download {
-		return best.version, nil
-	}
-
+func (u *UpdateHandler) finishUpdateCheck(best *updatesAvailable, restarts bool) (version string, err error) {
 	updateFile, err := u.downloadUpdate(best)
 	if err != nil {
 		return "", err
@@ -635,6 +660,8 @@ func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
 		err = u.extractRpm(updateFile)
 	case "application/msi":
 		err = u.extractMsi(updateFile)
+	case "application/xar":
+		err = u.extractXar(updateFile)
 	default:
 		startOver = false
 	}
@@ -702,7 +729,7 @@ func (u *UpdateHandler) ApplyRestart(bin string) error {
 }
 
 func (u *UpdateHandler) Apply(bin string) error {
-	log.Tracef("[update] start updated file %s %v", bin)
+	log.Tracef("[update] start updated file %s", bin)
 	cmd := exec.Cmd{
 		Path: bin,
 		Args: []string{"update"},
@@ -974,6 +1001,58 @@ func (u *UpdateHandler) extractMsi(fileName string) error {
 	return nil
 }
 
+func (u *UpdateHandler) extractXar(fileName string) error {
+	// Create a temporary directory to extract the contents of the .pkg file
+	tempDir, err := os.MkdirTemp("", "snclient-tmpxar")
+	if err != nil {
+		return fmt.Errorf("mkdirtemp: %s", err.Error())
+	}
+	defer os.RemoveAll(tempDir)
+	log.Tracef("temp dir: %s", tempDir)
+
+	// Use the "xar" command to extract the file from the .pkg
+	cmd := exec.Command("xar", "-xf", fileName)
+	cmd.Dir = tempDir
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run xar %s: %s", strings.Join(cmd.Args, " "), err.Error())
+	}
+
+	// Unpack Payload from the .pkg
+	cmd = exec.Command("/bin/sh", "-c", "cat Payload | gunzip -dc |cpio -i")
+	cmd.Dir = tempDir
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to unpack %s: %s", strings.Join(cmd.Args, " "), err.Error())
+	}
+
+	extractedFilePath := ""
+	err = filepath.Walk(tempDir, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+
+		if strings.HasSuffix(path, "snclient") {
+			extractedFilePath = path
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("filewalk: %s", err.Error())
+	}
+
+	if extractedFilePath == "" {
+		return fmt.Errorf("did not find snclient binary in the pkg file")
+	}
+
+	log.Tracef("cp %s %s", extractedFilePath, fileName)
+	err = utils.CopyFile(extractedFilePath, fileName)
+	if err != nil {
+		return fmt.Errorf("cp: %s", err.Error())
+	}
+
+	return nil
+}
+
 func (u *UpdateHandler) isUsableGithubAsset(name string) bool {
 	archVariants := []string{runtime.GOARCH}
 	switch runtime.GOARCH {
@@ -999,7 +1078,7 @@ func (u *UpdateHandler) isUsableGithubAsset(name string) bool {
 			lookFor := strings.ToLower(fmt.Sprintf("%s-%s", os, arch))
 			if strings.Contains(name, lookFor) {
 				// right now we can only extract .rpm, .msi and .pkg
-				if strings.Contains(name, ".rpm") || strings.Contains(name, ".msi") {
+				if strings.Contains(name, ".rpm") || strings.Contains(name, ".msi") || strings.Contains(name, ".pkg") {
 					return true
 				}
 				log.Tracef("skip: unusable package format: %s", name)

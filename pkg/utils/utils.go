@@ -412,6 +412,7 @@ func MimeType(fileName string) (mime string, err error) {
 			"0:D0CF11E0A1B11AE1":   "application/msi",
 			"257:7573746172003030": "application/x-tar",
 			"257:7573746172202000": "application/x-tar",
+			"0:78617221":           "application/xar",
 		}
 		for sig, mime := range signatures {
 			sigData := strings.Split(sig, ":")
