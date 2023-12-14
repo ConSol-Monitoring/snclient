@@ -210,14 +210,11 @@ func (snc *Agent) Run() {
 	snc.createPidFile()
 	defer snc.deletePidFile()
 
-	// start usr1 routine which prints stacktraces upon request
-	osSignalUsrChannel := make(chan os.Signal, 1)
-	setupUsrSignalChannel(osSignalUsrChannel)
-
 	signal.Notify(snc.osSignalChannel, syscall.SIGHUP)
 	signal.Notify(snc.osSignalChannel, syscall.SIGTERM)
 	signal.Notify(snc.osSignalChannel, os.Interrupt)
 	signal.Notify(snc.osSignalChannel, syscall.SIGINT)
+	setupUsrSignalChannel(snc.osSignalChannel)
 
 	snc.startModules(snc.initSet)
 	snc.running.Store(true)
