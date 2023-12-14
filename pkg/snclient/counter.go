@@ -30,7 +30,7 @@ func NewCounter(retentionTime float64) *Counter {
 // Set adds a new value with current timestamp
 func (c *Counter) Set(val float64) {
 	c.data.PushBack(&CounterValue{
-		timestamp: time.Now(),
+		timestamp: time.Now().UTC(),
 		value:     val,
 	})
 	c.Trim()
@@ -38,7 +38,7 @@ func (c *Counter) Set(val float64) {
 
 // Trim removes all entries older than now-duration
 func (c *Counter) Trim() {
-	trimAfter := time.Now().Add(-1 * time.Duration(c.retentionTime) * time.Second)
+	trimAfter := time.Now().UTC().Add(-1 * time.Duration(c.retentionTime) * time.Second)
 
 	cur := c.data.Front()
 	for {
@@ -58,7 +58,7 @@ func (c *Counter) Trim() {
 
 // AvgForDuration returns avg value for given duration
 func (c *Counter) AvgForDuration(duration float64) float64 {
-	useAfter := time.Now().Add(-1 * time.Duration(duration) * time.Second)
+	useAfter := time.Now().UTC().Add(-1 * time.Duration(duration) * time.Second)
 
 	sum := float64(0)
 	count := float64(0)
@@ -98,6 +98,7 @@ func (c *Counter) GetLast() *CounterValue {
 
 // GetAt returns first value closest to given date
 func (c *Counter) GetAt(useAfter time.Time) *CounterValue {
+	useAfter = useAfter.UTC()
 	cur := c.data.Back()
 	var last *CounterValue
 	for {
@@ -142,7 +143,7 @@ func NewCounterAny(retentionTime float64) *CounterAny {
 // Set adds a new value with current timestamp
 func (c *CounterAny) Set(val interface{}) {
 	c.data.PushBack(&CounterValueAny{
-		timestamp: time.Now(),
+		timestamp: time.Now().UTC(),
 		value:     val,
 	})
 	c.Trim()
@@ -150,7 +151,7 @@ func (c *CounterAny) Set(val interface{}) {
 
 // Trim removes all entries older than now-duration
 func (c *CounterAny) Trim() {
-	trimAfter := time.Now().Add(-1 * time.Duration(c.retentionTime) * time.Second)
+	trimAfter := time.Now().UTC().Add(-1 * time.Duration(c.retentionTime) * time.Second)
 
 	cur := c.data.Front()
 	for {
@@ -180,6 +181,7 @@ func (c *CounterAny) GetLast() *CounterValueAny {
 
 // GetAt returns first value closest to given date
 func (c *CounterAny) GetAt(useAfter time.Time) *CounterValueAny {
+	useAfter = useAfter.UTC()
 	cur := c.data.Back()
 	var last *CounterValueAny
 	for {
