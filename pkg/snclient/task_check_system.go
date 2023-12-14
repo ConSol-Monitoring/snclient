@@ -152,13 +152,12 @@ func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo
 	}
 
 	netdata = map[string]float64{}
-	interfaceList, _ := net.Interfaces()
 	IOList, err := net.IOCounters(true)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("net.IOCounters failed: %s", err.Error())
 	}
 
-	for intnr, int := range interfaceList {
+	for intnr, int := range IOList {
 		netdata[int.Name+"_recv"] = float64(IOList[intnr].BytesRecv)
 		netdata[int.Name+"_sent"] = float64(IOList[intnr].BytesSent)
 	}
