@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -148,20 +149,32 @@ func (l *CheckKernelStats) getRate(name string) (rate, last float64) {
 func (l *CheckKernelStats) getNumThreads() (num int64) {
 	files, _ := filepath.Glob("/proc/*/status")
 	for _, file := range files {
-		data, _ := os.ReadFile(file)
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines {
-			fields := strings.Fields(line)
-			if len(fields) < 2 {
-				continue
-			}
-			switch fields[0] {
-			case "Threads:":
-				num += convert.Int64(fields[1])
-			default:
-			}
-		}
+		num += l.getNumThreadsFile(file)
 	}
 
 	return
+}
+
+func (l *CheckKernelStats) getNumThreadsFile(file string) (num int64) {
+	statFile, err := os.Open(file)
+	if err != nil {
+		return
+	}
+	defer statFile.Close()
+	fileScanner := bufio.NewScanner(statFile)
+	for fileScanner.Scan() {
+		line := fileScanner.Text()
+		switch {
+		case strings.HasPrefix(line, "Threads:"):
+			row := strings.Fields(line)
+			if len(row) < 1 {
+				continue
+			}
+
+			return convert.Int64(row[1])
+		default:
+		}
+	}
+
+	return 0
 }

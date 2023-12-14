@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"runtime"
@@ -171,22 +172,21 @@ func (c *CheckSystemHandler) addLinuxKernelStats(create bool) {
 		c.snc.Counter.Create("kernel", "processes", c.bufferLength)
 	}
 
-	stats, err := os.ReadFile("/proc/stat")
+	statFile, err := os.Open("/proc/stat")
 	if err != nil {
 		return
 	}
-
-	lines := strings.Split(string(stats), "\n")
-	for _, line := range lines {
-		row := strings.Fields(line)
-		if len(row) < 1 {
-			continue
-		}
-		switch row[0] {
-		case "ctxt":
-			num := convert.Float64(row[1])
-			c.snc.Counter.Set("kernel", row[0], num)
-		case "processes":
+	defer statFile.Close()
+	fileScanner := bufio.NewScanner(statFile)
+	for fileScanner.Scan() {
+		line := fileScanner.Text()
+		switch {
+		case strings.HasPrefix(line, "ctxt "),
+			strings.HasPrefix(line, "processes "):
+			row := strings.Fields(line)
+			if len(row) < 1 {
+				continue
+			}
 			num := convert.Float64(row[1])
 			c.snc.Counter.Set("kernel", row[0], num)
 		}
