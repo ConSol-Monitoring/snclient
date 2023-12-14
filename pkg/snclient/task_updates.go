@@ -388,6 +388,7 @@ func (u *UpdateHandler) checkUpdateGithubRelease(url string, preRelease bool) (u
 		TagName    string        `json:"tag_name"`
 		Assets     []GithubAsset `json:"assets"`
 	}
+
 	var releases []GithubRelease
 	err = json.NewDecoder(resp.Body).Decode(&releases)
 	if err != nil {
@@ -408,34 +409,16 @@ func (u *UpdateHandler) checkUpdateGithubRelease(url string, preRelease bool) (u
 			continue
 		}
 
-		archVariants := []string{runtime.GOARCH}
-		switch runtime.GOARCH {
-		case "386":
-			archVariants = append(archVariants, "i386")
-		case "arm64":
-			archVariants = append(archVariants, "aarch64")
-		}
+		log.Debugf("checking assets for release: %s", release.TagName)
 		foundOne := false
-		for _, arch := range archVariants {
-			lookFor := strings.ToLower(fmt.Sprintf("%s-%s", runtime.GOOS, arch))
-			for _, asset := range release.Assets {
-				lowAsset := strings.ToLower(asset.Name)
-				if strings.Contains(lowAsset, lookFor) {
-					// right now we can only extract .rpm and .msi
-					if strings.Contains(lowAsset, ".rpm") || strings.Contains(lowAsset, ".msi") {
-						updates = append(updates, updatesAvailable{url: asset.URL, version: release.TagName})
-						foundOne = true
-
-						break
-					}
-				}
-			}
-			if foundOne {
-				break
+		for _, asset := range release.Assets {
+			if u.isUsableGithubAsset(strings.ToLower(asset.Name)) {
+				updates = append(updates, updatesAvailable{url: asset.URL, version: release.TagName})
+				foundOne = true
 			}
 		}
 		if !foundOne {
-			log.Debugf("[update] no download url for this architecture found: os:%s arch:%s", runtime.GOARCH, runtime.GOOS)
+			log.Debugf("[update] no download url for this architecture found: os:%s arch:%s", runtime.GOOS, runtime.GOARCH)
 		}
 	}
 
@@ -481,28 +464,13 @@ func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates [
 
 	reVersion := regexp.MustCompile(`^snclient\-(.*?)\-\w+-\w+\.\w+`)
 
-	archVariants := []string{runtime.GOARCH}
-	switch runtime.GOARCH {
-	case "386":
-		archVariants = append(archVariants, "i386")
-	case "arm64":
-		archVariants = append(archVariants, "aarch64")
-	}
-
 	for i := range artifacts.Artifacts {
 		artifact := artifacts.Artifacts[i]
-		for _, arch := range archVariants {
-			lookFor := strings.ToLower(fmt.Sprintf("%s-%s", runtime.GOOS, arch))
-			lowAsset := strings.ToLower(artifact.Name)
-			if strings.Contains(lowAsset, lookFor) {
-				// right now we can only extract .rpm and .msi
-				if strings.Contains(lowAsset, ".rpm") || strings.Contains(lowAsset, ".msi") {
-					matches := reVersion.FindStringSubmatch(artifact.Name)
-					if len(matches) > 1 {
-						version := matches[1]
-						updates = append(updates, updatesAvailable{url: artifact.URL, version: version, header: header})
-					}
-				}
+		if u.isUsableGithubAsset(strings.ToLower(artifact.Name)) {
+			matches := reVersion.FindStringSubmatch(artifact.Name)
+			if len(matches) > 1 {
+				version := matches[1]
+				updates = append(updates, updatesAvailable{url: artifact.URL, version: version, header: header})
 			}
 		}
 	}
@@ -1004,4 +972,40 @@ func (u *UpdateHandler) extractMsi(fileName string) error {
 	}
 
 	return nil
+}
+
+func (u *UpdateHandler) isUsableGithubAsset(name string) bool {
+	archVariants := []string{runtime.GOARCH}
+	switch runtime.GOARCH {
+	case "386":
+		archVariants = append(archVariants, "i386")
+	case "arm64":
+		archVariants = append(archVariants, "aarch64")
+	}
+
+	osVariants := []string{runtime.GOOS}
+	switch runtime.GOOS {
+	case "darwin":
+		osVariants = append(osVariants, "osx")
+	case "windows":
+		if runtime.GOARCH == "arm64" {
+			// arm windows can use the 64bit version
+			archVariants = append(archVariants, "amd64")
+		}
+	}
+
+	for _, arch := range archVariants {
+		for _, os := range osVariants {
+			lookFor := strings.ToLower(fmt.Sprintf("%s-%s", os, arch))
+			if strings.Contains(name, lookFor) {
+				// right now we can only extract .rpm, .msi and .pkg
+				if strings.Contains(name, ".rpm") || strings.Contains(name, ".msi") {
+					return true
+				}
+				log.Tracef("skip: unusable package format: %s", name)
+			}
+		}
+	}
+
+	return false
 }
