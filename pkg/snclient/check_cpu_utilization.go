@@ -176,10 +176,10 @@ func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizati
 		return nil, false
 	}
 
-	if cpuinfo1.timestamp.Before(cpuinfo2.timestamp) {
+	if cpuinfo1.unixMilli < cpuinfo2.unixMilli {
 		return nil, false
 	}
-	duration := float64(cpuinfo1.timestamp.Unix() - cpuinfo2.timestamp.Unix())
+	duration := float64(cpuinfo1.unixMilli - cpuinfo2.unixMilli)
 	if duration <= 0 {
 		return nil, false
 	}

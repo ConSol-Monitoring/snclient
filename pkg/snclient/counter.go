@@ -13,7 +13,7 @@ type Counter struct {
 }
 
 type CounterValue struct {
-	timestamp time.Time
+	unixMilli int64 // timestamp in unix milliseconds
 	value     float64
 }
 
@@ -30,7 +30,7 @@ func NewCounter(retentionTime float64) *Counter {
 // Set adds a new value with current timestamp
 func (c *Counter) Set(val float64) {
 	c.data.PushBack(&CounterValue{
-		timestamp: time.Now().UTC(),
+		unixMilli: time.Now().UTC().UnixMilli(),
 		value:     val,
 	})
 	c.Trim()
@@ -38,7 +38,7 @@ func (c *Counter) Set(val float64) {
 
 // Trim removes all entries older than now-duration
 func (c *Counter) Trim() {
-	trimAfter := time.Now().UTC().Add(-1 * time.Duration(c.retentionTime) * time.Second)
+	trimAfter := time.Now().UTC().Add(-1 * time.Duration(c.retentionTime) * time.Second).UnixMilli()
 
 	cur := c.data.Front()
 	for {
@@ -46,7 +46,7 @@ func (c *Counter) Trim() {
 			break
 		}
 		if val, ok := cur.Value.(*CounterValue); ok {
-			if val.timestamp.Before(trimAfter) {
+			if val.unixMilli < trimAfter {
 				c.data.Remove(cur)
 			} else {
 				return
@@ -58,7 +58,7 @@ func (c *Counter) Trim() {
 
 // AvgForDuration returns avg value for given duration
 func (c *Counter) AvgForDuration(duration float64) float64 {
-	useAfter := time.Now().UTC().Add(-1 * time.Duration(duration) * time.Second)
+	useAfter := time.Now().UTC().Add(-1 * time.Duration(duration) * time.Second).UnixMilli()
 
 	sum := float64(0)
 	count := float64(0)
@@ -69,7 +69,7 @@ func (c *Counter) AvgForDuration(duration float64) float64 {
 			break
 		}
 		if val, ok := cur.Value.(*CounterValue); ok {
-			if val.timestamp.After(useAfter) {
+			if val.unixMilli > useAfter {
 				sum += val.value
 				count++
 			} else {
@@ -98,12 +98,12 @@ func (c *Counter) GetLast() *CounterValue {
 
 // GetAt returns first value closest to given date
 func (c *Counter) GetAt(useAfter time.Time) *CounterValue {
-	useAfter = useAfter.UTC()
+	useAfterUnix := useAfter.UTC().UnixMilli()
 	cur := c.data.Back()
 	var last *CounterValue
 	for {
 		if val, ok := cur.Value.(*CounterValue); ok {
-			if val.timestamp.Before(useAfter) {
+			if val.unixMilli < useAfterUnix {
 				return last
 			}
 			last = val
@@ -126,7 +126,7 @@ type CounterAny struct {
 }
 
 type CounterValueAny struct {
-	timestamp time.Time
+	unixMilli int64 // timestamp in unix milliseconds
 	value     interface{}
 }
 
@@ -143,7 +143,7 @@ func NewCounterAny(retentionTime float64) *CounterAny {
 // Set adds a new value with current timestamp
 func (c *CounterAny) Set(val interface{}) {
 	c.data.PushBack(&CounterValueAny{
-		timestamp: time.Now().UTC(),
+		unixMilli: time.Now().UTC().UnixMilli(),
 		value:     val,
 	})
 	c.Trim()
@@ -151,7 +151,7 @@ func (c *CounterAny) Set(val interface{}) {
 
 // Trim removes all entries older than now-duration
 func (c *CounterAny) Trim() {
-	trimAfter := time.Now().UTC().Add(-1 * time.Duration(c.retentionTime) * time.Second)
+	trimAfter := time.Now().UTC().Add(-1 * time.Duration(c.retentionTime) * time.Second).UnixMilli()
 
 	cur := c.data.Front()
 	for {
@@ -159,7 +159,7 @@ func (c *CounterAny) Trim() {
 			break
 		}
 		if val, ok := cur.Value.(*CounterValueAny); ok {
-			if val.timestamp.Before(trimAfter) {
+			if val.unixMilli < trimAfter {
 				c.data.Remove(cur)
 			} else {
 				return
@@ -181,12 +181,12 @@ func (c *CounterAny) GetLast() *CounterValueAny {
 
 // GetAt returns first value closest to given date
 func (c *CounterAny) GetAt(useAfter time.Time) *CounterValueAny {
-	useAfter = useAfter.UTC()
+	useAfterUnix := useAfter.UTC().UnixMilli()
 	cur := c.data.Back()
 	var last *CounterValueAny
 	for {
 		if val, ok := cur.Value.(*CounterValueAny); ok {
-			if val.timestamp.Before(useAfter) {
+			if val.unixMilli < useAfterUnix {
 				return last
 			}
 			last = val

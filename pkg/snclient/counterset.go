@@ -86,11 +86,11 @@ func (cs *CounterSet) GetRate(category, key string, lookback time.Duration) (res
 		return res, false
 	}
 
-	if val1.timestamp.Before(val2.timestamp) {
+	if val1.unixMilli < val2.unixMilli {
 		return res, false
 	}
 
-	durationMillis := float64(val1.timestamp.UnixMilli() - val2.timestamp.UnixMilli())
+	durationMillis := float64(val1.unixMilli - val2.unixMilli)
 	if durationMillis <= 0 {
 		return res, false
 	}

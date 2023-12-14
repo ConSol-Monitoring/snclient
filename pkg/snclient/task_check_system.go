@@ -113,12 +113,12 @@ func (c *CheckSystemHandler) update(create bool) {
 	}
 
 	// remove interface not updated within the bufferLength
-	trimData := time.Now().Add(-time.Duration(c.bufferLength) * time.Second)
+	trimData := time.Now().Add(-time.Duration(c.bufferLength) * time.Second).UnixMilli()
 	for _, key := range c.snc.Counter.Keys("net") {
 		counter := c.snc.Counter.Get("net", key)
 		if last := counter.GetLast(); last != nil {
-			if last.timestamp.Before(trimData) {
-				log.Tracef("removed old net device: %s (last update: %s)", key, last.timestamp.String())
+			if last.unixMilli < trimData {
+				log.Tracef("removed old net device: %s (last update: %s)", key, time.UnixMilli(last.unixMilli).String())
 				c.snc.Counter.Delete("net", key)
 			}
 		}
