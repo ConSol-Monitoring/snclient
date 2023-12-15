@@ -11,7 +11,7 @@ func (l *CheckNetwork) interfaceSpeed(index int, name string) (speed int64, err 
 
 	// https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-networkadapter
 	interfaces := []struct {
-		InterfaceIndex string
+		InterfaceIndex uint64
 		Name           string
 		Speed          uint64
 	}{}
