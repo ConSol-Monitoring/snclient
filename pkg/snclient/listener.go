@@ -404,7 +404,13 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 	promHTTPRequestsTotal.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), req.URL.Path).Add(1)
 	promHTTPDuration.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), req.URL.Path).Observe(duration.Seconds())
 
-	log.Debugf("http(s) connection from %s finished in %9s", req.RemoteAddr, duration)
+	log.Debugf("http(s) request finished from: %-20s | duration: %12s | code: %3d | %s %s",
+		req.RemoteAddr,
+		duration,
+		resCapture.statusCode,
+		req.Method,
+		req.URL.Path,
+	)
 }
 
 // wrapper for all known web requests to verfify passwords and allowed hosts
