@@ -11,6 +11,20 @@ import (
 	ywmi "github.com/yusufpapurcu/wmi"
 )
 
+func InitWbem() error {
+	// This initialization prevents a memory leak on WMF 5+. See
+	// https://github.com/prometheus-community/windows_exporter/issues/77 and
+	// linked issues for details.
+	s, err := ywmi.InitializeSWbemServices(ywmi.DefaultClient)
+	if err != nil {
+		return fmt.Errorf("InitializeSWbemServices: %s", err.Error())
+	}
+	ywmi.DefaultClient.AllowMissingFields = true
+	ywmi.DefaultClient.SWbemServicesClient = s
+
+	return nil
+}
+
 func QueryDefaultRetry(query string, dst interface{}) (err error) {
 	return QueryWithRetries(query, dst, 3, 1*time.Second)
 }

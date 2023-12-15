@@ -4,6 +4,10 @@ package wmi
 
 import "fmt"
 
+func InitWbem() error {
+	return nil
+}
+
 func QueryDefaultRetry(_ string, _ interface{}) (err error) {
 	return fmt.Errorf("requires windows os")
 }
