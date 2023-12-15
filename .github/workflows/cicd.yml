@@ -91,7 +91,7 @@ jobs:
       - run: |
           echo "Building ${{ env.BIN }}"
           make GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} build
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "${{ env.BIN }}"
           path: "snclient"
@@ -118,7 +118,7 @@ jobs:
       - run: |
           echo "Building ${{ env.BIN }}"
           make GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} build
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "${{ env.BIN }}"
           path: "snclient"
@@ -151,7 +151,7 @@ jobs:
           cp rsrc_windows*.syso cmd/snclient/
           make GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} build
           mv snclient snclient.exe
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "${{ env.BIN }}"
           path: "snclient.exe"
@@ -193,7 +193,7 @@ jobs:
           Write-Host "Verify snclient.exe"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa snclient.exe
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "${{ env.BIN }}"
           path: "snclient.exe"
@@ -213,7 +213,7 @@ jobs:
       - run: |
           echo "Creating dist folder for windows"
           make windist
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "windist"
           path: "windist"
@@ -269,7 +269,7 @@ jobs:
           Write-Host "Verify snclient.msi"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa ${{ env.BIN }}.msi
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "${{ env.BIN }}.msi"
           path: "${{ env.BIN }}.msi"
@@ -297,7 +297,7 @@ jobs:
           export DEBEMAIL="Sven Nierlein <sven.nierlein@consol.de>"
           export DEBFULLNAME="Sven Nierlein"
           make VERSION=${{needs.get-version.outputs.version}} ARCH=${{ matrix.go-arch }} DEBFILE=${{ env.BIN }}.deb deb
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "${{ env.BIN }}.deb"
           path: "${{ env.BIN }}.deb"
@@ -327,7 +327,7 @@ jobs:
           export PATH="/usr/local/opt/openssl@3/bin:$PATH"
           make osx
           mv snclient*.pkg ${{ env.DIST }}.pkg
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "${{ env.DIST }}.pkg"
           path: "${{ env.DIST }}.pkg"
@@ -359,7 +359,7 @@ jobs:
           echo "Building ${{ env.BIN }}.rpm"
           make rpm
           mv snclient*.rpm ${{ env.BIN }}.rpm
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "${{ env.BIN }}.rpm"
           path: "${{ env.BIN }}.rpm"
