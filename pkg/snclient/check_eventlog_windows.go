@@ -8,7 +8,6 @@ import (
 
 	"pkg/eventlog"
 	"pkg/utils"
-	"pkg/wmi"
 )
 
 func init() {
@@ -58,12 +57,10 @@ func (l *CheckEventlog) Build() *CheckData {
 			{name: "file", description: "The logfile name"},
 			{name: "log", description: "Alias for file"},
 			{name: "id", description: "Eventlog id"},
-			{name: "keyword", description: "Keyword(s) associated with the event"},
 			{name: "level", description: "Severity level (lowercase)"},
 			{name: "message", description: "The message as a string"},
 			{name: "source", description: "The source system"},
 			{name: "provider", description: "Alias for source"},
-			{name: "task", description: "The type of event"},
 			{name: "written", description: "Time of the message being written"},
 		},
 		exampleDefault: `
@@ -81,17 +78,11 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	}
 
 	if len(l.files) == 0 {
-		filenames := []struct {
-			LogfileName string
-		}{}
-		query := "SELECT LogfileName FROM Win32_NTEventLogFile"
-		err := wmi.QueryDefaultRetry(query, &filenames)
+		filenames, err := eventlog.GetFileNames()
 		if err != nil {
 			return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 		}
-		for _, row := range filenames {
-			l.files = append(l.files, row.LogfileName)
-		}
+		l.files = append(l.files, filenames...)
 	}
 
 	lookBack, err := utils.ExpandDuration(l.scanRange)
@@ -101,36 +92,35 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	if lookBack < 0 {
 		lookBack *= -1
 	}
-	scanLookBack := uint64(lookBack)
+	scanLookBack := time.Now().Add(-time.Second * time.Duration(lookBack))
 
 	for _, file := range l.files {
-		e := eventlog.NewEventLog(file, log)
-		e.TimeDiff = scanLookBack
-		fileEvent, err := e.Query()
+		log.Tracef("fetching eventlog: %s", file)
+		fileEvent, err := eventlog.GetLog(file, scanLookBack)
 		if err != nil {
 			log.Warnf("eventlog query failed, file: %s: %s", file, err.Error())
 
 			continue
 		}
 
-		for _, event := range fileEvent {
+		for i := range fileEvent {
+			event := fileEvent[i]
+			timeWritten, _ := time.Parse(eventlog.WMIDateFormat, event.TimeWritten)
 			message := event.Message
 			if l.truncateMessage > 0 && len(event.Message) > l.truncateMessage {
 				message = event.Message[:l.truncateMessage]
 			}
-
 			check.listData = append(check.listData, map[string]string{
-				"computer": event.Computer,
-				"file":     event.Channel,
-				"log":      event.Channel,
-				"id":       fmt.Sprintf("%d", event.EventIdentifier.ID),
-				"keyword":  strings.Join(event.Keywords, ","),
-				"level":    strings.ToLower(event.Level),
-				"message":  message,
-				"provider": event.Provider.Name,
-				"source":   event.Provider.Name,
-				"task":     event.Task,
-				"written":  event.TimeCreated.SystemTime.In(timeZone).Format("2006-01-02 15:04:05 MST"),
+				"computer":  event.ComputerName,
+				"file":      event.LogFile,
+				"log":       event.LogFile,
+				"id":        fmt.Sprintf("%d", event.EventIdentifier),
+				"level":     strings.ToLower(event.Type),
+				"message":   message,
+				"provider":  event.SourceName,
+				"source":    event.SourceName,
+				"written":   timeWritten.In(timeZone).Format("2006-01-02 15:04:05 MST"),
+				"writtenTS": fmt.Sprintf("%d", timeWritten.Unix()),
 			})
 		}
 	}
