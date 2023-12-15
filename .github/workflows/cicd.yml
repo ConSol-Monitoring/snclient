@@ -171,7 +171,7 @@ jobs:
       certhash: ${{ secrets.WIN_SIGN_CERTHASH }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
           path: "."
@@ -232,11 +232,11 @@ jobs:
       certhash: ${{ secrets.WIN_SIGN_CERTHASH }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
           path: "windist"
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "windist"
           path: "windist"
@@ -287,7 +287,7 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
       - run: sudo apt-get update
@@ -318,7 +318,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
       - run: |
@@ -350,7 +350,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
       - run: sudo apt-get update
@@ -424,15 +424,15 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GOVERSION }}
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "windist"
           path: "windist"
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
           path: "windist"
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}.msi"
       - name: "Windows Integration Tests"
@@ -498,7 +498,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}.msi"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.msi
@@ -517,7 +517,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}.deb"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.deb
@@ -536,7 +536,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}.rpm"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.rpm
@@ -555,7 +555,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}.pkg"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.pkg
@@ -574,7 +574,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
       - run: tar cvzf ./${{ env.BIN }}.tar.gz ./*
