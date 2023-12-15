@@ -55,10 +55,16 @@ func (i *ResponseWriterCapture) String(req *http.Request, body bool) string {
 		return ""
 	}
 
+	bodyAdd := ""
+	if strings.Contains(resp.Header.Get("Content-Encoding"), "zip") {
+		body = false
+		bodyAdd = "<skipped compressed body>"
+	}
+
 	str, err := httputil.DumpResponse(resp, body)
 	LogError(err)
 
 	resp.Body.Close()
 
-	return string(str)
+	return string(str) + bodyAdd
 }
