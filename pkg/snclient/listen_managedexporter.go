@@ -40,6 +40,7 @@ type HandlerManagedExporter struct {
 	listener       *Listener
 	proxy          *httputil.ReverseProxy
 	allowedHosts   *AllowedHostConfig
+	initCallback   func()
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -155,6 +156,10 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 		return err
 	}
 	l.allowedHosts = allowedHosts
+
+	if l.initCallback != nil {
+		l.initCallback()
+	}
 
 	return nil
 }

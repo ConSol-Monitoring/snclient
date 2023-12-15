@@ -84,6 +84,7 @@ issues:
     - "mnd: Magic number: 1e12, in"
     - "mnd: Magic number: 1e15, in"
     - "mnd: Magic number: 0o600, in"
+    - "mnd: Magic number: 0o700, in"
     - "noCopy is missing in"
     - 'err113:'
     - "variable name 'ok' is too short"
