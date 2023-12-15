@@ -1,6 +1,6 @@
 This file documents the revision history for the SNClient+ agent.
 
-next:
+0.15     Fri Dec 15 23:31:08 CET 2023
          - improve counter memory consumption
          - change internal wmi library
          - fix check_temperature default thresholds
