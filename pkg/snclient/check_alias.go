@@ -1,6 +1,12 @@
 package snclient
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"pkg/utils"
+)
 
 type CheckAlias struct {
 	noCopy  noCopy
@@ -15,7 +21,7 @@ func (a *CheckAlias) Build() *CheckData {
 	}
 }
 
-func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (res *CheckResult, err error) {
 	userArgs := check.rawArgs
 	var statusResult *CheckResult
 	switch {
@@ -30,9 +36,27 @@ func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 			Output: "Exception processing request: Request contained illegal characters (check the allow nasty characters option).",
 		}
 	default:
-		args := a.args
-		args = append(args, userArgs...)
-		statusResult = snc.runCheck(ctx, a.command, args)
+		cmdArgs := a.args
+		argStr := strings.Join(a.args, " ")
+		if strings.Contains(argStr, "$ARG") {
+			log.Debugf("command before macros expanded: %s %s", a.command, argStr)
+			macros := map[string]string{
+				"ARGS": strings.Join(userArgs, " "),
+			}
+			for i := range userArgs {
+				macros[fmt.Sprintf("ARG%d", i+1)] = check.rawArgs[i]
+			}
+
+			replacedStr := ReplaceRuntimeMacros(strings.Join(a.args, " "), macros)
+			cmdArgs = utils.Tokenize(replacedStr)
+			cmdArgs, err = utils.TrimQuotesAll(cmdArgs)
+			if err != nil {
+				return nil, fmt.Errorf("argument error: %s", err.Error())
+			}
+
+			log.Debugf("command after macros expanded: %s %s", a.command, replacedStr)
+		}
+		statusResult = snc.runCheck(ctx, a.command, cmdArgs)
 	}
 
 	statusResult.ParsePerformanceDataFromOutputCond(a.command, a.config)

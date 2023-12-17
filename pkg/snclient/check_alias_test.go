@@ -27,6 +27,14 @@ allow arguments = yes
 command = check_cpu warn=load=101 crit=load=102
 allow arguments = yes
 nasty characters = []{}
+
+[/settings/external scripts/alias/alias_dummy]
+command = check_dummy $ARG1$ "$ARG2$ $ARG3$"
+allow arguments = yes
+
+[/settings/external scripts/alias/alias_dummy2]
+command = check_dummy $ARGS$
+allow arguments = yes
 `
 	snc := StartTestAgent(t, config)
 
@@ -64,6 +72,16 @@ nasty characters = []{}
 	// nasty char list changed
 	res = snc.RunCheck("alias_cpu4", []string{"filter=core!=$"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+
+	// dummy check with arguments
+	res = snc.RunCheck("alias_dummy", []string{"0", "test 123", "456"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Equalf(t, "test 123 456", string(res.BuildPluginOutput()), "plugin output matches")
+
+	// dummy check with arguments
+	res = snc.RunCheck("alias_dummy2", []string{"0", "test 123", "456"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Equalf(t, "test 123 456", string(res.BuildPluginOutput()), "plugin output matches")
 
 	StopTestAgent(t, snc)
 }

@@ -140,7 +140,7 @@ func (e *ExternalScriptsHandler) registerAliases(conf *Config) error {
 		cmdConf := conf.Section(sectionName)
 		if command, ok := cmdConf.GetString("command"); ok {
 			f := utils.Tokenize(command)
-			log.Tracef("registered wrapped script: %s -> %s", name, command)
+			log.Tracef("registered alias script: %s -> %s", name, command)
 			AvailableChecks[name] = CheckEntry{name, func() CheckHandler { return &CheckAlias{command: f[0], args: f[1:], config: cmdConf} }}
 		} else {
 			return fmt.Errorf("missing command in alias script %s", name)
