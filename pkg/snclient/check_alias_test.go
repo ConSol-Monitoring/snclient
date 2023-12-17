@@ -33,7 +33,7 @@ nasty characters = []{}
 	res := snc.RunCheck("alias_cpu", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: CPU load is ok. \|'total 5m'=\d+%;101;102 'total 1m'=\d+%;101;102 'total 5s'=\d+%;101;102$`),
+		regexp.MustCompile(`^OK: CPU load is ok. \d+% on \d+ cores \|'total 5m'=\d+%;101;102 'total 1m'=\d+%;101;102 'total 5s'=\d+%;101;102$`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -46,7 +46,7 @@ nasty characters = []{}
 	res = snc.RunCheck("alias_cpu2", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: CPU load is ok. \|'total 5m'=\d+%;101;102 'total 1m'=\d+%;101;102 'total 5s'=\d+%;101;102$`),
+		regexp.MustCompile(`^OK: CPU load is ok. \d+% on \d+ cores \|'total 5m'=\d+%;101;102 'total 1m'=\d+%;101;102 'total 5s'=\d+%;101;102$`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -54,7 +54,7 @@ nasty characters = []{}
 	// arguments allowed
 	res = snc.RunCheck("alias_cpu3", []string{"filter=none"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Equalf(t, "OK: CPU load is ok.", res.Output, "plugin output")
+	assert.Containsf(t, res.Output, "OK: CPU load is ok.", "plugin output")
 
 	// nasty char
 	res = snc.RunCheck("alias_cpu3", []string{"filter=core!=$"})
