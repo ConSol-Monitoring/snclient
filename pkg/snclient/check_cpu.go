@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"pkg/utils"
+
+	cpuinfo "github.com/shirou/gopsutil/v3/cpu"
 )
 
 func init() {
@@ -36,9 +38,9 @@ func (l *CheckCPU) Build() *CheckData {
 		defaultFilter:   "core = 'total'",
 		defaultWarning:  "load > 80",
 		defaultCritical: "load > 90",
-		okSyntax:        "%(status): CPU load is ok.",
+		okSyntax:        "%(status): CPU load is ok. %{total:fmt=%d}% on %{core_num} cores",
 		detailSyntax:    "${time}: ${load}%",
-		topSyntax:       "${status}: ${problem_list}",
+		topSyntax:       "${status}: ${problem_list} on %{core_num} cores",
 		emptyState:      3,
 		emptySyntax:     "check_cpu failed to find anything with this filter.",
 		attributes: []CheckAttribute{
@@ -62,11 +64,12 @@ Checking **each core** by adding filter=none (disabling the filter):
 	}
 }
 
-func (l *CheckCPU) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	if len(snc.Counter.Keys("cpu")) == 0 {
 		return nil, fmt.Errorf("no cpu counter available, make sure CheckSystem / CheckSystemUnix in /modules config is enabled")
 	}
 
+	var total float64
 	for _, name := range snc.Counter.Keys("cpu") {
 		if !check.MatchFilterMap(map[string]string{"core": name, "core_id": name}) {
 			continue
@@ -76,9 +79,12 @@ func (l *CheckCPU) Check(_ context.Context, snc *Agent, check *CheckData, _ []Ar
 		if counter == nil {
 			continue
 		}
-		for _, time := range l.times {
+		for i, time := range l.times {
 			dur, _ := utils.ExpandDuration(time)
 			avg := counter.AvgForDuration(dur)
+			if i == 0 {
+				total = avg
+			}
 			check.listData = append(check.listData, map[string]string{
 				"time":    time,
 				"core":    name,
@@ -94,6 +100,15 @@ func (l *CheckCPU) Check(_ context.Context, snc *Agent, check *CheckData, _ []Ar
 				Critical:      check.critThreshold,
 			})
 		}
+	}
+
+	cores, err := cpuinfo.CountsWithContext(ctx, true)
+	if err != nil {
+		log.Warnf("cpuinfo.Counts: %s", err.Error())
+	}
+	check.details = map[string]string{
+		"total":    fmt.Sprintf("%f", total),
+		"core_num": fmt.Sprintf("%d", cores),
 	}
 
 	return check.Finalize()

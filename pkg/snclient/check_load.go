@@ -53,7 +53,7 @@ func (l *CheckLoad) Build() *CheckData {
 		},
 		defaultFilter: "none",
 		detailSyntax:  "${type} load average: ${load1}, ${load5}, ${load15}",
-		topSyntax:     "${status}: ${list} at ${cores} cores",
+		topSyntax:     "${status}: ${list} on ${cores} cores",
 		listCombine:   " - ",
 		attributes: []CheckAttribute{
 			{name: "type", description: "type will be either 'total' or 'scaled'"},
