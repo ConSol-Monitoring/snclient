@@ -98,12 +98,18 @@ updatedeps: versioncheck
 		( cd ./$$dir && $(GO) mod download ); \
 		( cd ./$$dir && $(GO) get -u ); \
 		( cd ./$$dir && $(GO) get -t -u ); \
-		( cd ./$$dir && $(GO) mod tidy ); \
 	done
 	$(GO) get -u ./buildtools/
 	$(GO) get -u ./t/
+	$(MAKE) cleandeps
+
+cleandeps:
+	set -e; for dir in $(shell ls -d1 pkg/*); do \
+		( cd ./$$dir && $(GO) mod tidy ); \
+	done
 	$(GO) mod tidy
 	rm -f pkg/*/go.sum
+
 
 vendor: go.work
 	$(GO) mod download
