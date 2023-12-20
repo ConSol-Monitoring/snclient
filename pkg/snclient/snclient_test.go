@@ -2,65 +2,10 @@ package snclient
 
 import (
 	"fmt"
-	"os"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
-
-func init() {
-	setLogLevel("error")
-}
-
-// Starts a full Agent from given config
-func StartTestAgent(t *testing.T, config string) *Agent {
-	t.Helper()
-	testDefaultConfig := `
-[/modules]
-WEBServer = disabled
-`
-	tmpConfig, err := os.CreateTemp("", "testconfig")
-	require.NoErrorf(t, err, "tmp config created")
-	_, err = tmpConfig.WriteString(testDefaultConfig)
-	require.NoErrorf(t, err, "tmp defaults written")
-	_, err = tmpConfig.WriteString(config)
-	require.NoErrorf(t, err, "tmp config written")
-	err = tmpConfig.Close()
-	require.NoErrorf(t, err, "tmp config created")
-	defer os.Remove(tmpConfig.Name())
-
-	tmpPidfile, err := os.CreateTemp("", "testpid")
-	require.NoErrorf(t, err, "tmp pidfile created")
-	tmpPidfile.Close()
-	os.Remove(tmpPidfile.Name())
-
-	flags := &AgentFlags{
-		Quiet:       true,
-		ConfigFiles: []string{tmpConfig.Name()},
-		Pidfile:     tmpPidfile.Name(),
-		Mode:        ModeServer,
-	}
-	snc := NewAgent(flags)
-	started := snc.StartWait(10 * time.Second)
-	assert.Truef(t, started, "agent is started successfully")
-	if !started {
-		t.Fatalf("agent did not start")
-	}
-
-	return snc
-}
-
-// Stops the agent started by StartTestAgent
-func StopTestAgent(t *testing.T, snc *Agent) {
-	t.Helper()
-	stopped := snc.StopWait(10 * time.Second)
-	assert.Truef(t, stopped, "agent stopped successfully")
-	if !stopped {
-		t.Fatalf("agent did not stop")
-	}
-}
 
 func TestPasswords(t *testing.T) {
 	config := fmt.Sprintf(`
