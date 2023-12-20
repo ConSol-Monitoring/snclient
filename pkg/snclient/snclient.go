@@ -59,6 +59,9 @@ const (
 
 	// DefaultSocketTimeout sets the default timeout for tcp sockets.
 	DefaultSocketTimeout = 60
+
+	// DefaultCmdTimeout sets the default timeout for running commands.
+	DefaultCmdTimeout = 30
 )
 
 var (

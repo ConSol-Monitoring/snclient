@@ -18,8 +18,6 @@ func init() {
 	AvailableChecks["check_ntp_offset"] = CheckEntry{"check_ntp_offset", NewCheckNTPOffset}
 }
 
-const ntpCMDTimeout = 30
-
 type CheckNTPOffset struct {
 	snc       *Agent
 	ntpserver []string
@@ -147,7 +145,7 @@ func (l *CheckNTPOffset) addTimeDateCtl(ctx context.Context, check *CheckData, f
 	if !force && runtime.GOOS != "linux" {
 		return fmt.Errorf("timedatectl is a linux command")
 	}
-	output, stderr, rc, _, err := l.snc.runExternalCommandString(ctx, "timedatectl timesync-status", ntpCMDTimeout)
+	output, stderr, rc, _, err := l.snc.runExternalCommandString(ctx, "timedatectl timesync-status", DefaultCmdTimeout)
 	if err != nil {
 		return fmt.Errorf("timedatectl failed: %s\n%s", err.Error(), stderr)
 	}
@@ -193,7 +191,7 @@ func (l *CheckNTPOffset) addNTPQ(ctx context.Context, check *CheckData, force bo
 	if !force && runtime.GOOS == "windows" {
 		return fmt.Errorf("ntpq is not available on windows")
 	}
-	output, stderr, rc, _, err := l.snc.runExternalCommandString(ctx, "ntpq -p", ntpCMDTimeout)
+	output, stderr, rc, _, err := l.snc.runExternalCommandString(ctx, "ntpq -p", DefaultCmdTimeout)
 	if err != nil {
 		return fmt.Errorf("ntpq failed: %s\n%s", err.Error(), stderr)
 	}
@@ -241,7 +239,7 @@ func (l *CheckNTPOffset) addW32TM(ctx context.Context, check *CheckData, force b
 	if !force && runtime.GOOS != "windows" {
 		return fmt.Errorf("w32tm.exe is a windows command")
 	}
-	output, stderr, rc, _, err := l.snc.runExternalCommandString(ctx, "w32tm.exe /query /status /verbose", ntpCMDTimeout)
+	output, stderr, rc, _, err := l.snc.runExternalCommandString(ctx, "w32tm.exe /query /status /verbose", DefaultCmdTimeout)
 	if err != nil {
 		return fmt.Errorf("w32tm.exe failed: %s\n%s", err.Error(), stderr)
 	}
@@ -345,7 +343,7 @@ func (l *CheckNTPOffset) addOSX(ctx context.Context, check *CheckData, force boo
 
 func (l *CheckNTPOffset) getOSXData(ctx context.Context) (output, server string, err error) {
 	// check if ntp is enabled
-	output, stderr, exitCode, _, _ := l.snc.runExternalCommandString(ctx, "systemsetup -getusingnetworktime", ntpCMDTimeout)
+	output, stderr, exitCode, _, _ := l.snc.runExternalCommandString(ctx, "systemsetup -getusingnetworktime", DefaultCmdTimeout)
 	if exitCode != 0 {
 		log.Debugf("systemsetup -getusingnetworktime: %s\n%s", output, stderr)
 	}
@@ -354,7 +352,7 @@ func (l *CheckNTPOffset) getOSXData(ctx context.Context) (output, server string,
 	}
 
 	// get ntp server
-	output, stderr, exitCode, _, _ = l.snc.runExternalCommandString(ctx, "systemsetup -getnetworktimeserver", ntpCMDTimeout)
+	output, stderr, exitCode, _, _ = l.snc.runExternalCommandString(ctx, "systemsetup -getnetworktimeserver", DefaultCmdTimeout)
 	if exitCode != 0 {
 		log.Debugf("systemsetup -getnetworktimeserver: %s\n%s", output, stderr)
 	}
@@ -366,7 +364,7 @@ func (l *CheckNTPOffset) getOSXData(ctx context.Context) (output, server string,
 	server = servers[1]
 
 	// run sntp
-	output, stderr, exitCode, _, _ = l.snc.runExternalCommandString(ctx, fmt.Sprintf("sntp -n 1 -d %s", server), ntpCMDTimeout)
+	output, stderr, exitCode, _, _ = l.snc.runExternalCommandString(ctx, fmt.Sprintf("sntp -n 1 -d %s", server), DefaultCmdTimeout)
 	if exitCode != 0 {
 		log.Debugf("failed: sntp %s: %s\n%s", server, output, stderr)
 	}
@@ -376,7 +374,7 @@ func (l *CheckNTPOffset) getOSXData(ctx context.Context) (output, server string,
 
 // get offset and stratum from user supplied ntp server
 func (l *CheckNTPOffset) addNTPServer(_ context.Context, check *CheckData) (err error) {
-	options := ntp.QueryOptions{Timeout: time.Duration(ntpCMDTimeout) * time.Second}
+	options := ntp.QueryOptions{Timeout: time.Duration(DefaultCmdTimeout) * time.Second}
 	for _, server := range l.ntpserver {
 		response, nErr := ntp.QueryWithOptions(server, options)
 		if nErr != nil {

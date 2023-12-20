@@ -625,6 +625,7 @@ DOC_COMMANDS=\
 	check_files \
 	check_kernel_stats \
 	check_load \
+	check_mailq \
 	check_memory \
 	check_mount \
 	check_network \
