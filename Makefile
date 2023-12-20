@@ -244,6 +244,11 @@ citest: vendor
 	$(MAKE) build-freebsd-i386
 	$(MAKE) build-darwin-aarch64
 	#
+	# Check docs are updated
+	#
+	$(MAKE) docs
+	$(MAKE) gitcleandocs
+	#
 	# All CI tests successful
 	#
 
@@ -640,3 +645,11 @@ docs: build
 		./snclient -logfile stderr run $$CHK help=md > docs/checks/commands/$$CHK.md || : ; \
 	done
 	./snclient -logfile stderr run check_service help=md > docs/checks/commands/check_service_linux.md || :
+
+# ensure docs folder is clean
+gitcleandocs:
+	@if [ $$(git status -s docs | wc -l) -gt 0 ]; then \
+		echo "docs folder not clean:"; \
+		git status -s docs; \
+		exit 1; \
+	fi
