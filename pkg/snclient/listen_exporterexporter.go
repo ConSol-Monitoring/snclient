@@ -27,11 +27,6 @@ func init() {
 	RegisterModule(&AvailableListeners, "ExporterExporterServer", "/settings/ExporterExporter/server", NewHandlerExporterExporter)
 }
 
-const (
-	// ExporterDefaultTimeout sets default timeout for file/http operations
-	ExporterDefaultTimeout = 30 * time.Second
-)
-
 type HandlerExporterExporter struct {
 	noCopy        noCopy
 	handler       http.Handler
@@ -183,7 +178,7 @@ func modulesAdd(snc *Agent, modules map[string]*exporterModuleConfig, entry fs.D
 	mcfg.snc = snc
 
 	if mcfg.Timeout == 0 {
-		mcfg.Timeout = ExporterDefaultTimeout
+		mcfg.Timeout = DefaultSocketTimeout * time.Second
 	}
 
 	log.Debugf("read exporter module config '%s' from: %s", moduleName, fullpath)
@@ -554,7 +549,7 @@ func (m exporterExecConfig) ServeHTTP(res http.ResponseWriter, req *http.Request
 
 	deadline, ok := ctx.Deadline()
 	if !ok {
-		deadline = time.Now().Add(ExporterDefaultTimeout)
+		deadline = time.Now().Add(DefaultSocketTimeout * time.Second)
 	}
 	stdout, stderr, _, _, err := m.mcfg.snc.runExternalCommand(ctx, cmd, deadline.Unix())
 	if err != nil {

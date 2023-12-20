@@ -22,10 +22,6 @@ func init() {
 	AvailableChecks["check_omd"] = CheckEntry{"check_omd", NewCheckOMD}
 }
 
-const (
-	defaultOMDCommandTimeout = 30
-)
-
 type CheckOMD struct {
 	snc           *Agent
 	siteFilter    []string
@@ -86,7 +82,7 @@ func (l *CheckOMD) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 	if len(l.siteFilter) > 0 {
 		sites = l.siteFilter
 	} else {
-		stdout, stderr, _, _, err := snc.runExternalCommandString(ctx, "omd -b sites", defaultOMDCommandTimeout)
+		stdout, stderr, _, _, err := snc.runExternalCommandString(ctx, "omd -b sites", DefaultCmdTimeout)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch omd sites: %s", err.Error())
 		}
@@ -98,7 +94,7 @@ func (l *CheckOMD) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 
 	deadline, ok := ctx.Deadline()
 	if !ok || deadline.IsZero() {
-		ctxDeadline, cancel := context.WithDeadline(ctx, time.Now().Add(defaultOMDCommandTimeout*time.Second))
+		ctxDeadline, cancel := context.WithDeadline(ctx, time.Now().Add(DefaultCmdTimeout*time.Second))
 		defer cancel()
 		ctx = ctxDeadline
 	}
@@ -132,7 +128,7 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 		return
 	}
 
-	statusRaw, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("omd -b status %s", site), defaultOMDCommandTimeout)
+	statusRaw, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("omd -b status %s", site), DefaultCmdTimeout)
 	if err != nil {
 		log.Warnf("omd status: %s%s", statusRaw, stderr)
 		details["_error"] = err.Error()
@@ -291,7 +287,7 @@ func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string
 }
 
 func (l *CheckOMD) setAutostart(ctx context.Context, site string, details map[string]string) bool {
-	autostartRaw, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("omd config %s show AUTOSTART", site), defaultOMDCommandTimeout)
+	autostartRaw, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("omd config %s show AUTOSTART", site), DefaultCmdTimeout)
 	if err != nil {
 		details["_error"] = err.Error()
 

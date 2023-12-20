@@ -13,8 +13,6 @@ func init() {
 	AvailableChecks["check_service"] = CheckEntry{"check_service", NewCheckService}
 }
 
-const systemctlTimeout = 30
-
 var (
 	reSvcDetails   = regexp.MustCompile(`(?s)^.*?\.service(?:\s\-\s(.*?)|)\n.*Active:\s*([A-Za-z() :-]+)(?:\ssince|\n)`)
 	reSvcMainPid   = regexp.MustCompile(`Main\sPID:\s(\d+)`)
@@ -93,7 +91,7 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	l.snc = snc
 
 	if len(l.services) == 0 || slices.Contains(l.services, "*") {
-		output, stderr, _, _, err := snc.runExternalCommandString(ctx, "systemctl --type=service --plain --no-pager --quiet", systemctlTimeout)
+		output, stderr, _, _, err := snc.runExternalCommandString(ctx, "systemctl --type=service --plain --no-pager --quiet", DefaultCmdTimeout)
 		if err != nil {
 			return &CheckResult{
 				State:  CheckExitUnknown,
@@ -154,7 +152,7 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 }
 
 func (l *CheckService) addService(ctx context.Context, check *CheckData, service string, services, excludes []string) error {
-	output, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("systemctl status %s.service", service), systemctlTimeout)
+	output, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("systemctl status %s.service", service), DefaultCmdTimeout)
 	if err != nil {
 		return fmt.Errorf("systemctl failed: %s\n%s", err.Error(), stderr)
 	}
