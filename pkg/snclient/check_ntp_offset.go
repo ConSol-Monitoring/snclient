@@ -98,9 +98,9 @@ func (l *CheckNTPOffset) addSources(ctx context.Context, check *CheckData) (err 
 			if l.source != "auto" {
 				return err
 			}
+		} else {
+			return nil
 		}
-
-		return nil
 	}
 
 	if l.source == "auto" || l.source == "ntpq" {
@@ -110,9 +110,9 @@ func (l *CheckNTPOffset) addSources(ctx context.Context, check *CheckData) (err 
 			if l.source != "auto" {
 				return err
 			}
+		} else {
+			return nil
 		}
-
-		return nil
 	}
 
 	if l.source == "auto" || l.source == "w32tm" {
@@ -122,9 +122,9 @@ func (l *CheckNTPOffset) addSources(ctx context.Context, check *CheckData) (err 
 			if l.source != "auto" {
 				return err
 			}
+		} else {
+			return nil
 		}
-
-		return nil
 	}
 
 	if l.source == "auto" || l.source == "osx" {
@@ -134,9 +134,9 @@ func (l *CheckNTPOffset) addSources(ctx context.Context, check *CheckData) (err 
 			if l.source != "auto" {
 				return err
 			}
+		} else {
+			return nil
 		}
-
-		return nil
 	}
 
 	return err

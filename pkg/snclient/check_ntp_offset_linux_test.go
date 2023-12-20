@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -11,17 +10,15 @@ import (
 func TestCheckNTPOffset(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
-	// check if timedatectl is working
-	output, stderr, exitCode, _, _ := snc.runExternalCommandString(context.TODO(), "timedatectl", ntpCMDTimeout)
-	if exitCode != 0 {
-		t.Logf("skipped, no working timedatectl: %s\n%s", output, stderr)
+	res := snc.RunCheck("check_ntp_offset", []string{"warn=offset >= 10000", "crit=offset >= 20000"})
+	if res.State == CheckExitUnknown {
+		t.Logf("skipped, no working ntp detected")
 		StopTestAgent(t, snc)
 		t.Skip()
 
 		return
 	}
 
-	res := snc.RunCheck("check_ntp_offset", []string{"warn=offset >= 10000", "crit=offset >= 20000"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK: offset", "output matches")
 
@@ -49,6 +46,11 @@ Root distance: 47.041ms (max: 5s)
 	})
 	defer os.RemoveAll(tmpPath)
 	res := snc.RunCheck("check_ntp_offset", []string{"source=timedatectl"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Equalf(t, "OK: offset -32.3ms from 62.225.132.250 (0.debian.pool.ntp.org) |'offset'=-32.316ms;-50:50;-100:100;0 'stratum'=2;;;0 'jitter'=236.187ms;;;0",
+		string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_ntp_offset", []string{}) // with source=auto
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Equalf(t, "OK: offset -32.3ms from 62.225.132.250 (0.debian.pool.ntp.org) |'offset'=-32.316ms;-50:50;-100:100;0 'stratum'=2;;;0 'jitter'=236.187ms;;;0",
 		string(res.BuildPluginOutput()), "output matches")
