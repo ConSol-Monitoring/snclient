@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -9,6 +10,16 @@ import (
 
 func TestCheckNTPOffset(t *testing.T) {
 	snc := StartTestAgent(t, "")
+
+	// check if timedatectl is working
+	output, stderr, exitCode, _, _ := snc.runExternalCommandString(context.TODO(), "timedatectl", ntpCMDTimeout)
+	if exitCode != 0 {
+		t.Logf("skipped, no working timedatectl: %s\n%s", output, stderr)
+		StopTestAgent(t, snc)
+		t.Skip()
+
+		return
+	}
 
 	res := snc.RunCheck("check_ntp_offset", []string{"warn=offset >= 10000", "crit=offset >= 20000"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
