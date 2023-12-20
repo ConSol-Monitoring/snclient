@@ -120,11 +120,14 @@ func TestCheckNTPOffsetNTPQ(t *testing.T) {
 		"ntpq": `     remote                                   refid      st t when poll reach   delay   offset   jitter
 =======================================================================================================
  2.rhel.pool.ntp.org                     .POOL.          16 p    -  256    0   0.0000   0.0000   0.0001
- stratum2-3.ntp.techfak.net              129.70.137.82    2 u   48   64  377  32.0115  -1.5726   0.8925
- formularfetischisten.de                 131.188.3.223    2 u   51   64  377  26.8298   0.1340   0.8812
- 185.13.148.71                           79.133.44.146    2 u   45   64  377  33.9011  -1.7828   0.7742
- ntp3.sack.dev                           129.69.1.153     2 u   47   64  377  21.6749  -101.1641 0.8209
-`,
+ stratum2-2.ntp.techfak.net              129.70.137.82    2 u    -   64    1  34.1426  -1.3754   0.9159
+ mail.gunnarhofmann.de                   192.53.103.103   2 u    1   64    1  27.1094  -0.8311   0.8566
+ ns.gunnarhofmann.de                     205.46.178.169   2 u    1   64    1  26.9568  -0.6989   1.4830
+ fa.gnudb.org                            192.38.7.240     2 u    1   64    1  27.0367  -0.3475   0.8936
+ stratum2-4.ntp.techfak.net              .INIT.          16 u    -   64    0   0.0000   0.0000   0.0001
+ timeserver.pub                          .INIT.          16 u    -   64    0   0.0000   0.0000   0.0001
+ ntp01.pingless.com                      .INIT.          16 u    -   64    0   0.0000   0.0000   0.0001
+ time.cloudflare.com                     .INIT.          16 u    -   64    0   0.0000   0.0000   0.0001`,
 	})
 	defer os.RemoveAll(tmpPath)
 	res = snc.RunCheck("check_ntp_offset", []string{"source=ntpq"})
