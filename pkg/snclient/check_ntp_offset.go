@@ -421,7 +421,6 @@ func (l *CheckNTPOffset) addMetrics(check *CheckData, entry map[string]string) {
 			Value:    convert.Float64(entry["offset"]),
 			Warning:  check.warnThreshold,
 			Critical: check.critThreshold,
-			Min:      &Zero,
 		},
 		&CheckMetric{
 			Name:     "stratum",
