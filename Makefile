@@ -628,6 +628,7 @@ DOC_COMMANDS=\
 	check_memory \
 	check_mount \
 	check_network \
+	check_ntp_offset \
 	check_omd \
 	check_os_version \
 	check_pagefile \
