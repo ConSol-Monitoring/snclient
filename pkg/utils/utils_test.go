@@ -108,7 +108,7 @@ func TestDurationString(t *testing.T) {
 		in  time.Duration
 		res string
 	}{
-		{time.Second * 5, "5s"},
+		{time.Second * 5, "5000ms"},
 		{time.Second * 90, "1m 30s"},
 		{time.Minute * 5, "5m 00s"},
 		{time.Hour * 5, "05:00h"},
@@ -116,6 +116,8 @@ func TestDurationString(t *testing.T) {
 		{time.Hour * 200, "8d 08:00h"},
 		{time.Hour * 800, "4w 5d"},
 		{time.Hour * 12345, "1y 21w"},
+		{time.Millisecond * -312, "-312ms"},
+		{time.Nanosecond * -942, "-942ns"},
 	}
 
 	for _, tst := range tests {

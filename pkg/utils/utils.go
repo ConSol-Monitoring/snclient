@@ -113,36 +113,47 @@ func ToPrecision(val float64, precision int) float64 {
 }
 
 func DurationString(dur time.Duration) string {
-	seconds := int64(dur.Seconds())
+	seconds := dur.Seconds()
+	prefix := ""
+	if seconds < 0 {
+		prefix = "-"
+		seconds *= float64(-1)
+	}
 
-	years := seconds / (86400 * 365)
-	seconds -= years * (86400 * 365)
+	years := int64(seconds) / (86400 * 365)
+	seconds -= float64(years * (86400 * 365))
 
-	weeks := seconds / (86400 * 7)
-	seconds -= weeks * (86400 * 7)
+	weeks := int64(seconds / (86400 * 7))
+	seconds -= float64(weeks * (86400 * 7))
 
-	days := seconds / 86400
-	seconds -= days * 86400
+	days := int64(seconds / 86400)
+	seconds -= float64(days * 86400)
 
-	hours := seconds / 3600
-	seconds -= hours * 3600
+	hours := int64(seconds / 3600)
+	seconds -= float64(hours * 3600)
 
-	minutes := seconds / 60
-	seconds -= minutes * 60
+	minutes := int64(seconds / 60)
+	seconds -= float64(minutes * 60)
 
 	switch {
 	case years > 0:
-		return fmt.Sprintf("%dy %dw", years, weeks)
+		return fmt.Sprintf("%s%dy %dw", prefix, years, weeks)
 	case weeks > 3:
-		return fmt.Sprintf("%dw %dd", weeks, days)
+		return fmt.Sprintf("%s%dw %dd", prefix, weeks, days)
 	case days > 0:
-		return fmt.Sprintf("%dd %02d:%02dh", days+weeks*7, hours, minutes)
+		return fmt.Sprintf("%s%dd %02d:%02dh", prefix, days+weeks*7, hours, minutes)
 	case hours > 0:
-		return fmt.Sprintf("%02d:%02dh", hours, minutes)
+		return fmt.Sprintf("%s%02d:%02dh", prefix, hours, minutes)
 	case minutes > 0:
-		return fmt.Sprintf("%dm %02ds", minutes, seconds)
+		return fmt.Sprintf("%s%dm %02ds", prefix, minutes, int64(seconds))
+	case seconds >= 10:
+		return fmt.Sprintf("%s%.0fs", prefix, seconds)
+	case seconds >= 0.1:
+		return fmt.Sprintf("%s%dms", prefix, int64(seconds*1e3))
+	case seconds >= 0.01:
+		return fmt.Sprintf("%s%.1fms", prefix, seconds*1e3)
 	default:
-		return fmt.Sprintf("%ds", seconds)
+		return dur.String()
 	}
 }
 

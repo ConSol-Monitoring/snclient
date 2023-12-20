@@ -51,6 +51,8 @@ issues:
   exclude-use-default: true
   exclude:
     - "`noCopy` is unused"
+    - "mnd: Magic number: 0.1, in"
+    - "mnd: Magic number: 0.01, in"
     - "mnd: Magic number: 0.001, in"
     - "mnd: Magic number: 2, in"
     - "mnd: Magic number: 3, in"

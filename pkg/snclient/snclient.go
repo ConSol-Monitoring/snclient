@@ -1007,7 +1007,7 @@ func replaceMacroOperators(value string, flags []string) string {
 			value = time.Unix(convert.Int64(value), 0).UTC().Format("2006-01-02 15:04:05 MST")
 		// duration -> seconds into duration string
 		case "duration":
-			value = utils.DurationString(time.Second * time.Duration(convert.Float64(value)))
+			value = utils.DurationString(time.Duration(convert.Float64(value) * float64(time.Second)))
 		case "age":
 			value = fmt.Sprintf("%d", time.Now().Unix()-convert.Int64(value))
 		case "fmt":
