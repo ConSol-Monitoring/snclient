@@ -88,6 +88,7 @@ tools: | versioncheck vendor go.work
 
 updatedeps: versioncheck
 	$(MAKE) clean
+	$(MAKE) tools
 	$(GO) mod download
 	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }'); do \
 		$(GO) get $$DEP; \
