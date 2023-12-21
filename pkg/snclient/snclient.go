@@ -784,6 +784,19 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 		level = snc.flags.LogLevel
 	}
 
+	// env beats config file
+	env := os.Getenv("SNCLIENT_VERBOSE")
+	switch env {
+	case "":
+	case "1":
+		level = "verbose"
+	case "2":
+		level = "trace"
+	default:
+		level = env
+	}
+
+	// command line options beats env
 	switch {
 	case snc.flags.Verbose >= 2:
 		level = "trace"

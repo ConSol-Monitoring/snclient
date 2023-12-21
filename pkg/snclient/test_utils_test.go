@@ -12,7 +12,19 @@ import (
 )
 
 func init() {
-	setLogLevel("error")
+	level := "error"
+	// set log level from env
+	env := os.Getenv("SNCLIENT_VERBOSE")
+	switch env {
+	case "":
+	case "1":
+		level = "verbose"
+	case "2":
+		level = "trace"
+	default:
+		level = env
+	}
+	setLogLevel(level)
 }
 
 // Starts a full Agent from given config
