@@ -25,9 +25,10 @@ replace pkg/check_dns => ../../pkg/check_dns
 replace pkg/check_tcp => ../../pkg/check_tcp
 
 require (
+	github.com/beevik/ntp v1.3.0
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
-	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20231215093742-5879ec0260a5
-	github.com/go-chi/chi/v5 v5.0.10
+	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20231221223916-b15ab598d863
+	github.com/go-chi/chi/v5 v5.0.11
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/otiai10/copy v1.14.0
 	github.com/prometheus/client_golang v1.17.0
@@ -37,7 +38,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.23.11
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231029180838-9bde49d5f2ed
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/exp v0.0.0-20231214170342-aacd6d4b4611
+	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848
 	golang.org/x/sys v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 	pkg/check_dns v0.0.0-00010101000000-000000000000
