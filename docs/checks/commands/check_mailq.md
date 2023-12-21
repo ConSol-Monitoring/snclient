@@ -36,7 +36,7 @@ Naemon Config
         host_name            testhost
         service_description  check_mailq
         use                  generic-service
-        check_command        check_nrpe!check_mailq!warn='active > 0 || deferred > 0' crit='active > 10 || deferred > 10'
+        check_command        check_nrpe!check_mailq!warn='active > 5 || deferred > 0' crit='active > 10 || deferred > 10'
     }
 
 ## Argument Defaults
@@ -44,7 +44,7 @@ Naemon Config
 | Argument      | Default Value                                                                    |
 | ------------- | -------------------------------------------------------------------------------- |
 | filter        | none                                                                             |
-| warning       | active > 0 \|\| active_size > 10MB \|\| deferred > 0 \|\| deferred_size > 10MB   |
+| warning       | active > 5 \|\| active_size > 10MB \|\| deferred > 0 \|\| deferred_size > 10MB   |
 | critcal       | active > 10 \|\| active_size > 20MB \|\| deferred > 10 \|\| deferred_size > 20MB |
 | empty-state   | 3 (UNKNOWN)                                                                      |
 | empty-syntax  | \${status}: could not get any mailq data                                         |

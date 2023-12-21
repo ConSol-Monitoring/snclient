@@ -37,7 +37,7 @@ func (l *CheckMailq) Build() *CheckData {
 			"mta": {value: &l.mta, isFilter: true, description: "Set source mta for checking mailq instead of auto detect. Can be postfix or auto"},
 		},
 		defaultFilter:   "none",
-		defaultWarning:  "active > 0 || active_size > 10MB || deferred > 0 || deferred_size > 10MB",
+		defaultWarning:  "active > 5 || active_size > 10MB || deferred > 0 || deferred_size > 10MB",
 		defaultCritical: "active > 10 || active_size > 20MB || deferred > 10 || deferred_size > 20MB",
 		detailSyntax:    "${mta}: active ${active} / deferred ${deferred}",
 		topSyntax:       "${status}: ${list}",
@@ -55,7 +55,7 @@ func (l *CheckMailq) Build() *CheckData {
     check_mailq
     OK: postfix: active 0 / deferred 0 |...
 	`,
-		exampleArgs: `warn='active > 0 || deferred > 0' crit='active > 10 || deferred > 10'`,
+		exampleArgs: `warn='active > 5 || deferred > 0' crit='active > 10 || deferred > 10'`,
 	}
 }
 
