@@ -230,13 +230,17 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 	return result
 }
 
-func (l *HandlerWeb) metrics2PerfV1(metrics []*CheckMetric) map[string]interface{} {
-	if len(metrics) == 0 {
-		return nil
+// return "lines" list suitable as v1 result, each metric will be a new line to keep the order of the metrics
+func (l *HandlerWeb) result2V1(result *CheckResult) (v1Res []CheckWebLineV1) {
+	v1Res = []CheckWebLineV1{{
+		Message: result.Output,
+		Perf:    map[string]interface{}{},
+	}}
+	if len(result.Metrics) == 0 {
+		return v1Res
 	}
-	result := make(map[string]interface{}, 0)
-
-	for _, metric := range metrics {
+	for idx, metric := range result.Metrics {
+		perfRes := make(map[string]interface{}, 0)
 		perf := map[string]interface{}{
 			"value": CheckWebPerfNumber{num: metric.Value},
 			"unit":  metric.Unit,
@@ -253,10 +257,20 @@ func (l *HandlerWeb) metrics2PerfV1(metrics []*CheckMetric) map[string]interface
 		if metric.Max != nil {
 			perf["maximum"] = *metric.Max
 		}
-		result[metric.Name] = perf
+
+		// first metric goes into first row, others append to a new line
+		perfRes[metric.Name] = perf
+		if idx == 0 {
+			v1Res[0].Perf = perfRes
+		} else {
+			v1Res = append(v1Res, CheckWebLineV1{
+				Message: "",
+				Perf:    perfRes,
+			})
+		}
 	}
 
-	return result
+	return v1Res
 }
 
 func verifyRequestPassword(snc *Agent, req *http.Request, requiredPassword string) bool {
@@ -339,12 +353,7 @@ func (l *HandlerWebV1) serveCommand(res http.ResponseWriter, req *http.Request) 
 	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
 		"command": command,
 		"result":  result.State,
-		"lines": []CheckWebLineV1{
-			{
-				Message: result.Output,
-				Perf:    l.Handler.metrics2PerfV1(result.Metrics),
-			},
-		},
+		"lines":   l.Handler.result2V1(result),
 	}))
 }
 
