@@ -28,7 +28,7 @@ func (l *CheckMailq) Build() *CheckData {
 	return &CheckData{
 		name:         "check_mailq",
 		description:  "Checks the mailq.",
-		implemented:  ALL,
+		implemented:  Linux | FreeBSD | Darwin,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
