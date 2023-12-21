@@ -618,6 +618,7 @@ sign.pfx_sha1: sign.pfx
 	openssl x509 -fingerprint -in sign.pfx -noout | tr -d ':'
 
 DOC_COMMANDS=\
+	check_connections \
 	check_cpu \
 	check_cpu_utilization \
 	check_dummy \
