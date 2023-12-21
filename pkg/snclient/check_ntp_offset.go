@@ -41,7 +41,7 @@ func (l *CheckNTPOffset) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"server": {value: &l.ntpserver, description: "Fetch offset from this ntp server(s). First valid response is used."},
-			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of auto detect. Can be timedatectl, ntpq, osx or w32tm"},
+			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of auto detect. Can be timedatectl, ntpq, chronyc, osx or w32tm"},
 		},
 		defaultFilter:   "none",
 		defaultWarning:  "offset > 50 || offset < -50",
@@ -93,6 +93,18 @@ func (l *CheckNTPOffset) addSources(ctx context.Context, check *CheckData) (err 
 		err = l.addTimeDateCtl(ctx, check, l.source == "timedatectl")
 		if err != nil {
 			log.Debugf("failed: timedatectl: %s", err.Error())
+			if l.source != "auto" {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+
+	if l.source == "auto" || l.source == "chronyc" {
+		err = l.addChronyc(ctx, check, l.source == "chronyc")
+		if err != nil {
+			log.Debugf("failed: chronyc: %s", err.Error())
 			if l.source != "auto" {
 				return err
 			}
@@ -178,6 +190,58 @@ func (l *CheckNTPOffset) addTimeDateCtl(ctx context.Context, check *CheckData, f
 
 	if !valid {
 		entry["_error"] = fmt.Sprintf("cannot parse offset from timedatectl: %s\n%s", output, stderr)
+	}
+
+	check.listData = append(check.listData, entry)
+	l.addMetrics(check, entry)
+
+	return nil
+}
+
+// get offset from chronyc
+func (l *CheckNTPOffset) addChronyc(ctx context.Context, check *CheckData, force bool) error {
+	if !force && runtime.GOOS != "linux" {
+		return fmt.Errorf("chronyc is a linux command")
+	}
+	output, stderr, rc, _, err := l.snc.runExternalCommandString(ctx, "chronyc tracking", DefaultCmdTimeout)
+	if err != nil {
+		return fmt.Errorf("chronyc failed: %s\n%s", err.Error(), stderr)
+	}
+	if rc != 0 {
+		return fmt.Errorf("chronyc failed: %s\n%s", output, stderr)
+	}
+	entry := l.defaultEntry("chronyc")
+
+	reBrackets := regexp.MustCompile(`\((.*)\)\s*$`)
+	valid := false
+	for _, line := range strings.Split(output, "\n") {
+		cols := utils.TokenizeBy(line, ":", false, false)
+		if len(cols) < 2 {
+			continue
+		}
+		cols[0] = strings.TrimSpace(cols[0])
+		cols[1] = strings.TrimSpace(cols[1])
+		switch cols[0] {
+		case "Reference ID":
+			servers := reBrackets.FindStringSubmatch(line)
+			if len(servers) >= 2 {
+				entry["server"] = servers[1]
+			}
+		case "Last offset":
+			// make value parsable
+			cols[1] = strings.TrimPrefix(cols[1], "+")
+			cols[1] = strings.ReplaceAll(cols[1], " seconds", "s")
+			value, _ := time.ParseDuration(cols[1])
+			entry["offset"] = fmt.Sprintf("%f", float64(value.Nanoseconds())/1e6)
+			entry["offset_seconds"] = fmt.Sprintf("%f", convert.Float64(entry["offset"])/1e3)
+			valid = true
+		case "Stratum":
+			entry["stratum"] = cols[1]
+		}
+	}
+
+	if !valid {
+		entry["_error"] = fmt.Sprintf("cannot parse offset from chronyc: %s\n%s", output, stderr)
 	}
 
 	check.listData = append(check.listData, entry)

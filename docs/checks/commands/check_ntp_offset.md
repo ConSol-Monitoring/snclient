@@ -54,10 +54,10 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument | Description                                                                            |
-| -------- | -------------------------------------------------------------------------------------- |
-| server   | Fetch offset from this ntp server(s). First valid response is used.                    |
-| source   | Set source of time data instead of auto detect. Can be timedatectl, ntpq, osx or w32tm |
+| Argument | Description                                                                                     |
+| -------- | ----------------------------------------------------------------------------------------------- |
+| server   | Fetch offset from this ntp server(s). First valid response is used.                             |
+| source   | Set source of time data instead of auto detect. Can be timedatectl, ntpq, chronyc, osx or w32tm |
 
 ## Attributes
 

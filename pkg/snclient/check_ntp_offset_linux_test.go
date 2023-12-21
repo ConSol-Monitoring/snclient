@@ -79,6 +79,54 @@ Root distance: 47.041ms (max: 5s)
 	StopTestAgent(t, snc)
 }
 
+func TestCheckNTPOffsetChronyc(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// mock chronyc command from output of: chronyc tracking
+	tmpPath := MockSystemUtilities(t, map[string]string{
+		"chronyc": `Reference ID    : B9FC8C7D (test.ntp)
+Stratum         : 3
+Ref time (UTC)  : Thu Dec 21 21:46:26 2023
+System time     : 0.003751489 seconds fast of NTP time
+Last offset     : +0.002065938 seconds
+RMS offset      : 0.002065938 seconds
+Frequency       : 25.960 ppm fast
+Residual freq   : +0.000 ppm
+Skew            : 109.671 ppm
+Root delay      : 0.038340077 seconds
+Root dispersion : 0.002839299 seconds
+Update interval : 64.4 seconds
+Leap status     : Normal`,
+	})
+	defer os.RemoveAll(tmpPath)
+	res := snc.RunCheck("check_ntp_offset", []string{"source=chronyc"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Equalf(t, "OK: offset 2.066ms from test.ntp |'offset'=2.065938ms;-50:50;-100:100 'stratum'=3;;;0",
+		string(res.BuildPluginOutput()), "output matches")
+
+	MockSystemUtilities(t, map[string]string{
+		"chronyc": `Reference ID    : B9FC8C7D (test.ntp)
+Stratum         : 3
+Ref time (UTC)  : Thu Dec 21 22:01:32 2023
+System time     : 0.000939555 seconds fast of NTP time
+Last offset     : -0.019212097 seconds
+RMS offset      : 0.001114742 seconds
+Frequency       : 0.992 ppm slow
+Residual freq   : -0.024 ppm
+Skew            : 1.524 ppm
+Root delay      : 0.037130691 seconds
+Root dispersion : 0.000739229 seconds
+Update interval : 64.4 seconds
+Leap status     : Normal`,
+	})
+	res = snc.RunCheck("check_ntp_offset", []string{"source=chronyc"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Equalf(t, "OK: offset -19.2ms from test.ntp |'offset'=-19.212097ms;-50:50;-100:100 'stratum'=3;;;0",
+		string(res.BuildPluginOutput()), "output matches")
+
+	StopTestAgent(t, snc)
+}
+
 func TestCheckNTPOffsetNTPQ(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
