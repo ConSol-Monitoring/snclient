@@ -177,7 +177,7 @@ func (l *CheckNTPOffset) addTimeDateCtl(ctx context.Context, check *CheckData, f
 	}
 
 	if !valid {
-		return fmt.Errorf("cannot parse offset from timedatectl: %s\n%s", output, stderr)
+		entry["_error"] = fmt.Sprintf("cannot parse offset from timedatectl: %s\n%s", output, stderr)
 	}
 
 	check.listData = append(check.listData, entry)
@@ -221,11 +221,7 @@ func (l *CheckNTPOffset) addNTPQ(ctx context.Context, check *CheckData, force bo
 	}
 
 	if !valid {
-		return fmt.Errorf("ntpq did not return any usable server\n%s", output)
-	}
-
-	if !valid {
-		return fmt.Errorf("cannot parse offset from ntpq: %s\n%s", output, stderr)
+		entry["_error"] = fmt.Sprintf("ntpq did not return any usable server\n%s", output)
 	}
 
 	check.listData = append(check.listData, entry)
@@ -239,14 +235,20 @@ func (l *CheckNTPOffset) addW32TM(ctx context.Context, check *CheckData, force b
 	if !force && runtime.GOOS != "windows" {
 		return fmt.Errorf("w32tm.exe is a windows command")
 	}
-	output, stderr, rc, _, err := l.snc.runExternalCommandString(ctx, "w32tm.exe /query /status /verbose", DefaultCmdTimeout)
-	if err != nil {
-		return fmt.Errorf("w32tm.exe failed: %s\n%s", err.Error(), stderr)
-	}
-	if rc != 0 {
-		return fmt.Errorf("w32tm.exe failed: %s\n%s", output, stderr)
-	}
 	entry := l.defaultEntry("w32tm")
+	output, stderr, exitCode, _, err := l.snc.runExternalCommandString(ctx, "w32tm.exe /query /status /verbose", DefaultCmdTimeout)
+	if err != nil {
+		entry["_error"] = fmt.Sprintf("w32tm.exe failed: %s\n%s", err.Error(), stderr)
+		check.listData = append(check.listData, entry)
+
+		return nil
+	}
+	if exitCode != 0 {
+		entry["_error"] = fmt.Sprintf("w32tm.exe failed: %s\n%s", output, stderr)
+		check.listData = append(check.listData, entry)
+
+		return nil
+	}
 
 	valid := false
 	for _, line := range strings.Split(output, "\n") {
@@ -270,13 +272,13 @@ func (l *CheckNTPOffset) addW32TM(ctx context.Context, check *CheckData, force b
 		case "State Machine":
 			fields := strings.Fields(cols[1])
 			if fields[0] != "2" {
-				return fmt.Errorf("w32tm.exe: %s", line)
+				entry["_error"] = fmt.Sprintf("w32tm.exe: %s", line)
 			}
 		}
 	}
 
 	if !valid {
-		return fmt.Errorf("cannot parse offset from w32tm: %s\n%s", output, stderr)
+		entry["_error"] = fmt.Sprintf("cannot parse offset from w32tm: %s\n%s", output, stderr)
 	}
 
 	check.listData = append(check.listData, entry)
@@ -291,14 +293,16 @@ func (l *CheckNTPOffset) addOSX(ctx context.Context, check *CheckData, force boo
 		return fmt.Errorf("this is a mac osx command")
 	}
 
-	output, server, err := l.getOSXData(ctx)
-	if err != nil {
-		return err
-	}
-
 	entry := l.defaultEntry("osx")
 
 	reBrackets := regexp.MustCompile(`\((.*)\)\s*$`)
+	output, server, err := l.getOSXData(ctx)
+	if err != nil {
+		entry["_error"] = err.Error()
+		check.listData = append(check.listData, entry)
+
+		return nil //nolint:nilerr // error is returned indirect
+	}
 
 	valid := false
 	for _, line := range strings.Split(output, "\n") {
@@ -311,7 +315,7 @@ func (l *CheckNTPOffset) addOSX(ctx context.Context, check *CheckData, force boo
 		case "result:":
 			dat := strings.Fields(cols[1])
 			if dat[0] != "0" {
-				return fmt.Errorf("sntp: %s", strings.TrimSpace(line))
+				entry["_error"] = fmt.Sprintf("sntp: %s", strings.TrimSpace(line))
 			}
 		case "addr:":
 			entry["server"] = fmt.Sprintf("%s (%s)", server, cols[1])
@@ -332,7 +336,7 @@ func (l *CheckNTPOffset) addOSX(ctx context.Context, check *CheckData, force boo
 	}
 
 	if !valid {
-		return fmt.Errorf("cannot parse offset from sntp: %s", output)
+		entry["_error"] = fmt.Sprintf("cannot parse offset from sntp: %s", output)
 	}
 
 	check.listData = append(check.listData, entry)
@@ -412,6 +416,9 @@ func (l *CheckNTPOffset) defaultEntry(source string) map[string]string {
 }
 
 func (l *CheckNTPOffset) addMetrics(check *CheckData, entry map[string]string) {
+	if entry["_error"] != "" {
+		return
+	}
 	check.result.Metrics = append(check.result.Metrics,
 		&CheckMetric{
 			Name:     "offset",
