@@ -36,7 +36,7 @@ Naemon Config
         host_name            testhost
         service_description  check_mailq
         use                  generic-service
-        check_command        check_nrpe!check_mailq!'warn=offset > 50 || offset < -50' 'crit=offset > 100 || offset < -100'
+        check_command        check_nrpe!check_mailq!warn='active > 0 || deferred > 0' crit='active > 10 || deferred > 10'
     }
 
 ## Argument Defaults

@@ -55,7 +55,7 @@ func (l *CheckMailq) Build() *CheckData {
     check_mailq
     OK: postfix: active 0 / deferred 0 |...
 	`,
-		exampleArgs: `'warn=offset > 50 || offset < -50' 'crit=offset > 100 || offset < -100'`,
+		exampleArgs: `warn='active > 0 || deferred > 0' crit='active > 10 || deferred > 10'`,
 	}
 }
 
