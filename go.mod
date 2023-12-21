@@ -89,7 +89,7 @@ require (
 	github.com/firefart/nonamedreturns v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fzipp/gocyclo v0.6.0 // indirect
-	github.com/ghostiam/protogetter v0.3.3 // indirect
+	github.com/ghostiam/protogetter v0.2.4 // indirect
 	github.com/go-chi/chi/v5 v5.0.11 // indirect
 	github.com/go-critic/go-critic v0.10.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
