@@ -10,7 +10,7 @@ linters-settings:
     min-len: 8
     min-occurrences: 12
   lll:
-    line-length: 170
+    line-length: 200
   funlen:
     lines: 80
     statements: 45
@@ -101,6 +101,8 @@ issues:
     - "complexity.*readConfiguration"
     - "Function 'Check' has too many statements"
     - "Function 'Check' is too long"
+    - "Function 'fetchProcs' is too long"
+    - "Function 'fetchProcs' has too many statements"
     - "cognitive complexity .* of func .*.Check"
     - "cognitive complexity .* of func .*conditionAdd"
     - "cognitive complexity .* of func .*.matchSingle"

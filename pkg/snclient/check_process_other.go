@@ -9,23 +9,19 @@ import (
 	"strings"
 	"time"
 
-	"pkg/convert"
-
 	"github.com/shirou/gopsutil/v3/process"
 	"golang.org/x/exp/slices"
 )
 
-func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 	procs, err := process.ProcessesWithContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("fetching processes failed: %s", err.Error())
+		return fmt.Errorf("fetching processes failed: %s", err.Error())
 	}
 	timeZone, err := time.LoadLocation(l.timeZoneStr)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
+		return fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
 	}
-
-	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"rss", "virtual", "pagefile"})
 
 	userNameLookup := map[int32]string{}
 
@@ -58,7 +54,7 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 			}
 		}
 
-		if len(l.processes) > 0 && !slices.Contains(l.processes, exe) {
+		if len(l.processes) > 0 && !slices.Contains(l.processes, exe) && !slices.Contains(l.processes, "*") {
 			continue
 		}
 
@@ -99,61 +95,23 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 		}
 
 		check.listData = append(check.listData, map[string]string{
-			"process":      exe,
-			"state":        strings.Join(state, ","),
-			"command_line": cmdLine,
-			"creation":     time.Unix(ctime, 0).In(timeZone).Format("2006-01-02 15:04:05 MST"),
-			"exe":          exe,
-			"filename":     filename,
-			"pid":          fmt.Sprintf("%d", proc.Pid),
-			"uid":          fmt.Sprintf("%d", uids[0]),
-			"username":     username,
-			"virtual":      fmt.Sprintf("%d", mem.VMS),
-			"rss":          fmt.Sprintf("%d", mem.RSS),
-			"pagefile":     fmt.Sprintf("%d", mem.Swap),
+			"process":       exe,
+			"state":         strings.Join(state, ","),
+			"command_line":  cmdLine,
+			"creation":      time.UnixMilli(ctime).In(timeZone).Format("2006-01-02 15:04:05 MST"),
+			"creation_unix": fmt.Sprintf("%d", time.UnixMilli(ctime).Unix()),
+			"exe":           exe,
+			"filename":      filename,
+			"pid":           fmt.Sprintf("%d", proc.Pid),
+			"uid":           fmt.Sprintf("%d", uids[0]),
+			"username":      username,
+			"virtual":       fmt.Sprintf("%d", mem.VMS),
+			"rss":           fmt.Sprintf("%d", mem.RSS),
+			"pagefile":      fmt.Sprintf("%d", mem.Swap),
 		})
 	}
 
-	check.listData = check.Filter(check.filter, check.listData)
-	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-		Name:     "count",
-		Value:    len(check.listData),
-		Min:      &Zero,
-		Warning:  check.warnThreshold,
-		Critical: check.critThreshold,
-	})
-
-	if check.HasThreshold("rss") {
-		totalRss := int64(0)
-		for _, p := range check.listData {
-			totalRss += convert.Int64(p["rss"])
-		}
-		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-			Name:     "rss",
-			Unit:     "B",
-			Value:    totalRss,
-			Min:      &Zero,
-			Warning:  check.warnThreshold,
-			Critical: check.critThreshold,
-		})
-	}
-
-	if check.HasThreshold("virtual") {
-		totalVirtual := int64(0)
-		for _, p := range check.listData {
-			totalVirtual += convert.Int64(p["virtual"])
-		}
-		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-			Name:     "virtual",
-			Unit:     "B",
-			Value:    totalVirtual,
-			Min:      &Zero,
-			Warning:  check.warnThreshold,
-			Critical: check.critThreshold,
-		})
-	}
-
-	return check.Finalize()
+	return nil
 }
 
 func convertStatusChar(letter string) string {

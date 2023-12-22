@@ -4,6 +4,7 @@ next:
          - add check_ntp_offset
          - add check_mailq
          - add check_connections
+         - improve check_process output
          - fix using arguments in aliased checks (#69)
 
 0.15     Fri Dec 15 23:31:08 CET 2023

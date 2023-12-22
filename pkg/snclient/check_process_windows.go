@@ -37,10 +37,10 @@ type winProcess struct {
 	ThreadCount        uint32
 }
 
-func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
 	timeZone, err := time.LoadLocation(l.timeZoneStr)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
+		return fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
 	}
 
 	processData := []winProcess{}
@@ -66,7 +66,7 @@ func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 	`
 	err = wmi.QueryDefaultRetry(query, &processData)
 	if err != nil {
-		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
+		return fmt.Errorf("wmi query failed: %s", err.Error())
 	}
 	runningProcs := map[string]winProcess{}
 
@@ -102,6 +102,7 @@ func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 			"state":            ProcessStates[strconv.FormatFloat(state, 'f', 0, 64)],
 			"command_line":     proc.CommandLine,
 			"creation":         proc.CreationDate.In(timeZone).Format("2006-01-02 15:04:05 MST"),
+			"creation_unix":    fmt.Sprintf("%d", proc.CreationDate.Unix()),
 			"exe":              process,
 			"filename":         proc.ExecutablePath,
 			"handles":          fmt.Sprintf("%d", proc.HandleCount),
@@ -114,8 +115,9 @@ func (l *CheckProcess) Check(_ context.Context, _ *Agent, check *CheckData, _ []
 			"user":             fmt.Sprintf("%d", proc.UserModeTime),
 			"virtual":          fmt.Sprintf("%d", proc.VirtualSize),
 			"working_set":      fmt.Sprintf("%d", proc.WorkingSetSize),
+			"rss":              fmt.Sprintf("%d", proc.WorkingSetSize),
 		})
 	}
 
-	return check.Finalize()
+	return nil
 }
