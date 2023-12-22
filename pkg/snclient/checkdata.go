@@ -144,13 +144,21 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	if len(cd.listData) > 0 {
 		log.Tracef("list data:")
 		for _, entry := range cd.listData {
-			if skipped, ok := entry["_skip"]; ok {
-				if skipped == "1" {
-					continue
-				}
+			if entry["_skip"] == "1" {
+				continue
 			}
+
 			// not yet filtered errors are fatal
-			if errMsg, ok := entry["_error"]; ok {
+			errMsg := entry["_error"]
+			exitCode := entry["_exit"]
+			if exitCode != "" {
+				cd.result.State = convert.Int64(exitCode)
+				cd.result.Output = fmt.Sprintf("%s - %s", convert.StateString(cd.result.State), errMsg)
+
+				return cd.result, nil
+			}
+
+			if errMsg != "" {
 				return nil, fmt.Errorf("%s", errMsg)
 			}
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)

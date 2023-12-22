@@ -237,6 +237,11 @@ func (l *CheckNTPOffset) addChronyc(ctx context.Context, check *CheckData, force
 			valid = true
 		case "Stratum":
 			entry["stratum"] = cols[1]
+		case "Leap status":
+			if cols[1] != "Normal" {
+				entry["_error"] = fmt.Sprintf("chronyc: %s : %s", cols[0], cols[1])
+				entry["_exit"] = "2"
+			}
 		}
 	}
 
@@ -286,6 +291,7 @@ func (l *CheckNTPOffset) addNTPQ(ctx context.Context, check *CheckData, force bo
 
 	if !valid {
 		entry["_error"] = fmt.Sprintf("ntpq did not return any usable server\n%s", output)
+		entry["_exit"] = "2"
 	}
 
 	check.listData = append(check.listData, entry)
@@ -337,12 +343,14 @@ func (l *CheckNTPOffset) addW32TM(ctx context.Context, check *CheckData, force b
 			fields := strings.Fields(cols[1])
 			if fields[0] != "2" {
 				entry["_error"] = fmt.Sprintf("w32tm.exe: %s", line)
+				entry["_exit"] = "2"
 			}
 		}
 	}
 
 	if !valid {
 		entry["_error"] = fmt.Sprintf("cannot parse offset from w32tm: %s\n%s", output, stderr)
+		entry["_exit"] = "2"
 	}
 
 	check.listData = append(check.listData, entry)
@@ -363,6 +371,7 @@ func (l *CheckNTPOffset) addOSX(ctx context.Context, check *CheckData, force boo
 	output, server, err := l.getOSXData(ctx)
 	if err != nil {
 		entry["_error"] = err.Error()
+		entry["_exit"] = "2"
 		check.listData = append(check.listData, entry)
 
 		return nil //nolint:nilerr // error is returned indirect
@@ -380,6 +389,7 @@ func (l *CheckNTPOffset) addOSX(ctx context.Context, check *CheckData, force boo
 			dat := strings.Fields(cols[1])
 			if dat[0] != "0" {
 				entry["_error"] = fmt.Sprintf("sntp: %s", strings.TrimSpace(line))
+				entry["_exit"] = "2"
 			}
 		case "addr:":
 			entry["server"] = fmt.Sprintf("%s (%s)", server, cols[1])

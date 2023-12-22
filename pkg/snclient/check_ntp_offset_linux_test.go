@@ -124,6 +124,27 @@ Leap status     : Normal`,
 	assert.Equalf(t, "OK: offset -19.2ms from test.ntp |'offset'=-19.212097ms;-50:50;-100:100 'stratum'=3;;;0",
 		string(res.BuildPluginOutput()), "output matches")
 
+	// mock freshly initialized chrony
+	MockSystemUtilities(t, map[string]string{
+		"chronyc": `Reference ID    : 00000000 ()
+Stratum         : 0
+Ref time (UTC)  : Thu Jan 01 00:00:00 1970
+System time     : 0.000000000 seconds fast of NTP time
+Last offset     : +0.000000000 seconds
+RMS offset      : 0.000000000 seconds
+Frequency       : 1.501 ppm slow
+Residual freq   : +0.000 ppm
+Skew            : 0.000 ppm
+Root delay      : 1.000000000 seconds
+Root dispersion : 1.000000000 seconds
+Update interval : 0.0 seconds
+Leap status     : Not synchronised`,
+	})
+	res = snc.RunCheck("check_ntp_offset", []string{"source=chronyc"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Equalf(t, "CRITICAL - chronyc: Leap status : Not synchronised",
+		string(res.BuildPluginOutput()), "output matches")
+
 	StopTestAgent(t, snc)
 }
 
@@ -179,8 +200,8 @@ func TestCheckNTPOffsetNTPQ(t *testing.T) {
 	})
 	defer os.RemoveAll(tmpPath)
 	res = snc.RunCheck("check_ntp_offset", []string{"source=ntpq"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Containsf(t, string(res.BuildPluginOutput()), "UNKNOWN - ntpq did not return any usable server", "output matches")
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "CRITICAL - ntpq did not return any usable server", "output matches")
 
 	StopTestAgent(t, snc)
 }
@@ -244,8 +265,8 @@ Time since Last Good Sync Time: 339.9333552s`,
 		"w32tm.exe": `The following error occurred: The service has not been started. (0x80070426)`,
 	})
 	res = snc.RunCheck("check_ntp_offset", []string{"source=w32tm"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Equalf(t, "UNKNOWN - cannot parse offset from w32tm: The following error occurred: The service has not been started. (0x80070426)\n",
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Equalf(t, "CRITICAL - cannot parse offset from w32tm: The following error occurred: The service has not been started. (0x80070426)\n",
 		string(res.BuildPluginOutput()), "output matches")
 
 	// mock unknown response from no network
@@ -269,8 +290,8 @@ Last Sync Error: 0 (The command completed successfully.)
 Time since Last Good Sync Time: 46.3012345s`,
 	})
 	res = snc.RunCheck("check_ntp_offset", []string{"source=w32tm"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Equalf(t, "UNKNOWN - w32tm.exe: State Machine: 1 (Hold)",
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Equalf(t, "CRITICAL - w32tm.exe: State Machine: 1 (Hold)",
 		string(res.BuildPluginOutput()), "output matches")
 
 	StopTestAgent(t, snc)
@@ -318,8 +339,8 @@ Network Time Server: time.euro.apple.com`,
 		"sntp": ``,
 	})
 	res = snc.RunCheck("check_ntp_offset", []string{"source=osx"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Containsf(t, string(res.BuildPluginOutput()), "UNKNOWN - systemsetup -getusingnetworktime: Network Time: Off", "output matches")
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "CRITICAL - systemsetup -getusingnetworktime: Network Time: Off", "output matches")
 
 	// mock unknown result
 	MockSystemUtilities(t, map[string]string{
@@ -347,8 +368,8 @@ Network Time Server: time.euro.apple.com`,
 	}`,
 	})
 	res = snc.RunCheck("check_ntp_offset", []string{"source=osx"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Equalf(t, "UNKNOWN - sntp: result: 6 (Timeout)",
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Equalf(t, "CRITICAL - sntp: result: 6 (Timeout)",
 		string(res.BuildPluginOutput()), "output matches")
 
 	StopTestAgent(t, snc)
