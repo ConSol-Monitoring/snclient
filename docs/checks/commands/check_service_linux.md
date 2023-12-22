@@ -55,7 +55,7 @@ Naemon Config
 
 | Argument      | Default Value                                                         |
 | ------------- | --------------------------------------------------------------------- |
-| filter        | none                                                                  |
+| filter        | active != inactive                                                    |
 | critcal       | state not in ('running', 'oneshot', 'static') && preset != 'disabled' |
 | empty-state   | 3 (UNKNOWN)                                                           |
 | empty-syntax  | %(status): No services found                                          |
@@ -81,6 +81,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | name      | The name of the service                                                          |
 | service   | Alias for name                                                                   |
 | desc      | Description of the service                                                       |
+| active    | The active attribute of a service, one of: active, inactive or failed            |
 | state     | The state of the service, one of: stopped, starting, oneshot, running or unknown |
 | pid       | The pid of the service                                                           |
 | created   | Date when service was started (unix timestamp)                                   |

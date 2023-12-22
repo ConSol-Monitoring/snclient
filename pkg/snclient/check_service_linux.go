@@ -20,6 +20,12 @@ var (
 	reSvcPreset    = regexp.MustCompile(`\s+preset:\s+(\w+)\)`)
 	reSvcTasks     = regexp.MustCompile(`Tasks:\s*(\d+)`)
 	reSvcStatic    = regexp.MustCompile(`;\sstatic\)`)
+	reSvcActive    = regexp.MustCompile(`\s*Active:\s+(\S+)`)
+	reSvcFirstLine = regexp.MustCompile(`^.\s(\S+)\.service\s+`)
+)
+
+const (
+	systemctlStatusCmd = "systemctl status --lines=0 --no-pager --quiet"
 )
 
 type CheckService struct {
@@ -45,10 +51,10 @@ There is a specific [check_service for windows](check_service_windows) as well.`
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"service": {value: &l.services, description: "Name of the service to check (set to * to check all services). Default: *"},
+			"service": {value: &l.services, isFilter: true, description: "Name of the service to check (set to * to check all services). Default: *"},
 			"exclude": {value: &l.excludes, description: "List of services to exclude from the check (mainly used when service is set to *)"},
 		},
-		defaultFilter:   "none",
+		defaultFilter:   "active != inactive",
 		defaultCritical: "state not in ('running', 'oneshot', 'static') && preset != 'disabled'",
 		detailSyntax:    "${name}=${state}",
 		topSyntax:       "%(status): %(crit_list)",
@@ -59,6 +65,7 @@ There is a specific [check_service for windows](check_service_windows) as well.`
 			{name: "name", description: "The name of the service"},
 			{name: "service", description: "Alias for name"},
 			{name: "desc", description: "Description of the service"},
+			{name: "active", description: "The active attribute of a service, one of: active, inactive or failed"},
 			{name: "state", description: "The state of the service, one of: stopped, starting, oneshot, running or unknown"},
 			{name: "pid", description: "The pid of the service"},
 			{name: "created", description: "Date when service was started (unix timestamp)"},
@@ -91,32 +98,15 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	l.snc = snc
 
 	if len(l.services) == 0 || slices.Contains(l.services, "*") {
-		output, stderr, _, _, err := snc.runExternalCommandString(ctx, "systemctl --type=service --plain --no-pager --quiet", DefaultCmdTimeout)
+		// fetch status of all services at once instead of calling systemctl over and over
+		output, stderr, _, _, err := snc.runExternalCommandString(ctx, fmt.Sprintf("%s --type=service --all", systemctlStatusCmd), DefaultCmdTimeout)
 		if err != nil {
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("Failed to fetch service list: %s%s", err.Error(), stderr),
-			}, nil
+			return nil, fmt.Errorf("failed to fetch service list: %s%s", err.Error(), stderr)
 		}
 
-		re := regexp.MustCompile(`(?m)^(\S+)\.service\s+`)
-		matches := re.FindAllStringSubmatch(output, -1)
-
-		serviceList := []string{}
-		for _, match := range matches {
-			serviceList = append(serviceList, match[1])
-		}
-		for _, service := range serviceList {
-			if slices.Contains(l.excludes, service) {
-				log.Tracef("service %s excluded by 'exclude' argument", service)
-
-				continue
-			}
-
-			err = l.addService(ctx, check, service, l.services, l.excludes)
-			if err != nil {
-				return nil, err
-			}
+		err = l.parseAllServices(ctx, check, output)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -137,7 +127,7 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 			continue
 		}
 
-		err := l.addService(ctx, check, service, l.services, l.excludes)
+		err := l.addServiceByName(ctx, check, service, l.services, l.excludes)
 		if err != nil {
 			return nil, err
 		}
@@ -151,8 +141,8 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	return check.Finalize()
 }
 
-func (l *CheckService) addService(ctx context.Context, check *CheckData, service string, services, excludes []string) error {
-	output, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("systemctl status %s.service", service), DefaultCmdTimeout)
+func (l *CheckService) addServiceByName(ctx context.Context, check *CheckData, service string, services, excludes []string) error {
+	output, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("%s %s.service ", systemctlStatusCmd, service), DefaultCmdTimeout)
 	if err != nil {
 		return fmt.Errorf("systemctl failed: %s\n%s", err.Error(), stderr)
 	}
@@ -163,6 +153,10 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, service
 
 	listEntry := l.parseSystemCtlStatus(service, output)
 
+	return l.addService(ctx, check, service, listEntry, services, excludes)
+}
+
+func (l *CheckService) addService(ctx context.Context, check *CheckData, service string, listEntry map[string]string, services, excludes []string) error {
 	// fetch memory / cpu for main process
 	if listEntry["state"] == "running" {
 		err := l.addProcMetrics(ctx, listEntry["pid"], listEntry)
@@ -226,6 +220,7 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 	listEntry = map[string]string{
 		"name":    name,
 		"service": name,
+		"active":  "",
 		"state":   "unknown",
 		"created": "",
 		"age":     "",
@@ -271,5 +266,39 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 		listEntry["state"] = "static"
 	}
 
+	match = reSvcActive.FindStringSubmatch(output)
+	if len(match) > 1 {
+		listEntry["active"] = match[1]
+	}
+
 	return listEntry
+}
+
+func (l *CheckService) parseAllServices(ctx context.Context, check *CheckData, output string) (err error) {
+	// services are separated by two empty lines
+	services := strings.Split(output, "\n\n")
+	for _, svc := range services {
+		serviceMatches := reSvcFirstLine.FindStringSubmatch(svc)
+		if len(serviceMatches) < 2 {
+			log.Tracef("no service name found in systemctl output:\n%s", svc)
+
+			continue
+		}
+		service := serviceMatches[1]
+
+		if slices.Contains(l.excludes, service) {
+			log.Tracef("service %s excluded by 'exclude' argument", service)
+
+			continue
+		}
+
+		listEntry := l.parseSystemCtlStatus(service, svc)
+		err = l.addService(ctx, check, service, listEntry, l.services, l.excludes)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
