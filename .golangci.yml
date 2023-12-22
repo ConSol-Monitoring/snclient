@@ -13,6 +13,7 @@ linters-settings:
     line-length: 170
   funlen:
     lines: 80
+    statements: 45
   gomoddirectives:
     replace-local: true
   ireturn:

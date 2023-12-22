@@ -673,8 +673,6 @@ func conditionFixTokenOperator(token []string) []string {
 }
 
 // ThresholdString returns string used in warn/crit threshold performance data.
-//
-//nolint:funlen // allow more than 40 statements
 func ThresholdString(name string, conditions []*Condition, numberFormat func(interface{}) string) string {
 	// fetch warning conditions for name of metric
 	filtered := make([]*Condition, 0)
