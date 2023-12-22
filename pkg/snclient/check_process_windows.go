@@ -3,20 +3,12 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"pkg/wmi"
 
 	"golang.org/x/exp/slices"
 )
-
-var ProcessStates = map[string]string{
-	"stopped": "0",
-	"started": "1",
-	"0":       "stopped",
-	"1":       "started",
-}
 
 // https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-process
 type winProcess struct {
@@ -68,54 +60,46 @@ func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
 	if err != nil {
 		return fmt.Errorf("wmi query failed: %s", err.Error())
 	}
-	runningProcs := map[string]winProcess{}
 
-	// collect process state
 	for i := range processData {
-		process := processData[i]
-		name := process.Name
-		runningProcs[name] = process
-	}
+		proc := processData[i]
 
-	if len(l.processes) == 0 || slices.Contains(l.processes, "*") {
-		for i := range processData {
-			process := processData[i]
-			l.processes = append(l.processes, process.Name)
-		}
-	}
-
-	for _, process := range l.processes {
-		proc, exists := runningProcs[process]
-		if !exists {
+		if len(l.processes) > 0 && !slices.Contains(l.processes, proc.Name) && !slices.Contains(l.processes, "*") {
 			continue
 		}
 
-		var state float64
-		if proc.ProcessId == 0 || proc.ThreadCount == 0 {
-			state = 0
-		} else {
-			state = 1
+		state := "stopped"
+		if proc.ProcessId > 0 && proc.ThreadCount > 0 {
+			state = "started"
+		}
+
+		cpu := float64(0)
+		cpuSec := float64(proc.UserModeTime+proc.KernelModeTime) / 1e7 // values are multiple of 100ns
+		age := time.Since(proc.CreationDate).Seconds()
+		if age > 0 {
+			cpu = (cpuSec / age) * 100
 		}
 
 		check.listData = append(check.listData, map[string]string{
-			"process":          process,
-			"state":            ProcessStates[strconv.FormatFloat(state, 'f', 0, 64)],
+			"process":          proc.Name,
+			"state":            state,
 			"command_line":     proc.CommandLine,
 			"creation":         proc.CreationDate.In(timeZone).Format("2006-01-02 15:04:05 MST"),
 			"creation_unix":    fmt.Sprintf("%d", proc.CreationDate.Unix()),
-			"exe":              process,
+			"exe":              proc.Name,
 			"filename":         proc.ExecutablePath,
 			"handles":          fmt.Sprintf("%d", proc.HandleCount),
-			"kernel":           fmt.Sprintf("%d", proc.KernelModeTime),
+			"kernel":           fmt.Sprintf("%f", float64(proc.KernelModeTime)/1e7), // values are multiple of 100ns
 			"pagefile":         fmt.Sprintf("%d", proc.PageFileUsage),
 			"peak_pagefile":    fmt.Sprintf("%d", proc.PeakPageFileUsage),
 			"peak_virtual":     fmt.Sprintf("%d", proc.PeakVirtualSize),
 			"peak_working_set": fmt.Sprintf("%d", proc.PeakWorkingSetSize),
 			"pid":              fmt.Sprintf("%d", proc.ProcessId),
-			"user":             fmt.Sprintf("%d", proc.UserModeTime),
+			"user":             fmt.Sprintf("%f", float64(proc.UserModeTime)/1e7), // values are multiple of 100ns
 			"virtual":          fmt.Sprintf("%d", proc.VirtualSize),
 			"working_set":      fmt.Sprintf("%d", proc.WorkingSetSize),
 			"rss":              fmt.Sprintf("%d", proc.WorkingSetSize),
+			"cpu":              fmt.Sprintf("%f", cpu),
 		})
 	}
 

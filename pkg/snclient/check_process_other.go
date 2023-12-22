@@ -90,8 +90,13 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 
 		mem, err := proc.MemoryInfoWithContext(ctx)
 		if err != nil {
-			log.Debugf("check_process: Username error: %s")
+			log.Debugf("check_process: meminfo error: %s")
 			mem = &process.MemoryInfoStat{}
+		}
+
+		cpu, err := proc.CPUPercentWithContext(ctx)
+		if err != nil {
+			log.Debugf("check_process: cpuinfo error: %s")
 		}
 
 		check.listData = append(check.listData, map[string]string{
@@ -108,6 +113,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			"virtual":       fmt.Sprintf("%d", mem.VMS),
 			"rss":           fmt.Sprintf("%d", mem.RSS),
 			"pagefile":      fmt.Sprintf("%d", mem.Swap),
+			"cpu":           fmt.Sprintf("%f", cpu),
 		})
 	}
 

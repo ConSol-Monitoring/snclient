@@ -83,6 +83,7 @@ issues:
     - "mnd: Magic number: 86400, in"
     - "mnd: Magic number: 1e3, in"
     - "mnd: Magic number: 1e6, in"
+    - "mnd: Magic number: 1e7, in"
     - "mnd: Magic number: 1e9, in"
     - "mnd: Magic number: 1e12, in"
     - "mnd: Magic number: 1e15, in"
