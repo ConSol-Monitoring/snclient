@@ -5,7 +5,10 @@ next:
          - add check_mailq
          - add check_connections
          - improve check_process output
+         - add check_process cpu metrics
+         - improve check_service linux performance
          - fix using arguments in aliased checks (#69)
+         - fix metrics order when using check_nsc_web
 
 0.15     Fri Dec 15 23:31:08 CET 2023
          - improve counter memory consumption
