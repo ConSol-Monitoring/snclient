@@ -46,8 +46,8 @@ func (l *CheckNetwork) Build() *CheckData {
 			"name":    {value: &l.names, description: "Alias for device"},
 			"exclude": {value: &l.excludes, description: "Exclude device by name"},
 		},
-		defaultWarning:  "total > 90MB",
-		defaultCritical: "total > 100MB",
+		defaultWarning:  "total > 80GB",
+		defaultCritical: "total > 90GB",
 		okSyntax:        "%(status): %(list)",
 		detailSyntax:    "%(name) >%(sent) <%(received)",
 		topSyntax:       "%(status): %(list)",
@@ -62,7 +62,7 @@ func (l *CheckNetwork) Build() *CheckData {
 			{name: "total_received", description: "Total bytes received"},
 			{name: "sent", description: "Bytes sent per second (calculated over the last " + TrafficRateDuration.String() + ")"},
 			{name: "total_sent", description: "Total bytes sent"},
-			{name: "speed", description: "Network interface speed"},
+			{name: "speed", description: "Network interface speed (in Mbits/sec)"},
 			{name: "flags", description: "Interface flags"},
 			{name: "total", description: "Sum of sent and received bytes per second"},
 		},
@@ -116,6 +116,9 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 			"total":             fmt.Sprintf("%.2f", recvRate+sentRate),
 			"speed":             fmt.Sprintf("%d", speed),
 			"flags":             strings.Join(int.Flags, ","),
+		}
+		if speed == -1 {
+			entry["speed"] = ""
 		}
 
 		if !check.MatchMapCondition(check.filter, entry, true) {
