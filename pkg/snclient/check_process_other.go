@@ -72,6 +72,11 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			log.Debugf("check_process: CreateTime error: %s")
 		}
 
+		// skip very young ( < 3000ms ) check_nsc_web processes, they might be checking us and screwing process counts
+		if strings.Contains(cmdLine, "check_nsc_web") && time.Now().UnixMilli()-ctime < 3000 {
+			continue
+		}
+
 		uids, err := proc.UidsWithContext(ctx)
 		if err != nil {
 			log.Debugf("check_process: uids error: %s")
