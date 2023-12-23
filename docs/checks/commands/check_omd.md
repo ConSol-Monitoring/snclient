@@ -50,7 +50,7 @@ Naemon Config
 | ------------- | --------------------------------------------------- |
 | filter        | autostart = 1                                       |
 | warning       | state == 1                                          |
-| critcal       | state >= 2                                          |
+| critical      | state >= 2                                          |
 | empty-state   | 3 (UNKNOWN)                                         |
 | empty-syntax  | check_omd failed to find any site with this filter. |
 | top-syntax    | \${status} - \${list}                               |
