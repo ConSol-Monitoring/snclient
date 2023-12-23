@@ -56,7 +56,7 @@ Naemon Config
 | Argument      | Default Value                                                         |
 | ------------- | --------------------------------------------------------------------- |
 | filter        | active != inactive                                                    |
-| critcal       | state not in ('running', 'oneshot', 'static') && preset != 'disabled' |
+| critical      | state not in ('running', 'oneshot', 'static') && preset != 'disabled' |
 | empty-state   | 3 (UNKNOWN)                                                           |
 | empty-syntax  | %(status): No services found                                          |
 | top-syntax    | %(status): %(crit_list)                                               |
