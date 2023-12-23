@@ -50,7 +50,7 @@ Naemon Config
 | ------------- | ------------------------------------------------- |
 | filter        | name=coretemp                                     |
 | warning       | temperature < \${min} \|\| temperature > \${crit} |
-| critcal       | temperature < \${min} \|\| temperature > \${crit} |
+| critical      | temperature < \${min} \|\| temperature > \${crit} |
 | empty-state   | 3 (UNKNOWN)                                       |
 | empty-syntax  | check_temperature failed to find any sensors.     |
 | top-syntax    | \${status} - \${list}                             |
