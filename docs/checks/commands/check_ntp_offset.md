@@ -45,7 +45,7 @@ Naemon Config
 | ------------- | -------------------------------------------------- |
 | filter        | none                                               |
 | warning       | offset > 50 \|\| offset < -50                      |
-| critcal       | offset > 100 \|\| offset < -100                    |
+| critical      | offset > 100 \|\| offset < -100                    |
 | empty-state   | 3 (UNKNOWN)                                        |
 | empty-syntax  | \${status}: could not get any ntp data             |
 | top-syntax    | \${status}: \${list}                               |
