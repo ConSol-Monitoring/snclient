@@ -50,7 +50,7 @@ Naemon Config
 | ------------- | ---------------------------------------------------------------- |
 | filter        | core = 'total'                                                   |
 | warning       | load > 80                                                        |
-| critcal       | load > 90                                                        |
+| critical      | load > 90                                                        |
 | empty-state   | 3 (UNKNOWN)                                                      |
 | empty-syntax  | check_cpu failed to find anything with this filter.              |
 | top-syntax    | \${status}: \${problem_list} on %{core_num} cores                |
