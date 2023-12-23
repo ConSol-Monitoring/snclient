@@ -90,8 +90,8 @@ func (l *CheckConnections) Build() *CheckData {
 			"inet": {value: &l.addressFamily, isFilter: true, description: "Use specific address family only. Can be: total, any, ipv4 or ipv6"},
 		},
 		defaultFilter:   "inet=total",
-		defaultWarning:  "total > 500",
-		defaultCritical: "total > 1500",
+		defaultWarning:  "total > 1000",
+		defaultCritical: "total > 2000",
 		detailSyntax:    "total ${prefix}connections: ${total}",
 		topSyntax:       "${status}: ${list}",
 		attributes: []CheckAttribute{
