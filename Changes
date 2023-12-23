@@ -10,6 +10,7 @@ next:
          - add reload support for systemd service
          - fix using arguments in aliased checks (#69)
          - fix metrics order when using check_nsc_web
+         - fix wrong path in logrotation on linux
 
 0.15     Fri Dec 15 23:31:08 CET 2023
          - improve counter memory consumption
