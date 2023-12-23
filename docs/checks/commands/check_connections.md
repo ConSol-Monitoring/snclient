@@ -50,7 +50,7 @@ Naemon Config
 | ------------- | -------------------------------------- |
 | filter        | inet=total                             |
 | warning       | total > 500                            |
-| critcal       | total > 1500                           |
+| critical      | total > 1500                           |
 | empty-state   | 0 (OK)                                 |
 | empty-syntax  |                                        |
 | top-syntax    | \${status}: \${list}                   |
