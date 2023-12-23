@@ -83,7 +83,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 		if username == "" {
 			username, err := proc.UsernameWithContext(ctx)
 			if err != nil {
-				log.Debugf("check_process: Username error: %s")
+				log.Debugf("check_process: Username error uid %#v: %s", uids, err.Error())
 			}
 			userNameLookup[uids[0]] = username
 		}
