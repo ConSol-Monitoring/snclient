@@ -49,7 +49,7 @@ Naemon Config
 | Argument      | Default Value                                         |
 | ------------- | ----------------------------------------------------- |
 | warning       | used > 80%                                            |
-| critcal       | used > 90%                                            |
+| critical      | used > 90%                                            |
 | empty-state   | 0 (OK)                                                |
 | empty-syntax  |                                                       |
 | top-syntax    | \${status}: \${list}                                  |
