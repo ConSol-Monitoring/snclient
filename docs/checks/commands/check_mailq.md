@@ -45,7 +45,7 @@ Naemon Config
 | ------------- | -------------------------------------------------------------------------------- |
 | filter        | none                                                                             |
 | warning       | active > 5 \|\| active_size > 10MB \|\| deferred > 0 \|\| deferred_size > 10MB   |
-| critcal       | active > 10 \|\| active_size > 20MB \|\| deferred > 10 \|\| deferred_size > 20MB |
+| critical      | active > 10 \|\| active_size > 20MB \|\| deferred > 10 \|\| deferred_size > 20MB |
 | empty-state   | 3 (UNKNOWN)                                                                      |
 | empty-syntax  | \${status}: could not get any mailq data                                         |
 | top-syntax    | \${status}: \${list}                                                             |
