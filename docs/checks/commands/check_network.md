@@ -44,7 +44,7 @@ Naemon Config
 | Argument      | Default Value                 |
 | ------------- | ----------------------------- |
 | warning       | total > 10000                 |
-| critcal       | total > 100000                |
+| critical      | total > 100000                |
 | empty-state   | 3 (UNKNOWN)                   |
 | empty-syntax  | %(status): No devices found   |
 | top-syntax    | %(status): %(list)            |
