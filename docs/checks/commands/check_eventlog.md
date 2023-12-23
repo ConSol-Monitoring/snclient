@@ -45,7 +45,7 @@ Naemon Config
 | ------------- | ---------------------------------------------- |
 | filter        | level in ('warning', 'error', 'critical')      |
 | warning       | level = 'warning' or problem_count > 0         |
-| critcal       | level in ('error', 'critical')                 |
+| critical      | level in ('error', 'critical')                 |
 | empty-state   | 0 (OK)                                         |
 | empty-syntax  | %(status): No entries found                    |
 | top-syntax    | %(status): %(count) message(s) %(problem_list) |
