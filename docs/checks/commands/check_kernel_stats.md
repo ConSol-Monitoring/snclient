@@ -44,7 +44,7 @@ Naemon Config
 | Argument      | Default Value               |
 | ------------- | --------------------------- |
 | warning       | threads > 8000              |
-| critcal       | threads > 10000             |
+| critical      | threads > 10000             |
 | empty-state   | 3 (UNKNOWN)                 |
 | empty-syntax  | %(status): No metrics found |
 | top-syntax    | %(status): %(list)          |
