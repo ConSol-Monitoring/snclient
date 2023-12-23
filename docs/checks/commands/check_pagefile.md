@@ -45,7 +45,7 @@ Naemon Config
 | ------------- | ---------------------------- |
 | filter        | name = 'total'               |
 | warning       | used > 60%                   |
-| critcal       | used > 80%                   |
+| critical      | used > 80%                   |
 | empty-state   | 0 (OK)                       |
 | empty-syntax  |                              |
 | top-syntax    | \${status}: \${list}         |
