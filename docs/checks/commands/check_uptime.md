@@ -44,7 +44,7 @@ Naemon Config
 | Argument      | Default Value                            |
 | ------------- | ---------------------------------------- |
 | warning       | uptime < 2d                              |
-| critcial      | uptime < 1d                              |
+| critical      | uptime < 1d                              |
 | empty-state   | 0 (OK)                                   |
 | empty-syntax  |                                          |
 | top-syntax    | \${status}: \${list}                     |
