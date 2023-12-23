@@ -1129,7 +1129,7 @@ func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
 		defaultArgs = append(defaultArgs, defaultArg{name: "warning", defaults: cd.defaultWarning})
 	}
 	if cd.defaultCritical != "" {
-		defaultArgs = append(defaultArgs, defaultArg{name: "critcal", defaults: cd.defaultCritical})
+		defaultArgs = append(defaultArgs, defaultArg{name: "critical", defaults: cd.defaultCritical})
 	}
 	defaultArgs = append(defaultArgs,
 		defaultArg{name: "empty-state", defaults: fmt.Sprintf("%d (%s)", cd.emptyState, convert.StateString(cd.emptyState))},
