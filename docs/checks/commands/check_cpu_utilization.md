@@ -44,7 +44,7 @@ Naemon Config
 | Argument      | Default Value                                                                                       |
 | ------------- | --------------------------------------------------------------------------------------------------- |
 | warning       | total > 90                                                                                          |
-| critcal       | total > 95                                                                                          |
+| critical      | total > 95                                                                                          |
 | empty-state   | 0 (OK)                                                                                              |
 | empty-syntax  |                                                                                                     |
 | top-syntax    | \${status} - \${list}                                                                               |
