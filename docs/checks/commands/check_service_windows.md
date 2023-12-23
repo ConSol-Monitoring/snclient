@@ -52,7 +52,7 @@ Naemon Config
 | ------------- | ----------------------------------------------- |
 | filter        | none                                            |
 | warning       | state != 'running' && start_type = 'delayed'    |
-| critcal       | state != 'running' && start_type = 'auto'       |
+| critical      | state != 'running' && start_type = 'auto'       |
 | empty-state   | 3 (UNKNOWN)                                     |
 | empty-syntax  | %(status): No services found                    |
 | top-syntax    | %(status): %(crit_list), delayed (%(warn_list)) |
