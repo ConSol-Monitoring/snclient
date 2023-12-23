@@ -45,7 +45,7 @@ Naemon Config
 | ------------- | ---------------------------------------- |
 | filter        | enabled = true                           |
 | warning       | exit_code != 0                           |
-| critcal       | exit_code < 0                            |
+| critical      | exit_code < 0                            |
 | empty-state   | 1 (WARNING)                              |
 | empty-syntax  | %(status): No tasks found                |
 | top-syntax    | \${status}: \${problem_list}             |
