@@ -44,7 +44,7 @@ Naemon Config
 | Argument      | Default Value                                         |
 | ------------- | ----------------------------------------------------- |
 | warning       | issues != ''                                          |
-| critcal       | issues like 'not mounted'                             |
+| critical      | issues like 'not mounted'                             |
 | empty-state   | 3 (UNKNOWN)                                           |
 | empty-syntax  | check_mount failed to find anything with this filter. |
 | top-syntax    | \${status} - \${problem_list}                         |

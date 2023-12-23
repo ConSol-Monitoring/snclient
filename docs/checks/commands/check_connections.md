@@ -49,8 +49,8 @@ Naemon Config
 | Argument      | Default Value                          |
 | ------------- | -------------------------------------- |
 | filter        | inet=total                             |
-| warning       | total > 500                            |
-| critical      | total > 1500                           |
+| warning       | total > 1000                           |
+| critical      | total > 2000                           |
 | empty-state   | 0 (OK)                                 |
 | empty-syntax  |                                        |
 | top-syntax    | \${status}: \${list}                   |

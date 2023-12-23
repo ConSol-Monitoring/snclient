@@ -43,8 +43,8 @@ Naemon Config
 
 | Argument      | Default Value                 |
 | ------------- | ----------------------------- |
-| warning       | total > 10000                 |
-| critical      | total > 100000                |
+| warning       | total > 80GB                  |
+| critical      | total > 90GB                  |
 | empty-state   | 3 (UNKNOWN)                   |
 | empty-syntax  | %(status): No devices found   |
 | top-syntax    | %(status): %(list)            |
@@ -76,6 +76,6 @@ these can be used in filters and thresholds (along with the default attributes):
 | total_received    | Total bytes received                                     |
 | sent              | Bytes sent per second (calculated over the last 30s)     |
 | total_sent        | Total bytes sent                                         |
-| speed             | Network interface speed                                  |
+| speed             | Network interface speed (in Mbits/sec)                   |
 | flags             | Interface flags                                          |
 | total             | Sum of sent and received bytes per second                |
