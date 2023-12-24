@@ -39,7 +39,7 @@ func (l *CheckProcess) Build() *CheckData {
 		detailSyntax: "${exe}=${state}",
 		topSyntax:    "${status}: ${problem_list}",
 		emptyState:   3,
-		emptySyntax:  "check_process failed to find anything with this filter.",
+		emptySyntax:  "%(status): check_process failed to find anything with this filter.",
 		attributes: []CheckAttribute{
 			{name: "process", description: "Name of the executable (without path)"},
 			{name: "exe", description: "Name of the executable (without path)"},
@@ -69,8 +69,17 @@ func (l *CheckProcess) Build() *CheckData {
 
 Check specific process by name (adding some metrics as well)
 
-    check_process process=httpd warn='count <= 0 || count > 10' crit='count <= 0 || count > 20' top-syntax='%{status} - %{count} processes, memory %{rss|h}B, started %{oldest:age|duration} ago'
+    check_process \
+        process=httpd \
+        warn='count < 1 || count > 10' \
+        crit='count < 0 || count > 20' \
+        top-syntax='%{status} - %{count} processes, memory %{rss|h}B, cpu %{cpu:fmt=%.1f}%, started %{oldest:age|duration} ago'
     WARNING - 12 processes, memory 62.58 MB, started 01:11h ago |...
+
+If zero is a valid threshold, set the empty-state to ok
+
+    check_process process=qemu warn='count <= 0 || count > 10' crit='count <= 0 || count > 20' empty-state=0
+    OK: check_process failed to find anything with this filter.
 	`,
 		exampleArgs: `warn='count <= 0 || count > 10' crit='count <= 0 || count > 20'`,
 	}

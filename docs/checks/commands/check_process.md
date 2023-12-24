@@ -25,8 +25,17 @@ Checks the state and metrics of one or multiple processes.
 
 Check specific process by name (adding some metrics as well)
 
-    check_process process=httpd warn='count <= 0 || count > 10' crit='count <= 0 || count > 20' top-syntax='%{status} - %{count} processes, memory %{rss|h}B, started %{oldest:age|duration} ago'
+    check_process \
+        process=httpd \
+        warn='count < 1 || count > 10' \
+        crit='count < 0 || count > 20' \
+        top-syntax='%{status} - %{count} processes, memory %{rss|h}B, cpu %{cpu:fmt=%.1f}%, started %{oldest:age|duration} ago'
     WARNING - 12 processes, memory 62.58 MB, started 01:11h ago |...
+
+If zero is a valid threshold, set the empty-state to ok
+
+    check_process process=qemu warn='count <= 0 || count > 10' crit='count <= 0 || count > 20' empty-state=0
+    OK: check_process failed to find anything with this filter.
 
 ### Example using NRPE and Naemon
 
@@ -46,13 +55,13 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                           |
-| ------------- | ------------------------------------------------------- |
-| empty-state   | 3 (UNKNOWN)                                             |
-| empty-syntax  | check_process failed to find anything with this filter. |
-| top-syntax    | \${status}: \${problem_list}                            |
-| ok-syntax     | %(status): all %{count} processes are ok.               |
-| detail-syntax | \${exe}=\${state}                                       |
+| Argument      | Default Value                                                      |
+| ------------- | ------------------------------------------------------------------ |
+| empty-state   | 3 (UNKNOWN)                                                        |
+| empty-syntax  | %(status): check_process failed to find anything with this filter. |
+| top-syntax    | \${status}: \${problem_list}                                       |
+| ok-syntax     | %(status): all %{count} processes are ok.                          |
+| detail-syntax | \${exe}=\${state}                                                  |
 
 ## Check Specific Arguments
 
