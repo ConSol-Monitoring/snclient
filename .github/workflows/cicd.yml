@@ -333,7 +333,7 @@ jobs:
           name: "${{ env.DIST }}.pkg"
           path: "${{ env.DIST }}.pkg"
           if-no-files-found: error
-      - uses: geekyeggo/delete-artifact@v2
+      - uses: geekyeggo/delete-artifact@v4
         with:
             name: "${{ env.BIN }}"
 
@@ -378,7 +378,7 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: geekyeggo/delete-artifact@v2
+      - uses: geekyeggo/delete-artifact@v4
         with:
             name: "${{ env.BIN }}"
 
@@ -450,7 +450,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pkg-msi, integration-test-windows]
     steps:
-      - uses: geekyeggo/delete-artifact@v2
+      - uses: geekyeggo/delete-artifact@v4
         with:
             name: "windist"
 
@@ -464,7 +464,7 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: geekyeggo/delete-artifact@v2
+      - uses: geekyeggo/delete-artifact@v4
         with:
             name: ${{ env.BIN }}
 
