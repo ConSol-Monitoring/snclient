@@ -41,13 +41,13 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                         |
-| ------------- | ----------------------------------------------------- |
-| empty-state   | 0 (OK)                                                |
-| empty-syntax  |                                                       |
-| top-syntax    | \${status}: \${platform} \${version} (arch: \${arch}) |
-| ok-syntax     |                                                       |
-| detail-syntax |                                                       |
+| Argument      | Default Value                             |
+| ------------- | ----------------------------------------- |
+| empty-state   | 0 (OK)                                    |
+| empty-syntax  |                                           |
+| top-syntax    | \${status}: \${list})                     |
+| ok-syntax     |                                           |
+| detail-syntax | \${platform} \${version} (arch: \${arch}) |
 
 ## Check Specific Arguments
 
