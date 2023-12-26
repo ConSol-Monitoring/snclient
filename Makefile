@@ -52,8 +52,7 @@ GO=go
 ifneq "$(wildcard ./tools/colorgo )" ""
   GO=COLORGO_FILE=magenta colorgo
 endif
-GOBUILD=CGO_ENABLED=0 $(GO) build
-GOTEST=CGO_ENABLED=0 $(GO) test
+CGO_ENABLED=0
 
 # OSX must be build with CGO enabled, otherwise we don't get cpu metrics
 DARWIN=0
@@ -66,8 +65,7 @@ ifeq ($(GOOS),darwin)
 endif
 ifeq ($(DARWIN),1)
   # cgo is required to retrieve cpu information
-  GOBUILD=CGO_ENABLED=1 $(GO) build
-  GOTEST=CGO_ENABLED=1 $(GO) test
+  CGO_ENABLED=1
 endif
 
 ENTR=ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr
@@ -123,7 +121,7 @@ go.work: pkg/*
 
 build: vendor go.work snclient.ini server.crt server.key
 	set -xe; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD ) ; \
+		( cd ./cmd/$$CMD && CGO_ENABLED=$(CGO_ENABLED) $(GO) build $(BUILD_FLAGS) -o ../../$$CMD ) ; \
 	done
 
 # run build watch, ex. with tracing: make build-watch -- -vv -logfile stderr
@@ -140,40 +138,40 @@ build-watch-cmd: vendor tools
 
 build-linux-amd64: vendor
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.linux.amd64 ) ; \
+		( cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.linux.amd64 ) ; \
 	done
 
 build-linux-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=linux GOARCH=386 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.linux.i386 ) ; \
+		( cd ./cmd/$$CMD && GOOS=linux GOARCH=386 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.linux.i386 ) ; \
 	done
 
 build-windows-i386: vendor rsrc_windows_386.syso
 	cp rsrc_windows_386.syso cmd/snclient/
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=windows GOARCH=386 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.windows.i386.exe ) ; \
+		( cd ./cmd/$$CMD && GOOS=windows GOARCH=386 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.windows.i386.exe ) ; \
 	done
 
 build-windows-amd64: vendor rsrc_windows_amd64.syso
 	cp rsrc_windows_amd64.syso cmd/snclient/
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.windows.amd64.exe ) ; \
+		( cd ./cmd/$$CMD && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.windows.amd64.exe ) ; \
 	done
 
 build-windows-arm64: vendor rsrc_windows_arm64.syso
 	cp rsrc_windows_arm64.syso cmd/snclient/
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=windows GOARCH=arm64 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.windows.arm64.exe ) ; \
+		( cd ./cmd/$$CMD && GOOS=windows GOARCH=arm64 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.windows.arm64.exe ) ; \
 	done
 
 build-freebsd-i386: vendor
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.freebsd.i386 ) ; \
+		( cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.freebsd.i386 ) ; \
 	done
 
 build-darwin-aarch64: vendor
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 $(GOBUILD) $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
+		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
 	done
 
 winres: | tools
@@ -190,16 +188,16 @@ rsrc_windows_arm64.syso: winres | tools
 	${TOOLSFOLDER}/go-winres make --arch arm64
 
 test: vendor
-	$(GOTEST) -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd
 	if grep -Irn TODO: ./cmd/ ./pkg/ ./packaging/ ; then exit 1; fi
 	if grep -Irn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 
 # test with filter
 testf: vendor
-	$(GOTEST) -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS"
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS"
 
 longtest: vendor
-	$(GOTEST) -v $(TEST_FLAGS) pkg/* pkg/*/cmd
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) pkg/* pkg/*/cmd
 
 citest: vendor
 	#
@@ -254,19 +252,19 @@ citest: vendor
 	#
 
 benchmark:
-	$(GOTEST) $(TEST_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/* pkg/*/cmd
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test $(TEST_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/* pkg/*/cmd
 
 racetest:
 	# go: -race requires cgo, so do not use the macro here
 	$(GO) test -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/* pkg/*/cmd
 
 covertest:
-	$(GOTEST) -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
 	$(GO) tool cover -func=cover.out
 	$(GO) tool cover -html=cover.out -o coverage.html
 
 coverweb:
-	$(GOTEST) -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
 	$(GO) tool cover -html=cover.out
 
 clean:
@@ -325,14 +323,14 @@ golangci: tools
 		echo $$dir; \
 		if [ $$dir != "pkg/eventlog" ]; then \
 			echo "  - GOOS=linux"; \
-			( cd $$dir && GOOS=linux golangci-lint run --timeout=5m ./... ); \
+			( cd $$dir && GOOS=linux CGO_ENABLED=0 golangci-lint run --timeout=5m ./... ); \
 			echo "  - GOOS=darwin"; \
-			( cd $$dir && GOOS=darwin golangci-lint run --timeout=5m ./... ); \
+			( cd $$dir && GOOS=darwin CGO_ENABLED=1 golangci-lint run --timeout=5m ./... ); \
 			echo "  - GOOS=freebsd"; \
-			( cd $$dir && GOOS=freebsd golangci-lint run --timeout=5m ./... ); \
+			( cd $$dir && GOOS=freebsd CGO_ENABLED=0 golangci-lint run --timeout=5m ./... ); \
 		fi; \
 		echo "  - GOOS=windows"; \
-		( cd $$dir && GOOS=windows golangci-lint run --timeout=5m ./... ); \
+		( cd $$dir && GOOS=windows CGO_ENABLED=0 golangci-lint run --timeout=5m ./... ); \
 	done
 
 govulncheck: tools
