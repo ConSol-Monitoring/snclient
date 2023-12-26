@@ -171,7 +171,7 @@ build-freebsd-i386: vendor
 
 build-darwin-aarch64: vendor
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
+		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
 	done
 
 winres: | tools
