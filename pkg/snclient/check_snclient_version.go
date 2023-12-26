@@ -1,6 +1,10 @@
 package snclient
 
-import "context"
+import (
+	"context"
+
+	"pkg/convert"
+)
 
 func init() {
 	AvailableChecks["check_snclient_version"] = CheckEntry{"check_snclient_version", NewCheckSNClientVersion}
@@ -43,6 +47,16 @@ func (l *CheckSNClientVersion) Check(_ context.Context, snc *Agent, check *Check
 		"version": snc.Version(),
 		"build":   Build,
 	})
+
+	v := convert.VersionF64(snc.Version())
+	if v > 0 {
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:     "version",
+			Value:    v,
+			Warning:  check.warnThreshold,
+			Critical: check.critThreshold,
+		})
+	}
 
 	return check.Finalize()
 }
