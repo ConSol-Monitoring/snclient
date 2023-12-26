@@ -171,7 +171,7 @@ build-freebsd-i386: vendor
 
 build-darwin-aarch64: vendor
 	set -e; for CMD in $(CMDS); do \
-		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
+		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=$(CGO_ENABLED) $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
 	done
 
 winres: | tools
@@ -325,7 +325,7 @@ golangci: tools
 			echo "  - GOOS=linux"; \
 			( cd $$dir && GOOS=linux CGO_ENABLED=0 golangci-lint run --timeout=5m ./... ); \
 			echo "  - GOOS=darwin"; \
-			( cd $$dir && GOOS=darwin CGO_ENABLED=0 golangci-lint run --timeout=5m ./... ); \
+			( cd $$dir && GOOS=darwin CGO_ENABLED=$(CGO_ENABLED) golangci-lint run --timeout=5m ./... ); \
 			echo "  - GOOS=freebsd"; \
 			( cd $$dir && GOOS=freebsd CGO_ENABLED=0 golangci-lint run --timeout=5m ./... ); \
 		fi; \
