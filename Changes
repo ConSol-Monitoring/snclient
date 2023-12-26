@@ -10,6 +10,7 @@ next:
          - add reload support for systemd service
          - add metrics to check_os_version
          - add metrics to check_snclient_version
+         - use state from metric checks for final result
          - fix using arguments in aliased checks (#69)
          - fix metrics order when using check_nsc_web
          - fix wrong path in logrotation on linux

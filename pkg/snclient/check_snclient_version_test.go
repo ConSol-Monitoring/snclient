@@ -24,4 +24,8 @@ func TestCheckSNClientVersion(t *testing.T) {
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
+
+	res = snc.RunCheck("check_snclient_version", []string{"warn='version > 0.1'"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state Warning")
+	assert.Containsf(t, string(res.BuildPluginOutput()), ";0.1", "output matches")
 }

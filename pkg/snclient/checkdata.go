@@ -179,6 +179,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 
 	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	cd.setStateFromMaps(finalMacros)
+	cd.CheckMetrics(cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 
 	switch {
 	case cd.result.Output != "":
@@ -362,6 +363,37 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []
 	for i := range okCond {
 		if okCond[i].Match(data, false) {
 			data["_state"] = fmt.Sprintf("%d", CheckExitOK)
+		}
+	}
+}
+
+// CheckMetrics tries warn/crit/ok conditions against given metrics and sets final state accordingly
+func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond []*Condition) {
+	for n := range cd.result.Metrics {
+		metric := cd.result.Metrics[n]
+		state := CheckExitOK
+		data := map[string]string{
+			metric.Name: fmt.Sprintf("%v", metric.Value),
+		}
+		for i := range warnCond {
+			if warnCond[i].Match(data, false) {
+				state = CheckExitWarning
+			}
+		}
+
+		for i := range critCond {
+			if critCond[i].Match(data, false) {
+				state = CheckExitCritical
+			}
+		}
+
+		for i := range okCond {
+			if okCond[i].Match(data, false) {
+				state = CheckExitOK
+			}
+		}
+		if state > CheckExitOK {
+			cd.result.EscalateStatus(state)
 		}
 	}
 }
