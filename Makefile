@@ -325,7 +325,7 @@ golangci: tools
 			echo "  - GOOS=linux"; \
 			( cd $$dir && GOOS=linux CGO_ENABLED=0 golangci-lint run --timeout=5m ./... ); \
 			echo "  - GOOS=darwin"; \
-			( cd $$dir && GOOS=darwin CGO_ENABLED=1 golangci-lint run --timeout=5m ./... ); \
+			( cd $$dir && GOOS=darwin CGO_ENABLED=0 golangci-lint run --timeout=5m ./... ); \
 			echo "  - GOOS=freebsd"; \
 			( cd $$dir && GOOS=freebsd CGO_ENABLED=0 golangci-lint run --timeout=5m ./... ); \
 		fi; \
