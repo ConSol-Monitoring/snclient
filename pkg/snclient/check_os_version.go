@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"runtime"
 
+	"pkg/convert"
+
 	"github.com/shirou/gopsutil/v3/host"
 )
 
@@ -27,7 +29,8 @@ func (l *CheckOSVersion) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		topSyntax: "${status}: ${platform} ${version} (arch: ${arch})",
+		topSyntax:    "${status}: ${list})",
+		detailSyntax: "${platform} ${version} (arch: ${arch})",
 		attributes: []CheckAttribute{
 			{name: "platform", description: "Platform of the OS"},
 			{name: "family", description: "OS Family"},
@@ -47,11 +50,21 @@ func (l *CheckOSVersion) Check(_ context.Context, _ *Agent, check *CheckData, _ 
 		return nil, fmt.Errorf("failed to get platform information: %s", err.Error())
 	}
 
-	check.details = map[string]string{
+	check.listData = []map[string]string{{
 		"platform": platform,
 		"family":   family,
 		"version":  version,
 		"arch":     runtime.GOARCH,
+	}}
+
+	v := convert.VersionF64(version)
+	if v > 0 {
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:     "version",
+			Value:    v,
+			Warning:  check.warnThreshold,
+			Critical: check.critThreshold,
+		})
 	}
 
 	return check.Finalize()

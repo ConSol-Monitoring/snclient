@@ -58,6 +58,35 @@ func TestConvertBoolE(t *testing.T) {
 	}
 }
 
+func TestConvertVersionF64(t *testing.T) {
+	tests := []struct {
+		in  interface{}
+		res float64
+		err bool
+	}{
+		{1.5, 1.5, false},
+		{"1.5", 1.5, false},
+		{"1", 1, false},
+		{"7.3.4", 7.34, false},
+		{"7.3-4", 7.34, false},
+		{"10.0.22631.2715", 10.0226312715, false},
+		{"v0.15.0065", 0.150065, false},
+		{"10.0.22631.2715 Build 22631.2715", 10.0226312715, false},
+		{"", 0, true},
+		{"abc", 0, true},
+	}
+
+	for _, tst := range tests {
+		res, err := VersionF64E(tst.in)
+		if tst.err {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+		assert.InDeltaf(t, tst.res, res, 0.00001, "VersionF64E: %s", tst.in)
+	}
+}
+
 func TestNum2String(t *testing.T) {
 	tests := []struct {
 		in  interface{}

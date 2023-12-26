@@ -3,6 +3,7 @@ package convert
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -137,6 +138,46 @@ func BoolE(raw interface{}) (bool, error) {
 	}
 
 	return false, fmt.Errorf("cannot parse boolean value from %v (%T)", raw, raw)
+}
+
+// VersionF64 converts any version into a float64
+// errors will fall back to 0
+func VersionF64(raw interface{}) float64 {
+	val, _ := VersionF64E(raw)
+
+	return val
+}
+
+// VersionF64E converts any version into a float64
+// errors will be returned
+func VersionF64E(raw interface{}) (float64, error) {
+	str := fmt.Sprintf("%v", raw)
+	if str == "" {
+		return 0, fmt.Errorf("cannot parse version float64 value from %v (%T)", raw, raw)
+	}
+	matches := regexp.MustCompile(`[\d.\-]+`).FindStringSubmatch(str)
+	if len(matches) == 0 {
+		return 0, fmt.Errorf("cannot parse version float64 value from %v (%T)", raw, raw)
+	}
+	matches[0] = strings.ReplaceAll(matches[0], "-", ".")
+	dots := strings.Split(matches[0], ".")
+	str = dots[0]
+	for idx := range dots {
+		switch idx {
+		case 0:
+			continue
+		case 1:
+			str += "." + dots[idx]
+		default:
+			str += "" + dots[idx]
+		}
+	}
+	num, err := Float64E(str)
+	if err != nil {
+		return 0, fmt.Errorf("cannot parse version float64 value from %v (%T)", raw, raw)
+	}
+
+	return num, nil
 }
 
 // Num2String converts any number into a string

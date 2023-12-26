@@ -8,6 +8,7 @@ next:
          - add check_process cpu metrics
          - improve check_service linux performance
          - add reload support for systemd service
+         - add metrics to check_os_version
          - fix using arguments in aliased checks (#69)
          - fix metrics order when using check_nsc_web
          - fix wrong path in logrotation on linux
