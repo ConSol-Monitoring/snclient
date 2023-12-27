@@ -15,7 +15,7 @@ This builtin check command wraps the `check_dns` plugin from https://github.com/
 ### Default check
 
     check_dns -H labs.consol.de
-    OK: labs.consol.de returns 94.185.89.33 (A)
+    OK - labs.consol.de returns 94.185.89.33 (A)
 
 ## Usage
 

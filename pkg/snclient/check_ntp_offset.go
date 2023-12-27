@@ -47,9 +47,9 @@ func (l *CheckNTPOffset) Build() *CheckData {
 		defaultWarning:  "offset > 50 || offset < -50",
 		defaultCritical: "offset > 100 || offset < -100",
 		detailSyntax:    "offset ${offset_seconds:duration} from ${server}",
-		topSyntax:       "${status}: ${list}",
+		topSyntax:       "%(status) - ${list}",
 		emptyState:      CheckExitUnknown,
-		emptySyntax:     "${status}: could not get any ntp data",
+		emptySyntax:     "%(status) - could not get any ntp data",
 		attributes: []CheckAttribute{
 			{name: "source", description: "source of the ntp metrics"},
 			{name: "server", description: "ntp server name"},
@@ -60,7 +60,7 @@ func (l *CheckNTPOffset) Build() *CheckData {
 		},
 		exampleDefault: `
     check_ntp_offset
-    OK: offset 2.1ms from 1.2.3.4 (debian.pool.ntp.org) |...
+    OK - offset 2.1ms from 1.2.3.4 (debian.pool.ntp.org) |...
 	`,
 		exampleArgs: `'warn=offset > 50 || offset < -50' 'crit=offset > 100 || offset < -100'`,
 	}

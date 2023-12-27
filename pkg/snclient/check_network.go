@@ -48,10 +48,10 @@ func (l *CheckNetwork) Build() *CheckData {
 		},
 		defaultWarning:  "total > 80GB",
 		defaultCritical: "total > 90GB",
-		okSyntax:        "%(status): %(list)",
+		okSyntax:        "%(status) - %(list)",
 		detailSyntax:    "%(name) >%(sent) <%(received)",
-		topSyntax:       "%(status): %(list)",
-		emptySyntax:     "%(status): No devices found",
+		topSyntax:       "%(status) - %(list)",
+		emptySyntax:     "%(status) - No devices found",
 		emptyState:      CheckExitUnknown,
 		attributes: []CheckAttribute{
 			{name: "MAC", description: "The MAC address"},
@@ -68,7 +68,7 @@ func (l *CheckNetwork) Build() *CheckData {
 		},
 		exampleDefault: `
     check_network device=eth0
-    OK: eth0 >12 kB/s <28 kB/s |...
+    OK - eth0 >12 kB/s <28 kB/s |...
 	`,
 	}
 }

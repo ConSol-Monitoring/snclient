@@ -64,9 +64,9 @@ There is a specific [check_service for windows](check_service_windows) as well.`
 		defaultFilter:   "active != inactive",
 		defaultCritical: stateCondition + " && preset != 'disabled'",
 		detailSyntax:    "${name}=${state}",
-		topSyntax:       "%(status): %(crit_list)",
-		okSyntax:        "%(status): All %(count) service(s) are ok.",
-		emptySyntax:     "%(status): No services found",
+		topSyntax:       "%(status) - %(crit_list)",
+		okSyntax:        "%(status) - All %(count) service(s) are ok.",
+		emptySyntax:     "%(status) - No services found",
 		emptyState:      CheckExitUnknown,
 		attributes: []CheckAttribute{
 			{name: "name", description: "The name of the service"},
@@ -85,17 +85,17 @@ There is a specific [check_service for windows](check_service_windows) as well.`
 		},
 		exampleDefault: `
     check_service
-    OK: All 74 service(s) are ok.
+    OK - All 74 service(s) are ok.
 
 Or check a specific service and get some metrics:
 
-    check_service service=docker ok-syntax='${top-syntax}' top-syntax='%(status): %(list)' detail-syntax='%(name) %(state) - memory: %(rss:h)B - age: %(age:duration)'
-    OK: docker running - memory: 805.2MB - created: Fri 2023-11-17 20:34:01 CET |'docker'=4 'docker rss'=805200000B
+    check_service service=docker ok-syntax='${top-syntax}' top-syntax='%(status) - %(list)' detail-syntax='%(name) %(state) - memory: %(rss:h)B - age: %(age:duration)'
+    OK - docker running - memory: 805.2MB - created: Fri 2023-11-17 20:34:01 CET |'docker'=4 'docker rss'=805200000B
 
 Check memory usage of specific service:
 
     check_service service=docker warn='rss > 1GB' warn='rss > 2GB'
-    OK: All 1 service(s) are ok. |'docker'=4 'docker rss'=59691008B;;;0 'docker vms'=3166244864B;;;0 'docker cpu'=0.7%;;;0 'docker tasks'=20;;;0
+    OK - All 1 service(s) are ok. |'docker'=4 'docker rss'=59691008B;;;0 'docker vms'=3166244864B;;;0 'docker cpu'=0.7%;;;0 'docker tasks'=20;;;0
 	`,
 		exampleArgs: "service=docker",
 	}

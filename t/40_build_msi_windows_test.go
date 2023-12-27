@@ -129,7 +129,7 @@ func TestMSIinstaller(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_uptime", "crit=uptime<2s", "warn=uptime<1s"},
-		Like: []string{"OK: uptime"},
+		Like: []string{"OK - uptime"},
 	})
 
 	// cleanup

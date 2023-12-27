@@ -21,7 +21,7 @@ Checks some metrics of the linux kernel. Currently support context switches, pro
 ### Default Check
 
     check_kernel_stats
-    OK: Context Switches 29.2/s, Process Creations 12.7/s, Threads 2574 |'ctxt'=29.2/s 'processes'=12.7/s 'threads'=2574;8000;10000;0
+    OK - Context Switches 29.2/s, Process Creations 12.7/s, Threads 2574 |'ctxt'=29.2/s 'processes'=12.7/s 'threads'=2574;8000;10000;0
 
 ### Example using NRPE and Naemon
 
@@ -46,9 +46,9 @@ Naemon Config
 | warning       | threads > 8000              |
 | critical      | threads > 10000             |
 | empty-state   | 3 (UNKNOWN)                 |
-| empty-syntax  | %(status): No metrics found |
-| top-syntax    | %(status): %(list)          |
-| ok-syntax     | %(status): %(list)          |
+| empty-syntax  | %(status) - No metrics found |
+| top-syntax    | %(status) - %(list)          |
+| ok-syntax     | %(status) - %(list)          |
 | detail-syntax | %(label) %(human)           |
 
 ## Check Specific Arguments

@@ -48,9 +48,9 @@ func (l *CheckEventlog) Build() *CheckData {
 		defaultWarning:  "level = 'warning' or problem_count > 0",
 		defaultCritical: "level in ('error', 'critical')",
 		detailSyntax:    "%(file) %(source) (%(message))",
-		okSyntax:        "%(status): Event log seems fine",
-		topSyntax:       "%(status): %(count) message(s) %(problem_list)",
-		emptySyntax:     "%(status): No entries found",
+		okSyntax:        "%(status) - Event log seems fine",
+		topSyntax:       "%(status) - %(count) message(s) %(problem_list)",
+		emptySyntax:     "%(status) - No entries found",
 		emptyState:      0,
 		attributes: []CheckAttribute{
 			{name: "computer", description: "Which computer generated the message"},
@@ -65,7 +65,7 @@ func (l *CheckEventlog) Build() *CheckData {
 		},
 		exampleDefault: `
     check_eventlog
-    OK: Event log seems fine
+    OK - Event log seems fine
 	`,
 		exampleArgs: `filter=provider = 'Microsoft-Windows-Security-SPP' and id = 903 and message like 'foo'`,
 	}

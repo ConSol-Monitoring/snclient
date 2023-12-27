@@ -45,10 +45,10 @@ func (l *CheckKernelStats) Build() *CheckData {
 		},
 		defaultWarning:  "threads > 8000",
 		defaultCritical: "threads > 10000",
-		okSyntax:        "%(status): %(list)",
+		okSyntax:        "%(status) - %(list)",
 		detailSyntax:    "%(label) %(human)",
-		topSyntax:       "%(status): %(list)",
-		emptySyntax:     "%(status): No metrics found",
+		topSyntax:       "%(status) - %(list)",
+		emptySyntax:     "%(status) - No metrics found",
 		emptyState:      CheckExitUnknown,
 		attributes: []CheckAttribute{
 			{name: "name", description: "Name of the metric"},
@@ -59,7 +59,7 @@ func (l *CheckKernelStats) Build() *CheckData {
 		},
 		exampleDefault: `
     check_kernel_stats
-    OK: Context Switches 29.2/s, Process Creations 12.7/s, Threads 2574 |'ctxt'=29.2/s 'processes'=12.7/s 'threads'=2574;8000;10000;0
+    OK - Context Switches 29.2/s, Process Creations 12.7/s, Threads 2574 |'ctxt'=29.2/s 'processes'=12.7/s 'threads'=2574;8000;10000;0
 	`,
 	}
 }

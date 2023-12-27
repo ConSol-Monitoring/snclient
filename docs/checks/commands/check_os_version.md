@@ -45,7 +45,7 @@ Naemon Config
 | ------------- | ----------------------------------------- |
 | empty-state   | 0 (OK)                                    |
 | empty-syntax  |                                           |
-| top-syntax    | \${status}: \${list})                     |
+| top-syntax    | %(status) - \${list})                     |
 | ok-syntax     |                                           |
 | detail-syntax | \${platform} \${version} (arch: \${arch}) |
 

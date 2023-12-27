@@ -21,7 +21,7 @@ Check computer uptime (time since last reboot).
 ### Default Check
 
     check_uptime
-    OK: uptime: 3d 02:30h, boot: 2023-11-17 19:33:46 (UTC) |'uptime'=268241s;172800:;86400:
+    OK - uptime: 3d 02:30h, boot: 2023-11-17 19:33:46 (UTC) |'uptime'=268241s;172800:;86400:
 
 ### Example using NRPE and Naemon
 
@@ -47,7 +47,7 @@ Naemon Config
 | critical      | uptime < 1d                              |
 | empty-state   | 0 (OK)                                   |
 | empty-syntax  |                                          |
-| top-syntax    | \${status}: \${list}                     |
+| top-syntax    | %(status) - \${list}                     |
 | ok-syntax     |                                          |
 | detail-syntax | uptime: \${uptime}, boot: \${boot} (UTC) |
 

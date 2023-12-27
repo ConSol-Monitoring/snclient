@@ -21,12 +21,12 @@ Checks files and directories.
 ### Default Check
 
     check_files 'path=/tmp' 'filter=age > 3d' 'warn=count > 500' 'crit=count > 600'
-    OK: All 138 files are ok: (29.22 MiB) |'count'=138;500;600;0 'size'=30642669B;;;0
+    OK - All 138 files are ok: (29.22 MiB) |'count'=138;500;600;0 'size'=30642669B;;;0
 
 Check for folder size:
 
     check_files 'path=/tmp' 'warn=total_size > 200MiB' 'crit=total_size > 300MiB'
-    OK: All 145 files are ok: (34.72 MiB) |'count'=145;;;0 'size'=36406741B;209715200;314572800;0
+    OK - All 145 files are ok: (34.72 MiB) |'count'=145;;;0 'size'=36406741B;209715200;314572800;0
 
 ### Example using NRPE and Naemon
 
@@ -46,13 +46,13 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                              |
-| ------------- | -------------------------------------------------------------------------- |
-| empty-state   | 3 (UNKNOWN)                                                                |
-| empty-syntax  | No files found                                                             |
-| top-syntax    | %(status): %(problem_count)/%(count) files (%(total_size)) %(problem_list) |
-| ok-syntax     | %(status): All %(count) files are ok: (%(total_size))                      |
-| detail-syntax | %(name)                                                                    |
+| Argument      | Default Value                                                               |
+| ------------- | --------------------------------------------------------------------------- |
+| empty-state   | 3 (UNKNOWN)                                                                 |
+| empty-syntax  | No files found                                                              |
+| top-syntax    | %(status) - %(problem_count)/%(count) files (%(total_size)) %(problem_list) |
+| ok-syntax     | %(status) - All %(count) files are ok: (%(total_size))                      |
+| detail-syntax | %(name)                                                                     |
 
 ## Check Specific Arguments
 

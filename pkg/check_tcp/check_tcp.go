@@ -29,7 +29,7 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 		ckr.Name = opts.Service
 	}
 
-	fmt.Fprintf(output, "%s", ckr.String())
+	fmt.Fprintf(output, "%s %s - %s", ckr.Name, ckr.Status, strings.TrimSpace(ckr.Message))
 
 	return int(ckr.Status)
 }

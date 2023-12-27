@@ -39,7 +39,7 @@ func (l *CheckPagefile) Build() *CheckData {
 		defaultWarning:  "used > 60%",
 		defaultCritical: "used > 80%",
 		detailSyntax:    "${name} ${used} (${size})",
-		topSyntax:       "${status}: ${list}",
+		topSyntax:       "%(status) - ${list}",
 		attributes: []CheckAttribute{
 			{name: "name", description: "The name of the page file (location)"},
 			{name: "used", description: "Used memory in human readable bytes"},
@@ -56,7 +56,7 @@ func (l *CheckPagefile) Build() *CheckData {
 		},
 		exampleDefault: `
     check_pagefile
-    OK: total 53.41 MiB (244.14 MiB) |...
+    OK - total 53.41 MiB (244.14 MiB) |...
 	`,
 		exampleArgs: `'warn=used > 80%' 'crit=used > 95%'`,
 	}

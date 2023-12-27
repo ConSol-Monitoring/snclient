@@ -38,7 +38,7 @@ func (l *CheckMemory) Build() *CheckData {
 		defaultWarning:  "used > 80%",
 		defaultCritical: "used > 90%",
 		detailSyntax:    "%(type) = %(used)/%(size) (%(used_pct | fmt=%.1f )%)",
-		topSyntax:       "${status}: ${list}",
+		topSyntax:       "%(status) - ${list}",
 		attributes: []CheckAttribute{
 			{name: "<type>", description: "used bytes with the type as key"},
 			{name: "type", description: "checked type, either 'physical' or 'committed' (swap)"},
@@ -53,7 +53,7 @@ func (l *CheckMemory) Build() *CheckData {
 		},
 		exampleDefault: `
     check_memory
-    OK: physical = 6.98 GiB, committed = 719.32 MiB|...
+    OK - physical = 6.98 GiB, committed = 719.32 MiB|...
 
 Changing the return syntax to get more information:
 

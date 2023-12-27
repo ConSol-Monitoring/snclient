@@ -38,9 +38,9 @@ func (l *CheckCPU) Build() *CheckData {
 		defaultFilter:   "core = 'total'",
 		defaultWarning:  "load > 80",
 		defaultCritical: "load > 90",
-		okSyntax:        "%(status): CPU load is ok. %{total:fmt=%d}% on %{core_num} cores",
+		okSyntax:        "%(status) - CPU load is ok. %{total:fmt=%d}% on %{core_num} cores",
 		detailSyntax:    "${time}: ${load}%",
-		topSyntax:       "${status}: ${problem_list} on %{core_num} cores",
+		topSyntax:       "%(status) - ${problem_list} on %{core_num} cores",
 		emptyState:      3,
 		emptySyntax:     "check_cpu failed to find anything with this filter.",
 		attributes: []CheckAttribute{
@@ -53,12 +53,12 @@ func (l *CheckCPU) Build() *CheckData {
 		},
 		exampleDefault: `
     check_cpu
-    OK: CPU load is ok. |'total 5m'=13%;80;90 'total 1m'=13%;80;90 'total 5s'=13%;80;90
+    OK - CPU load is ok. |'total 5m'=13%;80;90 'total 1m'=13%;80;90 'total 5s'=13%;80;90
 
 Checking **each core** by adding filter=none (disabling the filter):
 
     check_cpu filter=none
-    OK: CPU load is ok. |'core1 5m'=13%;80;90 'core1 1m'=12%;80;90 'core1 5s'=9%;80;90...
+    OK - CPU load is ok. |'core1 5m'=13%;80;90 'core1 1m'=12%;80;90 'core1 5s'=9%;80;90...
 	`,
 		exampleArgs: `'warn=load > 80' 'crit=load > 95'`,
 	}

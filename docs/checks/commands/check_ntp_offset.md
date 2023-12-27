@@ -21,7 +21,7 @@ Checks the ntp offset.
 ### Default Check
 
     check_ntp_offset
-    OK: offset 2.1ms from 1.2.3.4 (debian.pool.ntp.org) |...
+    OK - offset 2.1ms from 1.2.3.4 (debian.pool.ntp.org) |...
 
 ### Example using NRPE and Naemon
 
@@ -47,8 +47,8 @@ Naemon Config
 | warning       | offset > 50 \|\| offset < -50                      |
 | critical      | offset > 100 \|\| offset < -100                    |
 | empty-state   | 3 (UNKNOWN)                                        |
-| empty-syntax  | \${status}: could not get any ntp data             |
-| top-syntax    | \${status}: \${list}                               |
+| empty-syntax  | %(status) - could not get any ntp data             |
+| top-syntax    | %(status) - \${list}                               |
 | ok-syntax     |                                                    |
 | detail-syntax | offset \${offset_seconds:duration} from \${server} |
 

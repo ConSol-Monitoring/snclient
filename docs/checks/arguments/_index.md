@@ -84,7 +84,7 @@ Keyword Syntax: ´\${keyword} or %(keyword). $ and % as well as {} and () can be
 
 ex.:
 
-    'top-syntax=%(status): %(crit_list)'
+    'top-syntax=%(status) - %(crit_list)'
 
 ### Ok-Syntax
 
@@ -95,7 +95,7 @@ Keyword and macros can be used as described in the [top-syntax](#top-syntax).
 
 ex.:
 
-    'ok-syntax=%(status): everything is fine'
+    'ok-syntax=%(status) - everything is fine'
 
 ### Empty-Syntax
 
@@ -106,7 +106,7 @@ Keyword and macros can be used as described in the [top-syntax](#top-syntax).
 
 ex.:
 
-    'empty-syntax=%(status): nothing found'
+    'empty-syntax=%(status) - nothing found'
 
 ### Detail-Syntax
 

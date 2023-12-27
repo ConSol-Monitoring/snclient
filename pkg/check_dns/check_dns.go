@@ -22,7 +22,7 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 	}
 
 	ckr := opts.run()
-	fmt.Fprintf(output, "%s\n", strings.TrimSpace(ckr.String()))
+	fmt.Fprintf(output, "%s - %s", ckr.Status, strings.TrimSpace(ckr.Message))
 
 	return int(ckr.Status)
 }

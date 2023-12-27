@@ -69,9 +69,9 @@ There is a specific [check_service for linux](check_service_linux) as well.`,
 		defaultCritical: "state != 'running' && start_type = 'auto'",
 		defaultWarning:  "state != 'running' && start_type = 'delayed'",
 		detailSyntax:    "${name}=${state} (${start_type})",
-		topSyntax:       "%(status): %(crit_list), delayed (%(warn_list))",
-		okSyntax:        "%(status): All %(count) service(s) are ok.",
-		emptySyntax:     "%(status): No services found",
+		topSyntax:       "%(status) - %(crit_list), delayed (%(warn_list))",
+		okSyntax:        "%(status) - All %(count) service(s) are ok.",
+		emptySyntax:     "%(status) - No services found",
 		emptyState:      CheckExitUnknown,
 		attributes: []CheckAttribute{
 			{name: "name", description: "The name of the service"},
@@ -91,12 +91,12 @@ There is a specific [check_service for linux](check_service_linux) as well.`,
 		},
 		exampleDefault: `
     check_service
-    OK: All 15 service(s) are ok |'count'=15;;;0 'failed'=0;;;0
+    OK - All 15 service(s) are ok |'count'=15;;;0 'failed'=0;;;0
 
 Checking a single service:
 
     check_service service=dhcp
-    OK: All 1 service(s) are ok.
+    OK - All 1 service(s) are ok.
 	`,
 		exampleArgs: "service=dhcp",
 	}

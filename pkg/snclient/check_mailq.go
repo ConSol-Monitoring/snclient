@@ -40,9 +40,9 @@ func (l *CheckMailq) Build() *CheckData {
 		defaultWarning:  "active > 5 || active_size > 10MB || deferred > 0 || deferred_size > 10MB",
 		defaultCritical: "active > 10 || active_size > 20MB || deferred > 10 || deferred_size > 20MB",
 		detailSyntax:    "${mta}: active ${active} / deferred ${deferred}",
-		topSyntax:       "${status}: ${list}",
+		topSyntax:       "%(status) - ${list}",
 		emptyState:      CheckExitUnknown,
-		emptySyntax:     "${status}: could not get any mailq data",
+		emptySyntax:     "%(status) - could not get any mailq data",
 		attributes: []CheckAttribute{
 			{name: "mta", description: "name of the mta"},
 			{name: "folder", description: "checked spool folder"},
@@ -53,7 +53,7 @@ func (l *CheckMailq) Build() *CheckData {
 		},
 		exampleDefault: `
     check_mailq
-    OK: postfix: active 0 / deferred 0 |...
+    OK - postfix: active 0 / deferred 0 |...
 	`,
 		exampleArgs: `warn='active > 5 || deferred > 0' crit='active > 10 || deferred > 10'`,
 	}

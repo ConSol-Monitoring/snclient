@@ -38,7 +38,7 @@ func (l *CheckDrivesize) getDefaultFilter() string {
 func (l *CheckDrivesize) getExample() string {
 	return `
     check_drivesize drive=c: show-all
-    OK: c: 36.801 GiB/63.075 GiB (58.3%) |...
+    OK - c: 36.801 GiB/63.075 GiB (58.3%) |...
 	`
 }
 

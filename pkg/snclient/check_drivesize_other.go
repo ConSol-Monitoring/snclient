@@ -43,12 +43,12 @@ func (l *CheckDrivesize) getDefaultFilter() string {
 func (l *CheckDrivesize) getExample() string {
 	return `
     check_drivesize drive=/ show-all
-    OK: / 280.155 GiB/455.948 GiB (64.7%) |...
+    OK - / 280.155 GiB/455.948 GiB (64.7%) |...
 
 Check drive including inodes:
 
     check_drivesize drive=/ warn="used > 90%" "crit=used > 95%" "warn=inodes > 90%" "crit=inodes > 95%"
-    OK: All 1 drive(s) are ok |'/ used'=307515822080B;440613398938;465091921101;0;489570443264 '/ used %'=62.8%;90;95;0;100 '/ inodes'=12.1%;90;95;0;100
+    OK - All 1 drive(s) are ok |'/ used'=307515822080B;440613398938;465091921101;0;489570443264 '/ used %'=62.8%;90;95;0;100 '/ inodes'=12.1%;90;95;0;100
 	`
 }
 

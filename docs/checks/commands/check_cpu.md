@@ -21,12 +21,12 @@ Checks the cpu usage metrics.
 ### Default Check
 
     check_cpu
-    OK: CPU load is ok. |'total 5m'=13%;80;90 'total 1m'=13%;80;90 'total 5s'=13%;80;90
+    OK - CPU load is ok. |'total 5m'=13%;80;90 'total 1m'=13%;80;90 'total 5s'=13%;80;90
 
 Checking **each core** by adding filter=none (disabling the filter):
 
     check_cpu filter=none
-    OK: CPU load is ok. |'core1 5m'=13%;80;90 'core1 1m'=12%;80;90 'core1 5s'=9%;80;90...
+    OK - CPU load is ok. |'core1 5m'=13%;80;90 'core1 1m'=12%;80;90 'core1 5s'=9%;80;90...
 
 ### Example using NRPE and Naemon
 
@@ -46,16 +46,16 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                    |
-| ------------- | ---------------------------------------------------------------- |
-| filter        | core = 'total'                                                   |
-| warning       | load > 80                                                        |
-| critical      | load > 90                                                        |
-| empty-state   | 3 (UNKNOWN)                                                      |
-| empty-syntax  | check_cpu failed to find anything with this filter.              |
-| top-syntax    | \${status}: \${problem_list} on %{core_num} cores                |
-| ok-syntax     | %(status): CPU load is ok. %{total:fmt=%d}% on %{core_num} cores |
-| detail-syntax | \${time}: \${load}%                                              |
+| Argument      | Default Value                                                     |
+| ------------- | ----------------------------------------------------------------- |
+| filter        | core = 'total'                                                    |
+| warning       | load > 80                                                         |
+| critical      | load > 90                                                         |
+| empty-state   | 3 (UNKNOWN)                                                       |
+| empty-syntax  | check_cpu failed to find anything with this filter.               |
+| top-syntax    | %(status) - \${problem_list} on %{core_num} cores                 |
+| ok-syntax     | %(status) - CPU load is ok. %{total:fmt=%d}% on %{core_num} cores |
+| detail-syntax | \${time}: \${load}%                                               |
 
 ## Check Specific Arguments
 

@@ -21,12 +21,12 @@ Checks the number of tcp connections.
 ### Default Check
 
     check_connections
-    OK: total connections 60
+    OK - total connections 60
 
 Check only ipv6 connections:
 
     check_connections inet=ipv6
-    OK: total ipv6 connections 13
+    OK - total ipv6 connections 13
 
 ### Example using NRPE and Naemon
 
@@ -53,7 +53,7 @@ Naemon Config
 | critical      | total > 2000                           |
 | empty-state   | 0 (OK)                                 |
 | empty-syntax  |                                        |
-| top-syntax    | \${status}: \${list}                   |
+| top-syntax    | %(status) - \${list}                   |
 | ok-syntax     |                                        |
 | detail-syntax | total \${prefix}connections: \${total} |
 

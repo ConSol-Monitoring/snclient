@@ -21,12 +21,12 @@ Checks the disk drive/volumes usage on a host.
 ### Default Check
 
     check_drivesize drive=/ show-all
-    OK: / 280.155 GiB/455.948 GiB (64.7%) |...
+    OK - / 280.155 GiB/455.948 GiB (64.7%) |...
 
 Check drive including inodes:
 
     check_drivesize drive=/ warn="used > 90%" "crit=used > 95%" "warn=inodes > 90%" "crit=inodes > 95%"
-    OK: All 1 drive(s) are ok |'/ used'=307515822080B;440613398938;465091921101;0;489570443264 '/ used %'=62.8%;90;95;0;100 '/ inodes'=12.1%;90;95;0;100
+    OK - All 1 drive(s) are ok |'/ used'=307515822080B;440613398938;465091921101;0;489570443264 '/ used %'=62.8%;90;95;0;100 '/ inodes'=12.1%;90;95;0;100
 
 ### Example using NRPE and Naemon
 
@@ -52,9 +52,9 @@ Naemon Config
 | warning       | used_pct > 80                                                                                                                                                                                                         |
 | critical      | used_pct > 90                                                                                                                                                                                                         |
 | empty-state   | 3 (UNKNOWN)                                                                                                                                                                                                           |
-| empty-syntax  | %(status): No drives found                                                                                                                                                                                            |
-| top-syntax    | \${status}: \${problem_list}                                                                                                                                                                                          |
-| ok-syntax     | %(status): All %(count) drive(s) are ok                                                                                                                                                                               |
+| empty-syntax  | %(status) - No drives found                                                                                                                                                                                           |
+| top-syntax    | %(status) - \${problem_list}                                                                                                                                                                                          |
+| ok-syntax     | %(status) - All %(count) drive(s) are ok                                                                                                                                                                              |
 | detail-syntax | %(drive_or_name) %(used)/%(size) (%(used_pct \| fmt=%.1f )%)                                                                                                                                                          |
 
 ## Check Specific Arguments

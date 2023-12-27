@@ -48,7 +48,7 @@ func TestDaemonRequests(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: baseArgs,
-		Like: []string{`OK: REST API reachable on http:`},
+		Like: []string{`OK - REST API reachable on http:`},
 	})
 
 	runCmd(t, &cmd{
@@ -60,13 +60,13 @@ func TestDaemonRequests(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: append(baseArgs, "check_cpu", "warn=load > 100", "crit=load > 100"),
-		Like: []string{`OK: CPU load is ok.`},
+		Like: []string{`OK - CPU load is ok.`},
 	})
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: append(baseArgs, "check_network", "warn=total > 100000000", "crit=total > 100000000"),
-		Like: []string{`OK: \w+ >\d+ \w*B/s <\d+ \w*B\/s`},
+		Like: []string{`OK - \w+ >\d+ \w*B/s <\d+ \w*B\/s`},
 	})
 
 	runCmd(t, &cmd{

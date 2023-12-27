@@ -35,11 +35,11 @@ func (l *CheckProcess) Build() *CheckData {
 			"process":  {value: &l.processes, description: "The process to check, set to * to check all. Default: *", isFilter: true},
 			"timezone": {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
 		},
-		okSyntax:     "%(status): all %{count} processes are ok.",
+		okSyntax:     "%(status) - all %{count} processes are ok.",
 		detailSyntax: "${exe}=${state}",
-		topSyntax:    "${status}: ${problem_list}",
+		topSyntax:    "%(status) - ${problem_list}",
 		emptyState:   3,
-		emptySyntax:  "%(status): check_process failed to find anything with this filter.",
+		emptySyntax:  "%(status) - check_process failed to find anything with this filter.",
 		attributes: []CheckAttribute{
 			{name: "process", description: "Name of the executable (without path)"},
 			{name: "exe", description: "Name of the executable (without path)"},
@@ -65,7 +65,7 @@ func (l *CheckProcess) Build() *CheckData {
 		},
 		exampleDefault: `
     check_process
-    OK: 417 processes. |'count'=417;;;0
+    OK - 417 processes. |'count'=417;;;0
 
 Check specific process by name (adding some metrics as well)
 
@@ -79,7 +79,7 @@ Check specific process by name (adding some metrics as well)
 If zero is a valid threshold, set the empty-state to ok
 
     check_process process=qemu warn='count <= 0 || count > 10' crit='count <= 0 || count > 20' empty-state=0
-    OK: check_process failed to find anything with this filter.
+    OK - check_process failed to find anything with this filter.
 	`,
 		exampleArgs: `warn='count <= 0 || count > 10' crit='count <= 0 || count > 20'`,
 	}

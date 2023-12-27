@@ -15,7 +15,7 @@ This builtin check command wraps the `check_tcp` plugin from https://github.com/
 ### Default check
 
     check_tcp -H omd.consol.de
-    TCP OK: 0.095 seconds response time on omd.consol.de port 80
+    TCP OK - 0.095 seconds response time on omd.consol.de port 80
 
 ## Usage
 

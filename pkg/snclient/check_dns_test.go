@@ -19,7 +19,7 @@ CheckBuiltinPlugins = enabled
 	res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: labs\.consol\.de returns 94\.185\.89\.33`),
+		regexp.MustCompile(`^OK - labs\.consol\.de returns 94\.185\.89\.33`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)

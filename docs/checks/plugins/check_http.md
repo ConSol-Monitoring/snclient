@@ -15,7 +15,7 @@ This builtin check command wraps the `check_http` plugin from https://github.com
 ### Default check
 
     check_http -H omd.consol.de
-    HTTP OK: HTTP/1.1 200 OK - 573 bytes in 0.001 second response time
+    HTTP OK - HTTP/1.1 200 OK - 573 bytes in 0.001 second response time
 
 ## Usage
 

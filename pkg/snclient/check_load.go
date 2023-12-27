@@ -53,7 +53,7 @@ func (l *CheckLoad) Build() *CheckData {
 		},
 		defaultFilter: "none",
 		detailSyntax:  "${type} load average: ${load1}, ${load5}, ${load15}",
-		topSyntax:     "${status}: ${list} on ${cores} cores",
+		topSyntax:     "%(status) - ${list} on ${cores} cores",
 		listCombine:   " - ",
 		attributes: []CheckAttribute{
 			{name: "type", description: "type will be either 'total' or 'scaled'"},
@@ -64,7 +64,7 @@ func (l *CheckLoad) Build() *CheckData {
 		},
 		exampleDefault: `
     check_load
-    OK: total load average: 2.36, 1.26, 1.01 |'load1'=2.36;;;0 'load5'=1.26;;;0 'load15'=1.01;;;0
+    OK - total load average: 2.36, 1.26, 1.01 |'load1'=2.36;;;0 'load5'=1.26;;;0 'load15'=1.01;;;0
 	`,
 		exampleArgs: `'warn=load > 20' 'crit=load > 30'`,
 	}

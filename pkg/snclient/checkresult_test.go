@@ -132,7 +132,7 @@ func TestCheckResultMultiple(t *testing.T) {
 func TestCheckResultNestedMacro(t *testing.T) {
 	check := &CheckData{
 		result:       &CheckResult{},
-		topSyntax:    "%(status): %{list} %(top level macro)",
+		topSyntax:    "%(status) - %{list} %(top level macro)",
 		detailSyntax: "$(test)",
 		okSyntax:     "${top-syntax}",
 		listData: []map[string]string{
@@ -145,5 +145,5 @@ func TestCheckResultNestedMacro(t *testing.T) {
 	result, err := check.Finalize()
 	require.NoErrorf(t, err, "Finalize worked")
 
-	assert.Equalf(t, `OK: 123 topLvl Macro`, string(result.BuildPluginOutput()), "plugin output")
+	assert.Equalf(t, `OK - 123 topLvl Macro`, string(result.BuildPluginOutput()), "plugin output")
 }

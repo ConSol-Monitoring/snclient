@@ -20,7 +20,7 @@ func TestCheckNTPOffset(t *testing.T) {
 	}
 
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Containsf(t, string(res.BuildPluginOutput()), "OK: offset", "output matches")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - offset", "output matches")
 
 	StopTestAgent(t, snc)
 }
@@ -47,12 +47,12 @@ Root distance: 47.041ms (max: 5s)
 	defer os.RemoveAll(tmpPath)
 	res := snc.RunCheck("check_ntp_offset", []string{"source=timedatectl"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Equalf(t, "OK: offset -32.3ms from 62.225.132.250 (0.debian.pool.ntp.org) |'offset'=-32.316ms;-50:50;-100:100 'stratum'=2;;;0 'jitter'=236.187ms;;;0",
+	assert.Equalf(t, "OK - offset -32.3ms from 62.225.132.250 (0.debian.pool.ntp.org) |'offset'=-32.316ms;-50:50;-100:100 'stratum'=2;;;0 'jitter'=236.187ms;;;0",
 		string(res.BuildPluginOutput()), "output matches")
 
 	res = snc.RunCheck("check_ntp_offset", []string{}) // with source=auto
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Equalf(t, "OK: offset -32.3ms from 62.225.132.250 (0.debian.pool.ntp.org) |'offset'=-32.316ms;-50:50;-100:100 'stratum'=2;;;0 'jitter'=236.187ms;;;0",
+	assert.Equalf(t, "OK - offset -32.3ms from 62.225.132.250 (0.debian.pool.ntp.org) |'offset'=-32.316ms;-50:50;-100:100 'stratum'=2;;;0 'jitter'=236.187ms;;;0",
 		string(res.BuildPluginOutput()), "output matches")
 
 	// mock critical response
@@ -101,7 +101,7 @@ Leap status     : Normal`,
 	defer os.RemoveAll(tmpPath)
 	res := snc.RunCheck("check_ntp_offset", []string{"source=chronyc"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Equalf(t, "OK: offset 2.066ms from test.ntp |'offset'=2.065938ms;-50:50;-100:100 'stratum'=3;;;0",
+	assert.Equalf(t, "OK - offset 2.066ms from test.ntp |'offset'=2.065938ms;-50:50;-100:100 'stratum'=3;;;0",
 		string(res.BuildPluginOutput()), "output matches")
 
 	MockSystemUtilities(t, map[string]string{
@@ -121,7 +121,7 @@ Leap status     : Normal`,
 	})
 	res = snc.RunCheck("check_ntp_offset", []string{"source=chronyc"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Equalf(t, "OK: offset -19.2ms from test.ntp |'offset'=-19.212097ms;-50:50;-100:100 'stratum'=3;;;0",
+	assert.Equalf(t, "OK - offset -19.2ms from test.ntp |'offset'=-19.212097ms;-50:50;-100:100 'stratum'=3;;;0",
 		string(res.BuildPluginOutput()), "output matches")
 
 	// mock freshly initialized chrony
@@ -165,7 +165,7 @@ func TestCheckNTPOffsetNTPQ(t *testing.T) {
 	defer os.RemoveAll(tmpPath)
 	res := snc.RunCheck("check_ntp_offset", []string{"source=ntpq"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Equalf(t, "OK: offset -1.164ms from ntp3.sack.dev (129.69.1.153) |'offset'=-1.1641ms;-50:50;-100:100 'stratum'=2;;;0 'jitter'=0.8209ms;;;0",
+	assert.Equalf(t, "OK - offset -1.164ms from ntp3.sack.dev (129.69.1.153) |'offset'=-1.1641ms;-50:50;-100:100 'stratum'=2;;;0 'jitter'=0.8209ms;;;0",
 		string(res.BuildPluginOutput()), "output matches")
 
 	// mock critical response
@@ -232,7 +232,7 @@ Time since Last Good Sync Time: 339.9333552s`,
 	defer os.RemoveAll(tmpPath)
 	res := snc.RunCheck("check_ntp_offset", []string{"source=w32tm"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Equalf(t, "OK: offset 6.152ms from time.windows.com |'offset'=6.1517ms;-50:50;-100:100 'stratum'=4;;;0",
+	assert.Equalf(t, "OK - offset 6.152ms from time.windows.com |'offset'=6.1517ms;-50:50;-100:100 'stratum'=4;;;0",
 		string(res.BuildPluginOutput()), "output matches")
 
 	// mock critical response
@@ -329,7 +329,7 @@ Network Time Server: time.euro.apple.com`,
 	defer os.RemoveAll(tmpPath)
 	res := snc.RunCheck("check_ntp_offset", []string{"source=osx"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Equalf(t, "OK: offset -7.587ms from time.euro.apple.com (10.1.1.1) |'offset'=-7.587078ms;-50:50;-100:100 'stratum'=2;;;0",
+	assert.Equalf(t, "OK - offset -7.587ms from time.euro.apple.com (10.1.1.1) |'offset'=-7.587078ms;-50:50;-100:100 'stratum'=2;;;0",
 		string(res.BuildPluginOutput()), "output matches")
 
 	// mock unknown result

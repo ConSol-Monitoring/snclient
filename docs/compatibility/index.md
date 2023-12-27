@@ -140,7 +140,7 @@ Check specific changes and enhancements:
 The `check_service` adds memory and cpu metrics if the service is running.
 
 	check_service service=snclient
-	OK: All 1 service(s) are ok. |'snclient'=4;;;; 'snclient rss'=12943360B;;;; 'snclient vms'=6492160B;;;; 'snclient cpu'=0%;;;;
+	OK - All 1 service(s) are ok. |'snclient'=4;;;; 'snclient rss'=12943360B;;;; 'snclient vms'=6492160B;;;; 'snclient cpu'=0%;;;;
 
 ### check_files
 ![Change](../icons/changed.png "this is different in SNClient+")

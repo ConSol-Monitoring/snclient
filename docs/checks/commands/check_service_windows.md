@@ -23,12 +23,12 @@ There is a specific [check_service for linux](check_service_linux) as well.
 ### Default Check
 
     check_service
-    OK: All 15 service(s) are ok |'count'=15;;;0 'failed'=0;;;0
+    OK - All 15 service(s) are ok |'count'=15;;;0 'failed'=0;;;0
 
 Checking a single service:
 
     check_service service=dhcp
-    OK: All 1 service(s) are ok.
+    OK - All 1 service(s) are ok.
 
 ### Example using NRPE and Naemon
 
@@ -54,9 +54,9 @@ Naemon Config
 | warning       | state != 'running' && start_type = 'delayed'    |
 | critical      | state != 'running' && start_type = 'auto'       |
 | empty-state   | 3 (UNKNOWN)                                     |
-| empty-syntax  | %(status): No services found                    |
-| top-syntax    | %(status): %(crit_list), delayed (%(warn_list)) |
-| ok-syntax     | %(status): All %(count) service(s) are ok.      |
+| empty-syntax  | %(status) - No services found                    |
+| top-syntax    | %(status) - %(crit_list), delayed (%(warn_list)) |
+| ok-syntax     | %(status) - All %(count) service(s) are ok.      |
 | detail-syntax | \${name}=\${state} (\${start_type})             |
 
 ## Check Specific Arguments

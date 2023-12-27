@@ -24,7 +24,7 @@ use ssl = false
 	res := snc.RunCheck("check_tcp", []string{"-p", "45666"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^TCP OK: [\d.]+ seconds response time on port 45666`),
+		regexp.MustCompile(`^TCP OK - [\d.]+ seconds response time on port 45666`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)

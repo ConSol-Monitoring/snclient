@@ -13,7 +13,7 @@ func TestCheckEventlog(t *testing.T) {
 	res := snc.RunCheck("check_eventlog", []string{"filter=id < 0"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: No entries found`),
+		regexp.MustCompile(`^OK - No entries found`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)

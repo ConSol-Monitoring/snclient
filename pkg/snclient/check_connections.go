@@ -93,7 +93,7 @@ func (l *CheckConnections) Build() *CheckData {
 		defaultWarning:  "total > 1000",
 		defaultCritical: "total > 2000",
 		detailSyntax:    "total ${prefix}connections: ${total}",
-		topSyntax:       "${status}: ${list}",
+		topSyntax:       "%(status) - ${list}",
 		attributes: []CheckAttribute{
 			{name: "inet", description: "address family, can be total (sum of any), all (any+total), any (v4+v6), inet4 or inet6"},
 			{name: "prefix", description: "address family as prefix, will be empty, inet4 or inet6"},
@@ -113,12 +113,12 @@ func (l *CheckConnections) Build() *CheckData {
 		},
 		exampleDefault: `
     check_connections
-    OK: total connections 60
+    OK - total connections 60
 
 Check only ipv6 connections:
 
     check_connections inet=ipv6
-    OK: total ipv6 connections 13
+    OK - total ipv6 connections 13
 	`,
 		exampleArgs: `'warn=total > 500' 'crit=total > 1500'`,
 	}

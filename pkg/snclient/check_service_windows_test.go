@@ -12,7 +12,7 @@ func TestCheckService(t *testing.T) {
 	res := snc.RunCheck("check_service", []string{"filter='state=running'"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK: All \d+ service\(s\) are ok.`),
+		regexp.MustCompile(`^OK - All \d+ service\(s\) are ok.`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -24,5 +24,5 @@ func TestCheckService(t *testing.T) {
 	// search service by display name
 	res = snc.RunCheck("check_service", []string{"service=Server"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Containsf(t, string(res.BuildPluginOutput()), "OK: All 1 service", "output matches")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 service", "output matches")
 }

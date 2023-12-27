@@ -15,7 +15,7 @@ This builtin check command wraps the `check_nsc_web` plugin from https://github.
 ### Default check
 
     check_nsc_web -p ... -u https://localhost:8443
-    OK: REST API reachable on https://localhost:8443
+    OK - REST API reachable on https://localhost:8443
 
 ## Usage
 

@@ -21,7 +21,7 @@ Checks the windows eventlog entries.
 ### Default Check
 
     check_eventlog
-    OK: Event log seems fine
+    OK - Event log seems fine
 
 ### Example using NRPE and Naemon
 
@@ -47,9 +47,9 @@ Naemon Config
 | warning       | level = 'warning' or problem_count > 0         |
 | critical      | level in ('error', 'critical')                 |
 | empty-state   | 0 (OK)                                         |
-| empty-syntax  | %(status): No entries found                    |
-| top-syntax    | %(status): %(count) message(s) %(problem_list) |
-| ok-syntax     | %(status): Event log seems fine                |
+| empty-syntax  | %(status) - No entries found                    |
+| top-syntax    | %(status) - %(count) message(s) %(problem_list) |
+| ok-syntax     | %(status) - Event log seems fine                |
 | detail-syntax | %(file) %(source) (%(message))                 |
 
 ## Check Specific Arguments

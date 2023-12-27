@@ -35,9 +35,9 @@ func (l *CheckTasksched) Build() *CheckData {
 		defaultCritical: "exit_code < 0",
 		defaultWarning:  "exit_code != 0",
 		detailSyntax:    "${folder}/${title}: ${exit_code} != 0",
-		topSyntax:       "${status}: ${problem_list}",
-		okSyntax:        "%(status): All tasks are ok",
-		emptySyntax:     "%(status): No tasks found",
+		topSyntax:       "%(status) - ${problem_list}",
+		okSyntax:        "%(status) - All tasks are ok",
+		emptySyntax:     "%(status) - No tasks found",
 		emptyState:      CheckExitWarning,
 		attributes: []CheckAttribute{
 			{name: "application", description: "Name of the application that the task is associated with"},
@@ -58,7 +58,7 @@ func (l *CheckTasksched) Build() *CheckData {
 		},
 		exampleDefault: `
     check_tasksched
-    OK: All tasks are ok
+    OK - All tasks are ok
 	`,
 		exampleArgs: `'crit=exit_code != 0'`,
 	}

@@ -21,7 +21,7 @@ Checks the state and metrics of one or multiple processes.
 ### Default Check
 
     check_process
-    OK: 417 processes. |'count'=417;;;0
+    OK - 417 processes. |'count'=417;;;0
 
 Check specific process by name (adding some metrics as well)
 
@@ -35,7 +35,7 @@ Check specific process by name (adding some metrics as well)
 If zero is a valid threshold, set the empty-state to ok
 
     check_process process=qemu warn='count <= 0 || count > 10' crit='count <= 0 || count > 20' empty-state=0
-    OK: check_process failed to find anything with this filter.
+    OK - check_process failed to find anything with this filter.
 
 ### Example using NRPE and Naemon
 
@@ -55,13 +55,13 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                      |
-| ------------- | ------------------------------------------------------------------ |
-| empty-state   | 3 (UNKNOWN)                                                        |
-| empty-syntax  | %(status): check_process failed to find anything with this filter. |
-| top-syntax    | \${status}: \${problem_list}                                       |
-| ok-syntax     | %(status): all %{count} processes are ok.                          |
-| detail-syntax | \${exe}=\${state}                                                  |
+| Argument      | Default Value                                                       |
+| ------------- | ------------------------------------------------------------------- |
+| empty-state   | 3 (UNKNOWN)                                                         |
+| empty-syntax  | %(status) - check_process failed to find anything with this filter. |
+| top-syntax    | %(status) - \${problem_list}                                        |
+| ok-syntax     | %(status) - all %{count} processes are ok.                          |
+| detail-syntax | \${exe}=\${state}                                                   |
 
 ## Check Specific Arguments
 

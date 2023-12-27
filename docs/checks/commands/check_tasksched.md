@@ -21,7 +21,7 @@ Check status of scheduled jobs
 ### Default Check
 
     check_tasksched
-    OK: All tasks are ok
+    OK - All tasks are ok
 
 ### Example using NRPE and Naemon
 
@@ -47,9 +47,9 @@ Naemon Config
 | warning       | exit_code != 0                           |
 | critical      | exit_code < 0                            |
 | empty-state   | 1 (WARNING)                              |
-| empty-syntax  | %(status): No tasks found                |
-| top-syntax    | \${status}: \${problem_list}             |
-| ok-syntax     | %(status): All tasks are ok              |
+| empty-syntax  | %(status) - No tasks found                |
+| top-syntax    | \%(status) - \${problem_list}             |
+| ok-syntax     | %(status) - All tasks are ok              |
 | detail-syntax | \${folder}/\${title}: \${exit_code} != 0 |
 
 ## Check Specific Arguments

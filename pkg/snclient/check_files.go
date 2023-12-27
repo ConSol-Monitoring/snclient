@@ -57,8 +57,8 @@ func (l *CheckFiles) Build() *CheckData {
 			"timezone":  {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
 		},
 		detailSyntax: "%(name)",
-		okSyntax:     "%(status): All %(count) files are ok: (%(total_size))",
-		topSyntax:    "%(status): %(problem_count)/%(count) files (%(total_size)) %(problem_list)",
+		okSyntax:     "%(status) - All %(count) files are ok: (%(total_size))",
+		topSyntax:    "%(status) - %(problem_count)/%(count) files (%(total_size)) %(problem_list)",
 		emptySyntax:  "No files found",
 		emptyState:   CheckExitUnknown,
 		attributes: []CheckAttribute{
@@ -80,12 +80,12 @@ func (l *CheckFiles) Build() *CheckData {
 		},
 		exampleDefault: `
     check_files 'path=/tmp' 'filter=age > 3d' 'warn=count > 500' 'crit=count > 600'
-    OK: All 138 files are ok: (29.22 MiB) |'count'=138;500;600;0 'size'=30642669B;;;0
+    OK - All 138 files are ok: (29.22 MiB) |'count'=138;500;600;0 'size'=30642669B;;;0
 
 Check for folder size:
 
     check_files 'path=/tmp' 'warn=total_size > 200MiB' 'crit=total_size > 300MiB'
-    OK: All 145 files are ok: (34.72 MiB) |'count'=145;;;0 'size'=36406741B;209715200;314572800;0
+    OK - All 145 files are ok: (34.72 MiB) |'count'=145;;;0 'size'=36406741B;209715200;314572800;0
 	`,
 		exampleArgs: `'path=/tmp' 'filter=age > 3d' 'warn=count > 500' 'crit=count > 600'`,
 	}
