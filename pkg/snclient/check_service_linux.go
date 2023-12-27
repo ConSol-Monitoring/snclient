@@ -39,6 +39,8 @@ func NewCheckService() CheckHandler {
 }
 
 func (l *CheckService) Build() *CheckData {
+	stateCondition := "state not in ('running', 'oneshot', 'static')"
+
 	return &CheckData{
 		name: "check_service",
 		description: `Checks the state of one or multiple linux (systemctl) services.
@@ -51,11 +53,16 @@ There is a specific [check_service for windows](check_service_windows) as well.`
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"service": {value: &l.services, isFilter: true, description: "Name of the service to check (set to * to check all services). Default: *"},
+			"service": {
+				value:           &l.services,
+				isFilter:        true,
+				description:     "Name of the service to check (set to * to check all services). Default: *",
+				defaultCritical: stateCondition,
+			},
 			"exclude": {value: &l.excludes, description: "List of services to exclude from the check (mainly used when service is set to *)"},
 		},
 		defaultFilter:   "active != inactive",
-		defaultCritical: "state not in ('running', 'oneshot', 'static') && preset != 'disabled'",
+		defaultCritical: stateCondition + " && preset != 'disabled'",
 		detailSyntax:    "${name}=${state}",
 		topSyntax:       "%(status): %(crit_list)",
 		okSyntax:        "%(status): All %(count) service(s) are ok.",

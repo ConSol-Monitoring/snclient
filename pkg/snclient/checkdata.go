@@ -35,9 +35,11 @@ const (
 type CommaStringList []string
 
 type CheckArgument struct {
-	value       interface{} // reference to storage pointer
-	description string      // used in help
-	isFilter    bool        // if true, default filter is not used when this argument is set
+	value           interface{} // reference to storage pointer
+	description     string      // used in help
+	isFilter        bool        // if true, default filter is not used when this argument is set
+	defaultCritical string      // overrides default filter if argument is used
+	defaultWarning  string      // same for critical condition
 }
 
 // Implemented defines the available supported operating systems
@@ -466,10 +468,10 @@ func (cd *CheckData) parseStateString(state string) int64 {
 
 // ParseArgs parses check arguments into the CheckData struct
 // and returns all unknown options
-func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
+func (cd *CheckData) ParseArgs(args []string) (argList []Argument, defaultWarning, defaultCritical string, err error) {
 	cd.rawArgs = args
 	appendArgs := map[string]bool{}
-	argList := make([]Argument, 0, len(args))
+	argList = make([]Argument, 0, len(args))
 	applyDefaultFilter := true
 	cd.expandArgDefinitions()
 	topSupplied := false
@@ -481,17 +483,26 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		keyword := cd.removeQuotes(split[0])
 		argValue, newIdx, err := cd.fetchNextArg(args, split, keyword, idx, numArgs)
 		if err != nil {
-			return nil, err
+			return nil, "", "", err
 		}
 		idx = newIdx
 		argValue = cd.removeQuotes(argValue)
+		var chkArg *CheckArgument
 		if a, ok := cd.args[keyword]; ok && a.isFilter {
-			applyDefaultFilter = false
-			cd.hasArgsFilter = true
+			chkArg = &a
 		}
 		if a, ok := cd.extraArgs[keyword]; ok && a.isFilter {
+			chkArg = &a
+		}
+		if chkArg != nil {
 			applyDefaultFilter = false
 			cd.hasArgsFilter = true
+			if chkArg.defaultWarning != "" {
+				defaultWarning = chkArg.defaultWarning
+			}
+			if chkArg.defaultCritical != "" {
+				defaultCritical = chkArg.defaultCritical
+			}
 		}
 		switch keyword {
 		case "help":
@@ -502,23 +513,23 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 				cd.showHelp = PluginHelp
 			}
 
-			return nil, nil
+			return nil, "", "", nil
 		case "ok":
 			cond, err := NewCondition(argValue)
 			if err != nil {
-				return nil, err
+				return nil, "", "", err
 			}
 			cd.okThreshold = append(cd.okThreshold, cond)
 		case "warn", "warning":
 			cond, err := NewCondition(argValue)
 			if err != nil {
-				return nil, err
+				return nil, "", "", err
 			}
 			cd.warnThreshold = append(cd.warnThreshold, cond)
 		case "crit", "critical":
 			cond, err := NewCondition(argValue)
 			if err != nil {
-				return nil, err
+				return nil, "", "", err
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
 		case "debug":
@@ -544,7 +555,7 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			} else {
 				showAll, err := convert.BoolE(argValue)
 				if err != nil {
-					return nil, fmt.Errorf("parseBool %s: %s", argValue, err.Error())
+					return nil, "", "", fmt.Errorf("parseBool %s: %s", argValue, err.Error())
 				}
 				cd.showAll = showAll
 			}
@@ -552,19 +563,19 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			applyDefaultFilter = false
 			cond, err := NewCondition(argValue)
 			if err != nil {
-				return nil, err
+				return nil, "", "", err
 			}
 			cd.filter = append(cd.filter, cond)
 		case "timeout":
 			timeout, err := convert.Float64E(argValue)
 			if err != nil {
-				return nil, fmt.Errorf("timeout parse error: %s", err.Error())
+				return nil, "", "", fmt.Errorf("timeout parse error: %s", err.Error())
 			}
 			cd.timeout = timeout
 		case "perf-config":
 			perf, err := NewPerfConfig(argValue)
 			if err != nil {
-				return nil, err
+				return nil, "", "", err
 			}
 			cd.perfConfig = append(cd.perfConfig, perf...)
 		case "perf-syntax":
@@ -576,11 +587,11 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 			parsed, err := cd.parseAnyArg(appendArgs, argExpr, keyword, argValue)
 			switch {
 			case err != nil:
-				return nil, err
+				return nil, "", "", err
 			case parsed:
 				// ok
 			case !cd.argsPassthrough:
-				return nil, fmt.Errorf("unknown argument: %s", keyword)
+				return nil, "", "", fmt.Errorf("unknown argument: %s", keyword)
 			default:
 				argList = append(argList, Argument{key: keyword, value: argValue})
 			}
@@ -591,9 +602,9 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		cd.okSyntax = cd.topSyntax
 	}
 
-	err := cd.setFallbacks(applyDefaultFilter)
+	err = cd.setFallbacks(applyDefaultFilter)
 	if err != nil {
-		return nil, err
+		return nil, "", "", err
 	}
 
 	cd.applyConditionAlias()
@@ -603,7 +614,7 @@ func (cd *CheckData) ParseArgs(args []string) ([]Argument, error) {
 		raiseLogLevel(cd.debug)
 	}
 
-	return argList, nil
+	return argList, defaultWarning, defaultCritical, nil
 }
 
 func (cd *CheckData) fetchNextArg(args, split []string, keyword string, idx, numArgs int) (argVal string, newIdx int, err error) {

@@ -11,6 +11,7 @@ next:
          - add metrics to check_os_version
          - add metrics to check_snclient_version
          - use state from metric checks for final result
+         - check_service: adjust default warn/crit condition if service argument is used (#72)
          - fix using arguments in aliased checks (#69)
          - fix metrics order when using check_nsc_web
          - fix wrong path in logrotation on linux
