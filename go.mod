@@ -28,7 +28,7 @@ replace pkg/check_tcp => ./pkg/check_tcp
 replace github.com/Shopify/sarama => github.com/elastic/sarama v1.19.1-0.20220310193331-ebc2b0d8eef3
 
 require (
-	github.com/daixiang0/gci v0.12.0
+	github.com/daixiang0/gci v0.12.1
 	github.com/florentsolt/colorgo v0.0.0-20190915162800-0863107568c6
 	github.com/golangci/golangci-lint v1.55.2
 	github.com/stretchr/testify v1.8.4
@@ -61,7 +61,7 @@ require (
 	github.com/alingse/asasalint v0.0.11 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
-	github.com/beevik/ntp v1.3.0 // indirect
+	github.com/beevik/ntp v1.3.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bkielbasa/cyclop v1.2.1 // indirect
 	github.com/blizzy78/varnamelen v0.8.0 // indirect
@@ -76,7 +76,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
-	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20231221223916-b15ab598d863 // indirect
+	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20231227233328-73f534d3989b // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/curioswitch/go-reassign v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -172,7 +172,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/polyfloyd/go-errorlint v1.4.7 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
-	github.com/prometheus/client_golang v1.17.0 // indirect
+	github.com/prometheus/client_golang v1.18.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
@@ -203,7 +203,7 @@ require (
 	github.com/sivchari/containedctx v1.0.3 // indirect
 	github.com/sivchari/nosnakecase v1.7.0 // indirect
 	github.com/sivchari/tenv v1.7.1 // indirect
-	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231029180838-9bde49d5f2ed // indirect
+	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae // indirect
 	github.com/sonatard/noctx v0.0.2 // indirect
 	github.com/songgao/go.pipeline v0.0.0-20220429045509-ad6449c973e2 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
@@ -230,7 +230,7 @@ require (
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/ultraware/funlen v0.1.0 // indirect
 	github.com/ultraware/whitespace v0.0.5 // indirect
-	github.com/urfave/cli/v2 v2.26.0 // indirect
+	github.com/urfave/cli/v2 v2.27.0 // indirect
 	github.com/uudashr/gocognit v1.1.2 // indirect
 	github.com/xen0n/gosmopolitan v1.2.2 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
@@ -245,8 +245,8 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848 // indirect
-	golang.org/x/exp/typeparams v0.0.0-20231219180239-dc181d75b848 // indirect
+	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
+	golang.org/x/exp/typeparams v0.0.0-20231226003508-02704c960a9b // indirect
 	golang.org/x/image v0.14.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
@@ -254,14 +254,14 @@ require (
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.4.6 // indirect
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
-	mvdan.cc/unparam v0.0.0-20230917202934-3ee2d22f45fb // indirect
+	mvdan.cc/unparam v0.0.0-20231227222031-fe02aa31e4f6 // indirect
 	pkg/check_dns v0.0.0-00010101000000-000000000000 // indirect
 	pkg/check_tcp v0.0.0-00010101000000-000000000000 // indirect
 	pkg/convert v0.0.0-00010101000000-000000000000 // indirect

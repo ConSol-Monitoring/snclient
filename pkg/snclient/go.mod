@@ -25,20 +25,20 @@ replace pkg/check_dns => ../../pkg/check_dns
 replace pkg/check_tcp => ../../pkg/check_tcp
 
 require (
-	github.com/beevik/ntp v1.3.0
+	github.com/beevik/ntp v1.3.1
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
-	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20231221223916-b15ab598d863
+	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20231227233328-73f534d3989b
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/otiai10/copy v1.14.0
-	github.com/prometheus/client_golang v1.17.0
+	github.com/prometheus/client_golang v1.18.0
 	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/sassoftware/go-rpmutils v0.2.0
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v3 v3.23.11
-	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231029180838-9bde49d5f2ed
+	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848
+	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b
 	golang.org/x/sys v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 	pkg/check_dns v0.0.0-00010101000000-000000000000
@@ -90,5 +90,5 @@ require (
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/tools v0.16.1 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 )

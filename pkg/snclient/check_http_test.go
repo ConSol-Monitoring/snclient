@@ -25,7 +25,7 @@ password = test
 	res := snc.RunCheck("check_http", []string{"-H", "localhost", "-p", "45666", "-u", "/index.html"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^HTTP OK: HTTP/1.1 200 OK`),
+		regexp.MustCompile(`^HTTP OK - HTTP/1.1 200 OK`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
