@@ -1070,26 +1070,26 @@ func fixReturnCodes(output *string, exitCode *int64, state *os.ProcessState) {
 		return
 	}
 	if *exitCode == 126 {
-		*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Make sure the plugin you're trying to run is executable.\n%s", *exitCode, *output)
+		*output = fmt.Sprintf("CRITICAL - Return code of %d is out of bounds. Make sure the plugin you're trying to run is executable.\n%s", *exitCode, *output)
 		*exitCode = CheckExitCritical
 
 		return
 	}
 	if *exitCode == 127 {
-		*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", *exitCode, *output)
+		*output = fmt.Sprintf("CRITICAL - Return code of %d is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", *exitCode, *output)
 		*exitCode = CheckExitCritical
 
 		return
 	}
 	if waitStatus, ok := state.Sys().(syscall.WaitStatus); ok {
 		if waitStatus.Signaled() {
-			*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds. Plugin exited by signal: %s.\n%s", waitStatus.Signal(), waitStatus.Signal(), *output)
+			*output = fmt.Sprintf("CRITICAL - Return code of %d is out of bounds. Plugin exited by signal: %s.\n%s", waitStatus.Signal(), waitStatus.Signal(), *output)
 			*exitCode = CheckExitCritical
 
 			return
 		}
 	}
-	*output = fmt.Sprintf("CRITICAL: Return code of %d is out of bounds.\n%s", *exitCode, *output)
+	*output = fmt.Sprintf("CRITICAL - Return code of %d is out of bounds.\n%s", *exitCode, *output)
 	*exitCode = CheckExitUnknown
 }
 

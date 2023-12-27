@@ -123,7 +123,7 @@ func TestCheckExternalUnixNonExist(t *testing.T) {
 
 	res := snc.RunCheck("check_doesnotexist", []string{})
 	assert.Equalf(t, CheckExitCritical, res.State, "state matches")
-	assert.Regexp(t, "CRITICAL: Return code of 127.*actually exists", string(res.BuildPluginOutput()), "output matches")
+	assert.Regexp(t, "CRITICAL - Return code of 127.*actually exists", string(res.BuildPluginOutput()), "output matches")
 
 	StopTestAgent(t, snc)
 }
