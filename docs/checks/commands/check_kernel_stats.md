@@ -41,15 +41,15 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value               |
-| ------------- | --------------------------- |
-| warning       | threads > 8000              |
-| critical      | threads > 10000             |
-| empty-state   | 3 (UNKNOWN)                 |
+| Argument      | Default Value                |
+| ------------- | ---------------------------- |
+| warning       | threads > 8000               |
+| critical      | threads > 10000              |
+| empty-state   | 3 (UNKNOWN)                  |
 | empty-syntax  | %(status) - No metrics found |
 | top-syntax    | %(status) - %(list)          |
 | ok-syntax     | %(status) - %(list)          |
-| detail-syntax | %(label) %(human)           |
+| detail-syntax | %(label) %(human)            |
 
 ## Check Specific Arguments
 
