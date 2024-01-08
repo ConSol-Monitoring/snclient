@@ -105,7 +105,7 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 		return nil, fmt.Errorf("module CheckDisk is not enabled in /modules section")
 	}
 
-	check.SetDefaultThresholdUnit("%", []string{"used", "free", "inodes", "inodes_free"})
+	check.SetDefaultThresholdUnit("%", []string{"used_pct", "used", "free", "free_pct", "inodes", "inodes_free"})
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
 	requiredDisks, err := l.getRequiredDisks(l.drives)
