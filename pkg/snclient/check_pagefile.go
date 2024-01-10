@@ -38,7 +38,7 @@ func (l *CheckPagefile) Build() *CheckData {
 		defaultFilter:   "name = 'total'",
 		defaultWarning:  "used > 60%",
 		defaultCritical: "used > 80%",
-		detailSyntax:    "${name} ${used} (${size})",
+		detailSyntax:    "${name} ${used}/${size} (%(used_pct | fmt=%.1f )%)",
 		topSyntax:       "%(status) - ${list}",
 		attributes: []CheckAttribute{
 			{name: "name", description: "The name of the page file (location)"},
@@ -56,7 +56,7 @@ func (l *CheckPagefile) Build() *CheckData {
 		},
 		exampleDefault: `
     check_pagefile
-    OK - total 53.41 MiB (244.14 MiB) |...
+    OK - total 39.10 MiB/671.39 MiB (5.8%) |...
 	`,
 		exampleArgs: `'warn=used > 80%' 'crit=used > 95%'`,
 	}
@@ -64,9 +64,10 @@ func (l *CheckPagefile) Build() *CheckData {
 
 func (l *CheckPagefile) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	if runtime.GOOS != "windows" {
+		// this allows to run make docs on Linux as well, even if it's not in the implemented: attribute
 		return nil, fmt.Errorf("check_pagefile is a windows only check")
 	}
-	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
+	check.SetDefaultThresholdUnit("%", []string{"used", "used_pct", "free", "free_pct"})
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
 	// https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-pagefileusage

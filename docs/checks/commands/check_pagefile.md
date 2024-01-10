@@ -21,7 +21,7 @@ Checks the pagefile usage.
 ### Default Check
 
     check_pagefile
-    OK - total 53.41 MiB (244.14 MiB) |...
+    OK - total 39.10 MiB/671.39 MiB (5.8%) |...
 
 ### Example using NRPE and Naemon
 
@@ -41,16 +41,16 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                |
-| ------------- | ---------------------------- |
-| filter        | name = 'total'               |
-| warning       | used > 60%                   |
-| critical      | used > 80%                   |
-| empty-state   | 0 (OK)                       |
-| empty-syntax  |                              |
-| top-syntax    | \%(status) - \${list}         |
-| ok-syntax     |                              |
-| detail-syntax | \${name} \${used} (\${size}) |
+| Argument      | Default Value                                          |
+| ------------- | ------------------------------------------------------ |
+| filter        | name = 'total'                                         |
+| warning       | used > 60%                                             |
+| critical      | used > 80%                                             |
+| empty-state   | 0 (OK)                                                 |
+| empty-syntax  |                                                        |
+| top-syntax    | %(status) - \${list}                                   |
+| ok-syntax     |                                                        |
+| detail-syntax | \${name} \${used}/\${size} (%(used_pct \| fmt=%.1f )%) |
 
 ## Check Specific Arguments
 
