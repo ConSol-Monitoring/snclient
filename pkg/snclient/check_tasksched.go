@@ -66,6 +66,7 @@ func (l *CheckTasksched) Build() *CheckData {
 
 func (l *CheckTasksched) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	if runtime.GOOS != "windows" {
+		// this allows to run make docs on Linux as well, even if it's not in the implemented: attribute
 		return nil, fmt.Errorf("check_tasksched is a windows only check")
 	}
 
