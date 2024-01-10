@@ -1,6 +1,6 @@
 This file documents the revision history for the SNClient+ agent.
 
-next:
+0.16     Wed Jan 10 14:27:26 CET 2024
          - add check_ntp_offset
          - add check_mailq
          - add check_connections
