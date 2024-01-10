@@ -1,3 +1,5 @@
 #!/bin/bash
 mkdir -p /var/log/snclient
+/usr/libexec/ApplicationFirewall/socketfilterfw --add /usr/local/bin/snclient
+pkill -HUP socketfilterfw
 launchctl load /Library/LaunchDaemons/com.snclient.snclient.plist
