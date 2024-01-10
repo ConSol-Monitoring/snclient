@@ -117,6 +117,14 @@ func (l *CheckPagefile) addPagefile(check *CheckData, name string, data map[stri
 		"size":       humanize.IBytesF(data["AllocatedBaseSize"], 2),
 		"size_bytes": fmt.Sprintf("%d", data["AllocatedBaseSize"]),
 	}
+
+	// prevent adding metrics for filtered pagefiles
+	if !check.MatchMapCondition(check.filter, entry, false) {
+		log.Tracef("pagefile %s excluded by filter", name)
+
+		return
+	}
+
 	check.listData = append(check.listData, entry)
 	if check.HasThreshold("free") {
 		check.AddBytePercentMetrics("free", name, float64(data["AllocatedBaseSize"]-data["CurrentUsage"]), float64(data["AllocatedBaseSize"]))
