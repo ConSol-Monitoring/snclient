@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 
+	"pkg/utils"
+
 	"github.com/kdar/factorlog"
 )
 
@@ -120,9 +122,9 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 		targetWriter = os.Stdout
 	default:
 		logFormatter = BuildFormatter(DateTimeLogFormat + LogFormat)
-		fHandle, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
+		fHandle, err := buildLogHandle(file)
 		if err != nil {
-			log.Errorf(fmt.Sprintf("failed to open logfile %s: %s", file, err.Error()))
+			log.Errorf("%s", err.Error())
 
 			return
 		}
@@ -154,6 +156,22 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 
 	log.SetFormatter(logFormatter)
 	log.SetOutput(targetWriter)
+}
+
+func buildLogHandle(file string) (*os.File, error) {
+	logDir := filepath.Dir(file)
+	if utils.IsFolder(logDir) != nil {
+		err := os.MkdirAll(logDir, 0o700)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create logfile folder %s: %s", logDir, err.Error())
+		}
+	}
+	fHandle, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open logfile %s: %s", file, err.Error())
+	}
+
+	return fHandle, nil
 }
 
 func BuildFormatter(format string) *factorlog.StdFormatter {
