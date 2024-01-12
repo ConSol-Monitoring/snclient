@@ -156,11 +156,14 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 			if exitCode != "" {
 				cd.result.State = convert.Int64(exitCode)
 				cd.result.Output = fmt.Sprintf("%s - %s", convert.StateString(cd.result.State), errMsg)
+				log.Tracef(" - %#v", entry)
 
 				return cd.result, nil
 			}
 
 			if errMsg != "" {
+				log.Tracef(" - %#v", entry)
+
 				return nil, fmt.Errorf("%s", errMsg)
 			}
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)

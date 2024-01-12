@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -20,6 +21,8 @@ import (
 
 	"github.com/kdar/factorlog"
 )
+
+var reMountPassword = regexp.MustCompile(`//.*:.*@`)
 
 var TimeFactors = []struct {
 	suffix string
@@ -545,4 +548,10 @@ func IsFolder(path string) error {
 	}
 
 	return nil
+}
+
+func ReplaceCommonPasswordPattern(str string) string {
+	str = reMountPassword.ReplaceAllString(str, "//...@")
+
+	return str
 }

@@ -21,6 +21,39 @@ const (
 	DiskDetailsTimeout = 30 * time.Second
 )
 
+func defaultExcludedFsTypes() []string {
+	// grep ^nodev /proc/filesystems | awk '{ print $2 }' | grep -v '^\(nfs\|cifs\|smb\|fuse$\|tmpfs\)' | sort
+	return []string{
+		"autofs",
+		"bdev",
+		"binfmt_misc",
+		"bpf",
+		"cgroup",
+		"cgroup2",
+		"configfs",
+		"cpuset",
+		"debugfs",
+		"devpts",
+		"devtmpfs",
+		"efivarfs",
+		"fuse.portal",
+		"fusectl",
+		"hugetlbfs",
+		"mqueue",
+		"nsfs",
+		"overlay",
+		"pipefs",
+		"proc",
+		"pstore",
+		"ramfs",
+		"rpc_pipefs",
+		"securityfs",
+		"sockfs",
+		"sysfs",
+		"tracefs",
+	}
+}
+
 type CheckDrivesize struct {
 	drives           []string
 	excludes         []string

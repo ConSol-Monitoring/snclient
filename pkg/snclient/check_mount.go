@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"pkg/utils"
+
 	"github.com/shirou/gopsutil/v3/disk"
+	"golang.org/x/exp/slices"
 )
 
 func init() {
@@ -59,10 +62,11 @@ func (l *CheckMount) Build() *CheckData {
 }
 
 func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	partitions, err := disk.PartitionsWithContext(ctx, false)
+	partitions, err := disk.PartitionsWithContext(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mounts: %s", err.Error())
 	}
+	excludes := defaultExcludedFsTypes()
 	partitionMap := map[string]*disk.PartitionStat{}
 	for i := range partitions {
 		partition := partitions[i]
@@ -70,9 +74,18 @@ func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []
 		if l.mountPoint != "" && partition.Mountpoint != l.mountPoint {
 			continue
 		}
+		// skip internal filesystems
+		if slices.Contains(excludes, partition.Fstype) || partition.Fstype == "tmpfs" {
+			continue
+		}
+		// skip some know internal locations
+		if strings.HasPrefix(partition.Mountpoint, "/run") || strings.HasPrefix(partition.Mountpoint, "/dev") {
+			continue
+		}
+		device := utils.ReplaceCommonPasswordPattern(partition.Device)
 		entry := map[string]string{
 			"mount":   partition.Mountpoint,
-			"device":  partition.Device,
+			"device":  device,
 			"fstype":  partition.Fstype,
 			"options": strings.Join(partition.Opts, ","),
 			"issues":  "",

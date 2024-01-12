@@ -13,31 +13,8 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
-func (l *CheckDrivesize) defaultExcludedFsTypes() []string {
-	return []string{
-		"binfmt_misc",
-		"bpf",
-		"cgroup2fs",
-		"configfs",
-		"debugfs",
-		"devpts",
-		"efivarfs",
-		"fusectl",
-		"hugetlbfs",
-		"mqueue",
-		"nfsd",
-		"proc",
-		"pstorefs",
-		"ramfs",
-		"rpc_pipefs",
-		"securityfs",
-		"sysfs",
-		"tracefs",
-	}
-}
-
 func (l *CheckDrivesize) getDefaultFilter() string {
-	return "fstype not in (" + utils.List2String(l.defaultExcludedFsTypes()) + ")"
+	return "fstype not in (" + utils.List2String(defaultExcludedFsTypes()) + ")"
 }
 
 func (l *CheckDrivesize) getExample() string {
