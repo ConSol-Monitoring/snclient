@@ -72,16 +72,28 @@ func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []
 		partition := partitions[i]
 		partitionMap[partition.Mountpoint] = &partition
 		if l.mountPoint != "" && partition.Mountpoint != l.mountPoint {
+			log.Tracef("skipped mountpoint: %s - not matching mount argument", partition.Mountpoint)
+
 			continue
 		}
 		// skip internal filesystems
 		if slices.Contains(excludes, partition.Fstype) || partition.Fstype == "tmpfs" {
+			log.Tracef("skipped mountpoint: %s - fstype %s is excluded", partition.Mountpoint, partition.Fstype)
+
 			continue
 		}
 		// skip some know internal locations
-		if strings.HasPrefix(partition.Mountpoint, "/run") || strings.HasPrefix(partition.Mountpoint, "/dev") {
+		switch {
+		case strings.HasPrefix(partition.Mountpoint, "/run"),
+			strings.HasPrefix(partition.Mountpoint, "/proc"),
+			strings.HasPrefix(partition.Mountpoint, "/sys"),
+			strings.HasPrefix(partition.Mountpoint, "/dev"):
+
+			log.Tracef("skipped mountpoint: %s - prefix matched internal system mounts", partition.Mountpoint, partition.Fstype)
+
 			continue
 		}
+
 		device := utils.ReplaceCommonPasswordPattern(partition.Device)
 		entry := map[string]string{
 			"mount":   partition.Mountpoint,
