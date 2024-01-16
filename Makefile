@@ -43,7 +43,12 @@ NODE_EXPORTER_VERSION=1.7.0
 NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(ARCH).tar.gz
 NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)/$(NODE_EXPORTER_FILE)
 
-WINDOWS_EXPORTER_VERSION=0.24.0
+# last i386 exe is the 0.24.0
+WINDOWS_EXPORTER_VERSION_I386=0.24.0
+WINDOWS_EXPORTER_FILE_I386=windows_exporter-$(WINDOWS_EXPORTER_VERSION_I386)
+WINDOWS_EXPORTER_URL_I386=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION_I386)/
+
+WINDOWS_EXPORTER_VERSION=0.25.1
 WINDOWS_EXPORTER_FILE=windows_exporter-$(WINDOWS_EXPORTER_VERSION)
 WINDOWS_EXPORTER_URL=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION)/
 
@@ -383,7 +388,7 @@ windist: | dist
 	echo '\pard\f0\fs22\lang1033' >> windist/LICENSE.rtf
 	while read line; do printf "%s\n" "$$line\par"; done < LICENSE >> windist/LICENSE.rtf
 
-	test -f windist/windows_exporter-386.exe   || curl -s -L -o windist/windows_exporter-386.exe   $(WINDOWS_EXPORTER_URL)/$(WINDOWS_EXPORTER_FILE)-386.exe
+	test -f windist/windows_exporter-386.exe   || curl -s -L -o windist/windows_exporter-386.exe   $(WINDOWS_EXPORTER_URL_I386)/$(WINDOWS_EXPORTER_FILE_I386)-386.exe
 	test -f windist/windows_exporter-amd64.exe || curl -s -L -o windist/windows_exporter-amd64.exe $(WINDOWS_EXPORTER_URL)/$(WINDOWS_EXPORTER_FILE)-amd64.exe
 	test -f windist/windows_exporter-arm64.exe || curl -s -L -o windist/windows_exporter-arm64.exe $(WINDOWS_EXPORTER_URL)/$(WINDOWS_EXPORTER_FILE)-arm64.exe
 	cd windist && shasum --ignore-missing -c ../packaging/sha256sums.txt

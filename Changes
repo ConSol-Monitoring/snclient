@@ -2,6 +2,8 @@ This file documents the revision history for the SNClient+ agent.
 
 next:
          - create logfile folder unless it exists
+         - update windows exporter to 0.25.1
+            - i386 still uses 0.24 since thats the last supported version
 
 0.16     Wed Jan 10 14:27:26 CET 2024
          - add check_ntp_offset
