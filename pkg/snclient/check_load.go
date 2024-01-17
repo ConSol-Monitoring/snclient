@@ -87,9 +87,9 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 	}
 
 	if l.perCPU {
-		numCPU, err := cpuinfo.CountsWithContext(ctx, true)
-		if err != nil {
-			return nil, fmt.Errorf("cpuinfo: %s", err.Error())
+		numCPU, err2 := cpuinfo.CountsWithContext(ctx, true)
+		if err2 != nil {
+			return nil, fmt.Errorf("cpuinfo: %s", err2.Error())
 		}
 		if numCPU == 0 {
 			return nil, fmt.Errorf("cpu count is zero")
@@ -104,7 +104,7 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 	l.addLoad(check, "total", "", loadAvg)
 
 	if l.numProcs > 0 {
-		err := l.appendProcs(ctx, check)
+		err = l.appendProcs(ctx, check)
 		if err != nil {
 			return nil, fmt.Errorf("procs: %s", err.Error())
 		}

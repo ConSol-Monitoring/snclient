@@ -315,21 +315,21 @@ func (c *Condition) matchSingle(data map[string]string, notExists bool) bool {
 // getVarValue extracts value from dataset for conditions keyword
 // tries keyword_pct for % unit and keyword_bytes for B unit
 // returns value from keyword unless found already
-func (c *Condition) getVarValue(data map[string]string) (val string, ok bool) {
+func (c *Condition) getVarValue(data map[string]string) (varStr string, ok bool) {
 	switch {
 	case c.unit == "%":
-		varStr, ok := data[c.keyword+"_pct"]
+		varStr, ok = data[c.keyword+"_pct"]
 		if ok {
 			return varStr, ok
 		}
 	case strings.EqualFold(c.unit, "B"):
-		varStr, ok := data[c.keyword+"_bytes"]
+		varStr, ok = data[c.keyword+"_bytes"]
 		if ok {
 			return varStr, ok
 		}
 	}
 
-	varStr, ok := data[c.keyword+"_value"]
+	varStr, ok = data[c.keyword+"_value"]
 	if ok {
 		return varStr, ok
 	}
@@ -397,7 +397,7 @@ func conditionAdd(token []string) (cond *Condition, remaining []string, err erro
 			}
 
 			// parse sub group
-			cond, rem, err := conditionAdd(token)
+			condsub, rem, err := conditionAdd(token)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -407,17 +407,17 @@ func conditionAdd(token []string) (cond *Condition, remaining []string, err erro
 			}
 
 			token = rem[1:] // excluding closing bracket
-			conditions = append(conditions, cond)
+			conditions = append(conditions, condsub)
 
 			continue
 		}
 
-		cond, rem, err := conditionNext(token)
+		condsub, rem, err := conditionNext(token)
 		if err != nil {
 			return nil, nil, err
 		}
 		token = rem
-		conditions = append(conditions, cond)
+		conditions = append(conditions, condsub)
 	}
 
 	if len(conditions) == 1 {
@@ -495,9 +495,9 @@ func conditionNext(token []string) (cond *Condition, remaining []string, err err
 func conditionValue(cond *Condition, token []string) (remaining []string, err error) {
 	// check for list values like ("a", "b",...)
 	if strings.HasPrefix(token[0], "(") {
-		rem, err := conditionListValue(cond, token)
-		if err != nil {
-			return nil, err
+		rem, err2 := conditionListValue(cond, token)
+		if err2 != nil {
+			return nil, err2
 		}
 
 		token = rem

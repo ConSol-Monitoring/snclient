@@ -842,10 +842,10 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 	if runtime.GOOS == "windows" && mode == "winservice" {
 		// stop service, so we can replace the binary
 		cmd := exec.Command("net", "stop", "snclient")
-		output, err := cmd.CombinedOutput()
+		output, err2 := cmd.CombinedOutput()
 		log.Tracef("[update] net stop snclient: %s", strings.TrimSpace(string(output)))
-		if err != nil {
-			log.Debugf("net stop snclient failed: %s", err.Error())
+		if err2 != nil {
+			log.Debugf("net stop snclient failed: %s", err2.Error())
 		}
 	}
 
@@ -1127,7 +1127,7 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 	cmd.Stderr = &errbuf
 
 	workDir, _ := snc.Config.Section("/paths").GetString("shared-path")
-	if err := utils.IsFolder(workDir); err != nil {
+	if err = utils.IsFolder(workDir); err != nil {
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("invalid shared-path %s: %s", workDir, err.Error())
 	}
 	cmd.Dir = workDir

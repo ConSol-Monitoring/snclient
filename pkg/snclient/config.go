@@ -145,7 +145,7 @@ func (config *Config) ReadINI(iniPath string) error {
 	}
 	if fileStat.IsDir() {
 		log.Debugf("recursing into config folder: %s", iniPath)
-		err := filepath.WalkDir(iniPath, func(path string, dir fs.DirEntry, err error) error {
+		err = filepath.WalkDir(iniPath, func(path string, dir fs.DirEntry, err error) error {
 			if err != nil {
 				return fmt.Errorf("%s: %s", path, err.Error())
 			}
@@ -626,7 +626,7 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	folder := path.Dir(cs.name)
 	if base != "default" && folder != "/" {
 		defSection := cs.cfg.Section(folder + "/default")
-		val, ok := defSection.GetString(key)
+		val, ok = defSection.GetString(key)
 		if ok {
 			return val, ok
 		}
@@ -636,7 +636,7 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 		if defSection.name == cs.name {
 			return val, ok
 		}
-		val, ok := defSection.GetString(key)
+		val, ok = defSection.GetString(key)
 		if ok {
 			return val, ok
 		}
@@ -644,7 +644,7 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	parent := path.Dir(strings.TrimSuffix(folder, "/"))
 	if parent != "." && parent != "/" && parent != "" {
 		parSection := cs.cfg.Section(parent)
-		val, ok := parSection.GetString(key)
+		val, ok = parSection.GetString(key)
 		if ok {
 			return val, ok
 		}

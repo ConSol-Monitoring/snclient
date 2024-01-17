@@ -484,9 +484,9 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, defaultWarnin
 		argExpr := cd.removeQuotes(args[idx])
 		split := strings.SplitN(argExpr, "=", 2)
 		keyword := cd.removeQuotes(split[0])
-		argValue, newIdx, err := cd.fetchNextArg(args, split, keyword, idx, numArgs)
-		if err != nil {
-			return nil, "", "", err
+		argValue, newIdx, err2 := cd.fetchNextArg(args, split, keyword, idx, numArgs)
+		if err2 != nil {
+			return nil, "", "", err2
 		}
 		idx = newIdx
 		argValue = cd.removeQuotes(argValue)
@@ -518,21 +518,21 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, defaultWarnin
 
 			return nil, "", "", nil
 		case "ok":
-			cond, err := NewCondition(argValue)
-			if err != nil {
-				return nil, "", "", err
+			cond, err2 := NewCondition(argValue)
+			if err2 != nil {
+				return nil, "", "", err2
 			}
 			cd.okThreshold = append(cd.okThreshold, cond)
 		case "warn", "warning":
-			cond, err := NewCondition(argValue)
-			if err != nil {
-				return nil, "", "", err
+			cond, err2 := NewCondition(argValue)
+			if err2 != nil {
+				return nil, "", "", err2
 			}
 			cd.warnThreshold = append(cd.warnThreshold, cond)
 		case "crit", "critical":
-			cond, err := NewCondition(argValue)
-			if err != nil {
-				return nil, "", "", err
+			cond, err2 := NewCondition(argValue)
+			if err2 != nil {
+				return nil, "", "", err2
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
 		case "debug":
@@ -556,29 +556,29 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, defaultWarnin
 			if argValue == "" {
 				cd.showAll = true
 			} else {
-				showAll, err := convert.BoolE(argValue)
-				if err != nil {
-					return nil, "", "", fmt.Errorf("parseBool %s: %s", argValue, err.Error())
+				showAll, err2 := convert.BoolE(argValue)
+				if err2 != nil {
+					return nil, "", "", fmt.Errorf("parseBool %s: %s", argValue, err2.Error())
 				}
 				cd.showAll = showAll
 			}
 		case "filter":
 			applyDefaultFilter = false
-			cond, err := NewCondition(argValue)
+			cond, err2 := NewCondition(argValue)
 			if err != nil {
-				return nil, "", "", err
+				return nil, "", "", err2
 			}
 			cd.filter = append(cd.filter, cond)
 		case "timeout":
-			timeout, err := convert.Float64E(argValue)
-			if err != nil {
-				return nil, "", "", fmt.Errorf("timeout parse error: %s", err.Error())
+			timeout, err2 := convert.Float64E(argValue)
+			if err2 != nil {
+				return nil, "", "", fmt.Errorf("timeout parse error: %s", err2.Error())
 			}
 			cd.timeout = timeout
 		case "perf-config":
-			perf, err := NewPerfConfig(argValue)
-			if err != nil {
-				return nil, "", "", err
+			perf, err2 := NewPerfConfig(argValue)
+			if err2 != nil {
+				return nil, "", "", err2
 			}
 			cd.perfConfig = append(cd.perfConfig, perf...)
 		case "perf-syntax":
@@ -587,10 +587,10 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, defaultWarnin
 		case "output":
 			cd.output = argValue
 		default:
-			parsed, err := cd.parseAnyArg(appendArgs, argExpr, keyword, argValue)
+			parsed, err2 := cd.parseAnyArg(appendArgs, argExpr, keyword, argValue)
 			switch {
-			case err != nil:
-				return nil, "", "", err
+			case err2 != nil:
+				return nil, "", "", err2
 			case parsed:
 				// ok
 			case !cd.argsPassthrough:

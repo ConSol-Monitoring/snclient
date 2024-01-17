@@ -101,16 +101,16 @@ func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Confi
 	l.modules = map[string]*exporterModuleConfig{}
 	moduleDir, _ := conf.GetString("modules dir")
 	if moduleDir != "" {
-		modules, err := l.readModules(snc, moduleDir)
-		if err != nil {
-			return err
+		modules, err2 := l.readModules(snc, moduleDir)
+		if err2 != nil {
+			return err2
 		}
 		l.modules = modules
 	}
 
-	allowedHosts, err := NewAllowedHostConfig(conf)
-	if err != nil {
-		return err
+	allowedHosts, err2 := NewAllowedHostConfig(conf)
+	if err2 != nil {
+		return err2
 	}
 	l.allowedHosts = allowedHosts
 
@@ -517,12 +517,12 @@ func readFileWithDeadline(path string, deadline time.Time) ([]byte, time.Time, e
 	defer file.Close()
 
 	if !deadline.IsZero() {
-		if err := file.SetDeadline(deadline); err != nil {
-			return nil, mtime, fmt.Errorf("file.SetDeadline %s: %s", path, err.Error())
+		if err2 := file.SetDeadline(deadline); err2 != nil {
+			return nil, mtime, fmt.Errorf("file.SetDeadline %s: %s", path, err2.Error())
 		}
 	}
 
-	if info, err := file.Stat(); err == nil {
+	if info, err2 := file.Stat(); err2 == nil {
 		if info.Mode().IsRegular() {
 			mtime = info.ModTime()
 		}

@@ -124,9 +124,9 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 	}
 
 	if agentMaxMem, ok := conf.GetString("agent max memory"); ok {
-		maxMem, err := humanize.ParseBytes(agentMaxMem)
-		if err != nil {
-			return fmt.Errorf("agent max memory: %s", err.Error())
+		maxMem, err2 := humanize.ParseBytes(agentMaxMem)
+		if err2 != nil {
+			return fmt.Errorf("agent max memory: %s", err2.Error())
 		}
 		l.agentMaxMem = maxMem
 	}

@@ -78,9 +78,9 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	}
 
 	if len(l.files) == 0 {
-		filenames, err := eventlog.GetFileNames()
-		if err != nil {
-			return nil, fmt.Errorf("wmi query failed: %s", err.Error())
+		filenames, err2 := eventlog.GetFileNames()
+		if err2 != nil {
+			return nil, fmt.Errorf("wmi query failed: %s", err2.Error())
 		}
 		l.files = append(l.files, filenames...)
 	}

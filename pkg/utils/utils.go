@@ -287,8 +287,8 @@ func TrimQuotes(str string) (res string, err error) {
 	return str, nil
 }
 
-func TrimQuotesAll(str []string) (res []string, err error) {
-	res = make([]string, len(str))
+func TrimQuotesAll(str []string) ([]string, error) {
+	res := make([]string, len(str))
 	for i, s := range str {
 		t, err := TrimQuotes(s)
 		if err != nil {
@@ -297,7 +297,7 @@ func TrimQuotesAll(str []string) (res []string, err error) {
 		res[i] = t
 	}
 
-	return res, err
+	return res, nil
 }
 
 func ParseVersion(str string) (num float64) {

@@ -153,8 +153,7 @@ func (cr *CheckResult) ParsePerformanceDataFromOutput() {
 		rawPerfData := strings.TrimSpace(line[pipeIndex+1:])
 
 		// remove perf data from normal output
-		line := strings.TrimSpace(line[:pipeIndex])
-		trimmedOutput = append(trimmedOutput, line)
+		trimmedOutput = append(trimmedOutput, strings.TrimSpace(line[:pipeIndex]))
 
 		metrics := cr.extractMetrics(rawPerfData)
 		cr.Metrics = append(cr.Metrics, metrics...)

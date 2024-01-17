@@ -124,11 +124,11 @@ func (l *CheckService) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 	}
 
 	if len(l.services) == 0 || slices.Contains(l.services, "*") {
-		serviceList, err := ctrlMgr.ListServices()
-		if err != nil {
+		serviceList, err2 := ctrlMgr.ListServices()
+		if err2 != nil {
 			return &CheckResult{
 				State:  int64(3),
-				Output: fmt.Sprintf("Failed to fetch service list: %s", err),
+				Output: fmt.Sprintf("Failed to fetch service list: %s", err2.Error()),
 			}, nil
 		}
 

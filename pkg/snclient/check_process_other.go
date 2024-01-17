@@ -40,15 +40,15 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			filename = strings.TrimSuffix(filename, " (deleted)")
 			exe = filepath.Base(filename)
 		} else {
-			cmd, err := proc.CmdlineSliceWithContext(ctx)
-			if err != nil && len(cmd) >= 1 {
+			cmd, err2 := proc.CmdlineSliceWithContext(ctx)
+			if err2 != nil && len(cmd) >= 1 {
 				exe = cmd[0]
 			}
 		}
 		if exe == "" {
-			name, err := proc.NameWithContext(ctx)
-			if err != nil {
-				log.Debugf("check_process: name error: %s", err.Error())
+			name, err2 := proc.NameWithContext(ctx)
+			if err2 != nil {
+				log.Debugf("check_process: name error: %s", err2.Error())
 			} else {
 				exe = fmt.Sprintf("[%s]", name)
 			}

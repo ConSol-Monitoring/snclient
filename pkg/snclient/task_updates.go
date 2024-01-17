@@ -487,12 +487,12 @@ func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates [
 		return nil, nil
 	}
 
-	reVersion := regexp.MustCompile(`^snclient\-(.*?)\-\w+-\w+\.\w+`)
+	reActionVersion := regexp.MustCompile(`^snclient\-(.*?)\-\w+-\w+\.\w+`)
 
 	for i := range artifacts.Artifacts {
 		artifact := artifacts.Artifacts[i]
 		if u.isUsableGithubAsset(strings.ToLower(artifact.Name)) {
-			matches := reVersion.FindStringSubmatch(artifact.Name)
+			matches := reActionVersion.FindStringSubmatch(artifact.Name)
 			if len(matches) > 1 {
 				version := matches[1]
 				updates = append(updates, updatesAvailable{url: artifact.URL, version: version, header: header})
@@ -598,16 +598,16 @@ func (u *UpdateHandler) downloadUpdate(update *updatesAvailable) (binPath string
 	if strings.HasPrefix(url, "file://") {
 		localPath := strings.TrimPrefix(url, "file://")
 		log.Tracef("[update] fetching update from %s", localPath)
-		file, err := os.Open(localPath)
-		if err != nil {
-			return "", fmt.Errorf("open failed %s: %s", localPath, err.Error())
+		file, err2 := os.Open(localPath)
+		if err2 != nil {
+			return "", fmt.Errorf("open failed %s: %s", localPath, err2.Error())
 		}
 		src = file
 	} else {
 		log.Tracef("[update] downloading update from %s", url)
-		resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, update.header)
-		if err != nil {
-			return "", fmt.Errorf("fetching update failed %s: %s", url, err.Error())
+		resp, err2 := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, update.header)
+		if err2 != nil {
+			return "", fmt.Errorf("fetching update failed %s: %s", url, err2.Error())
 		}
 		defer resp.Body.Close()
 		src = resp.Body
@@ -895,19 +895,19 @@ func (u *UpdateHandler) extractTar(fileName string) error {
 	found := false
 	tarHandle := tar.NewReader(tarFile)
 	for {
-		hdr, err := tarHandle.Next()
-		if errors.Is(err, io.EOF) {
+		hdr, err2 := tarHandle.Next()
+		if errors.Is(err2, io.EOF) {
 			break
 		}
-		if err != nil {
-			return fmt.Errorf("tar read: %s", err.Error())
+		if err2 != nil {
+			return fmt.Errorf("tar read: %s", err2.Error())
 		}
 		if found {
 			return fmt.Errorf("tarball must contain only one file, got another: %s", hdr.Name)
 		}
 
 		log.Tracef("copying %s from tarball", hdr.Name)
-		if _, err := io.CopyN(tempFile, tarHandle, UpdateFileMaxSize); err != nil {
+		if _, err = io.CopyN(tempFile, tarHandle, UpdateFileMaxSize); err != nil {
 			if !errors.Is(err, io.EOF) {
 				return fmt.Errorf("tar read: %s", err.Error())
 			}
@@ -948,7 +948,7 @@ func (u *UpdateHandler) extractRpm(fileName string) error {
 	defer os.RemoveAll(tempDir)
 
 	// Extracting payload
-	if err := rpm.ExpandPayload(tempDir); err != nil {
+	if err = rpm.ExpandPayload(tempDir); err != nil {
 		return fmt.Errorf("rpm unpack: %s", err.Error())
 	}
 
@@ -972,7 +972,7 @@ func (u *UpdateHandler) extractMsi(fileName string) error {
 
 	// Use the "msiexec" command to extract the file from the .msi
 	cmd := exec.Command("msiexec", "/a", fileName, "/qn", "TARGETDIR="+tempDir) //nolint:gosec // no user input here
-	if err := cmd.Run(); err != nil {
+	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run msiexec %s: %s", strings.Join(cmd.Args, " "), err.Error())
 	}
 
@@ -1013,15 +1013,15 @@ func (u *UpdateHandler) extractXar(fileName string) error {
 	// Use the "xar" command to extract the file from the .pkg
 	cmd := exec.Command("xar", "-xf", fileName)
 	cmd.Dir = tempDir
-	if err := cmd.Run(); err != nil {
+	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run xar %s: %s", strings.Join(cmd.Args, " "), err.Error())
 	}
 
 	// Unpack Payload from the .pkg
 	cmd = exec.Command("/bin/sh", "-c", "cat Payload | gunzip -dc |cpio -i")
 	cmd.Dir = tempDir
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to unpack %s: %s", strings.Join(cmd.Args, " "), err.Error())
+	if err2 := cmd.Run(); err2 != nil {
+		return fmt.Errorf("failed to unpack %s: %s", strings.Join(cmd.Args, " "), err2.Error())
 	}
 
 	extractedFilePath := ""

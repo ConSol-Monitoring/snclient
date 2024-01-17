@@ -84,10 +84,10 @@ func (snc *Agent) buildClientHTTPOptions(section *ConfigSection) (options *HTTPC
 	}
 
 	// tls minimum version
-	if tlsMin, ok := section.GetString("tls min version"); ok {
-		min, err := utils.ParseTLSMinVersion(tlsMin)
-		if err != nil {
-			return nil, fmt.Errorf("tls min version: %s", err.Error())
+	if tlsMin, ok2 := section.GetString("tls min version"); ok2 {
+		min, err2 := utils.ParseTLSMinVersion(tlsMin)
+		if err2 != nil {
+			return nil, fmt.Errorf("tls min version: %s", err2.Error())
 		}
 		options.tlsConfig.MinVersion = min
 	}
