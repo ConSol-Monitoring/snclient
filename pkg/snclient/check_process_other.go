@@ -28,7 +28,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 	for _, proc := range procs {
 		cmdLine, err := proc.CmdlineWithContext(ctx)
 		if err != nil {
-			log.Debugf("check_process: cmd line error: %s")
+			log.Debugf("check_process: cmd line error: %s", err.Error())
 		}
 
 		exe := ""
@@ -48,7 +48,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 		if exe == "" {
 			name, err := proc.NameWithContext(ctx)
 			if err != nil {
-				log.Debugf("check_process: name error: %s")
+				log.Debugf("check_process: name error: %s", err.Error())
 			} else {
 				exe = fmt.Sprintf("[%s]", name)
 			}
@@ -60,7 +60,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 
 		states, err := proc.StatusWithContext(ctx)
 		if err != nil {
-			log.Debugf("check_process: status error: %s")
+			log.Debugf("check_process: status error: %s", err.Error())
 		}
 		state := []string{}
 		for _, s := range states {
@@ -69,7 +69,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 
 		ctime, err := proc.CreateTimeWithContext(ctx)
 		if err != nil {
-			log.Debugf("check_process: CreateTime error: %s")
+			log.Debugf("check_process: CreateTime error: %s", err.Error())
 		}
 
 		// skip very young ( < 3000ms ) check_nsc_web processes, they might be checking us and screwing process counts
@@ -79,14 +79,14 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 
 		uids, err := proc.UidsWithContext(ctx)
 		if err != nil {
-			log.Debugf("check_process: uids error: %s")
+			log.Debugf("check_process: uids error: %s", err.Error())
 			uids = []int32{-1}
 		}
 
 		// cache user name lookups
 		username := userNameLookup[uids[0]]
 		if username == "" {
-			username, err := proc.UsernameWithContext(ctx)
+			username, err = proc.UsernameWithContext(ctx)
 			if err != nil {
 				log.Debugf("check_process: Username error uid %#v: %s", uids, err.Error())
 			}
@@ -95,13 +95,13 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 
 		mem, err := proc.MemoryInfoWithContext(ctx)
 		if err != nil {
-			log.Debugf("check_process: meminfo error: %s")
+			log.Debugf("check_process: meminfo error: %s", err.Error())
 			mem = &process.MemoryInfoStat{}
 		}
 
 		cpu, err := proc.CPUPercentWithContext(ctx)
 		if err != nil {
-			log.Debugf("check_process: cpuinfo error: %s")
+			log.Debugf("check_process: cpuinfo error: %s", err.Error())
 		}
 
 		check.listData = append(check.listData, map[string]string{
