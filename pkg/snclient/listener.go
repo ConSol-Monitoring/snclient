@@ -314,7 +314,7 @@ func (l *Listener) handleTCPCon(con net.Conn, handler RequestHandlerTCP) {
 	}
 
 	if err := con.SetReadDeadline(time.Now().Add(l.socketTimeout)); err != nil {
-		log.Warnf("setting timeout on %s listener failed: %s", err.Error())
+		log.Warnf("setting timeout on %s client connection failed: %s", l.connType, err.Error())
 	}
 
 	handler.ServeTCP(l.snc, con)

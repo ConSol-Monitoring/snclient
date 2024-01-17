@@ -177,7 +177,7 @@ func humanizeBytes(num uint64, base float64, sizes []string, precision int) stri
 		return fmt.Sprintf("%.0f %s", val, suffix)
 	case val < 3:
 		val *= base
-		suffix := sizes[int(exp-1)]
+		suffix = sizes[int(exp-1)]
 
 		return fmt.Sprintf("%.0f %s", val, suffix)
 	default:

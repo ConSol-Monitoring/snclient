@@ -1059,7 +1059,7 @@ func setProcessErrorResult(err error) (output string) {
 
 		return
 	}
-	log.Errorf("system error: %w", err)
+	log.Errorf("system error: %s", err.Error())
 	output = fmt.Sprintf("UNKNOWN: %s", err.Error())
 
 	return
@@ -1319,7 +1319,7 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ...interface{}), pipeFn func() (io.ReadCloser, error)) {
 	pipe, err := pipeFn()
 	if err != nil {
-		log.Errorf("failed to connect to %s: %w: %s", name, err, err.Error())
+		log.Errorf("failed to connect to %s: %s", name, err.Error())
 
 		return
 	}

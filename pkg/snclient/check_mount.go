@@ -89,7 +89,7 @@ func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []
 			strings.HasPrefix(partition.Mountpoint, "/sys"),
 			strings.HasPrefix(partition.Mountpoint, "/dev"):
 
-			log.Tracef("skipped mountpoint: %s - prefix matched internal system mounts", partition.Mountpoint, partition.Fstype)
+			log.Tracef("skipped mountpoint: %s - prefix matched internal system mounts", partition.Mountpoint)
 
 			continue
 		}

@@ -141,7 +141,7 @@ func (l *CheckDrivesize) setDeviceFlags(drive map[string]string) error {
 	szDevice := fmt.Sprintf(`\\.\%s`, strings.TrimSuffix(drive["drive"], "\\"))
 	szPtr, err := syscall.UTF16PtrFromString(szDevice)
 	if err != nil {
-		log.Warnf("stringPtr: %s", szDevice, err.Error())
+		log.Warnf("stringPtr: %s: %s", szDevice, err.Error())
 
 		return nil
 	}
@@ -197,7 +197,7 @@ func (l *CheckDrivesize) setMediaType(drive map[string]string) error {
 	szDevice := fmt.Sprintf(`\\.\%s`, strings.TrimSuffix(drive["drive"], "\\"))
 	szPtr, err := syscall.UTF16PtrFromString(szDevice)
 	if err != nil {
-		log.Warnf("stringPtr: %s", szDevice, err.Error())
+		log.Warnf("stringPtr: %s: %s", szDevice, err.Error())
 
 		return nil
 	}
@@ -246,7 +246,7 @@ func (l *CheckDrivesize) setMediaType(drive map[string]string) error {
 func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	volPtr, err := syscall.UTF16PtrFromString(drive["drive_or_id"])
 	if err != nil {
-		log.Warnf("stringPtr: %s", drive["drive_or_id"], err.Error())
+		log.Warnf("stringPtr: %s: %s", drive["drive_or_id"], err.Error())
 
 		return
 	}
@@ -344,7 +344,7 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 	volumeName := make([]uint16, 512)
 	hndl, err := windows.FindFirstVolume(&volumeName[0], uint32(len(volumeName)))
 	if err != nil {
-		log.Tracef("FindFirstVolume: %w: %s", err, err.Error())
+		log.Tracef("FindFirstVolume: %s", err.Error())
 
 		return
 	}
@@ -353,7 +353,7 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 	for {
 		err := windows.FindNextVolume(hndl, &volumeName[0], uint32(len(volumeName)))
 		if err != nil {
-			log.Tracef("FindNextVolume: %w: %s", err, err.Error())
+			log.Tracef("FindNextVolume: %s", err.Error())
 
 			break
 		}
@@ -363,7 +363,7 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 	for _, vol := range volumes {
 		volPtr, err := syscall.UTF16PtrFromString(vol)
 		if err != nil {
-			log.Warnf("stringPtr: %s", vol, err.Error())
+			log.Warnf("stringPtr: %s: %s", vol, err.Error())
 
 			continue
 		}

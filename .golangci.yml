@@ -18,6 +18,18 @@ linters-settings:
     replace-local: true
   ireturn:
     allow: "error,empty,Module,CheckHandler"
+  govet:
+    #check-shadowing: true
+    settings:
+      printf:
+        funcs:
+          - Tracef
+          - Infof
+          - Warnf
+          - Errorf
+          - Fatalf
+          - Criticalf
+          - Panicf
 linters:
   enable-all: true
   fast: false
