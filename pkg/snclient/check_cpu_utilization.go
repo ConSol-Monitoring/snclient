@@ -183,6 +183,7 @@ func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizati
 	if duration <= 0 {
 		return nil, false
 	}
+	duration /= 1e3 // cpu times are measured in seconds
 
 	info1, ok := cpuinfo1.value.(*cpuinfo.TimesStat)
 	if !ok {
@@ -205,7 +206,7 @@ func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizati
 	res.iowait = (((info1.Iowait - info2.Iowait) / duration) * 100) / float64(numCPU)
 	res.steal = (((info1.Steal - info2.Steal) / duration) * 100) / float64(numCPU)
 	res.guest = (((info1.Guest - info2.Guest) / duration) * 100) / float64(numCPU)
-	res.total = (res.user + res.system + res.iowait + res.steal + res.guest) / float64(numCPU)
+	res.total = (res.user + res.system + res.iowait + res.steal + res.guest)
 
 	return res, true
 }
