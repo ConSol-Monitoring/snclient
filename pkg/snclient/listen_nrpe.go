@@ -102,7 +102,7 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 	}
 
 	cmd, args := request.Data()
-	log.Tracef("nrpe v%d request: %s %s", request.Version(), cmd, args)
+	log.Tracef("nrpe v%d request: %s %#v", request.Version(), cmd, args)
 
 	if request.Version() == nrpe.NrpeV3PacketVersion {
 		log.Errorf("nrpe protocol version 3 is deprecated, use v2 or v4")
