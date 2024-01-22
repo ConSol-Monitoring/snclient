@@ -590,7 +590,7 @@ func (snc *Agent) Version() string {
 
 // PrintVersion prints the version.
 func (snc *Agent) PrintVersion() {
-	fmt.Fprintf(os.Stdout, "%s %s (Build: %s)\n", NAME, snc.Version(), Build)
+	fmt.Fprintf(os.Stdout, "%s %s (Build: %s, %s)\n", NAME, snc.Version(), Build, runtime.Version())
 }
 
 func (snc *Agent) checkFlags() {
