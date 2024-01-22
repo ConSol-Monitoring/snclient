@@ -21,7 +21,7 @@ Check and return snclient version.
 ### Default Check
 
     check_snclient_version
-    SNClient+ v0.12.0036 (Build: 5e351bb)
+    SNClient+ v0.12.0036 (Build: 5e351bb, go1.21.6)
 
 There is an alias 'check_nscp_version' for this command.
 
@@ -43,13 +43,13 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                           |
-| ------------- | --------------------------------------- |
-| empty-state   | 0 (OK)                                  |
-| empty-syntax  |                                         |
-| top-syntax    | \${list}                                |
-| ok-syntax     |                                         |
-| detail-syntax | \${name} \${version} (Build: \${build}) |
+| Argument      | Default Value                                   |
+| ------------- | ----------------------------------------------- |
+| empty-state   | 0 (OK)                                          |
+| empty-syntax  |                                                 |
+| top-syntax    | \${list}                                        |
+| ok-syntax     |                                                 |
+| detail-syntax | \${name} \${version} (Build: \${build}, \${go}) |
 
 ## Check Specific Arguments
 
