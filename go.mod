@@ -34,7 +34,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/tc-hib/go-winres v0.3.1
 	golang.org/x/tools v0.17.0
-	golang.org/x/vuln v1.0.1
+	golang.org/x/vuln v1.0.2
 	mvdan.cc/gofumpt v0.5.0
 	pkg/dump v0.0.0-00010101000000-000000000000
 	pkg/snclient/cmd v0.0.0-00010101000000-000000000000
