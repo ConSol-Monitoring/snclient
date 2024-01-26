@@ -19,7 +19,7 @@ func TestTemperature(t *testing.T) {
 	}
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK -.*Core 0: [\d.]+ °C`),
+		regexp.MustCompile(`^OK -.*core_0: [\d.]+ °C`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
