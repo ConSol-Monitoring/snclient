@@ -24,6 +24,8 @@ replace pkg/check_dns => ../../pkg/check_dns
 
 replace pkg/check_tcp => ../../pkg/check_tcp
 
+replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240126153517-53fbde3f918c
+
 require (
 	github.com/beevik/ntp v1.3.1
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
@@ -39,7 +41,7 @@ require (
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b
-	golang.org/x/sys v0.15.0
+	golang.org/x/sys v0.16.0
 	gopkg.in/yaml.v3 v3.0.1
 	pkg/check_dns v0.0.0-00010101000000-000000000000
 	pkg/check_tcp v0.0.0-00010101000000-000000000000

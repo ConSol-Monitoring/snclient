@@ -27,6 +27,9 @@ replace pkg/check_tcp => ./pkg/check_tcp
 // elastic/beats only works with its own fork of sarama
 replace github.com/Shopify/sarama => github.com/elastic/sarama v1.19.1-0.20220310193331-ebc2b0d8eef3
 
+// use fork with pulled patches
+replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240126153517-53fbde3f918c
+
 require (
 	github.com/daixiang0/gci v0.12.1
 	github.com/florentsolt/colorgo v0.0.0-20190915162800-0863107568c6
