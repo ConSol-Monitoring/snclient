@@ -73,11 +73,6 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 		return nil, fmt.Errorf("fetching virtual memory failed: %s", err.Error())
 	}
 
-	swap, err := mem.SwapMemory()
-	if err != nil {
-		return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
-	}
-
 	if physical.Total == 0 {
 		return nil, fmt.Errorf("total physical memory is zero")
 	}
@@ -87,9 +82,15 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 		case "physical":
 			l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total)
 		case "committed":
+			swap, err := mem.SwapMemory()
+			if err != nil {
+				return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
+			}
 			if swap.Total > 0 {
 				l.addMemType(check, "committed", swap.Used, swap.Free, swap.Total)
 			}
+		case "virtual":
+			// not supported by gopsutil module yet
 		default:
 			return nil, fmt.Errorf("unknown type, please use 'physical' or 'committed'")
 		}
