@@ -60,7 +60,6 @@ func ExpandDuration(val string) (res float64, err error) {
 	}
 	if IsDigitsOnly(val) {
 		res, err = strconv.ParseFloat(val, 64)
-
 		if err != nil {
 			return 0, fmt.Errorf("expandDuration: %s", err.Error())
 		}

@@ -337,7 +337,6 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 	}
 	defer file.Close()
 	err = targetConfig.ParseINI(file, targetFile)
-
 	if err != nil {
 		snc.Log.Errorf("failed to parse %s: %s", targetFile, err.Error())
 	}

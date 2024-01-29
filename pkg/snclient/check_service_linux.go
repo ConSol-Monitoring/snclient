@@ -301,7 +301,6 @@ func (l *CheckService) parseAllServices(ctx context.Context, check *CheckData, o
 
 		listEntry := l.parseSystemCtlStatus(service, svc)
 		err = l.addService(ctx, check, service, listEntry, l.services, l.excludes)
-
 		if err != nil {
 			return err
 		}
