@@ -42,6 +42,25 @@ The location for a custom file would be: `C:\Program Files\snclient\snclient_loc
 
 The location for a custom file would be: `/etc/snclient/snclient_local.ini`
 
+## Syntax
+
+The configuration uses the ini file format. For example:
+
+    [/settings/default]
+    allowed hosts = 127.0.0.1, ::1
+
+### Appending Values
+
+You may use the `+=` operator to append to existing values:
+
+    [/settings/default]
+    allowed hosts  = 127.0.0.1, ::1
+    allowed hosts += 192.168.0.1
+    allowed hosts += 192.168.0.2,192.168.0.3
+
+Values will be joined by `, `. This makes it possible to create more readably
+configuration files.
+
 ## Inheritance
 
 The configuration is splitted into multiple sections, but in order to

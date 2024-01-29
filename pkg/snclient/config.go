@@ -235,9 +235,22 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 			continue
 		}
 
+		useAppend := false
+		if strings.HasSuffix(val[0], "+") {
+			val[0] = strings.TrimSpace(strings.TrimSuffix(val[0], "+"))
+			useAppend = true
+		}
+
 		value, err := config.parseString(val[1])
 		if err != nil {
 			return fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, err.Error())
+		}
+
+		if useAppend {
+			cur, ok := currentSection.GetString(val[0])
+			if ok {
+				value = cur + ", " + value
+			}
 		}
 
 		currentSection.Set(val[0], value)
