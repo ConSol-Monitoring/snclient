@@ -109,6 +109,7 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 		logColorReset = ""
 	}
 
+	LogFileHandle = nil
 	var logFormatter factorlog.Formatter
 	switch file {
 	case "stdout", "":

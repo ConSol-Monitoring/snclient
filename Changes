@@ -6,6 +6,7 @@ next:
             - i386 still uses 0.24 since thats the last supported version
          - fix check_process username being empty sometimes
          - fix check_cpu_utilization calculation
+         - fix automatic log rotation on windows
 
 0.16     Wed Jan 10 14:27:26 CET 2024
          - add check_ntp_offset
