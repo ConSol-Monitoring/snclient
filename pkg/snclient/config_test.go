@@ -371,3 +371,23 @@ func TestMacros(t *testing.T) {
 		assert.Equalf(t, tst.Expect, res, "replacing: %s", tst.In)
 	}
 }
+
+func TestConfigAppend(t *testing.T) {
+	testDir, _ := os.Getwd()
+	pkgDir := filepath.Join(testDir, "t", "configs")
+	pkgCfgFile := filepath.Join(pkgDir, "snclient_append.ini")
+
+	file, err := os.Open(pkgCfgFile)
+	require.NoErrorf(t, err, "open ini without error")
+
+	cfg := NewConfig(false)
+	err = cfg.ParseINI(file, pkgCfgFile)
+	file.Close()
+	require.NoErrorf(t, err, "config parsed")
+
+	section := cfg.Section("/settings/default")
+	allowed, _ := section.GetString("allowed hosts")
+
+	expected := "127.0.0.1, ::1, 192.168.0.1, 192.168.0.2,192.168.0.3"
+	assert.Equalf(t, expected, allowed, "reading appended config")
+}
