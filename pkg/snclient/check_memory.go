@@ -90,7 +90,7 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 				l.addMemType(check, "committed", swap.Used, swap.Free, swap.Total)
 			}
 		case "virtual":
-			// not supported by gopsutil module yet
+			l.addMemType(check, "virtual", physical.VirtualTotal-physical.VirtualAvail, physical.VirtualAvail, physical.VirtualTotal)
 		default:
 			return nil, fmt.Errorf("unknown type, please use 'physical' or 'committed'")
 		}

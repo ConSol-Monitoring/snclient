@@ -28,7 +28,7 @@ replace pkg/check_tcp => ./pkg/check_tcp
 replace github.com/Shopify/sarama => github.com/elastic/sarama v1.19.1-0.20220310193331-ebc2b0d8eef3
 
 // use fork with pulled patches
-replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240126153517-53fbde3f918c
+replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240129124248-a5f3e5722a21
 
 require (
 	github.com/daixiang0/gci v0.12.1

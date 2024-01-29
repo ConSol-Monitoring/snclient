@@ -24,7 +24,7 @@ replace pkg/check_dns => ../../pkg/check_dns
 
 replace pkg/check_tcp => ../../pkg/check_tcp
 
-replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240126153517-53fbde3f918c
+replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240129124248-a5f3e5722a21
 
 require (
 	github.com/beevik/ntp v1.3.1
