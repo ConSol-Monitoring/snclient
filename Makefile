@@ -97,14 +97,14 @@ updatedeps: versioncheck
 		$(GO) get $$DEP; \
 	done
 	$(GO) get -u ./...
-	$(GO) get -t -u ./...
+	#$(GO) get -t -u ./... # dont't update test dependencies
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
 		( cd ./$$dir && $(GO) mod download ); \
 		( cd ./$$dir && $(GO) get -u ); \
 		( cd ./$$dir && $(GO) get -t -u ); \
 	done
 	$(GO) get -u ./buildtools/
-	$(GO) get -u ./t/
+	#$(GO) get -u ./t/ # dont't update test dependencies
 	$(MAKE) cleandeps
 
 cleandeps:
