@@ -97,14 +97,18 @@ updatedeps: versioncheck
 		$(GO) get $$DEP; \
 	done
 	$(GO) get -u ./...
-	#$(GO) get -t -u ./... # dont't update test dependencies
+	$(GO) get -t -u ./...
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
 		( cd ./$$dir && $(GO) mod download ); \
 		( cd ./$$dir && $(GO) get -u ); \
 		( cd ./$$dir && $(GO) get -t -u ); \
 	done
 	$(GO) get -u ./buildtools/
-	#$(GO) get -u ./t/ # dont't update test dependencies
+	$(GO) get -u ./t/
+	# pin these dependencies
+	$(GO) get github.com/catenacyber/perfsprint@v0.2.0
+	$(GO) get github.com/ghostiam/protogetter@v0.2.4
+	$(GO) get github.com/ultraware/whitespace@v0.0.5
 	$(MAKE) cleandeps
 
 cleandeps:
