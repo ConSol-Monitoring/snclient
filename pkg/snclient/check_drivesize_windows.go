@@ -388,7 +388,7 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 		entry["drive_or_id"] = driveOrID
 		entry["drive_or_name"] = names
 		entry["letter"] = ""
-		if len(names) > 0 {
+		if names != "" {
 			entry["letter"] = fmt.Sprintf("%c", names[0])
 		}
 		requiredDisks[driveOrID] = entry
