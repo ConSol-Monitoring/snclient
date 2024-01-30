@@ -568,7 +568,7 @@ release_blog_text: release_notes.txt
 	@echo '  - nsclient'
 	@echo '  - snclient'
 	@echo '---'
-	@echo 'A new release of SNClient+ was released.'
+	@echo 'A new version of SNClient+ was released.'
 	@echo ''
 	@echo '### Breaking Changes'
 	@echo ''
