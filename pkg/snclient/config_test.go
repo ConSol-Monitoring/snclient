@@ -391,3 +391,28 @@ func TestConfigAppend(t *testing.T) {
 	expected := "127.0.0.1, ::1, 192.168.0.1, 192.168.0.2,192.168.0.3"
 	assert.Equalf(t, expected, allowed, "reading appended config")
 }
+
+func TestConfigLongLines(t *testing.T) {
+	configText := `
+[/settings/default]
+allowed hosts  = 127.0.0.1, ::1, 192.168.1.1`
+
+	for i := 0; i < 10000; i++ {
+		configText += ", 192.168.100.123"
+	}
+	configText += "\n"
+
+	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
+	defer os.Remove(iniFile.Name())
+	_, _ = iniFile.WriteString(configText)
+	err := iniFile.Close()
+	require.NoErrorf(t, err, "config written")
+	cfg := NewConfig(false)
+	err = cfg.ReadINI(iniFile.Name())
+	require.NoErrorf(t, err, "config parsed")
+
+	section := cfg.Section("/settings/default")
+	allowed, _ := section.GetString("allowed hosts")
+
+	assert.Containsf(t, allowed, "192.168.1.1", "reading appended config")
+}

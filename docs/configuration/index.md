@@ -49,6 +49,8 @@ The configuration uses the ini file format. For example:
     [/settings/default]
     allowed hosts = 127.0.0.1, ::1
 
+The maximum length of a single line in the ini file is limited to 1MB.
+
 ### Appending Values
 
 You may use the `+=` operator to append to existing values and write

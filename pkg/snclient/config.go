@@ -20,6 +20,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+const MaxLineSize = 1024 * 1024 // limit max line length to 1MB
+
 var DefaultConfig = map[string]map[string]string{
 	"/modules": {
 		"Logrotate":            "enabled",
@@ -183,6 +185,8 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 	lineNr := 0
 
 	scanner := bufio.NewScanner(file)
+	buffer := make([]byte, 0, MaxLineSize)
+	scanner.Buffer(buffer, MaxLineSize)
 	currentComments := make([]string, 0)
 	for scanner.Scan() {
 		lineNr++
