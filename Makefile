@@ -559,7 +559,7 @@ release_blog.md: release_notes.txt
 
 release_blog_text: release_notes.txt
 	@echo '---'
-	@echo 'date: $(shell date +"%Y-%d-%m")T00:00:00.000Z'
+	@echo 'date: $(shell date +"%Y-%m-%d")T00:00:00.000Z'
 	@echo 'title: "SNClient+ $(VERSION) was released"'
 	@echo 'linkTitle: "SNClient+ $(VERSION)"'
 	@echo 'tags:'
