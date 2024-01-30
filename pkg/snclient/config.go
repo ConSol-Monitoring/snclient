@@ -249,7 +249,7 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 		if useAppend {
 			cur, ok := currentSection.GetString(val[0])
 			if ok {
-				value = cur + ", " + value
+				value = cur + value
 			}
 		}
 

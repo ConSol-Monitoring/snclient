@@ -51,15 +51,16 @@ The configuration uses the ini file format. For example:
 
 ### Appending Values
 
-You may use the `+=` operator to append to existing values:
+You may use the `+=` operator to append to existing values and write
+more readable configuration files.
 
     [/settings/default]
     allowed hosts  = 127.0.0.1, ::1
-    allowed hosts += 192.168.0.1
-    allowed hosts += 192.168.0.2,192.168.0.3
+    allowed hosts += , 192.168.0.1
+    allowed hosts += , 192.168.0.2,192.168.0.3
 
-Values will be joined by `, `. This makes it possible to create more readably
-configuration files.
+Values will simply be joined as text, so in case you want to create lists, make sure you
+add a comma.
 
 ## Inheritance
 
