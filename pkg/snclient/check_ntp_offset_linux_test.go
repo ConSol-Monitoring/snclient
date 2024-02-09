@@ -203,6 +203,18 @@ func TestCheckNTPOffsetNTPQ(t *testing.T) {
 	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "CRITICAL - ntpq did not return any usable server", "output matches")
 
+	// single peer
+	MockSystemUtilities(t, map[string]string{
+		"ntpq": `     remote                                   refid      st t when poll reach   delay   offset   jitter
+=======================================================================================================
++ntp.company                            123.123.123.123    2 u   13   64  377   0.3956 -415.442   0.6233`,
+	})
+	defer os.RemoveAll(tmpPath)
+	res = snc.RunCheck("check_ntp_offset", []string{"source=ntpq"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Equalf(t, "CRITICAL - offset -415ms from ntp.company (123.123.123.123) |'offset'=-415.442ms;-50:50;-100:100 'stratum'=2;;;0 'jitter'=0.6233ms;;;0",
+		string(res.BuildPluginOutput()), "output matches")
+
 	StopTestAgent(t, snc)
 }
 

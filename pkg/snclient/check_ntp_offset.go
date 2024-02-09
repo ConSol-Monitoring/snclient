@@ -18,6 +18,9 @@ func init() {
 	AvailableChecks["check_ntp_offset"] = CheckEntry{"check_ntp_offset", NewCheckNTPOffset}
 }
 
+// according to man 8 ntpq (tally codes section), + * and # and good prefixes
+var ntpqPeerOK = regexp.MustCompile(`^[+*#]`)
+
 type CheckNTPOffset struct {
 	snc       *Agent
 	ntpserver []string
@@ -272,7 +275,7 @@ func (l *CheckNTPOffset) addNTPQ(ctx context.Context, check *CheckData, force bo
 	valid := false
 	unusable := 0
 	for _, line := range strings.Split(output, "\n") {
-		if !strings.HasPrefix(line, "*") {
+		if !ntpqPeerOK.MatchString(line) {
 			unusable++
 
 			continue
@@ -282,7 +285,7 @@ func (l *CheckNTPOffset) addNTPQ(ctx context.Context, check *CheckData, force bo
 			continue
 		}
 		valid = true
-		entry["server"] = fmt.Sprintf("%s (%s)", strings.TrimPrefix(cols[0], "*"), cols[1])
+		entry["server"] = fmt.Sprintf("%s (%s)", ntpqPeerOK.ReplaceAllString(cols[0], ""), cols[1])
 		entry["offset"] = strings.TrimSuffix(cols[8], "ms")
 		entry["offset_seconds"] = fmt.Sprintf("%f", convert.Float64(entry["offset"])/1e3)
 		entry["jitter"] = strings.TrimSuffix(cols[9], "ms")

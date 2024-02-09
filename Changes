@@ -1,5 +1,8 @@
 This file documents the revision history for the SNClient+ agent.
 
+next:
+         - check_ntp_offset: support more ntpq tally codes
+
 0.17     Thu Feb  1 16:32:04 CET 2024
          - support += operator in config files
          - create logfile folder unless it exists
