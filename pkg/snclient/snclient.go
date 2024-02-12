@@ -1306,9 +1306,12 @@ func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error
 	}
 
 	cmd, err := makeCmd(ctx, command)
-	if cmd.Args != nil {
+	switch {
+	case err != nil:
+		return nil, err
+	case cmd.Args != nil:
 		log.Tracef("command object:\n path: %s\n args: %v\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr)
-	} else {
+	default:
 		log.Tracef("command object:\n path: %s\n args: -\n SysProcAttr: %v\n", cmd.Path, cmd.SysProcAttr)
 	}
 

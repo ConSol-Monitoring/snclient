@@ -216,7 +216,7 @@ func startBackgroundDaemon(t *testing.T) (pid int) {
 			Cmd:        bin,
 			Args:       []string{"-vv", "-logfile", "stdout", "-pidfile", daemonPidFile},
 			Like:       []string{"starting", "listener on"},
-			Unlike:     []string{"PANIC"},
+			Unlike:     []string{"PANIC", `\[Error\]`},
 			Exit:       -1,
 			CmdChannel: daemonCmdChan,
 		})

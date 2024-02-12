@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient+ agent.
 
 next:
+         - fix crash on windows when parsing empty args (#88)
          - check_ntp_offset: support more ntpq tally codes
 
 0.17     Thu Feb  1 16:32:04 CET 2024

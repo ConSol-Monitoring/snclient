@@ -10,7 +10,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"unsafe"
 
 	"pkg/utils"
 
@@ -202,15 +201,14 @@ func processTimeoutKill(process *os.Process) {
 
 func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 	if strings.Contains(command, "LASTEXITCODE") || strings.Contains(command, "lastexitcode") {
-		// This is a hack. Without it, neither syscallCommandLineToArgv nor Tokenize will
+		// This is a hack. Without it, Tokenize not will
 		// properly parse ...check_sometjing.ps1 "para meter"; exit($LASTEXITCODE)...
 		// Result will be [..., `"para meter;"`, ....
 		command = strings.ReplaceAll(command, "; exit", " ; exit")
 		command = strings.ReplaceAll(command, ";exit", " ; exit")
 	}
-	cmdList, _ := syscallCommandLineToArgv(command)
-	var err error
-	cmdList, err = utils.TrimQuotesAll(cmdList)
+	cmdList := utils.Tokenize(command)
+	cmdList, err := utils.TrimQuotesAll(cmdList)
 	if err != nil {
 		return nil, fmt.Errorf("trimming arguments: %s", err.Error())
 	}
@@ -293,37 +291,6 @@ func isPsFile(path string) bool {
 	ext := filepath.Ext(path)
 
 	return strings.EqualFold(ext, ".ps1")
-}
-
-func syscallCommandLineToArgv(cmd string) ([]string, error) {
-	var argc int32
-	argv, err := syscall.CommandLineToArgv(&syscall.StringToUTF16(cmd)[0], &argc) //nolint:staticcheck // copied from a test in the golang repo
-	if err != nil {
-		return nil, fmt.Errorf("syscall.CommandLineToArgv: %s", err.Error())
-	}
-	defer syscall.LocalFree(syscall.Handle(uintptr(unsafe.Pointer(argv)))) //nolint:errcheck // copied from golang repo
-
-	var args []string //nolint:prealloc // copied from golang repo
-	for _, v := range (*argv)[:argc] {
-		args = append(args, syscall.UTF16ToString((*v)[:]))
-	}
-
-	return args, nil
-}
-
-func QuotePathWithSpaces(path string) string {
-	components := strings.Split(path, `\`)
-	quotedComponents := make([]string, len(components))
-
-	for i, component := range components {
-		if strings.Contains(component, " ") {
-			quotedComponents[i] = `"` + component + `"`
-		} else {
-			quotedComponents[i] = component
-		}
-	}
-
-	return strings.Join(quotedComponents, `/`)
 }
 
 func setCmdUser(_ *exec.Cmd, _ string) error {

@@ -33,6 +33,7 @@ timeout = 1111111
 check_doesnotexist = /a/path/that/does/not/exist/nonexisting_script "no" "no"
 check_cwd_rel = cat pluginoutput
 check_cwd_abs = cat ${scripts}/pluginoutput
+check_spaceargs = echo '%%ARG1%%'
 
 check_dummy = check_dummy.EXTENSION
 check_dummy_ok = check_dummy.EXTENSION 0 "i am ok"
@@ -227,6 +228,25 @@ func TestCheckExternalWrappedUnixShellPathWithSpaces(t *testing.T) {
 	snc := StartTestAgent(t, config)
 
 	runTestCheckExternalWrapped(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalArgSpaces(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	holesDir := filepath.Join(testDir, "t", "scri pts")
+
+	teardown := setupTeardown(t, holesDir)
+	defer teardown()
+	_ = copy.Copy(scriptsDir, holesDir)
+
+	config := setupConfig(holesDir, "sh")
+	snc := StartTestAgent(t, config)
+
+	res := snc.RunCheck("check_spaceargs", []string{""})
+	assert.Equalf(t, CheckExitOK, res.State, "state matches")
+	assert.Equalf(t, "", string(res.BuildPluginOutput()), "output matches")
 
 	StopTestAgent(t, snc)
 }
