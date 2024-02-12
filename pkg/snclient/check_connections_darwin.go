@@ -50,7 +50,7 @@ func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64
 
 	for _, line := range strings.Split(output, "\n") {
 		cols := strings.Fields(line)
-		if len(cols) < 4 {
+		if len(cols) < 6 {
 			continue
 		}
 		if !strings.HasPrefix(cols[0], "tcp") {
@@ -61,7 +61,7 @@ func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64
 		// tcp4       0      0  127.0.0.1.50410        127.0.0.1.9990         ESTABLISHED
 		// tcp4       0      0  127.0.0.1.9990         *.*                    LISTEN
 		// tcp46      0      0  *.8443                 *.*                    LISTEN
-		switch cols[3] {
+		switch cols[5] {
 		case "CLOSE_WAIT":
 			counter[tcpCloseWait]++
 		case "CLOSED":
@@ -83,7 +83,7 @@ func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64
 		case "TIMED_WAIT", "TIME_WAIT":
 			counter[tcpTimeWait]++
 		default:
-			log.Errorf("unhandled tcp state: %s", cols[3])
+			log.Errorf("unhandled tcp state: %s", cols[5])
 		}
 		counter[tcpTotal]++
 	}

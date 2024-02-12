@@ -15,5 +15,9 @@ func TestCheckConnections(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - total connections: ", "output matches")
 
+	res = snc.RunCheck("check_connections", []string{"warn=total <= 0", "crit=total <= 0"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - total connections: ", "output matches")
+
 	StopTestAgent(t, snc)
 }
