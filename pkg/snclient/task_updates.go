@@ -977,7 +977,7 @@ func (u *UpdateHandler) extractMsi(fileName string) error {
 	}
 
 	extractedFilePath := ""
-	err = filepath.Walk(tempDir, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(tempDir, func(path string, _ os.FileInfo, _ error) error {
 		if strings.HasSuffix(path, "snclient.exe") {
 			extractedFilePath = path
 		}
@@ -1025,7 +1025,7 @@ func (u *UpdateHandler) extractXar(fileName string) error {
 	}
 
 	extractedFilePath := ""
-	err = filepath.Walk(tempDir, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(tempDir, func(path string, info os.FileInfo, _ error) error {
 		if info.IsDir() {
 			return nil
 		}

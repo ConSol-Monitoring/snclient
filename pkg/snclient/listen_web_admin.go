@@ -142,9 +142,9 @@ func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.R
 	decoder := json.NewDecoder(req.Body)
 	decoder.DisallowUnknownFields()
 	type postData struct {
-		CertData string
-		KeyData  string
-		Reload   bool
+		CertData string `json:"CertData"`
+		KeyData  string `json:"KeyData"`
+		Reload   bool   `json:"Reload"`
 	}
 	data := postData{}
 	err := decoder.Decode(&data)
