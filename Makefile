@@ -96,19 +96,15 @@ updatedeps: versioncheck
 	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }'); do \
 		$(GO) get $$DEP; \
 	done
-	$(GO) get -u ./...
-	$(GO) get -t -u ./...
+	$(GO) get -u ./buildtools/
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
 		( cd ./$$dir && $(GO) mod download ); \
 		( cd ./$$dir && $(GO) get -u ); \
 		( cd ./$$dir && $(GO) get -t -u ); \
 	done
-	$(GO) get -u ./buildtools/
 	$(GO) get -u ./t/
 	# pin these dependencies
-	$(GO) get github.com/catenacyber/perfsprint@v0.2.0
-	$(GO) get github.com/ghostiam/protogetter@v0.2.4
-	$(GO) get github.com/ultraware/whitespace@v0.0.5
+	$(GO) get github.com/golangci/golangci-lint@latest
 	$(MAKE) cleandeps
 
 cleandeps:
