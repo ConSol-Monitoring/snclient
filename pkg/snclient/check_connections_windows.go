@@ -75,7 +75,7 @@ func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64
 			counter[tcpListen]++
 		case "SYN_RECEIVED":
 			counter[tcpSynRecv]++
-		case "SYN_SEND":
+		case "SYN_SENT":
 			counter[tcpSynSent]++
 		case "TIMED_WAIT", "TIME_WAIT":
 			counter[tcpTimeWait]++
