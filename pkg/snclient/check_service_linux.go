@@ -108,7 +108,7 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 
 	if len(l.services) == 0 || slices.Contains(l.services, "*") {
 		// fetch status of all services at once instead of calling systemctl over and over
-		output, stderr, _, _, err := snc.runExternalCommandString(ctx, fmt.Sprintf("%s --type=service --all", systemctlStatusCmd), DefaultCmdTimeout)
+		output, stderr, _, err := snc.runExternalCommandString(ctx, fmt.Sprintf("%s --type=service --all", systemctlStatusCmd), DefaultCmdTimeout)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch service list: %s%s", err.Error(), stderr)
 		}
@@ -151,12 +151,12 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 }
 
 func (l *CheckService) addServiceByName(ctx context.Context, check *CheckData, service string, services, excludes []string) error {
-	output, stderr, _, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("%s %s.service ", systemctlStatusCmd, service), DefaultCmdTimeout)
+	output, stderr, _, err := l.snc.runExternalCommandString(ctx, fmt.Sprintf("%s %s.service ", systemctlStatusCmd, service), DefaultCmdTimeout)
 	if err != nil {
 		return fmt.Errorf("systemctl failed: %s\n%s", err.Error(), stderr)
 	}
 
-	if match, _ := regexp.MatchString(`Unit .* could not be found`, output); match || len(output) < 1 {
+	if match, _ := regexp.MatchString(`Unit .* could not be found`, stderr); match || len(output) < 1 {
 		return fmt.Errorf("could not find service: %s", service)
 	}
 

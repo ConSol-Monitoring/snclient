@@ -2,7 +2,6 @@ package snclient
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -71,25 +70,13 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		timeoutSeconds = 60
 	}
 
-	stdout, stderr, exitCode, procState, err := l.snc.runExternalCommandString(ctx, command, timeoutSeconds)
-	if err != nil {
-		exitCode = CheckExitUnknown
-		switch {
-		case procState == nil:
-			stdout = setProcessErrorResult(err)
-		case errors.Is(err, context.DeadlineExceeded):
-			stdout = fmt.Sprintf("UNKNOWN: script run into timeout after %ds\n%s%s", timeoutSeconds, stdout, stderr)
-		default:
-			stdout = fmt.Sprintf("UNKNOWN: script error %s\n%s%s", err.Error(), stdout, stderr)
-		}
-	}
+	stdout, stderr, exitCode, _ := l.snc.runExternalCommandString(ctx, command, timeoutSeconds)
 	if stderr != "" {
 		if stdout != "" {
 			stdout += "\n"
 		}
 		stdout += "[" + stderr + "]"
 	}
-	fixReturnCodes(&stdout, &exitCode, procState)
 
 	return &CheckResult{
 		State:  exitCode,

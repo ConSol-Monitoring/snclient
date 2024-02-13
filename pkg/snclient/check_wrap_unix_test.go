@@ -11,20 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckExternalUnixNonExist(t *testing.T) {
-	testDir, _ := os.Getwd()
-	scriptsDir := filepath.Join(testDir, "t", "scripts")
-
-	config := setupConfig(t, scriptsDir, "sh")
-	snc := StartTestAgent(t, config)
-
-	res := snc.RunCheck("check_doesnotexist", []string{})
-	assert.Equalf(t, CheckExitCritical, res.State, "state matches")
-	assert.Regexp(t, "CRITICAL - Return code of 127.*actually exists", string(res.BuildPluginOutput()), "output matches")
-
-	StopTestAgent(t, snc)
-}
-
 func TestCheckExternalUnixExeInSubdir(t *testing.T) {
 	testDir, _ := os.Getwd()
 	scriptsDir := filepath.Join(testDir, "t", "scripts")

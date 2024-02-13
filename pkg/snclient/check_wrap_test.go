@@ -214,7 +214,7 @@ func TestCheckExternalTimeout(t *testing.T) {
 
 	res := snc.RunCheck("timeoutscript_"+suffix, []string{})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state matches")
-	assert.Equalf(t, "UNKNOWN: script run into timeout after 1s\n", string(res.BuildPluginOutput()), "output matches")
+	assert.Equalf(t, "UNKNOWN - script run into timeout after 1s\n", string(res.BuildPluginOutput()), "output matches")
 
 	StopTestAgent(t, snc)
 }
@@ -238,7 +238,14 @@ func TestCheckExternalArgSpaces(t *testing.T) {
 
 	res := snc.RunCheck("check_spaceargs_"+suffix, []string{""})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
-	assert.Equalf(t, "", string(res.BuildPluginOutput()), "output matches")
+	// windows returns double quotes somehow
+	// PS C:\> cmd /c echo ' '
+	// " "
+	if runtime.GOOS == "windows" {
+		assert.Equalf(t, `""`, string(res.BuildPluginOutput()), "output matches")
+	} else {
+		assert.Equalf(t, "", string(res.BuildPluginOutput()), "output matches")
+	}
 
 	StopTestAgent(t, snc)
 }
@@ -269,6 +276,20 @@ func TestCheckExternalExePathWithSpaces(t *testing.T) {
 	snc := StartTestAgent(t, config)
 
 	runTestCheckExternalDefault(t, snc)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckExternalNonExist(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+
+	config := setupConfig(t, scriptsDir, "sh")
+	snc := StartTestAgent(t, config)
+
+	res := snc.RunCheck("check_doesnotexist", []string{})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state matches")
+	assert.Regexp(t, "UNKNOWN - Return code of 127.*actually exists", string(res.BuildPluginOutput()), "output matches")
 
 	StopTestAgent(t, snc)
 }

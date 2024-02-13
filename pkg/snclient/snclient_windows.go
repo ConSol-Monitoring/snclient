@@ -213,9 +213,6 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("trimming arguments: %s", err.Error())
 	}
 	cmdName := cmdList[0]
-	if len(cmdList) == 1 {
-		return makeCmdNoParams(ctx, cmdName)
-	}
 	cmdArgs := cmdList[1:]
 	if isBatchFile(cmdName) {
 		cmdName = strings.ReplaceAll(cmdName, "__SNCLIENT_BLANK__", "^ ")
@@ -257,25 +254,6 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow: true,
-	}
-
-	return cmd, nil
-}
-
-func makeCmdNoParams(ctx context.Context, cmdName string) (*exec.Cmd, error) {
-	cmdName = strings.ReplaceAll(cmdName, "__SNCLIENT_BLANK__", " ")
-	cmd := exec.CommandContext(ctx, cmdName) // exe and bat even with space in the path can run like this
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow: true,
-	}
-	if isBatchFile(cmdName) || !isPsFile(cmdName) {
-		return cmd, nil
-	}
-	cmd = exec.CommandContext(ctx, "powershell")
-	cmd.Args = nil
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow: true,
-		CmdLine:    fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". '%s'; exit($LASTEXITCODE)"`, cmdName),
 	}
 
 	return cmd, nil

@@ -1048,48 +1048,57 @@ func replaceMacroOperators(value string, flags []string) string {
 	return value
 }
 
-func setProcessErrorResult(err error) (output string) {
-	if os.IsNotExist(err) {
-		output = "UNKNOWN: Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists."
-
-		return
+func fixReturnCodes(output, stderr *string, exitCode *int64, timeout int64, procState *os.ProcessState, err error) {
+	log.Tracef("stdout: %s", *output)
+	log.Tracef("stderr: %s", *stderr)
+	log.Tracef("exitCode: %d", *exitCode)
+	log.Tracef("timeout: %d", timeout)
+	log.Tracef("error: %#v", err)
+	log.Tracef("state: %#v", procState)
+	if err != nil {
+		*exitCode = CheckExitUnknown
+		switch {
+		case errors.Is(err, fs.ErrNotExist):
+			log.Warnf("plugin not found: %s", err.Error())
+			*exitCode = 127
+		case errors.Is(err, fs.ErrPermission):
+			log.Warnf("no permissions: %s", err.Error())
+			*exitCode = 126
+		case errors.Is(err, context.DeadlineExceeded):
+			*output = fmt.Sprintf("UNKNOWN - script run into timeout after %ds\n%s%s", timeout, *output, *stderr)
+		case procState == nil:
+			log.Warnf("system error: %s", err.Error())
+			*output = fmt.Sprintf("UNKNOWN - %s", err.Error())
+		default:
+			*output = fmt.Sprintf("UNKNOWN - script error %s\n%s%s", err.Error(), *output, *stderr)
+		}
 	}
-	if os.IsPermission(err) {
-		output = "UNKNOWN: Return code of 126 is out of bounds. Make sure the plugin you're trying to run is executable."
 
-		return
-	}
-	log.Errorf("system error: %s", err.Error())
-	output = fmt.Sprintf("UNKNOWN: %s", err.Error())
-
-	return
-}
-
-func fixReturnCodes(output *string, exitCode *int64, state *os.ProcessState) {
 	if *exitCode >= 0 && *exitCode <= 3 {
 		return
 	}
 	if *exitCode == 126 {
-		*output = fmt.Sprintf("CRITICAL - Return code of %d is out of bounds. Make sure the plugin you're trying to run is executable.\n%s", *exitCode, *output)
-		*exitCode = CheckExitCritical
+		*output = fmt.Sprintf("UNKNOWN - Return code of %d is out of bounds. Make sure the plugin you're trying to run is executable.\n%s", *exitCode, *output)
+		*exitCode = CheckExitUnknown
 
 		return
 	}
 	if *exitCode == 127 {
-		*output = fmt.Sprintf("CRITICAL - Return code of %d is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", *exitCode, *output)
-		*exitCode = CheckExitCritical
+		*output = fmt.Sprintf("UNKNOWN - Return code of %d is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", *exitCode, *output)
+		*exitCode = CheckExitUnknown
 
 		return
 	}
-	if waitStatus, ok := state.Sys().(syscall.WaitStatus); ok {
+	if waitStatus, ok := procState.Sys().(syscall.WaitStatus); ok {
 		if waitStatus.Signaled() {
-			*output = fmt.Sprintf("CRITICAL - Return code of %d is out of bounds. Plugin exited by signal: %s.\n%s", waitStatus.Signal(), waitStatus.Signal(), *output)
-			*exitCode = CheckExitCritical
+			*output = fmt.Sprintf("UNKNOWN - Return code of %d is out of bounds. Plugin exited by signal: %s.\n%s", waitStatus.Signal(), waitStatus.Signal(), *output)
+			*exitCode = CheckExitUnknown
 
 			return
 		}
 	}
-	*output = fmt.Sprintf("CRITICAL - Return code of %d is out of bounds.\n%s", *exitCode, *output)
+
+	*output = fmt.Sprintf("UNKNOWN - Return code of %d is out of bounds.\n%s", *exitCode, *output)
 	*exitCode = CheckExitUnknown
 }
 
@@ -1106,14 +1115,17 @@ func catchOutputErrors(command string, stderr *string, exitCode *int64) {
 	}
 }
 
-func (snc *Agent) runExternalCommandString(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
+func (snc *Agent) runExternalCommandString(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
 	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
 	cmd, err := MakeCmd(ctx, command, scriptsPath)
-	if err != nil {
-		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
+	var procState *os.ProcessState
+	if err == nil {
+		stdout, stderr, exitCode, procState, err = snc.runExternalCommand(ctx, cmd, timeout)
 	}
 
-	return snc.runExternalCommand(ctx, cmd, timeout)
+	fixReturnCodes(&stdout, &stderr, &exitCode, timeout, procState, err)
+
+	return stdout, stderr, exitCode, err
 }
 
 func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
@@ -1133,7 +1145,7 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 	cmd.Dir = workDir
 	err = cmd.Start()
 	if err != nil && cmd.ProcessState == nil {
-		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %s", err.Error())
+		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %w", err)
 	}
 
 	// https://github.com/golang/go/issues/18874
