@@ -73,6 +73,10 @@ func init() {
 				}
 			}
 
+			// cleanup windows_exporter textfile_inputs folder
+			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "exporter", "textfile_inputs"))
+			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "exporter"))
+
 			removeFireWallRules(snc)
 
 			snc.Log.Infof("uninstall completed")
@@ -90,6 +94,7 @@ func init() {
 			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "server.key"))
 			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "snclient.ini"))
 			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "snclient.log"))
+			_ = os.Remove(filepath.Join(installConfig["INSTALLDIR"], "snclient.log.old"))
 
 			snc.CleanExit(0)
 		},
