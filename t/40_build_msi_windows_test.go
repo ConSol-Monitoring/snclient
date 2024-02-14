@@ -132,6 +132,21 @@ func TestMSIinstaller(t *testing.T) {
 		Like: []string{"OK - uptime"},
 	})
 
+	// run check with known path which contains spaces
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_win_snclient_version"},
+		Like: []string{`SNClient`, `Build:`},
+	})
+
+	// run check with known not-existing path which contains spaces
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_win_not_exist1"},
+		Like: []string{`UNKNOWN - Return code of 127 is out of bounds.`},
+		Exit: 3,
+	})
+
 	// cleanup
 	os.Remove(localINIPath)
 

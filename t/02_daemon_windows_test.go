@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDaemonRequestsLinux(t *testing.T) {
+func TestDaemonRequestsWindows(t *testing.T) {
 	bin := getBinary()
 	require.FileExistsf(t, bin, "snclient binary must exist")
 

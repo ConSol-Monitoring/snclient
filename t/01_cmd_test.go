@@ -10,9 +10,15 @@ import (
 var localINI = `
 [/modules]
 CheckBuiltinPlugins = enabled
+CheckExternalScripts = enabled
 
 [/settings/default]
 password = test
+
+[/settings/external scripts/scripts]
+check_win_not_exist1 = C:\Program Files\test\test.exe
+check_win_not_exist2 = C:\Program Files\te st\test.exe
+check_win_snclient_version = C:\Program Files\snclient\snclient.exe -V
 `
 
 func TestCommandFlags(t *testing.T) {

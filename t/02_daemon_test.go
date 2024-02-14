@@ -36,6 +36,7 @@ password = ` + localDaemonAdminPassword + `
 [/settings/external scripts/scripts]
 check_echo = echo '%ARG1%'
 check_echo_win = cmd /c echo '%ARG1%'
+check_win_snclient_version = C:\Program Files\snclient\snclient.exe -V
 `
 )
 
