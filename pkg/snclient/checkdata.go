@@ -1111,6 +1111,23 @@ func (cd *CheckData) helpHeaderMarkdown(format ShowHelp) string {
 	return out
 }
 
+func (cd *CheckData) isImplemented(platform string) bool {
+	switch {
+	case cd.implemented == ALL:
+		return true
+	case platform == "windows" && cd.implemented&Windows > 0:
+		return true
+	case platform == "linux" && cd.implemented&Linux > 0:
+		return true
+	case platform == "darwin" && cd.implemented&Darwin > 0:
+		return true
+	case platform == "freebsd" && cd.implemented&FreeBSD > 0:
+		return true
+	}
+
+	return false
+}
+
 func (cd *CheckData) helpImplemented(format ShowHelp) string {
 	out := ""
 	type implTableData struct {

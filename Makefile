@@ -628,6 +628,7 @@ DOC_COMMANDS=\
 	check_dummy \
 	check_drivesize \
 	check_files \
+	check_index \
 	check_kernel_stats \
 	check_load \
 	check_mailq \
