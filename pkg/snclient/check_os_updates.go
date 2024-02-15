@@ -1,0 +1,242 @@
+package snclient
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"regexp"
+	"strings"
+
+	"pkg/convert"
+)
+
+func init() {
+	AvailableChecks["check_os_updates"] = CheckEntry{"check_os_updates", NewCheckOSUpdates}
+}
+
+var (
+	reAPTSecurity = regexp.MustCompile(`(Debian-Security:|Ubuntu:[^/]*/[^-]*-security)`)
+	reAPTEntry    = regexp.MustCompile(`^Inst\s+(\S+)\s+\[([^\[]+)\]\s+\((\S+)\s+(.*)\s+\[(\S+)\]\)`)
+	reYUMEntry    = regexp.MustCompile(`^(\S+)\.(\S+)\s+(\S+)\s+(\S+)`)
+)
+
+type CheckOSUpdates struct {
+	snc    *Agent
+	system string
+	update bool
+}
+
+func NewCheckOSUpdates() CheckHandler {
+	return &CheckOSUpdates{
+		update: false,
+		system: "auto",
+	}
+}
+
+func (l *CheckOSUpdates) Build() *CheckData {
+	return &CheckData{
+		name:         "check_os_updates",
+		description:  "Checks for OS system updates.",
+		implemented:  ALL,
+		hasInventory: NoCallInventory,
+		result:       &CheckResult{},
+		args: map[string]CheckArgument{
+			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum (default: auto)"},
+			"-u|--update": {value: &l.update, description: "Update package list, (ex.: apt-get update)"},
+		},
+		defaultWarning:  "count > 0",
+		defaultCritical: "count_security > 0",
+		detailSyntax:    "${package}: ${version}\n",
+		topSyntax:       "%(status) - %{count_security} security updates / %{count} updates available.",
+		emptyState:      CheckExitOK,
+		emptySyntax:     "%(status) - no updates available",
+		attributes: []CheckAttribute{
+			{name: "package", description: "package name"},
+			{name: "security", description: "is this a security update: 0 / 1"},
+			{name: "version", description: "version string of package"},
+		},
+		exampleDefault: `
+    check_os_updates
+    OK - no updates available
+	`,
+		exampleArgs: `warn='count > 0' crit='count_security > 0'`,
+	}
+}
+
+func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	l.snc = snc
+
+	err := l.addAPT(ctx, check)
+	if err != nil {
+		return nil, err
+	}
+
+	err = l.addYUM(ctx, check)
+	if err != nil {
+		return nil, err
+	}
+
+	count := 0
+	count_security := 0
+	for _, entry := range check.listData {
+		if entry["security"] == "1" {
+			count_security++
+		} else {
+			count++
+		}
+	}
+
+	// apply filter
+	check.listData = check.Filter(check.filter, check.listData)
+
+	check.details = map[string]string{
+		"count":          fmt.Sprintf("%d", count),
+		"count_security": fmt.Sprintf("%d", count_security),
+	}
+
+	check.result.Metrics = append(check.result.Metrics,
+		&CheckMetric{
+			ThresholdName: "count_security",
+			Name:          "security",
+			Unit:          "",
+			Value:         convert.Int64(check.details["count_security"]),
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+			Min:           &Zero,
+		},
+		&CheckMetric{
+			ThresholdName: "count",
+			Name:          "updates",
+			Unit:          "",
+			Value:         convert.Int64(check.details["count"]),
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+			Min:           &Zero,
+		},
+	)
+
+	return check.Finalize()
+}
+
+// get packages from apt
+func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) error {
+	switch {
+	case l.system == "auto":
+		_, err := os.Stat("/usr/bin/apt-get")
+		if os.IsNotExist(err) {
+			return nil
+		}
+	case l.system == "apt":
+	default:
+		return nil
+	}
+
+	if l.update {
+		output, stderr, rc, err := l.snc.runExternalCommandString(ctx, "apt-get update", DefaultCmdTimeout)
+		if err != nil {
+			return fmt.Errorf("apt-get update failed: %s\n%s", err.Error(), stderr)
+		}
+		if rc != 0 {
+			return fmt.Errorf("apt-get update failed: %s\n%s", output, stderr)
+		}
+	}
+
+	output, stderr, rc, err := l.snc.runExternalCommandString(ctx, "apt-get upgrade -o 'Debug::NoLocking=true' -s -qq", DefaultCmdTimeout)
+	if err != nil {
+		return fmt.Errorf("apt-get upgrade failed: %s\n%s", err.Error(), stderr)
+	}
+	if rc != 0 {
+		return fmt.Errorf("apt-get upgrade failed: %s\n%s", output, stderr)
+	}
+
+	return l.parseAPT(output, check)
+}
+
+func (l *CheckOSUpdates) parseAPT(output string, check *CheckData) error {
+	for _, line := range strings.Split(output, "\n") {
+		matches := reAPTEntry.FindStringSubmatch(line)
+		security := "0"
+		if reAPTSecurity.MatchString(line) {
+			security = "1"
+		}
+		if len(matches) < 5 {
+			continue
+		}
+		check.listData = append(check.listData, map[string]string{
+			"security":    security,
+			"package":     matches[1],
+			"version":     matches[3],
+			"old_version": matches[2],
+			"repository":  matches[4],
+			"arch":        matches[5],
+		})
+	}
+
+	return nil
+}
+
+// get packages from yum
+func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) error {
+	switch {
+	case l.system == "auto":
+		_, err := os.Stat("/usr/bin/yum")
+		if os.IsNotExist(err) {
+			return nil
+		}
+	case l.system == "yum":
+	default:
+		return nil
+	}
+
+	yumOpts := "-C"
+	if l.update {
+		yumOpts = ""
+	}
+
+	output, stderr, rc, err := l.snc.runExternalCommandString(ctx, "yum check-update --security -q"+yumOpts, DefaultCmdTimeout)
+	if err != nil {
+		return fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
+	}
+	if rc != 0 {
+		return fmt.Errorf("yum check-update failed: %s\n%s", output, stderr)
+	}
+	packageLookup := l.parseYUM(output, "1", check, nil)
+
+	output, stderr, rc, err = l.snc.runExternalCommandString(ctx, "yum check-update -q"+yumOpts, DefaultCmdTimeout)
+	if err != nil {
+		return fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
+	}
+	if rc != 0 {
+		return fmt.Errorf("yum check-update failed: %s\n%s", output, stderr)
+	}
+	l.parseYUM(output, "0", check, packageLookup)
+
+	return nil
+}
+
+func (l *CheckOSUpdates) parseYUM(output, security string, check *CheckData, skipPackages map[string]bool) map[string]bool {
+	packages := map[string]bool{}
+	for _, line := range strings.Split(output, "\n") {
+		if strings.HasPrefix(line, "Obsoleting Packages") {
+			break
+		}
+		matches := reYUMEntry.FindStringSubmatch(line)
+		if len(matches) < 3 {
+			continue
+		}
+		if skipPackages[matches[1]] {
+			continue
+		}
+		packages[matches[1]] = true
+		check.listData = append(check.listData, map[string]string{
+			"security":    security,
+			"package":     matches[1],
+			"version":     matches[2],
+			"old_version": "",
+			"repository":  matches[3],
+			"arch":        matches[2],
+		})
+	}
+
+	return packages
+}

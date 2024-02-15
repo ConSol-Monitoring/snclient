@@ -3,13 +3,12 @@ package snclient
 import (
 	"fmt"
 	"math"
-	"sort"
-	"strconv"
-	"strings"
-
 	"pkg/convert"
 	"pkg/humanize"
 	"pkg/utils"
+	"sort"
+	"strconv"
+	"strings"
 
 	"golang.org/x/exp/slices"
 )
@@ -344,6 +343,10 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	case macros["warn_count"] != "0":
 		cd.result.EscalateStatus(1)
 		macros["_state"] = "1"
+	}
+
+	if state, ok := cd.details["_state"]; ok {
+		cd.result.EscalateStatus(convert.Int64(state))
 	}
 
 	cd.details["_state"] = fmt.Sprintf("%d", cd.result.State)

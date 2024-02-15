@@ -638,6 +638,7 @@ DOC_COMMANDS=\
 	check_ntp_offset \
 	check_omd \
 	check_os_version \
+	check_os_updates \
 	check_pagefile \
 	check_process \
 	check_snclient_version \
