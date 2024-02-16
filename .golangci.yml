@@ -125,6 +125,8 @@ issues:
     - "cognitive complexity .* of func .*ParseINI`"
     - "cognitive complexity .* of func .*ThresholdString"
     - "appendAssign: append result not assigned to the same slice"
+    - "parameter name 'a' is too short for the scope of its usage"
+    - "parameter name 'b' is too short for the scope of its usage"
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go

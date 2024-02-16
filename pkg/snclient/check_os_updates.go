@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"strings"
 
 	"pkg/convert"
+
+	"golang.org/x/exp/slices"
 )
 
 func init() {
@@ -40,16 +43,16 @@ func (l *CheckOSUpdates) Build() *CheckData {
 	return &CheckData{
 		name:         "check_os_updates",
 		description:  "Checks for OS system updates.",
-		implemented:  Linux | Darwin,
+		implemented:  Linux | Windows | Darwin,
 		hasInventory: NoCallInventory,
 		result:       &CheckResult{},
 		args: map[string]CheckArgument{
-			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum, osx (default: auto)"},
+			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum, osx and windows (default: auto)"},
 			"-u|--update": {value: &l.update, description: "Update package list (if supported, ex.: apt-get update)"},
 		},
 		defaultWarning:  "count > 0",
 		defaultCritical: "count_security > 0",
-		detailSyntax:    "${package}: ${version}",
+		detailSyntax:    "${prefix}${package}: ${version}",
 		listCombine:     "\n",
 		topSyntax:       "%(status) - %{count_security} security updates / %{count} updates available.\n%{list}",
 		emptyState:      CheckExitOK,
@@ -100,19 +103,41 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 		found++
 	}
 
+	ok, err = l.addWindows(ctx, check)
+	if err != nil {
+		return nil, err
+	}
+	if ok {
+		found++
+	}
+
 	if found == 0 {
-		return nil, fmt.Errorf("no suitable package system found, supported systems are apt, yum and osx")
+		return nil, fmt.Errorf("no suitable package system found, supported systems are apt, yum, osx and windows")
 	}
 
 	count := 0
 	countSecurity := 0
 	for _, entry := range check.listData {
+		entry["prefix"] = ""
 		if entry["security"] == "1" {
 			countSecurity++
+			entry["prefix"] = "[SECURITY] "
 		} else {
 			count++
 		}
 	}
+
+	// sort updates by security status and package name
+	slices.SortFunc(check.listData, func(a, b map[string]string) int {
+		switch cmp.Compare(b["security"], a["security"]) {
+		case -1:
+			return -1
+		case 1:
+			return 1
+		default:
+			return cmp.Compare(a["package"], b["package"])
+		}
+	})
 
 	// apply filter
 	check.listData = check.Filter(check.filter, check.listData)
@@ -334,5 +359,77 @@ func (l *CheckOSUpdates) parseOSX(output string, check *CheckData) {
 		}
 		check.listData = append(check.listData, entry)
 		lastEntry = entry
+	}
+}
+
+// get packages from windows powershell
+func (l *CheckOSUpdates) addWindows(ctx context.Context, check *CheckData) (bool, error) {
+	switch {
+	case l.system == "auto":
+		if runtime.GOOS != "windows" {
+			return false, nil
+		}
+	case l.system == "windows":
+	default:
+		return false, nil
+	}
+
+	online := "0"
+	if l.update {
+		online = "1"
+	}
+
+	// https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nf-wuapi-iupdatesearcher-search
+	// https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nn-wuapi-iupdate
+	updates := `
+		$update = new-object -com Microsoft.update.Session
+		$searcher = $update.CreateUpdateSearcher()
+		$searcher.Online = ` + online + `
+		$pending = $searcher.Search('IsInstalled=0 AND IsHidden=0')
+		foreach($entry in $pending.Updates) {
+			Write-host Title: $entry.Title
+			foreach($cat in $entry.Categories) {
+				Write-host Category: $cat.Name
+			}
+		}
+
+	`
+	cmd := powerShellCmd(ctx, updates)
+	output, stderr, exitCode, _, err := l.snc.runExternalCommand(ctx, cmd, DefaultCmdTimeout)
+	if err != nil {
+		return true, fmt.Errorf("getting pending updates failed: %s\n%s", err.Error(), stderr)
+	}
+	if exitCode != 0 {
+		return true, fmt.Errorf("getting pending updates failed: %s\n%s", output, stderr)
+	}
+
+	l.parseWindows(output, check)
+
+	return true, nil
+}
+
+func (l *CheckOSUpdates) parseWindows(output string, check *CheckData) {
+	var lastEntry map[string]string
+	for _, line := range strings.Split(output, "\n") {
+		if strings.HasPrefix(line, "Category: ") {
+			if strings.Contains(line, "Security") || strings.Contains(line, "Critical") {
+				lastEntry["security"] = "1"
+			}
+
+			continue
+		}
+		if strings.HasPrefix(line, "Title: ") {
+			pkg := strings.TrimPrefix(line, "Title: ")
+			entry := map[string]string{
+				"security":    "0",
+				"package":     pkg,
+				"version":     "",
+				"old_version": "",
+				"repository":  "",
+				"arch":        "",
+			}
+			check.listData = append(check.listData, entry)
+			lastEntry = entry
+		}
 	}
 }

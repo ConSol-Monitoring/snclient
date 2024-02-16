@@ -12,9 +12,9 @@ Checks for OS system updates.
 
 ## Implementation
 
-| Windows | Linux              | FreeBSD | MacOSX             |
-|:-------:|:------------------:|:-------:|:------------------:|
-|         | :white_check_mark: |         | :white_check_mark: |
+| Windows            | Linux              | FreeBSD | MacOSX             |
+|:------------------:|:------------------:|:-------:|:------------------:|
+| :white_check_mark: | :white_check_mark: |         | :white_check_mark: |
 
 ## Examples
 
@@ -54,14 +54,14 @@ Naemon Config
 | empty-syntax  | %(status) - no updates available                                                      |
 | top-syntax    | %(status) - %{count_security} security updates / %{count} updates available.\n%{list} |
 | ok-syntax     |                                                                                       |
-| detail-syntax | \${package}: \${version}                                                              |
+| detail-syntax | \${prefix}\${package}: \${version}                                                    |
 
 ## Check Specific Arguments
 
-| Argument     | Description                                             |
-| ------------ | ------------------------------------------------------- |
-| -s\|--system | Package system: auto, apt, yum, osx (default: auto)     |
-| -u\|--update | Update package list (if supported, ex.: apt-get update) |
+| Argument     | Description                                                     |
+| ------------ | --------------------------------------------------------------- |
+| -s\|--system | Package system: auto, apt, yum, osx and windows (default: auto) |
+| -u\|--update | Update package list (if supported, ex.: apt-get update)         |
 
 ## Attributes
 

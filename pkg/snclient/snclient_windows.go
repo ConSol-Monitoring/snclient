@@ -259,6 +259,17 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+func powerShellCmd(ctx context.Context, command string) (cmd *exec.Cmd) {
+	cmd = exec.CommandContext(ctx, "powershell")
+	cmd.Args = nil
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow: true,
+		CmdLine:    fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command "%s"`, command), //nolint:gocritic // using %q just breaks the command from escaping newlines
+	}
+
+	return cmd
+}
+
 func isBatchFile(path string) bool {
 	ext := filepath.Ext(path)
 
