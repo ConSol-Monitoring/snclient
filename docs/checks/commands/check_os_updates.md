@@ -46,16 +46,15 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                                |
-| ------------- | ---------------------------------------------------------------------------- |
-| warning       | count > 0                                                                    |
-| critical      | count_security > 0                                                           |
-| empty-state   | 0 (OK)                                                                       |
-| empty-syntax  | %(status) - no updates available                                             |
-| top-syntax    | %(status) - %{count_security} security updates / %{count} updates available. |
-| ok-syntax     |                                                                              |
-| detail-syntax | \${package}: \${version}
-                                                    |
+| Argument      | Default Value                                                                         |
+| ------------- | ------------------------------------------------------------------------------------- |
+| warning       | count > 0                                                                             |
+| critical      | count_security > 0                                                                    |
+| empty-state   | 0 (OK)                                                                                |
+| empty-syntax  | %(status) - no updates available                                                      |
+| top-syntax    | %(status) - %{count_security} security updates / %{count} updates available.\n%{list} |
+| ok-syntax     |                                                                                       |
+| detail-syntax | \${package}: \${version}                                                              |
 
 ## Check Specific Arguments
 
