@@ -62,6 +62,7 @@ cronie.x86_64              1.4.11-25.el7_9                updates
 Obsoleting Packages
 grub2-tools.x86_64         1:2.06-70.el9_3.2.rocky.0.2    baseos
     grub2-tools.x86_64     1:2.06-46.el9.rocky.0.1        @baseos`,
+		"yum_exit": "100",
 	})
 	defer os.RemoveAll(tmpPath)
 	res := snc.RunCheck("check_os_updates", []string{"--system=yum"})

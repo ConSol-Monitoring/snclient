@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -101,8 +102,14 @@ func MockSystemUtilities(t *testing.T, utils map[string]string) (tmpPath string)
 
 	// add scripts
 	for key, data := range utils {
+		if strings.HasSuffix(key, "_exit") {
+			continue
+		}
 		scriptData := []string{"#!/bin/sh"}
 		scriptData = append(scriptData, "cat << EOT", data, "EOT")
+		if exitCode, ok := utils[key+"_exit"]; ok {
+			scriptData = append(scriptData, fmt.Sprintf("exit %s;", exitCode))
+		}
 		err := os.WriteFile(filepath.Join(tmpPath, key), []byte(strings.Join(scriptData, "\n")), 0o600)
 		require.NoErrorf(t, err, "writing %s worked", filepath.Join(tmpPath, key))
 		err = os.Chmod(filepath.Join(tmpPath, key), 0o700)
