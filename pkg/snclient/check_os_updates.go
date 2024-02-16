@@ -19,6 +19,8 @@ var (
 	reAPTSecurity = regexp.MustCompile(`(Debian-Security:|Ubuntu:[^/]*/[^-]*-security)`)
 	reAPTEntry    = regexp.MustCompile(`^Inst\s+(\S+)\s+\[([^\[]+)\]\s+\((\S+)\s+(.*)\s+\[(\S+)\]\)`)
 	reYUMEntry    = regexp.MustCompile(`^(\S+)\.(\S+)\s+(\S+)\s+(\S+)`)
+	reOSXEntry    = regexp.MustCompile(`^\*\s+Label:\s+(.*)$`)
+	reOSXDetails  = regexp.MustCompile(`^Title:.*Version:\s(\S+), `)
 )
 
 type CheckOSUpdates struct {
@@ -38,12 +40,12 @@ func (l *CheckOSUpdates) Build() *CheckData {
 	return &CheckData{
 		name:         "check_os_updates",
 		description:  "Checks for OS system updates.",
-		implemented:  Linux,
+		implemented:  Linux | Darwin,
 		hasInventory: NoCallInventory,
 		result:       &CheckResult{},
 		args: map[string]CheckArgument{
-			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum (default: auto)"},
-			"-u|--update": {value: &l.update, description: "Update package list, (ex.: apt-get update)"},
+			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum, osx (default: auto)"},
+			"-u|--update": {value: &l.update, description: "Update package list (if supported, ex.: apt-get update)"},
 		},
 		defaultWarning:  "count > 0",
 		defaultCritical: "count_security > 0",
@@ -89,8 +91,16 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 		found++
 	}
 
+	ok, err = l.addOSX(ctx, check)
+	if err != nil {
+		return nil, err
+	}
+	if ok {
+		found++
+	}
+
 	if found == 0 {
-		return nil, fmt.Errorf("no suitable package system found, supported systems are apt and yum")
+		return nil, fmt.Errorf("no suitable package system found, supported systems are apt, yum and osx")
 	}
 
 	count := 0
@@ -211,7 +221,7 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 		return false, nil
 	}
 
-	yumOpts := "-C"
+	yumOpts := " -C"
 	if l.update {
 		yumOpts = ""
 	}
@@ -262,4 +272,66 @@ func (l *CheckOSUpdates) parseYUM(output, security string, check *CheckData, ski
 	}
 
 	return packages
+}
+
+// get packages from osx softwareupdate
+func (l *CheckOSUpdates) addOSX(ctx context.Context, check *CheckData) (bool, error) {
+	switch {
+	case l.system == "auto":
+		if runtime.GOOS != "darwin" {
+			return false, nil
+		}
+		_, err := os.Stat("/usr/sbin/softwareupdate")
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+	case l.system == "osx":
+	default:
+		return false, nil
+	}
+
+	opts := " --no-scan"
+	if l.update {
+		opts = ""
+	}
+
+	output, stderr, exitCode, err := l.snc.runExternalCommandString(ctx, "softwareupdate -l"+opts, DefaultCmdTimeout)
+	if err != nil {
+		return true, fmt.Errorf("softwareupdate failed: %s\n%s", err.Error(), stderr)
+	}
+	if exitCode != 0 {
+		return true, fmt.Errorf("softwareupdate failed: %s\n%s", output, stderr)
+	}
+
+	l.parseOSX(output, check)
+
+	return true, nil
+}
+
+func (l *CheckOSUpdates) parseOSX(output string, check *CheckData) {
+	var lastEntry map[string]string
+	for _, line := range strings.Split(output, "\n") {
+		if lastEntry != nil {
+			matches := reOSXDetails.FindStringSubmatch(line)
+			if len(matches) > 1 {
+				lastEntry["version"] = matches[1]
+
+				continue
+			}
+		}
+		matches := reOSXEntry.FindStringSubmatch(line)
+		if len(matches) < 2 {
+			continue
+		}
+		entry := map[string]string{
+			"security":    "0",
+			"package":     matches[1],
+			"version":     "",
+			"old_version": "",
+			"repository":  "",
+			"arch":        "",
+		}
+		check.listData = append(check.listData, entry)
+		lastEntry = entry
+	}
 }
