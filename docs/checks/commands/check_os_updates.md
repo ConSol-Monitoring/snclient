@@ -21,7 +21,12 @@ Checks for OS system updates.
 ### Default Check
 
     check_os_updates
-    OK - no updates available
+    OK - no updates available |...
+
+If you only want to be notified about security related updates:
+
+    check_os_updates warn=none crit='count_security > 0'
+    CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0
 
 ### Example using NRPE and Naemon
 
@@ -54,9 +59,10 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument | Description                                |
-| -------- | ------------------------------------------ |
-| update   | Update package list, (ex.: apt-get update) |
+| Argument     | Description                                    |
+| ------------ | ---------------------------------------------- |
+| -s\|--system | Package system: auto, apt, yum (default: auto) |
+| -u\|--update | Update package list, (ex.: apt-get update)     |
 
 ## Attributes
 

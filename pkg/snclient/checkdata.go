@@ -3,12 +3,13 @@ package snclient
 import (
 	"fmt"
 	"math"
-	"pkg/convert"
-	"pkg/humanize"
-	"pkg/utils"
 	"sort"
 	"strconv"
 	"strings"
+
+	"pkg/convert"
+	"pkg/humanize"
+	"pkg/utils"
 
 	"golang.org/x/exp/slices"
 )

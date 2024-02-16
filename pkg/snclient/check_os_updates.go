@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"pkg/convert"
@@ -57,7 +58,12 @@ func (l *CheckOSUpdates) Build() *CheckData {
 		},
 		exampleDefault: `
     check_os_updates
-    OK - no updates available
+    OK - no updates available |...
+
+If you only want to be notified about security related updates:
+
+    check_os_updates warn=none crit='count_security > 0'
+    CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0
 	`,
 		exampleArgs: `warn='count > 0' crit='count_security > 0'`,
 	}
@@ -66,21 +72,32 @@ func (l *CheckOSUpdates) Build() *CheckData {
 func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	l.snc = snc
 
-	err := l.addAPT(ctx, check)
+	found := 0
+	ok, err := l.addAPT(ctx, check)
 	if err != nil {
 		return nil, err
 	}
+	if ok {
+		found++
+	}
 
-	err = l.addYUM(ctx, check)
+	ok, err = l.addYUM(ctx, check)
 	if err != nil {
 		return nil, err
+	}
+	if ok {
+		found++
+	}
+
+	if found == 0 {
+		return nil, fmt.Errorf("no suitable package system found, supported systems are apt and yum")
 	}
 
 	count := 0
-	count_security := 0
+	countSecurity := 0
 	for _, entry := range check.listData {
 		if entry["security"] == "1" {
-			count_security++
+			countSecurity++
 		} else {
 			count++
 		}
@@ -91,7 +108,7 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 
 	check.details = map[string]string{
 		"count":          fmt.Sprintf("%d", count),
-		"count_security": fmt.Sprintf("%d", count_security),
+		"count_security": fmt.Sprintf("%d", countSecurity),
 	}
 
 	check.result.Metrics = append(check.result.Metrics,
@@ -119,40 +136,45 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 }
 
 // get packages from apt
-func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) error {
+func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, error) {
 	switch {
 	case l.system == "auto":
+		if runtime.GOOS != "linux" {
+			return false, nil
+		}
 		_, err := os.Stat("/usr/bin/apt-get")
 		if os.IsNotExist(err) {
-			return nil
+			return false, nil
 		}
 	case l.system == "apt":
 	default:
-		return nil
+		return false, nil
 	}
 
 	if l.update {
 		output, stderr, rc, err := l.snc.runExternalCommandString(ctx, "apt-get update", DefaultCmdTimeout)
 		if err != nil {
-			return fmt.Errorf("apt-get update failed: %s\n%s", err.Error(), stderr)
+			return true, fmt.Errorf("apt-get update failed: %s\n%s", err.Error(), stderr)
 		}
 		if rc != 0 {
-			return fmt.Errorf("apt-get update failed: %s\n%s", output, stderr)
+			return true, fmt.Errorf("apt-get update failed: %s\n%s", output, stderr)
 		}
 	}
 
 	output, stderr, rc, err := l.snc.runExternalCommandString(ctx, "apt-get upgrade -o 'Debug::NoLocking=true' -s -qq", DefaultCmdTimeout)
 	if err != nil {
-		return fmt.Errorf("apt-get upgrade failed: %s\n%s", err.Error(), stderr)
+		return true, fmt.Errorf("apt-get upgrade failed: %s\n%s", err.Error(), stderr)
 	}
 	if rc != 0 {
-		return fmt.Errorf("apt-get upgrade failed: %s\n%s", output, stderr)
+		return true, fmt.Errorf("apt-get upgrade failed: %s\n%s", output, stderr)
 	}
 
-	return l.parseAPT(output, check)
+	l.parseAPT(output, check)
+
+	return true, nil
 }
 
-func (l *CheckOSUpdates) parseAPT(output string, check *CheckData) error {
+func (l *CheckOSUpdates) parseAPT(output string, check *CheckData) {
 	for _, line := range strings.Split(output, "\n") {
 		matches := reAPTEntry.FindStringSubmatch(line)
 		security := "0"
@@ -171,21 +193,22 @@ func (l *CheckOSUpdates) parseAPT(output string, check *CheckData) error {
 			"arch":        matches[5],
 		})
 	}
-
-	return nil
 }
 
 // get packages from yum
-func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) error {
+func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, error) {
 	switch {
 	case l.system == "auto":
+		if runtime.GOOS != "linux" {
+			return false, nil
+		}
 		_, err := os.Stat("/usr/bin/yum")
 		if os.IsNotExist(err) {
-			return nil
+			return false, nil
 		}
 	case l.system == "yum":
 	default:
-		return nil
+		return false, nil
 	}
 
 	yumOpts := "-C"
@@ -193,25 +216,25 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) error {
 		yumOpts = ""
 	}
 
-	output, stderr, rc, err := l.snc.runExternalCommandString(ctx, "yum check-update --security -q"+yumOpts, DefaultCmdTimeout)
+	output, stderr, exitCode, err := l.snc.runExternalCommandString(ctx, "yum check-update --security -q"+yumOpts, DefaultCmdTimeout)
 	if err != nil {
-		return fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
+		return true, fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
 	}
-	if rc != 0 {
-		return fmt.Errorf("yum check-update failed: %s\n%s", output, stderr)
+	if exitCode != 0 {
+		return true, fmt.Errorf("yum check-update failed: %s\n%s", output, stderr)
 	}
 	packageLookup := l.parseYUM(output, "1", check, nil)
 
-	output, stderr, rc, err = l.snc.runExternalCommandString(ctx, "yum check-update -q"+yumOpts, DefaultCmdTimeout)
+	output, stderr, exitCode, err = l.snc.runExternalCommandString(ctx, "yum check-update -q"+yumOpts, DefaultCmdTimeout)
 	if err != nil {
-		return fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
+		return true, fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
 	}
-	if rc != 0 {
-		return fmt.Errorf("yum check-update failed: %s\n%s", output, stderr)
+	if exitCode != 0 {
+		return true, fmt.Errorf("yum check-update failed: %s\n%s", output, stderr)
 	}
 	l.parseYUM(output, "0", check, packageLookup)
 
-	return nil
+	return true, nil
 }
 
 func (l *CheckOSUpdates) parseYUM(output, security string, check *CheckData, skipPackages map[string]bool) map[string]bool {
