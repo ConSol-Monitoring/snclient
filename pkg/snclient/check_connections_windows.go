@@ -38,7 +38,7 @@ func (l *CheckConnections) addEntry(name string, check *CheckData, counter []int
 }
 
 func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64, error) {
-	output, stderr, rc, err := l.snc.runExternalCommandString(ctx, "netstat.exe /a /n /p "+name, DefaultCmdTimeout)
+	output, stderr, rc, err := l.snc.execCommand(ctx, "netstat.exe /a /n /p "+name, DefaultCmdTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("netstat.exe failed: %s\n%s", err.Error(), stderr)
 	}

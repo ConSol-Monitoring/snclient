@@ -188,7 +188,7 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 	}
 
 	if l.update {
-		output, stderr, rc, err := l.snc.runExternalCommandString(ctx, "apt-get update", DefaultCmdTimeout)
+		output, stderr, rc, err := l.snc.execCommand(ctx, "apt-get update", DefaultCmdTimeout)
 		if err != nil {
 			return true, fmt.Errorf("apt-get update failed: %s\n%s", err.Error(), stderr)
 		}
@@ -197,7 +197,7 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 		}
 	}
 
-	output, stderr, rc, err := l.snc.runExternalCommandString(ctx, "apt-get upgrade -o 'Debug::NoLocking=true' -s -qq", DefaultCmdTimeout)
+	output, stderr, rc, err := l.snc.execCommand(ctx, "apt-get upgrade -o 'Debug::NoLocking=true' -s -qq", DefaultCmdTimeout)
 	if err != nil {
 		return true, fmt.Errorf("apt-get upgrade failed: %s\n%s", err.Error(), stderr)
 	}
@@ -252,7 +252,7 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 		yumOpts = ""
 	}
 
-	output, stderr, exitCode, err := l.snc.runExternalCommandString(ctx, "yum check-update --security -q"+yumOpts, DefaultCmdTimeout)
+	output, stderr, exitCode, err := l.snc.execCommand(ctx, "yum check-update --security -q"+yumOpts, DefaultCmdTimeout)
 	if err != nil {
 		return true, fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
 	}
@@ -261,11 +261,11 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 	}
 	packageLookup := l.parseYUM(output, "1", check, nil)
 
-	output, stderr, exitCode, err = l.snc.runExternalCommandString(ctx, "yum check-update -q"+yumOpts, DefaultCmdTimeout)
+	output, stderr, exitCode, err = l.snc.execCommand(ctx, "yum check-update -q"+yumOpts, DefaultCmdTimeout)
 	if err != nil {
 		return true, fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
 	}
-	if exitCode != 0 {
+	if exitCode != 0 && exitCode != 100 {
 		return true, fmt.Errorf("yum check-update failed: %s\n%s", output, stderr)
 	}
 	l.parseYUM(output, "0", check, packageLookup)
@@ -321,7 +321,7 @@ func (l *CheckOSUpdates) addOSX(ctx context.Context, check *CheckData) (bool, er
 		opts = ""
 	}
 
-	output, stderr, exitCode, err := l.snc.runExternalCommandString(ctx, "softwareupdate -l"+opts, DefaultCmdTimeout)
+	output, stderr, exitCode, err := l.snc.execCommand(ctx, "softwareupdate -l"+opts, DefaultCmdTimeout)
 	if err != nil {
 		return true, fmt.Errorf("softwareupdate failed: %s\n%s", err.Error(), stderr)
 	}

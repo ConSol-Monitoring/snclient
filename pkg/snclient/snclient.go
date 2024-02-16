@@ -1115,15 +1115,26 @@ func catchOutputErrors(command string, stderr *string, exitCode *int64) {
 	}
 }
 
-func (snc *Agent) runExternalCommandString(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
+// runs check command (makes sure exit code is from 0-3)
+func (snc *Agent) runExternalCheckString(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
 	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
 	cmd, err := MakeCmd(ctx, command, scriptsPath)
 	var procState *os.ProcessState
 	if err == nil {
 		stdout, stderr, exitCode, procState, err = snc.runExternalCommand(ctx, cmd, timeout)
 	}
-
 	fixReturnCodes(&stdout, &stderr, &exitCode, timeout, procState, err)
+
+	return stdout, stderr, exitCode, err
+}
+
+// runs command and does not touch exit code and such
+func (snc *Agent) execCommand(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
+	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
+	cmd, err := MakeCmd(ctx, command, scriptsPath)
+	if err == nil {
+		stdout, stderr, exitCode, _, err = snc.runExternalCommand(ctx, cmd, timeout)
+	}
 
 	return stdout, stderr, exitCode, err
 }

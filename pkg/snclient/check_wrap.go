@@ -70,7 +70,7 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		timeoutSeconds = 60
 	}
 
-	stdout, stderr, exitCode, _ := l.snc.runExternalCommandString(ctx, command, timeoutSeconds)
+	stdout, stderr, exitCode, _ := l.snc.runExternalCheckString(ctx, command, timeoutSeconds)
 	if stderr != "" {
 		if stdout != "" {
 			stdout += "\n"
