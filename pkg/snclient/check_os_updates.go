@@ -256,7 +256,7 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 	if err != nil {
 		return true, fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
 	}
-	if exitCode != 0 {
+	if exitCode != 0 && exitCode != 100 {
 		return true, fmt.Errorf("yum check-update failed: %s\n%s", output, stderr)
 	}
 	packageLookup := l.parseYUM(output, "1", check, nil)
