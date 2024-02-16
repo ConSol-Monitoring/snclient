@@ -1363,6 +1363,9 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 		check := AvailableChecks[k]
 		handler := check.Handler()
 		meta := handler.Build()
+		if !meta.isImplemented(runtime.GOOS) {
+			continue
+		}
 		switch meta.hasInventory {
 		case NoInventory:
 			// skipped
