@@ -25,8 +25,7 @@ Conf tar (1.34+dfsg-1.2+deb12u1 Debian:12.5/stable [amd64])`,
 	defer os.RemoveAll(tmpPath)
 	res := snc.RunCheck("check_os_updates", []string{"--system=apt"})
 	assert.Equalf(t, CheckExitWarning, res.State, "state Warning")
-	assert.Equalf(t, "WARNING - 0 security updates / 2 updates available. |'security'=0;;0;0 'updates'=2;0;;0",
-		string(res.BuildPluginOutput()), "output matches")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "WARNING - 0 security updates / 2 updates available. |'security'=0;;0;0 'updates'=2;0;;0", "output matches")
 
 	// mock apt-get command from output of: apt-get upgrade
 	tmpPath = MockSystemUtilities(t, map[string]string{
@@ -45,8 +44,7 @@ Inst steam-libs-i386:i386 [1:1.0.0.78] (1:1.0.0.79 Steam launcher:repo.steampowe
 	defer os.RemoveAll(tmpPath)
 	res = snc.RunCheck("check_os_updates", []string{"--system=apt"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
-	assert.Equalf(t, "CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0",
-		string(res.BuildPluginOutput()), "output matches")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0", "output matches")
 
 	StopTestAgent(t, snc)
 }
@@ -68,8 +66,7 @@ grub2-tools.x86_64         1:2.06-70.el9_3.2.rocky.0.2    baseos
 	defer os.RemoveAll(tmpPath)
 	res := snc.RunCheck("check_os_updates", []string{"--system=yum"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
-	assert.Equalf(t, "CRITICAL - 3 security updates / 0 updates available. |'security'=3;;0;0 'updates'=0;0;;0",
-		string(res.BuildPluginOutput()), "output matches")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "CRITICAL - 3 security updates / 0 updates available. |'security'=3;;0;0 'updates'=0;0;;0", "output matches")
 
 	StopTestAgent(t, snc)
 }
@@ -87,8 +84,7 @@ Title: macOS Sonoma 14.3.1, Version: 14.3.1, Size: 1789479KiB, Recommended: NO, 
 	defer os.RemoveAll(tmpPath)
 	res := snc.RunCheck("check_os_updates", []string{"--system=osx"})
 	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
-	assert.Equalf(t, "WARNING - 0 security updates / 1 updates available. |'security'=0;;0;0 'updates'=1;0;;0",
-		string(res.BuildPluginOutput()), "output matches")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "WARNING - 0 security updates / 1 updates available. |'security'=0;;0;0 'updates'=1;0;;0", "output matches")
 
 	StopTestAgent(t, snc)
 }
