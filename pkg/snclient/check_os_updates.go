@@ -38,7 +38,7 @@ func (l *CheckOSUpdates) Build() *CheckData {
 	return &CheckData{
 		name:         "check_os_updates",
 		description:  "Checks for OS system updates.",
-		implemented:  ALL,
+		implemented:  Linux,
 		hasInventory: NoCallInventory,
 		result:       &CheckResult{},
 		args: map[string]CheckArgument{
