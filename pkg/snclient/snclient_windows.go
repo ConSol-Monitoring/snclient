@@ -7,11 +7,10 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"pkg/utils"
 	"strings"
 	"syscall"
 	"time"
-
-	"pkg/utils"
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
@@ -207,10 +206,9 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		command = strings.ReplaceAll(command, "; exit", " ; exit")
 		command = strings.ReplaceAll(command, ";exit", " ; exit")
 	}
-	cmdList := utils.Tokenize(command)
-	cmdList, err := utils.TrimQuotesAll(cmdList)
+	cmdList, err := utils.TokenizeShell(command)
 	if err != nil {
-		return nil, fmt.Errorf("trimming arguments: %s", err.Error())
+		return nil, fmt.Errorf("error parsing command: %s", err.Error())
 	}
 	cmdName := cmdList[0]
 	cmdArgs := cmdList[1:]

@@ -121,6 +121,8 @@ issues:
     - "cognitive complexity .* of func .*.matchSingle"
     - "Function 'matchSingle' has too many statements"
     - "cyclomatic complexity .* of func .*.matchSingle"
+    - "cognitive complexity .* of func .*TokenizeShell"
+    - "Function 'TokenizeShell' has too many statements"
     - "Function 'ParseINI' has too many statements"
     - "cognitive complexity .* of func .*ParseINI`"
     - "cognitive complexity .* of func .*ThresholdString"

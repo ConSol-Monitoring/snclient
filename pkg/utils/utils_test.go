@@ -87,6 +87,40 @@ func TestTokenizer(t *testing.T) {
 	}
 }
 
+func TestTokenizerShell(t *testing.T) {
+	tests := []struct {
+		in  string
+		res []string
+	}{
+		{"", []string{""}},
+		{" a", []string{"a"}},
+		{" a ", []string{"a"}},
+		{"a bc d", []string{"a", "bc", "d"}},
+		{"a 'bc' d", []string{"a", "bc", "d"}},
+		{"a 'b c' d", []string{"a", "b c", "d"}},
+		{`a "b'c" d`, []string{"a", `b'c`, "d"}},
+		{`a 'b""c' d`, []string{"a", `b""c`, "d"}},
+		{`a  """b""" '' ''c'' ''d'' ee""ee f' 'f '" "' "' ''"`, []string{`a`, `b`, ``, `c`, `d`, `eeee`, `f f`, `" "`, `' ''`}},
+		{`"\'"`, []string{`\'`}},
+		{`"\"'"`, []string{`"'`}},
+		{`\'`, []string{`'`}},
+		{`\"`, []string{`"`}},
+		{`'"\a"'`, []string{`"\a"`}},
+		{`\ a`, []string{` a`}},
+		{`\\ a`, []string{`\`, `a`}},
+		{`\\\ a`, []string{`\ a`}},
+		{`\\\\ a`, []string{`\\`, `a`}},
+		{`"\\\\ a"`, []string{`\\ a`}},
+		{`'\\\\ a'`, []string{`\\\\ a`}},
+	}
+
+	for _, tst := range tests {
+		res, err := TokenizeShell(tst.in)
+		assert.Equalf(t, tst.res, res, "Tokenize: %v -> %v", tst.in, res)
+		require.NoError(t, err)
+	}
+}
+
 func TestParseVersion(t *testing.T) {
 	tests := []struct {
 		in  string
