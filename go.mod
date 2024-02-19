@@ -31,7 +31,7 @@ replace github.com/Shopify/sarama => github.com/elastic/sarama v1.19.1-0.2022031
 replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240129124248-a5f3e5722a21
 
 require (
-	github.com/daixiang0/gci v0.12.1
+	github.com/daixiang0/gci v0.12.3
 	github.com/florentsolt/colorgo v0.0.0-20190915162800-0863107568c6
 	github.com/golangci/golangci-lint v1.56.1
 	github.com/stretchr/testify v1.8.4
