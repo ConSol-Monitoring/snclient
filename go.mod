@@ -33,10 +33,10 @@ replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240
 require (
 	github.com/daixiang0/gci v0.12.1
 	github.com/florentsolt/colorgo v0.0.0-20190915162800-0863107568c6
-	github.com/golangci/golangci-lint v1.56.1
+	github.com/golangci/golangci-lint v1.56.2
 	github.com/stretchr/testify v1.8.4
 	github.com/tc-hib/go-winres v0.3.1
-	golang.org/x/tools v0.17.0
+	golang.org/x/tools v0.18.0
 	golang.org/x/vuln v1.0.4
 	mvdan.cc/gofumpt v0.6.0
 	pkg/dump v0.0.0-00010101000000-000000000000
@@ -94,7 +94,7 @@ require (
 	github.com/fzipp/gocyclo v0.6.0 // indirect
 	github.com/ghostiam/protogetter v0.3.4 // indirect
 	github.com/go-chi/chi/v5 v5.0.11 // indirect
-	github.com/go-critic/go-critic v0.11.0 // indirect
+	github.com/go-critic/go-critic v0.11.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-toolsmith/astcast v1.1.0 // indirect
 	github.com/go-toolsmith/astcopy v1.1.0 // indirect
