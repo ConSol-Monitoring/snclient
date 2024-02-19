@@ -29,5 +29,9 @@ func TestCheckFiles(t *testing.T) {
 	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
 	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - error walking directory noneex")
 
+	res = snc.RunCheck("check_files", []string{"path=.", "filter=name eq 'check_files.go' and size gt 5K", "crit=count>0", "ok=count eq 0", "empty-state=ok"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Contains(t, string(res.BuildPluginOutput()), "'count'=")
+
 	StopTestAgent(t, snc)
 }

@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient+ agent.
 
 next:
          - add check_os_updates
+         - check_files: fix skipping folder to early
 
 0.18     Wed Feb 14 15:36:38 CET 2024
          - fix crash on windows when parsing empty args (#88)

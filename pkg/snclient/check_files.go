@@ -125,25 +125,28 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 					fileEntry["fullname"] = filepath.Join(path, filename)
 					fileEntry["type"] = "file"
 				}
+
+				if l.maxDepth != -1 && dir.IsDir() && int64(strings.Count(path, string(os.PathSeparator))) > l.maxDepth {
+					return fs.SkipDir
+				}
+
+				if dir.IsDir() {
+					return nil
+				}
 			}
 
 			// check filter before checking errors, maybe it is skipped anyway
 			if !check.MatchMapCondition(check.filter, fileEntry, true) {
-				return fs.SkipDir
-			}
-
-			if err != nil {
-				return err
-			}
-			if l.maxDepth != -1 && dir.IsDir() && int64(strings.Count(path, string(os.PathSeparator))) > l.maxDepth {
-				return fs.SkipDir
-			}
-			if dir.IsDir() {
 				return nil
 			}
 
 			if match, _ := filepath.Match(l.pattern, filename); !match {
 				return nil
+			}
+
+			// check for errors here, maybe the file would have been filtered out anyway
+			if err != nil {
+				return err
 			}
 
 			fileInfo, err := dir.Info()
