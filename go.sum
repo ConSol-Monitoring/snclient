@@ -122,6 +122,8 @@ github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae h1
 github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae/go.mod h1:+883jOgD5TA7mWGdmyfb75Cd6jC03PIYZXzXd2tsraQ=
 github.com/sni/gopsutil/v3 v3.0.0-20240129124248-a5f3e5722a21 h1:vcdRBFDj2TY5+Q7RSRlO1C9AA7SPeruYaoYd4trneUE=
 github.com/sni/gopsutil/v3 v3.0.0-20240129124248-a5f3e5722a21/go.mod h1:UU7a2MSBQa+kW1uuDq8DeEBS8kmrnQwsv2b5O513rwU=
+github.com/sni/shelltoken v0.0.0-20240220170033-a140281ef06f h1:88WYU7vcTbjLkh6NWpFJb3LHlZtrn4uVQo1jdT7ttT0=
+github.com/sni/shelltoken v0.0.0-20240220170033-a140281ef06f/go.mod h1:66YbXoN5mTer9RJRxauOJxIrDBDqNVZtDbbsylk0vW8=
 github.com/spf13/cobra v1.8.0 h1:7aJaZx1B85qltLMc546zn58BxxfZdR/W22ej9CFoEf0=
 github.com/spf13/cobra v1.8.0/go.mod h1:WXLWApfZ71AjXPya3WOlMsY9yMs7YeiHhFVlvLyhcho=
 github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=

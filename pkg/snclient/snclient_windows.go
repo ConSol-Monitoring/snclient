@@ -13,6 +13,7 @@ import (
 
 	"pkg/utils"
 
+	"github.com/sni/shelltoken"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
 )
@@ -207,7 +208,7 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		command = strings.ReplaceAll(command, "; exit", " ; exit")
 		command = strings.ReplaceAll(command, ";exit", " ; exit")
 	}
-	cmdList, err := utils.TokenizeShell(command)
+	_, cmdList, err := shelltoken.Parse(command)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing command: %s", err.Error())
 	}

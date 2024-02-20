@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"pkg/utils"
+	"github.com/sni/shelltoken"
 )
 
 type CheckAlias struct {
@@ -48,7 +48,7 @@ func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 			}
 
 			replacedStr := ReplaceRuntimeMacros(strings.Join(a.args, " "), macros)
-			cmdArgs, err = utils.TokenizeShell(replacedStr)
+			_, cmdArgs, err = shelltoken.Parse(replacedStr)
 			if err != nil {
 				return nil, fmt.Errorf("error parsing command: %s", err.Error())
 			}
