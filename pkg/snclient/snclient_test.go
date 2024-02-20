@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	_ "pkg/dump"
+
 	"github.com/stretchr/testify/assert"
 )
 

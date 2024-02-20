@@ -84,27 +84,31 @@ CMDS = $(shell cd ./cmd && ls -1)
 tools: | versioncheck vendor go.work
 	$(GO) mod download
 	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }'); do \
-		$(GO) install $$DEP; \
+		( cd buildtools && $(GO) install $$DEP ) ; \
 	done
 	$(GO) mod tidy
+	( cd buildtools && $(GO) mod tidy )
+	# pin these dependencies
+	( cd buildtools && $(GO) get github.com/golangci/golangci-lint@latest )
 	$(GO) mod vendor
 
 updatedeps: versioncheck
 	$(MAKE) clean
 	$(MAKE) tools
 	$(GO) mod download
-	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }'); do \
-		$(GO) get $$DEP; \
+	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }' | grep -v pkg/dump); do \
+		( cd buildtools && $(GO) get $$DEP ) ; \
 	done
-	$(GO) get -u ./buildtools/
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
 		( cd ./$$dir && $(GO) mod download ); \
 		( cd ./$$dir && $(GO) get -u ); \
 		( cd ./$$dir && $(GO) get -t -u ); \
 	done
 	$(GO) get -u ./t/
-	# pin these dependencies
-	$(GO) get github.com/golangci/golangci-lint@latest
+	( cd buildtools && $(GO) get -u )
+	$(GO) mod download
+	$(GO) get -u
+	$(GO) get -t -u
 	$(MAKE) cleandeps
 
 cleandeps:
@@ -112,6 +116,7 @@ cleandeps:
 		( cd ./$$dir && $(GO) mod tidy ); \
 	done
 	$(GO) mod tidy
+	( cd buildtools && $(GO) mod tidy )
 	rm -f pkg/*/go.sum
 
 
@@ -122,7 +127,7 @@ vendor: go.work
 
 go.work: pkg/*
 	echo "go $(MINGOVERSIONSTR)" > go.work
-	$(GO) work use . pkg/* pkg/*/*/.
+	$(GO) work use . pkg/* pkg/*/*/. buildtools/.
 
 build: vendor go.work snclient.ini server.crt server.key
 	set -xe; for CMD in $(CMDS); do \
@@ -204,7 +209,7 @@ testf: vendor
 longtest: vendor
 	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) pkg/* pkg/*/cmd
 
-citest: vendor
+citest: tools vendor
 	#
 	# Checking gofmt errors
 	#

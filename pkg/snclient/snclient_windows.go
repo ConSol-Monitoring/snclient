@@ -7,10 +7,11 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"pkg/utils"
 	"strings"
 	"syscall"
 	"time"
+
+	"pkg/utils"
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"

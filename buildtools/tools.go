@@ -1,10 +1,11 @@
 //go:build tools
+// +build tools
 
 package tools
 
 /*
  * list of modules required to build and run all tests
- * see: https://go.dev/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
+ * see: https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
  */
 
 import (
