@@ -79,7 +79,9 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "total_size", description: "Total size over all files as human readable bytes"},
 		},
 		exampleDefault: `
-    check_files 'path=/tmp' 'filter=age > 3d' 'warn=count > 500' 'crit=count > 600'
+Alert if there are logs older than 1 hour in /tmp:
+
+    check_files path="/tmp" pattern="*.log" "filter=age > 1h" crit="count > 0" empty-state=0 empty-syntax="no old files found" top-syntax="found %(count) too old logs"
     OK - All 138 files are ok: (29.22 MiB) |'count'=138;500;600;0 'size'=30642669B;;;0
 
 Check for folder size:
