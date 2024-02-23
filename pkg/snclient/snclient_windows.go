@@ -210,23 +210,20 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	cmdName := args[0]
 	cmdArgs := args[1:]
 	shell := shell()
+	_, lookupErr := exec.LookPath(cmdName)
 
 	// add scripts path to PATH env
 	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
 	env := append(os.Environ(), "PATH="+scriptsPath+";"+os.Getenv("PATH"))
 
-	_, lookupErr := exec.LookPath(cmdName)
-
 	switch {
 	// powershell command
 	case strings.HasPrefix(command, "& "):
-		cmd := exec.CommandContext(ctx, "powershell")
-		cmd.Args = nil
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-			CmdLine:    fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command %s; exit($LASTEXITCODE)`, command),
-		}
-		cmd.Env = env
+		cmd := execCommandContext(ctx, "powershell", env)
+		cmd.SysProcAttr.CmdLine = fmt.Sprintf(
+			`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command %s; exit($LASTEXITCODE)`,
+			command,
+		)
 
 		return cmd, nil
 
@@ -239,13 +236,13 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 		for i, ca := range cmdArgs {
 			cmdArgs[i] = syscall.EscapeArg(ca)
 		}
-		cmd := exec.CommandContext(ctx, shell, "")
-		cmd.Args = nil
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-			CmdLine:    fmt.Sprintf(`%s /c %s %s`, shell, strings.ReplaceAll(cmdName, " ", "^ "), strings.Join(cmdArgs, " ")),
-		}
-		cmd.Env = env
+		cmd := execCommandContext(ctx, shell, env, "")
+		cmd.SysProcAttr.CmdLine = fmt.Sprintf(
+			`%s /c %s %s`,
+			shell,
+			strings.ReplaceAll(cmdName, " ", "^ "),
+			strings.Join(cmdArgs, " "),
+		)
 
 		return cmd, nil
 
@@ -254,14 +251,12 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 		for i, ca := range cmdArgs {
 			cmdArgs[i] = `'` + ca + `'`
 		}
-		cmd := exec.CommandContext(ctx, "powershell")
-		cmd.Args = nil
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-			CmdLine: fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". '%s' %s; exit($LASTEXITCODE)"`,
-				cmdName, strings.Join(cmdArgs, " ")),
-		}
-		cmd.Env = env
+		cmd := execCommandContext(ctx, "powershell", env)
+		cmd.SysProcAttr.CmdLine = fmt.Sprintf(
+			`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". '%s' %s; exit($LASTEXITCODE)"`,
+			cmdName,
+			strings.Join(cmdArgs, " "),
+		)
 
 		return cmd, nil
 
@@ -274,15 +269,25 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 
 	// nothing else matched, try cmd.exe as last ressort but least replace command name spaces so they work with cmd.exe
 	default:
-		cmd := exec.CommandContext(ctx, shell)
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-			CmdLine:    fmt.Sprintf("%s /c %s", shell, strings.Replace(command, cmdName, syscall.EscapeArg(cmdName), 1)),
-		}
-		cmd.Env = env
+		cmd := execCommandContext(ctx, shell, env)
+		cmd.SysProcAttr.CmdLine = fmt.Sprintf(
+			`%s /c %s`,
+			shell,
+			strings.Replace(command, cmdName, syscall.EscapeArg(cmdName), 1))
 
 		return cmd, nil
 	}
+}
+
+func execCommandContext(ctx context.Context, cmdName string, env []string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, cmdName, args...)
+	cmd.Args = nil
+	cmd.Env = env
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow: true,
+	}
+
+	return cmd
 }
 
 // return default shell command
