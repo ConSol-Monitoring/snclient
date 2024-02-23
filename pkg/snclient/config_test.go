@@ -19,6 +19,13 @@ func TestConfigBasic(t *testing.T) {
 Key1 = Value1
 Key2 = "Value2"
 Key3 = 'Value3'
+test = 'C:\Program Files\snclient\snclient.exe' -V
+test1 = test1 # test
+test2 = test2 ; test
+test3 = "test3" "test3"
+test4 = "a"
+test4 += 'b'
+test4 += c
 ; comment
 # also comment
 	`
@@ -28,9 +35,14 @@ Key3 = 'Value3'
 	require.NoErrorf(t, err, "config parsed")
 
 	expData := ConfigData{
-		"Key1": "Value1",
-		"Key2": "Value2",
-		"Key3": "Value3",
+		"Key1":  "Value1",
+		"Key2":  "Value2",
+		"Key3":  "Value3",
+		"test":  `'C:\Program Files\snclient\snclient.exe' -V`,
+		"test1": `test1 # test`,
+		"test2": `test2 ; test`,
+		"test3": `"test3" "test3"`,
+		"test4": "abc",
 	}
 	assert.Equalf(t, expData, cfg.Section("/test").data, "config parsed")
 }

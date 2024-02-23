@@ -5,7 +5,7 @@ linkTitle: Configuration
 
 ## General
 
-SNClient+ uses the ini style config format.
+SNClient+ uses the ini style config format ([see syntax specification below](#syntax)).
 
 ## File Locations
 
@@ -50,6 +50,41 @@ The configuration uses the ini file format. For example:
     allowed hosts = 127.0.0.1, ::1
 
 The maximum length of a single line in the ini file is limited to 1MB.
+
+### Comments
+
+Lines starting with `#` or `;` are comments and ignored. You can use
+both characters as value.
+
+    [/settings/external scripts]
+    # this is a comment
+    check_echo = echo '# this is not a comment and printed as is.'
+
+### Quotes
+
+Quotes are optional, even for text.
+
+    [/settings/default]
+    tls min version = tls1.2
+    password        = "CHANGEME"
+
+There is no difference between single and double quotes. Macros will
+be interpolated in both variants.
+
+Quotes will be removed from the value if the value starts and ends with them.
+
+    [/settings/external scripts]
+    # will be used without quotes
+    check_remove_quotes = "${script}/test.sh"
+
+    # quotes will not be trimmed here since they don't surround the value:
+    check_keep_quotes = "C:\Program Files\snclient\snclient.exe" -V
+
+    # quotes will also be kept here:
+    check_also_keep = "part 1" something else "part 2"
+
+    # this will throw an error
+    check_wrong = "unclosed quotes
 
 ### Appending Values
 

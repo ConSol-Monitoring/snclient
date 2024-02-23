@@ -337,18 +337,28 @@ func (config *Config) parseString(val string) (string, error) {
 
 	switch {
 	case strings.HasPrefix(val, `"`):
-		if !strings.HasSuffix(val, `"`) {
+		count := strings.Count(val, `"`)
+		switch count {
+		case 1:
 			return "", fmt.Errorf("unclosed quotes")
+		case 2:
+			if strings.HasSuffix(val, `"`) {
+				val = strings.TrimPrefix(val, `"`)
+				val = strings.TrimSuffix(val, `"`)
+			}
 		}
-		val = strings.TrimPrefix(val, `"`)
-		val = strings.TrimSuffix(val, `"`)
 
 	case strings.HasPrefix(val, `'`):
-		if !strings.HasSuffix(val, `'`) {
+		count := strings.Count(val, `'`)
+		switch count {
+		case 1:
 			return "", fmt.Errorf("unclosed quotes")
+		case 2:
+			if strings.HasSuffix(val, `'`) {
+				val = strings.TrimPrefix(val, `'`)
+				val = strings.TrimSuffix(val, `'`)
+			}
 		}
-		val = strings.TrimPrefix(val, `'`)
-		val = strings.TrimSuffix(val, `'`)
 	}
 
 	return val, nil
