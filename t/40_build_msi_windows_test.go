@@ -133,11 +133,12 @@ func TestMSIinstaller(t *testing.T) {
 	})
 
 	// run check with known path which contains spaces
-	for _, num := range []string{"1", "2", "3", "4"} {
+	for _, num := range []string{"1", "2", "3", "4", "5"} {
 		runCmd(t, &cmd{
 			Cmd:  bin,
-			Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_win_snclient_version" + num},
-			Like: []string{`SNClient`, `Build:`},
+			Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_win_snclient_test" + num},
+			Like: []string{`testpattern`},
+			Exit: 3,
 		})
 	}
 

@@ -205,26 +205,35 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	if err != nil {
 		return nil, fmt.Errorf("command parse error: %s", err.Error())
 	}
+
 	args = snc.fixPathHoles(args)
 	cmdName := args[0]
 	cmdArgs := args[1:]
+	shell := shell()
 
 	// add scripts path to PATH env
 	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
 	env := append(os.Environ(), "PATH="+scriptsPath+";"+os.Getenv("PATH"))
 
-	// command does not exist
-	_, err = exec.LookPath(cmdName)
-	if err != nil {
-		return nil, fmt.Errorf("UNKNOWN - Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", err.Error())
-	}
-
-	if isBatchFile(cmdName) {
-		shell := os.Getenv("COMSPEC")
-		if shell == "" {
-			shell = "cmd.exe" // Will be expanded by exec.LookPath in exec.Command
+	switch {
+	// powershell command
+	case strings.HasPrefix(command, "& "):
+		cmd := exec.CommandContext(ctx, "powershell")
+		cmd.Args = nil
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			HideWindow: true,
+			CmdLine:    fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command %s; exit($LASTEXITCODE)`, command),
 		}
-		cmdName = strings.ReplaceAll(cmdName, " ", "^ ")
+		cmd.Env = env
+
+		return cmd, nil
+
+	// command does not exist
+	case !lookupPathExists(cmdName):
+		return nil, fmt.Errorf("UNKNOWN - Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", err.Error())
+
+	// .bat files
+	case isBatchFile(cmdName):
 		for i, ca := range cmdArgs {
 			cmdArgs[i] = syscall.EscapeArg(ca)
 		}
@@ -232,13 +241,14 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 		cmd.Args = nil
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			HideWindow: true,
-			CmdLine:    fmt.Sprintf(`%s /c %s %s`, shell, cmdName, strings.Join(cmdArgs, " ")),
+			CmdLine:    fmt.Sprintf(`%s /c %s %s`, shell, strings.ReplaceAll(cmdName, " ", "^ "), strings.Join(cmdArgs, " ")),
 		}
 		cmd.Env = env
 
 		return cmd, nil
-	}
-	if isPsFile(cmdName) {
+
+	// powershell files
+	case isPsFile(cmdName):
 		for i, ca := range cmdArgs {
 			cmdArgs[i] = `'` + ca + `'`
 		}
@@ -252,26 +262,42 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 		cmd.Env = env
 
 		return cmd, nil
-	}
 
-	if !hasShellCode {
+	// other command but no shell special characters
+	case !hasShellCode:
 		cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
+		cmd.Env = env
+
+		return cmd, nil
+
+	// nothing else matched, try cmd.exe as last ressort but least replace command name spaces so they work with cmd.exe
+	default:
+		cmd := exec.CommandContext(ctx, shell)
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			HideWindow: true,
+			CmdLine:    fmt.Sprintf("%s /c %s", shell, strings.Replace(command, cmdName, syscall.EscapeArg(cmdName), 1)),
 		}
 		cmd.Env = env
 
 		return cmd, nil
 	}
+}
 
-	cmd := exec.CommandContext(ctx, "cmd.exe")
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow: true,
-		CmdLine:    command,
+// return true if given command is found in path
+func lookupPathExists(cmd string) bool {
+	_, err := exec.LookPath(cmd)
+
+	return err != nil
+}
+
+// return default shell command
+func shell() string {
+	shell := os.Getenv("COMSPEC")
+	if shell == "" {
+		shell = "cmd.exe" // Will be expanded by exec.LookPath in exec.Command
 	}
-	cmd.Env = env
 
-	return cmd, nil
+	return shell
 }
 
 func powerShellCmd(ctx context.Context, command string) (cmd *exec.Cmd) {

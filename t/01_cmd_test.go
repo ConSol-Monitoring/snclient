@@ -18,11 +18,11 @@ password = test
 [/settings/external scripts/scripts]
 check_win_not_exist1 = C:\Program Files\test\test.exe
 check_win_not_exist2 = C:\Program Files\te st\test.exe
-check_win_snclient_version = C:\Program Files\snclient\snclient.exe -V
-check_win_snclient_version1 = C:\Program Files\snclient\snclient.exe -V
-check_win_snclient_version2 = 'C:\Program Files\snclient\snclient.exe' -V
-check_win_snclient_version3 = "C:\Program Files\snclient\snclient.exe" -V
-check_win_snclient_version4 = & 'C:\Program Files\snclient\snclient.exe' -V
+check_win_snclient_test1 =    C:\Program Files\snclient\snclient.exe  run check_dummy 3 testpattern
+check_win_snclient_test2 =   'C:\Program Files\snclient\snclient.exe' run check_dummy 3 testpattern
+check_win_snclient_test3 =   "C:\Program Files\snclient\snclient.exe" run check_dummy 3 testpattern
+check_win_snclient_test4 = & 'C:\Program Files\snclient\snclient.exe' run check_dummy 3 testpattern
+check_win_snclient_test5 = & Write-Host "testpattern"; exit 3
 `
 
 func TestCommandFlags(t *testing.T) {
