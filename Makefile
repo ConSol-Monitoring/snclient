@@ -83,32 +83,24 @@ CMDS = $(shell cd ./cmd && ls -1)
 
 tools: | versioncheck vendor go.work
 	$(GO) mod download
-	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }'); do \
-		( cd buildtools && $(GO) install $$DEP ) ; \
-	done
 	$(GO) mod tidy
-	( cd buildtools && $(GO) mod tidy )
-	# pin these dependencies
-	( cd buildtools && $(GO) get github.com/golangci/golangci-lint@latest )
 	$(GO) mod vendor
+	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }' | grep -v pkg/dump); do \
+		( cd buildtools && $(GO) install $$DEP@latest ) ; \
+	done
+	( cd buildtools && $(GO) mod tidy )
 
 updatedeps: versioncheck
 	$(MAKE) clean
 	$(MAKE) tools
 	$(GO) mod download
-	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }' | grep -v pkg/dump); do \
-		( cd buildtools && $(GO) get $$DEP ) ; \
-	done
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
 		( cd ./$$dir && $(GO) mod download ); \
 		( cd ./$$dir && $(GO) get -u ); \
 		( cd ./$$dir && $(GO) get -t -u ); \
 	done
 	$(GO) get -u ./t/
-	( cd buildtools && $(GO) get -u )
 	$(GO) mod download
-	$(GO) get -u
-	$(GO) get -t -u
 	$(MAKE) cleandeps
 
 cleandeps:
