@@ -200,26 +200,31 @@ func processTimeoutKill(process *os.Process) {
 	LogDebug(process.Signal(syscall.SIGKILL))
 }
 
-func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
-	if strings.Contains(command, "LASTEXITCODE") || strings.Contains(command, "lastexitcode") {
-		// This is a hack. Without it, Tokenize not will
-		// properly parse ...check_sometjing.ps1 "para meter"; exit($LASTEXITCODE)...
-		// Result will be [..., `"para meter;"`, ....
-		command = strings.ReplaceAll(command, "; exit", " ; exit")
-		command = strings.ReplaceAll(command, ";exit", " ; exit")
-	}
-	_, cmdList, err := shelltoken.Parse(command)
+func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
+	_, args, hasShellCode, err := shelltoken.Parse(command, true)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing command: %s", err.Error())
+		return nil, fmt.Errorf("command parse error: %s", err.Error())
 	}
-	cmdName := cmdList[0]
-	cmdArgs := cmdList[1:]
+	args = snc.fixPathHoles(args)
+	cmdName := args[0]
+	cmdArgs := args[1:]
+
+	// add scripts path to PATH env
+	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
+	env := append(os.Environ(), "PATH="+scriptsPath+";"+os.Getenv("PATH"))
+
+	// command does not exist
+	_, err = exec.LookPath(cmdName)
+	if err != nil {
+		return nil, fmt.Errorf("UNKNOWN - Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", err.Error())
+	}
+
 	if isBatchFile(cmdName) {
-		cmdName = strings.ReplaceAll(cmdName, "__SNCLIENT_BLANK__", "^ ")
 		shell := os.Getenv("COMSPEC")
 		if shell == "" {
 			shell = "cmd.exe" // Will be expanded by exec.LookPath in exec.Command
 		}
+		cmdName = strings.ReplaceAll(cmdName, " ", "^ ")
 		for i, ca := range cmdArgs {
 			cmdArgs[i] = syscall.EscapeArg(ca)
 		}
@@ -229,6 +234,7 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 			HideWindow: true,
 			CmdLine:    fmt.Sprintf(`%s /c %s %s`, shell, cmdName, strings.Join(cmdArgs, " ")),
 		}
+		cmd.Env = env
 
 		return cmd, nil
 	}
@@ -236,7 +242,6 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 		for i, ca := range cmdArgs {
 			cmdArgs[i] = `'` + ca + `'`
 		}
-		cmdName = strings.ReplaceAll(cmdName, "__SNCLIENT_BLANK__", " ")
 		cmd := exec.CommandContext(ctx, "powershell")
 		cmd.Args = nil
 		cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -244,17 +249,27 @@ func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 			CmdLine: fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". '%s' %s; exit($LASTEXITCODE)"`,
 				cmdName, strings.Join(cmdArgs, " ")),
 		}
+		cmd.Env = env
 
 		return cmd, nil
 	}
-	cmdName = strings.ReplaceAll(cmdName, "__SNCLIENT_BLANK__", " ")
-	for i, ca := range cmdArgs {
-		cmdArgs[i] = strings.ReplaceAll(ca, "__SNCLIENT_BLANK__", " ")
+
+	if !hasShellCode {
+		cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			HideWindow: true,
+		}
+		cmd.Env = env
+
+		return cmd, nil
 	}
-	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
+
+	cmd := exec.CommandContext(ctx, "cmd.exe")
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow: true,
+		CmdLine:    command,
 	}
+	cmd.Env = env
 
 	return cmd, nil
 }
@@ -284,4 +299,38 @@ func isPsFile(path string) bool {
 
 func setCmdUser(_ *exec.Cmd, _ string) error {
 	return fmt.Errorf("droping privileges is not supported on windows")
+}
+
+// fix using paths with spaces in its name, parsed into separate pieces
+// ex.: C:\Program Files\...
+func (snc *Agent) fixPathHoles(cmdAndArgs []string) []string {
+	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
+	for pieceNo := range cmdAndArgs {
+		cmdPath := strings.Join(cmdAndArgs[0:pieceNo+1], " ")
+		realPath, err := exec.LookPath(cmdPath)
+
+		if err == nil {
+			// can be abs., /usr/bin/echo or %scripts%/check_xy
+			// or rel., echo, timeout, anything in $PATH
+			fixed := []string{realPath}
+			fixed = append(fixed, cmdAndArgs[pieceNo+1:]...)
+
+			return fixed
+		}
+
+		if filepath.IsAbs(cmdPath) {
+			continue
+		}
+
+		// try a relative lookup in %scripts%
+		realPath, err = exec.LookPath(filepath.Join(scriptsPath, cmdPath))
+		if err == nil {
+			fixed := []string{realPath}
+			fixed = append(fixed, cmdAndArgs[pieceNo+1:]...)
+
+			return fixed
+		}
+	}
+
+	return cmdAndArgs
 }

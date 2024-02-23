@@ -534,8 +534,7 @@ func readFileWithDeadline(path string, deadline time.Time) ([]byte, time.Time, e
 
 func (m exporterExecConfig) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	scriptsPath, _ := m.mcfg.snc.Config.Section("/paths").GetString("scripts")
-	cmd, err := MakeCmd(ctx, m.Command, scriptsPath)
+	cmd, err := m.mcfg.snc.MakeCmd(ctx, m.Command)
 	if err != nil {
 		http.Error(res, fmt.Sprintf("exec module error: %s\n", err.Error()), http.StatusInternalServerError)
 

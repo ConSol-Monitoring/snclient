@@ -1117,8 +1117,7 @@ func catchOutputErrors(command string, stderr *string, exitCode *int64) {
 
 // runs check command (makes sure exit code is from 0-3)
 func (snc *Agent) runExternalCheckString(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
-	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
-	cmd, err := MakeCmd(ctx, command, scriptsPath)
+	cmd, err := snc.MakeCmd(ctx, command)
 	var procState *os.ProcessState
 	if err == nil {
 		stdout, stderr, exitCode, procState, err = snc.runExternalCommand(ctx, cmd, timeout)
@@ -1130,8 +1129,7 @@ func (snc *Agent) runExternalCheckString(ctx context.Context, command string, ti
 
 // runs command and does not touch exit code and such
 func (snc *Agent) execCommand(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
-	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
-	cmd, err := MakeCmd(ctx, command, scriptsPath)
+	cmd, err := snc.MakeCmd(ctx, command)
 	if err == nil {
 		stdout, stderr, exitCode, _, err = snc.runExternalCommand(ctx, cmd, timeout)
 	}
@@ -1296,46 +1294,16 @@ func (snc *Agent) setDefaultPaths(config *Config, configFiles []string) *ConfigS
 // It first tries to find relative filenames in the PATH or in ${scripts}
 // If the first try did not succeed then it assumes we have a path with spaces
 // and appends argument after argument until a valid command path is found.
-func MakeCmd(ctx context.Context, command, scriptsPath string) (*exec.Cmd, error) {
-	cmdAndArgs := strings.Fields(command)
-	var cmdPath string
-	var cmdPathReplacement string
-	for pieceNo := 0; pieceNo < len(cmdAndArgs); pieceNo++ {
-		cmdPath = strings.Join(cmdAndArgs[0:pieceNo+1], " ")
-		realPath, err := exec.LookPath(cmdPath)
-
-		if err == nil {
-			// can be abs., /usr/bin/echo or %scripts%/check_xy
-			// or rel., echo, timeout, anything in $PATH
-			cmdPathReplacement = realPath
-
-			break
-		}
-
-		if filepath.IsAbs(cmdPath) {
-			continue
-		}
-
-		// try a relative lookup in %scripts%
-		realPath, err = exec.LookPath(filepath.Join(scriptsPath, cmdPath))
-		if err == nil {
-			cmdPathReplacement = realPath
-
-			break
-		}
-	}
-	if cmdPathReplacement != "" {
-		command = strings.Replace(command, cmdPath, strings.ReplaceAll(cmdPathReplacement, " ", "__SNCLIENT_BLANK__"), 1)
-	}
-
-	cmd, err := makeCmd(ctx, command)
+func (snc *Agent) MakeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
+	// wrap the platform specific command builder
+	cmd, err := snc.makeCmd(ctx, command)
 	switch {
 	case err != nil:
 		return nil, err
 	case cmd.Args != nil:
 		log.Tracef("command object:\n path: %s\n args: %v\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.SysProcAttr)
 	default:
-		log.Tracef("command object:\n path: %s\n args: -\n SysProcAttr: %v\n", cmd.Path, cmd.SysProcAttr)
+		log.Tracef("command object:\n path: %s\n args: (none)\n SysProcAttr: %v\n", cmd.Path, cmd.SysProcAttr)
 	}
 
 	return cmd, err

@@ -19,6 +19,10 @@ password = test
 check_win_not_exist1 = C:\Program Files\test\test.exe
 check_win_not_exist2 = C:\Program Files\te st\test.exe
 check_win_snclient_version = C:\Program Files\snclient\snclient.exe -V
+check_win_snclient_version1 = C:\Program Files\snclient\snclient.exe -V
+check_win_snclient_version2 = 'C:\Program Files\snclient\snclient.exe' -V
+check_win_snclient_version3 = "C:\Program Files\snclient\snclient.exe" -V
+check_win_snclient_version4 = & 'C:\Program Files\snclient\snclient.exe' -V
 `
 
 func TestCommandFlags(t *testing.T) {

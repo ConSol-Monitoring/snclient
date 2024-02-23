@@ -11,7 +11,6 @@ import (
 	"os/user"
 	"runtime"
 	"runtime/pprof"
-	"strings"
 	"syscall"
 	"time"
 
@@ -111,15 +110,17 @@ func processTimeoutKill(process *os.Process) {
 	}(process.Pid)
 }
 
-func makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
-	command = strings.ReplaceAll(command, "__SNCLIENT_BLANK__", "\\ ")
-	cmdList := []string{"/bin/sh", "-c", command}
-	cmd := exec.CommandContext(ctx, cmdList[0], cmdList[1:]...) // #nosec G204
+func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", command) // #nosec G204
 	// prevent child from receiving signals meant for the agent only
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 		Pgid:    0,
 	}
+
+	// add scripts path to PATH env
+	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
+	cmd.Env = append(os.Environ(), "PATH="+scriptsPath+":"+os.Getenv("PATH"))
 
 	return cmd, nil
 }

@@ -37,6 +37,10 @@ password = ` + localDaemonAdminPassword + `
 check_echo = echo '%ARG1%'
 check_echo_win = cmd /c echo '%ARG1%'
 check_win_snclient_version = C:\Program Files\snclient\snclient.exe -V
+check_win_snclient_version1 = C:\Program Files\snclient\snclient.exe -V
+check_win_snclient_version2 = 'C:\Program Files\snclient\snclient.exe' -V
+check_win_snclient_version3 = "C:\Program Files\snclient\snclient.exe" -V
+check_win_snclient_version4 = & 'C:\Program Files\snclient\snclient.exe' -V
 `
 )
 

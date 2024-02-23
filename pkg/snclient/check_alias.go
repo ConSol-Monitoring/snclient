@@ -48,7 +48,7 @@ func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 			}
 
 			replacedStr := ReplaceRuntimeMacros(strings.Join(a.args, " "), macros)
-			_, cmdArgs, err = shelltoken.Parse(replacedStr)
+			_, cmdArgs, _, err = shelltoken.Parse(replacedStr, false)
 			if err != nil {
 				return nil, fmt.Errorf("error parsing command: %s", err.Error())
 			}
