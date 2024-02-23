@@ -656,12 +656,8 @@ DOC_COMMANDS=\
 docs: build
 	set -e; \
 	for CHK in $(DOC_COMMANDS); do \
-		if grep "implemented:" pkg/snclient/$$CHK*.go | grep -iE '$(GOOS)|ALL' >/dev/null; then \
-			echo "updating docs/checks/commands/$$CHK.md"; \
-			./snclient -logfile stderr run $$CHK help=md > docs/checks/commands/$$CHK.md || : ; \
-		else \
-			echo "SKIPPED docs/checks/commands/$$CHK.md"; \
-		fi; \
+		echo "updating docs/checks/commands/$$CHK.md"; \
+		./snclient -logfile stderr run $$CHK help=md > docs/checks/commands/$$CHK.md || : ; \
 	done
 	if [ $(GOOS) = "linux" ]; then \
 		./snclient -logfile stderr run check_service help=md > docs/checks/commands/check_service_linux.md || : ; \
