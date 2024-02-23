@@ -6,6 +6,26 @@ title: eventlog
 
 Checks the windows eventlog entries.
 
+Basically, this check wraps this wmi query:
+SELECT
+	ComputerName,
+	LogFile,
+	Category,
+	EventCode,
+	EventIdentifier,
+	EventType,
+	Message,
+	SourceName,
+	Type,
+	TimeWritten,
+	TimeGenerated
+FROM
+	Win32_NTLogEvent
+
+See https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlogprov/win32-ntlogevent for
+a description of the provided fields.
+
+
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Attributes](#attributes)
@@ -41,16 +61,16 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                  |
-| ------------- | ---------------------------------------------- |
-| filter        | level in ('warning', 'error', 'critical')      |
-| warning       | level = 'warning' or problem_count > 0         |
-| critical      | level in ('error', 'critical')                 |
-| empty-state   | 0 (OK)                                         |
+| Argument      | Default Value                                   |
+| ------------- | ----------------------------------------------- |
+| filter        | level in ('warning', 'error', 'critical')       |
+| warning       | level = 'warning' or problem_count > 0          |
+| critical      | level in ('error', 'critical')                  |
+| empty-state   | 0 (OK)                                          |
 | empty-syntax  | %(status) - No entries found                    |
 | top-syntax    | %(status) - %(count) message(s) %(problem_list) |
 | ok-syntax     | %(status) - Event log seems fine                |
-| detail-syntax | %(file) %(source) (%(message))                 |
+| detail-syntax | %(file) %(source) (%(message))                  |
 
 ## Check Specific Arguments
 
@@ -68,16 +88,15 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute | Description                          |
-| --------- | ------------------------------------ |
-| computer  | Which computer generated the message |
-| file      | The logfile name                     |
-| log       | Alias for file                       |
-| id        | Eventlog id                          |
-| keyword   | Keyword(s) associated with the event |
-| level     | Severity level (lowercase)           |
-| message   | The message as a string              |
-| source    | The source system                    |
-| provider  | Alias for source                     |
-| task      | The type of event                    |
-| written   | Time of the message being written    |
+| Attribute       | Description                                         |
+| --------------- | --------------------------------------------------- |
+| computer        | Which computer generated the message (ComputerName) |
+| file            | The logfile name                                    |
+| log             | Alias for file                                      |
+| id              | Eventlog id (EventCode)                             |
+| eventidentifier | Event identifier (EventIdentifier)                  |
+| level           | Severity level (lowercase Type)                     |
+| message         | The message as a string                             |
+| source          | The source system (SourceName)                      |
+| provider        | Alias for source                                    |
+| written         | Time of the message being written( TimeWritten)     |

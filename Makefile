@@ -632,6 +632,7 @@ DOC_COMMANDS=\
 	check_cpu_utilization \
 	check_dummy \
 	check_drivesize \
+	check_eventlog \
 	check_files \
 	check_index \
 	check_kernel_stats \
