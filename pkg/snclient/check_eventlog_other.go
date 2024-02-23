@@ -8,6 +8,6 @@ import (
 	"runtime"
 )
 
-func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	return nil, fmt.Errorf("not implemented on platform %s",runtime.GOOS)
+func (l *CheckEventlog) Check(_ context.Context, _ *Agent, _ *CheckData, _ []Argument) (*CheckResult, error) {
+	return nil, fmt.Errorf("not implemented on platform %s", runtime.GOOS)
 }
