@@ -215,6 +215,8 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
 	env := append(os.Environ(), "PATH="+scriptsPath+";"+os.Getenv("PATH"))
 
+	_, lookupErr := exec.LookPath(cmdName)
+
 	switch {
 	// powershell command
 	case strings.HasPrefix(command, "& "):
@@ -229,8 +231,8 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 		return cmd, nil
 
 	// command does not exist
-	case !lookupPathExists(cmdName):
-		return nil, fmt.Errorf("UNKNOWN - Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", err.Error())
+	case lookupErr != nil:
+		return nil, fmt.Errorf("UNKNOWN - Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", lookupErr.Error())
 
 	// .bat files
 	case isBatchFile(cmdName):
@@ -281,13 +283,6 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 
 		return cmd, nil
 	}
-}
-
-// return true if given command is found in path
-func lookupPathExists(cmd string) bool {
-	_, err := exec.LookPath(cmd)
-
-	return err != nil
 }
 
 // return default shell command
