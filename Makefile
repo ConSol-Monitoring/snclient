@@ -109,7 +109,6 @@ cleandeps:
 	done
 	$(GO) mod tidy
 	( cd buildtools && $(GO) mod tidy )
-	rm -f pkg/*/go.sum
 
 
 vendor: go.work
