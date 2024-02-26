@@ -435,7 +435,7 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	for i := range availVolumes {
 		vol := availVolumes[i]
 		if vol["drive"] != "" && strings.HasPrefix(testDrive+"\\", vol["drive"]) {
-			if match == nil || len((*match)[drive]) < len(vol[drive]) {
+			if match == nil || len((*match)["drive"]) < len(vol["drive"]) {
 				match = &vol
 			}
 		}

@@ -6,6 +6,7 @@ next:
          - check_files: fix skipping folder to early
          - check_eventlog: fix using event id
          - fix wrapped scripts not found
+         - fix check_drivesize using random volume for sub path
 
 0.18     Wed Feb 14 15:36:38 CET 2024
          - fix crash on windows when parsing empty args (#88)
