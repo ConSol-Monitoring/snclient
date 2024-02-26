@@ -77,8 +77,18 @@ func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 	return Resume
 }
 
-func (snc *Agent) finishUpdate(binPath, _ string) {
-	log.Tracef("[update] reexec into new file %s %v", binPath, os.Args[1:])
+func (snc *Agent) finishUpdate(binPath, mode string) {
+	if mode == "update" {
+		cmd := exec.Command(binPath, "update", "apply")
+		cmd.Env = os.Environ()
+		cmd.Start()
+
+		return
+	}
+	if mode != "daemon" && mode != "server" {
+		return
+	}
+	log.Debugf("[update] reexec into new file %s %v", binPath, os.Args[1:])
 	err := syscall.Exec(binPath, os.Args, os.Environ()) //nolint:gosec // false positive? There should be no tainted input here
 	if err != nil {
 		log.Errorf("restart failed: %s", err.Error())

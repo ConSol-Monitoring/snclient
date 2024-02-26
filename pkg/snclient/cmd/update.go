@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"pkg/convert"
 	"pkg/snclient"
@@ -38,7 +39,8 @@ snclient update --downgrade=0.13
 			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
 			executable := snclient.GlobalMacros["exe-full"]
-			if strings.Contains(executable, ".update") {
+			if strings.Contains(executable, ".update") || (len(args) > 0 && args[0] == "apply") {
+				time.Sleep(500 * time.Millisecond)
 				snc.CheckUpdateBinary("update")
 				snc.CleanExit(0)
 			}

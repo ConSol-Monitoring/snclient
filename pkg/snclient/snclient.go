@@ -827,7 +827,7 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 	binPath := strings.TrimSuffix(executable, GlobalMacros["file-ext"])
 	binPath = strings.TrimSuffix(binPath, ".update")
 	binPath += GlobalMacros["file-ext"]
-	log.Tracef("running as %s, moving updated file to %s", executable, binPath)
+	log.Debugf("started as %s, moving updated file to %s", executable, binPath)
 
 	// create a copy of our update file which will be moved later
 	tmpPath := binPath + ".tmp"
@@ -852,7 +852,7 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 	// move the file in place
 	err = os.Rename(tmpPath, binPath)
 	if err != nil {
-		log.Errorf("move: %s", err.Error())
+		log.Errorf("move update failed: %s", err.Error())
 
 		return
 	}

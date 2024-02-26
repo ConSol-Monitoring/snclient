@@ -731,12 +731,16 @@ func (u *UpdateHandler) ApplyRestart(bin string) error {
 }
 
 func (u *UpdateHandler) Apply(bin string) error {
-	log.Tracef("[update] start updated file %s update", bin)
-	cmd := exec.Cmd{
-		Path: bin,
-		Args: []string{"update"},
-		Env:  os.Environ(),
+	cmd := exec.Command(bin, "update")
+	cmd.Env = os.Environ()
+
+	if IsInteractive() || u.snc.flags.Mode == ModeOneShot {
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Args = append(cmd.Args, "--logfile=stderr", "apply")
 	}
+	log.Tracef("[update] start updated file %s %s", cmd.Path, strings.Join(cmd.Args[1:], " "))
 	err := cmd.Start()
 	if err != nil {
 		return fmt.Errorf("starting updater failed: %s", err.Error())

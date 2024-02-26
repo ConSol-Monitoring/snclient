@@ -120,7 +120,14 @@ func mainSignalHandler(sig os.Signal, _ *Agent) MainStateType {
 	return Resume
 }
 
-func (snc *Agent) finishUpdate(_, mode string) {
+func (snc *Agent) finishUpdate(binPath, mode string) {
+	if mode == "update" {
+		cmd := exec.Command(binPath, "update", "apply")
+		cmd.Env = os.Environ()
+		cmd.Start()
+
+		return
+	}
 	if mode != "winservice" {
 		return
 	}
