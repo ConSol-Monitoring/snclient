@@ -180,7 +180,10 @@ func (config *Config) ReadINI(iniPath string) error {
 	return nil
 }
 
+// ParseINI reads ini style configuration and updates config object.
+// it returns the first error found but still reads the hole file
 func (config *Config) ParseINI(file io.Reader, iniPath string) error {
+	parseErrors := []error{}
 	var currentSection *ConfigSection
 	lineNr := 0
 
@@ -223,13 +226,17 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 		}
 
 		if currentSection == nil {
-			return fmt.Errorf("parse error in %s:%d: found key=value pair outside of ini block", iniPath, lineNr)
+			parseErrors = append(parseErrors, fmt.Errorf("parse error in %s:%d: found key=value pair outside of ini block", iniPath, lineNr))
+
+			continue
 		}
 
 		// parse key and value
 		val := strings.SplitN(line, "=", 2)
 		if len(val) < 2 {
-			return fmt.Errorf("parse error in %s:%d: found key without '='", iniPath, lineNr)
+			parseErrors = append(parseErrors, fmt.Errorf("parse error in %s:%d: found key without '='", iniPath, lineNr))
+
+			continue
 		}
 		val[0] = strings.TrimSpace(val[0])
 		val[1] = strings.TrimSpace(val[1])
@@ -247,7 +254,9 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 
 		value, err := config.parseString(val[1])
 		if err != nil {
-			return fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, err.Error())
+			parseErrors = append(parseErrors, fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, err.Error()))
+
+			continue
 		}
 
 		if useAppend {
@@ -267,7 +276,9 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 		if config.recursive && currentSection.name == "/includes" {
 			err := config.parseInclude(value, iniPath)
 			if err != nil {
-				return fmt.Errorf("%s (included in %s:%d)", err.Error(), iniPath, lineNr)
+				parseErrors = append(parseErrors, fmt.Errorf("%s (included in %s:%d)", err.Error(), iniPath, lineNr))
+
+				continue
 			}
 		}
 	}
@@ -277,6 +288,10 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 			currentSection = config.Section("")
 		}
 		currentSection.comments["_END"] = currentComments
+	}
+
+	if len(parseErrors) > 0 {
+		return parseErrors[0]
 	}
 
 	return nil

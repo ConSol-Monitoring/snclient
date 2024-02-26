@@ -209,6 +209,10 @@ func LogDebug(err error) {
 }
 
 func LogStderrf(format string, args ...interface{}) {
+	if !IsInteractive() && LogFileHandle != nil {
+		// log into standard logfile as well, otherwise we would miss daemon startup errors
+		log.Errorf(format, args...)
+	}
 	log.SetOutput(os.Stderr)
 	logErr := log.Output(factorlog.ERROR, 2, fmt.Sprintf(format, args...))
 	if logErr != nil {

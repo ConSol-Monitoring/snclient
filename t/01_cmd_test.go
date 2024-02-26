@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	snclientutils "pkg/utils"
+
+	"github.com/stretchr/testify/require"
 )
 
 var localINI = `
@@ -73,8 +73,9 @@ func TestCommandUpdate(t *testing.T) {
 
 	writeFile(t, `snclient.ini`, localINI)
 
-	os.Mkdir("tmpupdates", 0o700)
-	err := snclientutils.CopyFile(bin, "./tmpupdates/snclient")
+	err := os.Mkdir("tmpupdates", 0o700)
+	require.NoError(t, err)
+	err = snclientutils.CopyFile(bin, "./tmpupdates/snclient")
 	require.NoError(t, err)
 
 	runCmd(t, &cmd{

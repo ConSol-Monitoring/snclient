@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient+ agent.
 
 next:
+         - write startup errors to default logfile
          - add check_os_updates
          - check_files: fix skipping folder to early
          - check_eventlog: fix using event id

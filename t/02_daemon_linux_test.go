@@ -12,7 +12,7 @@ func TestDaemonRequestsLinux(t *testing.T) {
 	bin := getBinary()
 	require.FileExistsf(t, bin, "snclient binary must exist")
 
-	writeFile(t, `snclient.ini`, localDaemonINI)
+	writeFile(t, `./snclient.ini`, localDaemonINI)
 
 	startBackgroundDaemon(t)
 

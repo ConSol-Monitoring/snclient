@@ -124,7 +124,7 @@ func (snc *Agent) finishUpdate(binPath, mode string) {
 	if mode == "update" {
 		cmd := exec.Command(binPath, "update", "apply")
 		cmd.Env = os.Environ()
-		cmd.Start()
+		_ = cmd.Start()
 
 		return
 	}

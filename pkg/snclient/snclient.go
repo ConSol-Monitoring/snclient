@@ -180,6 +180,10 @@ func NewAgent(flags *AgentFlags) *Agent {
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
 	initSet, err := snc.Init()
+	if initSet != nil {
+		// create logger early, so start up errors can be added to the default log as well
+		snc.createLogger(initSet.config)
+	}
 	if err != nil {
 		LogStderrf("ERROR: %s", err.Error())
 		snc.CleanExit(ExitCodeError)
@@ -187,7 +191,6 @@ func NewAgent(flags *AgentFlags) *Agent {
 	snc.initSet = initSet
 	snc.Tasks = initSet.tasks
 	snc.Config = initSet.config
-	snc.createLogger(initSet.config)
 
 	snc.osSignalChannel = make(chan os.Signal, 1)
 
@@ -400,7 +403,7 @@ func (snc *Agent) Init() (*AgentRunSet, error) {
 
 	initSet, err := snc.readConfiguration(files)
 	if err != nil {
-		return nil, err
+		return initSet, err
 	}
 
 	return initSet, nil
@@ -430,12 +433,17 @@ func getGlobalMacros() map[string]string {
 	return macros
 }
 
-func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
+func (snc *Agent) readConfiguration(files []string) (initSet *AgentRunSet, err error) {
 	config := NewConfig(true)
+	initSet = &AgentRunSet{
+		config: config,
+		files:  files,
+	}
+	var parseError error
 	for _, path := range files {
-		err := config.ReadINI(path)
-		if err != nil {
-			return nil, fmt.Errorf("reading settings failed: %s", err.Error())
+		parseError = config.ReadINI(path)
+		if parseError != nil {
+			break
 		}
 	}
 
@@ -459,8 +467,8 @@ func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
 	}
 
 	// shared path must exist
-	if err := utils.IsFolder(pathSection.data["shared-path"]); err != nil {
-		return nil, fmt.Errorf("shared-path %s", err.Error())
+	if err = utils.IsFolder(pathSection.data["shared-path"]); err != nil {
+		return initSet, fmt.Errorf("shared-path %s", err.Error())
 	}
 
 	// replace other sections
@@ -472,29 +480,31 @@ func (snc *Agent) readConfiguration(files []string) (*AgentRunSet, error) {
 		log.Tracef("conf macro: %s -> %s", key, val)
 	}
 
-	tasks, err := snc.initModules("tasks", AvailableTasks, config)
-	if err != nil {
-		return nil, fmt.Errorf("task initialization failed: %s", err.Error())
+	if parseError != nil {
+		return initSet, fmt.Errorf("reading settings failed: %s", parseError.Error())
+	}
+
+	tasks, err2 := snc.initModules("tasks", AvailableTasks, config)
+	initSet.tasks = tasks
+	if err2 != nil {
+		return initSet, fmt.Errorf("task initialization failed: %s", err2.Error())
 	}
 
 	listen := NewModuleSet("listener")
+	initSet.listeners = listen
 	if snc.flags.Mode == ModeServer {
 		listen, err = snc.initModules("listener", AvailableListeners, config)
 		if err != nil {
-			return nil, fmt.Errorf("listener initialization failed: %s", err.Error())
+			return initSet, fmt.Errorf("listener initialization failed: %s", err.Error())
 		}
 
 		if len(listen.modules) == 0 {
 			log.Warnf("no listener enabled")
 		}
+		initSet.listeners = listen
 	}
 
-	return &AgentRunSet{
-		config:    config,
-		listeners: listen,
-		tasks:     tasks,
-		files:     files,
-	}, nil
+	return initSet, nil
 }
 
 func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Config) (*ModuleSet, error) {
