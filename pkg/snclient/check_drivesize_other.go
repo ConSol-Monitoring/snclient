@@ -78,10 +78,10 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 
 func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string) (err error) {
 	// make sure path exists
-	if err := utils.IsFolder(drive); err != nil {
+	if err = utils.IsFolder(drive); err != nil {
 		log.Debugf("%s: %s", drive, err.Error())
 
-		return fmt.Errorf("path %s does not exist", drive)
+		return fmt.Errorf("failed to find disk partition")
 	}
 
 	// try to find closes matching mount
@@ -133,7 +133,7 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 
 	usage, err := disk.UsageWithContext(timeoutContext, drive["drive_or_id"])
 	if err != nil {
-		drive["_error"] = fmt.Sprintf("Failed to find disk partition %s: %s", drive["drive_or_id"], err.Error())
+		drive["_error"] = fmt.Sprintf("failed to find disk partition %s: %s", drive["drive_or_id"], err.Error())
 		usage = &disk.UsageStat{}
 	} else {
 		drive["mounted"] = "1"
