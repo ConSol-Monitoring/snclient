@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"runtime"
 	"testing"
 
 	snclientutils "pkg/utils"
@@ -75,7 +76,12 @@ func TestCommandUpdate(t *testing.T) {
 
 	err := os.Mkdir("tmpupdates", 0o700)
 	require.NoError(t, err)
-	err = snclientutils.CopyFile(bin, "./tmpupdates/snclient")
+
+	suffix := ""
+	if runtime.GOOS == "windows" {
+		suffix = ".exe"
+	}
+	err = snclientutils.CopyFile(bin, "./tmpupdates/snclient"+suffix)
 	require.NoError(t, err)
 
 	runCmd(t, &cmd{
