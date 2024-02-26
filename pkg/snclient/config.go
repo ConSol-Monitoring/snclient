@@ -49,6 +49,7 @@ var DefaultConfig = map[string]map[string]string{
 			`If (-Not (Test-Path "${scripts}\%SCRIPT%" ) ) ` +
 			`{ Write-Host "UNKNOWN: Script ${scripts}\%SCRIPT% not found." ; exit(3) }; ` +
 			`${scripts}\%SCRIPT% $ARGS$; exit($lastexitcode) | powershell.exe -nologo -noprofile -command -`,
+		"vbs": `cscript.exe //T:30 //NoLogo ${script root}\\lib\\wrapper.vbs %SCRIPT% %ARGS%`,
 	},
 }
 

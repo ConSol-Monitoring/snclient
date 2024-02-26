@@ -1295,6 +1295,13 @@ func (snc *Agent) setDefaultPaths(config *Config, configFiles []string) *ConfigS
 		pathSection.Set("certificate-path", pathSection.data["shared-path"])
 	}
 
+	// add script root
+	scriptsSection := config.Section("/settings/external scripts")
+	scriptRoot, ok := scriptsSection.GetString("script root")
+	if ok {
+		pathSection.Set("script root", scriptRoot)
+	}
+
 	return pathSection
 }
 
