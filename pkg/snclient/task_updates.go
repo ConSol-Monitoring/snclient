@@ -197,7 +197,7 @@ func (u *UpdateHandler) mainLoop() {
 			return
 		case <-ticker.C:
 			ticker.Reset(interval)
-			_, err := u.CheckUpdates(false, true, u.automaticRestart, u.preRelease, "", u.channel)
+			_, err := u.CheckUpdates(false, true, u.automaticRestart, u.preRelease, "", u.channel, false)
 			if err != nil {
 				log.Errorf("[updates] checking for updates failed: %s", err.Error())
 			}
@@ -207,7 +207,7 @@ func (u *UpdateHandler) mainLoop() {
 	}
 }
 
-func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool, downgrade, channel string) (version string, err error) {
+func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool, downgrade, channel string, forceUpdate bool) (version string, err error) {
 	if !force {
 		if !u.updatePreChecks() {
 			return "", nil
@@ -251,7 +251,7 @@ func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool,
 			return "", nil
 		}
 
-		best = u.chooseBestUpdate(available, downgrade)
+		best = u.chooseBestUpdate(available, downgrade, forceUpdate)
 		if best == nil {
 			return "", nil
 		}
@@ -298,7 +298,7 @@ func (u *UpdateHandler) finishUpdateCheck(best *updatesAvailable, restarts bool)
 	return newVersion, nil
 }
 
-func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade string) (best *updatesAvailable) {
+func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade string, forceUpdate bool) (best *updatesAvailable) {
 	down := float64(-1)
 	if downgrade != "" {
 		down = utils.ParseVersion(downgrade)
@@ -329,6 +329,9 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 
 	curVersion := utils.ParseVersion(u.snc.Version())
 	if bestVersion <= curVersion {
+		if forceUpdate {
+			return best
+		}
 		return nil
 	}
 

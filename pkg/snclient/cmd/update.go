@@ -10,6 +10,7 @@ import (
 	"pkg/snclient"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 func init() {
@@ -39,7 +40,7 @@ snclient update --downgrade=0.13
 			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
 			executable := snclient.GlobalMacros["exe-full"]
-			if strings.Contains(executable, ".update") || (len(args) > 0 && args[0] == "apply") {
+			if strings.Contains(executable, ".update") || slices.Contains(args, "apply") {
 				time.Sleep(500 * time.Millisecond)
 				snc.CheckUpdateBinary("update")
 				snc.CleanExit(0)
@@ -56,6 +57,7 @@ snclient update --downgrade=0.13
 				channel = strings.TrimPrefix(channel, ",")
 				checkOnly := convert.Bool(cmd.Flag("check").Value.String())
 				preRelease := convert.Bool(cmd.Flag("prerelease").Value.String())
+				force := convert.Bool(cmd.Flag("force").Value.String())
 				version, err := mod.CheckUpdates(
 					true,
 					!checkOnly,
@@ -63,6 +65,7 @@ snclient update --downgrade=0.13
 					preRelease,
 					cmd.Flag("downgrade").Value.String(),
 					channel,
+					force,
 				)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "update check failed: %s\n", err.Error())
@@ -86,5 +89,6 @@ snclient update --downgrade=0.13
 	updateCmd.PersistentFlags().Bool("check", false, "Check only, skip download.")
 	updateCmd.PersistentFlags().BoolP("prerelease", "p", false, "Consider pre releases as well.")
 	updateCmd.PersistentFlags().String("downgrade", "", "Force downgrade to given version.")
+	updateCmd.PersistentFlags().BoolP("force", "f", false, "Force update.")
 	rootCmd.AddCommand(updateCmd)
 }

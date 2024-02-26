@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	snclientutils "pkg/utils"
 )
 
 var localINI = `
@@ -15,14 +17,8 @@ CheckExternalScripts = enabled
 [/settings/default]
 password = test
 
-[/settings/external scripts/scripts]
-check_win_not_exist1 = C:\Program Files\test\test.exe
-check_win_not_exist2 = C:\Program Files\te st\test.exe
-check_win_snclient_test1 =    C:\Program Files\snclient\snclient.exe  run check_dummy 3 testpattern
-check_win_snclient_test2 =   'C:\Program Files\snclient\snclient.exe' run check_dummy 3 testpattern
-check_win_snclient_test3 =   "C:\Program Files\snclient\snclient.exe" run check_dummy 3 testpattern
-check_win_snclient_test4 = & 'C:\Program Files\snclient\snclient.exe' run check_dummy 3 testpattern
-check_win_snclient_test5 = & Write-Host "testpattern"; exit 3
+[/settings/updates/channel]
+local = file://./tmpupdates/snclient${file-ext}
 `
 
 func TestCommandFlags(t *testing.T) {
@@ -67,6 +63,27 @@ func TestCommandFlags(t *testing.T) {
 		Args: []string{"inventory", "uptime"},
 		Like: []string{`uptime`, `inventory`},
 	})
+
+	os.Remove("snclient.ini")
+}
+
+func TestCommandUpdate(t *testing.T) {
+	bin := getBinary()
+	require.FileExistsf(t, bin, "snclient binary must exist")
+
+	writeFile(t, `snclient.ini`, localINI)
+
+	os.Mkdir("tmpupdates", 0o700)
+	err := snclientutils.CopyFile(bin, "./tmpupdates/snclient")
+	require.NoError(t, err)
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"update", "local", "--force"},
+		Like: []string{`successfully downloaded`, `applied successfully`},
+	})
+
+	defer os.RemoveAll("./tmpupdates")
 
 	os.Remove("snclient.ini")
 }
