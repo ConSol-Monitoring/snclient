@@ -396,6 +396,13 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 }
 
 func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string) (err error) {
+	// make sure path exists
+	if err := utils.IsFolder(drive); err != nil {
+		log.Debugf("%s: %s", drive, err.Error())
+
+		return fmt.Errorf("path %s does not exist", drive)
+	}
+
 	// match a drive, ex: "c" or "c:"
 	switch len(drive) {
 	case 1, 2:

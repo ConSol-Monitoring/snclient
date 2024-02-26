@@ -538,6 +538,9 @@ func IsFolder(path string) error {
 	if os.IsNotExist(err) {
 		return fmt.Errorf("%s does not exist: %s", path, err.Error())
 	}
+	if err != nil {
+		return fmt.Errorf("%s does not exist: %s", path, err.Error())
+	}
 	if !stat.IsDir() {
 		return fmt.Errorf("%s is not a directory", path)
 	}
