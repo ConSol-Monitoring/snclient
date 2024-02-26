@@ -332,6 +332,7 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 		if forceUpdate {
 			return best
 		}
+
 		return nil
 	}
 
