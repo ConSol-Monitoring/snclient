@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -349,6 +350,7 @@ func (u *UpdateHandler) fetchAvailableUpdates(preRelease bool, channel string) (
 		url, ok := channelConfSection.GetString(channel)
 		if !ok {
 			log.Warnf("no update channel '%s', check the %s config section.", channel, channelConfSection.name)
+			log.Infof("available channel: %s", strings.Join(u.getAvailableChannel(), ", "))
 
 			continue
 		}
@@ -729,7 +731,7 @@ func (u *UpdateHandler) ApplyRestart(bin string) error {
 }
 
 func (u *UpdateHandler) Apply(bin string) error {
-	log.Tracef("[update] start updated file %s", bin)
+	log.Tracef("[update] start updated file %s update", bin)
 	cmd := exec.Cmd{
 		Path: bin,
 		Args: []string{"update"},
@@ -1087,4 +1089,12 @@ func (u *UpdateHandler) isUsableGithubAsset(name string) bool {
 	}
 
 	return false
+}
+
+func (u *UpdateHandler) getAvailableChannel() []string {
+	channelConfSection := u.snc.Config.Section("/settings/updates/channel")
+	available := channelConfSection.Keys()
+	sort.Strings(available)
+
+	return available
 }

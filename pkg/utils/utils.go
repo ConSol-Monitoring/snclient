@@ -20,6 +20,7 @@ import (
 	"unicode"
 
 	"github.com/kdar/factorlog"
+	"golang.org/x/exp/maps"
 )
 
 var reMountPassword = regexp.MustCompile(`//.*:.*@`)
@@ -508,6 +509,14 @@ func SortRanked(list []string, ranks map[string]int) []string {
 	}
 
 	return sorted
+}
+
+// returns string map keys in sorted order
+func SortedKeys[V interface{}](m map[string]V) []string {
+	keys := maps.Keys(m)
+	sort.Strings(keys)
+
+	return keys
 }
 
 // List2String converts a list of strings into a single quoted comma separated list: 'a', 'b', 'c'...

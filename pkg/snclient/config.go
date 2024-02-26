@@ -319,7 +319,9 @@ func (config *Config) Section(name string) *ConfigSection {
 	return section
 }
 
-// SectionsByPrefix returns section by name or empty section.
+// SectionsByPrefix returns all sections with given prefix as map.
+// ex.: SectionsByPrefix("/settings/updates/channel/").
+// appending trailing slash will prevent matching the parent section.
 func (config *Config) SectionsByPrefix(prefix string) map[string]*ConfigSection {
 	list := make(map[string]*ConfigSection, 0)
 	for name := range config.sections {
