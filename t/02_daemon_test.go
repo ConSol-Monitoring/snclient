@@ -39,18 +39,31 @@ check_echo_win = cmd /c echo '%ARG1%'
 `
 )
 
-func TestDaemonRequests(t *testing.T) {
-	bin := getBinary()
+func daemonInit(t *testing.T) (bin, baseURL string, baseArgs []string, cleanUp func()) {
+	t.Helper()
+
+	bin = getBinary()
 	require.FileExistsf(t, bin, "snclient binary must exist")
 
 	writeFile(t, `snclient.ini`, localDaemonINI)
 
-	pid := startBackgroundDaemon(t)
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d", localDaemonPort)
+	startBackgroundDaemon(t)
+	baseURL = fmt.Sprintf("http://127.0.0.1:%d", localDaemonPort)
 
-	t.Logf("daemon started: %d", pid)
+	baseArgs = []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-u", baseURL}
 
-	baseArgs := []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-u", baseURL}
+	cleanUp = func() {
+		ok := stopBackgroundDaemon(t)
+		assert.Truef(t, ok, "stopping worked")
+		os.Remove("snclient.ini")
+	}
+
+	return bin, baseURL, baseArgs, cleanUp
+}
+
+func TestDaemonRequests(t *testing.T) {
+	bin, baseURL, baseArgs, cleanUp := daemonInit(t)
+	defer cleanUp()
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
@@ -75,6 +88,11 @@ func TestDaemonRequests(t *testing.T) {
 		Args: append(baseArgs, "check_network", "warn=total > 100000000", "crit=total > 100000000"),
 		Like: []string{`OK - \w+ >\d+ \w*B/s <\d+ \w*B\/s`},
 	})
+}
+
+func TestDaemonAdminReload(t *testing.T) {
+	bin, baseURL, _, cleanUp := daemonInit(t)
+	defer cleanUp()
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
@@ -94,7 +112,13 @@ func TestDaemonRequests(t *testing.T) {
 		Args: []string{"-s", "-u", "user:" + localDaemonAdminPassword, "-k", "-X", "POST", baseURL + "/api/v1/admin/reload"},
 		Like: []string{`{"success":true}`},
 	})
+}
 
+func TestDaemonAdminCertReplace(t *testing.T) {
+	_, baseURL, _, cleanUp := daemonInit(t)
+	defer cleanUp()
+
+	// test unknown post data
 	postData, err := json.Marshal(map[string]string{
 		"Unknown": "false",
 	})
@@ -126,8 +150,4 @@ func TestDaemonRequests(t *testing.T) {
 
 	assert.Equalf(t, "testcert", string(crt), "test certificate written")
 	assert.Equalf(t, "testkey", string(key), "test certificate key written")
-
-	ok := stopBackgroundDaemon(t)
-	assert.Truef(t, ok, "stopping worked")
-	os.Remove("snclient.ini")
 }

@@ -535,6 +535,7 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 		name := entry.Name()
 		if listener, ok := mod.(RequestHandler); ok {
 			name = listener.BindString()
+			log.Debugf("bind: %s", name)
 		}
 
 		err = modules.Add(name, mod)
