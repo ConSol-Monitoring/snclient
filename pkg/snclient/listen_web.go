@@ -2,7 +2,6 @@ package snclient
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -187,6 +186,9 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 
 	for _, metric := range metrics {
 		perf := l.metric2Perf(metric)
+		if metric.PerfConfig != nil && metric.PerfConfig.Ignore {
+			continue
+		}
 		result = append(result, perf)
 	}
 
@@ -282,25 +284,33 @@ func (l *HandlerWeb) result2V1(result *CheckResult) (v1Res []CheckWebLineV1) {
 	}
 	for idx, metric := range result.Metrics {
 		perfRes := make(map[string]interface{}, 0)
+		if metric.PerfConfig != nil && metric.PerfConfig.Ignore {
+			continue
+		}
+		perfData := l.metric2Perf(metric)
+		val := perfData.FloatVal
+		if val == nil {
+			val = perfData.IntVal
+		}
 		perf := map[string]interface{}{
-			"value": CheckWebPerfNumber(fmt.Sprintf("%v", metric.Value)),
-			"unit":  metric.Unit,
+			"value": val.Value,
+			"unit":  val.Unit,
 		}
-		if metric.Warning != nil {
-			perf["warning"] = metric.ThresholdString(metric.Warning)
+		if val.Warning != nil {
+			perf["warning"] = *val.Warning
 		}
-		if metric.Critical != nil {
-			perf["critical"] = metric.ThresholdString(metric.Critical)
+		if val.Critical != nil {
+			perf["critical"] = *val.Critical
 		}
-		if metric.Min != nil {
-			perf["minimum"] = *metric.Min
+		if val.Min != nil {
+			perf["minimum"] = val.Min
 		}
-		if metric.Max != nil {
-			perf["maximum"] = *metric.Max
+		if val.Max != nil {
+			perf["maximum"] = val.Max
 		}
 
 		// first metric goes into first row, others append to a new line
-		perfRes[metric.Name] = perf
+		perfRes[perfData.Alias] = perf
 		if idx == 0 {
 			v1Res[0].Perf = perfRes
 		} else {

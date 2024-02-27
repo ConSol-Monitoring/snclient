@@ -18,17 +18,19 @@ type PerfConfig struct {
 	Suffix   string
 	Unit     string
 	Magic    float64
+	Raw      string
 }
 
 func NewPerfConfig(raw string) ([]PerfConfig, error) {
 	list := []PerfConfig{}
 
-	token := utils.TokenizeBy(strings.TrimSpace(raw), "()", false, true)
+	token := utils.TokenizeBy(strings.TrimSpace(raw), "()", true, true)
 
 	for len(token) > 0 {
 		if len(token) < 4 {
 			return nil, fmt.Errorf("unexpected end of perf-config, remaining token: %#v", token)
 		}
+		raw = strings.TrimSpace(strings.Join(token[0:4], ""))
 
 		selector, err := utils.TrimQuotes(strings.TrimSpace(token[0]))
 		if err != nil {
@@ -44,6 +46,7 @@ func NewPerfConfig(raw string) ([]PerfConfig, error) {
 
 		perf := PerfConfig{
 			Selector: selector,
+			Raw:      raw,
 		}
 		err = perf.parseArgs(rawConf)
 		if err != nil {
@@ -99,7 +102,7 @@ func (p *PerfConfig) parseArgs(raw string) error {
 			p.Suffix = rawVal
 		case "prefix":
 			p.Prefix = rawVal
-		case "ignored", "ignore":
+		case "ignored", "ignore", "skip":
 			ign, err := convert.BoolE(rawVal)
 			if err != nil {
 				return fmt.Errorf("parse error in perf-config in '%s': %s", confItem, err.Error())

@@ -13,9 +13,9 @@ func TestCheckPerfConfigParser(t *testing.T) {
 	require.NoErrorf(t, err, "no error in NewPerfConfig")
 
 	exp := []PerfConfig{
-		{Selector: "used", Unit: "G", Suffix: "s", Prefix: "pre", Magic: 1},
-		{Selector: "used %", Ignore: true, Magic: 1},
-		{Selector: "*", Unit: "GiB", regex: regexp.MustCompile(".*"), Magic: 1},
+		{Selector: "used", Unit: "G", Suffix: "s", Prefix: "pre", Magic: 1, Raw: `used(unit:G;suffix:'s'; prefix:'pre')`},
+		{Selector: "used %", Ignore: true, Magic: 1, Raw: `used %(ignored:true)`},
+		{Selector: "*", Unit: "GiB", regex: regexp.MustCompile(".*"), Magic: 1, Raw: `*(unit:GiB)`},
 	}
 	assert.Equalf(t, exp, perf, "NewPerfConfig parsed correctly")
 }

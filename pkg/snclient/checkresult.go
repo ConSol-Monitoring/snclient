@@ -58,6 +58,7 @@ func (cr *CheckResult) ApplyPerfConfig(perfCfg []PerfConfig) error {
 		for i := range perfCfg {
 			perf := perfCfg[i]
 			if perf.Match(metric.Name) {
+				log.Tracef("perfdata '%s' matched perf-config: %s", metric.Name, perf.Raw)
 				found = true
 				if perf.Ignore {
 					break
