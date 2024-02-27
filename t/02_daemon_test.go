@@ -94,8 +94,8 @@ func TestDaemonRequests(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		drive = "c:"
 	}
-	expect := []string{`OK - All 1 drive\(s\) are ok`, `used'=[\d.]G;`}
-	checkArgs := []string{"check_drivesize", "drive=" + drive, "warn=none", "crit=none", "perf-config=*(unit:G)"}
+	expect := []string{`OK - All 1 drive\(s\) are ok`, `used'=[\d.]+G;`}
+	checkArgs := []string{"check_drivesize", "drive=" + drive, "warn=used > 100%", "crit=none", "perf-config=*(unit:G)"}
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: append(baseArgs, checkArgs...),
