@@ -302,10 +302,10 @@ fmt: tools
 	set -e; for dir in $(shell ls -d1 pkg/* t/); do \
 		$(GOVET) ./$$dir; \
 	done
-	gofmt -w -s ./cmd/ ./pkg/ ./t/
-	./tools/gofumpt -w ./cmd/ ./pkg/ ./t/
-	./tools/gci write ./cmd/. ./pkg/. ./t/.  --skip-generated
-	goimports -w ./cmd/ ./pkg/ ./t/.
+	gofmt -w -s ./cmd/ ./pkg/ ./t/ ./buildtools/
+	./tools/gofumpt -w ./cmd/ ./pkg/ ./t/ ./buildtools/.
+	./tools/gci write ./cmd/. ./pkg/. ./t/. ./buildtools/. --skip-generated
+	goimports -w ./cmd/ ./pkg/ ./t/. ./buildtools/.
 
 versioncheck:
 	@[ $$( printf '%s\n' $(GOVERSION) $(MINGOVERSION) | sort | head -n 1 ) = $(MINGOVERSION) ] || { \
