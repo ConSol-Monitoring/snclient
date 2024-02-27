@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strings"
 
-	"pkg/convert"
 	"pkg/utils"
 
 	"github.com/go-chi/chi/v5"
@@ -44,20 +43,14 @@ type CheckWebPerfVal struct {
 	Critical *string            `json:"critical,omitempty"`
 }
 
-type CheckWebPerfNumber struct {
-	num interface{}
-}
+type CheckWebPerfNumber string
 
 func (n CheckWebPerfNumber) MarshalJSON() ([]byte, error) {
-	if fmt.Sprintf("%v", n.num) == "U" {
+	if n == "U" {
 		return []byte(`"U"`), nil
 	}
-	val, err := convert.Num2StringE(n.num)
-	if err != nil {
-		return nil, fmt.Errorf("num2string: %s", err.Error())
-	}
 
-	return []byte(val), nil
+	return []byte(n), nil
 }
 
 func init() {
@@ -194,11 +187,14 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 
 	for _, metric := range metrics {
 		perf := CheckWebPerf{
-			Alias: metric.Name,
+			Alias: metric.tweakedName(),
 		}
+		numStr, unit := metric.tweakedNum(metric.Value)
 		val := CheckWebPerfVal{
-			Unit: metric.Unit,
+			Value: CheckWebPerfNumber(numStr),
+			Unit:  unit,
 		}
+
 		if metric.Warning != nil {
 			warn := metric.ThresholdString(metric.Warning)
 			val.Warning = &warn
@@ -207,27 +203,46 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 			crit := metric.ThresholdString(metric.Critical)
 			val.Critical = &crit
 		}
-		if utils.IsFloatVal(metric.Value) {
-			val.Min = metric.Min
-			val.Max = metric.Max
-			val.Value = CheckWebPerfNumber{num: metric.Value}
+		if utils.IsFloatVal(numStr) {
+			l.metrics2PerfFloatMinMax(metric, &val)
 			perf.FloatVal = &val
 		} else {
-			if metric.Min != nil {
-				min := int64(*metric.Min)
-				val.Min = &min
-			}
-			if metric.Max != nil {
-				max := int64(*metric.Max)
-				val.Max = &max
-			}
-			val.Value = CheckWebPerfNumber{num: metric.Value}
+			l.metrics2PerfInt64MinMax(metric, &val)
 			perf.IntVal = &val
 		}
 		result = append(result, perf)
 	}
 
 	return result
+}
+
+func (l *HandlerWeb) metrics2PerfFloatMinMax(metric *CheckMetric, val *CheckWebPerfVal) {
+	if metric.PerfConfig != nil {
+		num, _ := metric.tweakedNum(*metric.Min)
+		val.Min = CheckWebPerfNumber(num)
+
+		num, _ = metric.tweakedNum(*metric.Max)
+		val.Max = CheckWebPerfNumber(num)
+	} else {
+		val.Min = metric.Min
+		val.Max = metric.Max
+	}
+}
+
+func (l *HandlerWeb) metrics2PerfInt64MinMax(metric *CheckMetric, val *CheckWebPerfVal) {
+	if metric.PerfConfig != nil {
+		num, _ := metric.tweakedNum(*metric.Min)
+		val.Min = CheckWebPerfNumber(num)
+
+		num, _ = metric.tweakedNum(*metric.Max)
+		val.Max = CheckWebPerfNumber(num)
+	} else {
+		min := int64(*metric.Min)
+		val.Min = &min
+
+		max := int64(*metric.Max)
+		val.Max = &max
+	}
 }
 
 // return "lines" list suitable as v1 result, each metric will be a new line to keep the order of the metrics
@@ -242,7 +257,7 @@ func (l *HandlerWeb) result2V1(result *CheckResult) (v1Res []CheckWebLineV1) {
 	for idx, metric := range result.Metrics {
 		perfRes := make(map[string]interface{}, 0)
 		perf := map[string]interface{}{
-			"value": CheckWebPerfNumber{num: metric.Value},
+			"value": CheckWebPerfNumber(fmt.Sprintf("%v", metric.Value)),
 			"unit":  metric.Unit,
 		}
 		if metric.Warning != nil {

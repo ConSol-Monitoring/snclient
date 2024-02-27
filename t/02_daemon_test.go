@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -87,6 +88,30 @@ func TestDaemonRequests(t *testing.T) {
 		Cmd:  bin,
 		Args: append(baseArgs, "check_network", "warn=total > 100000000", "crit=total > 100000000"),
 		Like: []string{`OK - \w+ >\d+ \w*B/s <\d+ \w*B\/s`},
+	})
+
+	drive := "/"
+	if runtime.GOOS == "windows" {
+		drive = "c:"
+	}
+	expect := []string{`OK - All 1 drive\(s\) are ok`, `used'=[\d.]G;`}
+	checkArgs := []string{"check_drivesize", "drive=" + drive, "warn=none", "crit=none", "perf-config=*(unit:G)"}
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: append(baseArgs, checkArgs...),
+		Like: expect,
+	})
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: append(append(baseArgs, "-a", "legacy"), checkArgs...),
+		Like: expect,
+	})
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: append(append(baseArgs, "-a", "1"), checkArgs...),
+		Like: expect,
 	})
 }
 

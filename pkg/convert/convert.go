@@ -51,12 +51,12 @@ func Int64E(raw interface{}) (int64, error) {
 	case int32:
 		return int64(val), nil
 	default:
-		num, err := strconv.ParseInt(fmt.Sprintf("%v", val), 10, 64)
+		num, err := strconv.ParseFloat(fmt.Sprintf("%v", val), 64)
 		if err != nil {
 			return 0, fmt.Errorf("cannot parse int64 value from %v (%T)", raw, raw)
 		}
 
-		return num, nil
+		return int64(num), nil
 	}
 }
 

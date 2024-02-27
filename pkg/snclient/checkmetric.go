@@ -92,6 +92,26 @@ func (m *CheckMetric) String() string {
 	return resStr
 }
 
+// return name but apply tweaks from perf-config before
+func (m *CheckMetric) tweakedName() (name string) {
+	name = m.Name
+
+	if m.PerfConfig == nil {
+		return name
+	}
+
+	// Suffix replaces the current name
+	if m.PerfConfig.Suffix != "" {
+		name = m.PerfConfig.Suffix
+	}
+
+	if m.PerfConfig.Prefix != "" {
+		name = fmt.Sprintf("%s%s", m.PerfConfig.Prefix, name)
+	}
+
+	return name
+}
+
 // return number and unit but apply tweaks from perf-config before
 func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
 	if m.PerfConfig == nil {

@@ -206,7 +206,7 @@ var (
 	daemonFinChan = make(chan bool, 1)
 )
 
-func startBackgroundDaemon(t *testing.T) (pid int) {
+func startBackgroundDaemon(t *testing.T) {
 	t.Helper()
 	bin := getBinary()
 
@@ -243,8 +243,6 @@ func startBackgroundDaemon(t *testing.T) (pid int) {
 
 	t.Logf("daemon started with pid: %d", daemonPid)
 	time.Sleep(500 * time.Millisecond)
-
-	return daemonPid
 }
 
 func stopBackgroundDaemon(t *testing.T) bool {
