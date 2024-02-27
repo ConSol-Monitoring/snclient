@@ -748,7 +748,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(chk.timeout)*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(chk.timeout+1)*time.Second)
 	defer cancel()
 
 	res, err := handler.Check(ctx, snc, chk, parsedArgs)

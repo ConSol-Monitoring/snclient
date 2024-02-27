@@ -10,6 +10,7 @@ next:
          - fix check_drivesize using random volume for sub path
          - fix check_drivesize using root folder when checking non-existing path
          - fix perf-config when using REST API
+         - fix timeout handling (fixes #96)
 
 0.18     Wed Feb 14 15:36:38 CET 2024
          - fix crash on windows when parsing empty args (#88)

@@ -354,11 +354,12 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 		}
 	}
 
+	log.Tracef("http timeout: %s", l.socketTimeout.String())
 	server := &http.Server{
-		ReadTimeout:       DefaultSocketTimeout * time.Second,
-		ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
-		WriteTimeout:      DefaultSocketTimeout * time.Second,
-		IdleTimeout:       DefaultSocketTimeout * time.Second,
+		ReadTimeout:       l.socketTimeout,
+		ReadHeaderTimeout: l.socketTimeout,
+		WriteTimeout:      l.socketTimeout,
+		IdleTimeout:       l.socketTimeout,
 		Handler:           mux,
 		ErrorLog:          NewStandardLog("WARN"),
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"pkg/utils"
 )
@@ -19,10 +20,17 @@ type CheckWrap struct {
 }
 
 func (l *CheckWrap) Build() *CheckData {
+	// set default timeout
+	timeoutSeconds, ok, err := l.config.GetInt("timeout")
+	if err != nil || !ok {
+		timeoutSeconds = int64(DefaultCheckTimeout)
+	}
+
 	return &CheckData{
 		name:            l.name,
 		hasInventory:    ScriptsInventory,
 		argsPassthrough: true,
+		timeout:         float64(timeoutSeconds),
 	}
 }
 
@@ -64,13 +72,17 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		command = ReplaceRuntimeMacros(l.commandString, macros)
 	}
 
-	// set default timeout
-	timeoutSeconds, ok, err := l.config.GetInt("timeout")
-	if err != nil || !ok {
-		timeoutSeconds = 60
+	timeoutSeconds := check.timeout
+	deadline, ok := ctx.Deadline()
+	if ok {
+		deadlineTimeoutSeconds := time.Until(deadline).Seconds()
+		if deadlineTimeoutSeconds < timeoutSeconds {
+			timeoutSeconds = deadlineTimeoutSeconds
+			log.Debugf("reduced cmd timeout to %ds because of shorter context", int64(timeoutSeconds))
+		}
 	}
 
-	stdout, stderr, exitCode, _ := l.snc.runExternalCheckString(ctx, command, timeoutSeconds)
+	stdout, stderr, exitCode, _ := l.snc.runExternalCheckString(ctx, command, int64(timeoutSeconds))
 	if stderr != "" {
 		if stdout != "" {
 			stdout += "\n"
