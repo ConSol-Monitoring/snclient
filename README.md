@@ -46,33 +46,43 @@ There are pre-build binaries and packages for the all supported systems (see abo
 
 Further details are covered in the [documentation](https://omd.consol.de/docs/snclient/install/).
 
-## Implementation Status
+## Check Plugin Status
 
-W: work in progress
-X: completed
-
-|                            | Windows |  Linux  |   OSX   |   BSD   |
-|----------------------------|:-------:|:-------:|:-------:|:-------:|
-| **check_alias**            |    X    |    X    |    X    |    X    |
-| **check_cpu**              |    X    |    X    |    X    |    X    |
-| **check_drivesize**        |    X    |    X    |    X    |    X    |
-| **check_dummy**            |    X    |    X    |    X    |    X    |
-| **check_files**            |    X    |    X    |    X    |    X    |
-| **check_index**            |    X    |    X    |    X    |    X    |
-| **check_load**             |    X    |    X    |    X    |    X    |
-| **check_memory**           |    X    |    X    |    X    |    X    |
-| **check_network**          |    X    |    X    |    X    |    X    |
-| **check_os_version**       |    X    |    X    |    X    |    X    |
-| **check_process**          |    X    |    X    |    X    |    X    |
-| **check_snclient_version** |    X    |    X    |    X    |    X    |
-| **check_uptime**           |    X    |    X    |    X    |    X    |
-| **check_wrap**             |    X    |    X    |    X    |    X    |
-| **check_service**          |    X    |    X    |         |         |
-| **check_omd**              |         |    X    |         |         |
-| **check_eventlog**         |    X    |         |         |         |
-| **check_tasksched**        |    X    |         |         |         |
-| **check_wmi**              |    X    |         |         |         |
-| **check_pagefile**         |    X    |         |         |         |
+|                                   | Windows |  Linux  |   OSX   |   BSD   |
+|-----------------------------------|:-------:|:-------:|:-------:|:-------:|
+| **check_alias**                   |    X    |    X    |    X    |    X    |
+| **check_connections**             |    X    |    X    |    X    |    X    |
+| **check_cpu_utilization**         |    X    |    X    |    X    |    X    |
+| **check_cpu**                     |    X    |    X    |    X    |    X    |
+| **check_dns**                     |    X    |    X    |    X    |    X    |
+| **check_drivesize**               |    X    |    X    |    X    |    X    |
+| **check_dummy**                   |    X    |    X    |    X    |    X    |
+| **check_eventlog**                |    X    |         |         |         |
+| **check_files**                   |    X    |    X    |    X    |    X    |
+| **check_http**                    |    X    |    X    |    X    |    X    |
+| **check_index**                   |    X    |    X    |    X    |    X    |
+| **check_kernel_stats**            |         |    X    |         |         |
+| **check_load**                    |    X    |    X    |    X    |    X    |
+| **check_mailq**                   |         |    X    |    X    |    X    |
+| **check_memory**                  |    X    |    X    |    X    |    X    |
+| **check_mount**                   |         |    X    |         |         |
+| **check_network**                 |    X    |    X    |    X    |    X    |
+| **check_nsc_web**                 |    X    |    X    |    X    |    X    |
+| **check_ntp_offset**              |    X    |    X    |    X    |    X    |
+| **check_omd**                     |         |    X    |         |         |
+| **check_os_updates**              |    X    |    X    |    X    |         |
+| **check_os_version**              |    X    |    X    |    X    |    X    |
+| **check_pagefile**                |    X    |         |         |         |
+| **check_ping**                    |    X    |    X    |    X    |    X    |
+| **check_process**                 |    X    |    X    |    X    |    X    |
+| **check_service**                 |    X    |    X    |         |         |
+| **check_snclient_version**        |    X    |    X    |    X    |    X    |
+| **check_tasksched**               |    X    |         |         |         |
+| **check_tcp**                     |    X    |    X    |    X    |    X    |
+| **check_temperature**             |         |    X    |         |         |
+| **check_uptime**                  |    X    |    X    |    X    |    X    |
+| **check_wmi**                     |    X    |         |         |         |
+| **check_wrap / external scripts** |    X    |    X    |    X    |    X    |
 
 ## Roadmap
 
@@ -101,7 +111,7 @@ Find a brief overview of what is planned and what is done already:
 * [X] implement perf-config
 * [ ] finish builtin checks
 * [X] implement help with examples and filters
-* [ ] review check plugin status
+* [X] review check plugin status
 
 ### Stage 2
 
@@ -111,10 +121,10 @@ Find a brief overview of what is planned and what is done already:
   * [X] node_exporter
   * [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
 * [X] add config include folder
-* [ ] add check_ping plugin
-* [ ] add ntp check
+* [X] add check_ping plugin
+* [X] add ntp check
 * [ ] check usr signal handler
-* [ ] manage certificate via rest api
+* [X] manage certificate via rest api
 
 ### Stage 3
 
