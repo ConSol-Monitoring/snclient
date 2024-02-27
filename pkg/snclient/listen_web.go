@@ -186,60 +186,86 @@ func (l *HandlerWeb) metrics2Perf(metrics []*CheckMetric) []CheckWebPerf {
 	result := make([]CheckWebPerf, 0)
 
 	for _, metric := range metrics {
-		perf := CheckWebPerf{
-			Alias: metric.tweakedName(),
-		}
-		numStr, unit := metric.tweakedNum(metric.Value)
-		val := CheckWebPerfVal{
-			Value: CheckWebPerfNumber(numStr),
-			Unit:  unit,
-		}
-
-		if metric.Warning != nil {
-			warn := metric.ThresholdString(metric.Warning)
-			val.Warning = &warn
-		}
-		if metric.Critical != nil {
-			crit := metric.ThresholdString(metric.Critical)
-			val.Critical = &crit
-		}
-		if utils.IsFloatVal(numStr) {
-			l.metrics2PerfFloatMinMax(metric, &val)
-			perf.FloatVal = &val
-		} else {
-			l.metrics2PerfInt64MinMax(metric, &val)
-			perf.IntVal = &val
-		}
+		perf := l.metric2Perf(metric)
 		result = append(result, perf)
 	}
 
 	return result
 }
 
+func (l *HandlerWeb) metric2Perf(metric *CheckMetric) CheckWebPerf {
+	perf := CheckWebPerf{
+		Alias: metric.tweakedName(),
+	}
+	numStr, unit := metric.tweakedNum(metric.Value)
+	val := CheckWebPerfVal{
+		Value: CheckWebPerfNumber(numStr),
+		Unit:  unit,
+	}
+
+	if metric.Warning != nil {
+		warn := metric.ThresholdString(metric.Warning)
+		val.Warning = &warn
+	}
+	if metric.Critical != nil {
+		crit := metric.ThresholdString(metric.Critical)
+		val.Critical = &crit
+	}
+	if utils.IsFloatVal(numStr) {
+		l.metrics2PerfFloatMinMax(metric, &val)
+		perf.FloatVal = &val
+	} else {
+		l.metrics2PerfInt64MinMax(metric, &val)
+		perf.IntVal = &val
+	}
+
+	return perf
+}
+
 func (l *HandlerWeb) metrics2PerfFloatMinMax(metric *CheckMetric, val *CheckWebPerfVal) {
 	if metric.PerfConfig != nil {
-		num, _ := metric.tweakedNum(*metric.Min)
-		val.Min = CheckWebPerfNumber(num)
+		if metric.Min != nil {
+			num, _ := metric.tweakedNum(*metric.Min)
+			val.Min = CheckWebPerfNumber(num)
+		}
 
-		num, _ = metric.tweakedNum(*metric.Max)
-		val.Max = CheckWebPerfNumber(num)
-	} else {
+		if metric.Max != nil {
+			num, _ := metric.tweakedNum(*metric.Max)
+			val.Max = CheckWebPerfNumber(num)
+		}
+
+		return
+	}
+
+	if metric.Min != nil {
 		val.Min = metric.Min
+	}
+	if metric.Max != nil {
 		val.Max = metric.Max
 	}
 }
 
 func (l *HandlerWeb) metrics2PerfInt64MinMax(metric *CheckMetric, val *CheckWebPerfVal) {
 	if metric.PerfConfig != nil {
-		num, _ := metric.tweakedNum(*metric.Min)
-		val.Min = CheckWebPerfNumber(num)
+		if metric.Min != nil {
+			num, _ := metric.tweakedNum(*metric.Min)
+			val.Min = CheckWebPerfNumber(num)
+		}
 
-		num, _ = metric.tweakedNum(*metric.Max)
-		val.Max = CheckWebPerfNumber(num)
-	} else {
+		if metric.Max != nil {
+			num, _ := metric.tweakedNum(*metric.Max)
+			val.Max = CheckWebPerfNumber(num)
+		}
+
+		return
+	}
+
+	if metric.Min != nil {
 		min := int64(*metric.Min)
 		val.Min = &min
+	}
 
+	if metric.Max != nil {
 		max := int64(*metric.Max)
 		val.Max = &max
 	}

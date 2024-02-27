@@ -19,6 +19,8 @@ import (
 	"time"
 	"unicode"
 
+	"convert"
+
 	"github.com/kdar/factorlog"
 	"golang.org/x/exp/maps"
 )
@@ -100,9 +102,11 @@ func IsFloatVal(val interface{}) bool {
 	case float64:
 		return strconv.FormatFloat(num, 'f', -1, 64) != fmt.Sprintf("%d", int64(num))
 	case int64:
-		return true
-	default:
 		return false
+	default:
+		val := convert.Float64(val)
+
+		return IsFloatVal(val)
 	}
 }
 
