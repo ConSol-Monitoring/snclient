@@ -179,7 +179,7 @@ jobs:
 
       - name: "Sign snclient.exe"
         if: ${{ env.certhash != '' }}
-        uses: Minionguyjpro/signtool-code-sign@1.0.7
+        uses: sni/signtool-code-sign@v1.0
         with:
           certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
           cert-password: '${{ secrets.WIN_SIGN_PASSWORD }}'
@@ -256,7 +256,7 @@ jobs:
 
       - name: "Sign snclient.msi"
         if: ${{ env.certhash != '' }}
-        uses: Minionguyjpro/signtool-code-sign@1.0.7
+        uses: sni/signtool-code-sign@v1.0
         with:
           certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
           cert-password: '${{ secrets.WIN_SIGN_PASSWORD }}'
