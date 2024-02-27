@@ -59,14 +59,15 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument          | Description                                                                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| drive             | The drives to check                                                                                                      |
-| exclude           | List of drives to exclude from check                                                                                     |
-| ignore-unreadable | Deprecated, use filter instead                                                                                           |
-| magic             | Magic number for use with scaling drive sizes. Note there is also a more generic magic factor in the perf-config option. |
-| mounted           | Deprecated, use filter instead                                                                                           |
-| total             | Include the total of all matching drives                                                                                 |
+| Argument                  | Description                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| drive                     | The drives to check                                                                                                      |
+| exclude                   | List of drives to exclude from check                                                                                     |
+| freespace-ignore-reserved | Don't account root-reserved blocks into freespace, default: true                                                         |
+| ignore-unreadable         | Deprecated, use filter instead                                                                                           |
+| magic                     | Magic number for use with scaling drive sizes. Note there is also a more generic magic factor in the perf-config option. |
+| mounted                   | Deprecated, use filter instead                                                                                           |
+| total                     | Include the total of all matching drives                                                                                 |
 
 ## Attributes
 

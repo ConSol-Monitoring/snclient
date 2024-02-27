@@ -5,6 +5,7 @@ next:
          - add check_os_updates
          - check_files: fix skipping folder to early
          - check_eventlog: fix using event id
+         - check_drivesize: add freespace-ignore-reserved option
          - fix wrapped scripts not found
          - fix check_drivesize using random volume for sub path
          - fix check_drivesize using root folder when checking non-existing path

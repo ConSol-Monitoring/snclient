@@ -55,19 +55,21 @@ func defaultExcludedFsTypes() []string {
 }
 
 type CheckDrivesize struct {
-	drives           []string
-	excludes         []string
-	total            bool
-	magic            float64
-	mounted          bool
-	ignoreUnreadable bool
-	hasCustomPath    bool
+	drives                  []string
+	excludes                []string
+	total                   bool
+	magic                   float64
+	mounted                 bool
+	ignoreUnreadable        bool
+	hasCustomPath           bool
+	freespaceIgnoreReserved bool
 }
 
 func NewCheckDrivesize() CheckHandler {
 	return &CheckDrivesize{
-		magic:  1,
-		drives: []string{"all"},
+		magic:                   1,
+		drives:                  []string{"all"},
+		freespaceIgnoreReserved: true,
 	}
 }
 
@@ -86,8 +88,9 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"total":   {value: &l.total, description: "Include the total of all matching drives"},
 			"magic": {value: &l.magic, description: "Magic number for use with scaling drive sizes. " +
 				"Note there is also a more generic magic factor in the perf-config option."},
-			"mounted":           {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
-			"ignore-unreadable": {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
+			"mounted":                   {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
+			"ignore-unreadable":         {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
+			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "Don't account root-reserved blocks into freespace, default: true"},
 		},
 		defaultFilter:   l.getDefaultFilter(),
 		defaultWarning:  "used_pct > 80",
@@ -202,7 +205,10 @@ func (l *CheckDrivesize) isExcluded(drive map[string]string, excludes []string) 
 }
 
 func (l *CheckDrivesize) addMetrics(drive string, check *CheckData, usage *disk.UsageStat, magic float64) {
-	total := usage.Used + usage.Free // use this total instead of usage.Total to account in the root reserved space
+	total := usage.Total
+	if !l.freespaceIgnoreReserved {
+		total = usage.Used + usage.Free // use this total instead of usage.Total to account in the root reserved space
+	}
 
 	if check.HasThreshold("free") || check.HasThreshold("free_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.warnThreshold)

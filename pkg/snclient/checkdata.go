@@ -172,6 +172,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	}
 
 	var finalMacros map[string]string
+	log.Tracef("detail template: %s", cd.detailSyntax)
 	if len(cd.listData) == 1 {
 		finalMacros = cd.buildListMacrosFromSingleEntry()
 	} else {

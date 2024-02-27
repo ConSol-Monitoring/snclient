@@ -139,16 +139,23 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 		drive["mounted"] = "1"
 	}
 
-	freePct := float64(0)
-	if usage.Total > 0 {
-		freePct = float64(usage.Free) * 100 / (float64(usage.Total))
+	total := usage.Total
+	if !l.freespaceIgnoreReserved {
+		total = usage.Used + usage.Free // use this total instead of usage.Total to account in the root reserved space
 	}
 
-	drive["size"] = humanize.IBytesF(uint64(magic*float64(usage.Total)), 3)
-	drive["size_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Total)))
+	freePct := float64(0)
+	usedPct := float64(0)
+	if total > 0 {
+		freePct = float64(usage.Free) * 100 / (float64(total))
+		usedPct = float64(usage.Used) * 100 / (float64(total))
+	}
+
+	drive["size"] = humanize.IBytesF(uint64(magic*float64(total)), 3)
+	drive["size_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(total)))
 	drive["used"] = humanize.IBytesF(uint64(magic*float64(usage.Used)), 3)
 	drive["used_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Used)))
-	drive["used_pct"] = fmt.Sprintf("%f", usage.UsedPercent)
+	drive["used_pct"] = fmt.Sprintf("%f", usedPct)
 	drive["free"] = humanize.IBytesF(uint64(magic*float64(usage.Free)), 3)
 	drive["free_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Free)))
 	drive["free_pct"] = fmt.Sprintf("%f", freePct)
