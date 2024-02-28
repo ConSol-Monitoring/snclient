@@ -96,10 +96,10 @@ updatedeps: versioncheck
 	$(GO) mod download
 	set -e; for dir in $(shell ls -d1 pkg/*); do \
 		( cd ./$$dir && $(GO) mod download ); \
-		( cd ./$$dir && $(GO) get -u ); \
-		( cd ./$$dir && $(GO) get -t -u ); \
+		( cd ./$$dir && GOPROXY=direct $(GO) get -u ); \
+		( cd ./$$dir && GOPROXY=direct $(GO) get -t -u ); \
 	done
-	$(GO) get -u ./t/
+	GOPROXY=direct $(GO) get -u ./t/
 	$(GO) mod download
 	$(MAKE) cleandeps
 

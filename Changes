@@ -1,5 +1,8 @@
 This file documents the revision history for the SNClient+ agent.
 
+next:
+         - update check_nsc_web to v0.6.3
+
 0.19     Wed Feb 28 00:09:39 CET 2024
          - write startup errors to default logfile
          - add check_os_updates

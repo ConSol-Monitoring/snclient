@@ -5,7 +5,11 @@ go 1.21
 require (
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/stretchr/testify v1.8.4
+	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
+	pkg/convert v0.0.0-00010101000000-000000000000
 )
+
+replace pkg/convert => ../../pkg/convert
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

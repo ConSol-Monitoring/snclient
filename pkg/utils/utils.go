@@ -19,7 +19,7 @@ import (
 	"time"
 	"unicode"
 
-	"convert"
+	"pkg/convert"
 
 	"github.com/kdar/factorlog"
 	"golang.org/x/exp/maps"
