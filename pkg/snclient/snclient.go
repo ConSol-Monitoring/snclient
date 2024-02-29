@@ -697,10 +697,7 @@ func (snc *Agent) logPanicRecover() {
 
 // RunCheck calls check by name and returns the check result
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
-	ctx, cancel := context.WithTimeout(context.TODO(), 60*time.Second)
-	defer cancel()
-
-	return snc.RunCheckWithContext(ctx, name, args)
+	return snc.RunCheckWithContext(context.TODO(), name, args)
 }
 
 // RunCheckWithContext calls check by name and returns the check result
