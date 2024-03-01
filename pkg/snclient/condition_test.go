@@ -169,7 +169,7 @@ func TestConditionThresholdString(t *testing.T) {
 		threshold, err := NewCondition(check.threshold)
 		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
-		perfRange := ThresholdString(check.name, []*Condition{threshold}, convert.Num2String)
+		perfRange := ThresholdString([]string{check.name}, []*Condition{threshold}, convert.Num2String)
 		assert.Equalf(t, check.expect, perfRange, fmt.Sprintf("ThresholdString(%s) -> (%v) = %v", check.threshold, perfRange, check.expect))
 	}
 }

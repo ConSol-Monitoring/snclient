@@ -19,13 +19,18 @@ Check status and metrics by running wmi queries.
 
 ### Default Check
 
-    check_wmi "query=select FreeSpace, DeviceID FROM Win32_LogicalDisk WHERE DeviceID = 'C:'"
-    27955118080, C:
+    check_wmi "query=select DeviceID, FreeSpace FROM Win32_LogicalDisk WHERE DeviceID = 'C:'"
+    C:, 27955118080
 
 Same query, but use output template for custom plugin output:
 
-    check_wmi "query=select FreeSpace, DeviceID FROM Win32_LogicalDisk WHERE DeviceID = 'C:'" "detail-syntax= %(DeviceID) %(FreeSpace:h)"
+    check_wmi "query=select DeviceID, FreeSpace FROM Win32_LogicalDisk WHERE DeviceID = 'C:'" "detail-syntax= %(DeviceID) %(FreeSpace:h)"
     C: 27.94 G
+
+Performance data will be extracted if the query contains at least 2 attributes. The first one must be a name, the others must be numeric.
+
+    check_wmi query="select DeviceID, FreeSpace, Size FROM Win32_LogicalDisk"
+	C:, 27199328256 |'FreeSpace_C'=27199328256
 
 ### Example using NRPE and Naemon
 
@@ -45,13 +50,13 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value |
-| ------------- | ------------- |
-| empty-state   | 0 (OK)        |
-| empty-syntax  |               |
-| top-syntax    | \${list}      |
-| ok-syntax     |               |
-| detail-syntax | %(line)       |
+| Argument      | Default Value                        |
+| ------------- | ------------------------------------ |
+| empty-state   | 3 (UNKNOWN)                          |
+| empty-syntax  | query did not return any result row. |
+| top-syntax    | \${list}                             |
+| ok-syntax     |                                      |
+| detail-syntax | %(line)                              |
 
 ## Check Specific Arguments
 

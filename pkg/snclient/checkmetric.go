@@ -155,8 +155,8 @@ func (m *CheckMetric) ThresholdString(conditions []*Condition) string {
 	}
 
 	if m.ThresholdName != "" {
-		return ThresholdString(m.ThresholdName, conditions, conv)
+		return ThresholdString([]string{m.Name, m.ThresholdName}, conditions, conv)
 	}
 
-	return ThresholdString(m.Name, conditions, conv)
+	return ThresholdString([]string{m.Name}, conditions, conv)
 }

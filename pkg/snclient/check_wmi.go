@@ -3,11 +3,10 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"runtime"
-	"strconv"
-	"strings"
-
+	"pkg/convert"
 	"pkg/wmi"
+	"runtime"
+	"strings"
 )
 
 func init() {
@@ -41,16 +40,24 @@ func (l *CheckWMI) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		topSyntax:    "${list}",
-		detailSyntax: "%(line)",
+		emptyState:    ExitCodeUnknown,
+		emptySyntax:   "query did not return any result row.",
+		hasArgsFilter: true, // otherwise empty-syntax won't be applied
+		topSyntax:     "${list}",
+		detailSyntax:  "%(line)",
 		exampleDefault: `
-    check_wmi "query=select FreeSpace, DeviceID FROM Win32_LogicalDisk WHERE DeviceID = 'C:'"
-    27955118080, C:
+    check_wmi "query=select DeviceID, FreeSpace FROM Win32_LogicalDisk WHERE DeviceID = 'C:'"
+    C:, 27955118080
 
 Same query, but use output template for custom plugin output:
 
-    check_wmi "query=select FreeSpace, DeviceID FROM Win32_LogicalDisk WHERE DeviceID = 'C:'" "detail-syntax= %(DeviceID) %(FreeSpace:h)"
+    check_wmi "query=select DeviceID, FreeSpace FROM Win32_LogicalDisk WHERE DeviceID = 'C:'" "detail-syntax= %(DeviceID) %(FreeSpace:h)"
     C: 27.94 G
+
+Performance data will be extracted if the query contains at least 2 attributes. The first one must be a name, the others must be numeric.
+
+    check_wmi query="select DeviceID, FreeSpace, Size FROM Win32_LogicalDisk"
+	C:, 27199328256 |'FreeSpace_C'=27199328256
 	`,
 	}
 }
@@ -68,12 +75,12 @@ func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Ar
 		return nil, fmt.Errorf("wmi query required")
 	}
 
-	querydata, err := wmi.RawQuery(l.query)
+	queryData, err := wmi.RawQuery(l.query)
 	if err != nil {
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}
 
-	for _, row := range querydata {
+	for _, row := range queryData {
 		values := []string{}
 		entry := map[string]string{}
 		for k := range row {
@@ -88,44 +95,36 @@ func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Ar
 	return check.Finalize()
 }
 
-// AddPerfData extracts performance data from a WMI query result row and adds it to the check result.
-// It expects a pointer to a CheckWMI object (l), a pointer to a CheckData object (check),
-// and a slice of wmi.Data objects (row).
-// If the row contains at least two elements, it attempts to parse the second element as a float64 value and adds it to the check result metrics.
-// The first element is used as a label for the metric if available, with certain characters replaced for compatibility.
-// If no label is provided, the key of the second element is used.
-// The function ensures that the metric name is properly formatted and adds it along with the parsed value to the check result metrics.
-// If parsing fails, it logs a message indicating the failure.
-// If the row contains fewer than two elements, it logs a message indicating that the WMI query result is not formatted correctly for performance data.
+// AddPerfData function extracts labels and values from WMI query results and adds them as metrics.
+// It uses the first column as name any the remaining columns as float64 value.
 func (l *CheckWMI) AddPerfData(check *CheckData, row []wmi.Data) {
-	if len(row) >= 2 {
-		value, err := strconv.ParseFloat(row[1].Value, 64)
-		if err == nil {
-			perfLabel := ""
-			replacer := strings.NewReplacer(
-				"-", "_",
-				" ", "_",
-				",", "_",
-				".", "_",
-				"/", "_",
-				":", "_",
-				"\\", "_",
-				"__", "_",
-				"___", "_",
-			)
-			if row[0].Value != "" {
-				perfLabel = fmt.Sprintf("%s_%s", row[1].Key, replacer.Replace(row[0].Value))
-			} else {
-				perfLabel = replacer.Replace(row[1].Key)
-			}
-			check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-				Name:  strings.TrimRight(replacer.Replace(perfLabel), "_"),
-				Value: value,
-			})
-		} else {
-			log.Infof("value returned by wmi query cannot be converted to a float64. value=%s", row[1].Value)
+	if len(row) < 2 {
+		log.Debugf("wmi query returned less than 2 columns. Extracting performance data requires at least 2.")
+
+		return
+	}
+
+	prefix := row[0].Value
+
+	for _, entry := range row[1:] {
+		value, err := convert.Float64E(entry.Value)
+		if err != nil {
+			log.Debugf("value returned by wmi query cannot be converted to a float64. value='%s': %s", entry.Value, err.Error())
+
+			continue
 		}
-	} else {
-		log.Infof("wmi query returned more than 2 columns. For perfdata we require only 2.")
+
+		perfLabel := entry.Key
+		if prefix != "" {
+			perfLabel = fmt.Sprintf("%s %s", prefix, perfLabel)
+		}
+
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			ThresholdName: entry.Key,
+			Name:          perfLabel,
+			Value:         value,
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+		})
 	}
 }

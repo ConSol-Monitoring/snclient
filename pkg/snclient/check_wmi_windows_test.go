@@ -20,7 +20,7 @@ func TestCheckWMI(t *testing.T) {
 	StopTestAgent(t, snc)
 }
 
-func TestCheckWMIPerfCounter_AvailableMBytes(t *testing.T) {
+func TestCheckWMIPerfCounterAvailableMBytes(t *testing.T) {
 	config := `
 	[/modules]
 	CheckWMI = enabled
@@ -31,6 +31,22 @@ func TestCheckWMIPerfCounter_AvailableMBytes(t *testing.T) {
 	res.ParsePerformanceDataFromOutput()
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Contains(t, string(res.BuildPluginOutput()), "|'AvailableMBytes'=", "AvailableMBytes available in perfdata")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckWMIPerfCounterMultiple(t *testing.T) {
+	config := `
+	[/modules]
+	CheckWMI = enabled
+	`
+	snc := StartTestAgent(t, config)
+
+	res := snc.RunCheck("check_wmi", []string{"query='select DeviceID, FreeSpace, Size FROM Win32_LogicalDisk'"})
+	res.ParsePerformanceDataFromOutput()
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Contains(t, string(res.BuildPluginOutput()), "'C: FreeSpace'=", "C: FreeSpace found in perfdata")
+	assert.Contains(t, string(res.BuildPluginOutput()), "'C: Size'=", "Size found in perfdata")
 
 	StopTestAgent(t, snc)
 }

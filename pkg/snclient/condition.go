@@ -10,6 +10,8 @@ import (
 	"pkg/convert"
 	"pkg/humanize"
 	"pkg/utils"
+
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -673,18 +675,18 @@ func conditionFixTokenOperator(token []string) []string {
 }
 
 // ThresholdString returns string used in warn/crit threshold performance data.
-func ThresholdString(name string, conditions []*Condition, numberFormat func(interface{}) string) string {
+func ThresholdString(name []string, conditions []*Condition, numberFormat func(interface{}) string) string {
 	// fetch warning conditions for name of metric
 	filtered := make([]*Condition, 0)
 	var group GroupOperator
 	for num := range conditions {
-		if conditions[num].keyword == name {
+		if slices.Contains(name, conditions[num].keyword) {
 			filtered = append(filtered, conditions[num])
 		}
 		if conditions[num].groupOperator == GroupOr {
 			group = conditions[num].groupOperator
 			for i := range conditions[num].group {
-				if conditions[num].group[i].keyword == name {
+				if slices.Contains(name, conditions[num].group[i].keyword) {
 					filtered = append(filtered, conditions[num].group[i])
 				}
 			}
@@ -692,7 +694,7 @@ func ThresholdString(name string, conditions []*Condition, numberFormat func(int
 		if conditions[num].groupOperator == GroupAnd {
 			group = conditions[num].groupOperator
 			for i := range conditions[num].group {
-				if conditions[num].group[i].keyword == name {
+				if slices.Contains(name, conditions[num].group[i].keyword) {
 					filtered = append(filtered, conditions[num].group[i])
 				}
 			}
