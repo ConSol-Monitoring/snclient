@@ -3,10 +3,11 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"pkg/convert"
-	"pkg/wmi"
 	"runtime"
 	"strings"
+
+	"pkg/convert"
+	"pkg/wmi"
 )
 
 func init() {
@@ -58,6 +59,11 @@ Performance data will be extracted if the query contains at least 2 attributes. 
 
     check_wmi query="select DeviceID, FreeSpace, Size FROM Win32_LogicalDisk"
 	C:, 27199328256 |'FreeSpace_C'=27199328256
+
+Use perf-config to format the performance data and apply thresholds:
+
+    check_wmi query="select DeviceID, FreeSpace FROM Win32_LogicalDisk" perf-config="*(unit:B)" warn="FreeSpace > 1000000"
+	C:, 27199328256 |'FreeSpace_C'=27199328256B;1000000
 	`,
 	}
 }

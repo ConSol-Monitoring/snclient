@@ -112,7 +112,8 @@ func (m *CheckMetric) tweakedName() (name string) {
 	return name
 }
 
-// return number and unit but apply tweaks from perf-config before
+// tweakedNum applies perf-config tweaks to a given number and returns the formatted number and unit.
+// It handles multiplication by a magic factor, conversion to percentages, and unit conversions
 func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
 	if m.PerfConfig == nil {
 		return convert.Num2String(rawNum), m.Unit
@@ -129,6 +130,10 @@ func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
 		perc := ((val - *m.Min) / (*m.Max - *m.Min)) * 100
 
 		return convert.Num2String(perc), m.PerfConfig.Unit
+	}
+
+	if m.Unit == "" && m.PerfConfig.Unit != "" {
+		m.Unit = m.PerfConfig.Unit
 	}
 
 	switch m.Unit {
