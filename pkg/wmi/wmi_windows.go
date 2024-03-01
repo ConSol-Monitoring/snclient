@@ -25,13 +25,15 @@ func InitWbem() error {
 	return nil
 }
 
+// QueryDefaultRetry sends a query with the default retry duration of 1sec
 func QueryDefaultRetry(query string, dst interface{}) (err error) {
-	return QueryWithRetries(query, dst, 3, 1*time.Second)
+	return QueryWithRetries(query, dst, "", 3, 1*time.Second)
 }
 
-func QueryWithRetries(query string, dst interface{}, retries int, delay time.Duration) (err error) {
+// QueryWithRetries executes the given query with specified retries and delay between retries.
+func QueryWithRetries(query string, dst interface{}, namespace string, retries int, delay time.Duration) (err error) {
 	for retries > 0 {
-		err = Query(query, dst)
+		err = Query(query, dst, namespace)
 		if err == nil {
 			return nil
 		}
@@ -45,13 +47,19 @@ func QueryWithRetries(query string, dst interface{}, retries int, delay time.Dur
 	return err
 }
 
-func Query(query string, dst interface{}) (err error) {
+// Query sends a single query, the namespace is optional and can be empty
+func Query(query string, dst interface{}, namespace string) (err error) {
 	query = strings.TrimSpace(query)
-	err = ywmi.Query(query, dst)
+	if namespace != "" {
+		err = ywmi.QueryNamespace(query, dst, namespace)
+	} else {
+		err = ywmi.Query(query, dst)
+	}
 
 	return
 }
 
+// RawQuery sends a query and returns a 2dimensional data array or any error encountered
 func RawQuery(query string) (res [][]Data, err error) {
 	query = strings.TrimSpace(query)
 	err = ole.CoInitialize(0)
