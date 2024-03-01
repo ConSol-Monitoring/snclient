@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"pkg/wmi"
@@ -81,7 +82,50 @@ func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Ar
 		}
 		check.listData = append(check.listData, entry)
 		entry["line"] = strings.Join(values, ", ")
+		l.AddPerfData(check, row)
 	}
 
 	return check.Finalize()
+}
+
+// AddPerfData extracts performance data from a WMI query result row and adds it to the check result.
+// It expects a pointer to a CheckWMI object (l), a pointer to a CheckData object (check),
+// and a slice of wmi.Data objects (row).
+// If the row contains at least two elements, it attempts to parse the second element as a float64 value and adds it to the check result metrics.
+// The first element is used as a label for the metric if available, with certain characters replaced for compatibility.
+// If no label is provided, the key of the second element is used.
+// The function ensures that the metric name is properly formatted and adds it along with the parsed value to the check result metrics.
+// If parsing fails, it logs a message indicating the failure.
+// If the row contains fewer than two elements, it logs a message indicating that the WMI query result is not formatted correctly for performance data.
+func (l *CheckWMI) AddPerfData(check *CheckData, row []wmi.Data) {
+	if len(row) >= 2 {
+		value, err := strconv.ParseFloat(row[1].Value, 64)
+		if err == nil {
+			perfLabel := ""
+			replacer := strings.NewReplacer(
+				"-", "_",
+				" ", "_",
+				",", "_",
+				".", "_",
+				"/", "_",
+				":", "_",
+				"\\", "_",
+				"__", "_",
+				"___", "_",
+			)
+			if row[0].Value != "" {
+				perfLabel = fmt.Sprintf("%s_%s", row[1].Key, replacer.Replace(row[0].Value))
+			} else {
+				perfLabel = replacer.Replace(row[1].Key)
+			}
+			check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+				Name:  strings.TrimRight(replacer.Replace(perfLabel), "_"),
+				Value: value,
+			})
+		} else {
+			log.Infof("value returned by wmi query cannot be converted to a float64. value=%s", row[1].Value)
+		}
+	} else {
+		log.Infof("wmi query returned more than 2 columns. For perfdata we require only 2.")
+	}
 }
