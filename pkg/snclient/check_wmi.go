@@ -58,12 +58,12 @@ Same query, but use output template for custom plugin output:
 Performance data will be extracted if the query contains at least 2 attributes. The first one must be a name, the others must be numeric.
 
     check_wmi query="select DeviceID, FreeSpace, Size FROM Win32_LogicalDisk"
-	C:, 27199328256 |'FreeSpace_C'=27199328256
+	C:, 27199328256 |'C: FreeSpace'=27199328256
 
 Use perf-config to format the performance data and apply thresholds:
 
     check_wmi query="select DeviceID, FreeSpace FROM Win32_LogicalDisk" perf-config="*(unit:B)" warn="FreeSpace > 1000000"
-	C:, 27199328256 |'FreeSpace_C'=27199328256B;1000000
+	C:, 27199328256 |'C: FreeSpace'=27199328256B;1000000
 	`,
 	}
 }
