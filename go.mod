@@ -28,7 +28,7 @@ replace pkg/check_tcp => ./pkg/check_tcp
 replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240129124248-a5f3e5722a21
 
 require (
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	pkg/snclient/cmd v0.0.0-00010101000000-000000000000
 	pkg/utils v0.0.0-00010101000000-000000000000
 )
