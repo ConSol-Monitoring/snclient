@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -208,14 +209,11 @@ func processTimeoutKill(process *os.Process) {
 }
 
 func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
-	_, args, hasShellCode, err := shelltoken.Parse(command, true)
+	cmdName, cmdArgs, hasShellCode, err := snc.shellParse(command)
 	if err != nil {
-		return nil, fmt.Errorf("command parse error: %s", err.Error())
+		return nil, err
 	}
 
-	args = snc.fixPathHoles(args)
-	cmdName := args[0]
-	cmdArgs := args[1:]
 	shell := shell()
 	_, lookupErr := exec.LookPath(cmdName)
 
@@ -284,6 +282,23 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 
 		return cmd, nil
 	}
+}
+
+func (snc *Agent) shellParse(command string) (cmdName string, args []string, hasShellCode bool, err error) {
+	_, args, err = shelltoken.SplitWindows(command)
+	if err != nil {
+		if errors.Is(err, &shelltoken.ShellCharactersFoundError{}) {
+			hasShellCode = true
+		} else {
+			return "", nil, false, fmt.Errorf("command parse error: %s", err.Error())
+		}
+	}
+
+	args = snc.fixPathHoles(args)
+	cmdName = args[0]
+	args = args[1:]
+
+	return
 }
 
 func execCommandContext(ctx context.Context, cmdName string, env []string, args ...string) *exec.Cmd {

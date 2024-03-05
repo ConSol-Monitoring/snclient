@@ -37,12 +37,12 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/sassoftware/go-rpmutils v0.3.0
 	github.com/sevlyar/go-daemon v0.1.6
-	github.com/shirou/gopsutil/v3 v3.24.1
+	github.com/shirou/gopsutil/v3 v3.24.2
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae
-	github.com/sni/shelltoken v0.0.0-20240221152848-71db8ecdd4dc
-	github.com/stretchr/testify v1.8.4
+	github.com/sni/shelltoken v0.0.0-20240305201340-d67cf5c19d23
+	github.com/stretchr/testify v1.9.0
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
-	golang.org/x/sys v0.17.0
+	golang.org/x/sys v0.18.0
 	gopkg.in/yaml.v3 v3.0.1
 	pkg/check_dns v0.0.0-00010101000000-000000000000
 	pkg/check_tcp v0.0.0-00010101000000-000000000000
@@ -76,7 +76,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/client_model v0.6.0 // indirect
-	github.com/prometheus/common v0.48.0 // indirect
+	github.com/prometheus/common v0.49.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/rickb777/date v1.20.6 // indirect
 	github.com/rickb777/plural v1.4.1 // indirect
@@ -86,10 +86,10 @@ require (
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/crypto v0.20.0 // indirect
-	golang.org/x/mod v0.15.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/crypto v0.21.0 // indirect
+	golang.org/x/mod v0.16.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/tools v0.18.0 // indirect
-	google.golang.org/protobuf v1.32.0 // indirect
+	golang.org/x/tools v0.19.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )
