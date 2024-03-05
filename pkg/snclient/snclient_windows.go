@@ -285,10 +285,12 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 }
 
 func (snc *Agent) shellParse(command string) (cmdName string, args []string, hasShellCode bool, err error) {
-	_, args, err = shelltoken.SplitWindows(command)
+	args, err = shelltoken.SplitQuotes(command, shelltoken.Whitespace, shelltoken.SplitKeepBackslashes|shelltoken.SplitContinueOnShellCharacters)
 	if err != nil {
-		if errors.Is(err, &shelltoken.ShellCharactersFoundError{}) {
+		tst := &shelltoken.ShellCharactersFoundError{}
+		if errors.As(err, &tst) {
 			hasShellCode = true
+			err = nil
 		} else {
 			return "", nil, false, fmt.Errorf("command parse error: %s", err.Error())
 		}
