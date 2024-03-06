@@ -1,5 +1,6 @@
 #!/usr/bin/make -f
 
+PROJECT=snclient
 MAKE:=make
 SHELL:=bash
 GOVERSION:=$(shell \
@@ -81,10 +82,7 @@ all: build
 
 CMDS = $(shell cd ./cmd && ls -1)
 
-tools: | versioncheck vendor go.work
-	$(GO) mod download
-	$(GO) mod tidy
-	$(GO) mod vendor
+tools: | versioncheck
 	set -e; for DEP in $(shell grep "_ " buildtools/tools.go | awk '{ print $$2 }' | grep -v pkg/dump); do \
 		( cd buildtools && $(GO) install $$DEP@latest ) ; \
 	done
@@ -110,17 +108,16 @@ cleandeps:
 	$(GO) mod tidy
 	( cd buildtools && $(GO) mod tidy )
 
-
 vendor: go.work
 	$(GO) mod download
 	$(GO) mod tidy
-	$(GO) mod vendor
+	GOWORK=off $(GO) mod vendor
 
 go.work: pkg/*
 	echo "go $(MINGOVERSIONSTR)" > go.work
 	$(GO) work use . pkg/* pkg/*/*/. buildtools/.
 
-build: vendor go.work snclient.ini server.crt server.key
+build: vendor snclient.ini server.crt server.key
 	set -xe; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && CGO_ENABLED=$(CGO_ENABLED) $(GO) build $(BUILD_FLAGS) -o ../../$$CMD ) ; \
 	done
@@ -221,7 +218,7 @@ citest: tools vendor
 	# Run other subtests
 	#
 	$(MAKE) golangci
-	#-$(MAKE) govulncheck
+	-$(MAKE) govulncheck
 	$(MAKE) fmt
 	#
 	# Normal test cases
@@ -295,6 +292,7 @@ clean:
 	rm -f node_exporter-*.tar.gz
 
 GOVET=$(GO) vet -all
+SRCFOLDER=./cmd/. ./pkg/. ./t/. ./buildtools/.
 fmt: tools
 	set -e; for CMD in $(CMDS); do \
 		$(GOVET) ./cmd/$$CMD; \
@@ -302,15 +300,15 @@ fmt: tools
 	set -e; for dir in $(shell ls -d1 pkg/* t/); do \
 		$(GOVET) ./$$dir; \
 	done
-	gofmt -w -s ./cmd/ ./pkg/ ./t/ ./buildtools/
-	./tools/gofumpt -w ./cmd/ ./pkg/ ./t/ ./buildtools/.
-	./tools/gci write ./cmd/. ./pkg/. ./t/. ./buildtools/. --skip-generated
-	goimports -w ./cmd/ ./pkg/ ./t/. ./buildtools/.
+	gofmt -w -s $(SRCFOLDER)
+	./tools/gofumpt -w $(SRCFOLDER)
+	./tools/gci write --skip-generated $(SRCFOLDER)
+	goimports -w $(SRCFOLDER)
 
 versioncheck:
 	@[ $$( printf '%s\n' $(GOVERSION) $(MINGOVERSION) | sort | head -n 1 ) = $(MINGOVERSION) ] || { \
 		echo "**** ERROR:"; \
-		echo "**** SNClient+ requires at least golang version $(MINGOVERSIONSTR) or higher"; \
+		echo "**** $(PROJECT) requires at least golang version $(MINGOVERSIONSTR) or higher"; \
 		echo "**** this is: $$(go version)"; \
 		exit 1; \
 	}

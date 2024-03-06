@@ -24,7 +24,6 @@ server.key
 release_notes.txt
 release_blog.md
 *.local
-go.work.sum
 snclient.wixobj
 snclient.wixpdb
 sign/
@@ -32,3 +31,5 @@ sign.pfx
 winres/
 rsrc_windows*.syso
 node_exporter-*
+go.work
+go.work.sum
