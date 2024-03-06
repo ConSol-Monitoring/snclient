@@ -62,7 +62,8 @@ jobs:
           go-version: ${{ env.GOVERSION }}
       - run: |
           echo "Testing with ${{ env.GOVERSION }}"
-          GOWORK=off go mod vendor
+          $Env:GOWORK = "off"
+          go mod vendor
           go test -v pkg/... ; if ($LASTEXITCODE -ne 0) { exit 1 }
 
   test-osx:
