@@ -66,6 +66,7 @@ jobs:
           go work use .
           $Env:GOWORK = "off"
           go mod vendor
+          $Env:GOWORK = ""
           go test -v pkg/... ; if ($LASTEXITCODE -ne 0) { exit 1 }
 
   test-osx:
