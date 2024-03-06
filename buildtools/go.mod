@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/daixiang0/gci v0.12.3
-	github.com/florentsolt/colorgo v0.0.0-20190915162800-0863107568c6
 	github.com/golangci/golangci-lint v1.56.2
 	github.com/tc-hib/go-winres v0.3.1
 	golang.org/x/tools v0.18.0
@@ -151,7 +150,6 @@ require (
 	github.com/sivchari/nosnakecase v1.7.0 // indirect
 	github.com/sivchari/tenv v1.7.1 // indirect
 	github.com/sonatard/noctx v0.0.2 // indirect
-	github.com/songgao/go.pipeline v0.0.0-20220429045509-ad6449c973e2 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/sourcegraph/go-diff v0.7.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect

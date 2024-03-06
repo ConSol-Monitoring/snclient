@@ -142,8 +142,6 @@ github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4
 github.com/fatih/structtag v1.2.0/go.mod h1:mBJUNpUnHmRKrKlQQlmCrh5PuhftFbNv8Ys4/aAZl94=
 github.com/firefart/nonamedreturns v1.0.4 h1:abzI1p7mAEPYuR4A+VLKn4eNDOycjYo2phmY9sfv40Y=
 github.com/firefart/nonamedreturns v1.0.4/go.mod h1:TDhe/tjI1BXo48CmYbUduTV7BdIga8MAO/xbKdcVsGI=
-github.com/florentsolt/colorgo v0.0.0-20190915162800-0863107568c6 h1:Llagpah9T8IdYcpWf7jBf3OIJQGaZnc5SChPJqzlmV8=
-github.com/florentsolt/colorgo v0.0.0-20190915162800-0863107568c6/go.mod h1:11JaEZlQpTHgZCmgd/nUy7yW4RoYaXRwVhNiJx4I+s8=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=
@@ -500,8 +498,6 @@ github.com/sivchari/tenv v1.7.1 h1:PSpuD4bu6fSmtWMxSGWcvqUUgIn7k3yOJhOIzVWn8Ak=
 github.com/sivchari/tenv v1.7.1/go.mod h1:64yStXKSOxDfX47NlhVwND4dHwfZDdbp2Lyl018Icvg=
 github.com/sonatard/noctx v0.0.2 h1:L7Dz4De2zDQhW8S0t+KUjY0MAQJd6SgVwhzNIc4ok00=
 github.com/sonatard/noctx v0.0.2/go.mod h1:kzFz+CzWSjQ2OzIm46uJZoXuBpa2+0y3T36U18dWqIo=
-github.com/songgao/go.pipeline v0.0.0-20220429045509-ad6449c973e2 h1:ee5YtmEnQM9oKE4/Ta4OeQEIOihGkSUeLOc2BTKLno4=
-github.com/songgao/go.pipeline v0.0.0-20220429045509-ad6449c973e2/go.mod h1:ejXNa8yySzAwHds1n2F8nFqp0vgOOKm1/kXtHpbYL5o=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/sourcegraph/go-diff v0.7.0 h1:9uLlrd5T46OXs5qpp8L/MTltk0zikUGi0sNNyCpA8G0=

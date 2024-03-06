@@ -55,9 +55,6 @@ WINDOWS_EXPORTER_URL=https://github.com/prometheus-community/windows_exporter/re
 
 SED=sed -i
 GO=go
-ifneq "$(wildcard ./tools/colorgo )" ""
-  GO=COLORGO_FILE=magenta colorgo
-endif
 CGO_ENABLED=0
 
 # OSX must be build with CGO enabled, otherwise we don't get cpu metrics
