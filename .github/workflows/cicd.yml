@@ -60,8 +60,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GOVERSION }}
-      - run: go mod vendor
-      - run: go test -v pkg/... ; if ($LASTEXITCODE -ne 0) { exit 1 }
+      - run: |
+          echo "Testing with ${{ env.GOVERSION }}"
+          GOWORK=off go mod vendor
+          go test -v pkg/... ; if ($LASTEXITCODE -ne 0) { exit 1 }
 
   test-osx:
     runs-on: macos-latest
