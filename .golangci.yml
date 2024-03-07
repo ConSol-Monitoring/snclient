@@ -44,7 +44,6 @@ linters:
     - exhaustruct
     - gochecknoglobals
     - gochecknoinits
-    - gomoddirectives
     - golint
     - ifshort
     - interfacer
@@ -128,6 +127,7 @@ issues:
     - "parameter name 'a' is too short for the scope of its usage"
     - "parameter name 'b' is too short for the scope of its usage"
     - ".execCommand` - `timeout` always receives `DefaultCmdTimeout"
+    - "replacement are not allowed: github.com/shirou/gopsutil"
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
