@@ -34,30 +34,31 @@ linters:
   enable-all: true
   fast: false
   disable:
-    - gci
-    - gofumpt
-    - godot
     - cyclop
-    - deadcode
     - depguard
     - exhaustivestruct
     - exhaustruct
+    - gci
     - gochecknoglobals
     - gochecknoinits
-    - golint
+    - godot
+    - gofumpt
     - ifshort
     - interfacer
     - maligned
     - nonamedreturns
-    - nosnakecase
     - paralleltest
     - perfsprint
-    - scopelint
-    - structcheck
     - tagliatelle
     - testpackage
-    - varcheck
     - wsl
+    # deprecated
+    - deadcode
+    - structcheck
+    - varcheck
+    - scopelint
+    - nosnakecase
+    - golint
 issues:
   max-same-issues: 0
   exclude-use-default: true
