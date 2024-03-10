@@ -6,6 +6,7 @@ next:
          - update check_nsc_web to v0.6.3
          - check_service: fix json error
          - update windows build framework to wix 3.14
+         - improve wmi stability
 
 0.19     Wed Feb 28 00:09:39 CET 2024
          - write startup errors to default logfile
