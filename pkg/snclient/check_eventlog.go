@@ -9,6 +9,7 @@ type CheckEventlog struct {
 	timeZoneStr     string
 	scanRange       string
 	truncateMessage int
+	uniqueIndex     string
 }
 
 func NewCheckEventlog() CheckHandler {
@@ -53,6 +54,7 @@ a description of the provided fields.
 			"timezone":         {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
 			"scan-range":       {value: &l.scanRange, description: "Sets time range to scan for message (default is 24h)"},
 			"truncate-message": {value: &l.truncateMessage, description: "Maximum length of message for each event log message text"},
+			"unique-index":     {value: &l.uniqueIndex, description: "Combination of fields that identify unique events (Set it to 1 to use the default of \"${log}-${source}-${id}\")"},
 		},
 		defaultFilter:   "level in ('warning', 'error', 'critical')",
 		defaultWarning:  "level = 'warning' or problem_count > 0",
@@ -73,10 +75,16 @@ a description of the provided fields.
 			{name: "source", description: "The source system (SourceName)"},
 			{name: "provider", description: "Alias for source"},
 			{name: "written", description: "Time of the message being written( TimeWritten)"},
+			{name: "uniqueindex", description: "Unique combination of fields to identify the event (Default \"${log}-${source}-${id}\")"},
 		},
 		exampleDefault: `
     check_eventlog
     OK - Event log seems fine
+
+Only return unique events:
+
+	check_eventlog "detail-syntax=%(id) %(uniqueindex)" "unique-index=1" 
+	WARNING - 4 message(s) warning(10010 Application-Microsoft-Windows-RestartManager-10010, 10016 System-Microsoft-Windows-DistributedCOM-10016, 6155 System-LsaSrv-6155, 6147 System-LsaSrv-6147)
 	`,
 		exampleArgs: `filter=provider = 'Microsoft-Windows-Security-SPP' and id = 903 and message like 'foo'`,
 	}
