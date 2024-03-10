@@ -1,3 +1,9 @@
+name: Deploy Docs
+#
+#
+# this workflow:
+#    - deploys the markdown documentation to omd.consol.de
+
 on:
   workflow_dispatch: {}
   push:
