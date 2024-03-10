@@ -4,6 +4,7 @@ next:
          - check_wmi: add performance data
          - check_wmi: add support for empty-syntax
          - update check_nsc_web to v0.6.3
+         - check_service: fix json error
 
 0.19     Wed Feb 28 00:09:39 CET 2024
          - write startup errors to default logfile
