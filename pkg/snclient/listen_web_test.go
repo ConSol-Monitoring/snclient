@@ -47,3 +47,24 @@ func TestListenWebPerfFloat(t *testing.T) {
 	assert.Nilf(t, perf.IntVal, "int value is empty")
 	assert.Equalf(t, perf.FloatVal, expect, "float value")
 }
+
+func TestListenWebPerfUnknown(t *testing.T) {
+	metric := CheckMetric{
+		Name:  "rss",
+		Value: "U",
+	}
+
+	l := &HandlerWeb{}
+	perf := l.metric2Perf(&metric)
+
+	assert.Equalf(t, "rss", perf.Alias, "alias")
+
+	expect := &CheckWebPerfVal{
+		Value: "U",
+		Unit:  "",
+		Min:   nil,
+		Max:   nil,
+	}
+	assert.Nilf(t, perf.FloatVal, "float value is empty")
+	assert.Equalf(t, perf.IntVal, expect, "int value")
+}

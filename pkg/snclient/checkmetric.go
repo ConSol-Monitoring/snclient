@@ -115,6 +115,10 @@ func (m *CheckMetric) tweakedName() (name string) {
 // tweakedNum applies perf-config tweaks to a given number and returns the formatted number and unit.
 // It handles multiplication by a magic factor, conversion to percentages, and unit conversions
 func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
+	str := fmt.Sprintf("%v", rawNum)
+	if str == "U" {
+		return str, ""
+	}
 	if m.PerfConfig == nil {
 		return convert.Num2String(rawNum), m.Unit
 	}
