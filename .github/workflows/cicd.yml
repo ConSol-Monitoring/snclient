@@ -252,6 +252,7 @@ jobs:
       - run: |
           Write-Host "Building ${{ env.BIN }}.msi"
           Copy-Item .\windist\windows_exporter-${{ matrix.go-arch }}.exe .\windist\windows_exporter.exe
+          # Set-PSDebug -Trace 2
           & .\packaging\windows\build_msi.ps1 `
             -out "${{ env.BIN }}.msi" `
             -arch "${{ matrix.go-arch }}" `

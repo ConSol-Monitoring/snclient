@@ -9,20 +9,21 @@ If (-Not (Test-Path -Path ".\dotnetfx35setup.exe" )) {
 }
 #>
 
-If (-Not (Test-Path -Path "C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe" )) {
-  If (-Not (Test-Path -Path ".\wix311.exe" )) {
+If (-Not (Test-Path -Path "C:\Program Files (x86)\WiX Toolset v3.14\bin\candle.exe" )) {
+  If (-Not (Test-Path -Path ".\wix314.exe" )) {
     Invoke-WebRequest -UseBasicParsing `
-      -Uri https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe `
-      -OutFile wix311.exe
+      -Uri https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314.exe `
+      -OutFile wix314.exe
   }
-  & ".\wix311.exe" "/q"
+  ls
+  & ".\wix314.exe" "/q"
 }
 
 $win_arch = "$arch"
 if ("$arch" -eq "386")   { $win_arch = "x86" }
 if ("$arch" -eq "amd64") { $win_arch = "x64" }
 
-& 'C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe' .\packaging\windows\snclient.wxs `
+& 'C:\Program Files (x86)\WiX Toolset v3.14\bin\candle.exe' .\packaging\windows\snclient.wxs `
   -arch $win_arch `
   -dPlatform="$win_arch" `
   -dMajorVersion="$major" `
@@ -33,7 +34,7 @@ If (-Not $?) {
   Exit 1
 }
 
-& "C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe" ".\snclient.wixobj" -ext WixUtilExtension.dll -ext WixUIExtension.dll
+& "C:\Program Files (x86)\WiX Toolset v3.14\bin\light.exe" ".\snclient.wixobj" -ext WixUtilExtension.dll -ext WixUIExtension.dll
 If (-Not $?) {
   Exit 1
 }
