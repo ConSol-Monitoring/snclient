@@ -570,7 +570,7 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, defaultWarnin
 		case "filter":
 			applyDefaultFilter = false
 			cond, err2 := NewCondition(argValue)
-			if err != nil {
+			if err2 != nil {
 				return nil, "", "", err2
 			}
 			cd.filter = append(cd.filter, cond)
