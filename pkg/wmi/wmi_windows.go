@@ -3,6 +3,7 @@ package wmi
 import (
 	"fmt"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -62,6 +63,7 @@ func Query(query string, dst interface{}, namespace string) (err error) {
 // RawQuery sends a query and returns a 2dimensional data array or any error encountered
 func RawQuery(query string) (res [][]Data, err error) {
 	query = strings.TrimSpace(query)
+	runtime.LockOSThread()
 	err = ole.CoInitialize(0)
 	if err != nil {
 		return nil, fmt.Errorf("wmi: ole.CoInitialize failed: %s", err.Error())

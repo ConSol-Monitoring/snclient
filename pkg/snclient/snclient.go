@@ -223,10 +223,12 @@ func (snc *Agent) Run() {
 	signal.Notify(snc.osSignalChannel, syscall.SIGINT)
 	setupUsrSignalChannel(snc.osSignalChannel)
 
-	if err := wmi.InitWbem(); err != nil {
-		LogStderrf("ERROR: wmi initialization failed: %s", err.Error())
-		snc.CleanExit(ExitCodeError)
-	}
+	doOnce.Do(func() {
+		if err := wmi.InitWbem(); err != nil {
+			LogStderrf("ERROR: wmi initialization failed: %s", err.Error())
+			snc.CleanExit(ExitCodeError)
+		}
+	})
 
 	snc.startModules(snc.initSet)
 	snc.running.Store(true)
