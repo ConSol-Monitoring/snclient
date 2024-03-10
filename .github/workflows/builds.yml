@@ -1,5 +1,5 @@
-name: Test, Build, Package, Release
-
+name: Builds
+#
 #
 # this workflow:
 #    - runs tests
