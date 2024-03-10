@@ -28,7 +28,7 @@ to test something.
 
 Installing the development snapshot is straight forward:
 
-1. Open the [SNClient+ Github Actions](https://github.com/ConSol-Monitoring/snclient/actions/workflows/cicd.yml?query=branch%3Amain) page
+1. Open the [SNClient+ Github Actions](https://github.com/ConSol-Monitoring/snclient/actions/workflows/builds.yml?query=branch%3Amain) page
 2. Choose first green build like in
    ![Actions](actions.png "Choose latest green build")
 3. Scroll down and choose the download which matches your architecture:
