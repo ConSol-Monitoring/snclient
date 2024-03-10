@@ -168,6 +168,22 @@ func TestMSIinstaller(t *testing.T) {
 		Exit: 3,
 	})
 
+	// check a stopped daemon
+	runCmd(t, &cmd{Cmd: "net", Args: []string{"stop", "Spooler"}})
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-a", "legacy", "-u", "https://localhost:8443", "check_service", "service=Spooler", "warn=state!=started", "crit=none"},
+		Like: []string{"Spooler=stopped", "'Spooler rss'=U"},
+		Exit: 1,
+	})
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-a", "1", "-u", "https://localhost:8443", "check_service", "service=Spooler", "warn=state!=started", "crit=none"},
+		Like: []string{"Spooler=stopped", "'Spooler rss'=U"},
+		Exit: 1,
+	})
+	runCmd(t, &cmd{Cmd: "net", Args: []string{"start", "Spooler"}})
+
 	// cleanup
 	os.Remove(localINIPath)
 
