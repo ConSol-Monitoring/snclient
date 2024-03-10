@@ -61,6 +61,7 @@ linters:
     - golint
 issues:
   max-same-issues: 0
+  max-issues-per-linter: 0
   exclude-use-default: true
   exclude:
     - "`noCopy` is unused"
@@ -131,7 +132,7 @@ issues:
     - "replacement are not allowed: github.com/shirou/gopsutil"
   exclude-rules:
     # Exclude some linters from running on tests files.
-    - path: _test\.go
+    - path: _test.*\.go
       linters:
         - dupword
         - funlen
