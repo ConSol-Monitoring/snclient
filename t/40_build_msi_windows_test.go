@@ -177,8 +177,20 @@ func TestMSIinstaller(t *testing.T) {
 		Exit: 1,
 	})
 	runCmd(t, &cmd{
-		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-a", "1", "-u", "https://localhost:8443", "check_service", "service=Spooler", "warn=state!=started", "crit=none"},
+		Cmd: bin,
+		Args: []string{
+			"run", "check_nsc_web", "-k", "-p", "test", "-a", "1", "-u", "https://localhost:8443",
+			"check_service", "service=Spooler", "warn=state!=started", "crit=none",
+		},
+		Like: []string{"Spooler=stopped", "'Spooler rss'=U"},
+		Exit: 1,
+	})
+	runCmd(t, &cmd{
+		Cmd: bin,
+		Args: []string{
+			"run", "check_nsc_web", "-k", "-p", "test", "-a", "1", "-u", "https://localhost:8443",
+			"check_service", "service=Spooler", "warn=state!=started", "crit=none", "perf-config=*(magic:2)",
+		},
 		Like: []string{"Spooler=stopped", "'Spooler rss'=U"},
 		Exit: 1,
 	})
