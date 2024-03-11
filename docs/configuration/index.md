@@ -185,7 +185,7 @@ Support operators are:
 | `:date`               | 1700834034 -> 2023-11-24 14:53:54 CET | convert unix timestamp into human readable date (local timezone) |
 | `:utc`                | 1700834034 -> 2023-11-24 13:53:54 UTC | convert unix timestamp into human readable date (utc timezone) |
 | `:fmt=<fmt>`          | 123.45 -> 123.4                       | apply format, ex.: $(total \| fmt=%.1f) (using GOs fmt.Sprintf) |
-| : s/regexp/replace/` | C:\ % -> C                            | apply regexp replacement, ex.: $(name \| 's/\\W//' ) (using GOs regexp.Compile) |
+| `:s/regexp/replace/`  | C:\ % -> C                            | apply regexp replacement, ex.: $(name \| 's/\\W//' ) (using GOs regexp.Compile) |
 
 for example, define a dummy command which prints the hostname in lower case letters:
 
