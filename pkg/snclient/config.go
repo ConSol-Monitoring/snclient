@@ -411,7 +411,7 @@ func (config *Config) SectionNamesSorted() []string {
  *   %(/settings/section/attribute)
  */
 func (config *Config) ReplaceOnDemandConfigMacros(value string) string {
-	value = reMacro.ReplaceAllStringFunc(value, func(macro string) string {
+	value = reOnDemandMacro.ReplaceAllStringFunc(value, func(macro string) string {
 		orig := macro
 		macro = extractMacroString(macro)
 

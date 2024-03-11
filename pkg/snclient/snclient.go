@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
@@ -23,8 +22,6 @@ import (
 	"syscall"
 	"time"
 
-	"pkg/convert"
-	"pkg/humanize"
 	"pkg/utils"
 	"pkg/wmi"
 
@@ -109,16 +106,6 @@ var (
 	AvailableListeners []*LoadableModule
 
 	GlobalMacros = getGlobalMacros()
-
-	// macros can be either ${...} or %(...) or all variants of $ / % with () or {}
-	macroChars = `a-zA-Z0-9\-_: /\|=\%\.`
-	reMacro    = regexp.MustCompile(`(\$|%)(\{\s*[` + macroChars + `]+\s*\}|\(\s*[` + macroChars + `]+\s*\))`)
-
-	// runtime macros can be %...% or $...$ or $ARGS"$
-	runtimeMacroChars = `a-zA-Z0-9"`
-	reRuntimeMacro    = regexp.MustCompile(`%[` + runtimeMacroChars + `]+%|\$[` + runtimeMacroChars + `]+\$`)
-
-	reFloatFormat = regexp.MustCompile(`^%[.\d]*f$`)
 )
 
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
@@ -909,153 +896,6 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 			lastStat[file] = &stat
 		}
 	}
-}
-
-/* replaceMacros replaces variables in given string (config ini file style macros).
- * possible macros are:
- *   ${macro} / $(macro)
- *   %(macro) / %{macro}
- */
-func ReplaceMacros(value string, macroSets ...map[string]string) string {
-	value = reMacro.ReplaceAllStringFunc(value, func(str string) string {
-		orig := str
-		str = extractMacroString(str)
-
-		return getMacrosetsValue(str, orig, macroSets...)
-	})
-
-	return value
-}
-
-func extractMacroString(str string) string {
-	str = strings.TrimSpace(str)
-
-	switch {
-	// $... macros
-	case strings.HasPrefix(str, "$"):
-		str = strings.TrimPrefix(str, "$")
-	// %... macros
-	case strings.HasPrefix(str, "%"):
-		str = strings.TrimPrefix(str, "%")
-	}
-
-	switch {
-	// {...} macros
-	case strings.HasPrefix(str, "{"):
-		str = strings.TrimPrefix(str, "{")
-		str = strings.TrimSuffix(str, "}")
-	// (...) macros
-	case strings.HasPrefix(str, "("):
-		str = strings.TrimPrefix(str, "(")
-		str = strings.TrimSuffix(str, ")")
-	}
-	str = strings.TrimSpace(str)
-
-	return (str)
-}
-
-/* ReplaceRuntimeMacros replaces runtime variables in given string (check output template style macros).
- * possible macros are:
- *   %macro%
- *   $macro$
- */
-func ReplaceRuntimeMacros(value string, macroSets ...map[string]string) string {
-	value = reRuntimeMacro.ReplaceAllStringFunc(value, func(str string) string {
-		orig := str
-		str = strings.TrimSpace(str)
-
-		switch {
-		// %...% macros
-		case strings.HasPrefix(str, "%"):
-			str = strings.TrimPrefix(str, "%")
-			str = strings.TrimSuffix(str, "%")
-		// $...$ macros
-		case strings.HasPrefix(str, "$"):
-			str = strings.TrimPrefix(str, "$")
-			str = strings.TrimSuffix(str, "$")
-		}
-
-		return getMacrosetsValue(str, orig, macroSets...)
-	})
-
-	return value
-}
-
-func getMacrosetsValue(macro, orig string, macroSets ...map[string]string) string {
-	// split by : and |
-	flags := strings.FieldsFunc(macro, func(r rune) bool { return r == '|' || r == ':' })
-
-	macro = strings.TrimSpace(flags[0])
-	value := orig
-
-	found := false
-	for _, ms := range macroSets {
-		if repl, ok := ms[macro]; ok {
-			value = repl
-			found = true
-
-			break
-		}
-	}
-
-	// if no macro replacement was found, do not convert flags
-	if !found {
-		return value
-	}
-
-	// no macro operator present
-	if len(flags) == 1 {
-		return value
-	}
-
-	return (replaceMacroOperators(value, flags[1:]))
-}
-
-func replaceMacroOperators(value string, flags []string) string {
-	for _, flag := range flags {
-		flag = strings.TrimSpace(flag)
-
-		format := ""
-		if strings.HasPrefix(flag, "fmt=") {
-			format = strings.TrimPrefix(flag, "fmt=")
-			flag = "fmt"
-		}
-
-		switch flag {
-		// lc -> lowercase
-		case "lc":
-			value = strings.ToLower(value)
-		// uc -> lowercase
-		case "uc":
-			value = strings.ToUpper(value)
-		// h -> human readable number
-		case "h":
-			value = humanize.NumF(convert.Int64(value), 2)
-		// date -> unix timestamp to date with local timezone
-		case "date":
-			value = time.Unix(convert.Int64(value), 0).Format("2006-01-02 15:04:05 MST")
-		// date -> unix timestamp to utc date
-		case "utc":
-			value = time.Unix(convert.Int64(value), 0).UTC().Format("2006-01-02 15:04:05 MST")
-		// duration -> seconds into duration string
-		case "duration":
-			value = utils.DurationString(time.Duration(convert.Float64(value) * float64(time.Second)))
-		case "age":
-			value = fmt.Sprintf("%d", time.Now().Unix()-convert.Int64(value))
-		case "fmt":
-			switch {
-			case format == "%d":
-				value = fmt.Sprintf(format, int64(convert.Float64(value)))
-			case reFloatFormat.MatchString(format):
-				value = fmt.Sprintf(format, convert.Float64(value))
-			default:
-				log.Warnf("unsupported format string used: %s", format)
-			}
-		default:
-		}
-	}
-
-	return value
 }
 
 func fixReturnCodes(output, stderr *string, exitCode *int64, timeout int64, procState *os.ProcessState, err error) {

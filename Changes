@@ -8,6 +8,7 @@ next:
          - check_service: fix json error
          - update windows build framework to wix 3.14
          - improve wmi stability
+         - add regexp replacement macro post processor
 
 0.19     Wed Feb 28 00:09:39 CET 2024
          - write startup errors to default logfile

@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -349,39 +348,6 @@ func TestEmptyConfig(t *testing.T) {
 	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
 
 	require.NoErrorf(t, err, "empty ini parsed")
-}
-
-func TestMacros(t *testing.T) {
-	macros := map[string]string{
-		"seconds":   "130",
-		"unix time": "1700834034",
-		"float":     "170.05",
-		"yesterday": fmt.Sprintf("%d", time.Now().Add(-24*time.Hour).Unix()),
-	}
-
-	tests := []struct {
-		In     string
-		Expect string
-	}{
-		{In: "$(seconds)", Expect: "130"},
-		{In: "-${seconds}-", Expect: "-130-"},
-		{In: "$(seconds:duration)", Expect: "2m 10s"},
-		{In: "$(unix time:utc)", Expect: "2023-11-24 13:53:54 UTC"},
-		{In: "$(unix time:utc:uc)", Expect: "2023-11-24 13:53:54 UTC"},
-		{In: "$(unix time:utc:lc)", Expect: "2023-11-24 13:53:54 utc"},
-		{In: "$(unix time : utc : lc)", Expect: "2023-11-24 13:53:54 utc"},
-		{In: "$(unix time | utc | lc)", Expect: "2023-11-24 13:53:54 utc"},
-		{In: "$(something else | utc | lc)", Expect: "$(something else | utc | lc)"},
-		{In: "$(float | fmt=%d)", Expect: "170"},
-		{In: "$(float | fmt=%.1f)", Expect: "170.1"},
-		{In: "$(float | fmt=%.2f)", Expect: "170.05"},
-		{In: "$(yesterday | age | duration)", Expect: "1d 00:00h"},
-	}
-
-	for _, tst := range tests {
-		res := ReplaceMacros(tst.In, macros)
-		assert.Equalf(t, tst.Expect, res, "replacing: %s", tst.In)
-	}
 }
 
 func TestConfigAppend(t *testing.T) {
