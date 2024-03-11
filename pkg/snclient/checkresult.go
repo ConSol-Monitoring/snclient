@@ -36,18 +36,27 @@ type CheckResult struct {
 }
 
 func (cr *CheckResult) Finalize(macros ...map[string]string) {
-	if macros != nil {
-		// replace macros twice to make nested assignments work
-		for range []int64{1, 2} {
-			cr.Output = ReplaceMacros(cr.Output, macros...)
-		}
-		cr.Details = ReplaceMacros(cr.Details, macros...)
-	}
-	finalMacros := map[string]string{
+	macroSet := []map[string]string{{
 		"status": cr.StateString(),
+	}}
+	macroSet = append(macroSet, macros...)
+
+	output, err := ReplaceTemplate(cr.Output, macroSet...)
+	if err != nil {
+		log.Debugf("replacing template failed: %s: %s", cr.Output, err.Error())
 	}
-	cr.Output = ReplaceMacros(cr.Output, finalMacros)
-	cr.Details = ReplaceMacros(cr.Details, finalMacros)
+	cr.Output = output
+	details, err := ReplaceConditionals(cr.Details, macroSet...)
+	if err != nil {
+		log.Debugf("replacing details template failed: %s: %s", cr.Details, err.Error())
+	}
+	cr.Details = details
+
+	// replace macros twice to make nested assignments work
+	for range []int64{1, 2} {
+		cr.Output = ReplaceMacros(cr.Output, macroSet...)
+	}
+	cr.Details = ReplaceMacros(cr.Details, macroSet...)
 }
 
 func (cr *CheckResult) ApplyPerfConfig(perfCfg []PerfConfig) error {

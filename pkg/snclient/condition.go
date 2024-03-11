@@ -193,6 +193,17 @@ func (c *Condition) Match(data map[string]string, notExists bool) bool {
 	return c.matchSingle(data, notExists)
 }
 
+// MatchAny checks if any given map matches current condition, notExists sets the result in case an attribute does not exist
+func (c *Condition) MatchAny(data []map[string]string, notExists bool) bool {
+	for i := range data {
+		if c.Match(data[i], notExists) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // matchSingle checks a single condition and does not recurse into logical groups
 // notExists sets the result in case an attribute does not exist
 func (c *Condition) matchSingle(data map[string]string, notExists bool) bool {

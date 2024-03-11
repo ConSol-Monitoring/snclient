@@ -30,6 +30,115 @@ var (
 	reASCIIonly = regexp.MustCompile(`\W`)
 )
 
+// ReplaceTemplate combines ReplaceConditionals and ReplaceMacros
+func ReplaceTemplate(value string, macroSets ...map[string]string) (string, error) {
+	expanded, err := ReplaceConditionals(value, macroSets...)
+	if err != nil {
+		return expanded, err
+	}
+	expanded = ReplaceMacros(expanded, macroSets...)
+
+	return expanded, nil
+}
+
+/* ReplaceConditionals replaces conditionals of the form
+ * {{ IF condition }}...{{ ELSIF condition }}...{{ ELSE }}...{{ END }}"
+ */
+func ReplaceConditionals(value string, macroSets ...map[string]string) (string, error) {
+	splitBy := map[string]string{
+		"{{": "}}",
+	}
+	token, err := splitToken(value, splitBy)
+	if err != nil {
+		return value, fmt.Errorf("replacing conditionals in %s failed: %s", value, err.Error())
+	}
+
+	type state struct {
+		curOK     bool
+		completed bool
+	}
+	condState := []state{}
+	var curState *state
+
+	var result strings.Builder
+	for _, piece := range token {
+		condFound := false
+		for startPattern, endPattern := range splitBy {
+			if !strings.HasPrefix(piece, startPattern) || !strings.HasSuffix(piece, endPattern) {
+				continue
+			}
+			// orig := piece
+			piece = strings.TrimPrefix(piece, startPattern)
+			piece = strings.TrimSuffix(piece, endPattern)
+			piece = strings.TrimSpace(piece)
+			fields := utils.FieldsN(piece, 2)
+
+			switch strings.ToLower(fields[0]) {
+			case "if":
+				if len(fields) < 2 {
+					return value, fmt.Errorf("missing condition in %s clause :%s", strings.ToUpper(fields[0]), piece)
+				}
+				condition, err := NewCondition(fields[1])
+				if err != nil {
+					return value, fmt.Errorf("parsing condition in %s failed: %s", fields[1], err.Error())
+				}
+
+				curState = &state{curOK: condition.MatchAny(macroSets, false)}
+				condState = append(condState, *curState)
+			case "elsif":
+				if curState == nil {
+					return value, fmt.Errorf("unexpected ELSIF in: %s", value)
+				}
+				if len(fields) < 2 {
+					return value, fmt.Errorf("missing condition in %s clause :%s", strings.ToUpper(fields[0]), piece)
+				}
+				if curState.curOK || curState.completed {
+					curState.completed = true
+					curState.curOK = false
+
+					break
+				}
+				condition, err := NewCondition(fields[1])
+				if err != nil {
+					return value, fmt.Errorf("parsing condition in %s failed: %s", fields[1], err.Error())
+				}
+
+				curState.curOK = condition.MatchAny(macroSets, false)
+			case "else":
+				if curState.curOK || curState.completed {
+					curState.completed = true
+					curState.curOK = false
+
+					break
+				}
+				curState.curOK = true
+			case "end":
+				if curState == nil {
+					return value, fmt.Errorf("unexpected END in: %s", value)
+				}
+				condState = condState[0 : len(condState)-1]
+				curState = nil
+				if len(condState) > 0 {
+					curState = &condState[len(condState)-1]
+				}
+			}
+
+			condFound = true
+
+			break
+		}
+		if condFound {
+			continue
+		}
+
+		if curState == nil || curState.curOK {
+			result.WriteString(piece)
+		}
+	}
+
+	return result.String(), nil
+}
+
 /* replaceMacros replaces variables in given string (config ini file style macros).
  * possible macros are:
  *   ${macro} / $(macro)
@@ -266,14 +375,18 @@ func splitToken(input string, token map[string]string) (splitted []string, err e
 		if inToken == "" {
 			// does a token start at this position
 			for tStart, tEnd := range token {
-				if strings.HasPrefix(input[pos:], tStart) {
-					splitted = append(splitted, input[tokenStart:pos])
-
-					inToken = tEnd
-					tokenStart = pos
-
-					break
+				if !strings.HasPrefix(input[pos:], tStart) {
+					continue
 				}
+				prefix := input[tokenStart:pos]
+				if prefix != "" {
+					splitted = append(splitted, input[tokenStart:pos])
+				}
+
+				inToken = tEnd
+				tokenStart = pos
+
+				break
 			}
 		} else {
 			// inside the token we honor quote and escape characters
@@ -291,8 +404,8 @@ func splitToken(input string, token map[string]string) (splitted []string, err e
 				// does a token end at this position
 				if strings.HasPrefix(input[pos:], inToken) {
 					splitted = append(splitted, input[tokenStart:pos+len(inToken)])
+					tokenStart = pos + len(inToken)
 					inToken = ""
-					tokenStart = pos + len(inToken) + 1
 				}
 			}
 		}

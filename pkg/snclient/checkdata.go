@@ -217,10 +217,14 @@ func (cd *CheckData) buildListMacros() map[string]string {
 	okList := make([]string, 0)
 	warnList := make([]string, 0)
 	critList := make([]string, 0)
-	for _, l := range cd.listData {
-		expanded := ReplaceMacros(cd.detailSyntax, l)
+	for i := range cd.listData {
+		entry := cd.listData[i]
+		expanded, err := ReplaceTemplate(cd.detailSyntax, entry)
+		if err != nil {
+			log.Debugf("replacing syntax failed %s: %s", cd.detailSyntax, err.Error())
+		}
 		list = append(list, expanded)
-		switch l["_state"] {
+		switch entry["_state"] {
 		case "0":
 			okList = append(okList, expanded)
 		case "1":
@@ -297,7 +301,10 @@ func (cd *CheckData) buildListMacros() map[string]string {
 
 func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
 	entry := cd.listData[0]
-	expanded := ReplaceMacros(cd.detailSyntax, entry)
+	expanded, err := ReplaceTemplate(cd.detailSyntax, entry)
+	if err != nil {
+		log.Debugf("replacing template failed: %s: %s", cd.detailSyntax, err.Error())
+	}
 
 	result := map[string]string{
 		"count":         "1",
