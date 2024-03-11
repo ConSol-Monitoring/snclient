@@ -486,7 +486,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: make release_notes.txt
       - id: create-release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: "v${{needs.get-version.outputs.version}}"
           tag_name: "v${{needs.get-version.outputs.version}}"
