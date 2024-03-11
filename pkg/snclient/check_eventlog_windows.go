@@ -33,13 +33,9 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	}
 	scanLookBack := time.Now().Add(-time.Second * time.Duration(lookBack))
 	uniqueIndexList := map[string]struct{}{}
-	uniqueIndexFilter := "${log}-${source}-${id}"
 	filterUnique := false
 
-	if l.uniqueIndex == "1" {
-		filterUnique = true
-	} else if len(l.uniqueIndex) != 0 {
-		uniqueIndexFilter = l.uniqueIndex
+	if len(l.uniqueIndex) > 0 {
 		filterUnique = true
 	}
 
@@ -60,24 +56,24 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 				message = event.Message[:l.truncateMessage]
 			}
 			listData := map[string]string{
-				"computer":    event.ComputerName,
-				"file":        event.LogFile,
-				"log":         event.LogFile,
-				"id":          fmt.Sprintf("%d", event.EventCode),
-				"level":       strings.ToLower(event.Type),
-				"message":     message,
-				"provider":    event.SourceName,
-				"source":      event.SourceName,
-				"written":     timeWritten.In(timeZone).Format("2006-01-02 15:04:05 MST"),
-				"writtenTS":   fmt.Sprintf("%d", timeWritten.Unix()),
-				"uniqueindex": "",
+				"computer":  event.ComputerName,
+				"file":      event.LogFile,
+				"log":       event.LogFile,
+				"id":        fmt.Sprintf("%d", event.EventCode),
+				"level":     strings.ToLower(event.Type),
+				"message":   message,
+				"provider":  event.SourceName,
+				"source":    event.SourceName,
+				"written":   timeWritten.In(timeZone).Format("2006-01-02 15:04:05 MST"),
+				"writtenTS": fmt.Sprintf("%d", timeWritten.Unix()),
 			}
-			listData["uniqueindex"] = ReplaceMacros(uniqueIndexFilter, listData)
 			if filterUnique {
+				uniqueExpanded := ReplaceMacros(l.uniqueIndex, listData)
+				log.Tracef("expaned unique filter: %s", uniqueExpanded)
 				//Filter out duplicate events based on the unique-index argument
-				if _, isMapContainsIndex := uniqueIndexList[listData["uniqueindex"]]; !isMapContainsIndex {
+				if _, isMapContainsIndex := uniqueIndexList[uniqueExpanded]; !isMapContainsIndex {
 					check.listData = append(check.listData, listData)
-					uniqueIndexList[ReplaceMacros(uniqueIndexFilter, listData)] = struct{}{}
+					uniqueIndexList[uniqueExpanded] = struct{}{}
 				}
 			} else {
 				check.listData = append(check.listData, listData)
