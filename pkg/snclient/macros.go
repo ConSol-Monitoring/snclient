@@ -26,6 +26,8 @@ var (
 	reRuntimeMacro = regexp.MustCompile(`%[` + runtimeMacroChars + `]+%|\$[` + runtimeMacroChars + `]+\$`)
 
 	reFloatFormat = regexp.MustCompile(`^%[.\d]*f$`)
+
+	reAsciiOnly = regexp.MustCompile(`\W`)
 )
 
 /* replaceMacros replaces variables in given string (config ini file style macros).
@@ -182,6 +184,8 @@ func replaceMacroOperators(value string, flags []string) string {
 			value = utils.DurationString(time.Duration(convert.Float64(value) * float64(time.Second)))
 		case "age":
 			value = fmt.Sprintf("%d", time.Now().Unix()-convert.Int64(value))
+		case "ascii":
+			value = reAsciiOnly.ReplaceAllString(value, "")
 		default:
 			value = replaceMacroOpString(value, flag)
 		}

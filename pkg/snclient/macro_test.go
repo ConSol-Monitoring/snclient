@@ -40,6 +40,7 @@ func TestMacros(t *testing.T) {
 		{In: "${characters | 's/^(.*)ß.*?([a-z]+)/$2$1/g' }", Expect: "utföäü"},
 		{In: "${characters | 's/.*(u{1}).*/U/g' }", Expect: "U"},
 		{In: "${characters | 's/\\W//' }", Expect: "utf"},
+		{In: "${characters | ascii }", Expect: "utf"},
 		{In: "$(seconds)$(seconds)", Expect: "130130"},
 		{In: "...'$(seconds)'...", Expect: "...'130'..."},
 	}
