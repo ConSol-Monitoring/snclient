@@ -27,7 +27,7 @@ var (
 
 	reFloatFormat = regexp.MustCompile(`^%[.\d]*f$`)
 
-	reAsciiOnly = regexp.MustCompile(`\W`)
+	reASCIIonly = regexp.MustCompile(`\W`)
 )
 
 /* replaceMacros replaces variables in given string (config ini file style macros).
@@ -185,7 +185,7 @@ func replaceMacroOperators(value string, flags []string) string {
 		case "age":
 			value = fmt.Sprintf("%d", time.Now().Unix()-convert.Int64(value))
 		case "ascii":
-			value = reAsciiOnly.ReplaceAllString(value, "")
+			value = reASCIIonly.ReplaceAllString(value, "")
 		default:
 			value = replaceMacroOpString(value, flag)
 		}
