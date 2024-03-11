@@ -107,6 +107,7 @@ type CheckData struct {
 	showHelp               ShowHelp
 	timeout                float64
 	perfConfig             []PerfConfig
+	perfSyntax             string
 	hasInventory           InventoryMode
 	output                 string
 	implemented            Implemented
@@ -182,6 +183,8 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s", err.Error())
 	}
+
+	cd.result.ApplyPerfSyntax(cd.perfSyntax)
 
 	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	cd.setStateFromMaps(finalMacros)
@@ -587,8 +590,7 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, defaultWarnin
 			}
 			cd.perfConfig = append(cd.perfConfig, perf...)
 		case "perf-syntax":
-			// not yet supported
-			log.Warnf("not yet supported perf-syntax option used in: %s", strings.Join(cd.rawArgs, " "))
+			cd.perfSyntax = argValue
 		case "output":
 			cd.output = argValue
 		default:

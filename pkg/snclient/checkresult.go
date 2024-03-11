@@ -85,6 +85,20 @@ func (cr *CheckResult) ApplyPerfConfig(perfCfg []PerfConfig) error {
 	return nil
 }
 
+func (cr *CheckResult) ApplyPerfSyntax(perfSyntax string) {
+	if perfSyntax == "" || perfSyntax == "%(key)" {
+		return
+	}
+
+	for i := range cr.Metrics {
+		metric := cr.Metrics[i]
+		macros := map[string]string{
+			"key": metric.Name,
+		}
+		metric.Name = ReplaceMacros(perfSyntax, macros)
+	}
+}
+
 func (cr *CheckResult) StateString() string {
 	return convert.StateString(cr.State)
 }

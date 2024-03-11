@@ -4,19 +4,19 @@ title: Common Check Arguments
 
 | Option                          | Description |
 | ------------------------------- | ----------- |
-| [filter](#filter)               | Filter for which items to check
-| [warning](#warning)             | Threshold when to generate a warning state
-| [warn](#warning)                | Short alias for warning
-| [critical](#critical)           | Threshold when to generate a critical state
-| [crit](#critical)               | Short alias for critical
-| [ok](#ok)                       | Threshold when to generate an ok state
-| [top-syntax](#top-syntax)       | Top level syntax
-| [ok-syntax](#ok-syntax)         | Ok syntax
-| [empty-syntax](#empty-syntax)   | Template syntax used when no item matches a filter.
-| [empty-state](#empty-state)     | Status to return when no items matches the filter
-| [detail-syntax](#detail-syntax) | Detailed/Individual Syntax
-| [perf-syntax](#perf-syntax)     | Performance data syntax
-| [perf-config](#perf-config)     | Performance data tweaks
+| [filter](#filter)               | Filter for which items to check |
+| [warning](#warning)             | Threshold when to generate a warning state |
+| [warn](#warning)                | Short alias for warning |
+| [critical](#critical)           | Threshold when to generate a critical state |
+| [crit](#critical)               | Short alias for critical |
+| [ok](#ok)                       | Threshold when to generate an ok state |
+| [top-syntax](#top-syntax)       | Top level syntax |
+| [ok-syntax](#ok-syntax)         | Ok syntax |
+| [empty-syntax](#empty-syntax)   | Template syntax used when no item matches a filter. |
+| [empty-state](#empty-state)     | Status to return when no items matches the filter |
+| [detail-syntax](#detail-syntax) | Detailed/Individual Syntax |
+| [perf-syntax](#perf-syntax)     | Performance data syntax |
+| [perf-config](#perf-config)     | Performance data tweaks |
 
 ### Filter
 
@@ -120,7 +120,11 @@ ex.:
 
 ### Perf-Syntax
 
-Sets the format for the base names of the performance data. (**Not supported yet**)
+Sets the format for the base names of the performance data. The default is `%(key)`.
+
+ex.:
+
+    'perf-syntax=%(key | lc)'
 
 ### Perf-Config
 
@@ -136,15 +140,15 @@ ex.:
 
 | Attribute     | Description |
 | ------------- | ----------- |
-| status        | The returned status (OK/WARN/CRIT/UNKNOWN)
-| count         | Number of items matching the filter.
-| total         | Total number of items
-| list          | List of all items matching the filter.
-| ok_count      | Number of items that are ok
-| ok_list       | List of items that are ok
-| warn_count    | Number of items that matched the warning threshold
-| warn_list     | List of items that matched the warning threshold
-| crit_count    | Number of items that matched the critical threshold
-| crit_list     | List of items that matched the critical threshold
-| problem_count | Number of items that matched either warning or critical threshold
-| problem_list  | List of items that matched either warning or critical threshold
+| status        | The returned status (OK/WARN/CRIT/UNKNOWN) |
+| count         | Number of items matching the filter. |
+| total         | Total number of items |
+| list          | List of all items matching the filter. |
+| ok_count      | Number of items that are ok |
+| ok_list       | List of items that are ok |
+| warn_count    | Number of items that matched the warning threshold |
+| warn_list     | List of items that matched the warning threshold |
+| crit_count    | Number of items that matched the critical threshold |
+| crit_list     | List of items that matched the critical threshold |
+| problem_count | Number of items that matched either warning or critical threshold |
+| problem_list  | List of items that matched either warning or critical threshold |

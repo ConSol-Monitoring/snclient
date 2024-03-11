@@ -79,3 +79,22 @@ func TestCheckPerfConfig(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckPerfSyntax(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	res := snc.RunCheck("check_memory", []string{
+		"type=physical",
+		"warn=used > 101",
+		"crit=used > 102",
+		"perf-syntax='mem:%(key | uc)'",
+	})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(t,
+		regexp.MustCompile(`'mem:PHYSICAL %'=`),
+		string(res.BuildPluginOutput()),
+		"output matches",
+	)
+
+	StopTestAgent(t, snc)
+}
