@@ -234,7 +234,8 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 
 	// command does not exist
 	case lookupErr != nil:
-		return nil, fmt.Errorf("UNKNOWN - Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", lookupErr.Error())
+		//nolint:stylecheck // error strings must be capitalized here because it ends up like this in the plugin output
+		return nil, fmt.Errorf("Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", lookupErr.Error())
 
 	// .bat files
 	case isBatchFile(cmdName):
