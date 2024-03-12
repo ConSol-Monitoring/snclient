@@ -493,6 +493,8 @@ func (snc *Agent) readConfiguration(files []string) (initSet *AgentRunSet, err e
 		initSet.listeners = listen
 	}
 
+	setScriptsRoot(config)
+
 	return initSet, nil
 }
 
@@ -1135,13 +1137,6 @@ func (snc *Agent) setDefaultPaths(config *Config, configFiles []string) *ConfigS
 		pathSection.Set("certificate-path", pathSection.data["shared-path"])
 	}
 
-	// add script root
-	scriptsSection := config.Section("/settings/external scripts")
-	scriptRoot, ok := scriptsSection.GetString("script root")
-	if ok {
-		pathSection.Set("script root", scriptRoot)
-	}
-
 	return pathSection
 }
 
@@ -1239,4 +1234,17 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 		"inventory": inventory,
 		"localtime": time.Now().Unix(),
 	})
+}
+
+func setScriptsRoot(config *Config) {
+	// add script root
+	scriptsSection := config.Section("/settings/external scripts")
+	scriptRoot, ok := scriptsSection.GetString("script root")
+	if ok {
+		pathSection := config.Section("/paths")
+		pathSection.Set("script root", scriptRoot)
+
+		// reset cached default macros
+		config.ResetDefaultMacros()
+	}
 }

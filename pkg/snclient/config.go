@@ -22,7 +22,7 @@ import (
 
 const MaxLineSize = 1024 * 1024 // limit max line length to 1MB
 
-var DefaultConfig = map[string]map[string]string{
+var DefaultConfig = map[string]ConfigData{
 	"/modules": {
 		"Logrotate":            "enabled",
 		"CheckSystem":          "enabled",
@@ -46,9 +46,10 @@ var DefaultConfig = map[string]map[string]string{
 	"/settings/external scripts/wrappings": {
 		"bat": `${scripts}\%SCRIPT% %ARGS%`,
 		"ps1": `cmd /c echo ` +
-			`If (-Not (Test-Path "${scripts}\%SCRIPT%" ) ) ` +
-			`{ Write-Host "UNKNOWN: Script ${scripts}\%SCRIPT% not found." ; exit(3) }; ` +
-			`${scripts}\%SCRIPT% $ARGS$; exit($lastexitcode) | powershell.exe -nologo -noprofile -command -`,
+			`If (-Not (Test-Path "${script root}\%SCRIPT%") ) ` +
+			`{ Write-Host "UNKNOWN: Script ` + "`\"%SCRIPT%`\" not found.\"; exit(3) }; " +
+			`${script root}\%SCRIPT% $ARGS$; ` +
+			`exit($lastexitcode) | powershell.exe -nologo -noprofile -command -`,
 		"vbs": `cscript.exe //T:30 //NoLogo ${script root}\\lib\\wrapper.vbs %SCRIPT% %ARGS%`,
 	},
 }
@@ -486,6 +487,12 @@ func (config *Config) DefaultMacros() map[string]string {
 	defaultMacros["hostname"] = hostname
 
 	return *config.defaultMacros
+}
+
+// Reset default macros which are cached otherwise
+func (config *Config) ResetDefaultMacros() {
+	config.defaultMacros = nil
+	config.DefaultMacros()
 }
 
 // ConfigSection contains a single config section.
