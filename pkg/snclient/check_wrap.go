@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -56,6 +57,7 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		if !ok {
 			return nil, fmt.Errorf("no wrapping found for extension: %s", ext)
 		}
+		wrapping = l.fixWrappingCmd(ext, wrapping)
 		log.Debugf("%s wrapper: %s", ext, wrapping)
 		command = ReplaceRuntimeMacros(wrapping, macros)
 	} else {
@@ -94,4 +96,38 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		State:  exitCode,
 		Output: stdout,
 	}, nil
+}
+
+// fixWrappingCmd escapes spaces in the script root path for ps1 wrappings
+func (l *CheckWrap) fixWrappingCmd(ext, wrapping string) string {
+	// only required for ps1 extension
+	if ext != "ps1" {
+		return wrapping
+	}
+
+	// windows hack only
+	if runtime.GOOS != "windows" {
+		return wrapping
+	}
+
+	// only required when called via cmd.exe
+	if !strings.HasPrefix(wrapping, "cmd") {
+		return wrapping
+	}
+
+	// no spaces, no problems
+	if !strings.Contains(wrapping, " ") {
+		return wrapping
+	}
+
+	scriptRoot, _ := l.snc.Config.Section("/paths").GetString("script root")
+	escapedScriptRoot := strings.ReplaceAll(scriptRoot, " ", "` ")
+
+	// replace all occurrences with escaped ones
+	wrapping = strings.ReplaceAll(wrapping, scriptRoot, escapedScriptRoot)
+
+	// revert for path in quotes
+	wrapping = strings.ReplaceAll(wrapping, "\""+escapedScriptRoot, "\""+scriptRoot)
+
+	return wrapping
 }

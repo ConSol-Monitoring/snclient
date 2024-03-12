@@ -123,9 +123,7 @@ func TestCheckExternalWrappedWindowsPsPathWithSpaces(t *testing.T) {
 	config := setupConfig(t, holesDir, "ps1")
 	snc := StartTestAgent(t, config)
 
-	// This test has been disabled because it is nearly impossible to repair all occurrences of
-	// a path with spaces inside a wrapped command.
-	// runTestCheckExternalWrapped(t, snc)
+	runTestCheckExternalWrapped(t, snc)
 
 	StopTestAgent(t, snc)
 }
