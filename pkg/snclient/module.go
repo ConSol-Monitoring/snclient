@@ -117,12 +117,9 @@ func (lm *LoadableModule) Name() string {
 func (lm *LoadableModule) Init(snc *Agent, conf *Config, set *ModuleSet) (Module, error) {
 	handler := lm.Creator()
 
-	// merge module defaults in main config
-	section := conf.Section(lm.ConfigKey)
-	section.MergeData(handler.Defaults())
-
-	modConf := conf.Section(lm.ConfigKey).Clone()
+	modConf := conf.Section(lm.ConfigKey)
 	modConf.MergeSection(conf.Section("/settings/default"))
+	modConf.MergeData(handler.Defaults())
 	conf.ReplaceMacrosDefault(modConf)
 
 	err := handler.Init(snc, modConf, conf, set)
