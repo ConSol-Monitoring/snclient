@@ -4,7 +4,7 @@ next:
          - add support for perf-syntax
          - check_wmi: add performance data
          - check_wmi: add support for empty-syntax
-         - update check_nsc_web to v0.6.3
+         - update check_nsc_web to v0.7.1
          - check_service: fix json error
          - update windows build framework to wix 3.14
          - improve wmi stability
