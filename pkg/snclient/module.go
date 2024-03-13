@@ -123,7 +123,7 @@ func (lm *LoadableModule) Init(snc *Agent, conf *Config, set *ModuleSet) (Module
 
 	modConf := conf.Section(lm.ConfigKey).Clone()
 	modConf.MergeSection(conf.Section("/settings/default"))
-	conf.ReplaceDefaultMacros(modConf)
+	conf.ReplaceMacrosDefault(modConf)
 
 	err := handler.Init(snc, modConf, conf, set)
 	if err != nil {

@@ -462,7 +462,7 @@ func (snc *Agent) readConfiguration(files []string) (initSet *AgentRunSet, err e
 
 	// replace other sections
 	for _, section := range config.sections {
-		config.ReplaceDefaultMacros(section)
+		config.ReplaceMacrosDefault(section)
 	}
 
 	for key, val := range pathSection.data {

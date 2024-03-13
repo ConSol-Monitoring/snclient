@@ -450,9 +450,8 @@ func (config *Config) ReplaceOnDemandConfigMacros(value string) string {
 	return value
 }
 
-// DefaultMacros returns a map of default macros.
-// basically the /paths section and hostnames.
-func (config *Config) ReplaceDefaultMacros(section *ConfigSection) {
+// ReplaceMacrosDefault replaces default macros in all config data.
+func (config *Config) ReplaceMacrosDefault(section *ConfigSection) {
 	defaultMacros := config.DefaultMacros()
 	for key, val := range section.data {
 		val = ReplaceMacros(val, defaultMacros)
