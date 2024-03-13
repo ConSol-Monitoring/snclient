@@ -30,7 +30,7 @@ Check drive including inodes:
 }
 
 func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[string]map[string]string, err error) {
-	// create map of required disks/volmes with "drive_or_id" as primary key
+	// create map of required disks/volumes with "drive_or_id" as primary key
 	requiredDisks = map[string]map[string]string{}
 
 	for _, drive := range drives {
@@ -84,7 +84,7 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 		return fmt.Errorf("failed to find disk partition")
 	}
 
-	// try to find closes matching mount
+	// try to find closest matching mount
 	availMounts := map[string]map[string]string{}
 	err = l.setDisks(availMounts)
 	if err != nil {
