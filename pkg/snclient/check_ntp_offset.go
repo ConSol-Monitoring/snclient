@@ -323,35 +323,28 @@ func (l *CheckNTPOffset) addW32TM(ctx context.Context, check *CheckData, force b
 		return nil
 	}
 
-	valid := false
-	for _, line := range strings.Split(output, "\n") {
-		cols := utils.TokenizeBy(line, ":", false, false)
-		if len(cols) < 2 {
-			continue
-		}
-		cols[1] = strings.TrimSpace(cols[1])
-		switch cols[0] {
-		case "Source":
-			servers := utils.TokenizeBy(cols[1], ",", false, false)
-			entry["server"] = servers[0]
-		case "Phase Offset":
-			value, _ := time.ParseDuration(cols[1])
-			entry["offset"] = fmt.Sprintf("%f", float64(value.Nanoseconds())/1e6)
-			entry["offset_seconds"] = fmt.Sprintf("%f", convert.Float64(entry["offset"])/1e3)
-			valid = true
-		case "Stratum":
-			stratas := strings.Fields(cols[1])
-			entry["stratum"] = stratas[0]
-		case "State Machine":
-			fields := strings.Fields(cols[1])
-			if fields[0] != "2" {
-				entry["_error"] = fmt.Sprintf("w32tm.exe: %s", line)
-				entry["_exit"] = "2"
-			}
-		}
+	var valid bool
+	var source string
+	var offset string
+	var stratum string
+	var errorStr string
+	if strings.Contains(output, "Phase Offset") {
+		valid, source, offset, stratum, errorStr = l.parseW32English(output)
+	} else {
+		valid, source, offset, stratum, errorStr = l.parseW32AnyLang(output)
 	}
 
-	if !valid {
+	switch {
+	case errorStr != "":
+		entry["_error"] = errorStr
+		entry["_exit"] = "2"
+	case valid:
+		entry["server"] = source
+		entry["offset"] = offset
+		entry["offset_seconds"] = fmt.Sprintf("%f", convert.Float64(offset)/1e3)
+		entry["stratum"] = stratum
+
+	default:
 		entry["_error"] = fmt.Sprintf("cannot parse offset from w32tm: %s\n%s", output, stderr)
 		entry["_exit"] = "2"
 	}
@@ -360,6 +353,74 @@ func (l *CheckNTPOffset) addW32TM(ctx context.Context, check *CheckData, force b
 	l.addMetrics(check, entry)
 
 	return nil
+}
+
+func (l *CheckNTPOffset) parseW32English(text string) (valid bool, source, offset, stratum, errorStr string) {
+	for _, line := range strings.Split(text, "\n") {
+		cols := utils.TokenizeBy(line, ":", false, false)
+		if len(cols) < 2 {
+			continue
+		}
+		cols[1] = strings.TrimSpace(cols[1])
+		switch cols[0] {
+		case "Source":
+			servers := utils.TokenizeBy(cols[1], ",", false, false)
+			source = servers[0]
+		case "Phase Offset":
+			value, _ := time.ParseDuration(cols[1])
+			offset = fmt.Sprintf("%f", float64(value.Nanoseconds())/1e6)
+			valid = true
+		case "Stratum":
+			stratas := strings.Fields(cols[1])
+			stratum = stratas[0]
+		case "State Machine":
+			fields := strings.Fields(cols[1])
+			if fields[0] != "2" {
+				errorStr = fmt.Sprintf("w32tm.exe: %s", line)
+			}
+		}
+	}
+
+	return valid, source, offset, stratum, errorStr
+}
+
+func (l *CheckNTPOffset) parseW32AnyLang(text string) (valid bool, source, offset, stratum, errorStr string) {
+	type attr struct {
+		key  string
+		val  string
+		line string
+	}
+	attributes := []attr{}
+	for _, line := range strings.Split(text, "\n") {
+		cols := utils.TokenizeBy(line, ":", false, false)
+		if len(cols) < 2 {
+			continue
+		}
+		cols[1] = strings.TrimSpace(cols[1])
+		attributes = append(attributes, attr{cols[0], cols[1], line})
+	}
+
+	if len(attributes) < 12 {
+		return false, "", "", "", ""
+	}
+
+	// assume output offsets stay sane across languages
+	servers := utils.TokenizeBy(attributes[7].val, ",", false, false)
+	source = servers[0]
+
+	phase, _ := time.ParseDuration(attributes[9].val)
+	offset = fmt.Sprintf("%f", float64(phase.Nanoseconds())/1e6)
+	valid = true
+
+	stratas := strings.Fields(attributes[1].val)
+	stratum = stratas[0]
+
+	fields := strings.Fields(attributes[11].val)
+	if fields[0] != "2" {
+		errorStr = fmt.Sprintf("w32tm.exe: %s", attributes[11].line)
+	}
+
+	return valid, source, offset, stratum, errorStr
 }
 
 // get offset on Mac OSX

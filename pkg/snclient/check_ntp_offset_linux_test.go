@@ -306,6 +306,81 @@ Time since Last Good Sync Time: 46.3012345s`,
 	assert.Equalf(t, "CRITICAL - w32tm.exe: State Machine: 1 (Hold)",
 		string(res.BuildPluginOutput()), "output matches")
 
+	// not synchronized
+	MockSystemUtilities(t, map[string]string{
+		"w32tm.exe": `Leap Indicator: 3(not synchronized)
+Stratum: 0 (unspecified)
+Precision: -23 (119.209ns per tick)
+Root Delay: 0.0000000s
+Root Dispersion: 0.0000000s
+ReferenceId: 0x00000000 (unspecified)
+Last Successful Sync Time: unspecified
+Source: Free-running System Clock
+Poll Interval: 10 (1024s)
+
+Phase Offset: 0.0000000s
+ClockRate: 0.0156250s
+State Machine: 0 (Unset)
+Time Source Flags: 0 (None)
+Server Role: 0 (None)
+Last Sync Error: 1 (The computer did not resync because no time data was available.)
+Time since Last Good Sync Time: 1220.7932246s`,
+	})
+	res = snc.RunCheck("check_ntp_offset", []string{"source=w32tm"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Equalf(t, "CRITICAL - w32tm.exe: State Machine: 0 (Unset)",
+		string(res.BuildPluginOutput()), "output matches")
+
+	// german not synchronized
+	MockSystemUtilities(t, map[string]string{
+		"w32tm.exe": `Sprungindikator: 3(nicht synchronisiert)
+Stratum: 0 (nicht angegeben)
+Präzision: -23 (119.209ns pro Tick)
+Stammverzögerung: 0.0000000s
+Stammabweichung: 0.0000000s
+Referenz-ID: 0x00000000 (nicht angegeben)
+Letzte erfolgr. Synchronisierungszeit: nicht angegeben
+Quelle: Free-running System Clock
+Abrufintervall: 10 (1024s)
+
+Phasendifferenz: 0.0000000s
+Taktfrequenz: 0.0156250s
+Statuscomputer: 0 (Löschen)
+Zeitquellenkennzeichen: 0 (Keine)
+Serverrolle: 0 (Keine)
+Letzter Synchronierungsfehler: 1 (Der Computer wurde nicht synchronisiert, da keine Zeitdaten verfügbar waren.)
+Zeit seit der letzten erfolgr. Synchronisierungszeit: 37103.3612781s`,
+	})
+	res = snc.RunCheck("check_ntp_offset", []string{"source=w32tm"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Equalf(t, "CRITICAL - w32tm.exe: Statuscomputer: 0 (Löschen)",
+		string(res.BuildPluginOutput()), "output matches")
+
+	// german synchronized
+	MockSystemUtilities(t, map[string]string{
+		"w32tm.exe": `Sprungindikator: 0(keine Warnung)
+Stratum: 4 (Sekundärreferenz - synchr. über (S)NTP)
+Präzision: -23 (119.209ns pro Tick)
+Stammverzögerung: 0.0513098s
+Stammabweichung: 0.1431416s
+Referenz-ID: 0xC353D4CD (MD5-Hashbruchteil der IPv6-Adresse: )
+Letzte erfolgr. Synchronisierungszeit: 14.03.2024 13:51:45
+Quelle: ntp.company.lan
+Abrufintervall: 12 (4096s)
+
+Phasendifferenz: -0.0078433s
+Taktfrequenz: 0.0156250s
+Statuscomputer: 2 (Sync)
+Zeitquellenkennzeichen: 12 (SignatureAuthenticated IPv6 )
+Serverrolle: 0 (Keine)
+Letzter Synchronierungsfehler: 0 (Der Befehl wurde erfolgreich ausgeführt.)
+Zeit seit der letzten erfolgr. Synchronisierungszeit: 831.4054861s`,
+	})
+	res = snc.RunCheck("check_ntp_offset", []string{"source=w32tm"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Equalf(t, "OK - offset -7.842999ms from ntp.company.lan |'offset'=-7.8433ms;-50:50;-100:100 'stratum'=4;;;0",
+		string(res.BuildPluginOutput()), "output matches")
+
 	StopTestAgent(t, snc)
 }
 
