@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"syscall"
 	"unicode"
@@ -39,10 +40,13 @@ func (l *CheckDrivesize) getExample() string {
 	return `
     check_drivesize drive=c: show-all
     OK - c: 36.801 GiB/63.075 GiB (58.3%) |...
+
+    check_drivesize folder=c:\Temp show-all
+    OK - c: 36.801 GiB/63.075 GiB (58.3%) |...
 	`
 }
 
-func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[string]map[string]string, err error) {
+func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) (requiredDisks map[string]map[string]string, err error) {
 	// create map of required disks/volmes with "drive_or_id" as primary key
 	requiredDisks = map[string]map[string]string{}
 
@@ -66,7 +70,7 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[st
 			// "c:\" will use the volume
 			// "c:\path" will use the best matching volume
 			l.hasCustomPath = true
-			err := l.setCustomPath(drive, requiredDisks)
+			err := l.setCustomPath(drive, requiredDisks, parentFallback)
 			if err != nil {
 				return nil, err
 			}
@@ -395,7 +399,7 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 	}
 }
 
-func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string) (err error) {
+func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
 	// match a drive, ex: "c" or "c:"
 	switch len(drive) {
 	case 1, 2:
@@ -419,10 +423,11 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	}
 
 	// make sure path exists
-	if err = utils.IsFolder(drive); err != nil {
+	_, err = os.Stat(drive)
+	if err != nil && os.IsNotExist(err) {
 		log.Debugf("%s: %s", drive, err.Error())
 
-		return fmt.Errorf("failed to find disk partition")
+		return fmt.Errorf("failed to find disk partition: %s", err.Error())
 	}
 
 	// try to find closes matching volume
@@ -441,10 +446,15 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	var match *map[string]string
 	for i := range availVolumes {
 		vol := availVolumes[i]
-		if vol["drive"] != "" && strings.HasPrefix(testDrive+"\\", vol["drive"]) {
+		if parentFallback && vol["drive"] != "" && strings.HasPrefix(testDrive+"\\", vol["drive"]) {
 			if match == nil || len((*match)["drive"]) < len(vol["drive"]) {
 				match = &vol
 			}
+		}
+		if testDrive+"\\" == vol["drive"] {
+			match = &vol
+
+			break
 		}
 	}
 	if match != nil {
@@ -455,13 +465,9 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	}
 
 	// add anyway to generate an error later with more default values filled in
-	requiredDisks[drive] = map[string]string{
-		"id":            "",
-		"drive":         drive,
-		"drive_or_id":   drive,
-		"drive_or_name": drive,
-		"letter":        "",
-	}
+	entry := l.driveEntry(drive)
+	entry["_error"] = fmt.Sprintf("%s not mounted", drive)
+	requiredDisks[drive] = entry
 
 	return nil
 }

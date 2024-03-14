@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sort"
 	"strconv"
 	"strings"
@@ -56,6 +57,7 @@ func defaultExcludedFsTypes() []string {
 
 type CheckDrivesize struct {
 	drives                  []string
+	folders                 []string
 	excludes                []string
 	total                   bool
 	magic                   float64
@@ -68,7 +70,8 @@ type CheckDrivesize struct {
 func NewCheckDrivesize() CheckHandler {
 	return &CheckDrivesize{
 		magic:                   1,
-		drives:                  []string{"all"},
+		drives:                  []string{},
+		folders:                 []string{},
 		freespaceIgnoreReserved: true,
 	}
 }
@@ -83,7 +86,8 @@ func (l *CheckDrivesize) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"drive":   {value: &l.drives, isFilter: true, description: "The drives to check"},
+			"drive":   {value: &l.drives, isFilter: true, description: "The drives to check, ex.: c: or /"},
+			"folder":  {value: &l.folders, isFilter: true, description: "The folders to check (parent mountpoint)"},
 			"exclude": {value: &l.excludes, description: "List of drives to exclude from check"},
 			"total":   {value: &l.total, description: "Include the total of all matching drives"},
 			"magic": {value: &l.magic, description: "Magic number for use with scaling drive sizes. " +
@@ -144,10 +148,21 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	check.SetDefaultThresholdUnit("%", []string{"used_pct", "used", "free", "free_pct", "inodes", "inodes_free"})
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
-	requiredDisks, err := l.getRequiredDisks(l.drives)
+	if len(l.drives)+len(l.folders) == 0 {
+		l.drives = []string{"all"}
+	}
+	requiredDisks := map[string]map[string]string{}
+	drives, err := l.getRequiredDisks(l.drives, false)
 	if err != nil {
 		return nil, err
 	}
+	maps.Copy(requiredDisks, drives)
+
+	folders, err := l.getRequiredDisks(l.folders, true)
+	if err != nil {
+		return nil, err
+	}
+	maps.Copy(requiredDisks, folders)
 
 	// sort by drive / id
 	keys := make([]string, 0, len(requiredDisks))
@@ -159,6 +174,12 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	for _, k := range keys {
 		drive := requiredDisks[k]
 		if l.isExcluded(drive, l.excludes) {
+			continue
+		}
+		if _, ok := drive["_error"]; ok {
+			// already failed
+			check.listData = append(check.listData, drive)
+
 			continue
 		}
 		l.addDiskDetails(ctx, check, drive, l.magic)
@@ -189,6 +210,15 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	}
 
 	return check.Finalize()
+}
+
+func (l *CheckDrivesize) driveEntry(drive string) map[string]string {
+	return map[string]string{
+		"id":            "",
+		"drive":         drive,
+		"drive_or_id":   drive,
+		"drive_or_name": drive,
+	}
 }
 
 func (l *CheckDrivesize) isExcluded(drive map[string]string, excludes []string) bool {

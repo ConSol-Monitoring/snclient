@@ -43,7 +43,20 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK - C:\\ ", "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), ";99;99.5;0;100", "output matches")
 
+	// test all variants of drive names
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:\\"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+
+	// must not match
 	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:\\Windows"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN")
+	assert.Contains(t, string(res.BuildPluginOutput()), `not mounted`, "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "folder=c:\\Windows"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), `OK - All 1 drive`, "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), `c:\Windows used %`, "output matches")

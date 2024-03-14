@@ -28,6 +28,11 @@ Check drive including inodes:
     check_drivesize drive=/ warn="used > 90%" "crit=used > 95%" "warn=inodes > 90%" "crit=inodes > 95%"
     OK - All 1 drive(s) are ok |'/ used'=307515822080B;440613398938;465091921101;0;489570443264 '/ used %'=62.8%;90;95;0;100 '/ inodes'=12.1%;90;95;0;100
 
+Check folder, no matter if its a mountpoint itself or not:
+
+    check_drivesize folder=/tmp show-all
+    OK - /tmp 280.155 GiB/455.948 GiB (64.7%) |...
+
 ### Example using NRPE and Naemon
 
 Naemon Config
@@ -61,8 +66,9 @@ Naemon Config
 
 | Argument                  | Description                                                                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| drive                     | The drives to check                                                                                                      |
+| drive                     | The drives to check, ex.: c: or /                                                                                        |
 | exclude                   | List of drives to exclude from check                                                                                     |
+| folder                    | The folders to check (parent mountpoint)                                                                                 |
 | freespace-ignore-reserved | Don't account root-reserved blocks into freespace, default: true                                                         |
 | ignore-unreadable         | Deprecated, use filter instead                                                                                           |
 | magic                     | Magic number for use with scaling drive sizes. Note there is also a more generic magic factor in the perf-config option. |

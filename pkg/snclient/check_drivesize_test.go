@@ -34,15 +34,17 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
 	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - failed to find disk partition", "output matches")
 
-	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=/tmp/"})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), `OK - All 1 drive`, "output matches")
-	assert.Contains(t, string(res.BuildPluginOutput()), `/tmp/ used %`, "output matches")
+	// must not work, folder is not a mountpoint
+	tmpFolder := t.TempDir()
+	res = snc.RunCheck("check_drivesize", []string{"warn=inodes>100%", "crit=inodes>100%", "drive=" + tmpFolder})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN")
+	assert.Contains(t, string(res.BuildPluginOutput()), `not mounted`, "output matches")
 
-	res = snc.RunCheck("check_drivesize", []string{"warn=inodes>100%", "crit=inodes>100%", "drive=/tmp/"})
+	// must work with folder argument instead of drive
+	res = snc.RunCheck("check_drivesize", []string{"warn=inodes>100%", "crit=inodes>100%", "folder=" + tmpFolder})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), `OK - All 1 drive`, "output matches")
-	assert.Contains(t, string(res.BuildPluginOutput()), `'/tmp/ inodes'=`, "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), `'`+tmpFolder+` inodes'=`, "output matches")
 
 	StopTestAgent(t, snc)
 }

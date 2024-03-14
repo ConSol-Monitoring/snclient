@@ -5,6 +5,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"pkg/humanize"
@@ -26,10 +27,15 @@ Check drive including inodes:
 
     check_drivesize drive=/ warn="used > 90%" "crit=used > 95%" "warn=inodes > 90%" "crit=inodes > 95%"
     OK - All 1 drive(s) are ok |'/ used'=307515822080B;440613398938;465091921101;0;489570443264 '/ used %'=62.8%;90;95;0;100 '/ inodes'=12.1%;90;95;0;100
+
+Check folder, no matter if its a mountpoint itself or not:
+
+    check_drivesize folder=/tmp show-all
+    OK - /tmp 280.155 GiB/455.948 GiB (64.7%) |...
 	`
 }
 
-func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[string]map[string]string, err error) {
+func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) (requiredDisks map[string]map[string]string, err error) {
 	// create map of required disks/volumes with "drive_or_id" as primary key
 	requiredDisks = map[string]map[string]string{}
 
@@ -44,7 +50,7 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string) (requiredDisks map[st
 			// nothing appropriate on linux
 		default:
 			l.hasCustomPath = true
-			err := l.setCustomPath(drive, requiredDisks)
+			err := l.setCustomPath(drive, requiredDisks, parentFallback)
 			if err != nil {
 				return nil, err
 			}
@@ -76,12 +82,13 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 	return
 }
 
-func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string) (err error) {
+func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
 	// make sure path exists
-	if err = utils.IsFolder(drive); err != nil {
+	_, err = os.Stat(drive)
+	if err != nil && os.IsNotExist(err) {
 		log.Debugf("%s: %s", drive, err.Error())
 
-		return fmt.Errorf("failed to find disk partition")
+		return fmt.Errorf("failed to find disk partition: %s", err.Error())
 	}
 
 	// try to find closest matching mount
@@ -94,13 +101,15 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	var match *map[string]string
 	for i := range availMounts {
 		vol := availMounts[i]
-		if vol["drive"] != "" && strings.HasPrefix(drive, vol["drive"]) {
+		if parentFallback && vol["drive"] != "" && strings.HasPrefix(drive, vol["drive"]) {
 			if match == nil || len((*match)["drive"]) < len(vol["drive"]) {
 				match = &vol
 			}
 		}
 		// direct match, no need to search further
 		if drive == vol["drive"] {
+			match = &vol
+
 			break
 		}
 	}
@@ -112,12 +121,9 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	}
 
 	// add anyway to generate an error later with more default values filled in
-	requiredDisks[drive] = map[string]string{
-		"id":            "",
-		"drive":         drive,
-		"drive_or_id":   drive,
-		"drive_or_name": drive,
-	}
+	entry := l.driveEntry(drive)
+	entry["_error"] = fmt.Sprintf("%s not mounted", drive)
+	requiredDisks[drive] = entry
 
 	return nil
 }

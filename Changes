@@ -10,6 +10,7 @@ next:
          - improve wmi stability
          - add regexp replacement macro post processor
          - add if/else conditionals to *-syntax templates
+         - check_drivesize: do not use parent folder. Use folder=...if required
 
 0.19     Wed Feb 28 00:09:39 CET 2024
          - write startup errors to default logfile
