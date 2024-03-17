@@ -106,7 +106,7 @@ func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, tota
 		"used":       humanize.IBytesF(used, 2),
 		"used_bytes": fmt.Sprintf("%d", used),
 		"used_pct":   fmt.Sprintf("%.3f", (float64(used) * 100 / (float64(total)))),
-		"free":       humanize.IBytesF(free*100/total, 2),
+		"free":       humanize.IBytesF(free, 2),
 		"free_bytes": fmt.Sprintf("%d", free),
 		"free_pct":   fmt.Sprintf("%.3f", (float64(free) * 100 / (float64(total)))),
 		"size":       humanize.IBytesF(total, 2),
