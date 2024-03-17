@@ -10,13 +10,13 @@ title: Common Check Arguments
 | [critical](#critical)           | Threshold when to generate a critical state |
 | [crit](#critical)               | Short alias for critical |
 | [ok](#ok)                       | Threshold when to generate an ok state |
-| [top-syntax](#top-syntax)       | Top level syntax |
-| [ok-syntax](#ok-syntax)         | Ok syntax |
+| [top-syntax](#top-syntax)       | Top level syntax. |
+| [ok-syntax](#ok-syntax)         | Syntax used for ok states. |
 | [empty-syntax](#empty-syntax)   | Template syntax used when no item matches a filter. |
-| [empty-state](#empty-state)     | Status to return when no items matches the filter |
-| [detail-syntax](#detail-syntax) | Detailed/Individual Syntax |
-| [perf-syntax](#perf-syntax)     | Performance data syntax |
-| [perf-config](#perf-config)     | Performance data tweaks |
+| [empty-state](#empty-state)     | Status to return when no items matches the filter. |
+| [detail-syntax](#detail-syntax) | Detailed syntax for list items. |
+| [perf-syntax](#perf-syntax)     | Performance data syntax. |
+| [perf-config](#perf-config)     | Performance data tweaks. |
 
 ### Filter
 
@@ -78,9 +78,7 @@ ex.:
 Sets the output format template for the return message. Can include text as well
 as special keywords that will be replaced by information from the check.
 
-Keyword Syntax: ´\${keyword} or %(keyword). $ and % as well as {} and () can be used interchangeably.
-
-[Macro operators](../../configuration/#macro-operators) may be used here as well.
+Details are explained on the [template syntax page](../syntax/).
 
 ex.:
 
@@ -91,7 +89,7 @@ ex.:
 Overrides the `top-syntax` if the state is OK. Can include text as well as special
 keywords that will be replaced by information from the check.
 
-Keyword and macros can be used as described in the [top-syntax](#top-syntax).
+Details are explained on the [template syntax page](../syntax/).
 
 ex.:
 
@@ -102,7 +100,7 @@ ex.:
 Sets the format for the return message if no item matched the filter. Overrides the
 `top-syntax` template for empty lists.
 
-Keyword and macros can be used as described in the [top-syntax](#top-syntax).
+Details are explained on the [template syntax page](../syntax/).
 
 ex.:
 
@@ -112,7 +110,7 @@ ex.:
 
 Sets the format for each individual list item in the message.
 
-Keyword and macros can be used as described in the [top-syntax](#top-syntax).
+Details are explained on the [template syntax page](../syntax/).
 
 ex.:
 
