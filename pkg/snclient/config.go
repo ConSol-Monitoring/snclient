@@ -27,6 +27,7 @@ var DefaultConfig = map[string]ConfigData{
 		"Logrotate":            "enabled",
 		"CheckSystem":          "enabled",
 		"CheckSystemUnix":      "enabled",
+		"CheckAlias":           "enabled",
 		"CheckExternalScripts": "enabled",
 		"CheckDisk":            "enabled",
 		"CheckWMI":             "disabled",
