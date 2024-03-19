@@ -20,8 +20,13 @@ If (-Not (Test-Path -Path "C:\Program Files (x86)\WiX Toolset v3.14\bin\candle.e
 }
 
 $win_arch = "$arch"
-if ("$arch" -eq "386")   { $win_arch = "x86" }
-if ("$arch" -eq "amd64") { $win_arch = "x64" }
+$go_arch  = "$arch"
+if ("$arch" -eq "386")    { $win_arch = "x86" }
+if ("$arch" -eq "i386")   { $win_arch = "x86"; $go_arch = "386" }
+if ("$arch" -eq "amd64")  { $win_arch = "x64" }
+if ("$arch" -eq "x86_64") { $win_arch = "x64"; $go_arch = "amd64" }
+
+Copy-Item .\windist\windows_exporter-$go_arch.exe .\windist\windows_exporter.exe
 
 & 'C:\Program Files (x86)\WiX Toolset v3.14\bin\candle.exe' .\packaging\windows\snclient.wxs `
   -arch $win_arch `

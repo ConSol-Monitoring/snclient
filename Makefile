@@ -19,30 +19,37 @@ export GOBIN := $(TOOLSFOLDER)
 export PATH := $(GOBIN):$(PATH)
 
 VERSION ?= $(shell ./buildtools/get_version)
-ARCH    ?= $(shell go env GOARCH)
+GOARCH  ?= $(shell go env GOARCH)
 GOOS    ?= $(shell go env GOOS)
-DEBFILE ?= snclient-$(VERSION)-$(BUILD)-$(ARCH).deb
-DEB_ARCH=$(ARCH)
-ifeq ($(DEB_ARCH),386)
-	DEB_ARCH=i386
-endif
+DEBFILE ?= snclient-$(VERSION)-$(BUILD)-$(GOARCH).deb
+
 RPM_TOPDIR=$(shell pwd)/rpm.top
-RPM_ARCH=$(ARCH)
-ifeq ($(RPM_ARCH),386)
-	RPM_ARCH=i386
+PKG_ARCH:=$(GOARCH)
+ifeq ($(PKG_ARCH),386)
+	PKG_ARCH := i386
 endif
-ifeq ($(RPM_ARCH),amd64)
-	RPM_ARCH=x86_64
+ifeq ($(PKG_ARCH),amd64)
+	PKG_ARCH := x86_64
 endif
-ifeq ($(RPM_ARCH),arm64)
-	RPM_ARCH=aarch64
+ifeq ($(PKG_ARCH),arm64)
+	PKG_ARCH := aarch64
+endif
+
+ifeq ($(GOARCH),i386)
+	export GOARCH := 386
+endif
+ifeq ($(GOARCH),x86_64)
+	export GOARCH := amd64
+endif
+ifeq ($(GOARCH),aarch64)
+	export GOARCH := arm64
 endif
 
 BUILD_FLAGS=-ldflags "-s -w -X pkg/snclient.Build=$(BUILD) -X pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
 NODE_EXPORTER_VERSION=1.7.0
-NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(ARCH).tar.gz
+NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(GOARCH).tar.gz
 NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)/$(NODE_EXPORTER_FILE)
 
 # last i386 exe is the 0.24.0
@@ -424,8 +431,8 @@ deb: | dist
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)/node_exporter build-deb/usr/lib/snclient/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter build-deb/usr/lib/snclient/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)
 
 	rm -rf ./build-deb/DEBIAN
 	cp -r ./packaging/debian ./build-deb/DEBIAN
@@ -442,7 +449,7 @@ deb: | dist
 	cp ./dist/README.md build-deb//usr/share/doc/snclient/README
 	mv ./build-deb/DEBIAN/snclient.lintian-overrides build-deb/usr/share/lintian/overrides/snclient
 
-	sed -i build-deb/DEBIAN/control -e 's|^Architecture: .*|Architecture: $(DEB_ARCH)|'
+	sed -i build-deb/DEBIAN/control -e 's|^Architecture: .*|Architecture: $(PKG_ARCH)|'
 	sed -i build-deb/DEBIAN/control -e 's|^Version: .*|Version: $(VERSION)|'
 
 	chmod 644 build-deb/etc/snclient/*
@@ -464,15 +471,15 @@ rpm: | dist
 	cp ./packaging/snclient.service dist/
 	cp ./packaging/snclient.spec dist/
 	sed -i dist/snclient.spec -e 's|^Version: .*|Version: $(VERSION)|'
-	sed -i dist/snclient.spec -e 's|^BuildArch: .*|BuildArch: $(RPM_ARCH)|'
+	sed -i dist/snclient.spec -e 's|^BuildArch: .*|BuildArch: $(PKG_ARCH)|'
 	cp -rp dist snclient-$(VERSION)
 	rm -f snclient-$(VERSION)/ca.key
 
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)/node_exporter snclient-$(VERSION)/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter snclient-$(VERSION)/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)
 
 	chmod 755 \
 		snclient-$(VERSION)/snclient \
@@ -483,13 +490,13 @@ rpm: | dist
 	mkdir -p $(RPM_TOPDIR)/{SOURCES,BUILD,RPMS,SRPMS,SPECS}
 	mv snclient-$(VERSION).tar.gz $(RPM_TOPDIR)/SOURCES
 	rpmbuild \
-		--target $(RPM_ARCH) \
+		--target $(PKG_ARCH) \
 		--define "_topdir $(RPM_TOPDIR)" \
 		--buildroot=$(shell pwd)/build-rpm \
 		-bb dist/snclient.spec
-	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
+	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm snclient-$(VERSION)-$(BUILD)-$(PKG_ARCH).rpm
 	rm -rf $(RPM_TOPDIR) build-rpm
-	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
+	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$(PKG_ARCH).rpm
 
 osx: | dist
 	rm -rf build-pkg
@@ -504,9 +511,9 @@ osx: | dist
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(ARCH)/node_exporter build-pkg/usr/local/bin/node_exporter
+	mv node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(GOARCH)/node_exporter build-pkg/usr/local/bin/node_exporter
 	chmod 755 build-pkg/usr/local/bin/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(ARCH)
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(GOARCH)
 
 	cp packaging/osx/com.snclient.snclient.plist build-pkg/Library/LaunchDaemons/
 

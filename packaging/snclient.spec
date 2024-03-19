@@ -17,6 +17,8 @@ It supports Prometheus, NRPE and a REST API HTTP(s) protocol to run checks.
 
 # no debug package required
 %define debug_package %{nil}
+# striping binaries won't work for ex. for arm64 when building rpm on x86
+%define __os_install_post %{nil}
 
 %prep
 %setup -q

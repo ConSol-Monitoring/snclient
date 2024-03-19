@@ -83,7 +83,7 @@ jobs:
       fail-fast: false
       matrix:
         go-os: [linux, freebsd]
-        go-arch: [386, amd64, arm64]
+        go-arch: [i386, x86_64, aarch64]
     needs: [get-version]
     runs-on: ubuntu-latest
     env:
@@ -97,7 +97,7 @@ jobs:
           go-version: ${{ env.GOVERSION }}
       - run: |
           echo "Building ${{ env.BIN }}"
-          make GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} build
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: "${{ env.BIN }}"
@@ -110,7 +110,7 @@ jobs:
       fail-fast: false
       matrix:
         go-os: [darwin]
-        go-arch: [amd64, arm64]
+        go-arch: [x86_64, aarch64]
     needs: [get-version]
     runs-on: macos-latest
     env:
@@ -124,7 +124,7 @@ jobs:
           go-version: ${{ env.GOVERSION }}
       - run: |
           echo "Building ${{ env.BIN }}"
-          make GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} build
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: "${{ env.BIN }}"
@@ -137,7 +137,7 @@ jobs:
       fail-fast: false
       matrix:
         go-os: [windows]
-        go-arch: [386, amd64]
+        go-arch: [i386, x86_64]
     needs: [get-version]
     runs-on: ubuntu-latest
     env:
@@ -156,7 +156,7 @@ jobs:
           cp -rp packaging/windows/winres .
           ./tools/go-winres make  --arch 386,amd64,arm64
           cp rsrc_windows*.syso cmd/snclient/
-          make GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} build
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
           mv snclient snclient.exe
       - uses: actions/upload-artifact@v4.3.1
         with:
@@ -170,7 +170,7 @@ jobs:
       fail-fast: false
       matrix:
         go-os: [windows]
-        go-arch: [386, amd64]
+        go-arch: [i386, x86_64]
     needs: [get-version, build-win]
     runs-on: windows-latest
     env:
@@ -232,7 +232,7 @@ jobs:
     strategy:
       matrix:
         go-os: [windows]
-        go-arch: [386, amd64]
+        go-arch: [i386, x86_64]
     needs: [get-version, build-win, dist-win, sign-win]
     runs-on: windows-latest
     env:
@@ -251,7 +251,6 @@ jobs:
 
       - run: |
           Write-Host "Building ${{ env.BIN }}.msi"
-          Copy-Item .\windist\windows_exporter-${{ matrix.go-arch }}.exe .\windist\windows_exporter.exe
           # Set-PSDebug -Trace 2
           & .\packaging\windows\build_msi.ps1 `
             -out "${{ env.BIN }}.msi" `
@@ -289,7 +288,7 @@ jobs:
     strategy:
       matrix:
         go-os: [linux]
-        go-arch: [386, amd64, arm64]
+        go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version, build]
     env:
@@ -305,7 +304,7 @@ jobs:
           echo "Building ${{ env.BIN }}.deb"
           export DEBEMAIL="Sven Nierlein <sven.nierlein@consol.de>"
           export DEBFULLNAME="Sven Nierlein"
-          make VERSION=${{needs.get-version.outputs.version}} ARCH=${{ matrix.go-arch }} DEBFILE=${{ env.BIN }}.deb deb
+          GOARCH=${{ matrix.go-arch }} make VERSION=${{needs.get-version.outputs.version}} DEBFILE=${{ env.BIN }}.deb deb
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: "${{ env.BIN }}.deb"
@@ -317,7 +316,7 @@ jobs:
     strategy:
       matrix:
         go-os: [darwin]
-        go-arch: [amd64, arm64]
+        go-arch: [x86_64, aarch64]
     runs-on: macos-latest
     needs: [get-version, build-osx]
     env:
@@ -350,7 +349,7 @@ jobs:
     strategy:
       matrix:
         go-os: [linux]
-        go-arch: [386, amd64, arm64]
+        go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version, build]
     env:
@@ -366,7 +365,7 @@ jobs:
       - run: sudo apt-get install help2man
       - run: |
           echo "Building ${{ env.BIN }}.rpm"
-          make rpm
+          GOARCH=${{ matrix.go-arch }} make rpm
           mv snclient*.rpm ${{ env.BIN }}.rpm
       - uses: actions/upload-artifact@v4.3.1
         with:
@@ -380,7 +379,7 @@ jobs:
     strategy:
       matrix:
         go-os: [linux]
-        go-arch: [386, amd64, arm64]
+        go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,pkg-rpm,pkg-deb]
     env:
@@ -423,7 +422,7 @@ jobs:
     strategy:
       matrix:
         go-os: [windows]
-        go-arch: [amd64]
+        go-arch: [x86_64]
     runs-on: windows-latest
     needs: [get-version,pkg-msi]
     env:
@@ -447,7 +446,7 @@ jobs:
       - name: "Windows Integration Tests"
         run: |
           Move-Item -Path ${{ env.BIN }}.msi -Destination .\t\snclient.msi
-          Copy-Item .\windist\windows_exporter-${{ matrix.go-arch }}.exe .\windist\windows_exporter.exe
+          Copy-Item .\windist\windows_exporter-amd64.exe .\windist\windows_exporter.exe
           cd t
           go test -v ; if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: powershell
@@ -466,7 +465,7 @@ jobs:
     strategy:
       matrix:
         go-os: [windows]
-        go-arch: [386, amd64]
+        go-arch: [i386, x86_64]
     needs: [get-version, integration-test-windows]
     runs-on: windows-latest
     env:
@@ -499,7 +498,7 @@ jobs:
     strategy:
       matrix:
         go-os: [windows]
-        go-arch: [386, amd64]
+        go-arch: [i386, x86_64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
     env:
@@ -518,7 +517,7 @@ jobs:
     strategy:
       matrix:
         go-os: [linux]
-        go-arch: [386, amd64, arm64]
+        go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
     env:
@@ -537,7 +536,7 @@ jobs:
     strategy:
       matrix:
         go-os: [linux]
-        go-arch: [386, amd64, arm64]
+        go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
     env:
@@ -556,7 +555,7 @@ jobs:
     strategy:
       matrix:
         go-os: [darwin]
-        go-arch: [amd64, arm64]
+        go-arch: [x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
     env:
@@ -575,7 +574,7 @@ jobs:
     strategy:
       matrix:
         go-os: [freebsd]
-        go-arch: [386, amd64, arm64]
+        go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
     env:
