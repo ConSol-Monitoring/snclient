@@ -409,6 +409,7 @@ func getGlobalMacros() map[string]string {
 	macros := map[string]string{
 		"goos":     runtime.GOOS,
 		"goarch":   runtime.GOARCH,
+		"pkgarch":  pkgArch(runtime.GOARCH),
 		"exe-path": execDir,
 		"exe-file": execFile,
 		"exe-full": execPath,
@@ -1246,5 +1247,18 @@ func setScriptsRoot(config *Config) {
 
 		// reset cached default macros
 		config.ResetDefaultMacros()
+	}
+}
+
+func pkgArch(arch string) string {
+	switch arch {
+	case "386":
+		return "i386"
+	case "amd64":
+		return "x86_64"
+	case "arm64":
+		return "aarch64"
+	default:
+		return "unknown"
 	}
 }

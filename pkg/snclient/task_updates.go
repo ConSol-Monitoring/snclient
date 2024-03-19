@@ -1064,13 +1064,7 @@ func (u *UpdateHandler) extractXar(fileName string) error {
 }
 
 func (u *UpdateHandler) isUsableGithubAsset(name string) bool {
-	archVariants := []string{runtime.GOARCH}
-	switch runtime.GOARCH {
-	case "386":
-		archVariants = append(archVariants, "i386")
-	case "arm64":
-		archVariants = append(archVariants, "aarch64")
-	}
+	archVariants := []string{pkgArch(runtime.GOARCH), runtime.GOARCH}
 
 	osVariants := []string{runtime.GOOS}
 	switch runtime.GOOS {
@@ -1079,7 +1073,7 @@ func (u *UpdateHandler) isUsableGithubAsset(name string) bool {
 	case "windows":
 		if runtime.GOARCH == "arm64" {
 			// arm windows can use the 64bit version
-			archVariants = append(archVariants, "amd64")
+			archVariants = append(archVariants, "x86_64", "amd64")
 		}
 	}
 
