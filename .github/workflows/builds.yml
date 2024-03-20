@@ -305,6 +305,7 @@ jobs:
           export DEBEMAIL="Sven Nierlein <sven.nierlein@consol.de>"
           export DEBFULLNAME="Sven Nierlein"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make deb
+          mv snclient*.deb ${{ env.BIN }}.deb
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: "${{ env.BIN }}.deb"
@@ -364,6 +365,7 @@ jobs:
       - run: |
           echo "Building ${{ env.BIN }}.rpm"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make rpm
+          mv snclient*.rpm ${{ env.BIN }}.rpm
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: "${{ env.BIN }}.rpm"
