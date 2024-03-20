@@ -69,3 +69,5 @@ these can be used in filters and thresholds (along with the default attributes):
 | linux       | check is available on linux: 0 / 1            |
 | osx         | check is available on mac osx: 0 / 1          |
 | freebsd     | check is available on freebsd: 0 / 1          |
+| alias       | check is an alias: 0 / 1                      |
+| script      | check is a (wrapped) script: 0 / 1            |

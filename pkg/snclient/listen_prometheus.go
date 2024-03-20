@@ -115,17 +115,18 @@ func (l *HandlerPrometheus) Stop() {
 	l.listener.Stop()
 }
 
-func (l *HandlerPrometheus) Defaults() ConfigData {
+func (l *HandlerPrometheus) Defaults(runSet *AgentRunSet) ConfigData {
 	defaults := ConfigData{
 		"port":    "9999",
 		"use ssl": "0",
 	}
+	defaults.Merge(runSet.config.Section("/settings/default").data)
 	defaults.Merge(DefaultListenHTTPConfig)
 
 	return defaults
 }
 
-func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config, set *ModuleSet) error {
+func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
 	l.password = DefaultPassword
 	if password, ok := conf.GetString("password"); ok {
@@ -138,7 +139,7 @@ func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config, set
 		promInfoCount.WithLabelValues(VERSION, Build, runtime.GOOS).Set(1)
 	}
 
-	listener, err := SharedWebListener(snc, conf, l, set)
+	listener, err := SharedWebListener(snc, conf, l, runSet)
 	if err != nil {
 		return err
 	}

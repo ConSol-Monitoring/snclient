@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -132,24 +133,26 @@ type AgentFlags struct {
 }
 
 type Agent struct {
-	Config            *Config     // reference to global config object
+	config            *Config     // reference to global config object
 	Listeners         *ModuleSet  // Listeners stores if we started listeners
 	Tasks             *ModuleSet  // Tasks stores if we started task runners
 	Counter           *CounterSet // Counter stores collected counters from tasks
 	flags             *AgentFlags
 	cpuProfileHandler *os.File
-	initSet           *AgentRunSet
+	runSet            *AgentRunSet
 	osSignalChannel   chan os.Signal
 	running           atomic.Bool
 	Log               *factorlog.FactorLog
 }
 
-// AgentRunSet contains the initial startup config items
+// AgentRunSet contains the runtime dynamic references
 type AgentRunSet struct {
-	config    *Config
-	listeners *ModuleSet
-	tasks     *ModuleSet
-	files     []string
+	config     *Config
+	listeners  *ModuleSet
+	tasks      *ModuleSet
+	files      []string
+	cmdAliases map[string]CheckEntry // contains all registered check handler aliases
+	cmdWraps   map[string]CheckEntry // contains all registered wrapped check handler
 }
 
 // NewAgent returns a new Agent object ready to be started by Run()
@@ -158,7 +161,7 @@ func NewAgent(flags *AgentFlags) *Agent {
 		Listeners: NewModuleSet("listener"),
 		Tasks:     NewModuleSet("task"),
 		Counter:   NewCounterSet(),
-		Config:    NewConfig(true),
+		config:    NewConfig(true),
 		flags:     flags,
 		Log:       log,
 	}
@@ -175,9 +178,9 @@ func NewAgent(flags *AgentFlags) *Agent {
 		LogStderrf("ERROR: %s", err.Error())
 		snc.CleanExit(ExitCodeError)
 	}
-	snc.initSet = initSet
+	snc.runSet = initSet
 	snc.Tasks = initSet.tasks
-	snc.Config = initSet.config
+	snc.config = initSet.config
 
 	snc.osSignalChannel = make(chan os.Signal, 1)
 
@@ -217,7 +220,7 @@ func (snc *Agent) Run() {
 		}
 	})
 
-	snc.startModules(snc.initSet)
+	snc.startModules(snc.runSet)
 	snc.running.Store(true)
 
 	for {
@@ -345,14 +348,14 @@ func (snc *Agent) startModules(initSet *AgentRunSet) {
 		snc.Listeners.StopRemove()
 	}
 
-	snc.Config = initSet.config
+	snc.config = initSet.config
 	snc.Listeners = initSet.listeners
 	snc.Tasks = initSet.tasks
 
 	snc.Tasks.Start()
 	snc.Listeners.Start()
 
-	snc.initSet = initSet
+	snc.runSet = initSet
 }
 
 func (snc *Agent) Init() (*AgentRunSet, error) {
@@ -395,6 +398,28 @@ func (snc *Agent) Init() (*AgentRunSet, error) {
 		return initSet, err
 	}
 
+	tasks, err2 := snc.initModules("tasks", AvailableTasks, initSet)
+	initSet.tasks = tasks
+	if err2 != nil {
+		return initSet, fmt.Errorf("task initialization failed: %s", err2.Error())
+	}
+
+	listen := NewModuleSet("listener")
+	initSet.listeners = listen
+	if snc.flags.Mode == ModeServer {
+		listen, err = snc.initModules("listener", AvailableListeners, initSet)
+		if err != nil {
+			return initSet, fmt.Errorf("listener initialization failed: %s", err.Error())
+		}
+
+		if len(listen.modules) == 0 {
+			log.Warnf("no listener enabled")
+		}
+		initSet.listeners = listen
+	}
+
+	setScriptsRoot(initSet.config)
+
 	return initSet, nil
 }
 
@@ -426,8 +451,10 @@ func getGlobalMacros() map[string]string {
 func (snc *Agent) readConfiguration(files []string) (initSet *AgentRunSet, err error) {
 	config := NewConfig(true)
 	initSet = &AgentRunSet{
-		config: config,
-		files:  files,
+		config:     config,
+		files:      files,
+		cmdAliases: make(map[string]CheckEntry),
+		cmdWraps:   make(map[string]CheckEntry),
 	}
 	var parseError error
 	for _, path := range files {
@@ -474,33 +501,12 @@ func (snc *Agent) readConfiguration(files []string) (initSet *AgentRunSet, err e
 		return initSet, fmt.Errorf("reading settings failed: %s", parseError.Error())
 	}
 
-	tasks, err2 := snc.initModules("tasks", AvailableTasks, config)
-	initSet.tasks = tasks
-	if err2 != nil {
-		return initSet, fmt.Errorf("task initialization failed: %s", err2.Error())
-	}
-
-	listen := NewModuleSet("listener")
-	initSet.listeners = listen
-	if snc.flags.Mode == ModeServer {
-		listen, err = snc.initModules("listener", AvailableListeners, config)
-		if err != nil {
-			return initSet, fmt.Errorf("listener initialization failed: %s", err.Error())
-		}
-
-		if len(listen.modules) == 0 {
-			log.Warnf("no listener enabled")
-		}
-		initSet.listeners = listen
-	}
-
-	setScriptsRoot(config)
-
 	return initSet, nil
 }
 
-func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Config) (*ModuleSet, error) {
+func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *AgentRunSet) (*ModuleSet, error) {
 	modules := NewModuleSet(name)
+	conf := runSet.config
 
 	modulesConf := conf.Section("/modules")
 	for _, entry := range loadable {
@@ -519,7 +525,7 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, conf *Con
 		}
 
 		log.Tracef("init: %s %s", name, entry.Name())
-		mod, err := entry.Init(snc, conf, modules)
+		mod, err := entry.Init(snc, conf, runSet)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
 		}
@@ -705,7 +711,7 @@ func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []s
 func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *CheckResult {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
-	check, ok := AvailableChecks[name]
+	check, ok := snc.getCheck(name)
 	if !ok {
 		return &CheckResult{
 			State:  CheckExitUnknown,
@@ -751,6 +757,23 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 	return res
 }
 
+func (snc *Agent) getCheck(name string) (_ *CheckEntry, ok bool) {
+	if snc.runSet != nil {
+		if chk, ok := snc.runSet.cmdAliases[name]; ok {
+			return &chk, ok
+		}
+		if chk, ok := snc.runSet.cmdWraps[name]; ok {
+			return &chk, ok
+		}
+	}
+
+	if chk, ok := AvailableChecks[name]; ok {
+		return &chk, ok
+	}
+
+	return nil, false
+}
+
 func (snc *Agent) buildStartupMsg() string {
 	platform, _, pversion, err := host.PlatformInformation()
 	if err != nil {
@@ -767,7 +790,7 @@ func (snc *Agent) buildStartupMsg() string {
 }
 
 func (snc *Agent) createLogger(config *Config) {
-	conf := snc.Config.Section("/settings/log")
+	conf := snc.config.Section("/settings/log")
 	if config != nil {
 		conf = config.Section("/settings/log")
 	}
@@ -869,7 +892,7 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 	binFile := GlobalMacros["exe-full"]
 	lastStat := map[string]*fs.FileInfo{}
 	files := []string{}
-	files = append(files, snc.initSet.files...)
+	files = append(files, snc.runSet.files...)
 	files = append(files, binFile)
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
@@ -1000,7 +1023,7 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
 
-	workDir, _ := snc.Config.Section("/paths").GetString("shared-path")
+	workDir, _ := snc.config.Section("/paths").GetString("shared-path")
 	if err = utils.IsFolder(workDir); err != nil {
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("invalid shared-path %s: %s", workDir, err.Error())
 	}
@@ -1191,8 +1214,21 @@ func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ..
 func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[string]interface{} {
 	scripts := make([]string, 0)
 	inventory := make(map[string]interface{})
+
+	keys := make([]string, 0)
 	for k := range AvailableChecks {
-		check := AvailableChecks[k]
+		keys = append(keys, k)
+	}
+	for k := range snc.runSet.cmdAliases {
+		keys = append(keys, k)
+	}
+	for k := range snc.runSet.cmdWraps {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		check, _ := snc.getCheck(k)
 		handler := check.Handler()
 		meta := handler.Build()
 		if !meta.isImplemented(runtime.GOOS) {

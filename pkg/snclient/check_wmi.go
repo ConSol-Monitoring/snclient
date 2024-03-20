@@ -72,7 +72,7 @@ func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Ar
 	if runtime.GOOS != "windows" {
 		return nil, fmt.Errorf("check_wmi is a windows only check")
 	}
-	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckWMI")
+	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckWMI")
 	if !enabled {
 		return nil, fmt.Errorf("module CheckWMI is not enabled in /modules section")
 	}

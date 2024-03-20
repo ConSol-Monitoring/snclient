@@ -105,26 +105,27 @@ func (l *HandlerWeb) Stop() {
 	}
 }
 
-func (l *HandlerWeb) Defaults() ConfigData {
+func (l *HandlerWeb) Defaults(runSet *AgentRunSet) ConfigData {
 	defaults := ConfigData{
 		"port":                   "8443",
 		"use ssl":                "1",
 		"allow arguments":        "true",
 		"allow nasty characters": "false",
 	}
+	defaults.Merge(runSet.config.Section("/settings/default").data)
 	defaults.Merge(DefaultListenHTTPConfig)
 
 	return defaults
 }
 
-func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection, _ *Config, set *ModuleSet) error {
+func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
 	l.password = DefaultPassword
 	if password, ok := conf.GetString("password"); ok {
 		l.password = password
 	}
 
-	listener, err := SharedWebListener(snc, conf, l, set)
+	listener, err := SharedWebListener(snc, conf, l, runSet)
 	if err != nil {
 		return err
 	}

@@ -129,7 +129,7 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	}
 
 	// add scripts path to PATH env
-	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
+	scriptsPath, _ := snc.config.Section("/paths").GetString("scripts")
 	cmd.Env = append(os.Environ(), "PATH="+scriptsPath+":"+os.Getenv("PATH"))
 
 	return cmd, nil

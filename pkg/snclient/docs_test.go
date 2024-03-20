@@ -13,16 +13,14 @@ func TestDocsExists(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	skipChecks := []string{"check_index", "check_nscp_version"}
-	skipTypes := []string{"*snclient.CheckAlias", "*snclient.CheckWrap"}
+
+	assert.GreaterOrEqualf(t, len(AvailableChecks), 30, "there should be checks available")
 
 	for name := range AvailableChecks {
 		if slices.Contains(skipChecks, name) {
 			continue
 		}
 		checkType := fmt.Sprintf("%T", AvailableChecks[name].Handler())
-		if slices.Contains(skipTypes, checkType) {
-			continue
-		}
 		pluginFile := fmt.Sprintf("../../docs/checks/plugins/%s.md", name)
 		commandFile := fmt.Sprintf("../../docs/checks/commands/%s.md", name)
 		isPlugin := false

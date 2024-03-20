@@ -77,7 +77,7 @@ func NewUpdateHandler() Module {
 	}
 }
 
-func (u *UpdateHandler) Defaults() ConfigData {
+func (u *UpdateHandler) Defaults(_ *AgentRunSet) ConfigData {
 	defaults := ConfigData{
 		"automatic updates": "disabled",
 		"automatic restart": "disabled",
@@ -93,7 +93,7 @@ func (u *UpdateHandler) Defaults() ConfigData {
 	return defaults
 }
 
-func (u *UpdateHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *ModuleSet) error {
+func (u *UpdateHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *AgentRunSet) error {
 	u.snc = snc
 	ctx, cancel := context.WithCancel(context.Background())
 	u.ctx = &ctx
@@ -341,7 +341,7 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 
 func (u *UpdateHandler) fetchAvailableUpdates(preRelease bool, channel string) (updates []updatesAvailable) {
 	available := []updatesAvailable{}
-	channelConfSection := u.snc.Config.Section("/settings/updates/channel")
+	channelConfSection := u.snc.config.Section("/settings/updates/channel")
 	if channel == "all" {
 		channel = strings.Join(channelConfSection.Keys(), ",")
 	}
@@ -458,7 +458,7 @@ func (u *UpdateHandler) checkUpdateGithubRelease(url string, preRelease bool) (u
 // check available updates from github actions page
 func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates []updatesAvailable, err error) {
 	log.Tracef("[update] checking github action url at: %s", url)
-	conf := u.snc.Config.Section("/settings/updates/channel/" + channel)
+	conf := u.snc.config.Section("/settings/updates/channel/" + channel)
 	token, ok := conf.GetString("github token")
 	if !ok || token == "" || token == "<GITHUB-TOKEN>" { //nolint:gosec // false positive token, this is no token
 		return nil, fmt.Errorf("github action urls require a github token to work, skipping")
@@ -1093,7 +1093,7 @@ func (u *UpdateHandler) isUsableGithubAsset(name string) bool {
 }
 
 func (u *UpdateHandler) getAvailableChannel() []string {
-	channelConfSection := u.snc.Config.Section("/settings/updates/channel")
+	channelConfSection := u.snc.config.Section("/settings/updates/channel")
 	available := channelConfSection.Keys()
 	sort.Strings(available)
 

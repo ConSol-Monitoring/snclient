@@ -140,7 +140,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 }
 
 func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	enabled, _, _ := snc.Config.Section("/modules").GetBool("CheckDisk")
+	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckDisk")
 	if !enabled {
 		return nil, fmt.Errorf("module CheckDisk is not enabled in /modules section")
 	}

@@ -32,7 +32,7 @@ func NewCheckSystemHandler() Module {
 	return &CheckSystemHandler{}
 }
 
-func (c *CheckSystemHandler) Defaults() ConfigData {
+func (c *CheckSystemHandler) Defaults(_ *AgentRunSet) ConfigData {
 	defaults := ConfigData{
 		"default buffer length": "1h",
 	}
@@ -40,7 +40,7 @@ func (c *CheckSystemHandler) Defaults() ConfigData {
 	return defaults
 }
 
-func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *ModuleSet) error {
+func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *AgentRunSet) error {
 	c.snc = snc
 	c.stopChannel = make(chan bool)
 

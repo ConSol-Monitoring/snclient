@@ -21,7 +21,7 @@ password3 = SHA256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00
 `, DefaultPassword)
 
 	snc := StartTestAgent(t, config)
-	conf := snc.Config.Section("/settings")
+	conf := snc.config.Section("/settings")
 
 	disableLogsTemporarily()
 	defer restoreLogLevel()
@@ -76,19 +76,19 @@ password = test
 
 	snc := StartTestAgent(t, config)
 
-	allowed, ok := snc.Config.Section("/settings/default").GetString("allowed hosts")
+	allowed, ok := snc.config.Section("/settings/default").GetString("allowed hosts")
 	assert.True(t, ok)
 	assert.Contains(t, allowed, "123.123.123.123")
 
-	allowed, ok = snc.Config.Section("/settings/WEB/server").GetString("allowed hosts")
+	allowed, ok = snc.config.Section("/settings/WEB/server").GetString("allowed hosts")
 	assert.True(t, ok)
 	assert.Contains(t, allowed, "123.123.123.123")
 
-	pass, ok := snc.Config.Section("/settings/WEB/server").GetString("password")
+	pass, ok := snc.config.Section("/settings/WEB/server").GetString("password")
 	assert.True(t, ok)
 	assert.Equal(t, "test", pass)
 
-	cmd, ok := snc.Config.Section("/settings/external scripts/wrappings").GetString("ps1")
+	cmd, ok := snc.config.Section("/settings/external scripts/wrappings").GetString("ps1")
 	assert.True(t, ok)
 	assert.NotContains(t, cmd, "script root")
 	assert.Contains(t, cmd, "%SCRIPT%")

@@ -6,8 +6,8 @@ import (
 
 // Module is a generic module interface to abstract optional agent functionality
 type Module interface {
-	Defaults() ConfigData
-	Init(snc *Agent, section *ConfigSection, cfg *Config, set *ModuleSet) error
+	Defaults(runSet *AgentRunSet) ConfigData
+	Init(snc *Agent, section *ConfigSection, cfg *Config, runSet *AgentRunSet) error
 	Start() error
 	Stop()
 }
@@ -114,15 +114,14 @@ func (lm *LoadableModule) Name() string {
 }
 
 // Init creates the actual TaskHandler for this task
-func (lm *LoadableModule) Init(snc *Agent, conf *Config, set *ModuleSet) (Module, error) {
+func (lm *LoadableModule) Init(snc *Agent, conf *Config, runSet *AgentRunSet) (Module, error) {
 	handler := lm.Creator()
 
 	modConf := conf.Section(lm.ConfigKey)
-	modConf.MergeSection(conf.Section("/settings/default"))
-	modConf.MergeData(handler.Defaults())
+	modConf.MergeData(handler.Defaults(runSet))
 	conf.ReplaceMacrosDefault(modConf)
 
-	err := handler.Init(snc, modConf, conf, set)
+	err := handler.Init(snc, modConf, conf, runSet)
 	if err != nil {
 		return nil, fmt.Errorf("%s init failed: %s", lm.Name(), err.Error())
 	}

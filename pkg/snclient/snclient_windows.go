@@ -218,7 +218,7 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	_, lookupErr := exec.LookPath(cmdName)
 
 	// add scripts path to PATH env
-	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
+	scriptsPath, _ := snc.config.Section("/paths").GetString("scripts")
 	env := append(os.Environ(), "PATH="+scriptsPath+";"+os.Getenv("PATH"))
 
 	switch {
@@ -355,7 +355,7 @@ func setCmdUser(_ *exec.Cmd, _ string) error {
 // fix using paths with spaces in its name, parsed into separate pieces
 // ex.: C:\Program Files\...
 func (snc *Agent) fixPathHoles(cmdAndArgs []string) []string {
-	scriptsPath, _ := snc.Config.Section("/paths").GetString("scripts")
+	scriptsPath, _ := snc.config.Section("/paths").GetString("scripts")
 	for pieceNo := range cmdAndArgs {
 		cmdPath := strings.Join(cmdAndArgs[0:pieceNo+1], " ")
 		realPath, err := exec.LookPath(cmdPath)

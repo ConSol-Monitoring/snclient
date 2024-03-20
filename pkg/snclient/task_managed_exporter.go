@@ -17,13 +17,13 @@ func NewManagedExporterHandler() Module {
 	return &ManagedExporterHandler{}
 }
 
-func (ch *ManagedExporterHandler) Defaults() ConfigData {
+func (ch *ManagedExporterHandler) Defaults(_ *AgentRunSet) ConfigData {
 	defaults := ConfigData{}
 
 	return defaults
 }
 
-func (ch *ManagedExporterHandler) Init(snc *Agent, _ *ConfigSection, conf *Config, _ *ModuleSet) error {
+func (ch *ManagedExporterHandler) Init(snc *Agent, _ *ConfigSection, conf *Config, _ *AgentRunSet) error {
 	ch.snc = snc
 
 	nr := ch.registerHandler(conf)

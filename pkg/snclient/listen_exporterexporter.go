@@ -69,25 +69,26 @@ func (l *HandlerExporterExporter) Stop() {
 	l.listener.Stop()
 }
 
-func (l *HandlerExporterExporter) Defaults() ConfigData {
+func (l *HandlerExporterExporter) Defaults(runSet *AgentRunSet) ConfigData {
 	defaults := ConfigData{
 		"port":       "8443",
 		"use ssl":    "1",
 		"url prefix": "/",
 	}
+	defaults.Merge(runSet.config.Section("/settings/default").data)
 	defaults.Merge(DefaultListenHTTPConfig)
 
 	return defaults
 }
 
-func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, set *ModuleSet) error {
+func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
 	l.password = DefaultPassword
 	if password, ok := conf.GetString("password"); ok {
 		l.password = password
 	}
 
-	listener, err := SharedWebListener(snc, conf, l, set)
+	listener, err := SharedWebListener(snc, conf, l, runSet)
 	if err != nil {
 		return err
 	}

@@ -53,7 +53,7 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		macros["ARGS"] = strings.Join(cmdToken[1:], " ")
 		ext := strings.TrimPrefix(filepath.Ext(cmdToken[0]), ".")
 		log.Debugf("command wrapping for extension: %s", ext)
-		wrapping, ok := snc.Config.Section("/settings/external scripts/wrappings").GetString(ext)
+		wrapping, ok := snc.config.Section("/settings/external scripts/wrappings").GetString(ext)
 		if !ok {
 			return nil, fmt.Errorf("no wrapping found for extension: %s", ext)
 		}
@@ -120,7 +120,7 @@ func (l *CheckWrap) fixWrappingCmd(ext, wrapping string) string {
 		return wrapping
 	}
 
-	scriptRoot, _ := l.snc.Config.Section("/paths").GetString("script root")
+	scriptRoot, _ := l.snc.config.Section("/paths").GetString("script root")
 	escapedScriptRoot := strings.ReplaceAll(scriptRoot, " ", "` ")
 
 	// replace all occurrences with escaped ones

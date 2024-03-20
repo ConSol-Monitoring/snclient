@@ -38,6 +38,8 @@ allow arguments = yes
 `
 	snc := StartTestAgent(t, config)
 
+	assert.Lenf(t, snc.runSet.cmdAliases, 6, "there should be one alias")
+
 	res := snc.RunCheck("alias_cpu", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,

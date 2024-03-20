@@ -25,7 +25,7 @@ func (l *CheckBuiltin) Build() *CheckData {
 }
 
 func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	val, _, _ := snc.Config.Section("/modules").GetBool("CheckBuiltinPlugins")
+	val, _, _ := snc.config.Section("/modules").GetBool("CheckBuiltinPlugins")
 	if !val {
 		return &CheckResult{
 			State:  CheckExitUnknown,
@@ -33,7 +33,7 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		}, nil
 	}
 
-	val, _, _ = snc.Config.Section("/settings/builtin plugins/" + l.name).GetBool("disabled")
+	val, _, _ = snc.config.Section("/settings/builtin plugins/" + l.name).GetBool("disabled")
 	if val {
 		return &CheckResult{
 			State:  CheckExitUnknown,

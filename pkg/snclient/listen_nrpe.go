@@ -29,19 +29,20 @@ func NewHandlerNRPE() Module {
 	return &HandlerNRPE{}
 }
 
-func (l *HandlerNRPE) Defaults() ConfigData {
+func (l *HandlerNRPE) Defaults(runSet *AgentRunSet) ConfigData {
 	defaults := ConfigData{
 		"allow arguments":        "false",
 		"allow nasty characters": "false",
 		"port":                   "5666",
 		"use ssl":                "true",
 	}
+	defaults.Merge(runSet.config.Section("/settings/default").data)
 	defaults.Merge(DefaultListenTCPConfig)
 
 	return defaults
 }
 
-func (l *HandlerNRPE) Init(snc *Agent, conf *ConfigSection, _ *Config, _ *ModuleSet) error {
+func (l *HandlerNRPE) Init(snc *Agent, conf *ConfigSection, _ *Config, _ *AgentRunSet) error {
 	l.snc = snc
 	l.conf = conf
 	listener, err := NewListener(snc, conf, l)

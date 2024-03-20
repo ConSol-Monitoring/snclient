@@ -14,9 +14,9 @@ func TestCheckServiceLinux(t *testing.T) {
 	snc := NewAgent(flags)
 
 	initSet, _ := snc.Init()
-	snc.initSet = initSet
+	snc.runSet = initSet
 	snc.Tasks = initSet.tasks
-	snc.Config = initSet.config
+	snc.config = initSet.config
 
 	res := snc.RunCheck("check_service", []string{"filter='state=running'"})
 	assert.Regexpf(t,

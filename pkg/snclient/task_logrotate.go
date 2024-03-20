@@ -27,7 +27,7 @@ func NewLogrotateHandler() Module {
 	return &LogrotateHandler{}
 }
 
-func (l *LogrotateHandler) Defaults() ConfigData {
+func (l *LogrotateHandler) Defaults(_ *AgentRunSet) ConfigData {
 	defaults := ConfigData{
 		"max size": "0",
 	}
@@ -35,7 +35,7 @@ func (l *LogrotateHandler) Defaults() ConfigData {
 	return defaults
 }
 
-func (l *LogrotateHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *ModuleSet) error {
+func (l *LogrotateHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *AgentRunSet) error {
 	l.snc = snc
 	l.stopChannel = make(chan bool)
 
@@ -82,7 +82,7 @@ func (l *LogrotateHandler) mainLoop() {
 
 				continue
 			}
-			logFile, _ := l.snc.Config.Section("/settings/log").GetString("file name")
+			logFile, _ := l.snc.config.Section("/settings/log").GetString("file name")
 			fileInfo, err := os.Stat(logFile)
 			if err != nil {
 				log.Tracef("stat failed: %s: %s", logFile, err.Error())
@@ -126,7 +126,7 @@ func (l *LogrotateHandler) rotate(logFile string) {
 	}
 
 	// reopen logfile
-	l.snc.createLogger(l.snc.Config)
+	l.snc.createLogger(l.snc.config)
 
 	log.Infof("rotated logfile to %s.old", logFile)
 }

@@ -20,7 +20,7 @@ func NewExternalScriptsHandler() Module {
 	return &ExternalScriptsHandler{}
 }
 
-func (e *ExternalScriptsHandler) Defaults() ConfigData {
+func (e *ExternalScriptsHandler) Defaults(_ *AgentRunSet) ConfigData {
 	defaults := ConfigData{
 		"timeout":                "60",
 		"script root":            "${scripts}", // root path of all scripts
@@ -33,16 +33,16 @@ func (e *ExternalScriptsHandler) Defaults() ConfigData {
 	return defaults
 }
 
-func (e *ExternalScriptsHandler) Init(snc *Agent, defaultScriptConfig *ConfigSection, conf *Config, _ *ModuleSet) error {
+func (e *ExternalScriptsHandler) Init(snc *Agent, defaultScriptConfig *ConfigSection, conf *Config, runSet *AgentRunSet) error {
 	e.snc = snc
 
 	if err := e.registerScriptPath(defaultScriptConfig, conf); err != nil {
 		return err
 	}
-	if err := e.registerScripts(conf); err != nil {
+	if err := e.registerScripts(conf, runSet); err != nil {
 		return err
 	}
-	if err := e.registerWrapped(conf); err != nil {
+	if err := e.registerWrapped(conf, runSet); err != nil {
 		return err
 	}
 
@@ -58,7 +58,7 @@ func (e *ExternalScriptsHandler) Start() error {
 func (e *ExternalScriptsHandler) Stop() {
 }
 
-func (e *ExternalScriptsHandler) registerScripts(conf *Config) error {
+func (e *ExternalScriptsHandler) registerScripts(conf *Config, runSet *AgentRunSet) error {
 	// merge command shortcuts into separate config sections
 	scripts := conf.Section("/settings/external scripts/scripts")
 	for name, command := range scripts.data {
@@ -77,7 +77,7 @@ func (e *ExternalScriptsHandler) registerScripts(conf *Config) error {
 		cmdConf := conf.Section(sectionName)
 		if command, ok := cmdConf.GetString("command"); ok {
 			log.Tracef("registered script: %s -> %s", name, command)
-			AvailableChecks[name] = CheckEntry{name, func() CheckHandler { return &CheckWrap{name: name, commandString: command, config: cmdConf} }}
+			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler { return &CheckWrap{name: name, commandString: command, config: cmdConf} }}
 		} else {
 			return fmt.Errorf("missing command in external script %s", name)
 		}
@@ -86,7 +86,7 @@ func (e *ExternalScriptsHandler) registerScripts(conf *Config) error {
 	return nil
 }
 
-func (e *ExternalScriptsHandler) registerWrapped(conf *Config) error {
+func (e *ExternalScriptsHandler) registerWrapped(conf *Config, runSet *AgentRunSet) error {
 	// merge wrapped command shortcuts into separate config sections
 	scripts := conf.Section("/settings/external scripts/wrapped scripts")
 	for name, command := range scripts.data {
@@ -105,7 +105,7 @@ func (e *ExternalScriptsHandler) registerWrapped(conf *Config) error {
 		cmdConf := conf.Section(sectionName)
 		if command, ok := cmdConf.GetString("command"); ok {
 			log.Tracef("registered wrapped script: %s -> %s", name, command)
-			AvailableChecks[name] = CheckEntry{name, func() CheckHandler {
+			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler {
 				return &CheckWrap{name: name, commandString: command, wrapped: true, config: cmdConf}
 			}}
 		} else {
