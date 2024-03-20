@@ -35,6 +35,9 @@ const (
 
 	// Maximum file size for updates (prevent tar bombs)
 	UpdateFileMaxSize = 100e6
+
+	// MainBranch sets the github main branch, only artifacts from that branch will be considered
+	MainBranch = "main"
 )
 
 var reVersion = regexp.MustCompile(`SNClient.*?\s+(v[\d.]+)\s+`)
@@ -476,8 +479,11 @@ func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates [
 	logHTTPResponse(resp)
 
 	type GithubArtifact struct {
-		URL  string `json:"archive_download_url"`
-		Name string `json:"name"`
+		URL         string `json:"archive_download_url"`
+		Name        string `json:"name"`
+		WorkflowRun struct {
+			Banch string `json:"head_branch"`
+		} `json:"workflow_run"`
 	}
 
 	type GithubActions struct {
@@ -498,6 +504,11 @@ func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates [
 
 	for i := range artifacts.Artifacts {
 		artifact := artifacts.Artifacts[i]
+		if artifact.WorkflowRun.Banch != MainBranch {
+			log.Debugf("[update] skipped artifact from none-main branch: %s", artifact.WorkflowRun.Banch)
+
+			continue
+		}
 		if u.isUsableGithubAsset(strings.ToLower(artifact.Name)) {
 			matches := reActionVersion.FindStringSubmatch(artifact.Name)
 			if len(matches) > 1 {
