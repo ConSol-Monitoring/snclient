@@ -25,15 +25,15 @@ GOOS    ?= $(shell go env GOOS)
 DEBFILE ?= snclient-$(VERSION)-$(BUILD)-$(GOARCH).deb
 
 RPM_TOPDIR=$(shell pwd)/rpm.top
-PKG_ARCH:=$(GOARCH)
-ifeq ($(PKG_ARCH),386)
-	PKG_ARCH := i386
+RPM_ARCH:=$(GOARCH)
+ifeq ($(RPM_ARCH),386)
+	RPM_ARCH := i386
 endif
-ifeq ($(PKG_ARCH),amd64)
-	PKG_ARCH := x86_64
+ifeq ($(RPM_ARCH),amd64)
+	RPM_ARCH := x86_64
 endif
-ifeq ($(PKG_ARCH),arm64)
-	PKG_ARCH := aarch64
+ifeq ($(RPM_ARCH),arm64)
+	RPM_ARCH := aarch64
 endif
 
 ifeq ($(GOARCH),i386)
@@ -44,6 +44,11 @@ ifeq ($(GOARCH),x86_64)
 endif
 ifeq ($(GOARCH),aarch64)
 	export GOARCH := arm64
+endif
+
+DEB_ARCH:=$(GOARCH)
+ifeq ($(DEB_ARCH),386)
+	DEB_ARCH := i386
 endif
 
 BUILD_FLAGS=-ldflags "-s -w -X pkg/snclient.Build=$(BUILD) -X pkg/snclient.Revision=$(REVISION)"
@@ -450,7 +455,7 @@ deb: | dist
 	cp ./dist/README.md build-deb//usr/share/doc/snclient/README
 	mv ./build-deb/DEBIAN/snclient.lintian-overrides build-deb/usr/share/lintian/overrides/snclient
 
-	sed -i build-deb/DEBIAN/control -e 's|^Architecture: .*|Architecture: $(PKG_ARCH)|'
+	sed -i build-deb/DEBIAN/control -e 's|^Architecture: .*|Architecture: $(DEB_ARCH)|'
 	sed -i build-deb/DEBIAN/control -e 's|^Version: .*|Version: $(VERSION)|'
 
 	chmod 644 build-deb/etc/snclient/*
@@ -472,7 +477,7 @@ rpm: | dist
 	cp ./packaging/snclient.service dist/
 	cp ./packaging/snclient.spec dist/
 	sed -i dist/snclient.spec -e 's|^Version: .*|Version: $(VERSION)|'
-	sed -i dist/snclient.spec -e 's|^BuildArch: .*|BuildArch: $(PKG_ARCH)|'
+	sed -i dist/snclient.spec -e 's|^BuildArch: .*|BuildArch: $(RPM_ARCH)|'
 	cp -rp dist snclient-$(VERSION)
 	rm -f snclient-$(VERSION)/ca.key
 
@@ -491,13 +496,13 @@ rpm: | dist
 	mkdir -p $(RPM_TOPDIR)/{SOURCES,BUILD,RPMS,SRPMS,SPECS}
 	mv snclient-$(VERSION).tar.gz $(RPM_TOPDIR)/SOURCES
 	rpmbuild \
-		--target $(PKG_ARCH) \
+		--target $(RPM_ARCH) \
 		--define "_topdir $(RPM_TOPDIR)" \
 		--buildroot=$(shell pwd)/build-rpm \
 		-bb dist/snclient.spec
-	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm snclient-$(VERSION)-$(BUILD)-$(PKG_ARCH).rpm
+	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
 	rm -rf $(RPM_TOPDIR) build-rpm
-	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$(PKG_ARCH).rpm
+	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
 
 osx: | dist
 	rm -rf build-pkg
