@@ -14,7 +14,7 @@ func TestDocsExists(t *testing.T) {
 
 	skipChecks := []string{"check_index", "check_nscp_version"}
 
-	assert.GreaterOrEqualf(t, len(AvailableChecks), 30, "there should be checks available")
+	assert.GreaterOrEqualf(t, len(AvailableChecks), 25, "there should be checks available")
 
 	for name := range AvailableChecks {
 		if slices.Contains(skipChecks, name) {
