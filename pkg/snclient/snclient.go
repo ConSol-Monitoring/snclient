@@ -813,6 +813,8 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 		level = snc.flags.LogLevel
 	}
 
+	trace2 := false
+
 	// env beats config file
 	env := os.Getenv("SNCLIENT_VERBOSE")
 	switch env {
@@ -821,18 +823,27 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 		level = "verbose"
 	case "2":
 		level = "trace"
+	case "3":
+		level = "trace"
+		trace2 = true
 	default:
 		level = env
 	}
 
 	// command line options beats env
 	switch {
+	case snc.flags.Verbose >= 3:
+		level = "trace"
+		trace2 = true
 	case snc.flags.Verbose >= 2:
 		level = "trace"
 	case snc.flags.Verbose >= 1:
 		level = "debug"
 	}
 	setLogLevel(level)
+	if trace2 {
+		log.SetVerbosity(LogVerbosityTrace2)
+	}
 }
 
 // CheckUpdateBinary checks if we run as snclient.update.exe and if so, move that file in place and restart

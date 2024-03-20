@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"os"
 	"strconv"
 	"strings"
@@ -382,14 +381,7 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 	// log panices during request, but continue listening
 	defer l.snc.logPanicRecover()
 
-	if log.IsV(LogVerbosityTrace) {
-		reqStr, err := httputil.DumpRequest(req, true)
-		if err != nil {
-			log.Tracef("%s", err.Error())
-		} else {
-			log.Tracef("http request:\n%s", string(reqStr))
-		}
-	}
+	logHTTPRequest(req)
 
 	resCapture := &ResponseWriterCapture{
 		w: res,

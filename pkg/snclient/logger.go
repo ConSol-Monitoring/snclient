@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	standardlog "log"
+	"net/http"
+	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -24,11 +26,14 @@ const (
 	// LogVerbosityDefault sets the default log level.
 	LogVerbosityDefault = 1
 
-	// LogVerbosityDebug sets the debug log level.
+	// LogVerbosityDebug sets the debug log level. (-v)
 	LogVerbosityDebug = 2
 
-	// LogVerbosityTrace sets trace log level.
+	// LogVerbosityTrace sets trace log level. (-vv)
 	LogVerbosityTrace = 3
+
+	// LogVerbosityTrace2 sets trace log level. (-vvv)
+	LogVerbosityTrace2 = 4
 
 	// LogColors sets colors for some log levels
 	LogColors = `%{Color "yellow+b" "WARN"}` +
@@ -219,6 +224,32 @@ func LogStderrf(format string, args ...interface{}) {
 		LogStderrf("failed to log: %s", logErr.Error())
 	}
 	log.SetOutput(targetWriter)
+}
+
+func logHTTPRequest(req *http.Request) {
+	if !log.IsV(LogVerbosityTrace2) {
+		return
+	}
+
+	reqStr, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		log.Tracef("%s", err.Error())
+	} else {
+		log.Tracef("http request:\n>>>>>>>>\n%s", string(reqStr))
+	}
+}
+
+func logHTTPResponse(resp *http.Response) {
+	if !log.IsV(LogVerbosityTrace2) {
+		return
+	}
+
+	resStr, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		log.Tracef("%s", err.Error())
+	} else {
+		log.Tracef("http response:\n<<<<<<<<\n%s", string(resStr))
+	}
 }
 
 // LogWriter implements the io.Writer interface and simply logs everything with given level.

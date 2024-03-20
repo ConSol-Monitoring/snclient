@@ -473,6 +473,8 @@ func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates [
 	}
 	defer resp.Body.Close()
 
+	logHTTPResponse(resp)
+
 	type GithubArtifact struct {
 		URL  string `json:"archive_download_url"`
 		Name string `json:"name"`
@@ -759,7 +761,7 @@ func (u *UpdateHandler) updatePreChecks() bool {
 
 	if u.lastUpdate != nil {
 		if u.lastUpdate.After(time.Now().Add(time.Duration(-u.updateInterval) * time.Second)) {
-			if log.IsV(4) {
+			if log.IsV(LogVerbosityTrace2) {
 				log.Tracef("[updates] no update check required, last check: %s", u.lastUpdate.String())
 			}
 
