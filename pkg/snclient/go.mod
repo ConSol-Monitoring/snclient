@@ -1,6 +1,6 @@
 module snclient
 
-go 1.21
+go 1.22
 
 replace pkg/dump => ../../pkg/dump
 
@@ -39,9 +39,9 @@ require (
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v3 v3.24.2
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae
-	github.com/sni/shelltoken v0.0.0-20240305201340-d67cf5c19d23
+	github.com/sni/shelltoken v0.0.0-20240314123449-84b0a0c05450
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
+	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81
 	golang.org/x/sys v0.18.0
 	gopkg.in/yaml.v3 v3.0.1
 	pkg/check_dns v0.0.0-00010101000000-000000000000

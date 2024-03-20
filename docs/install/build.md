@@ -6,7 +6,7 @@ linkTitle: Building From Source
 
 ## Requirements
 
-- go >= 1.20
+- go >= 1.22
 - openssl
 - make
 - help2man

@@ -1,11 +1,11 @@
 module utils
 
-go 1.21
+go 1.22
 
 require (
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
+	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81
 	pkg/convert v0.0.0-00010101000000-000000000000
 )
 

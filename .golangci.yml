@@ -19,7 +19,7 @@ linters-settings:
   ireturn:
     allow: "error,empty,Module,CheckHandler"
   govet:
-    check-shadowing: true
+    enable-all: true
     settings:
       printf:
         funcs:

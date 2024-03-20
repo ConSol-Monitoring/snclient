@@ -7,9 +7,10 @@ GOVERSION:=$(shell \
     go version | \
     awk -F'go| ' '{ split($$5, a, /\./); printf ("%04d%04d", a[1], a[2]); exit; }' \
 )
-# also update README.md and .github/workflows/citest.yml when changing minumum version
-MINGOVERSION:=00010021
-MINGOVERSIONSTR:=1.21
+# also update docs/install/build.md and .github/workflows/builds.yml when changing minimum version
+# find . -name go.mod
+MINGOVERSION:=00010022
+MINGOVERSIONSTR:=1.22
 BUILD:=$(shell git rev-parse --short HEAD)
 REVISION:=$(shell ./buildtools/get_version | awk -F . '{ print $$3 }')
 # see https://github.com/go-modules-by-example/index/blob/master/010_tools/README.md
