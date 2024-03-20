@@ -432,8 +432,7 @@ func (u *UpdateHandler) checkUpdateGithubRelease(url string, preRelease bool) (u
 		return nil, nil
 	}
 
-	for i := range releases {
-		release := releases[i]
+	for _, release := range releases {
 		if release.PreRelease && !preRelease {
 			log.Debugf("skipping pre release: %s", release.TagName)
 

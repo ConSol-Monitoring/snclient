@@ -389,8 +389,7 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []
 
 // CheckMetrics tries warn/crit/ok conditions against given metrics and sets final state accordingly
 func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond []*Condition) {
-	for n := range cd.result.Metrics {
-		metric := cd.result.Metrics[n]
+	for _, metric := range cd.result.Metrics {
 		state := CheckExitOK
 		data := map[string]string{
 			metric.Name: fmt.Sprintf("%v", metric.Value),

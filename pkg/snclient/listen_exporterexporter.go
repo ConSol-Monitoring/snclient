@@ -208,7 +208,7 @@ func (l *HandlerExporterExporter) listModules(res http.ResponseWriter, req *http
 	switch req.Header.Get("Accept") {
 	case "application/json":
 		log.Debugf("Listing modules in json")
-		moduleJSON, err := json.Marshal(l.modules)
+		moduleJSON, err := json.Marshal(l.modules) //nolint:musttag // no idea what this linter wants to have tagged
 		if err != nil {
 			log.Error(err)
 			http.Error(res, "Failed to produce JSON", http.StatusInternalServerError)
@@ -258,13 +258,13 @@ func (l *HandlerExporterExporter) doProxy(res http.ResponseWriter, req *http.Req
 }
 
 type exporterModuleConfig struct {
-	Method  string                 `yaml:"method"`
-	Timeout time.Duration          `yaml:"timeout"`
-	XXX     map[string]interface{} `yaml:",inline"`
+	Method  string                 `json:"method"  yaml:"method"`
+	Timeout time.Duration          `json:"timeout" yaml:"timeout"`
+	XXX     map[string]interface{} `json:",inline" yaml:",inline"`
 
-	Exec exporterExecConfig `yaml:"exec"`
-	HTTP exporterHTTPConfig `yaml:"http"`
-	File exporterFileConfig `yaml:"file"`
+	Exec exporterExecConfig `json:"exec" yaml:"exec"`
+	HTTP exporterHTTPConfig `json:"http" yaml:"http"`
+	File exporterFileConfig `json:"file" yaml:"file"`
 
 	snc  *Agent
 	name string

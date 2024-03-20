@@ -135,12 +135,14 @@ issues:
     - "parameter name 'b' is too short for the scope of its usage"
     - ".execCommand` - `timeout` always receives `DefaultCmdTimeout"
     - "replacement are not allowed: github.com/shirou/gopsutil"
+    - "fieldalignment: struct"
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test.*\.go
       linters:
         - dupword
         - funlen
+        - copyloopvar
     - path: (check_tcp|check_dns|nameserver.*)\.go
       linters:
         - nolintlint

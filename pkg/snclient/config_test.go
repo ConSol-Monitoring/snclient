@@ -375,7 +375,7 @@ func TestConfigLongLines(t *testing.T) {
 [/settings/default]
 allowed hosts  = 127.0.0.1, ::1, 192.168.1.1`
 
-	for i := 0; i < 10000; i++ {
+	for range 10000 {
 		configText += ", 192.168.100.123"
 	}
 	configText += "\n"

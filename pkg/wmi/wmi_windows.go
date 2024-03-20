@@ -105,7 +105,7 @@ func RawQuery(query string) (res [][]Data, err error) {
 	values := strings.Split(re.FindStringSubmatch(query)[1], ",")
 
 	ret := make([][]Data, 0)
-	for i := int64(0); i < count; i++ {
+	for i := range count {
 		// item is a SWbemObject, but really a Win32_Process
 		obj, err := processResult(values, result, i)
 		if err != nil {

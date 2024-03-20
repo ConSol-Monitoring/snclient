@@ -34,15 +34,15 @@ func GetFileNames() ([]string, error) {
 type Event struct {
 	ComputerName    string
 	LogFile         string
-	Category        uint64
-	EventCode       uint64
-	EventIdentifier uint64
-	EventType       uint64
 	Message         string
 	SourceName      string
 	Type            string
 	TimeWritten     string
 	TimeGenerated   string
+	Category        uint64
+	EventCode       uint64
+	EventIdentifier uint64
+	EventType       uint64
 }
 
 func GetLog(file string, newerThan time.Time) ([]Event, error) {

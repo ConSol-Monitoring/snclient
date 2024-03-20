@@ -26,7 +26,7 @@ func ASCIITable(header []ASCIITableHeader, rows interface{}, escapePipes bool) (
 	}
 
 	// adjust column size from max row data
-	for i := 0; i < dataRows.Len(); i++ {
+	for i := range dataRows.Len() {
 		rowVal := dataRows.Index(i)
 		if rowVal.Kind() != reflect.Struct {
 			return "", fmt.Errorf("row %d is not a struct", i)
@@ -61,7 +61,7 @@ func ASCIITable(header []ASCIITableHeader, rows interface{}, escapePipes bool) (
 	out += "|\n"
 
 	// output data
-	for i := 0; i < dataRows.Len(); i++ {
+	for i := range dataRows.Len() {
 		rowVal := dataRows.Index(i)
 		for _, head := range header {
 			value, _ := asciiTableRowValue(escapePipes, rowVal, head)
