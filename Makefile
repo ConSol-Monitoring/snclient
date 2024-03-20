@@ -236,6 +236,7 @@ citest: tools vendor
 	# Normal test cases
 	#
 	$(MAKE) test
+	$(MAKE) -C t test
 	#
 	# Benchmark tests
 	#
