@@ -304,7 +304,7 @@ jobs:
           echo "Building ${{ env.BIN }}.deb"
           export DEBEMAIL="Sven Nierlein <sven.nierlein@consol.de>"
           export DEBFULLNAME="Sven Nierlein"
-          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} DEBFILE=${{ env.BIN }}.deb make deb
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make deb
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: "${{ env.BIN }}.deb"
@@ -356,8 +356,6 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
@@ -365,8 +363,7 @@ jobs:
       - run: sudo apt-get install help2man
       - run: |
           echo "Building ${{ env.BIN }}.rpm"
-          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make rpm
-          mv snclient*.rpm ${{ env.BIN }}.rpm
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make rpm
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: "${{ env.BIN }}.rpm"

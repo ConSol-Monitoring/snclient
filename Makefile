@@ -22,7 +22,6 @@ export PATH := $(GOBIN):$(PATH)
 VERSION ?= $(shell ./buildtools/get_version)
 GOARCH  ?= $(shell go env GOARCH)
 GOOS    ?= $(shell go env GOOS)
-DEBFILE ?= snclient-$(VERSION)-$(BUILD)-$(GOARCH).deb
 
 RPM_TOPDIR=$(shell pwd)/rpm.top
 RPM_ARCH:=$(GOARCH)
@@ -35,6 +34,7 @@ endif
 ifeq ($(RPM_ARCH),arm64)
 	RPM_ARCH := aarch64
 endif
+RPMFILE ?= snclient-$(VERSION)-$(RPM_ARCH).rpm
 
 ifeq ($(GOARCH),i386)
 	export GOARCH := 386
@@ -50,6 +50,7 @@ DEB_ARCH:=$(GOARCH)
 ifeq ($(DEB_ARCH),386)
 	DEB_ARCH := i386
 endif
+DEBFILE ?= snclient-$(VERSION)-$(RPM_ARCH).deb
 
 BUILD_FLAGS=-ldflags "-s -w -X pkg/snclient.Build=$(BUILD) -X pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
@@ -500,9 +501,9 @@ rpm: | dist
 		--define "_topdir $(RPM_TOPDIR)" \
 		--buildroot=$(shell pwd)/build-rpm \
 		-bb dist/snclient.spec
-	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
+	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm $(RPMFILE)
 	rm -rf $(RPM_TOPDIR) build-rpm
-	-rpmlint -f packaging/rpmlintrc snclient-$(VERSION)-$(BUILD)-$(RPM_ARCH).rpm
+	-rpmlint -f packaging/rpmlintrc $(RPMFILE)
 
 osx: | dist
 	rm -rf build-pkg
