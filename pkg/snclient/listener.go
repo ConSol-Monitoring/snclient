@@ -76,8 +76,8 @@ func SharedWebListener(snc *Agent, conf *ConfigSection, webHandler RequestHandle
 	if existing == nil {
 		return listener, err
 	}
-	if reqHander, ok := existing.(RequestHandler); ok {
-		if handler := reqHander.Listener(); handler != nil {
+	if reqHandler, ok := existing.(RequestHandler); ok {
+		if handler := reqHandler.Listener(); handler != nil {
 			handler.handler = append(handler.handler, webHandler)
 
 			return handler, nil

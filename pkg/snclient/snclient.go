@@ -398,24 +398,22 @@ func (snc *Agent) Init() (*AgentRunSet, error) {
 		return initSet, err
 	}
 
-	tasks, err2 := snc.initModules("tasks", AvailableTasks, initSet)
-	initSet.tasks = tasks
-	if err2 != nil {
-		return initSet, fmt.Errorf("task initialization failed: %s", err2.Error())
+	initSet.tasks = NewModuleSet("tasks")
+	err = snc.initModules("tasks", AvailableTasks, initSet, initSet.tasks)
+	if err != nil {
+		return initSet, fmt.Errorf("task initialization failed: %s", err.Error())
 	}
 
-	listen := NewModuleSet("listener")
-	initSet.listeners = listen
+	initSet.listeners = NewModuleSet("listener")
 	if snc.flags.Mode == ModeServer {
-		listen, err = snc.initModules("listener", AvailableListeners, initSet)
+		err = snc.initModules("listener", AvailableListeners, initSet, initSet.listeners)
 		if err != nil {
 			return initSet, fmt.Errorf("listener initialization failed: %s", err.Error())
 		}
 
-		if len(listen.modules) == 0 {
+		if len(initSet.listeners.modules) == 0 {
 			log.Warnf("no listener enabled")
 		}
-		initSet.listeners = listen
 	}
 
 	setScriptsRoot(initSet.config)
@@ -504,8 +502,7 @@ func (snc *Agent) readConfiguration(files []string) (initSet *AgentRunSet, err e
 	return initSet, nil
 }
 
-func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *AgentRunSet) (*ModuleSet, error) {
-	modules := NewModuleSet(name)
+func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *AgentRunSet, modules *ModuleSet) error {
 	conf := runSet.config
 
 	modulesConf := conf.Section("/modules")
@@ -513,7 +510,7 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *A
 		enabled, ok, err := modulesConf.GetBool(entry.ModuleKey)
 		switch {
 		case err != nil:
-			return nil, fmt.Errorf("error in %s /modules configuration: %s", entry.Name(), err.Error())
+			return fmt.Errorf("error in %s /modules configuration: %s", entry.Name(), err.Error())
 		case !ok:
 			log.Tracef("%s %s is disabled by default config. skipping...", name, entry.Name())
 
@@ -527,7 +524,7 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *A
 		log.Tracef("init: %s %s", name, entry.Name())
 		mod, err := entry.Init(snc, conf, runSet)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
+			return fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
 		}
 
 		name := entry.Name()
@@ -538,11 +535,11 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *A
 
 		err = modules.Add(name, mod)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
+			return fmt.Errorf("%s: %s", entry.ConfigKey, err.Error())
 		}
 	}
 
-	return modules, nil
+	return nil
 }
 
 func (snc *Agent) createPidFile() {
