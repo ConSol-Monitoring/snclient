@@ -64,7 +64,7 @@ func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64
 		switch cols[5] {
 		case "CLOSE_WAIT":
 			counter[tcpCloseWait]++
-		case "CLOSED":
+		case "CLOSED", "CLOSING":
 			counter[tcpClose]++
 		case "ESTABLISHED":
 			counter[tcpEstablished]++
