@@ -29,7 +29,7 @@ replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240
 require (
 	github.com/beevik/ntp v1.3.1
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
-	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240313214236-5e1cfe7a3e3f
+	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240321161425-fd9209e96e1f
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/otiai10/copy v1.14.0
@@ -75,7 +75,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/client_model v0.6.0 // indirect
-	github.com/prometheus/common v0.50.0 // indirect
+	github.com/prometheus/common v0.51.0 // indirect
 	github.com/prometheus/procfs v0.13.0 // indirect
 	github.com/rickb777/date v1.20.6 // indirect
 	github.com/rickb777/plural v1.4.1 // indirect

@@ -39,7 +39,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240313214236-5e1cfe7a3e3f // indirect
+	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240321161425-fd9209e96e1f // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-chi/chi/v5 v5.0.12 // indirect
@@ -61,7 +61,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/client_golang v1.19.0 // indirect
 	github.com/prometheus/client_model v0.6.0 // indirect
-	github.com/prometheus/common v0.50.0 // indirect
+	github.com/prometheus/common v0.51.0 // indirect
 	github.com/prometheus/procfs v0.13.0 // indirect
 	github.com/reeflective/readline v1.0.13 // indirect
 	github.com/rickb777/date v1.20.6 // indirect

@@ -114,7 +114,7 @@ updatedeps: versioncheck
 	$(MAKE) cleandeps
 
 cleandeps:
-	set -e; for dir in $(shell ls -d1 pkg/*); do \
+	set -e; for dir in $(shell ls -d1 pkg/* cmd/*); do \
 		( cd ./$$dir && $(GO) mod tidy ); \
 	done
 	$(GO) mod tidy
@@ -127,10 +127,10 @@ vendor: go.work
 
 go.work: pkg/*
 	echo "go $(MINGOVERSIONSTR)" > go.work
-	$(GO) work use . pkg/* pkg/*/*/. buildtools/.
+	$(GO) work use . pkg/* cmd/* buildtools/. t/.
 
 build: vendor snclient.ini server.crt server.key
-	set -xe; for CMD in $(CMDS); do \
+	set -e; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && CGO_ENABLED=$(CGO_ENABLED) $(GO) build $(BUILD_FLAGS) -o ../../$$CMD ) ; \
 	done
 
