@@ -1,5 +1,12 @@
 param ($out="snclient.msi", $arch="amd64", $major="0", $minor="0", $rev="1", $sha="unknown")
 
+$ProgressPreference = 'SilentlyContinue'
+
+If (-Not (Test-Path -Path "windist" )) {
+  Write-Output "ERROR: windist folder is missing."
+  Exit 1
+}
+
 <# .net is required for wix.exe
 If (-Not (Test-Path -Path ".\dotnetfx35setup.exe" )) {
   Invoke-WebRequest -UseBasicParsing `
