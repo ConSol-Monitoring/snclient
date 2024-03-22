@@ -168,21 +168,14 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 
 			// check for errors here, maybe the file would have been filtered out anyway
 			if err != nil {
-				switch {
-				case os.IsNotExist(err):
-					entry["_error"] = fmt.Sprintf("%s: no such file or directory", path)
-				case os.IsPermission(err):
-					entry["_error"] = fmt.Sprintf("%s: no such file or directory", path)
-				default:
-					entry["_error"] = fmt.Sprintf("%s: %s", path, err.Error())
-				}
+				l.setError(entry, err)
 
 				return nil
 			}
 
 			fileInfo, err := dirEntry.Info()
 			if err != nil {
-				entry["_error"] = fmt.Sprintf("could not stat file: %s", err.Error())
+				l.setError(entry, err)
 
 				return nil
 			}
@@ -270,4 +263,15 @@ func (l *CheckFiles) getDepth(path, basePath string) int64 {
 	subPath := strings.TrimPrefix(path, basePath)
 
 	return int64(strings.Count(subPath, string(os.PathSeparator)))
+}
+
+func (l *CheckFiles) setError(entry map[string]string, err error) {
+	switch {
+	case os.IsNotExist(err):
+		entry["_error"] = fmt.Sprintf("%s: no such file or directory", entry["filename"])
+	case os.IsPermission(err):
+		entry["_error"] = fmt.Sprintf("%s: no such file or directory", entry["filename"])
+	default:
+		entry["_error"] = fmt.Sprintf("%s: %s", entry["filename"], err.Error())
+	}
 }
