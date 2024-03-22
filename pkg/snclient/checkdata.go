@@ -194,7 +194,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	case cd.result.Output != "":
 		// already set, leave it
 		return cd.result, nil
-	case (len(cd.filter) > 0 || cd.hasArgsFilter) && len(cd.listData) == 0:
+	case cd.emptySyntax != "" && len(cd.listData) == 0:
 		cd.result.Output = cd.emptySyntax
 		cd.result.State = cd.emptyState
 	case cd.showAll:
@@ -438,7 +438,8 @@ func (cd *CheckData) MatchFilterMap(data map[string]string) bool {
 	return false
 }
 
-// MatchMapCondition returns true if listEntry matches filter, notExists sets the result in case an attribute does not exist
+// MatchMapCondition returns true if listEntry matches filter
+// notExists sets the result in case an attribute does not exist (set false for final filter, true for pre checks)
 func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string]string, notExists bool) bool {
 	for i := range conditions {
 		if conditions[i].isNone {

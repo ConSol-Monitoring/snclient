@@ -58,14 +58,14 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument  | Description                                                |
-| --------- | ---------------------------------------------------------- |
-| file      | Alias for path                                             |
-| max-depth | Maximum recursion depth                                    |
-| path      | Path in which to search for files                          |
-| paths     | A comma separated list of paths                            |
-| pattern   | Pattern of files to search for                             |
-| timezone  | Sets the timezone for time metrics (default is local time) |
+| Argument  | Description                                                                                                     |
+| --------- | --------------------------------------------------------------------------------------------------------------- |
+| file      | Alias for path                                                                                                  |
+| max-depth | Maximum recursion depth. Default: no limit. '0' disables recursion, '1' includes first sub folder level, etc... |
+| path      | Path in which to search for files                                                                               |
+| paths     | A comma separated list of paths                                                                                 |
+| pattern   | Pattern of files to search for                                                                                  |
+| timezone  | Sets the timezone for time metrics (default is local time)                                                      |
 
 ## Attributes
 
@@ -75,18 +75,18 @@ these can be used in filters and thresholds (along with the default attributes):
 
 | Attribute   | Description                                       |
 | ----------- | ------------------------------------------------- |
-| path        | Path of the file                                  |
-| access      | Last access time                                  |
-| age         | Seconds since file was last written               |
-| creation    | Date when file was created                        |
-| file        | Name of the file                                  |
+| path        | Path to the file                                  |
 | filename    | Name of the file                                  |
-| name        | Name of the file                                  |
+| name        | Alias for filename                                |
+| file        | Alias for filename                                |
 | fullname    | Full name of the file including path              |
+| type        | Type of item (file or dir)                        |
+| access      | Last access time                                  |
+| creation    | Date when file was created                        |
 | size        | File size in bytes                                |
-| type        | Type of item (file or directory)                  |
 | written     | Date when file was last written to                |
 | write       | Alias for written                                 |
+| age         | Seconds since file was last written               |
 | line_count  | Number of lines in the files (text files)         |
 | total_bytes | Total size over all files in bytes                |
 | total_size  | Total size over all files as human readable bytes |

@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient+ agent.
 
 next:
          - enable script aliases without enabling external scripts
+         - check_files: fix max-depth and empty-syntax
 
 0.20     Fri Mar 15 14:12:35 CET 2024
          - add support for perf-syntax
