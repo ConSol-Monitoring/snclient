@@ -168,7 +168,14 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 
 			// check for errors here, maybe the file would have been filtered out anyway
 			if err != nil {
-				entry["_error"] = strings.TrimPrefix(err.Error(), "lstat ")
+				switch {
+				case os.IsNotExist(err):
+					entry["_error"] = fmt.Sprintf("%s: no such file or directory", path)
+				case os.IsPermission(err):
+					entry["_error"] = fmt.Sprintf("%s: no such file or directory", path)
+				default:
+					entry["_error"] = fmt.Sprintf("%s: %s", path, err.Error())
+				}
 
 				return nil
 			}
