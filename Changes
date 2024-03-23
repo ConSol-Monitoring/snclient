@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient+ agent.
 
 next:
+         - add http config ini includes
          - enable script aliases without enabling external scripts
          - check_files: fix max-depth and empty-syntax
 

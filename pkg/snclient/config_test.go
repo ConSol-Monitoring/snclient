@@ -1,12 +1,15 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +32,7 @@ test4 += c
 # also comment
 	`
 	cfg := NewConfig(true)
-	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", nil)
 
 	require.NoErrorf(t, err, "config parsed")
 
@@ -52,7 +55,7 @@ func TestConfigErrorI(t *testing.T) {
 Key1 = "Value1
 	`
 	cfg := NewConfig(true)
-	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", nil)
 
 	require.Errorf(t, err, "config error found")
 	require.ErrorContains(t, err, "config error in testfile.ini:3: unclosed quotes")
@@ -74,7 +77,7 @@ Key3 = Value3
 
 	`
 	cfg := NewConfig(true)
-	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", nil)
 	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/sub1/other")
@@ -102,10 +105,10 @@ password = test
 	`
 
 	cfg := NewConfig(false)
-	err := cfg.ParseINI(strings.NewReader(defaultConfig), "default.ini")
+	err := cfg.ParseINI(strings.NewReader(defaultConfig), "default.ini", nil)
 	require.NoErrorf(t, err, "default config parsed")
 
-	err = cfg.ParseINI(strings.NewReader(customConfig), "custom.ini")
+	err = cfg.ParseINI(strings.NewReader(customConfig), "custom.ini", nil)
 	require.NoErrorf(t, err, "custom config parsed")
 
 	section := cfg.Section("/settings/WEB/server")
@@ -134,7 +137,7 @@ custom_ini = %s/nrpe_web_ports.ini
 	err := iniFile.Close()
 	require.NoErrorf(t, err, "config written")
 	cfg := NewConfig(true)
-	err = cfg.ReadINI(iniFile.Name())
+	err = cfg.ReadINI(iniFile.Name(), nil)
 	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/NRPE/server")
@@ -171,7 +174,7 @@ custom_ini_dir = %s
 	err := iniFile.Close()
 	require.NoErrorf(t, err, "config written")
 	cfg := NewConfig(true)
-	err = cfg.ReadINI(iniFile.Name())
+	err = cfg.ReadINI(iniFile.Name(), nil)
 	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/NRPE/server")
@@ -209,7 +212,7 @@ custom_ini_wc = %s/nrpe_web_ports_*.ini
 	err := iniFile.Close()
 	require.NoErrorf(t, err, "config written")
 	cfg := NewConfig(true)
-	err = cfg.ReadINI(iniFile.Name())
+	err = cfg.ReadINI(iniFile.Name(), nil)
 	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/NRPE/server")
@@ -251,7 +254,7 @@ port = 443
 	}
 
 	cfg := NewConfig(false)
-	err := cfg.ParseINI(strings.NewReader(configText), "test.ini")
+	err := cfg.ParseINI(strings.NewReader(configText), "test.ini", nil)
 
 	require.NoErrorf(t, err, "parsed ini without error")
 	assert.Equalf(t, strings.TrimSpace(configText), strings.TrimSpace(cfg.ToString()), "config did no change")
@@ -309,7 +312,7 @@ func TestConfigPackaging(t *testing.T) {
 	}
 
 	cfg := NewConfig(false)
-	err = cfg.ParseINI(file, pkgCfgFile)
+	err = cfg.ParseINI(file, pkgCfgFile, nil)
 	file.Close()
 
 	require.NoErrorf(t, err, "parse ini without error")
@@ -325,7 +328,7 @@ func TestConfigRelativeIncludes(t *testing.T) {
 	require.NoErrorf(t, err, "open ini without error")
 
 	cfg := NewConfig(true)
-	err = cfg.ParseINI(file, pkgCfgFile)
+	err = cfg.ParseINI(file, pkgCfgFile, nil)
 	file.Close()
 	require.NoErrorf(t, err, "config parsed")
 
@@ -345,7 +348,7 @@ func TestEmptyConfig(t *testing.T) {
 	configText := `; INI
 `
 	cfg := NewConfig(true)
-	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini")
+	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", nil)
 
 	require.NoErrorf(t, err, "empty ini parsed")
 }
@@ -359,7 +362,7 @@ func TestConfigAppend(t *testing.T) {
 	require.NoErrorf(t, err, "open ini without error")
 
 	cfg := NewConfig(false)
-	err = cfg.ParseINI(file, pkgCfgFile)
+	err = cfg.ParseINI(file, pkgCfgFile, nil)
 	file.Close()
 	require.NoErrorf(t, err, "config parsed")
 
@@ -386,11 +389,92 @@ allowed hosts  = 127.0.0.1, ::1, 192.168.1.1`
 	err := iniFile.Close()
 	require.NoErrorf(t, err, "config written")
 	cfg := NewConfig(false)
-	err = cfg.ReadINI(iniFile.Name())
+	err = cfg.ReadINI(iniFile.Name(), nil)
 	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/default")
 	allowed, _ := section.GetString("allowed hosts")
 
 	assert.Containsf(t, allowed, "192.168.1.1", "reading appended config")
+}
+
+func TestConfigHTTPInclude(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// start mock http server
+	server := &http.Server{
+		Addr:              ":55557",
+		ReadTimeout:       DefaultSocketTimeout * time.Second,
+		ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
+		WriteTimeout:      DefaultSocketTimeout * time.Second,
+		IdleTimeout:       DefaultSocketTimeout * time.Second,
+		ErrorLog:          NewStandardLog("WARN"),
+	}
+	httpConfig1 := `
+[/settings/default]
+allowed hosts  = 127.0.0.1, ::1, 192.168.1.1`
+	httpConfig2 := `
+[/settings/default]
+allowed hosts  += 192.168.2.2`
+	httpConfig3 := `
+[/settings/default]
+allowed hosts  += 192.168.3.3`
+
+	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "text/plain")
+		switch req.URL.Path {
+		case "/tmp/test1.ini":
+			res.WriteHeader(http.StatusOK)
+			LogError2(res.Write([]byte(httpConfig1)))
+		case "/tmp/test2.ini":
+			res.WriteHeader(http.StatusOK)
+			LogError2(res.Write([]byte(httpConfig2)))
+		case "/tmp/test3.ini":
+			if verifyRequestPassword(snc, req, "pass") {
+				res.WriteHeader(http.StatusOK)
+				LogError2(res.Write([]byte(httpConfig3)))
+			} else {
+				LogError2(res.Write([]byte("not allowed")))
+				http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			}
+		}
+	})
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			log.Debugf("mock http server finished with: %s", err.Error())
+		}
+	}()
+	time.Sleep(200 * time.Millisecond)
+	defer func() {
+		LogError(server.Shutdown(context.TODO()))
+	}()
+
+	configText := `
+[/includes]
+remote = http://localhost:55557/tmp/test1.ini
+
+[/includes/another]
+url = http://localhost:55557/tmp/test2.ini
+
+[/includes]
+auth = http://user:pass@localhost:55557/tmp/test3.ini
+`
+
+	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
+	defer os.Remove(iniFile.Name())
+	_, _ = iniFile.WriteString(configText)
+	err := iniFile.Close()
+	require.NoErrorf(t, err, "config written")
+	cfg := NewConfig(true)
+	err = cfg.ReadINI(iniFile.Name(), snc)
+	require.NoErrorf(t, err, "config parsed")
+
+	section := cfg.Section("/settings/default")
+	allowed, _ := section.GetString("allowed hosts")
+
+	assert.Containsf(t, allowed, "192.168.1.1", "reading http config")
+	assert.Containsf(t, allowed, "192.168.2.2", "reading http config")
+	assert.Containsf(t, allowed, "192.168.3.3", "reading http config")
+
+	StopTestAgent(t, snc)
 }

@@ -3,15 +3,19 @@ package snclient
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"pkg/convert"
 	"pkg/humanize"
@@ -138,11 +142,11 @@ func (config *Config) WriteINI(iniPath string) error {
 }
 
 // ReadINI opens the config file and reads all key value pairs, separated through = and commented out with ";" and "#".
-func (config *Config) ReadINI(iniPath string) error {
+func (config *Config) ReadINI(iniPath string, snc *Agent) error {
 	if prev, ok := config.alreadyIncluded[iniPath]; ok {
 		return fmt.Errorf("duplicate config file found: %s, already included from %s", iniPath, prev)
 	}
-	config.alreadyIncluded[iniPath] = "command args"
+	config.alreadyIncluded[iniPath] = "commandline args"
 	log.Tracef("stat config path: %s", iniPath)
 	fileStat, err := os.Stat(iniPath)
 	if err != nil {
@@ -161,7 +165,7 @@ func (config *Config) ReadINI(iniPath string) error {
 				return nil
 			}
 
-			return config.ReadINI(path)
+			return config.ReadINI(path, snc)
 		})
 		if err != nil {
 			return fmt.Errorf("%s: %s", iniPath, err.Error())
@@ -175,7 +179,7 @@ func (config *Config) ReadINI(iniPath string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", iniPath, err.Error())
 	}
-	err = config.ParseINI(bytes.NewReader(file), iniPath)
+	err = config.ParseINI(bytes.NewReader(file), iniPath, snc)
 	if err != nil {
 		return fmt.Errorf("config error in file %s: %s", iniPath, err.Error())
 	}
@@ -185,7 +189,7 @@ func (config *Config) ReadINI(iniPath string) error {
 
 // ParseINI reads ini style configuration and updates config object.
 // it returns the first error found but still reads the hole file
-func (config *Config) ParseINI(file io.Reader, iniPath string) error {
+func (config *Config) ParseINI(file io.Reader, iniPath string, snc *Agent) error {
 	parseErrors := []error{}
 	var currentSection *ConfigSection
 	lineNr := 0
@@ -276,8 +280,8 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 		}
 
 		// recurse directly when in an includes section to maintain order of settings
-		if config.recursive && currentSection.name == "/includes" {
-			err := config.parseInclude(value, iniPath)
+		if config.recursive && strings.HasPrefix(currentSection.name, "/includes") {
+			err := config.parseInclude(value, iniPath, currentSection, snc)
 			if err != nil {
 				parseErrors = append(parseErrors, fmt.Errorf("%s (included in %s:%d)", err.Error(), iniPath, lineNr))
 
@@ -300,8 +304,11 @@ func (config *Config) ParseINI(file io.Reader, iniPath string) error {
 	return nil
 }
 
-func (config *Config) parseInclude(inclPath, srcPath string) error {
+func (config *Config) parseInclude(inclPath, srcPath string, section *ConfigSection, snc *Agent) error {
 	log.Tracef("reading config include: %s", inclPath)
+	if strings.HasPrefix(inclPath, "http://") || strings.HasPrefix(inclPath, "https://") {
+		return config.parseHTTPInclude(inclPath, srcPath, section, snc)
+	}
 	if !filepath.IsAbs(inclPath) {
 		inclPath = filepath.Join(filepath.Dir(srcPath), inclPath)
 	}
@@ -309,18 +316,120 @@ func (config *Config) parseInclude(inclPath, srcPath string) error {
 	if err != nil {
 		return fmt.Errorf("malformed include path: %s", err.Error())
 	}
+	if !strings.ContainsAny(inclPath, "*?") && len(matchingPaths) == 0 {
+		return fmt.Errorf("no file matched: %s", inclPath)
+	}
 
 	if _, ok := config.alreadyIncluded[inclPath]; ok {
 		return nil
 	}
 
 	for _, inclFile := range matchingPaths {
-		err := config.ReadINI(inclFile)
+		err := config.ReadINI(inclFile, snc)
 		if err != nil {
-			return fmt.Errorf("included readini failed: %s", err.Error())
+			return fmt.Errorf("loading included %s failed: %s", inclFile, err.Error())
 		}
 		config.alreadyIncluded[inclFile] = srcPath
 	}
+
+	return nil
+}
+
+func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigSection, snc *Agent) error {
+	sum, err := utils.Sha256Sum(inclURL)
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %s", err.Error())
+	}
+	cacheFile := filepath.Join(os.TempDir(), fmt.Sprintf("snclient-%s.ini", sum))
+	config.alreadyIncluded[inclURL] = srcPath
+
+	// check if fetch is required (file not found, oneshotmode, ..., reload?)
+	fetch := true
+	exists := false
+	if stat, err2 := os.Stat(cacheFile); err2 == nil {
+		exists = true
+		if snc.flags.Mode == ModeOneShot {
+			fetch = false
+		}
+		// fetch if file is older than one day
+		if stat.ModTime().Before(time.Now().Add(-86400 * time.Second)) {
+			fetch = true
+		}
+	}
+
+	if fetch {
+		err = config.fetchHTTPInclude(inclURL, cacheFile, section, snc)
+		if err != nil {
+			if !exists {
+				// fetch failed and no cache file yet is fatal
+				return err
+			}
+			// only log a warning if file already exists and use the old one
+			log.Warnf("cannot refresh http include %s: %s", inclURL, err.Error())
+		}
+	}
+
+	err = config.ReadINI(cacheFile, snc)
+	if err != nil {
+		// if loading the config failed, but we did not refresh the file this run, remove and load fresh
+		if !fetch {
+			os.Remove(cacheFile)
+			_ = config.fetchHTTPInclude(inclURL, cacheFile, section, snc)
+			err = config.ReadINI(cacheFile, snc)
+		}
+		if err != nil {
+			return fmt.Errorf("loading included %s (cached as %s) failed: %s", inclURL, cacheFile, err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (config *Config) fetchHTTPInclude(inclURL, cacheFile string, section *ConfigSection, snc *Agent) error {
+	if snc == nil {
+		log.Fatalf("cannot retrieve http include, got no agent")
+	}
+	log.Debugf("fetching config include from url: %s", inclURL)
+
+	httpClientSection := section.Clone()
+	if section.name == "/includes" {
+		httpClientSection = NewConfigSection(nil, section.name)
+	}
+	httpClientSection.MergeData(snc.config.Section("/settings/default").data)
+	httpClientSection.MergeData(DefaultHTTPClientConfig)
+	httpOptions, err := snc.buildClientHTTPOptions(httpClientSection)
+	if err != nil {
+		return err
+	}
+	resp, err := snc.httpDo(context.TODO(), httpOptions, "GET", inclURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to fetch include: %s -> %s", inclURL, err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to fetch include: %s -> got status: %d", inclURL, resp.StatusCode)
+	}
+
+	// save ini to cache file
+	contents, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read http response: %s", err.Error())
+	}
+	// remove password before saving url
+	if resp.Request.URL.User != nil {
+		resp.Request.URL.User = url.UserPassword(resp.Request.URL.User.Username(), "...")
+	}
+	contents = append([]byte(
+		fmt.Sprintf("# cached ini fetched\n# from: %s\n# date: %s\n",
+			resp.Request.URL,
+			time.Now().String())),
+		contents...)
+	err = os.WriteFile(cacheFile, contents, 0o600)
+	if err != nil {
+		return fmt.Errorf("failed to write cached ini to %s: %s", cacheFile, err.Error())
+	}
+	log.Debugf("cached ini %s written", cacheFile)
 
 	return nil
 }
@@ -580,7 +689,7 @@ func (cs *ConfigSection) Insert(key, value string) {
 	if foundComment {
 		// parse section back again
 		tmpCfg := NewConfig(false)
-		LogDebug(tmpCfg.ParseINI(strings.NewReader(cs.String()), "tmp.ini"))
+		LogDebug(tmpCfg.ParseINI(strings.NewReader(cs.String()), "tmp.ini", nil))
 		tmpSection := tmpCfg.Section(cs.name)
 		cs.data = tmpSection.data
 		cs.keys = tmpSection.keys

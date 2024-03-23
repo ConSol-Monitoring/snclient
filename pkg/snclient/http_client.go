@@ -12,14 +12,19 @@ import (
 )
 
 var DefaultHTTPClientConfig = ConfigData{
-	"insecure":        "false",
-	"tls min version": "tls1.2",
-	"request timeout": "60",
+	"insecure":            "false",
+	"tls min version":     "tls1.2",
+	"request timeout":     "60",
+	"username":            "",
+	"password":            "",
+	"client certificates": "",
 }
 
 type HTTPClientOptions struct {
 	tlsConfig  *tls.Config
 	reqTimeout int64
+	user       string
+	password   string
 }
 
 func (snc *Agent) httpClient(options *HTTPClientOptions) *http.Client {
@@ -45,6 +50,11 @@ func (snc *Agent) httpDo(ctx context.Context, options *HTTPClientOptions, method
 	req, err := http.NewRequestWithContext(ctx, method, url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("new request: %s", err.Error())
+	}
+
+	// authenticated?
+	if options.user != "" {
+		req.SetBasicAuth(options.user, options.password)
 	}
 
 	// set optional headers
@@ -90,6 +100,25 @@ func (snc *Agent) buildClientHTTPOptions(section *ConfigSection) (options *HTTPC
 			return nil, fmt.Errorf("tls min version: %s", err2.Error())
 		}
 		options.tlsConfig.MinVersion = min
+	}
+
+	// client certificate authentication
+	clientCert, ok2 := section.GetString("client certificate")
+	if ok2 {
+		clientKey, _ := section.GetString("certificate key")
+		clientTLSCert, err2 := tls.LoadX509KeyPair(clientCert, clientKey)
+		if err2 != nil {
+			return nil, fmt.Errorf("reading client certificate failed: %s", err2.Error())
+		}
+		options.tlsConfig.Certificates = []tls.Certificate{clientTLSCert}
+	}
+
+	// basic auth
+	if user, ok2 := section.GetString("user"); ok2 {
+		options.user = user
+	}
+	if password, ok2 := section.GetString("password"); ok2 {
+		options.password = password
 	}
 
 	// request timeout

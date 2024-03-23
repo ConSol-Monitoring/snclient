@@ -19,7 +19,7 @@ By default SNClient searches for a `snclient.ini` in the following folders:
 
 The default config file includes a wildcard pattern `snclient_local*.ini` which
 makes it easy to include local custom configuration. Putting custom configuration
-in a seperate file has a couple of advantages.
+in a separate file has a couple of advantages.
 
 - no conflicts during package updates.
 - clean separation of upstream and user configuration.
@@ -33,6 +33,8 @@ Best practice is to create a file `snclient_local.ini`, ex.: like this:
     [/settings/default]
     allowed hosts = 127.0.0.1, 10.0.1.2
     password = SHA256:9f86d081884...
+
+See the [includes section](#includes) for details about including files.
 
 ### Windows
 
@@ -131,6 +133,50 @@ This is the order of inheritance for the example above:
 - /settings/default (least significant)
 
 The first defined value will be used.
+
+## Includes
+
+It is possible and encouraged to include other ini files to organize your settings.
+
+Includes can either be local files or http(s) urls to load remote configuration files.
+
+### Local Includes
+
+For local includes it is recommended to make use of the default include path `snclient_local*.ini`.
+
+    [/includes]
+    local = snclient_local*.ini
+
+### HTTPS Includes
+
+Besides that it is possible to use https urls to use central managed configuration
+files. It is recommended to use https links and use some sort of authentication.
+
+The simple way:
+
+    [/includes]
+    remote = https://user:password@central.company/snclient/default.ini
+
+If you want to configure more details, create a new section for each include and
+adjust all default http client options:
+
+    [/includes/company]
+    url                  = https://central.company/snclient/default.ini
+    #user                = test        # set a username to authenticate
+    #password            = changeme    # use a password
+    #insecure            = false       # skip hostname verification
+    #request timeout     = 60          # change http request timeout
+    #client certificate  = client1.crt # use client certificates to authenticate
+    #certificate key     = client1.key # private key for client certificate
+
+The http include will be locally cached, so SNClient will still start, even if the
+remove server is temporarily not available. The agent will try to update the include
+on reload and daemon startup. The SNClient will not try to update the include
+for simple commands, ex.: snclient run ... or snclient hash unless the include
+has never been downloaded.
+
+In case the include cannot be download and no local cache is present, the agent
+will refuse to start.
 
 ## Macros
 

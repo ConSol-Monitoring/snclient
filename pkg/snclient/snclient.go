@@ -456,7 +456,7 @@ func (snc *Agent) readConfiguration(files []string) (initSet *AgentRunSet, err e
 	}
 	var parseError error
 	for _, path := range files {
-		parseError = config.ReadINI(path)
+		parseError = config.ReadINI(path, snc)
 		if parseError != nil {
 			break
 		}

@@ -321,7 +321,7 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 		return nil
 	}
 
-	err = tmpConfig.ParseINI(file, tmpFile)
+	err = tmpConfig.ParseINI(file, tmpFile, snc)
 	if err != nil {
 		snc.Log.Errorf("failed to parse %s: %s", tmpFile, err.Error())
 	}
@@ -336,7 +336,7 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 		return err
 	}
 	defer file.Close()
-	err = targetConfig.ParseINI(file, targetFile)
+	err = targetConfig.ParseINI(file, targetFile, snc)
 	if err != nil {
 		snc.Log.Errorf("failed to parse %s: %s", targetFile, err.Error())
 	}

@@ -125,6 +125,7 @@ Find a brief overview of what is planned and what is done already:
 * [X] add ntp check
 * [ ] check usr signal handler
 * [X] manage certificate via rest api
+* [X] add https config includes
 
 ### Stage 3
 
@@ -135,7 +136,7 @@ Find a brief overview of what is planned and what is done already:
   * [ ] use strong typed config items
 * [ ] osx
   * [ ] check pkg uninstall
-* [ ] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, amd64 -> aarch64
+* [X] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, amd64 -> aarch64
 
 ## Not gonna happen
 
