@@ -127,7 +127,13 @@ vendor: go.work
 
 go.work: pkg/*
 	echo "go $(MINGOVERSIONSTR)" > go.work
-	$(GO) work use . pkg/* cmd/* buildtools/. t/.
+	$(GO) work use \
+		. \
+		pkg/* \
+		pkg/snclient/cmd \
+		cmd/* \
+		buildtools/. \
+		t/. \
 
 build: vendor snclient.ini server.crt server.key
 	set -e; for CMD in $(CMDS); do \
@@ -331,7 +337,7 @@ golangci: tools
 	# golangci combines a few static code analyzer
 	# See https://github.com/golangci/golangci-lint
 	#
-	@set -e; for dir in $$(ls -1d pkg/* cmd t); do \
+	@set -e; for dir in $$(ls -1d pkg/* pkg/snclient/cmd cmd t); do \
 		echo $$dir; \
 		if [ $$dir != "pkg/eventlog" ]; then \
 			echo "  - GOOS=linux"; \
