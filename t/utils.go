@@ -8,12 +8,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"pkg/utils"
 	"runtime"
 	"syscall"
 	"testing"
 	"time"
-
-	"pkg/utils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,6 +21,24 @@ import (
 const (
 	DefaultCommandTimeout = 30 * time.Second
 )
+
+var localTestINI = `
+[/modules]
+CheckBuiltinPlugins = enabled
+CheckExternalScripts = enabled
+
+[/settings/default]
+password = test
+
+[/settings/external scripts/scripts]
+check_win_not_exist1 = C:\Program Files\test\test.exe
+check_win_not_exist2 = C:\Program Files\te st\test.exe
+check_win_snclient_test1 =    C:\Program Files\snclient\snclient.exe  run check_dummy 3 testpattern
+check_win_snclient_test2 =   'C:\Program Files\snclient\snclient.exe' run check_dummy 3 testpattern
+check_win_snclient_test3 =   "C:\Program Files\snclient\snclient.exe" run check_dummy 3 testpattern
+check_win_snclient_test4 = & 'C:\Program Files\snclient\snclient.exe' run check_dummy 3 testpattern
+check_win_snclient_test5 = & Write-Host "testpattern"; exit 3
+`
 
 // cmdResult contains the result from the command
 type cmdResult struct {
@@ -197,6 +214,27 @@ func writeFile(t *testing.T, path, content string) {
 
 	err := os.WriteFile(path, []byte(content), 0o600)
 	require.NoErrorf(t, err, fmt.Sprintf("writing file %s succeeded", path))
+}
+
+// wait a couple of seconds till daemon answers
+func waitUntilResponse(t *testing.T, bin string) {
+	t.Helper()
+
+	waitStart := time.Now()
+	waitUntil := time.Now().Add(10 * time.Second)
+	for time.Now().Before(waitUntil) {
+		res := runCmd(t, &cmd{
+			Cmd:  bin,
+			Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
+			Exit: -1,
+		})
+		if res.ExitCode == 0 {
+			t.Logf("daemon responded after %s", time.Since(waitStart))
+
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 var (

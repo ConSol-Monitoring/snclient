@@ -25,30 +25,19 @@ var requiredFiles = []string{
 	"README.md",
 }
 
-var localWinINI = `
-[/modules]
-CheckBuiltinPlugins = enabled
-CheckExternalScripts = enabled
-
-[/settings/default]
-password = test
-
-[/settings/external scripts/scripts]
-check_win_not_exist1 = C:\Program Files\test\test.exe
-check_win_not_exist2 = C:\Program Files\te st\test.exe
-check_win_snclient_test1 =    C:\Program Files\snclient\snclient.exe  run check_dummy 3 testpattern
-check_win_snclient_test2 =   'C:\Program Files\snclient\snclient.exe' run check_dummy 3 testpattern
-check_win_snclient_test3 =   "C:\Program Files\snclient\snclient.exe" run check_dummy 3 testpattern
-check_win_snclient_test4 = & 'C:\Program Files\snclient\snclient.exe' run check_dummy 3 testpattern
-check_win_snclient_test5 = & Write-Host "testpattern"; exit 3
-`
-
 // this test requires the wix.exe (including .net 3.5) to be installed
 // further requirements are:
 // - snclient.msi
 // - windist folder to build new msi (incl. snclient.exe and windows_exporter.exe)
 // it builds the msi file, tries a installation and removes it afterwards
 func TestMSIinstaller(t *testing.T) {
+	// skip test unless requested, it will uninstall existing installations
+	if os.Getenv("SNCLIENT_INSTALL_TEST") != "1" {
+		t.Skipf("SKIPPED: pkg installer test requires env SNCLIENT_INSTALL_TEST=1")
+
+		return
+	}
+
 	bin := getBinary()
 	require.FileExistsf(t, bin, "snclient binary must exist")
 	require.FileExistsf(t, "snclient.msi", "snclient.msi binary must exist")
@@ -76,7 +65,7 @@ func TestMSIinstaller(t *testing.T) {
 	})
 
 	// add custom .ini
-	writeFile(t, localINIPath, localWinINI)
+	writeFile(t, localINIPath, localTestINI)
 	writeFile(t, `snclient.ini`, localINI)
 
 	// restart with new config
@@ -84,24 +73,7 @@ func TestMSIinstaller(t *testing.T) {
 	runCmd(t, &cmd{Cmd: "net", Args: []string{"start", "snclient"}})
 
 	// wait a couple of seconds till daemon answers
-	waitUntilResponse := func() {
-		waitStart := time.Now()
-		waitUntil := time.Now().Add(10 * time.Second)
-		for time.Now().Before(waitUntil) {
-			res := runCmd(t, &cmd{
-				Cmd:  bin,
-				Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
-				Exit: -1,
-			})
-			if res.ExitCode == 0 {
-				t.Logf("daemon responded after %s", time.Since(waitStart))
-
-				break
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
-	waitUntilResponse()
+	waitUntilResponse(t, bin)
 
 	// verify response
 	runCmd(t, &cmd{
@@ -136,7 +108,7 @@ func TestMSIinstaller(t *testing.T) {
 		require.FileExistsf(t, `C:\Program Files\snclient\`+file, file+" still exists")
 	}
 
-	waitUntilResponse()
+	waitUntilResponse(t, bin)
 
 	// verify response
 	runCmd(t, &cmd{
