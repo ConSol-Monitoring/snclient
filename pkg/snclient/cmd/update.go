@@ -3,11 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
-	"time"
-
 	"pkg/convert"
 	"pkg/snclient"
+	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
@@ -26,14 +25,14 @@ configured and enabled channels.
 
 Examples:
 
-# check and apply updates from the stable release channel
+# check and apply updates from the configured release channels:
 snclient update
 
-# check for updates from all available channel including pre releases but do not download.
+# check for updates from all available channel including pre releases but do not download:
 snclient update --prerelease --check all
 
-# apply downgrade to version 0.13.
-snclient update --downgrade=0.13
+# apply downgrade to version 0.19:
+snclient update --downgrade=0.19
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
@@ -85,7 +84,7 @@ snclient update --downgrade=0.13
 		},
 	}
 
-	updateCmd.PersistentFlags().String("channel", "stable", "Select download channel.")
+	updateCmd.PersistentFlags().String("channel", "", "Select download channel.")
 	updateCmd.PersistentFlags().Bool("check", false, "Check only, skip download.")
 	updateCmd.PersistentFlags().BoolP("prerelease", "p", false, "Consider pre releases as well.")
 	updateCmd.PersistentFlags().String("downgrade", "", "Force downgrade to given version.")

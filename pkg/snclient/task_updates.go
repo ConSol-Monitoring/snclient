@@ -218,16 +218,7 @@ func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool,
 	}
 
 	// channel might be a local file as well
-	updateFile := ""
-	best := &updatesAvailable{}
-	_, err = os.ReadFile(channel)
-	if err == nil {
-		updateFile = channel
-		best = &updatesAvailable{
-			channel: "file",
-			url:     "file://" + updateFile,
-		}
-	}
+	channel, updateFile, best := u.sanitizeChannel(channel)
 
 	// print options summary
 	log.Tracef("[updates] starting update check")
@@ -1111,4 +1102,26 @@ func (u *UpdateHandler) getAvailableChannel() []string {
 	sort.Strings(available)
 
 	return available
+}
+
+// sanitizeChannel checks if given channel is a updateFile
+// if channel is empty, fallback to configured channel from config
+func (u *UpdateHandler) sanitizeChannel(flag string) (channel, updateFile string, best *updatesAvailable) {
+	channel = flag
+
+	// channel might be a local file as well
+	best = &updatesAvailable{}
+	if _, err := os.ReadFile(channel); err == nil {
+		updateFile = channel
+		best = &updatesAvailable{
+			channel: "file",
+			url:     "file://" + updateFile,
+		}
+	}
+
+	if channel == "" {
+		channel = u.channel
+	}
+
+	return channel, updateFile, best
 }
