@@ -133,8 +133,8 @@ Find a brief overview of what is planned and what is done already:
 * [ ] improve configuration
   * [ ] add config validator
   * [ ] use strong typed config items
-* [ ] osx
-  * [ ] check pkg uninstall
+* [X] osx
+  * [X] check pkg uninstall
 * [X] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, amd64 -> aarch64
 
 ## Not gonna happen

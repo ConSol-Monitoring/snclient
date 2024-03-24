@@ -534,6 +534,9 @@ osx: | dist
 	cp dist/snclient build-pkg/usr/local/bin/
 	chmod 755 build-pkg/usr/local/bin/snclient
 
+	cp packaging/osx/uninstall.sh build-pkg/usr/local/bin/snclient_uninstall.sh
+	chmod 755 build-pkg/usr/local/bin/snclient_uninstall.sh
+
 	cp dist/snclient.ini dist/server.crt dist/server.key dist/cacert.pem build-pkg/etc/snclient
 
 	$(SED) \
