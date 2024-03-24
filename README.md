@@ -109,7 +109,6 @@ Find a brief overview of what is planned and what is done already:
 * [X] implement log rotation for file logger
 * [X] self update (from configurable url)
 * [X] implement perf-config
-* [ ] finish builtin checks
 * [X] implement help with examples and filters
 * [X] review check plugin status
 
@@ -123,7 +122,7 @@ Find a brief overview of what is planned and what is done already:
 * [X] add config include folder
 * [X] add check_ping plugin
 * [X] add ntp check
-* [ ] check usr signal handler
+* [X] check usr signal handler
 * [X] manage certificate via rest api
 * [X] add https config includes
 
