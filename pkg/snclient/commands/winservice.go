@@ -18,7 +18,7 @@ func init() {
 All logs will be written to the configured logfile.
 `,
 		GroupID: "daemon",
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			agentFlags.Mode = snclient.ModeServer
 			snc := snclient.NewAgent(agentFlags)
 			snc.CheckUpdateBinary("winservice")

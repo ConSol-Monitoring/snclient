@@ -31,11 +31,12 @@ while being easily extendible with own script and checks.`,
   * Check for update in verbose mode
     %> snclient update -v
 `,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			// defaults to server mode unless --help/--version is given
 			if agentFlags.Version {
 				snc := snclient.Agent{}
 				snc.PrintVersion()
+
 				return nil
 			}
 
@@ -44,7 +45,7 @@ while being easily extendible with own script and checks.`,
 			}
 
 			// should never reach this point
-			return fmt.Errorf("snclient called without arguments, see --help for usage.")
+			return fmt.Errorf("snclient called without arguments, see --help for usage")
 		},
 	}
 
@@ -68,7 +69,10 @@ func addFlags(cmd *cobra.Command, flags *snclient.AgentFlags) {
 	cmd.PersistentFlags().StringVarP(&flags.ProfileCPU, "cpuprofile", "", "", "write cpu profile to `file")
 	cmd.PersistentFlags().StringVarP(&flags.ProfileMem, "memprofile", "", "", "write memory profile to `file")
 	cmd.PersistentFlags().IntVarP(&flags.DeadlockTimeout, "debug-deadlock", "", 0, "enable deadlock detection with given timeout")
-	cmd.PersistentFlags().MarkHidden("debug-deadlock") // there are no lock so far
+	// there are no locks so far
+	if err := cmd.PersistentFlags().MarkHidden("debug-deadlock"); err != nil {
+		panic("markhidden failed")
+	}
 
 	cmd.DisableAutoGenTag = true
 	cmd.DisableSuggestions = true
@@ -84,7 +88,13 @@ func Execute() error {
 	injectDoubleSlashAfterRunCmd(rootCmd)
 	sanitizeOSArgs()
 	maybeInjectRootAlias(rootCmd, "server")
-	return rootCmd.Execute()
+
+	err := rootCmd.Execute()
+	if err != nil {
+		return fmt.Errorf("cmd failed: %s", err.Error())
+	}
+
+	return nil
 }
 
 // inject given command unless there is one already
@@ -105,13 +115,18 @@ func maybeInjectRootAlias(rootCmd *cobra.Command, inject string) {
 
 	// parse flags (ignoring unknown flags for subcommands) and check if we want help or version only
 	tmpCmd.FParseErrWhitelist.UnknownFlags = true
-	tmpCmd.ParseFlags(args)
+	err = tmpCmd.ParseFlags(args)
+	if err != nil {
+		return
+	}
 	if tmpFlags.Version {
 		os.Args = []string{os.Args[0], "-V"}
+
 		return
 	}
 	if tmpFlags.Help {
 		os.Args = []string{os.Args[0], "-h"}
+
 		return
 	}
 
@@ -134,16 +149,16 @@ func sanitizeOSArgs() {
 			}
 		})
 	}
-	for i, a := range os.Args {
-		if i == 0 {
+	for idx, arg := range os.Args {
+		if idx == 0 {
 			continue
 		}
-		if r, ok := replace[a]; ok {
-			os.Args[i] = r
+		if r, ok := replace[arg]; ok {
+			os.Args[idx] = r
 		}
 		for n, r := range replace {
-			if strings.HasPrefix(a, n+"=") {
-				os.Args[i] = r + "=" + strings.TrimPrefix(os.Args[i], n+"=")
+			if strings.HasPrefix(arg, n+"=") {
+				os.Args[idx] = r + "=" + strings.TrimPrefix(os.Args[idx], n+"=")
 			}
 		}
 	}
@@ -170,17 +185,19 @@ func injectDoubleSlashAfterRunCmd(rootCmd *cobra.Command) {
 
 	// search start of cmd args
 	found := 0
-	for i, a := range os.Args {
-		if strings.HasPrefix(a, "-") {
+	for idx, arg := range os.Args {
+		if strings.HasPrefix(arg, "-") {
 			continue
 		}
-		if a == cmd.Name() {
-			found = i
+		if arg == cmd.Name() {
+			found = idx
+
 			break
 		}
 		for _, n := range cmd.Aliases {
-			if a == n {
-				found = i
+			if arg == n {
+				found = idx
+
 				break
 			}
 		}
@@ -198,6 +215,7 @@ func injectDoubleSlashAfterRunCmd(rootCmd *cobra.Command) {
 	for i, a := range os.Args[found+1:] {
 		if !strings.HasPrefix(a, "-") {
 			found2 = i
+
 			break
 		}
 	}

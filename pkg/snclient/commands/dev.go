@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"fmt"
+	"os"
+
 	"pkg/snclient"
 
 	"github.com/spf13/cobra"
@@ -10,9 +13,12 @@ func init() {
 	devCmd := &cobra.Command{
 		Use:   "dev",
 		Short: "Collection of development commands",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			rootCmd.SetArgs([]string{"help", "dev"})
-			rootCmd.Execute()
+			if err := rootCmd.Execute(); err != nil {
+				fmt.Fprintf(os.Stderr, "command failed: %s", err.Error())
+				os.Exit(3)
+			}
 		},
 		Hidden: true,
 	}
@@ -25,7 +31,7 @@ func init() {
 		Long: `start the agent and watch for file changes in the config files or the agent itself.
 The agent will be restarted immediately on file changes.
 `,
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			agentFlags.Mode = snclient.ModeServer
 			snc := snclient.NewAgent(agentFlags)
 			snc.StartRestartWatcher()

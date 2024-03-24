@@ -29,7 +29,7 @@ snclient hash
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
 			setInteractiveStdoutLogger()
-			input := ""
+			var input string
 			if len(args) > 0 {
 				input = args[0]
 			} else {
@@ -55,7 +55,7 @@ snclient hash
 
 func readPassword(cmd *cobra.Command) string {
 	fmt.Fprintf(cmd.OutOrStdout(), "enter password to hash or hit ctrl+c to exit.\n")
-	b, _ := term.ReadPassword(int(syscall.Stdin))
+	b, _ := term.ReadPassword(int(syscall.Stdin)) //nolint:unconvert,nolintlint // unconvert detects a conversion here but it is one on windows
 
 	return string(b)
 }

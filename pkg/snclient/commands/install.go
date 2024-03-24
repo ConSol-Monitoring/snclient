@@ -50,48 +50,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 		Use:    "pkg [args]",
 		Short:  "called from the msi installer, set up firewall and service according to setup dialog",
 		Hidden: true,
-		Run: func(cmd *cobra.Command, args []string) {
-			agentFlags.Mode = snclient.ModeOneShot
-			snc := snclient.NewAgent(agentFlags)
-
-			installConfig := parseInstallerArgs(args)
-			snc.Log.Infof("starting installer: %#v", installConfig)
-
-			// merge tmp_installer.ini into snclient.ini
-			err := mergeIniFile(snc, installConfig)
-			if err != nil {
-				snc.Log.Errorf("failed to write install ini: %s", err.Error())
-			}
-
-			// reload config
-			snc.Init()
-
-			if hasService(WINSERVICE) {
-				if serviceEnabled(WINSERVICE) {
-					err := restartService(WINSERVICE)
-					if err != nil {
-						snc.Log.Errorf("failed to (re)start service: %s", err.Error())
-					}
-				}
-			} else {
-				err := installService(WINSERVICE)
-				if err != nil {
-					snc.Log.Errorf("failed to install service: %s", err.Error())
-				}
-
-				err = startService(WINSERVICE)
-				if err != nil {
-					snc.Log.Errorf("failed to start service: %s", err.Error())
-				}
-			}
-
-			err = addFireWallRule(snc)
-			if err != nil {
-				snc.Log.Errorf("failed to add firewall: %s", err.Error())
-			}
-			snc.Log.Infof("installer finished successfully")
-			snc.CleanExit(0)
-		},
+		Run:    installPkg,
 	})
 
 	// install pre
@@ -99,41 +58,93 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 		Use:    "pre [args]",
 		Short:  "called from the msi installer, stop services",
 		Hidden: true,
-		Run: func(cmd *cobra.Command, args []string) {
-			agentFlags.Mode = snclient.ModeOneShot
-			snc := snclient.NewAgent(agentFlags)
-
-			installConfig := parseInstallerArgs(args)
-			snc.Log.Infof("starting pre script: %#v", installConfig)
-
-			if hasService(WINSERVICE) {
-				err := stopService(WINSERVICE)
-				if err != nil {
-					snc.Log.Infof("failed to stop service: %s", err.Error())
-				}
-			}
-			snc.Log.Infof("pre script finished successfully")
-			snc.CleanExit(0)
-		},
+		Run:    installPre,
 	})
 
 	// install firewall
 	installCmd.AddCommand(&cobra.Command{
 		Use:   "firewall [args]",
 		Short: "add firewall exceptions for enabled tcp listeners, ex.: " + strings.Join(listenerNames, ", "),
-		Run: func(cmd *cobra.Command, args []string) {
-			agentFlags.Mode = snclient.ModeOneShot
-			setInteractiveStdoutLogger()
-			snc := snclient.NewAgent(agentFlags)
-
-			err := addFireWallRule(snc)
-			if err != nil {
-				snc.Log.Errorf("failed to add firewall: %s", err.Error())
-			}
-			snc.Log.Infof("firewall setup ready")
-			snc.CleanExit(0)
-		},
+		Run:   installFirewall,
 	})
+}
+
+func installPkg(_ *cobra.Command, args []string) {
+	agentFlags.Mode = snclient.ModeOneShot
+	snc := snclient.NewAgent(agentFlags)
+
+	installConfig := parseInstallerArgs(args)
+	snc.Log.Infof("starting installer: %#v", installConfig)
+
+	// merge tmp_installer.ini into snclient.ini
+	err := mergeIniFile(snc, installConfig)
+	if err != nil {
+		snc.Log.Errorf("failed to write install ini: %s", err.Error())
+	}
+
+	// reload config
+	_, err = snc.Init()
+	if err != nil {
+		snc.Log.Errorf("failed to reload config: %s", err.Error())
+	}
+
+	switch hasService(WINSERVICE) {
+	case false:
+		err = installService(WINSERVICE)
+		if err != nil {
+			snc.Log.Errorf("failed to install service: %s", err.Error())
+		}
+
+		err = startService(WINSERVICE)
+		if err != nil {
+			snc.Log.Errorf("failed to start service: %s", err.Error())
+		}
+	case true:
+		if !serviceEnabled(WINSERVICE) {
+			break
+		}
+		err = restartService(WINSERVICE)
+		if err != nil {
+			snc.Log.Errorf("failed to (re)start service: %s", err.Error())
+		}
+	}
+
+	err = addFireWallRule(snc)
+	if err != nil {
+		snc.Log.Errorf("failed to add firewall: %s", err.Error())
+	}
+	snc.Log.Infof("installer finished successfully")
+	snc.CleanExit(0)
+}
+
+func installPre(_ *cobra.Command, args []string) {
+	agentFlags.Mode = snclient.ModeOneShot
+	snc := snclient.NewAgent(agentFlags)
+
+	installConfig := parseInstallerArgs(args)
+	snc.Log.Infof("starting pre script: %#v", installConfig)
+
+	if hasService(WINSERVICE) {
+		err := stopService(WINSERVICE)
+		if err != nil {
+			snc.Log.Infof("failed to stop service: %s", err.Error())
+		}
+	}
+	snc.Log.Infof("pre script finished successfully")
+	snc.CleanExit(0)
+}
+
+func installFirewall(_ *cobra.Command, _ []string) {
+	agentFlags.Mode = snclient.ModeOneShot
+	setInteractiveStdoutLogger()
+	snc := snclient.NewAgent(agentFlags)
+
+	err := addFireWallRule(snc)
+	if err != nil {
+		snc.Log.Errorf("failed to add firewall: %s", err.Error())
+	}
+	snc.Log.Infof("firewall setup ready")
+	snc.CleanExit(0)
 }
 
 func parseInstallerArgs(args []string) (parsed map[string]string) {
@@ -157,16 +168,21 @@ func removeService(name string) error {
 	}
 	svcMgr, err := mgr.Connect()
 	if err != nil {
-		return err
+		return fmt.Errorf("mgr.Connect: %s", err.Error())
 	}
-	defer svcMgr.Disconnect()
+	defer func() { _ = svcMgr.Disconnect() }()
 
 	service, err := svcMgr.OpenService(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("svcMgr.OpenService: %s", err.Error())
 	}
 
-	return windows.DeleteService(service.Handle)
+	err = windows.DeleteService(service.Handle)
+	if err != nil {
+		return fmt.Errorf("windows.DeleteService: %s", err.Error())
+	}
+
+	return nil
 }
 
 func hasService(name string) bool {
@@ -174,7 +190,7 @@ func hasService(name string) bool {
 	if err != nil {
 		return false
 	}
-	defer svcMgr.Disconnect()
+	defer func() { _ = svcMgr.Disconnect() }()
 
 	service, err := svcMgr.OpenService(name)
 	if err != nil {
@@ -190,7 +206,7 @@ func serviceEnabled(name string) bool {
 	if err != nil {
 		return false
 	}
-	defer svcMgr.Disconnect()
+	defer func() { _ = svcMgr.Disconnect() }()
 
 	service, err := svcMgr.OpenService(name)
 	if err != nil {
@@ -209,21 +225,24 @@ func serviceEnabled(name string) bool {
 func stopService(name string) error {
 	svcMgr, err := mgr.Connect()
 	if err != nil {
-		return err
+		return fmt.Errorf("mgr.Connect: %s", err.Error())
 	}
-	defer svcMgr.Disconnect()
+	defer func() { _ = svcMgr.Disconnect() }()
 
 	service, err := svcMgr.OpenService(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("svcMgr.OpenService: %s", err.Error())
 	}
 	defer service.Close()
 
 	state, err := service.Query()
+	if err != nil {
+		return fmt.Errorf("service.Query: %s", err.Error())
+	}
 	if state.State != svc.Stopped {
 		state, err = service.Control(svc.Stop)
 		if err != nil {
-			return err
+			return fmt.Errorf("service.Control: %s", err.Error())
 		}
 	}
 
@@ -237,7 +256,7 @@ func stopService(name string) error {
 		time.Sleep(WINSERVICESTOPINTERVALL)
 		state, err = service.Query()
 		if err != nil {
-			return err
+			return fmt.Errorf("service.Query: %s", err.Error())
 		}
 		if time.Now().After(startWait.Add(WINSERVICESTOPTIMEOUT)) {
 			return fmt.Errorf("could not stop service within %s, current state: %v", WINSERVICESTOPTIMEOUT, state)
@@ -250,19 +269,19 @@ func stopService(name string) error {
 func startService(name string) error {
 	svcMgr, err := mgr.Connect()
 	if err != nil {
-		return err
+		return fmt.Errorf("mgr.Connect: %s", err.Error())
 	}
-	defer svcMgr.Disconnect()
+	defer func() { _ = svcMgr.Disconnect() }()
 
 	service, err := svcMgr.OpenService(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("svcMgr.OpenService: %s", err.Error())
 	}
 	defer service.Close()
 
 	err = service.Start()
 	if err != nil {
-		return err
+		return fmt.Errorf("service.Start: %s", err.Error())
 	}
 
 	return nil
@@ -273,6 +292,7 @@ func restartService(name string) error {
 	if err != nil {
 		return err
 	}
+
 	return startService(name)
 }
 
@@ -282,11 +302,14 @@ func installService(name string) error {
 	}
 	svcMgr, err := mgr.Connect()
 	if err != nil {
-		return err
+		return fmt.Errorf("mgr.Connect: %s", err.Error())
 	}
-	defer svcMgr.Disconnect()
+	defer func() { _ = svcMgr.Disconnect() }()
 
 	_, _, execPath, err := utils.GetExecutablePath()
+	if err != nil {
+		return fmt.Errorf("utils.GetExecutablePath: %s", err.Error())
+	}
 	_, err = svcMgr.CreateService(
 		name,
 		execPath,
@@ -301,6 +324,7 @@ func installService(name string) error {
 	if err != nil {
 		return fmt.Errorf("windows.CreateService: %s", err.Error())
 	}
+
 	return nil
 }
 
@@ -333,7 +357,7 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 	if err != nil {
 		snc.Log.Errorf("failed to read %s: %s", targetFile, err.Error())
 
-		return err
+		return fmt.Errorf("open %s: %s", targetFile, err.Error())
 	}
 	defer file.Close()
 	err = targetConfig.ParseINI(file, targetFile, snc)
@@ -415,7 +439,7 @@ func addFireWallRule(snc *snclient.Agent) error {
 	if err != nil {
 		return fmt.Errorf("could not detect path to executable: %s", err.Error())
 	}
-	os.Chdir("C:\\") // avoid: exec: "netsh": cannot run executable found relative to current directory
+	_ = os.Chdir("C:\\") // avoid: exec: "netsh": cannot run executable found relative to current directory
 	cmdLine := []string{
 		"advfirewall", "firewall", "add", "rule",
 		"dir=in",
@@ -433,7 +457,7 @@ func addFireWallRule(snc *snclient.Agent) error {
 	output, err := cmd.CombinedOutput()
 	output = bytes.TrimSpace(output)
 	if err != nil {
-		return fmt.Errorf("Failed to create firewall exception: %s (%s)", err.Error(), output)
+		return fmt.Errorf("failed to create firewall exception: %s (%s)", err.Error(), output)
 	}
 
 	snc.Log.Debugf("added firewall: %s", output)
@@ -459,7 +483,7 @@ func removeFireWallRules(snc *snclient.Agent) {
 
 func removeFireWallRule(snc *snclient.Agent, name string) error {
 	snc.Log.Debugf("removing firewall rule '%s%s'", FIREWALLPREFIX, name)
-	os.Chdir("C:\\") // avoid: exec: "netsh": cannot run executable found relative to current directory
+	_ = os.Chdir("C:\\") // avoid: exec: "netsh": cannot run executable found relative to current directory
 
 	cmdLine := []string{
 		"advfirewall", "firewall", "delete", "rule",
@@ -472,7 +496,7 @@ func removeFireWallRule(snc *snclient.Agent, name string) error {
 	output, err := cmd.CombinedOutput()
 	output = bytes.TrimSpace(output)
 	if err != nil {
-		return fmt.Errorf("Failed to remove firewall exception: %s (%s)", err.Error(), output)
+		return fmt.Errorf("failed to remove firewall exception: %s (%s)", err.Error(), output)
 	}
 
 	snc.Log.Debugf("removed firewall: %s", output)

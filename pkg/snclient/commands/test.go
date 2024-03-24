@@ -54,7 +54,7 @@ snclient do check_files path=/tmp crit='count > 100'
 
 			if len(args) == 0 {
 				if cmd.CalledAs() != "test" {
-					cmd.Usage()
+					_ = cmd.Usage()
 
 					snc.CleanExit(snclient.ExitCodeUnknown)
 				}
@@ -78,6 +78,7 @@ func testPrompt(cmd *cobra.Command, snc *snclient.Agent) {
 				checks = append(checks, chk)
 			}
 		}
+
 		return readline.CompleteValues(checks...)
 	}
 
@@ -86,7 +87,7 @@ func testPrompt(cmd *cobra.Command, snc *snclient.Agent) {
 
 	rl := readline.NewShell()
 	rl.Prompt.Primary(func() string { return ">> " })
-	rl.Config.Set("show-mode-in-prompt", false)
+	_ = rl.Config.Set("show-mode-in-prompt", false)
 	rl.Completer = promptCompleter
 	for {
 		text, err := rl.Readline()
@@ -128,7 +129,7 @@ func testHelp(cmd *cobra.Command) {
 	fmt.Fprintf(rootCmd.OutOrStdout(), "%s", cmd.Long)
 }
 
-func testPrintHuman(cmd *cobra.Command, res *snclient.CheckResult) {
+func testPrintHuman(_ *cobra.Command, res *snclient.CheckResult) {
 	fmt.Fprintf(rootCmd.OutOrStdout(), "Exit Code: %s (%d)\n", res.StateString(), res.State)
 	fmt.Fprintf(rootCmd.OutOrStdout(), "Plugin Output:\n")
 	fmt.Fprintf(rootCmd.OutOrStdout(), "%s\n", res.Output)
@@ -140,7 +141,7 @@ func testPrintHuman(cmd *cobra.Command, res *snclient.CheckResult) {
 	}
 }
 
-func testPrintNaemon(cmd *cobra.Command, res *snclient.CheckResult) {
+func testPrintNaemon(_ *cobra.Command, res *snclient.CheckResult) {
 	output := string(res.BuildPluginOutput())
 	output = strings.TrimSpace(output)
 	fmt.Fprintf(rootCmd.OutOrStdout(), "%s\n", output)

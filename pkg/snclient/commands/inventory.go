@@ -23,7 +23,7 @@ snclient inventory
 # print inventory for mounts only
 snclient inventory mounts
 `,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
 			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)

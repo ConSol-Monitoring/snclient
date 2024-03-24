@@ -37,13 +37,16 @@ func RunCommand(t *testing.T, cmd *cobra.Command, args []string) (output string,
 	}()
 
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		f.Value.Set(f.DefValue)
+		err = f.Value.Set(f.DefValue)
+		require.NoError(t, err)
 	})
 	cmd.SetArgs(args)
 	err = cmd.Execute()
+	require.NoError(t, err)
 
 	outFile.Close()
 
 	outputBytes, err := os.ReadFile(outFile.Name())
+
 	return string(outputBytes), err
 }

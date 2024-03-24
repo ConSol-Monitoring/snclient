@@ -14,7 +14,7 @@ func init() {
 All logs will be printed to stdout unless flags tell otherwise.
 		`,
 		GroupID: "daemon",
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			agentFlags.Mode = snclient.ModeServer
 			snc := snclient.NewAgent(agentFlags)
 			snc.CheckUpdateBinary("server")
