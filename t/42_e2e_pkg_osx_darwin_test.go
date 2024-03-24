@@ -96,6 +96,7 @@ func TestOSXinstaller(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  "sudo",
 		Args: []string{"/usr/local/bin/snclient_uninstall.sh"},
+		Like: []string{"SNClient uninstalled successfully"},
 	})
 
 	for _, file := range requiredFiles {
