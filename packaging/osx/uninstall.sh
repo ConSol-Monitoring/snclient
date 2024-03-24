@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ "$(id -nu)" -ne "root" ]; then
+if [ "$(id -nu)" != "root" ]; then
   exit 1
 fi
 
