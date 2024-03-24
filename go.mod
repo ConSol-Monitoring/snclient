@@ -14,7 +14,7 @@ replace pkg/nrpe => ./pkg/nrpe
 
 replace pkg/snclient => ./pkg/snclient
 
-replace pkg/snclient/cmd => ./pkg/snclient/cmd
+replace pkg/snclient/commands => ./pkg/snclient/commands
 
 replace pkg/utils => ./pkg/utils
 
@@ -29,7 +29,7 @@ replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240
 
 require (
 	github.com/stretchr/testify v1.9.0
-	pkg/snclient/cmd v0.0.0-00010101000000-000000000000
+	pkg/snclient/commands v0.0.0-00010101000000-000000000000
 	pkg/utils v0.0.0-00010101000000-000000000000
 )
 
@@ -55,7 +55,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/miekg/dns v1.1.58 // indirect
-	github.com/onsi/gomega v1.31.1 // indirect
 	github.com/petermattis/goid v0.0.0-20231207134359-e60b3f734c67 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
@@ -63,10 +62,10 @@ require (
 	github.com/prometheus/client_model v0.6.0 // indirect
 	github.com/prometheus/common v0.51.0 // indirect
 	github.com/prometheus/procfs v0.13.0 // indirect
-	github.com/reeflective/readline v1.0.13 // indirect
+	github.com/reeflective/readline v1.0.14 // indirect
 	github.com/rickb777/date v1.20.6 // indirect
 	github.com/rickb777/plural v1.4.1 // indirect
-	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/sassoftware/go-rpmutils v0.3.0 // indirect
 	github.com/sevlyar/go-daemon v0.1.6 // indirect

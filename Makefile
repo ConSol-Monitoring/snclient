@@ -114,7 +114,7 @@ updatedeps: versioncheck
 	$(MAKE) cleandeps
 
 cleandeps:
-	set -e; for dir in $(shell ls -d1 pkg/* cmd/*); do \
+	set -e; for dir in $(shell ls -d1 pkg/* pkg/snclient/commands cmd/*); do \
 		( cd ./$$dir && $(GO) mod tidy ); \
 	done
 	$(GO) mod tidy
@@ -130,7 +130,7 @@ go.work: pkg/*
 	$(GO) work use \
 		. \
 		pkg/* \
-		pkg/snclient/cmd \
+		pkg/snclient/commands \
 		cmd/* \
 		buildtools/. \
 		t/. \
@@ -204,16 +204,16 @@ rsrc_windows_arm64.syso: winres | tools
 	${TOOLSFOLDER}/go-winres make --arch arm64
 
 test: vendor
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) pkg/* pkg/*/commands
 	if grep -Irn TODO: ./cmd/ ./pkg/ ./packaging/ ; then exit 1; fi
 	if grep -Irn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 
 # test with filter
 testf: vendor
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) pkg/* pkg/*/cmd -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS"
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) pkg/* pkg/*/commands -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS"
 
 longtest: vendor
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) pkg/* pkg/*/cmd
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) pkg/* pkg/*/commands
 
 citest: tools vendor
 	#
@@ -269,19 +269,19 @@ citest: tools vendor
 	#
 
 benchmark:
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) test $(TEST_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/* pkg/*/cmd
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test $(TEST_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/* pkg/*/commands
 
 racetest:
 	# go: -race requires cgo, so do not use the macro here
-	$(GO) test -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/* pkg/*/cmd
+	$(GO) test -race $(TEST_FLAGS) -coverprofile=coverage.txt -covermode=atomic ./pkg/* pkg/*/commands
 
 covertest:
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/commands
 	$(GO) tool cover -func=cover.out
 	$(GO) tool cover -html=cover.out -o coverage.html
 
 coverweb:
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/cmd
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) -coverprofile=cover.out ./pkg/* pkg/*/commands
 	$(GO) tool cover -html=cover.out
 
 clean:
@@ -337,7 +337,7 @@ golangci: tools
 	# golangci combines a few static code analyzer
 	# See https://github.com/golangci/golangci-lint
 	#
-	@set -e; for dir in $$(ls -1d pkg/* pkg/snclient/cmd cmd t); do \
+	@set -e; for dir in $$(ls -1d pkg/* pkg/snclient/commands cmd t); do \
 		echo $$dir; \
 		if [ $$dir != "pkg/eventlog" ]; then \
 			echo "  - GOOS=linux"; \

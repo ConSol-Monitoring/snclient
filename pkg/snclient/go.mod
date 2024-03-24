@@ -14,7 +14,7 @@ replace pkg/nrpe => ../../pkg/nrpe
 
 replace pkg/snclient => ../../pkg/snclient
 
-replace pkg/snclient/cmd => ../../pkg/snclient/cmd
+replace pkg/snclient/commands => ../../pkg/snclient/commands
 
 replace pkg/utils => ../../pkg/utils
 
