@@ -2,8 +2,12 @@ This file documents the revision history for the SNClient+ agent.
 
 next:
          - add http config ini includes
+         - add osx pkg uninstaller
          - enable script aliases without enabling external scripts
-         - check_files: fix max-depth and empty-syntax
+         - update windows build framework to wix 3.14.1
+         - rename build artifacts to use less confusing name (amd/arm)
+         - fix check_files max-depth and empty-syntax
+         - fix check_memory human readable free value
 
 0.20     Fri Mar 15 14:12:35 CET 2024
          - add support for perf-syntax
