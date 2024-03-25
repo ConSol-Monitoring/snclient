@@ -13,10 +13,10 @@ linkTitle: Building From Source
 
 ## Building Binary
 
-	%> git clone https://github.com/Consol-Monitoring/snclient
-	%> cd snclient
-	%> make dist
-	%> make snclient
+    %> git clone https://github.com/Consol-Monitoring/snclient
+    %> cd snclient
+    %> make dist
+    %> make snclient
 
 Certificates and a default .ini file will be in the `dist/` folder then and the
 binary file is in the current folder.
@@ -25,7 +25,7 @@ binary file is in the current folder.
 
 Building RPM packages is available with the `make rpm` target:
 
-	%> make rpm
+    %> make rpm
 
 You will need those extra requirements:
 
@@ -37,7 +37,7 @@ You will need those extra requirements:
 
 Building Debian packages is available with the `make deb` target:
 
-	%> make deb
+    %> make deb
 
 You will need those extra requirements:
 
@@ -50,7 +50,7 @@ You will need those extra requirements:
 
 Building OSX packages is available with the `make osx` target:
 
-	%> make osx
+    %> make osx
 
 You will need those extra requirements:
 
@@ -70,6 +70,7 @@ First you need to prepare a `windist` folder. This can be done on any
 linux machine by running `make windist`.
 
 This are the requirements on your linux host:
+
 - go >= 1.20
 - openssl
 - make
@@ -81,39 +82,39 @@ Then move the resulting .exe file into the windist folder and rename to `snclien
 
 You now should have a folder looking like this:
 
-	%> ls -la windist/
-	-rw-r--r--  1 user group     2041 Jul 18 09:30 cacert.pem
-	-rw-r--r--  1 user group     1456 Jul 18 09:30 server.crt
-	-rw-------  1 user group     1704 Jul 18 09:30 server.key
-	-rwxr-xr-x  1 user group 14193152 Jul 18 09:37 snclient.exe
-	-rw-r--r--  1 user group     9394 Jul 18 09:30 snclient.ini
+    %> ls -la windist/
+    -rw-r--r--  1 user group     2041 Jul 18 09:30 cacert.pem
+    -rw-r--r--  1 user group     1456 Jul 18 09:30 server.crt
+    -rw-------  1 user group     1704 Jul 18 09:30 server.key
+    -rwxr-xr-x  1 user group 14193152 Jul 18 09:37 snclient.exe
+    -rw-r--r--  1 user group     9394 Jul 18 09:30 snclient.ini
 
 Get current version information, it will be required for the next step:
 
-	%> ./buildtools/get_version
-	0.04.0033
+    %> ./buildtools/get_version
+    0.04.0033
 
-	%> git rev-parse --short HEAD
-	5a30697
-
+    %> git rev-parse --short HEAD
+    5a30697
 
 #### Build MSI
 
 This are the requirements on your windows host:
+
 - .net framework 3.5 ([download link](https://download.microsoft.com/download/0/6/1/061F001C-8752-4600-A198-53214C69B51F/dotnetfx35setup.exe))
-- wix toolset (3.x) ([download link](https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe))
+- wix toolset (3.x) ([download link](https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe))
 
 Then build the msi like this using the version information (without leading zeros) from the previous step:
 
-	& .\packaging\windows\build_msi.ps1 `
-	-out "snclient.msi" `
-	-arch "amd64" `
-	-major "0" `
-	-minor "4" `
-	-rev "33" `
-	-sha "5a30697"
+    & .\packaging\windows\build_msi.ps1 `
+    -out "snclient.msi" `
+    -arch "amd64" `
+    -major "0" `
+    -minor "4" `
+    -rev "33" `
+    -sha "5a30697"
 
 The architecture can either be:
 
-	- `386` for 32bit i386 systems
-	- `amd64` for 64bit x86_64 systems
+- `386` for 32bit i386 systems
+- `amd64` for 64bit x86_64 systems

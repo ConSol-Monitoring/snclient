@@ -7,19 +7,10 @@ If (-Not (Test-Path -Path "windist" )) {
   Exit 1
 }
 
-<# .net is required for wix.exe
-If (-Not (Test-Path -Path ".\dotnetfx35setup.exe" )) {
-  Invoke-WebRequest -UseBasicParsing `
-    -Uri https://download.microsoft.com/download/0/6/1/061F001C-8752-4600-A198-53214C69B51F/dotnetfx35setup.exe `
-    -OutFile dotnetfx35setup.exe
-  & ".\dotnetfx35setup.exe"
-}
-#>
-
 If (-Not (Test-Path -Path "C:\Program Files (x86)\WiX Toolset v3.14\bin\candle.exe" )) {
   If (-Not (Test-Path -Path ".\wix314.exe" )) {
     Invoke-WebRequest -UseBasicParsing `
-      -Uri https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314.exe `
+      -Uri https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe `
       -OutFile wix314.exe
   }
   ls
