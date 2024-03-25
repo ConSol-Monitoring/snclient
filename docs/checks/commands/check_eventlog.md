@@ -43,6 +43,11 @@ a description of the provided fields.
     check_eventlog
     OK - Event log seems fine
 
+Only return unique events:
+
+	check_eventlog "detail-syntax=%(id) %(uniqueindex)" "unique-index=1"
+	WARNING - 4 message(s) warning(10010 Application-Microsoft-Windows-RestartManager-10010, 10016 System-Microsoft-Windows-DistributedCOM-10016, 6155 System-LsaSrv-6155, 6147 System-LsaSrv-6147)
+
 ### Example using NRPE and Naemon
 
 Naemon Config
@@ -74,13 +79,14 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument         | Description                                                            |
-| ---------------- | ---------------------------------------------------------------------- |
-| file             | File to read (can be specified multiple times to check multiple files) |
-| log              | Alias for file                                                         |
-| scan-range       | Sets time range to scan for message (default is 24h)                   |
-| timezone         | Sets the timezone for time metrics (default is local time)             |
-| truncate-message | Maximum length of message for each event log message text              |
+| Argument         | Description                                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| file             | File to read (can be specified multiple times to check multiple files)                                                   |
+| log              | Alias for file                                                                                                           |
+| scan-range       | Sets time range to scan for message (default is 24h)                                                                     |
+| timezone         | Sets the timezone for time metrics (default is local time)                                                               |
+| truncate-message | Maximum length of message for each event log message text                                                                |
+| unique-index     | Combination of fields that identifies unique events, set to 1 to use "\${log}-\${source}-\${id}" or use any other string |
 
 ## Attributes
 

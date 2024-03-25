@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"pkg/convert"
 	"pkg/eventlog"
 	"pkg/utils"
 )
@@ -32,10 +33,15 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 		lookBack *= -1
 	}
 	scanLookBack := time.Now().Add(-time.Second * time.Duration(lookBack))
-	uniqueIndexList := map[string]struct{}{}
+	uniqueIndexList := map[string]map[string]string{}
 	filterUnique := false
 
-	if len(l.uniqueIndex) > 0 {
+	switch l.uniqueIndex {
+	case "":
+	case "1":
+		filterUnique = true
+		l.uniqueIndex = DefaultUniqueIndex
+	default:
 		filterUnique = true
 	}
 
@@ -67,16 +73,22 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 				"written":   timeWritten.In(timeZone).Format("2006-01-02 15:04:05 MST"),
 				"writtenTS": fmt.Sprintf("%d", timeWritten.Unix()),
 			}
-			if filterUnique {
-				uniqueExpanded := ReplaceMacros(l.uniqueIndex, listData)
-				log.Tracef("expaned unique filter: %s", uniqueExpanded)
-				//Filter out duplicate events based on the unique-index argument
-				if _, isMapContainsIndex := uniqueIndexList[uniqueExpanded]; !isMapContainsIndex {
-					check.listData = append(check.listData, listData)
-					uniqueIndexList[uniqueExpanded] = struct{}{}
-				}
+			if !filterUnique {
+				check.listData = append(check.listData, listData)
+
+				continue
+			}
+
+			// filter out duplicate events based on the unique-index argument
+			uniqueID := ReplaceMacros(l.uniqueIndex, listData)
+			log.Tracef("expanded unique filter: %s", uniqueID)
+			if prevEntry, ok := uniqueIndexList[uniqueID]; ok {
+				count := convert.Int64(prevEntry["_count"])
+				prevEntry["_count"] = fmt.Sprintf("%d", count+1)
 			} else {
 				check.listData = append(check.listData, listData)
+				listData["_count"] = "1"
+				uniqueIndexList[uniqueID] = listData
 			}
 		}
 	}

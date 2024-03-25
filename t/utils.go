@@ -8,11 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"pkg/utils"
 	"runtime"
 	"syscall"
 	"testing"
 	"time"
+
+	"pkg/utils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

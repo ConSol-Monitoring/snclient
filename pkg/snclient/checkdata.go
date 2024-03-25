@@ -217,8 +217,19 @@ func (cd *CheckData) buildListMacros() map[string]string {
 	okList := make([]string, 0)
 	warnList := make([]string, 0)
 	critList := make([]string, 0)
-	for i := range cd.listData {
-		entry := cd.listData[i]
+	count := int64(0)
+	okCount := int64(0)
+	warnCount := int64(0)
+	critCount := int64(0)
+	for _, entry := range cd.listData {
+		weight := int64(1)
+		if w, ok := entry["_count"]; ok {
+			weight = convert.Int64(w)
+		}
+		count += weight
+		if _, ok := entry["count"]; !ok {
+			entry["count"] = fmt.Sprintf("%d", weight)
+		}
 		expanded, err := ReplaceTemplate(cd.detailSyntax, entry)
 		if err != nil {
 			log.Debugf("replacing syntax failed %s: %s", cd.detailSyntax, err.Error())
@@ -227,10 +238,13 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		switch entry["_state"] {
 		case "0":
 			okList = append(okList, expanded)
+			okCount += weight
 		case "1":
 			warnList = append(warnList, expanded)
+			warnCount += weight
 		case "2":
 			critList = append(critList, expanded)
+			critCount += weight
 		}
 	}
 
@@ -238,15 +252,15 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		cd.listCombine = ", "
 	}
 	result := map[string]string{
-		"count":         fmt.Sprintf("%d", len(list)),
+		"count":         fmt.Sprintf("%d", count),
 		"list":          strings.Join(list, cd.listCombine),
-		"ok_count":      fmt.Sprintf("%d", len(okList)),
+		"ok_count":      fmt.Sprintf("%d", okCount),
 		"ok_list":       "",
-		"warn_count":    fmt.Sprintf("%d", len(warnList)),
+		"warn_count":    fmt.Sprintf("%d", warnCount),
 		"warn_list":     "",
-		"crit_count":    fmt.Sprintf("%d", len(critList)),
+		"crit_count":    fmt.Sprintf("%d", critCount),
 		"crit_list":     "",
-		"problem_count": fmt.Sprintf("%d", len(warnList)+len(critList)),
+		"problem_count": fmt.Sprintf("%d", warnCount+critCount),
 		"problem_list":  "",
 		"detail_list":   "",
 	}
