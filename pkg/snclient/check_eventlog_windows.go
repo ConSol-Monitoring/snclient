@@ -37,7 +37,8 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	filterUnique := false
 
 	switch l.uniqueIndex {
-	case "":
+	case "", "0", "false", "no":
+		l.uniqueIndex = ""
 	case "1":
 		filterUnique = true
 		l.uniqueIndex = DefaultUniqueIndex
