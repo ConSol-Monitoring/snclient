@@ -71,7 +71,7 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 
 	var total float64
 	for _, name := range snc.Counter.Keys("cpu") {
-		if !check.MatchFilterMap(map[string]string{"core": name, "core_id": name}) {
+		if res, ok := check.MatchFilterMap(map[string]string{"core": name, "core_id": name}); !res && ok {
 			continue
 		}
 

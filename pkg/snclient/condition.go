@@ -169,50 +169,66 @@ func NewCondition(input string) (*Condition, error) {
 	return cond, nil
 }
 
-// Match checks if given map matches current condition, notExists sets the result in case an attribute does not exist
-func (c *Condition) Match(data map[string]string, notExists bool) bool {
+// Match checks if given map matches current condition
+// returns either the result or not ok if the result cannot be determined because of none-existing values
+func (c *Condition) Match(data map[string]string) (res, ok bool) {
 	if c.isNone {
-		return false
+		return false, true
 	}
 	if len(c.group) > 0 {
+		finalOK := true
 		for i := range c.group {
-			res := c.group[i].matchSingle(data, notExists)
+			res, ok := c.group[i].matchSingle(data)
+			if !ok {
+				finalOK = false
+
+				continue
+			}
 			if !res && c.groupOperator == GroupAnd {
-				return false
+				return false, true
 			}
 			if res && c.groupOperator == GroupOr {
-				return true
+				return true, true
 			}
+		}
+
+		// cannot make a deterministic decision
+		if !finalOK {
+			return false, false
 		}
 
 		// and: this means all conditions meet -> true.
 		// or: it means no condition has met yet -> false
-		return c.groupOperator == GroupAnd
+		return c.groupOperator == GroupAnd, true
 	}
 
-	return c.matchSingle(data, notExists)
+	return c.matchSingle(data)
 }
 
-// MatchAny checks if any given map matches current condition, notExists sets the result in case an attribute does not exist
-func (c *Condition) MatchAny(data []map[string]string, notExists bool) bool {
+// MatchAny checks if any given map matches current condition
+func (c *Condition) MatchAny(data []map[string]string) (res, ok bool) {
+	finalOK := true
 	for i := range data {
-		if c.Match(data[i], notExists) {
-			return true
+		if res, ok = c.Match(data[i]); res && ok {
+			return true, true
+		}
+		if !ok {
+			finalOK = false
 		}
 	}
 
-	return false
+	return false, finalOK
 }
 
 // matchSingle checks a single condition and does not recurse into logical groups
-// notExists sets the result in case an attribute does not exist
-func (c *Condition) matchSingle(data map[string]string, notExists bool) bool {
+// returns either the result or not ok if the value does not exist
+func (c *Condition) matchSingle(data map[string]string) (res, ok bool) {
 	if c.isNone {
-		return true
+		return true, true
 	}
 	varStr, ok := c.getVarValue(data)
 	if !ok {
-		return notExists
+		return false, false
 	}
 	condStr := fmt.Sprintf("%v", c.value)
 	varNum, err1 := strconv.ParseFloat(varStr, 64)
@@ -220,109 +236,136 @@ func (c *Condition) matchSingle(data map[string]string, notExists bool) bool {
 	switch c.operator {
 	case Equal:
 		if err1 == nil && err2 == nil {
-			return varNum == condNum
+			return varNum == condNum, true
 		}
 		// fallback to string compare
-		return condStr == varStr
+		return condStr == varStr, true
 	case Unequal:
 		if err1 == nil && err2 == nil {
-			return varNum != condNum
+			return varNum != condNum, true
 		}
 		// fallback to string compare
-		return condStr != varStr
+		return condStr != varStr, true
 	case Contains:
-		return strings.Contains(varStr, condStr)
+		return strings.Contains(varStr, condStr), true
 	case ContainsNot:
-		return !strings.Contains(varStr, condStr)
+		return !strings.Contains(varStr, condStr), true
 	case ContainsNoCase:
-		return strings.Contains(strings.ToLower(varStr), strings.ToLower(condStr))
+		return strings.Contains(strings.ToLower(varStr), strings.ToLower(condStr)), true
 	case ContainsNotNoCase:
-		return !strings.Contains(strings.ToLower(varStr), strings.ToLower(condStr))
+		return !strings.Contains(strings.ToLower(varStr), strings.ToLower(condStr)), true
 	case GreaterEqual:
 		if err1 == nil && err2 == nil {
-			return varNum >= condNum
+			return varNum >= condNum, true
 		}
 
-		return false
+		return false, true
 	case Greater:
 		if err1 == nil && err2 == nil {
-			return varNum > condNum
+			return varNum > condNum, true
 		}
 
-		return false
+		return false, true
 	case LowerEqual:
 		if err1 == nil && err2 == nil {
-			return varNum <= condNum
+			return varNum <= condNum, true
 		}
 
-		return false
+		return false, true
 	case Lower:
 		if err1 == nil && err2 == nil {
-			return varNum < condNum
+			return varNum < condNum, true
 		}
 
-		return false
+		return false, true
 	case RegexMatch:
 		regex, err := regexp.Compile(condStr)
 		if err != nil {
 			log.Warnf("invalid regex: %s: %s", condStr, err.Error())
 
-			return false
+			return false, true
 		}
 
-		return regex.MatchString(varStr)
+		return regex.MatchString(varStr), true
 	case RegexMatchNot:
 		regex, err := regexp.Compile(condStr)
 		if err != nil {
 			log.Warnf("invalid regex: %s: %s", condStr, err.Error())
 
-			return false
+			return false, true
 		}
 
-		return !regex.MatchString(varStr)
+		return !regex.MatchString(varStr), true
 
 	case RegexMatchNoCase:
 		regex, err := regexp.Compile("(?i)" + condStr)
 		if err != nil {
 			log.Warnf("invalid regex: %s: %s", condStr, err.Error())
 
-			return false
+			return false, true
 		}
 
-		return regex.MatchString(varStr)
+		return regex.MatchString(varStr), true
 	case RegexMatchNotNoCase:
 		regex, err := regexp.Compile("(?i)" + condStr)
 		if err != nil {
 			log.Warnf("invalid regex: %s: %s", condStr, err.Error())
 
-			return false
+			return false, true
 		}
 
-		return !regex.MatchString(varStr)
+		return !regex.MatchString(varStr), true
 
 	case InList:
 		if list, ok := c.value.([]string); ok {
 			for _, el := range list {
 				if el == varStr {
-					return true
+					return true, true
 				}
 			}
 		}
 
-		return false
+		return false, true
 	case NotInList:
 		if list, ok := c.value.([]string); ok {
 			for _, el := range list {
 				if el == varStr {
-					return false
+					return false, true
 				}
 			}
 		}
 
+		return true, true
+	}
+
+	return false, true
+}
+
+// compareEmpty returns if the current condition operator is successful for an none-existing value.
+// basically it returns false for positive comparisons and true for negative ones.
+func (c *Condition) compareEmpty() bool {
+	switch c.operator {
+	case Equal,
+		Contains,
+		ContainsNoCase,
+		GreaterEqual,
+		Greater,
+		RegexMatch,
+		RegexMatchNoCase,
+		InList:
+		return false
+	case Unequal,
+		ContainsNot,
+		ContainsNotNoCase,
+		LowerEqual,
+		Lower,
+		RegexMatchNot,
+		RegexMatchNotNoCase,
+		NotInList:
 		return true
 	}
 
-	return false
+	return true
 }
 
 // getVarValue extracts value from dataset for conditions keyword

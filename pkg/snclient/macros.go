@@ -83,7 +83,11 @@ func ReplaceConditionals(value string, macroSets ...map[string]string) (string, 
 					return value, fmt.Errorf("parsing condition in %s failed: %s", fields[1], err.Error())
 				}
 
-				curState = &state{curOK: condition.MatchAny(macroSets, false)}
+				st, ok := condition.MatchAny(macroSets)
+				if !ok {
+					st = condition.compareEmpty()
+				}
+				curState = &state{curOK: st}
 				condState = append(condState, *curState)
 			case "elsif":
 				if curState == nil {
@@ -103,7 +107,11 @@ func ReplaceConditionals(value string, macroSets ...map[string]string) (string, 
 					return value, fmt.Errorf("parsing condition in %s failed: %s", fields[1], err.Error())
 				}
 
-				curState.curOK = condition.MatchAny(macroSets, false)
+				st, ok := condition.MatchAny(macroSets)
+				if !ok {
+					st = condition.compareEmpty()
+				}
+				curState.curOK = st
 			case "else":
 				if curState.curOK || curState.completed {
 					curState.completed = true

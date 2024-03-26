@@ -383,19 +383,19 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []
 	data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 
 	for i := range warnCond {
-		if warnCond[i].Match(data, false) {
+		if res, ok := warnCond[i].Match(data); res && ok {
 			data["_state"] = fmt.Sprintf("%d", CheckExitWarning)
 		}
 	}
 
 	for i := range critCond {
-		if critCond[i].Match(data, false) {
+		if res, ok := critCond[i].Match(data); res && ok {
 			data["_state"] = fmt.Sprintf("%d", CheckExitCritical)
 		}
 	}
 
 	for i := range okCond {
-		if okCond[i].Match(data, false) {
+		if res, ok := okCond[i].Match(data); res && ok {
 			data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 		}
 	}
@@ -409,19 +409,19 @@ func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond []*Condition) {
 			metric.Name: fmt.Sprintf("%v", metric.Value),
 		}
 		for i := range warnCond {
-			if warnCond[i].Match(data, false) {
+			if res, ok := warnCond[i].Match(data); res && ok {
 				state = CheckExitWarning
 			}
 		}
 
 		for i := range critCond {
-			if critCond[i].Match(data, false) {
+			if res, ok := critCond[i].Match(data); res && ok {
 				state = CheckExitCritical
 			}
 		}
 
 		for i := range okCond {
-			if okCond[i].Match(data, false) {
+			if res, ok := okCond[i].Match(data); res && ok {
 				state = CheckExitOK
 			}
 		}
@@ -434,32 +434,43 @@ func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond []*Condition) {
 // MatchFilter returns true if {name: value} matches any filter
 func (cd *CheckData) MatchFilter(name, value string) bool {
 	data := map[string]string{name: value}
+	res, _ := cd.MatchFilterMap(data)
 
-	return cd.MatchFilterMap(data)
+	return res
 }
 
 // MatchFilterMap returns true if given map matches any filter
-func (cd *CheckData) MatchFilterMap(data map[string]string) bool {
+// returns either the result or not ok if the result cannt be determined
+func (cd *CheckData) MatchFilterMap(data map[string]string) (res, ok bool) {
+	finalOK := true
 	for _, cond := range cd.filter {
 		if cond.isNone {
-			return true
+			return true, true
 		}
-		if cond.Match(data, false) {
-			return true
+		if res, ok = cond.Match(data); res && ok {
+			return true, true
+		}
+		if !ok {
+			finalOK = false
 		}
 	}
 
-	return false
+	return false, finalOK
 }
 
 // MatchMapCondition returns true if listEntry matches filter
-// notExists sets the result in case an attribute does not exist (set false for final filter, true for pre checks)
-func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string]string, notExists bool) bool {
-	for i := range conditions {
-		if conditions[i].isNone {
+// preCheck defines behavior in case an attribute does not exist (set true for pre checks and false for final filter)
+func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string]string, preCheck bool) bool {
+	for _, cond := range conditions {
+		if cond.isNone {
 			continue
 		}
-		if !conditions[i].Match(entry, notExists) {
+		res, ok := cond.Match(entry)
+		if !ok && !preCheck {
+			res = cond.compareEmpty()
+			ok = true
+		}
+		if !res && ok {
 			return false
 		}
 	}

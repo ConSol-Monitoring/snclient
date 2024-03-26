@@ -102,55 +102,64 @@ func TestConditionParseErrors(t *testing.T) {
 
 func TestConditionCompare(t *testing.T) {
 	for _, check := range []struct {
-		threshold string
-		key       string
-		value     string
-		expect    bool
+		threshold     string
+		key           string
+		value         string
+		expect        bool
+		deterministic bool
 	}{
-		{"test > 5", "test", "2", false},
-		{"test > 5", "test", "5.1", true},
-		{"test >= 5", "test", "5.0", true},
-		{"test < 5", "test", "5.1", false},
-		{"test <= 5", "test", "5.0", true},
-		{"test <= 5", "test", "5.1", false},
-		{"test like abc", "test", "abcdef", true},
-		{"test not like abc", "test", "abcdef", false},
-		{"test like 'abc'", "test", "abcdef", true},
-		{`test like "abc"`, "test", "abcdef", true},
-		{"test ilike 'AbC'", "test", "aBcdef", true},
-		{"test not ilike 'AbC'", "test", "aBcdef", false},
-		{`test in ('abc', '123', 'xyz')`, "test", "123", true},
-		{`test in ('abc', '123', 'xyz')`, "test", "13", false},
-		{`test not in ('abc', '123', 'xyz')`, "test", "123", false},
-		{`test in('abc', '123', 'xyz')`, "test", "123", true},
-		{`test not in ('abc', '123', 'xyz')`, "test", "asd", true},
-		{`test not in('abc', '123', 'xyz')`, "test", "asd", true},
-		{`test not in('abc','123','xyz')`, "test", "asd", true},
-		{`test NOT IN('abc','123','xyz')`, "test", "asd", true},
-		{"test = 5", "test", "5", true},
-		{"test = 5", "test", "5.0", true},
-		{"test = 5.0", "test", "5", true},
-		{"test = '123'", "test", "123", true},
-		{"test != '123'", "test", "123", false},
-		{"test regex 'a+'", "test", "aaaa", true},
-		{"test regex 'a+'", "test", "bbbb", false},
-		{"test !~ 'a+'", "test", "bbb", true},
-		{"test !~ 'a+'", "test", "aa", false},
-		{"test ~~ 'a'", "test", "AAAA", true},
-		{"test ~~ 'a'", "test", "BBBB", false},
-		{"test ~ /a/i", "test", "AAAA", true},
-		{"test ~ '/a/i'", "test", "AAAA", true},
-		{"test !~ /a/i", "test", "aaa", false},
-		{"test !~~ 'a'", "test", "AAAA", false},
-		{"test !~~ 'a'", "test", "BBBB", true},
-		{"'test space' > 5", "test space", "2", false},
-		{"'test space' < 5", "test space", "2", true},
+		{"test > 5", "test", "2", false, true},
+		{"test > 5", "test", "5.1", true, true},
+		{"test >= 5", "test", "5.0", true, true},
+		{"test < 5", "test", "5.1", false, true},
+		{"test <= 5", "test", "5.0", true, true},
+		{"test <= 5", "test", "5.1", false, true},
+		{"test like abc", "test", "abcdef", true, true},
+		{"test not like abc", "test", "abcdef", false, true},
+		{"test like 'abc'", "test", "abcdef", true, true},
+		{`test like "abc"`, "test", "abcdef", true, true},
+		{"test ilike 'AbC'", "test", "aBcdef", true, true},
+		{"test not ilike 'AbC'", "test", "aBcdef", false, true},
+		{`test in ('abc', '123', 'xyz')`, "test", "123", true, true},
+		{`test in ('abc', '123', 'xyz')`, "test", "13", false, true},
+		{`test not in ('abc', '123', 'xyz')`, "test", "123", false, true},
+		{`test in('abc', '123', 'xyz')`, "test", "123", true, true},
+		{`test not in ('abc', '123', 'xyz')`, "test", "asd", true, true},
+		{`test not in('abc', '123', 'xyz')`, "test", "asd", true, true},
+		{`test not in('abc','123','xyz')`, "test", "asd", true, true},
+		{`test NOT IN('abc','123','xyz')`, "test", "asd", true, true},
+		{"test = 5", "test", "5", true, true},
+		{"test = 5", "test", "5.0", true, true},
+		{"test = 5.0", "test", "5", true, true},
+		{"test = '123'", "test", "123", true, true},
+		{"test != '123'", "test", "123", false, true},
+		{"test regex 'a+'", "test", "aaaa", true, true},
+		{"test regex 'a+'", "test", "bbbb", false, true},
+		{"test !~ 'a+'", "test", "bbb", true, true},
+		{"test !~ 'a+'", "test", "aa", false, true},
+		{"test ~~ 'a'", "test", "AAAA", true, true},
+		{"test ~~ 'a'", "test", "BBBB", false, true},
+		{"test ~ /a/i", "test", "AAAA", true, true},
+		{"test ~ '/a/i'", "test", "AAAA", true, true},
+		{"test !~ /a/i", "test", "aaa", false, true},
+		{"test !~~ 'a'", "test", "AAAA", false, true},
+		{"test !~~ 'a'", "test", "BBBB", true, true},
+		{"'test space' > 5", "test space", "2", false, true},
+		{"'test space' < 5", "test space", "2", true, true},
+		{"unknown unlike blah", "test", "blah", false, false},
+		{"unknown like blah", "test", "blah", false, false},
+		{"unknown unlike blah or test like blah", "test", "blah", true, true},
+		{"unknown like blah or test unlike blah", "test", "blah", false, false},
+		{"unknown unlike blah and test like blah", "test", "blah", false, false},
+		{"unknown like blah and test unlike blah", "test", "blah", false, true},
 	} {
 		threshold, err := NewCondition(check.threshold)
 		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
 		compare := map[string]string{check.key: check.value}
-		assert.Equalf(t, check.expect, threshold.Match(compare, false), fmt.Sprintf("Compare(%s) -> (%v) %v", check.threshold, check.value, check.expect))
+		res, ok := threshold.Match(compare)
+		assert.Equalf(t, check.expect, res, fmt.Sprintf("Compare(%s) -> (%v) %v", check.threshold, check.value, check.expect))
+		assert.Equalf(t, check.deterministic, ok, fmt.Sprintf("Compare(%s) -> determined: (%v) %v", check.threshold, check.value, check.deterministic))
 	}
 }
 
