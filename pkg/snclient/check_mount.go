@@ -132,7 +132,7 @@ func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []
 				issues = append(issues, fmt.Sprintf("exceeding options: %s", strings.Join(exceeding, ", ")))
 			}
 		}
-		if l.expectFSType != "" && l.expectFSType != partition.Fstype {
+		if l.expectFSType != "" && !strings.EqualFold(l.expectFSType, partition.Fstype) {
 			issues = append(issues, fmt.Sprintf("expected fstype differs: %s != %s", l.expectFSType, partition.Fstype))
 		}
 		if len(issues) > 0 {
