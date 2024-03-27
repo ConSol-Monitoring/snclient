@@ -133,6 +133,8 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 	drive["free_pct"] = fmt.Sprintf("%f", freePct)
 	drive["flags"] = strings.Join(l.getFlagNames(drive), ", ")
 
+	l.addTotalUserMacros(drive)
+
 	// check filter before adding metrics
 	if !check.MatchMapCondition(check.filter, drive, true) {
 		return

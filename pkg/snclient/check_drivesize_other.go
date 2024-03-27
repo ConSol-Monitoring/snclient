@@ -173,6 +173,7 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 	if drive["fstype"] == "" {
 		drive["fstype"] = usage.Fstype
 	}
+	l.addTotalUserMacros(drive)
 
 	// check filter before adding metrics
 	if !check.MatchMapCondition(check.filter, drive, true) {

@@ -112,28 +112,38 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "drive_or_id", description: "Drive letter if present if not use id"},
 			{name: "drive_or_name", description: "Drive letter if present if not use name"},
 			{name: "fstype", description: "Filesystem type"},
+			{name: "mounted", description: "Flag wether drive is mounter (0/1)"},
+
 			{name: "free", description: "Free (human readable) bytes"},
 			{name: "free_bytes", description: "Number of free bytes"},
 			{name: "free_pct", description: "Free bytes in percent"},
+			{name: "user_free", description: "Number of total free bytes (from user perspective)"},
+			{name: "user_free_pct", description: "Number of total % free space (from user perspective)"},
+			{name: "total_free", description: "Number of total free bytes"},
+			{name: "total_free_pct", description: "Number of total % free space"},
+			{name: "used", description: "Used (human readable) bytes"},
+			{name: "used_bytes", description: "Number of used bytes"},
+			{name: "used_pct", description: "Used bytes in percent (from user perspective)"},
+			{name: "user_used", description: "Number of total used bytes (from user perspective)"},
+			{name: "user_used_pct", description: "Number of total % used space"},
+			{name: "total_used", description: "Number of total used bytes (including root reserved)"},
+			{name: "total_used_pct", description: "Number of total % used space  (including root reserved)"},
+			{name: "size", description: "Total size in human readable bytes"},
+			{name: "size_bytes", description: "Total size in bytes"},
+
 			{name: "inodes_free", description: "Number of free inodes"},
 			{name: "inodes_free_pct", description: "Number of free inodes in percent"},
 			{name: "inodes_total", description: "Number of total free inodes"},
 			{name: "inodes_used", description: "Number of used inodes"},
 			{name: "inodes_used_pct", description: "Number of used inodes in percent"},
-			{name: "mounted", description: "Flag wether drive is mounter (0/1)"},
-			{name: "size", description: "Total size in human readable bytes"},
-			{name: "size_bytes", description: "Total size in bytes"},
-			{name: "used", description: "Used (human readable) bytes"},
-			{name: "used_bytes", description: "Number of used bytes"},
-			{name: "used_pct", description: "Used bytes in percent"},
 
-			{name: "media_type", description: "windows only: numeric media type of drive"},
-			{name: "type", description: "windows only: type of drive, ex.: fixed, cdrom, ramdisk,..."},
-			{name: "readable", description: "windows only: flag drive is readable (0/1)"},
-			{name: "writable", description: "windows only: flag drive is writable (0/1)"},
-			{name: "removable", description: "windows only: flag drive is removable (0/1)"},
-			{name: "erasable", description: "windows only: flag wether if drive is erasable (0/1)"},
-			{name: "hotplug", description: "windows only: flag drive is hotplugable (0/1)"},
+			{name: "media_type", description: "Windows only: numeric media type of drive"},
+			{name: "type", description: "Windows only: type of drive, ex.: fixed, cdrom, ramdisk,..."},
+			{name: "readable", description: "Windows only: flag drive is readable (0/1)"},
+			{name: "writable", description: "Windows only: flag drive is writable (0/1)"},
+			{name: "removable", description: "Windows only: flag drive is removable (0/1)"},
+			{name: "erasable", description: "Windows only: flag wether if drive is erasable (0/1)"},
+			{name: "hotplug", description: "Windows only: flag drive is hotplugable (0/1)"},
 		},
 		exampleDefault: l.getExample(),
 		exampleArgs:    `'warn=used_pct > 90' 'crit=used_pct > 95'`,
@@ -308,6 +318,7 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 		"free_pct":      fmt.Sprintf("%f", float64(free)*100/(float64(total))),
 		"fstype":        "total",
 	}
+	l.addTotalUserMacros(drive)
 	check.listData = append(check.listData, drive)
 
 	// check filter before adding metrics
@@ -321,4 +332,19 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 	if check.HasThreshold("used") {
 		check.AddBytePercentMetrics("used", drive["drive"]+" used", float64(used), float64(total))
 	}
+}
+
+func (l *CheckDrivesize) addTotalUserMacros(drive map[string]string) {
+	drive["total_free"] = drive["free"]
+	drive["total_free_bytes"] = drive["free_bytes"]
+	drive["total_free_pct"] = drive["free_pct"]
+	drive["total_used"] = drive["used"]
+	drive["total_used_bytes"] = drive["used_bytes"]
+	drive["total_used_pct"] = drive["used_pct"]
+	drive["user_free"] = drive["free"]
+	drive["user_free_bytes"] = drive["free_bytes"]
+	drive["user_free_pct"] = drive["free_pct"]
+	drive["user_used"] = drive["used"]
+	drive["user_used_bytes"] = drive["used_bytes"]
+	drive["user_used_pct"] = drive["used_pct"]
 }
