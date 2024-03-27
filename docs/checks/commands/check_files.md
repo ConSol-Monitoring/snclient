@@ -58,14 +58,14 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument  | Description                                                                                                     |
-| --------- | --------------------------------------------------------------------------------------------------------------- |
-| file      | Alias for path                                                                                                  |
+| Argument  | Description                                                                                               |
+| --------- | --------------------------------------------------------------------------------------------------------- |
+| file      | Alias for path                                                                                            |
 | max-depth | Maximum recursion depth. Default: no limit. '0' disables recursion, '1' includes first sub folder level, etc... |
-| path      | Path in which to search for files                                                                               |
-| paths     | A comma separated list of paths                                                                                 |
-| pattern   | Pattern of files to search for                                                                                  |
-| timezone  | Sets the timezone for time metrics (default is local time)                                                      |
+| path      | Path in which to search for files                                                                         |
+| paths     | A comma separated list of paths                                                                           |
+| pattern   | Pattern of files to search for                                                                            |
+| timezone  | Sets the timezone for time metrics (default is local time)                                                |
 
 ## Attributes
 

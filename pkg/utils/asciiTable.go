@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const maxLineLength = 120
+
 type ASCIITableHeader struct {
 	Name     string // name in table header
 	Field    string // attribute name in data row
@@ -20,27 +22,9 @@ func ASCIITable(header []ASCIITableHeader, rows interface{}, escapePipes bool) (
 		return "", fmt.Errorf("rows is not a slice")
 	}
 
-	// set headers as minimum size
-	for i, head := range header {
-		header[i].size = len(head.Name)
-	}
-
-	// adjust column size from max row data
-	for i := range dataRows.Len() {
-		rowVal := dataRows.Index(i)
-		if rowVal.Kind() != reflect.Struct {
-			return "", fmt.Errorf("row %d is not a struct", i)
-		}
-		for num, head := range header {
-			value, err := asciiTableRowValue(escapePipes, rowVal, head)
-			if err != nil {
-				return "", err
-			}
-			length := len(value)
-			if length > header[num].size {
-				header[num].size = length
-			}
-		}
+	err := calculateHeaderSize(header, dataRows, escapePipes)
+	if err != nil {
+		return "", err
 	}
 
 	// output header
@@ -94,4 +78,55 @@ func asciiTableRowValue(escape bool, rowVal reflect.Value, head ASCIITableHeader
 	}
 
 	return value, nil
+}
+
+func calculateHeaderSize(header []ASCIITableHeader, dataRows reflect.Value, escapePipes bool) error {
+	// set headers as minimum size
+	for i, head := range header {
+		header[i].size = len(head.Name)
+	}
+
+	// adjust column size from max row data
+	for i := range dataRows.Len() {
+		rowVal := dataRows.Index(i)
+		if rowVal.Kind() != reflect.Struct {
+			return fmt.Errorf("row %d is not a struct", i)
+		}
+		for num, head := range header {
+			value, err := asciiTableRowValue(escapePipes, rowVal, head)
+			if err != nil {
+				return err
+			}
+			length := len(value)
+			if length > header[num].size {
+				header[num].size = length
+			}
+		}
+	}
+
+	// calculate total line length
+	total := 0
+	for i := range header {
+		total += header[i].size + 3 // add padding
+	}
+
+	if total < maxLineLength {
+		return nil
+	}
+
+	avgAvail := maxLineLength / len(header)
+	tooWide := []int{}
+	sumTooWide := 0
+	for i := range header {
+		if header[i].size > avgAvail {
+			tooWide = append(tooWide, i)
+			sumTooWide += header[i].size
+		}
+	}
+	avgLargeCol := (maxLineLength - (total - sumTooWide)) / len(tooWide)
+	for _, i := range tooWide {
+		header[i].size = avgLargeCol
+	}
+
+	return nil
 }

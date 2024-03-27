@@ -79,14 +79,14 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument         | Description                                                                                                      |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------- |
-| file             | File to read (can be specified multiple times to check multiple files)                                           |
-| log              | Alias for file                                                                                                   |
-| scan-range       | Sets time range to scan for message (default is 24h)                                                             |
-| timezone         | Sets the timezone for time metrics (default is local time)                                                       |
-| truncate-message | Maximum length of message for each event log message text                                                        |
-| unique           | Alias for unique-index                                                                                           |
+| Argument         | Description                                                                                        |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| file             | File to read (can be specified multiple times to check multiple files)                             |
+| log              | Alias for file                                                                                     |
+| scan-range       | Sets time range to scan for message (default is 24h)                                               |
+| timezone         | Sets the timezone for time metrics (default is local time)                                         |
+| truncate-message | Maximum length of message for each event log message text                                          |
+| unique           | Alias for unique-index                                                                             |
 | unique-index     | Combination of fields that identifies unique events, set to 0 to disable. Default is "\${log}-\${source}-\${id}" |
 
 ## Attributes

@@ -76,26 +76,26 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute        | Description                                                                                                |
-| ---------------- | ---------------------------------------------------------------------------------------------------------- |
-| process          | Name of the executable (without path)                                                                      |
-| exe              | Name of the executable (without path)                                                                      |
-| filename         | Name of the executable with path                                                                           |
-| command_line     | Full command line of process                                                                               |
+| Attribute        | Description                                                                                        |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| process          | Name of the executable (without path)                                                              |
+| exe              | Name of the executable (without path)                                                              |
+| filename         | Name of the executable with path                                                                   |
+| command_line     | Full command line of process                                                                       |
 | state            | Current state (windows: started, stopped, hung - linux: idle, lock, running, sleep, stop, wait and zombie) |
-| creation         | Start time of process                                                                                      |
-| pid              | Process id                                                                                                 |
-| uid              | User if of process owner (linux only)                                                                      |
-| username         | User name of process owner (linux only)                                                                    |
-| cpu              | CPU usage in percent                                                                                       |
-| virtual          | Virtual memory usage in bytes                                                                              |
-| rss              | Resident memory usage in bytes                                                                             |
-| pagefile         | Swap memory usage in bytes                                                                                 |
-| oldest           | Unix timestamp of oldest process                                                                           |
-| peak_pagefile    | Peak swap memory usage in bytes (windows only)                                                             |
-| handles          | Number of handles (windows only)                                                                           |
-| kernel           | Kernel time in seconds (windows only)                                                                      |
-| peak_virtual     | Peak virtual size in bytes (windows only)                                                                  |
-| peak_working_set | Peak working set in bytes (windows only)                                                                   |
-| user             | User time in seconds (windows only)                                                                        |
-| working_set      | Working set in bytes (windows only)                                                                        |
+| creation         | Start time of process                                                                              |
+| pid              | Process id                                                                                         |
+| uid              | User if of process owner (linux only)                                                              |
+| username         | User name of process owner (linux only)                                                            |
+| cpu              | CPU usage in percent                                                                               |
+| virtual          | Virtual memory usage in bytes                                                                      |
+| rss              | Resident memory usage in bytes                                                                     |
+| pagefile         | Swap memory usage in bytes                                                                         |
+| oldest           | Unix timestamp of oldest process                                                                   |
+| peak_pagefile    | Peak swap memory usage in bytes (windows only)                                                     |
+| handles          | Number of handles (windows only)                                                                   |
+| kernel           | Kernel time in seconds (windows only)                                                              |
+| peak_virtual     | Peak virtual size in bytes (windows only)                                                          |
+| peak_working_set | Peak working set in bytes (windows only)                                                           |
+| user             | User time in seconds (windows only)                                                                |
+| working_set      | Working set in bytes (windows only)                                                                |
