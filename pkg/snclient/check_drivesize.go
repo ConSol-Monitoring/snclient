@@ -49,6 +49,7 @@ func defaultExcludedFsTypes() []string {
 		"ramfs",
 		"rpc_pipefs",
 		"securityfs",
+		"selinuxfs",
 		"sockfs",
 		"sysfs",
 		"tracefs",
