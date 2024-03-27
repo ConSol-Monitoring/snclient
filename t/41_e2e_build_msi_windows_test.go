@@ -12,7 +12,8 @@ import (
 const (
 	localINIPath = `C:\Program Files\snclient\snclient_local.ini`
 
-	buildMSITimeout = 3 * time.Minute
+	installMSITimeout = 1 * time.Minute
+	buildMSITimeout   = 3 * time.Minute
 )
 
 var requiredFiles = []string{
@@ -48,8 +49,9 @@ func TestMSIinstaller(t *testing.T) {
 
 	// install msi file
 	runCmd(t, &cmd{
-		Cmd:  "msiexec",
-		Args: []string{"/i", "snclient.msi", "/qn"},
+		Cmd:     "msiexec",
+		Args:    []string{"/i", "snclient.msi", "/qn"},
+		Timeout: installMSITimeout,
 	})
 
 	for _, file := range requiredFiles {
@@ -100,8 +102,9 @@ func TestMSIinstaller(t *testing.T) {
 
 	// install update from msi file
 	runCmd(t, &cmd{
-		Cmd:  `msiexec`,
-		Args: []string{"/i", "snclient_update.msi", "/qn"},
+		Cmd:     `msiexec`,
+		Args:    []string{"/i", "snclient_update.msi", "/qn"},
+		Timeout: installMSITimeout,
 	})
 
 	for _, file := range requiredFiles {
@@ -173,8 +176,9 @@ func TestMSIinstaller(t *testing.T) {
 
 	// uninstall msi file
 	runCmd(t, &cmd{
-		Cmd:  `msiexec`,
-		Args: []string{"/x", "snclient_update.msi", "/qn"},
+		Cmd:     `msiexec`,
+		Args:    []string{"/x", "snclient_update.msi", "/qn"},
+		Timeout: installMSITimeout,
 	})
 
 	for _, file := range requiredFiles {
