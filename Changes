@@ -4,9 +4,16 @@ next:
          - add http config ini includes
          - add osx pkg uninstaller
          - add check_eventlog support for unique-index (mlueckert)
+         - add check_os_version add os name
+         - add os and version to inventory
+         - add check_mount windows volumes
+         - add check_drivesize total macros
+         - make doc tables long lines more readable
          - enable script aliases without enabling external scripts
          - update windows build framework to wix 3.14.1
          - rename build artifacts to use less confusing name (amd/arm)
+         - check_mount make fstype comparison case insensitive
+         - change minimum golang requirement to 1.22
          - fix check_files max-depth and empty-syntax
          - fix check_memory human readable free value
 
