@@ -36,6 +36,7 @@ func (l *CheckOSVersion) Build() *CheckData {
 			{name: "family", description: "OS Family"},
 			{name: "version", description: "Full version number"},
 			{name: "arch", description: "OS architecture"},
+			{name: "os", description: "OS name"},
 		},
 		exampleDefault: `
     check_os_version
@@ -55,6 +56,7 @@ func (l *CheckOSVersion) Check(_ context.Context, _ *Agent, check *CheckData, _ 
 		"family":   family,
 		"version":  version,
 		"arch":     runtime.GOARCH,
+		"os":       runtime.GOOS,
 	}}
 
 	v := convert.VersionF64(version)

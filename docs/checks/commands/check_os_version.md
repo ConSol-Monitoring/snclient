@@ -65,3 +65,4 @@ these can be used in filters and thresholds (along with the default attributes):
 | family    | OS Family           |
 | version   | Full version number |
 | arch      | OS architecture     |
+| os        | OS name             |
