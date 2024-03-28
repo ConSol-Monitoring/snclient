@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"pkg/humanize"
 	"pkg/utils"
 
 	"github.com/shirou/gopsutil/v3/disk"
@@ -145,40 +144,5 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 		drive["mounted"] = "1"
 	}
 
-	total := usage.Total
-	if !l.freespaceIgnoreReserved {
-		total = usage.Used + usage.Free // use this total instead of usage.Total to account in the root reserved space
-	}
-
-	freePct := float64(0)
-	usedPct := float64(0)
-	if total > 0 {
-		freePct = float64(usage.Free) * 100 / (float64(total))
-		usedPct = float64(usage.Used) * 100 / (float64(total))
-	}
-
-	drive["size"] = humanize.IBytesF(uint64(magic*float64(total)), 3)
-	drive["size_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(total)))
-	drive["used"] = humanize.IBytesF(uint64(magic*float64(usage.Used)), 3)
-	drive["used_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Used)))
-	drive["used_pct"] = fmt.Sprintf("%f", usedPct)
-	drive["free"] = humanize.IBytesF(uint64(magic*float64(usage.Free)), 3)
-	drive["free_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Free)))
-	drive["free_pct"] = fmt.Sprintf("%f", freePct)
-	drive["inodes_total"] = fmt.Sprintf("%d", usage.InodesTotal)
-	drive["inodes_used"] = fmt.Sprintf("%d", usage.InodesUsed)
-	drive["inodes_free"] = fmt.Sprintf("%d", usage.InodesFree)
-	drive["inodes_used_pct"] = fmt.Sprintf("%f", usage.InodesUsedPercent)
-	drive["inodes_free_pct"] = fmt.Sprintf("%f", 100-usage.InodesUsedPercent)
-	if drive["fstype"] == "" {
-		drive["fstype"] = usage.Fstype
-	}
-	l.addTotalUserMacros(drive)
-
-	// check filter before adding metrics
-	if !check.MatchMapCondition(check.filter, drive, true) {
-		return
-	}
-
-	l.addMetrics(drive["drive"], check, usage, magic)
+	l.addDriveSizeDetails(check, drive, usage, magic)
 }

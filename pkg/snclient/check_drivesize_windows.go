@@ -9,7 +9,6 @@ import (
 	"unicode"
 	"unsafe"
 
-	"pkg/humanize"
 	"pkg/utils"
 
 	"github.com/shirou/gopsutil/v3/disk"
@@ -29,7 +28,8 @@ const (
 	MaxMediaTypes               = 128
 
 	// https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumeinformationw
-	FileReadOonlyVolume = uint32(0x00080000)
+	volumeOptReadOnly = uint32(0x00080000)
+	volumeCompressed  = uint32(0x00008000)
 )
 
 func (l *CheckDrivesize) getDefaultFilter() string {
@@ -118,29 +118,9 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 		drive["mounted"] = "1"
 	}
 
-	freePct := float64(0)
-	if usage.Total > 0 {
-		freePct = float64(usage.Free) * 100 / (float64(usage.Total))
+	if check != nil {
+		l.addDriveSizeDetails(check, drive, usage, magic)
 	}
-
-	drive["size"] = humanize.IBytesF(uint64(magic*float64(usage.Total)), 3)
-	drive["size_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Total)))
-	drive["used"] = humanize.IBytesF(uint64(magic*float64(usage.Used)), 3)
-	drive["used_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Used)))
-	drive["used_pct"] = fmt.Sprintf("%f", usage.UsedPercent)
-	drive["free"] = humanize.IBytesF(uint64(magic*float64(usage.Free)), 3)
-	drive["free_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Free)))
-	drive["free_pct"] = fmt.Sprintf("%f", freePct)
-	drive["flags"] = strings.Join(l.getFlagNames(drive), ", ")
-
-	l.addTotalUserMacros(drive)
-
-	// check filter before adding metrics
-	if !check.MatchMapCondition(check.filter, drive, true) {
-		return
-	}
-
-	l.addMetrics(drive["drive"], check, usage, magic)
 }
 
 func (l *CheckDrivesize) setDeviceFlags(drive map[string]string) error {
@@ -264,6 +244,7 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	volumeName := make([]uint16, 512)
 	fileSystemName := make([]uint16, 512)
 	fileSystemFlags := uint32(0)
+	opts := []string{}
 	err = windows.GetVolumeInformation(
 		volPtr,
 		&volumeName[0],
@@ -289,33 +270,22 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 		driveOrName = name
 	}
 	drive["readable"] = "1"
-	if fileSystemFlags&FileReadOonlyVolume == 0 {
+	if fileSystemFlags&volumeOptReadOnly == 0 {
 		drive["writable"] = "1"
+		opts = append(opts, "rw")
+	} else {
+		opts = append(opts, "ro")
+	}
+	if fileSystemFlags&volumeCompressed == 0 {
+		opts = append(opts, "compress")
 	}
 
+	drive["opts"] = strings.Join(opts, ",")
 	drive["name"] = name
 	if drive["fstype"] == "" {
 		drive["fstype"] = syscall.UTF16ToString(fileSystemName)
 	}
 	drive["drive_or_name"] = driveOrName
-}
-
-func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
-	flags := []string{}
-	if drive["mounted"] == "1" {
-		flags = append(flags, "mounted")
-	}
-	if drive["hotplug"] == "1" {
-		flags = append(flags, "hotplug")
-	}
-	if drive["readable"] == "1" {
-		flags = append(flags, "readable")
-	}
-	if drive["writable"] == "1" {
-		flags = append(flags, "writable")
-	}
-
-	return flags
 }
 
 func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (err error) {
