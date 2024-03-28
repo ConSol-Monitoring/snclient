@@ -1,6 +1,6 @@
 This file documents the revision history for the SNClient+ agent.
 
-next:
+0.21     Thu Mar 28 17:18:25 CET 2024
          - add http config ini includes
          - add osx pkg uninstaller
          - add check_eventlog support for unique-index (mlueckert)
