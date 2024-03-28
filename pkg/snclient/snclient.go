@@ -1278,6 +1278,12 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 	return (map[string]interface{}{
 		"inventory": inventory,
 		"localtime": time.Now().Unix(),
+		"snclient": map[string]interface{}{
+			"version": snc.Version(),
+			"build":   Build,
+			"arch":    runtime.GOARCH,
+			"os":      runtime.GOOS,
+		},
 	})
 }
 
