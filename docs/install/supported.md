@@ -44,13 +44,19 @@ RedHat:
 
 - RHEL >= 7
 
+Others will quite likely work as well, but haven't been tested yet.
+
 ## Mac OSX / Darwin
 
 - OSX >= 13
 
+Others will quite likely work as well, but haven't been tested yet.
+
 ## FreeBSD
 
-Not yet tested.
+- FreeBSD >= 14
+
+Others will quite likely work as well, but haven't been tested yet.
 
 ## Other
 
