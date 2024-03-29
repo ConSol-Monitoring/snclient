@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"context"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,13 +12,17 @@ import (
 func TestMount(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
-	res := snc.RunCheck("check_mount", []string{"mount=/"})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - mounts are as expected", "output matches")
-
-	res = snc.RunCheck("check_mount", []string{"mount=/not_there", "options=rw,relatime"})
+	res := snc.RunCheck("check_mount", []string{"mount=/not_there", "options=rw,relatime"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
 	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL - mount /not_there not mounted", "output matches")
+
+	if runtime.GOOS == "windows" {
+		res = snc.RunCheck("check_mount", []string{"mount=C:"})
+	} else {
+		res = snc.RunCheck("check_mount", []string{"mount=/"})
+	}
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - mounts are as expected", "output matches")
 
 	inv, err := snc.getInventory(context.TODO(), "check_mount")
 	require.NoError(t, err)
