@@ -114,6 +114,7 @@ type CheckData struct {
 	attributes             []CheckAttribute
 	exampleDefault         string
 	exampleArgs            string
+	verbose                int
 }
 
 func (cd *CheckData) Finalize() (*CheckResult, error) {
@@ -636,6 +637,12 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, defaultWarnin
 				argList = append(argList, Argument{key: keyword, value: argValue})
 			case keyword == "-h", keyword == "--help":
 				cd.showHelp = PluginHelp
+			case keyword == "-v":
+				cd.verbose = LogVerbosityDebug
+			case keyword == "-vv":
+				cd.verbose = LogVerbosityTrace
+			case keyword == "-vvv":
+				cd.verbose = LogVerbosityTrace2
 			default:
 				return nil, "", "", fmt.Errorf("unknown argument: %s", keyword)
 			}

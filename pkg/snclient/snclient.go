@@ -725,6 +725,19 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 			Output: fmt.Sprintf("${status} - %s", err.Error()),
 		}
 	}
+	switch {
+	case chk.verbose >= 3:
+		raiseLogLevel("trace")
+		log.SetVerbosity(LogVerbosityTrace2)
+	case chk.verbose >= 2:
+		raiseLogLevel("trace")
+	case chk.verbose >= 1:
+		raiseLogLevel("debug")
+	}
+	if chk.verbose >= 1 {
+		defer restoreLogLevel()
+	}
+
 	// default warning/critical overridden from check arguments, ex. check_service
 	if warn != "" {
 		chk.defaultWarning = warn
