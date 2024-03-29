@@ -1260,7 +1260,7 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 			// skipped
 		case ListInventory:
 			name := strings.TrimPrefix(check.Name, "check_")
-			if len(modules) > 0 && !slices.Contains(modules, name) {
+			if len(modules) > 0 && (!slices.Contains(modules, name)) {
 				continue
 			}
 			meta.output = "inventory_json"
@@ -1298,6 +1298,25 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 			"os":      runtime.GOOS,
 		},
 	})
+}
+
+func (snc *Agent) getInventory(ctx context.Context, checkName string) (listData []map[string]string, err error) {
+	checkName = strings.TrimPrefix(checkName, "check_")
+	rawInv := snc.BuildInventory(ctx, []string{checkName})
+	inv, ok := rawInv["inventory"]
+	if !ok {
+		return nil, fmt.Errorf("check %s not found in inventory", checkName)
+	}
+
+	if inv, ok := inv.(map[string]interface{}); ok {
+		if list, ok := inv[checkName]; ok {
+			if data, ok := list.([]map[string]string); ok {
+				return data, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("could not build inventory for %s", checkName)
 }
 
 func setScriptsRoot(config *Config) {
