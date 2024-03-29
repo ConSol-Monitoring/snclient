@@ -632,10 +632,12 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, defaultWarnin
 				return nil, "", "", err2
 			case parsed:
 				// ok
-			case !cd.argsPassthrough:
-				return nil, "", "", fmt.Errorf("unknown argument: %s", keyword)
-			default:
+			case cd.argsPassthrough:
 				argList = append(argList, Argument{key: keyword, value: argValue})
+			case keyword == "-h", keyword == "--help":
+				cd.showHelp = PluginHelp
+			default:
+				return nil, "", "", fmt.Errorf("unknown argument: %s", keyword)
 			}
 		}
 	}
