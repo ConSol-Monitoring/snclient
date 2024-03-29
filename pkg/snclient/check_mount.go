@@ -63,7 +63,9 @@ func (l *CheckMount) Build() *CheckData {
 }
 
 func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	l.mountPoint = strings.TrimSuffix(l.mountPoint, string(os.PathSeparator))
+	if len(l.mountPoint) > 1 {
+		l.mountPoint = strings.TrimSuffix(l.mountPoint, string(os.PathSeparator))
+	}
 	partitionMap := map[string]bool{}
 	partitions, err := l.getDrives(ctx, partitionMap)
 	if err != nil {
