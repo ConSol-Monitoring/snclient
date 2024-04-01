@@ -15,6 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - run: |
+        rm -rf docs/docker-compose.yaml
+        rm -rf docs/.gitignore
+        rm -rf docs/Makefile
     - name: Deploy
       uses: cpina/github-action-push-to-another-repository@v1.7
       env:
