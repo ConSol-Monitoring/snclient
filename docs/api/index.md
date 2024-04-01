@@ -1,6 +1,6 @@
 ---
-title: API
-linkTitle: API
+title: REST API
+linkTitle: REST API
 ---
 
 SNClient+ comes with a REST API which can be used to run checks or do administrative tasks.

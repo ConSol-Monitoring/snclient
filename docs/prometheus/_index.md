@@ -50,12 +50,14 @@ about the agent process.
 
 It can be enabled in the modules section of the `snclient.ini`.
 
-    [/modules]
-    PrometheusServer = enabled
+```ini
+[/modules]
+PrometheusServer = enabled
 
-    [/settings/Prometheus/server]
-    port = 9999
-    use ssl = false
-    password =
+[/settings/Prometheus/server]
+port = 9999
+use ssl = false
+password =
+```
 
 You can then scrape prometheus metrics from `http://<ip>:9999/metrics`.

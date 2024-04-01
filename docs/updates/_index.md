@@ -24,23 +24,27 @@ Configuration:
 
 Create or edit `/etc/snclient/snclient_local.ini` (on windows: `C:\Program Files\snclient\snclient_local.ini`)
 
-    [/settings/updates]
-    automatic updates = enabled
-    automatic restart = enabled
+```ini
+[/settings/updates]
+automatic updates = enabled
+automatic restart = enabled
+```
 
 This will update SNClient+ to the latest stable release.
 
 In case you want to use the development builds, ex. on test systems you can
 add the dev channel as well.
 
-    [/settings/updates]
-    automatic updates = enabled
-    automatic restart = enabled
-    channel = stable,dev
+```ini
+[/settings/updates]
+automatic updates = enabled
+automatic restart = enabled
+channel = stable,dev
 
-    [/settings/updates/channel/dev]
-    ; github token - the dev channel requires a github token to download the update
-    github token = GITHUB-TOKEN...
+[/settings/updates/channel/dev]
+; github token - the dev channel requires a github token to download the update
+github token = GITHUB-TOKEN...
+```
 
 In order to use the dev channel, you need to create a github token here: [github.com/settings/tokens](https://github.com/settings/tokens)
 

@@ -5,7 +5,7 @@ linkTitle: Configuration
 
 ## General
 
-SNClient+ uses the ini style config format ([see syntax specification below](#syntax)).
+SNClient+ uses the ini style config format with some enhancements, ([see syntax specification below](#syntax)).
 
 ## File Locations
 
@@ -27,12 +27,14 @@ in a separate file has a couple of advantages.
 
 Best practice is to create a file `snclient_local.ini`, ex.: like this:
 
-    [/modules]
-    CheckExternalScripts = enabled
+```ini
+[/modules]
+CheckExternalScripts = enabled
 
-    [/settings/default]
-    allowed hosts = 127.0.0.1, 10.0.1.2
-    password = SHA256:9f86d081884...
+[/settings/default]
+allowed hosts = 127.0.0.1, 10.0.1.2
+password = SHA256:9f86d081884...
+```
 
 See the [includes section](#includes) for details about including files.
 
@@ -48,8 +50,10 @@ The location for a custom file would be: `/etc/snclient/snclient_local.ini`
 
 The configuration uses the ini file format. For example:
 
-    [/settings/default]
-    allowed hosts = 127.0.0.1, ::1
+```ini
+[/settings/default]
+allowed hosts = 127.0.0.1, ::1
+```
 
 The maximum length of a single line in the ini file is limited to 1MB.
 
@@ -58,45 +62,53 @@ The maximum length of a single line in the ini file is limited to 1MB.
 Lines starting with `#` or `;` are comments and ignored. You can use
 both characters as value.
 
-    [/settings/external scripts]
-    # this is a comment
-    check_echo = echo '# this is not a comment and printed as is.'
+```ini
+[/settings/external scripts]
+# this is a comment
+check_echo = echo '# this is not a comment and printed as is.'
+```
 
 ### Quotes
 
 Quotes are optional, even for text.
 
-    [/settings/default]
-    tls min version = tls1.2
-    password        = "CHANGEME"
+```ini
+[/settings/default]
+tls min version = tls1.2
+password        = "CHANGEME"
+```
 
 There is no difference between single and double quotes. Macros will
 be interpolated in both variants.
 
 Quotes will be removed from the value if the value starts and ends with them.
 
-    [/settings/external scripts]
-    # will be used without quotes
-    check_remove_quotes = "${script}/test.sh"
+```ini
+[/settings/external scripts]
+# will be used without quotes
+check_remove_quotes = "${script}/test.sh"
 
-    # quotes will not be trimmed here since they don't surround the value:
-    check_keep_quotes = "C:\Program Files\snclient\snclient.exe" -V
+# quotes will not be trimmed here since they don't surround the value:
+check_keep_quotes = "C:\Program Files\snclient\snclient.exe" -V
 
-    # quotes will also be kept here:
-    check_also_keep = "part 1" something else "part 2"
+# quotes will also be kept here:
+check_also_keep = "part 1" something else "part 2"
 
-    # this will throw an error
-    check_wrong = "unclosed quotes
+# this will throw an error
+check_wrong = "unclosed quotes
+```
 
 ### Appending Values
 
 You may use the `+=` operator to append to existing values and write
 more readable configuration files.
 
-    [/settings/default]
-    allowed hosts  = 127.0.0.1, ::1
-    allowed hosts += , 192.168.0.1
-    allowed hosts += , 192.168.0.2,192.168.0.3
+```ini
+[/settings/default]
+allowed hosts  = 127.0.0.1, ::1
+allowed hosts += , 192.168.0.1
+allowed hosts += , 192.168.0.2,192.168.0.3
+```
 
 Values will simply be joined as text, so in case you want to create lists, make sure you
 add a comma.
@@ -107,20 +119,22 @@ The configuration is splitted into multiple sections, but in order to
 avoid having duplicate password or allowed hosts entries, inheritance can
 be used to only specify central things once.
 
-    [/settings/sub1/other]
-    key = value
+```ini
+[/settings/sub1/other]
+key = value
 
-    [/settings/sub1/default]
-    ; fallback if the above is not set
-    key = value
+[/settings/sub1/default]
+; fallback if the above is not set
+key = value
 
-    [/settings/sub1]
-    ; fallback if the above is not set
-    key = value
+[/settings/sub1]
+; fallback if the above is not set
+key = value
 
-    [/settings/default]
-    ; fallback if the above is not set
-    key = value
+[/settings/default]
+; fallback if the above is not set
+key = value
+```
 
 Each section inherits values from it's default section,
 from parent sections and parents defaults section.
@@ -144,8 +158,10 @@ Includes can either be local files or http(s) urls to load remote configuration 
 
 For local includes it is recommended to make use of the default include path `snclient_local*.ini`.
 
-    [/includes]
-    local = snclient_local*.ini
+```ini
+[/includes]
+local = snclient_local*.ini
+```
 
 ### HTTPS Includes
 
@@ -154,20 +170,24 @@ files. It is recommended to use https links and use some sort of authentication.
 
 The simple way:
 
-    [/includes]
-    remote = https://user:password@central.company/snclient/default.ini
+```ini
+[/includes]
+remote = https://user:password@central.company/snclient/default.ini
+```
 
 If you want to configure more details, create a new section for each include and
 adjust all default http client options:
 
-    [/includes/company]
-    url                  = https://central.company/snclient/default.ini
-    #user                = test        # set a username to authenticate
-    #password            = changeme    # use a password
-    #insecure            = false       # skip hostname verification
-    #request timeout     = 60          # change http request timeout
-    #client certificate  = client1.crt # use client certificates to authenticate
-    #certificate key     = client1.key # private key for client certificate
+```ini
+[/includes/company]
+url                  = https://central.company/snclient/default.ini
+#user                = test        # set a username to authenticate
+#password            = changeme    # use a password
+#insecure            = false       # skip hostname verification
+#request timeout     = 60          # change http request timeout
+#client certificate  = client1.crt # use client certificates to authenticate
+#certificate key     = client1.key # private key for client certificate
+```
 
 The http include will be locally cached, so SNClient will still start, even if the
 remove server is temporarily not available. The agent will try to update the include
@@ -209,8 +229,10 @@ with on demand macros:
 For example, add a dummy check which returns the allowed hosts setting for the
 webserver component:
 
-    [/settings/external scripts/alias]
-    alias_allowed_hosts = check_dummy 0 "weballowed:${/settings/WEB/server/allowed hosts}"
+```ini
+[/settings/external scripts/alias]
+alias_allowed_hosts = check_dummy 0 "weballowed:${/settings/WEB/server/allowed hosts}"
+```
 
 On demand macros are only available during the initial config parsing and will
 not be used for plugin arguments for security reasons.
@@ -236,12 +258,14 @@ Support operators are:
 
 for example, define a dummy command which prints the hostname in lower case letters:
 
-    [/settings/external scripts/alias]
-    alias_hostname = check_dummy 0 "host:${hostname:lc}"
+```ini
+[/settings/external scripts/alias]
+alias_hostname = check_dummy 0 "host:${hostname:lc}"
+```
 
-Operators can be put together:
+Operators can be put together (spaces are optional):
 
-    $(datemacro:date:uc)
+    $(datemacro:date : uc)
 
 This converts $(datemacro) to a human readable date and make everything uppercase.
 

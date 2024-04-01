@@ -14,21 +14,23 @@ It makes multiple exporters accessible via a single proxy url.
 
 Example configuration:
 
-    [/modules]
-    ExporterExporterServer = enabled
+```ini
+[/modules]
+ExporterExporterServer = enabled
 
-    [/settings/ExporterExporter/server]
-    ; port - Port to use for exporter_exporter.
-    port = 8443
+[/settings/ExporterExporter/server]
+; port - Port to use for exporter_exporter.
+port = 8443
 
-    ; use ssl - This option controls if SSL will be enabled.
-    use ssl = true
+; use ssl - This option controls if SSL will be enabled.
+use ssl = true
 
-    ; url prefix - set prefix to provided urls
-    url prefix = /
+; url prefix - set prefix to provided urls
+url prefix = /
 
-    ; modules dir - set folder with yaml module definitions
-    modules dir = ${shared-path}/exporter_modules
+; modules dir - set folder with yaml module definitions
+modules dir = ${shared-path}/exporter_modules
+```
 
 The exporter uses the standard http settings with an additional `modules dir` to
 configure the exported modules.
