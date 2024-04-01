@@ -140,34 +140,39 @@ func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []
 
 func (l *CheckMount) getDrives(ctx context.Context, partitionMap map[string]bool) (drives []map[string]string, err error) {
 	excludes := defaultExcludedFsTypes()
+	excludes = append(excludes, "tmpfs")
 	partitions, err := disk.PartitionsWithContext(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mounts: %s", err.Error())
 	}
+
 	for i := range partitions {
 		partition := partitions[i]
 		partitionMap[partition.Mountpoint] = true
-		if l.mountPoint != "" && partition.Mountpoint != l.mountPoint {
-			log.Tracef("skipped mountpoint: %s - not matching mount argument", partition.Mountpoint)
+		if l.mountPoint != "" {
+			if partition.Mountpoint != l.mountPoint {
+				log.Tracef("skipped mountpoint: %s - not matching mount argument", partition.Mountpoint)
 
-			continue
-		}
-		// skip internal filesystems
-		if slices.Contains(excludes, partition.Fstype) || partition.Fstype == "tmpfs" {
-			log.Tracef("skipped mountpoint: %s - fstype %s is excluded", partition.Mountpoint, partition.Fstype)
+				continue
+			}
+		} else {
+			// skip internal filesystems
+			if slices.Contains(excludes, partition.Fstype) {
+				log.Tracef("skipped mountpoint: %s - fstype %s is excluded", partition.Mountpoint, partition.Fstype)
 
-			continue
-		}
-		// skip some know internal locations
-		switch {
-		case strings.HasPrefix(partition.Mountpoint, "/run"),
-			strings.HasPrefix(partition.Mountpoint, "/proc"),
-			strings.HasPrefix(partition.Mountpoint, "/sys"),
-			strings.HasPrefix(partition.Mountpoint, "/dev"):
+				continue
+			}
+			// skip some know internal locations
+			switch {
+			case strings.HasPrefix(partition.Mountpoint, "/run"),
+				strings.HasPrefix(partition.Mountpoint, "/proc"),
+				strings.HasPrefix(partition.Mountpoint, "/sys"),
+				strings.HasPrefix(partition.Mountpoint, "/dev"):
 
-			log.Tracef("skipped mountpoint: %s - prefix matched internal system mounts", partition.Mountpoint)
+				log.Tracef("skipped mountpoint: %s - prefix matched internal system mounts", partition.Mountpoint)
 
-			continue
+				continue
+			}
 		}
 
 		device := utils.ReplaceCommonPasswordPattern(partition.Device)

@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient+ agent.
 
 next:
          - fix check_mount checking options
+         - check_mount skip default filter if mount point specified
 
 0.21     Thu Mar 28 17:18:25 CET 2024
          - add http config ini includes
