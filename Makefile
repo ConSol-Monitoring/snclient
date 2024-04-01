@@ -670,10 +670,20 @@ docs: build
 	set -e; \
 	for CHK in $(DOC_COMMANDS); do \
 		echo "updating docs/checks/commands/$$CHK.md"; \
-		./snclient -logfile stderr run $$CHK help=md > docs/checks/commands/$$CHK.md || : ; \
+		./snclient -logfile stderr run $$CHK help=md > docs/checks/commands/$$CHK.md ; \
 	done
 	if [ $(GOOS) = "linux" ]; then \
-		./snclient -logfile stderr run check_service help=md > docs/checks/commands/check_service_linux.md || : ; \
+		./snclient -logfile stderr run check_service help=md > docs/checks/commands/check_service_linux.md ; \
+		sed '/^func.*Build/,/^\}/d' -i pkg/snclient/check_service_linux.go; \
+		sed '1,/^func.*Build/d' -i pkg/snclient/check_service_windows.go; \
+		sed '/^\}/,$$d' -i pkg/snclient/check_service_windows.go; \
+		echo "func (l *CheckService) Build() *CheckData {" >> pkg/snclient/check_service_linux.go ; \
+		cat pkg/snclient/check_service_windows.go >> pkg/snclient/check_service_linux.go ; \
+		echo "}" >> pkg/snclient/check_service_linux.go ; \
+		rm pkg/snclient/check_service_windows.go; \
+		$(MAKE) build ; \
+		./snclient -logfile stderr run check_service help=md > docs/checks/commands/check_service_windows.md ; \
+		git checkout pkg/snclient/check_service_windows.go pkg/snclient/check_service_linux.go; \
 	fi
 
 docs_server:
