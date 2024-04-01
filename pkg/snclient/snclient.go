@@ -746,13 +746,14 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 		chk.defaultCritical = crit
 	}
 	if chk.showHelp > 0 {
-		rc := CheckExitUnknown
+		state := CheckExitUnknown
 		if chk.showHelp == Markdown {
-			rc = CheckExitOK
+			state = CheckExitOK
 		}
+
 		return &CheckResult{
 			Raw:    chk,
-			State:  rc,
+			State:  state,
 			Output: chk.Help(chk.showHelp),
 		}
 	}
