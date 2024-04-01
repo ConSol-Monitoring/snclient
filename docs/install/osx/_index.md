@@ -1,20 +1,24 @@
 ---
-title: Debian / Ubuntu
-linkTitle: Debian
+linkTitle: OSX
+weight: 400
 ---
+
+# OSX
 
 ## Installation
 
 Stable release installation packages can be found here:
 
-- [ConSol Software Repository](https://labs.consol.de/repo/stable/) (recommended)
 - [Github Releases](https://github.com/ConSol-Monitoring/snclient/releases)
 
-Add the repository as described on the link itself.
+Download the .pkg file from the releases page und start it. You might need to
+open the system settings allow opening the package since it is not signed.
 
-    #> apt install snclient
+![system settings](osx-settings.png "osx system settings")
 
-![apt install snclient](apt.png "apt install snclient")
+This should open the installer:
+
+![pkg installer](osx-pkg.png "osx pkg installer")
 
 ### Firewall
 
@@ -26,6 +30,6 @@ The firewall should be configured to allow these ports:
 
 ## Uninstall
 
-Uninstall is available possible with `apt`.
+Uninstall is available possible with the uninstall shell script.
 
-    #> apt remove snclient
+    %> sudo /usr/local/bin/snclient_uninstall.sh

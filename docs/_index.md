@@ -1,6 +1,6 @@
 ---
-title: SNClient+
-linkTitle: SNClient+
+title: SNClient
+linkTitle: SNClient
 weight: 300
 tags:
   - nsclient

@@ -1,6 +1,7 @@
 ---
 title: Updates
 linkTitle: Updates
+weight: 500
 ---
 
 ## Manual Update

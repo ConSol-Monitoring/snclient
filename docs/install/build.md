@@ -1,5 +1,5 @@
 ---
-linkTitle: Building From Source
+linkTitle: From Source
 ---
 
 # Building SNClient From Source

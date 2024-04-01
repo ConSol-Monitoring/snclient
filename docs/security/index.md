@@ -1,6 +1,7 @@
 ---
 title: Security
 linkTitle: Security
+weight: 600
 ---
 
 ## General

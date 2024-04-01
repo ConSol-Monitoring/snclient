@@ -1,7 +1,8 @@
 ---
-title: Supported Systems
 linkTitle: Supported OS
 ---
+
+# Supported Systems
 
 We are trying to build the SNClient+ to be as compatible as possible. Due to
 limited hardware, we are not able to test the agent on all operating systems.

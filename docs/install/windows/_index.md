@@ -1,16 +1,15 @@
 ---
-title: Windows
 linkTitle: Windows
+weight: 100
 ---
+
+# Windows
 
 ## Installation
 
 Stable release installation packages can be found here:
 
 - [SNClient Releases Page](https://github.com/ConSol-Monitoring/snclient/releases)
-
-You might need to expand the assets to find the download links.
-![Assets](download.png "Expand Assets")
 
 Then start the .msi installer and follow the instructions.
 

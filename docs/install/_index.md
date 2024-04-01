@@ -1,6 +1,7 @@
 ---
 title: Installation
 linkTitle: Installation
+weight: 400
 ---
 
 ## Installation
@@ -8,7 +9,9 @@ linkTitle: Installation
 There is a OS specific installation documentation available for:
 
 - [Windows](windows)
+- [RHEL/Rocky/Alma](rhel)
 - [Debian/Ubuntu](debian)
+- [Mac OSX](osx)
 
 ## Using Binary Packages
 

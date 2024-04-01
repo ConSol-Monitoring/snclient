@@ -1,7 +1,9 @@
 ---
-title: Redhat / Rocky / AlmaLinux
 linkTitle: RHEL
+weight: 200
 ---
+
+# Redhat / Rocky / AlmaLinux
 
 ## Installation
 
