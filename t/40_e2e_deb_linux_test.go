@@ -28,8 +28,9 @@ func TestDEBinstaller(t *testing.T) {
 
 	// install deb file
 	runCmd(t, &cmd{
-		Cmd:  "sudo",
-		Args: []string{"apt-get", "install", "-y", "./snclient.deb"},
+		Cmd:     "sudo",
+		Args:    []string{"apt-get", "install", "-y", "./snclient.deb"},
+		Timeout: DefaultCommandTimeout * 2,
 	})
 
 	requiredFiles := []string{
