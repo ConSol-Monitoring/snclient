@@ -121,11 +121,9 @@ cleandeps:
 	( cd buildtools && $(GO) mod tidy )
 
 vendor: go.work
-	$(GO) mod download
-	$(GO) mod tidy
 	GOWORK=off $(GO) mod vendor
 
-go.work: pkg/*
+go.work:
 	echo "go $(MINGOVERSIONSTR)" > go.work
 	$(GO) work use \
 		. \
@@ -672,8 +670,11 @@ docs: build
 		echo "updating docs/checks/commands/$$CHK.md"; \
 		./snclient -logfile stderr run $$CHK help=md > docs/checks/commands/$$CHK.md ; \
 	done
+	# create fake linux check_service with help from the windows one to update the markdown file
 	if [ $(GOOS) = "linux" ]; then \
 		./snclient -logfile stderr run check_service help=md > docs/checks/commands/check_service_linux.md ; \
+		cp pkg/snclient/check_service_linux.go check_service_linux.go.tmp; \
+		cp pkg/snclient/check_service_windows.go check_service_windows.go.tmp; \
 		sed '/^func.*Build/,/^\}/d' -i pkg/snclient/check_service_linux.go; \
 		sed '1,/^func.*Build/d' -i pkg/snclient/check_service_windows.go; \
 		sed '/^\}/,$$d' -i pkg/snclient/check_service_windows.go; \
@@ -683,7 +684,10 @@ docs: build
 		rm pkg/snclient/check_service_windows.go; \
 		$(MAKE) build ; \
 		./snclient -logfile stderr run check_service help=md > docs/checks/commands/check_service_windows.md ; \
-		git checkout pkg/snclient/check_service_windows.go pkg/snclient/check_service_linux.go; \
+		cp check_service_linux.go.tmp pkg/snclient/check_service_linux.go; \
+		cp check_service_windows.go.tmp pkg/snclient/check_service_windows.go; \
+		rm -f check_service_windows.go.tmp check_service_linux.go.tmp; \
+		$(MAKE) build ; \
 	fi
 
 docs_server:
