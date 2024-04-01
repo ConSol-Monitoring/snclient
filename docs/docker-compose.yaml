@@ -1,0 +1,19 @@
+version: "3.3"
+
+services:
+  site:
+    image: consol/omd-consol-de
+    build:
+      context: ./.omd-consol-de
+    command: server
+    ports:
+      - "1313:1313"
+    volumes:
+      - ./.omd-consol-de:/src
+      - .:/src/content/en/docs/snclient
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:1313/ || exit 1
+      interval: 5s
+      retries: 5
+      start_period: 120s
+      timeout: 10s

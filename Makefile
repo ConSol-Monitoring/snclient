@@ -264,6 +264,7 @@ citest: tools vendor
 	#
 	$(MAKE) docs
 	$(MAKE) gitcleandocs
+	$(MAKE) docs_test
 	#
 	# All CI tests successful
 	#
@@ -309,6 +310,7 @@ clean:
 	rm -f rsrc_windows*.syso
 	rm -rf cmd/snclient/rsrc_windows*.syso
 	rm -f node_exporter-*.tar.gz
+	$(MAKE) -C docs clean
 
 GOVET=$(GO) vet -all
 SRCFOLDER=./cmd/. ./pkg/. ./t/. ./buildtools/.
@@ -673,6 +675,14 @@ docs: build
 	if [ $(GOOS) = "linux" ]; then \
 		./snclient -logfile stderr run check_service help=md > docs/checks/commands/check_service_linux.md || : ; \
 	fi
+
+docs_server:
+	$(MAKE) -C docs server
+	$(MAKE) -C docs clean
+
+docs_test:
+	$(MAKE) -C docs test
+	$(MAKE) -C docs clean
 
 # ensure docs folder is clean
 gitcleandocs:
