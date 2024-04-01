@@ -3,9 +3,8 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"pkg/wmi"
+	"strings"
 
 	"golang.org/x/exp/slices"
 	"golang.org/x/sys/windows"
@@ -43,7 +42,7 @@ func (l *CheckService) Build() *CheckData {
 		name: "check_service",
 		description: `Checks the state of one or multiple windows services.
 
-There is a specific [check_service for linux](check_service_linux) as well.`,
+There is a specific [check_service for linux](../check_service_linux) as well.`,
 		implemented:  Windows,
 		docTitle:     "service (windows)",
 		hasInventory: ListInventory,

@@ -34,7 +34,7 @@ Example:
 
     check_memory 'detail-syntax=%(type) = %(used)/%(size) (%(used_pct)%)'
 
-All macros can also make use of [macro operators](../../configuration/#macros-operators).
+All macros can also make use of [macro operators](../../configuration/#macro-operators).
 
 For example, the default output applies floating point format to make the output more readable:
 

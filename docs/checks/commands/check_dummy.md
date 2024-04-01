@@ -7,7 +7,6 @@ title: dummy
 This check simply sets the state to the given value and outputs the remaining arguments.
 
 - [Examples](#examples)
-- [Argument Defaults](#argument-defaults)
 
 ## Implementation
 

@@ -45,7 +45,7 @@ func (l *CheckService) Build() *CheckData {
 		name: "check_service",
 		description: `Checks the state of one or multiple linux (systemctl) services.
 
-There is a specific [check_service for windows](check_service_windows) as well.`,
+There is a specific [check_service for windows](../check_service_windows) as well.`,
 		implemented:  Linux,
 		docTitle:     "service (linux)",
 		hasInventory: ListInventory,

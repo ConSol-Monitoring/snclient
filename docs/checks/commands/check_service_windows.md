@@ -6,7 +6,7 @@ title: service (windows)
 
 Checks the state of one or multiple windows services.
 
-There is a specific [check_service for linux](check_service_linux) as well.
+There is a specific [check_service for linux](../check_service_linux) as well.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)

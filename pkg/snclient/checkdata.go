@@ -1125,7 +1125,9 @@ func (cd *CheckData) helpHeaderMarkdown(format ShowHelp) string {
 	out += fmt.Sprintf("## %s\n\n", cd.name)
 	out += fmt.Sprintf("%s\n\n", cd.description)
 	out += "- [Examples](#examples)\n"
-	out += "- [Argument Defaults](#argument-defaults)\n"
+	if !cd.argsPassthrough {
+		out += "- [Argument Defaults](#argument-defaults)\n"
+	}
 	if cd.attributes != nil && len(cd.attributes) > 0 {
 		out += "- [Attributes](#attributes)\n"
 	}

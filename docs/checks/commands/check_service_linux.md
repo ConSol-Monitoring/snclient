@@ -6,7 +6,7 @@ title: service (linux)
 
 Checks the state of one or multiple linux (systemctl) services.
 
-There is a specific [check_service for windows](check_service_windows) as well.
+There is a specific [check_service for windows](../check_service_windows) as well.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)

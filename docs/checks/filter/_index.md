@@ -10,7 +10,7 @@ in warning, critical or ok thresholds.
 All filter follow the syntax `<attribute> <operator> <value>`. For a list and explanation
 of allowed operators see [the operator list](#operator).
 
-The list of possible attributes is documented along with the [check plugins](../checks/).
+The list of possible attributes is documented along with the [check plugins](../plugins).
 
 ex.:
 

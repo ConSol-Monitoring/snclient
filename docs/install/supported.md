@@ -11,9 +11,9 @@ If you are using SNClient+ anywhere not listed here, feel free to open an issue
 on github to update this page.
 
 If there are no installer package for your system available for download, you might still succeed
-by [building snclient from source](build).
+by [building snclient from source](../build).
 
-### CPU Architectures
+## CPU Architectures
 
 |             | i386 | x64 | arm64     |
 |-------------|:----:|:---:|:---------:|
@@ -22,7 +22,7 @@ by [building snclient from source](build).
 | **FreeBSD** |   X  |  X  |   X       |
 | **MacOSX**  |      |  X  |   X       |
 
-### Windows
+## Windows
 
 Successfully tested on:
 
@@ -34,7 +34,7 @@ Successfully tested on:
 
 Others will quite likely work as well, but haven't been tested yet.
 
-### Linux
+## Linux
 
 Debian:
 
