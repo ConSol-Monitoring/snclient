@@ -91,7 +91,7 @@ ENTR=ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr
 
 .PHONY=docs
 
-all: build
+all: build snclient.ini server.crt server.key
 
 CMDS = $(shell cd ./cmd && ls -1)
 
@@ -137,7 +137,7 @@ go.work:
 gomods:
 	find . -name go.mod -exec sed -i {} -e "s/^go .*/go $(MINGOVERSIONSTR).0/" \;
 
-build: vendor snclient.ini server.crt server.key
+build: vendor
 	set -e; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && CGO_ENABLED=$(CGO_ENABLED) $(GO) build $(BUILD_FLAGS) -o ../../$$CMD ) ; \
 	done
