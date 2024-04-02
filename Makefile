@@ -68,6 +68,7 @@ WINDOWS_EXPORTER_VERSION=0.25.1
 WINDOWS_EXPORTER_FILE=windows_exporter-$(WINDOWS_EXPORTER_VERSION)
 WINDOWS_EXPORTER_URL=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION)/
 
+DOCKER := $(shell which docker 2>/dev/null)
 SED=sed -i
 GO=go
 CGO_ENABLED=0
@@ -262,7 +263,11 @@ citest: tools vendor
 	#
 	$(MAKE) docs
 	$(MAKE) gitcleandocs
-	$(MAKE) docs_test
+	if [ "$(DOCKER)" != "" ]; then \
+		$(MAKE) docs_test; \
+	else \
+		@echo "Docker is not installed. Please install docker to run full docs test." ; \
+	fi
 	#
 	# All CI tests successful
 	#
