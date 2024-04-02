@@ -1,6 +1,6 @@
 module wmi
 
-go 1.22
+go 1.22.0
 
 require (
 	github.com/go-ole/go-ole v1.3.0

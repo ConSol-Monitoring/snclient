@@ -1,6 +1,6 @@
 module check_tcp
 
-go 1.22
+go 1.22.0
 
 require (
 	github.com/jessevdk/go-flags v1.5.0

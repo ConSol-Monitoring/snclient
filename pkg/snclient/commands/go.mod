@@ -1,6 +1,6 @@
 module commands
 
-go 1.22
+go 1.22.0
 
 require (
 	github.com/reeflective/readline v1.0.14

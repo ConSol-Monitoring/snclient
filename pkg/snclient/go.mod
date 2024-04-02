@@ -1,6 +1,6 @@
 module snclient
 
-go 1.22
+go 1.22.0
 
 replace pkg/dump => ../../pkg/dump
 
