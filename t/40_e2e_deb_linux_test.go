@@ -48,6 +48,12 @@ func TestDEBinstaller(t *testing.T) {
 	}
 
 	runCmd(t, &cmd{
+		Cmd:  "/usr/bin/snclient",
+		Args: []string{"-V"},
+		Like: []string{`^SNClient\+ v`},
+	})
+
+	runCmd(t, &cmd{
 		Cmd:  "systemctl",
 		Args: []string{"status", "snclient"},
 		Like: []string{`/usr/bin/snclient`, `running`},
@@ -91,6 +97,11 @@ func TestDEBinstaller(t *testing.T) {
 		Like: []string{"OK - CPU load is ok."},
 	})
 
+	// make logfile readable and check for errors
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"chmod", "666", "/var/log/snclient/snclient.log"},
+	})
 	logContent, err := os.ReadFile("/var/log/snclient/snclient.log")
 	require.NoError(t, err)
 	assert.NotContainsf(t, string(logContent), "[Error]", "log does not contain errors")

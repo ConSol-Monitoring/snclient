@@ -58,6 +58,12 @@ func TestOSXinstaller(t *testing.T) {
 	writeFile(t, localOSXINIPath, localTestINI)
 	writeFile(t, `snclient.ini`, localINI)
 
+	runCmd(t, &cmd{
+		Cmd:  "/usr/local/bin/snclient",
+		Args: []string{"-V"},
+		Like: []string{`^SNClient\+ v`},
+	})
+
 	// restart
 	runCmd(t, &cmd{
 		Cmd:  "sudo",
@@ -89,6 +95,11 @@ func TestOSXinstaller(t *testing.T) {
 		Like: []string{"OK - CPU load is ok."},
 	})
 
+	// make logfile readable and check for errors
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"chmod", "666", "/var/log/snclient/snclient.log"},
+	})
 	logContent, err := os.ReadFile("/var/log/snclient/snclient.log")
 	require.NoError(t, err)
 	assert.NotContainsf(t, string(logContent), "[Error]", "log does not contain errors")
