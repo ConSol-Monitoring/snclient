@@ -8,7 +8,7 @@ GOVERSION:=$(shell \
     awk -F'go| ' '{ split($$5, a, /\./); printf ("%04d%04d", a[1], a[2]); exit; }' \
 )
 # also update docs/install/build.md and .github/workflows/builds.yml when changing minimum version
-# find . -name go.mod
+# find . -name go.mod (run make gomods afterwards)
 MINGOVERSION:=00010022
 MINGOVERSIONSTR:=1.22
 BUILD:=$(shell git rev-parse --short HEAD)
@@ -133,6 +133,9 @@ go.work:
 		cmd/* \
 		buildtools/. \
 		t/. \
+
+gomods:
+	find . -name go.mod -exec sed -i {} -e "s/^go .*/go $(MINGOVERSIONSTR).0/" \;
 
 build: vendor snclient.ini server.crt server.key
 	set -e; for CMD in $(CMDS); do \
@@ -381,13 +384,13 @@ dist:
 		./dist/
 	[ -f snclient ] || $(MAKE) build
 	if [ "$(GOOS)" = "windows" ]; then cp ./snclient -p ./dist/snclient.exe; else cp -p ./snclient ./dist/snclient; fi
-	chmod u+x ./snclient
-	-help2man --no-info --section=1 --version-string="snclient $(VERSION)" \
+	chmod 755 ./snclient
+	help2man --no-info --section=1 --version-string="snclient $(VERSION)" \
 		--help-option=-h --include=./packaging/help2man.include \
 		-n "Agent that runs and provides system checks and metrics." \
 		./snclient \
 		> dist/snclient.1
-	-help2man --no-info --section=8 --version-string="snclient $(VERSION)" \
+	help2man --no-info --section=8 --version-string="snclient $(VERSION)" \
 		--help-option=-h --include=./packaging/help2man.include \
 		-n "Agent that runs and provides system checks and metrics." \
 		./snclient \
