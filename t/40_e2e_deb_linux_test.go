@@ -91,6 +91,10 @@ func TestDEBinstaller(t *testing.T) {
 		Like: []string{"OK - CPU load is ok."},
 	})
 
+	logContent, err := os.ReadFile("/var/log/snclient/snclient.log")
+	require.NoError(t, err)
+	assert.NotContainsf(t, string(logContent), "[Error]", "log does not contain errors")
+
 	// cleanup
 	os.Remove(localDEBINIPath)
 

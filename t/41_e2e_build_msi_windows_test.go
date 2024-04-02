@@ -171,6 +171,10 @@ func TestMSIinstaller(t *testing.T) {
 	})
 	runCmd(t, &cmd{Cmd: "net", Args: []string{"start", "Spooler"}})
 
+	logContent, err := os.ReadFile("c:\\Program Files\\snclient\\snclient.log")
+	require.NoError(t, err)
+	assert.NotContainsf(t, string(logContent), "[Error]", "log does not contain errors")
+
 	// cleanup
 	os.Remove(localINIPath)
 
