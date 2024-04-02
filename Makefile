@@ -125,7 +125,7 @@ vendor: go.work
 	GOWORK=off $(GO) mod vendor
 
 go.work:
-	echo "go $(MINGOVERSIONSTR)" > go.work
+	echo "go $(MINGOVERSIONSTR).0" > go.work
 	$(GO) work use \
 		. \
 		pkg/* \
