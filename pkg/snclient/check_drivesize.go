@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"pkg/humanize"
+	"pkg/utils"
 
 	"github.com/shirou/gopsutil/v3/disk"
 )
@@ -187,6 +188,11 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 		if l.isExcluded(drive, l.excludes) {
 			continue
 		}
+		// skip file mount in inventory mode, like ex.: from docker /etc/hostname
+		if check.output == "inventory_json" && utils.IsFile(drive["drive_or_id"]) == nil {
+			continue
+		}
+
 		if _, ok := drive["_error"]; ok {
 			// already failed
 			check.listData = append(check.listData, drive)

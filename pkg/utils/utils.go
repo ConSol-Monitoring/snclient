@@ -543,10 +543,27 @@ func IsFolder(path string) error {
 		return fmt.Errorf("%s does not exist: %s", path, err.Error())
 	}
 	if err != nil {
-		return fmt.Errorf("%s does not exist: %s", path, err.Error())
+		return fmt.Errorf("%s: %s", path, err.Error())
 	}
 	if !stat.IsDir() {
 		return fmt.Errorf("%s is not a directory", path)
+	}
+
+	return nil
+}
+
+// IsFile returns an err if the path does not exist or is not a regular file
+func IsFile(path string) error {
+	path = filepath.Join(path, ".")
+	stat, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("%s does not exist: %s", path, err.Error())
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %s", path, err.Error())
+	}
+	if !stat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", path)
 	}
 
 	return nil
