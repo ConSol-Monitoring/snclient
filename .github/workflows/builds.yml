@@ -208,6 +208,26 @@ jobs:
           overwrite: true
 
 
+  dist-linux-osx:
+    needs: [get-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GOVERSION }}
+      - run: sudo apt-get update
+      - run: sudo apt-get install help2man tofrodos
+      - run: |
+          echo "Creating dist folder for linux/osx"
+          make dist
+      - uses: actions/upload-artifact@v4.3.1
+        with:
+          name: "dist"
+          path: "dist"
+          if-no-files-found: error
+
+
   dist-win:
     needs: [get-version]
     runs-on: ubuntu-latest
@@ -290,7 +310,7 @@ jobs:
         go-os: [linux]
         go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
-    needs: [get-version, build]
+    needs: [get-version, build, dist-linux-osx]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
@@ -301,8 +321,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
+      - uses: actions/download-artifact@v4
+        with:
+          name: "dist"
+          path: "dist"
       - run: sudo apt-get update
-      - run: sudo apt-get install help2man devscripts
+      - run: sudo apt-get install devscripts
       - run: |
           echo "Building ${{ env.BIN }}.deb"
           export DEBEMAIL="Sven Nierlein <sven.nierlein@consol.de>"
@@ -316,13 +340,45 @@ jobs:
           if-no-files-found: error
 
 
+  pkg-rpm:
+    strategy:
+      matrix:
+        go-os: [linux]
+        go-arch: [i386, x86_64, aarch64]
+    runs-on: ubuntu-latest
+    needs: [get-version, build, dist-linux-osx]
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GOVERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: "${{ env.BIN }}"
+      - uses: actions/download-artifact@v4
+        with:
+          name: "dist"
+          path: "dist"
+      - run: |
+          echo "Building ${{ env.BIN }}.rpm"
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make rpm
+          mv snclient*.rpm ${{ env.BIN }}.rpm
+      - uses: actions/upload-artifact@v4.3.1
+        with:
+          name: "${{ env.BIN }}.rpm"
+          path: "${{ env.BIN }}.rpm"
+          if-no-files-found: error
+
+
   pkg-osx:
     strategy:
       matrix:
         go-os: [darwin]
         go-arch: [x86_64, aarch64]
     runs-on: macos-latest
-    needs: [get-version, build-osx]
+    needs: [get-version, build-osx, dist-linux-osx]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       DIST: "snclient-${{needs.get-version.outputs.version}}-osx-${{ matrix.go-arch }}"
@@ -334,9 +390,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
+      - uses: actions/download-artifact@v4
+        with:
+          name: "dist"
+          path: "dist"
       - run: |
           echo "Building ${{ env.DIST }}.pkg"
-          brew install help2man
           export PATH="/usr/local/opt/openssl@3/bin:$PATH"
           make osx
           mv snclient*.pkg ${{ env.DIST }}.pkg
@@ -348,36 +407,6 @@ jobs:
       - uses: geekyeggo/delete-artifact@v5
         with:
             name: "${{ env.BIN }}"
-
-
-  pkg-rpm:
-    strategy:
-      matrix:
-        go-os: [linux]
-        go-arch: [i386, x86_64, aarch64]
-    runs-on: ubuntu-latest
-    needs: [get-version, build]
-    env:
-      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GOVERSION }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: "${{ env.BIN }}"
-      - run: sudo apt-get update
-      - run: sudo apt-get install help2man
-      - run: |
-          echo "Building ${{ env.BIN }}.rpm"
-          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make rpm
-          mv snclient*.rpm ${{ env.BIN }}.rpm
-      - uses: actions/upload-artifact@v4.3.1
-        with:
-          name: "${{ env.BIN }}.rpm"
-          path: "${{ env.BIN }}.rpm"
-          if-no-files-found: error
 
 
   # remove those artifacts which have been converted to .deb or .rpm files
@@ -479,14 +508,16 @@ jobs:
         shell: powershell
 
 
-  # remove those artifacts use for msi files
-  clean-tmp-windist:
+  # remove tmp artifacts
+  clean-tmp-dist:
     runs-on: ubuntu-latest
-    needs: [pkg-msi, integration-test-windows]
+    needs: [integration-test-linux, integration-test-osx, integration-test-windows]
     steps:
       - uses: geekyeggo/delete-artifact@v5
         with:
-            name: "windist"
+            name: |
+                dist
+                windist
 
   clean-tmp-winbin:
     strategy:
