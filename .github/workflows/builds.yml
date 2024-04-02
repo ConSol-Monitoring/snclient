@@ -323,6 +323,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
+          path: "dist"
       - uses: actions/download-artifact@v4
         with:
           name: "dist"
@@ -359,6 +360,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
+          path: "dist"
       - uses: actions/download-artifact@v4
         with:
           name: "dist"
@@ -392,6 +394,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
+          path: "dist"
       - uses: actions/download-artifact@v4
         with:
           name: "dist"
