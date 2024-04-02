@@ -221,6 +221,7 @@ jobs:
       - run: |
           echo "Creating dist folder for linux/osx"
           make dist
+          rm dist/snclient
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: "dist"
@@ -241,6 +242,7 @@ jobs:
       - run: |
           echo "Creating dist folder for windows"
           make windist
+          rm dist/snclient
       - uses: actions/upload-artifact@v4.3.1
         with:
           name: "windist"
