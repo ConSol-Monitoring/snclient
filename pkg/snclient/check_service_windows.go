@@ -3,8 +3,9 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"pkg/wmi"
 	"strings"
+
+	"pkg/wmi"
 
 	"golang.org/x/exp/slices"
 	"golang.org/x/sys/windows"
