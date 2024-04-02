@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -400,10 +401,11 @@ allowed hosts  = 127.0.0.1, ::1, 192.168.1.1`
 
 func TestConfigHTTPInclude(t *testing.T) {
 	snc := StartTestAgent(t, "")
+	testPort := 55557
 
 	// start mock http server
 	server := &http.Server{
-		Addr:              ":55557",
+		Addr:              fmt.Sprintf(":%d", testPort),
 		ReadTimeout:       DefaultSocketTimeout * time.Second,
 		ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
 		WriteTimeout:      DefaultSocketTimeout * time.Second,
@@ -444,21 +446,29 @@ allowed hosts  += 192.168.3.3`
 			log.Debugf("mock http server finished with: %s", err.Error())
 		}
 	}()
-	time.Sleep(200 * time.Millisecond)
 	defer func() {
 		LogError(server.Shutdown(context.TODO()))
 	}()
 
-	configText := `
+	// wait up to 30 seconds for mock server to start
+	for range 300 {
+		_, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", testPort), DefaultSocketTimeout*time.Second)
+		if err == nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	configText := fmt.Sprintf(`
 [/includes]
-remote = http://localhost:55557/tmp/test1.ini
+remote = http://localhost:%d/tmp/test1.ini
 
 [/includes/another]
-url = http://localhost:55557/tmp/test2.ini
+url = http://localhost:%d/tmp/test2.ini
 
 [/includes]
-auth = http://user:pass@localhost:55557/tmp/test3.ini
-`
+auth = http://user:pass@localhost:%d/tmp/test3.ini
+`, testPort, testPort, testPort)
 
 	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
