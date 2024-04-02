@@ -295,6 +295,9 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GOVERSION }}
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
@@ -325,8 +328,9 @@ jobs:
       DIST: "snclient-${{needs.get-version.outputs.version}}-osx-${{ matrix.go-arch }}"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          fetch-depth: 0
+          go-version: ${{ env.GOVERSION }}
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
@@ -357,6 +361,9 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GOVERSION }}
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
