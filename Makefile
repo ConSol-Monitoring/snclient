@@ -266,10 +266,10 @@ citest: tools vendor
 	#
 	$(MAKE) docs
 	$(MAKE) gitcleandocs
-	if [ "$(DOCKER)" != "" ]; then \
+	@if [ "$(DOCKER)" != "" ]; then \
 		$(MAKE) docs_test; \
 	else \
-		@echo "Docker is not installed. Please install docker to run full docs test." ; \
+		echo "Docker is not installed. Please install docker to run full docs test." ; \
 	fi
 	#
 	# All CI tests successful
