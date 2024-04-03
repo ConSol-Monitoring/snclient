@@ -1,4 +1,3 @@
-snclient: statically-linked-binary usr/bin/snclient
-snclient: statically-linked-binary usr/lib/snclient/node_exporter
-snclient: unstripped-binary-or-object usr/lib/snclient/node_exporter
+snclient: statically-linked-binary
+snclient: unstripped-binary-or-object
 snclient: bugs-field-does-not-refer-to-debian-infrastructure https://github.com/Consol-Monitoring/snclient/issues
