@@ -1,6 +1,6 @@
 This file documents the revision history for the SNClient+ agent.
 
-next:
+0.22     Sat Apr  6 21:15:06 CEST 2024
          - fix check_mount checking options
          - check_mount skip default filter if mount point specified
          - improve documentation
