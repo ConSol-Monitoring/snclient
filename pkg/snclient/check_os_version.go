@@ -45,8 +45,8 @@ func (l *CheckOSVersion) Build() *CheckData {
 	}
 }
 
-func (l *CheckOSVersion) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	platform, family, version, err := host.PlatformInformation()
+func (l *CheckOSVersion) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	platform, family, version, err := host.PlatformInformationWithContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get platform information: %s", err.Error())
 	}
