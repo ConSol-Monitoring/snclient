@@ -58,6 +58,38 @@ clients is limited there is no need to support old browsers.
 tls min version = "tls1.3"
 ```
 
+### Client certificate verification
+
+You can enable client certificate verification using `ca` or `client certificates` options 
+(both options has the same meaning, `ca` option was added for backward compatibility with NSclient)
+```ini
+[/settings/default]
+certificate = ${certificate-path}/server.crt
+certificate key = ${certificate-path}/server.key
+;ca = ${certificate-path}/ca.pem
+client certificates = ${certificate-path}/ca.pem
+```
+
+#### Certificate generation example
+
+1. Generate CA certificate
+```
+openssl genrsa -aes256 -out ca/ca.key 4096 # generate CA key
+openssl req -x509 -new -nodes -key ca/ca.key -sha256 -days 7500 -out ca/ca.pem -subj "/C=US/L=New York/O=Company/CN=My CA" # generate CA certificate
+```
+2. Generate client certificate
+```
+openssl genrsa -out client.key 4096 # generate client key
+openssl req -new -key client.key -out client.csr -subj "/C=US/L=New York/O=Company/CN=Client"# generate client cert.request
+openssl x509 -req -in client.csr -out client.pem -CA ca.pem -CAkey ca/ca.key -CAcreateserial -days 7300 -sha256 # sign client certificate by CA
+```
+3. Generate server certificate
+```
+openssl genrsa -out server.key 4096 # generate server key
+openssl req -new -key server.key -out server.csr -subj "/C=US/L=New York/O=Company/CN=Server"# generate server cert.request
+openssl x509 -req -in server.csr -out server.pem -CA ca.pem -CAkey ca/ca.key -CAcreateserial -days 7300 -sha256 # sign server certificate by CA
+```
+
 ### Allowed Hosts
 
 Using the `allowed hosts` option is a great way to simply block all clients except
