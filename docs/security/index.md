@@ -29,7 +29,9 @@ SNClient is written in golang which comes which some benefits regarding security
 The windows builds (both snclient.exe and the .msi installer) and can be verified
 with the signtool.exe from the windows developer sdk, ex.:
 
-    signtool.exe verify /pa snclient.exe
+```powershell
+signtool.exe verify /pa snclient.exe
+```
 
 ## Recommendations
 
@@ -60,13 +62,13 @@ tls min version = "tls1.3"
 
 ### Client certificate verification
 
-You can enable client certificate verification using `ca` or `client certificates` options 
+You can enable client certificate verification using `ca` or `client certificates` options
 (both options has the same meaning, `ca` option was added for backward compatibility with NSclient).
 You can find example how to generate certificates bellow.
+
 - `certificate` specify server certificate
 - `certificate key` specify server key
 - `ca` and/or `client certificates` specify the CA certificate for certificate verification and enable verification itself.
-
 
 ```ini
 [/settings/default]
@@ -79,30 +81,35 @@ client certificates = ${certificate-path}/ca.pem
 #### Certificate generation example
 
 1. Generate CA certificate
-```
-# generate CA key
-openssl genrsa -aes256 -out ca/ca.key 4096
-# generate CA certificate
-openssl req -x509 -new -nodes -key ca/ca.key -sha256 -days 7500 -out ca/ca.pem -subj "/C=US/L=New York/O=Company/CN=My CA"
-```
+
+   ```bash
+   # generate CA key
+   openssl genrsa -aes256 -out ca/ca.key 4096
+   # generate CA certificate
+   openssl req -x509 -new -nodes -key ca/ca.key -sha256 -days 7500 -out ca/ca.pem -subj "/C=US/L=New York/O=Company/CN=My CA"
+   ```
+
 2. Generate client certificate
-```
-# generate client key
-openssl genrsa -out client.key 4096
-# generate client certificate request
-openssl req -new -key client.key -out client.csr -subj "/C=US/L=New York/O=Company/CN=Client"
-# sign client certificate by CA
-openssl x509 -req -in client.csr -out client.pem -CA ca.pem -CAkey ca/ca.key -CAcreateserial -days 7300 -sha256 
-```
+
+   ```bash
+   # generate client key
+   openssl genrsa -out client1.key 4096
+   # generate client certificate request
+   openssl req -new -key client1.key -out client1.csr -subj "/C=US/L=New York/O=Company/CN=Client"
+   # sign client certificate by CA
+   openssl x509 -req -in client1.csr -out client1.pem -CA ca.pem -CAkey ca/ca.key -CAcreateserial -days 7300 -sha256
+   ```
+
 3. Generate server certificate
-```
-# generate server key
-openssl genrsa -out server.key 4096
-# generate server certificate request
-openssl req -new -key server.key -out server.csr -subj "/C=US/L=New York/O=Company/CN=Server"
-# sign server certificate by CA
-openssl x509 -req -in server.csr -out server.pem -CA ca.pem -CAkey ca/ca.key -CAcreateserial -days 7300 -sha256 
-```
+
+   ```bash
+   # generate server key
+   openssl genrsa -out server.key 4096
+   # generate server certificate request
+   openssl req -new -key server.key -out server.csr -subj "/C=US/L=New York/O=Company/CN=Server"
+   # sign server certificate by CA
+   openssl x509 -req -in server.csr -out server.pem -CA ca.pem -CAkey ca/ca.key -CAcreateserial -days 7300 -sha256
+   ```
 
 ### Allowed Hosts
 
