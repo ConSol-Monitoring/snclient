@@ -61,33 +61,47 @@ tls min version = "tls1.3"
 ### Client certificate verification
 
 You can enable client certificate verification using `ca` or `client certificates` options 
-(both options has the same meaning, `ca` option was added for backward compatibility with NSclient)
+(both options has the same meaning, `ca` option was added for backward compatibility with NSclient).
+You can find example how to generate certificates bellow.
+- `certificate` specify server certificate
+- `certificate key` specify server key
+- `ca` and/or `client certificates` specify the CA certificate for certificate verification and enable verification itself.
+
+
 ```ini
 [/settings/default]
 certificate = ${certificate-path}/server.crt
 certificate key = ${certificate-path}/server.key
-;ca = ${certificate-path}/ca.pem
 client certificates = ${certificate-path}/ca.pem
+;ca = ${certificate-path}/ca.pem
 ```
 
 #### Certificate generation example
 
 1. Generate CA certificate
 ```
-openssl genrsa -aes256 -out ca/ca.key 4096 # generate CA key
-openssl req -x509 -new -nodes -key ca/ca.key -sha256 -days 7500 -out ca/ca.pem -subj "/C=US/L=New York/O=Company/CN=My CA" # generate CA certificate
+# generate CA key
+openssl genrsa -aes256 -out ca/ca.key 4096
+# generate CA certificate
+openssl req -x509 -new -nodes -key ca/ca.key -sha256 -days 7500 -out ca/ca.pem -subj "/C=US/L=New York/O=Company/CN=My CA"
 ```
 2. Generate client certificate
 ```
-openssl genrsa -out client.key 4096 # generate client key
-openssl req -new -key client.key -out client.csr -subj "/C=US/L=New York/O=Company/CN=Client"# generate client cert.request
-openssl x509 -req -in client.csr -out client.pem -CA ca.pem -CAkey ca/ca.key -CAcreateserial -days 7300 -sha256 # sign client certificate by CA
+# generate client key
+openssl genrsa -out client.key 4096
+# generate client certificate request
+openssl req -new -key client.key -out client.csr -subj "/C=US/L=New York/O=Company/CN=Client"
+# sign client certificate by CA
+openssl x509 -req -in client.csr -out client.pem -CA ca.pem -CAkey ca/ca.key -CAcreateserial -days 7300 -sha256 
 ```
 3. Generate server certificate
 ```
-openssl genrsa -out server.key 4096 # generate server key
-openssl req -new -key server.key -out server.csr -subj "/C=US/L=New York/O=Company/CN=Server"# generate server cert.request
-openssl x509 -req -in server.csr -out server.pem -CA ca.pem -CAkey ca/ca.key -CAcreateserial -days 7300 -sha256 # sign server certificate by CA
+# generate server key
+openssl genrsa -out server.key 4096
+# generate server certificate request
+openssl req -new -key server.key -out server.csr -subj "/C=US/L=New York/O=Company/CN=Server"
+# sign server certificate by CA
+openssl x509 -req -in server.csr -out server.pem -CA ca.pem -CAkey ca/ca.key -CAcreateserial -days 7300 -sha256 
 ```
 
 ### Allowed Hosts
