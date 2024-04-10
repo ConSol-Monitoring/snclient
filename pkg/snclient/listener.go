@@ -304,7 +304,7 @@ func (l *Listener) startListenerTCP(handler RequestHandlerTCP) {
 		}
 
 		go func(con net.Conn) {
-			// log panices during request, but continue listening
+			// log panics during request, but continue listening
 			defer l.snc.logPanicRecover()
 
 			l.handleTCPCon(con, handler)
@@ -350,17 +350,17 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 
 	mappingsInUse := map[string]string{}
 	for _, hdl := range handler {
-		if webhandler, ok := hdl.(RequestHandlerHTTP); ok {
-			mappings := webhandler.GetMappings(l.snc)
+		if webHandler, ok := hdl.(RequestHandlerHTTP); ok {
+			mappings := webHandler.GetMappings(l.snc)
 			for i := range mappings {
 				mapping := mappings[i]
-				log.Tracef("mapping port %-6s handler: %-16s url: %s", webhandler.BindString(), webhandler.Type(), mapping.URL)
+				log.Tracef("mapping port %-6s handler: %-16s url: %s", webHandler.BindString(), webHandler.Type(), mapping.URL)
 				if prev, ok := mappingsInUse[mapping.URL]; ok {
 					log.Warnf("url %s is mapped multiple times (previously assigned to %s), use url prefix to avoid this.", mapping.URL, prev)
 				}
-				mappingsInUse[mapping.URL] = webhandler.Type()
+				mappingsInUse[mapping.URL] = webHandler.Type()
 				mux.HandleFunc(mapping.URL, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					l.WrappedCheckHTTPHandler(webhandler, &mapping, w, r)
+					l.WrappedCheckHTTPHandler(webHandler, &mapping, w, r)
 				}))
 			}
 		}
@@ -391,7 +391,7 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 
 	log.Tracef("incoming http(s) connection from %s", req.RemoteAddr)
 
-	// log panices during request, but continue listening
+	// log panics during request, but continue listening
 	defer l.snc.logPanicRecover()
 
 	logHTTPRequest(req)
@@ -419,9 +419,9 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 	)
 }
 
-// wrapper for all known web requests to verfify passwords and allowed hosts
-func (l *Listener) WrappedCheckHTTPHandler(webhandler RequestHandlerHTTP, mapping *URLMapping, res http.ResponseWriter, req *http.Request) {
-	allowed := webhandler.GetAllowedHosts()
+// wrapper for all known web requests to verify passwords and allowed hosts
+func (l *Listener) WrappedCheckHTTPHandler(webHandler RequestHandlerHTTP, mapping *URLMapping, res http.ResponseWriter, req *http.Request) {
+	allowed := webHandler.GetAllowedHosts()
 	if !allowed.Check(req.RemoteAddr) {
 		log.Warnf("ip %s is not in the allowed hosts", req.RemoteAddr)
 
@@ -434,7 +434,7 @@ func (l *Listener) WrappedCheckHTTPHandler(webhandler RequestHandlerHTTP, mappin
 		return
 	}
 
-	if !webhandler.CheckPassword(req, *mapping) {
+	if !webHandler.CheckPassword(req, *mapping) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		res.Header().Set("Content-Type", "application/json")
 		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
