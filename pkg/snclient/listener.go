@@ -186,10 +186,27 @@ func (l *Listener) setListenTLSConfig(conf *ConfigSection) error {
 	}
 	l.tlsConfig.Certificates = []tls.Certificate{cer}
 
+	caCerts := ""
+	// ca option for backward compatibility with NSclient
+	caPEMs, ok := conf.GetString("ca")
+	if ok {
+		caCerts = caPEMs
+	}
+
 	clientPEMs, ok := conf.GetString("client certificates")
 	if ok {
+		if caCerts != "" {
+			caCerts += "," + clientPEMs
+		} else {
+			caCerts = clientPEMs
+		}
+	}
+
+	// require client certificate verification 
+	// only used if CA certificates specified by "ca" or "client certificates" options
+	if caCerts != "" {
 		caCertPool := x509.NewCertPool()
-		for _, file := range strings.Split(clientPEMs, ",") {
+		for _, file := range strings.Split(caCerts, ",") {
 			file = strings.TrimSpace(file)
 			caCert, err := os.ReadFile(file)
 			if err != nil {
