@@ -33,7 +33,7 @@ const (
 )
 
 func (l *CheckDrivesize) getDefaultFilter() string {
-	return "( mounted = 1  or media_type = 0 )"
+	return "mounted = 1"
 }
 
 func (l *CheckDrivesize) getExample() string {
@@ -86,9 +86,6 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 	drive["name"] = ""
 	drive["media_type"] = "0"
 	drive["type"] = "0"
-	if _, ok := drive["mounted"]; !ok {
-		drive["mounted"] = "0"
-	}
 	drive["readable"] = "0"
 	drive["writable"] = "0"
 	drive["removable"] = "0"
@@ -120,6 +117,10 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 		if _, ok := drive["mounted"]; !ok {
 			drive["mounted"] = "1"
 		}
+	}
+
+	if _, ok := drive["mounted"]; !ok {
+		drive["mounted"] = "0"
 	}
 
 	if check != nil {
@@ -228,7 +229,7 @@ func (l *CheckDrivesize) setMediaType(drive map[string]string) error {
 		return fmt.Errorf("deviceio %s: %s", drive["drive"], err.Error())
 	}
 
-	drive["media_type"] = fmt.Sprintf("%d", mediaTypesEx[0].DeviceType)
+	drive["media_type"] = fmt.Sprintf("%d", mediaTypesEx[0].MediaType)
 
 	return nil
 }
@@ -370,7 +371,6 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 		entry["letter"] = ""
 		if names != "" {
 			entry["letter"] = fmt.Sprintf("%c", names[0])
-			entry["mounted"] = "1"
 		} else {
 			entry["mounted"] = "0"
 		}
