@@ -1,6 +1,6 @@
 This file documents the revision history for the SNClient+ agent.
 
-next:
+0.23     Mon Apr 15 17:29:53 CEST 2024
          - fix detecting mounted volumes on windows
          - add ca option for client certificates (Gent00157)
 
