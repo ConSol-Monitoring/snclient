@@ -55,7 +55,7 @@ DEBFILE ?= snclient-$(VERSION)-$(RPM_ARCH).deb
 BUILD_FLAGS=-ldflags "-s -w -X pkg/snclient.Build=$(BUILD) -X pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
-NODE_EXPORTER_VERSION=1.7.0
+NODE_EXPORTER_VERSION=1.8.0
 NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(GOARCH).tar.gz
 NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)/$(NODE_EXPORTER_FILE)
 
