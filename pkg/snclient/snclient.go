@@ -60,6 +60,9 @@ const (
 
 	// DefaultCmdTimeout sets the default timeout for running commands.
 	DefaultCmdTimeout = 30
+
+	// DefaultProfilerTimeout sets the default timeout for pprof handler.
+	DefaultProfilerTimeout = 180
 )
 
 var (
@@ -1375,7 +1378,7 @@ func (snc *Agent) startPProfiler(port string) {
 			Addr:              port,
 			ReadTimeout:       DefaultSocketTimeout * time.Second,
 			ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
-			WriteTimeout:      DefaultSocketTimeout * time.Second,
+			WriteTimeout:      DefaultProfilerTimeout * time.Second,
 			IdleTimeout:       DefaultSocketTimeout * time.Second,
 			Handler:           http.DefaultServeMux,
 		}
