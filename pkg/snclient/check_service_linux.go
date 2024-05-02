@@ -17,6 +17,7 @@ var (
 	reSvcDetails   = regexp.MustCompile(`(?s)^.*?\.service(?:\s\-\s(.*?)|)\n.*Active:\s*([A-Za-z() :-]+)(?:\ssince|\n)`)
 	reSvcMainPid   = regexp.MustCompile(`Main\sPID:\s(\d+)`)
 	reSvcPidMaster = regexp.MustCompile(`─(\d+).+\(master\)`)
+	reSvcPidCgroup = regexp.MustCompile(`[├─└]─\s*(\d+)\s+`)
 	reSvcPreset    = regexp.MustCompile(`\s+preset:\s+(\w+)\)`)
 	reSvcTasks     = regexp.MustCompile(`Tasks:\s*(\d+)`)
 	reSvcStatic    = regexp.MustCompile(`;\sstatic\)`)
@@ -249,15 +250,22 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 	}
 
 	match = reSvcMainPid.FindStringSubmatch(output)
-	if len(match) < 1 {
+	if len(match) >= 1 {
+		listEntry["pid"] = match[1]
+	}
+	if listEntry["pid"] == "" {
 		match = reSvcPidMaster.FindStringSubmatch(output)
-		if len(match) < 1 {
-			listEntry["pid"] = ""
-		} else {
+		if len(match) >= 1 {
 			listEntry["pid"] = match[1]
 		}
-	} else {
-		listEntry["pid"] = match[1]
+	}
+	if listEntry["pid"] == "" {
+		matches := reSvcPidCgroup.FindAllStringSubmatch(output, -1)
+		pids := []string{}
+		for _, m := range matches {
+			pids = append(pids, m[1])
+		}
+		listEntry["pid"] = strings.Join(pids, ",")
 	}
 
 	match = reSvcTasks.FindStringSubmatch(output)

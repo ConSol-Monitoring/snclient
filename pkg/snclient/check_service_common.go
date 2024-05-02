@@ -5,6 +5,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"pkg/convert"
@@ -17,35 +18,50 @@ func (l *CheckService) addProcMetrics(ctx context.Context, pidStr string, listEn
 	if pidStr == "" {
 		return nil
 	}
-	pid, err := convert.IntE(pidStr)
-	if err != nil {
-		return fmt.Errorf("pid is not a number: %s: %s", pidStr, err.Error())
-	}
-	if pid <= 0 {
-		return fmt.Errorf("pid is not a positive number: %s", pidStr)
+	cpu := float64(0)
+	rss := uint64(0)
+	vms := uint64(0)
+	createTimeUnix := int64(0)
+	for _, pidStrEx := range strings.Split(pidStr, ",") {
+		pid, err := convert.IntE(pidStrEx)
+		if err != nil {
+			return fmt.Errorf("pid is not a number: %s: %s", pidStrEx, err.Error())
+		}
+		if pid <= 0 {
+			return fmt.Errorf("pid is not a positive number: %s", pidStrEx)
+		}
+
+		proc, err := process.NewProcess(pid)
+		if err != nil {
+			log.Tracef("%s", fmt.Errorf("pid not found %d: %s", pid, err.Error()).Error())
+
+			return nil
+		}
+
+		cpuP, err := proc.CPUPercentWithContext(ctx)
+		if err == nil {
+			cpu += cpuP
+		}
+
+		mem, _ := proc.MemoryInfoWithContext(ctx)
+		if mem != nil {
+			rss += mem.RSS
+			vms += mem.VMS
+		}
+
+		createTimeMillis, err := proc.CreateTimeWithContext(ctx)
+		if err == nil {
+			ctMillis := createTimeMillis / 1e3
+			if ctMillis < createTimeUnix {
+				createTimeUnix = ctMillis
+			}
+		}
 	}
 
-	proc, err := process.NewProcess(pid)
-	if err != nil {
-		log.Tracef("%s", fmt.Errorf("pid not found %d: %s", pid, err.Error()).Error())
-
-		return nil
-	}
-
-	cpuP, err := proc.CPUPercentWithContext(ctx)
-	if err == nil {
-		listEntry["cpu"] = fmt.Sprintf("%.1f", cpuP)
-	}
-
-	mem, _ := proc.MemoryInfoWithContext(ctx)
-	if mem != nil {
-		listEntry["rss"] = fmt.Sprintf("%d", mem.RSS)
-		listEntry["vms"] = fmt.Sprintf("%d", mem.VMS)
-	}
-
-	createTimeMillis, err := proc.CreateTimeWithContext(ctx)
-	if err == nil {
-		createTimeUnix := createTimeMillis / 1e3
+	listEntry["cpu"] = fmt.Sprintf("%.1f", cpu)
+	listEntry["rss"] = fmt.Sprintf("%d", rss)
+	listEntry["vms"] = fmt.Sprintf("%d", vms)
+	if createTimeUnix > 0 {
 		listEntry["created"] = fmt.Sprintf("%d", createTimeUnix)
 		listEntry["age"] = fmt.Sprintf("%d", time.Now().Unix()-createTimeUnix)
 	}
