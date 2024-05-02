@@ -436,6 +436,12 @@ func (config *Config) fetchHTTPInclude(inclURL, cacheFile string, section *Confi
 
 // Section returns section by name or empty section.
 func (config *Config) Section(name string) *ConfigSection {
+	// strip square brackets
+	if strings.HasPrefix(name, "[") && strings.HasSuffix(name, "]") {
+		name = strings.TrimPrefix(name, "[")
+		name = strings.TrimSuffix(name, "]")
+	}
+
 	if section, ok := config.sections[name]; ok {
 		return section
 	}

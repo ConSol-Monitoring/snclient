@@ -143,6 +143,7 @@ type Agent struct {
 	osSignalChannel   chan os.Signal
 	running           atomic.Bool
 	Log               *factorlog.FactorLog
+	profileServer     *http.Server
 }
 
 // AgentRunSet contains the runtime dynamic references
@@ -173,6 +174,7 @@ func NewAgent(flags *AgentFlags) *Agent {
 	if initSet != nil {
 		// create logger early, so start up errors can be added to the default log as well
 		snc.createLogger(initSet.config)
+		snc.checkConfigProfiler(initSet.config)
 	}
 	if err != nil {
 		LogStderrf("ERROR: %s", err.Error())
@@ -606,28 +608,7 @@ func (snc *Agent) checkFlags() {
 			os.Exit(ExitCodeError)
 		}
 
-		runtime.SetBlockProfileRate(BlockProfileRateInterval)
-		runtime.SetMutexProfileFraction(BlockProfileRateInterval)
-
-		go func() {
-			// make sure we log panics properly
-			defer snc.logPanicExit()
-
-			server := &http.Server{
-				Addr:              snc.flags.ProfilePort,
-				ReadTimeout:       DefaultSocketTimeout * time.Second,
-				ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
-				WriteTimeout:      DefaultSocketTimeout * time.Second,
-				IdleTimeout:       DefaultSocketTimeout * time.Second,
-				Handler:           http.DefaultServeMux,
-			}
-
-			log.Warnf("pprof profiler listening at http://%s/debug/pprof/ (make sure to use a binary without -trimpath, ex. from make builddebug)", snc.flags.ProfilePort)
-			err := server.ListenAndServe()
-			if err != nil {
-				log.Debugf("http.ListenAndServe finished with: %e", err)
-			}
-		}()
+		snc.startPProfiler(snc.flags.ProfilePort)
 	}
 
 	if snc.flags.ProfileCPU != "" {
@@ -1350,4 +1331,70 @@ func pkgArch(arch string) string {
 	default:
 		return "unknown"
 	}
+}
+
+// check configuration if profiler needs to be stopped or started
+func (snc *Agent) checkConfigProfiler(config *Config) {
+	// do not touch profile server if started from command args
+	if snc.flags.ProfilePort != "" {
+		return
+	}
+
+	if enabled, _, _ := config.Section("/modules").GetBool("PProfiler"); !enabled {
+		snc.stopPProfiler()
+
+		return
+	}
+
+	port, _ := config.Section("/settings/PProfiler/server").GetString("port")
+	if port == "" {
+		snc.stopPProfiler()
+
+		return
+	}
+
+	snc.startPProfiler(port)
+}
+
+// start the global profiler
+func (snc *Agent) startPProfiler(port string) {
+	if snc.profileServer != nil {
+		log.Warnf("pprof profiler already listening at http://%s/debug/pprof/ (not starting again)", snc.profileServer.Addr)
+
+		return
+	}
+
+	runtime.SetBlockProfileRate(BlockProfileRateInterval)
+	runtime.SetMutexProfileFraction(BlockProfileRateInterval)
+
+	go func() {
+		// make sure we log panics properly
+		defer snc.logPanicExit()
+
+		server := &http.Server{
+			Addr:              port,
+			ReadTimeout:       DefaultSocketTimeout * time.Second,
+			ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
+			WriteTimeout:      DefaultSocketTimeout * time.Second,
+			IdleTimeout:       DefaultSocketTimeout * time.Second,
+			Handler:           http.DefaultServeMux,
+		}
+
+		log.Warnf("pprof profiler listening at http://%s/debug/pprof/ (make sure to use a binary without -trimpath, ex. from make builddebug)", port)
+		err := server.ListenAndServe()
+		snc.profileServer = server
+		if err != nil {
+			snc.profileServer = nil
+			log.Debugf("http.ListenAndServe finished with: %e", err)
+		}
+	}()
+}
+
+// stop the global profiler
+func (snc *Agent) stopPProfiler() {
+	if snc.profileServer == nil {
+		return
+	}
+	snc.profileServer.Close()
+	snc.profileServer = nil
 }
