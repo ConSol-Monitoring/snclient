@@ -29,6 +29,7 @@ func (l *CheckWrap) Build() *CheckData {
 
 	return &CheckData{
 		name:            l.name,
+		implemented:     ALL,
 		hasInventory:    ScriptsInventory,
 		argsPassthrough: true,
 		timeout:         float64(timeoutSeconds),

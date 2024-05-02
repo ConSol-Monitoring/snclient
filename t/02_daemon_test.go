@@ -75,7 +75,7 @@ func TestDaemonRequests(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-r", "-u", fmt.Sprintf("%s/api/v1/inventory", baseURL)},
-		Like: []string{`{"inventory":`},
+		Like: []string{`{"inventory":`, `check_echo`},
 	})
 
 	runCmd(t, &cmd{

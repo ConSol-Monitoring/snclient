@@ -1258,6 +1258,8 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 		handler := check.Handler()
 		meta := handler.Build()
 		if !meta.isImplemented(runtime.GOOS) {
+			log.Debugf("skipping inventory for unimplemented (%s) check: %s / %s", runtime.GOOS, k, check.Name)
+
 			continue
 		}
 		switch meta.hasInventory {
