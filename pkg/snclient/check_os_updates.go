@@ -382,17 +382,18 @@ func (l *CheckOSUpdates) addWindows(ctx context.Context, check *CheckData) (bool
 	// https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nf-wuapi-iupdatesearcher-search
 	// https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nn-wuapi-iupdate
 	updates := `
-		$update = new-object -com Microsoft.update.Session
-		$searcher = $update.CreateUpdateSearcher()
-		$searcher.Online = ` + online + `
-		$pending = $searcher.Search('IsInstalled=0 AND IsHidden=0')
-		foreach($entry in $pending.Updates) {
-			Write-host Title: $entry.Title
-			foreach($cat in $entry.Categories) {
-				Write-host Category: $cat.Name
-			}
-		}
-
+$update = new-object -com Microsoft.update.Session
+if ($update -eq $null) { Write-Host "failed to get Microsoft.update.Session"; exit 1; }
+$searcher = $update.CreateUpdateSearcher()
+if ($searcher -eq $null) { Write-Host "failed to create update searcher"; exit 1; }
+$searcher.Online = ` + online + `
+$pending = $searcher.Search('IsInstalled=0 AND IsHidden=0')
+foreach($entry in $pending.Updates) {
+	Write-host Title: $entry.Title
+	foreach($cat in $entry.Categories) {
+		Write-host Category: $cat.Name
+	}
+}
 	`
 	cmd := powerShellCmd(ctx, updates)
 	output, stderr, exitCode, _, err := l.snc.runExternalCommand(ctx, cmd, DefaultCmdTimeout)
