@@ -1070,14 +1070,8 @@ func (u *UpdateHandler) isUsableGithubAsset(name string) bool {
 	archVariants := []string{pkgArch(runtime.GOARCH), runtime.GOARCH}
 
 	osVariants := []string{runtime.GOOS}
-	switch runtime.GOOS {
-	case "darwin":
+	if runtime.GOOS == "darwin" {
 		osVariants = append(osVariants, "osx")
-	case "windows":
-		if runtime.GOARCH == "arm64" {
-			// arm windows can use the 64bit version
-			archVariants = append(archVariants, "x86_64", "amd64")
-		}
 	}
 
 	for _, arch := range archVariants {
