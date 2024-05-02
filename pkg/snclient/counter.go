@@ -38,15 +38,14 @@ func (c *Counter) Set(val float64) {
 
 // Trim removes all entries older than now-duration
 func (c *Counter) Trim() {
-	trimAfter := time.Now().UTC().Add(-1 * time.Duration(c.retentionTime) * time.Second).UnixMilli()
-
+	trimBefore := time.Now().UTC().Add(-1 * time.Duration(c.retentionTime) * time.Second).UnixMilli()
 	cur := c.data.Front()
 	for {
 		if cur == nil {
 			break
 		}
 		if val, ok := cur.Value.(*CounterValue); ok {
-			if val.unixMilli < trimAfter {
+			if val.unixMilli < trimBefore {
 				c.data.Remove(cur)
 			} else {
 				return
@@ -151,7 +150,7 @@ func (c *CounterAny) Set(val interface{}) {
 
 // Trim removes all entries older than now-duration
 func (c *CounterAny) Trim() {
-	trimAfter := time.Now().UTC().Add(-1 * time.Duration(c.retentionTime) * time.Second).UnixMilli()
+	trimBefore := time.Now().UTC().Add(-1 * time.Duration(c.retentionTime) * time.Second).UnixMilli()
 
 	cur := c.data.Front()
 	for {
@@ -159,7 +158,7 @@ func (c *CounterAny) Trim() {
 			break
 		}
 		if val, ok := cur.Value.(*CounterValueAny); ok {
-			if val.unixMilli < trimAfter {
+			if val.unixMilli < trimBefore {
 				c.data.Remove(cur)
 			} else {
 				return
