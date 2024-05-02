@@ -2,15 +2,15 @@
 <?if $(var.Platform) = x64 ?>
   <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
   <?define Win64 = 'yes' ?>
-  <?define InstallerVersion = '200' ?>
-<?elsif $(var.Platform) ~= "Arm64" ?>
+  <?define InstallerVersion = "200" ?>
+<?elseif $(var.Platform) = arm64 ?>
   <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
   <?define Win64 = 'yes' ?>
-  <?define InstallerVersion = '500' ?>
+  <?define InstallerVersion = "500" ?>
 <?else?>
   <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
   <?define Win64 = "no" ?>
-  <?define InstallerVersion = '200' ?>
+  <?define InstallerVersion = "200" ?>
 <?endif?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
     <Product Name="SNClient+" Id="*" UpgradeCode="F4BF03F6-D3DA-44FF-A444-9B64119DA0CE" Language="1033" Codepage="1252" Version="$(var.MajorVersion).$(var.MinorVersion).$(var.RevisionNumber)" Manufacturer="ConSol Consulting &amp; Solutions Software GmbH">

@@ -28,6 +28,7 @@ if ("$arch" -eq "aarch64") { $win_arch = "arm64"; $go_arch = "arm64" }
 
 Copy-Item .\windist\windows_exporter-$go_arch.exe .\windist\windows_exporter.exe
 
+Write-Output "using: arch / platform: $win_arch"
 & 'C:\Program Files (x86)\WiX Toolset v3.14\bin\candle.exe' .\packaging\windows\snclient.wxs `
   -arch $win_arch `
   -dPlatform="$win_arch" `
