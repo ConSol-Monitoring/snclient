@@ -702,7 +702,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 
 	handler := check.Handler()
 	chk := handler.Build()
-	parsedArgs, warn, crit, err := chk.ParseArgs(args)
+	parsedArgs, err := chk.ParseArgs(args)
 	if err != nil {
 		return &CheckResult{
 			State:  CheckExitUnknown,
@@ -722,13 +722,6 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 		defer restoreLogLevel()
 	}
 
-	// default warning/critical overridden from check arguments, ex. check_service
-	if warn != "" {
-		chk.defaultWarning = warn
-	}
-	if crit != "" {
-		chk.defaultCritical = crit
-	}
 	if chk.showHelp > 0 {
 		state := CheckExitUnknown
 		if chk.showHelp == Markdown {

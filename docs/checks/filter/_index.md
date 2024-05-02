@@ -2,19 +2,40 @@
 title: Filter
 ---
 
-Filter can be uses to select specific objects from a result list. They are also used
-in warning, critical or ok thresholds.
+Filter can be uses to select specific objects from a result list. So if a filter
+is specified, only those elements matching the filter will be considered when
+building the final result.
+
+The same syntax is used for warning/critical/ok thresholds, except when used
+as threshold, the corresponding status will be set.
 
 ## Syntax
 
 All filter follow the syntax `<attribute> <operator> <value>`. For a list and explanation
 of allowed operators see [the operator list](#operator).
 
-The list of possible attributes is documented along with the [check plugins](../plugins).
+The list of possible attributes is documented along with each [check plugin](../plugins).
 
 ex.:
 
-    status = 'started'
+    filter="status = 'started'"
+
+## Default Filter
+
+Some checks do have default filter, which will be used if no filter is supplied
+as check argument.
+
+Default filter are documented along with each [check plugins](../plugins).
+
+The default filter can be unset by using a `none` filter, ex.:
+
+    filter="none"
+
+Default filter will be overwritten if a new filter is set.
+
+Existing default filter can be extended by using a `filter+="..."` syntax, ex.:
+
+    filter+="status = 'started'"
 
 ## Logical Operator
 
@@ -27,7 +48,7 @@ To combine multiple filter you can use logical operator and brackets.
 
 ex.:
 
-    (status = 'started' or status = 'pending') and usage > 5%
+    filter="(status = 'started' or status = 'pending') and usage > 5%"
 
 ## Operator
 

@@ -3,6 +3,7 @@ This file documents the revision history for the SNClient+ agent.
 next:
          - update node exporter to 1.8.0
          - add native aarch64 (arm64) packages for windows
+         - add support for extending default filter/warn/crit
          - fix missing scripts in inventory
 
 0.23     Mon Apr 15 17:29:53 CEST 2024

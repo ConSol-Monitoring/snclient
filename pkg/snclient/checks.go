@@ -16,7 +16,9 @@ type CheckEntry struct {
 	Handler func() CheckHandler
 }
 
+// generic key/value storage type
 type Argument struct {
 	key   string
 	value string
+	raw   string
 }

@@ -5,10 +5,13 @@ title: Common Check Arguments
 | Option                          | Description |
 | ------------------------------- | ----------- |
 | [filter](#filter)               | Filter for which items to check |
+| [filter+](#filter-1)            | Same as filter but extend default filter instead of overwriting it. |
 | [warning](#warning)             | Threshold when to generate a warning state |
 | [warn](#warning)                | Short alias for warning |
+| [warning+](#warning-1)          | Same as warning but extend default warning instead of overwriting it |
 | [critical](#critical)           | Threshold when to generate a critical state |
 | [crit](#critical)               | Short alias for critical |
+| [critical+](#critical-1)        | Same as critical but extend default critical instead of overwriting it |
 | [ok](#ok)                       | Threshold when to generate an ok state |
 | [top-syntax](#top-syntax)       | Top level syntax. |
 | [ok-syntax](#ok-syntax)         | Syntax used for ok states. |
@@ -29,6 +32,14 @@ ex.:
 
 Filter are explained in detail here: [check filter](../filter/)
 
+### Filter+
+
+Extend default filter.
+
+ex.:
+
+    'filter+=service = snclient'
+
 ### Warning
 
 Filter which sets a threshold when to generate a warning state. If any wanted item
@@ -41,6 +52,14 @@ ex.:
 
     'warn=load > 90%'
 
+### Warning+
+
+Extend default warning threshold.
+
+ex.:
+
+    'warn+=load > 90%'
+
 ### Critical
 
 Filter which sets a threshold when to generate a critical state. If any wanted item
@@ -52,6 +71,14 @@ removed but escalate the status to critical state.
 ex.:
 
     'crit=load > 98%'
+
+### Critical+
+
+Extend default critical threshold.
+
+ex.:
+
+    'crit+=load > 90%'
 
 ### Ok
 
