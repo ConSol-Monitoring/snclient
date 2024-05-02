@@ -18,7 +18,7 @@ by [building snclient from source](../build).
 |             | i386 | x64 | arm64     |
 |-------------|:----:|:---:|:---------:|
 | **Linux**   |   X  |  X  |   X       |
-| **Windows** |   X  |  X  | (use x64) |
+| **Windows** |   X  |  X  |   X       |
 | **FreeBSD** |   X  |  X  |   X       |
 | **MacOSX**  |      |  X  |   X       |
 
@@ -30,7 +30,7 @@ Successfully tested on:
 - Windows 10
 - Windows 11
 - Windows Server 2019
-- Windows ARM 11 Preview (using the x86 pkg)
+- Windows ARM 11 Preview
 
 Others will quite likely work as well, but haven't been tested yet.
 

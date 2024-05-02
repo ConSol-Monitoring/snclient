@@ -3,7 +3,7 @@
   <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
   <?define Win64 = 'yes' ?>
   <?define InstallerVersion = '200' ?>
-<?elsif $(var.Platform) = arm64 ?>
+<?elsif $(var.Platform) ~= "Arm64" ?>
   <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
   <?define Win64 = 'yes' ?>
   <?define InstallerVersion = '500' ?>

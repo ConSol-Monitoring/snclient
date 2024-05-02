@@ -27,7 +27,7 @@ All documentation is under `docs/`
 |             | i386 | x64 | arm64     |
 |-------------|:----:|:---:|:---------:|
 | **Linux**   |   X  |  X  |   X       |
-| **Windows** |   X  |  X  | (use x64) |
+| **Windows** |   X  |  X  |   X       |
 | **FreeBSD** |   X  |  X  |   X       |
 | **MacOSX**  |      |  X  |   X       |
 
