@@ -1255,7 +1255,7 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 				continue
 			}
 			meta.output = "inventory_json"
-			meta.filter = []*Condition{{isNone: true}}
+			meta.filter = ConditionList{{isNone: true}}
 			data, err := handler.Check(ctx, snc, meta, []Argument{})
 			if err != nil && (data == nil || data.Raw == nil) {
 				log.Tracef("inventory %s returned error: %s", check.Name, err.Error())

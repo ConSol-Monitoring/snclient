@@ -30,11 +30,14 @@ type Condition struct {
 	unit     string
 
 	// in case this is a group of conditions
-	group         []*Condition
+	group         ConditionList
 	groupOperator GroupOperator
 
 	// if filter is a simple "none"
 	isNone bool
+
+	// store initial string
+	original string
 }
 
 // Operator defines a filter operator.
@@ -133,7 +136,7 @@ func GroupOperatorParse(str string) (GroupOperator, error) {
 func NewCondition(input string) (*Condition, error) {
 	input = strings.TrimSpace(input)
 	if input == "none" {
-		return &Condition{isNone: true}, nil
+		return &Condition{isNone: true, original: input}, nil
 	}
 
 	token := utils.Tokenize(input)
@@ -144,6 +147,7 @@ func NewCondition(input string) (*Condition, error) {
 	if len(remainingToken) > 0 {
 		return nil, fmt.Errorf("unexpected end of condition after '%s'", remainingToken[len(remainingToken)-1])
 	}
+	cond.original = input
 
 	// convert /pattern/i regex into coresponding condition
 	switch cond.operator { //nolint:exhaustive // only relevant for regex conditions
@@ -167,6 +171,10 @@ func NewCondition(input string) (*Condition, error) {
 	}
 
 	return cond, nil
+}
+
+func (c *Condition) String() string {
+	return c.original
 }
 
 // Match checks if given map matches current condition
@@ -403,7 +411,7 @@ func (c *Condition) Clone() *Condition {
 		unit:          c.unit,
 		value:         c.value,
 		groupOperator: c.groupOperator,
-		group:         make([]*Condition, 0),
+		group:         make(ConditionList, 0),
 	}
 
 	for i := range c.group {
@@ -419,7 +427,7 @@ func conditionAdd(token []string) (cond *Condition, remaining []string, err erro
 		return nil, nil, nil
 	}
 
-	conditions := make([]*Condition, 0)
+	conditions := make(ConditionList, 0)
 	groupOp := GroupOperator(0)
 
 	for len(token) > 0 {
@@ -729,9 +737,9 @@ func conditionFixTokenOperator(token []string) []string {
 }
 
 // ThresholdString returns string used in warn/crit threshold performance data.
-func ThresholdString(name []string, conditions []*Condition, numberFormat func(interface{}) string) string {
+func ThresholdString(name []string, conditions ConditionList, numberFormat func(interface{}) string) string {
 	// fetch warning conditions for name of metric
-	filtered := make([]*Condition, 0)
+	filtered := make(ConditionList, 0)
 	var group GroupOperator
 	for num := range conditions {
 		if slices.Contains(name, conditions[num].keyword) {
@@ -799,4 +807,25 @@ func ThresholdString(name []string, conditions []*Condition, numberFormat func(i
 	}
 
 	return ""
+}
+
+// list of conditions
+type ConditionList []*Condition
+
+func (cl *ConditionList) String() string {
+	if len(*cl) == 0 {
+		return ("none")
+	}
+
+	if len(*cl) == 1 {
+		return (*cl)[0].String()
+	}
+
+	res := []string{}
+	for _, c := range *cl {
+		res = append(res, c.String())
+	}
+
+	// top level conditions are joined as OR
+	return strings.Join(res, " or ")
 }

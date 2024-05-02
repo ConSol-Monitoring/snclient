@@ -41,7 +41,7 @@ func TestConditionParse(t *testing.T) {
 			"provider = 'abc' and id = 123 and message like 'foo'",
 			&Condition{
 				groupOperator: GroupAnd,
-				group: []*Condition{
+				group: ConditionList{
 					{keyword: "provider", operator: Equal, value: "abc"},
 					{keyword: "id", operator: Equal, value: "123"},
 					{keyword: "message", operator: Contains, value: "foo"},
@@ -52,11 +52,11 @@ func TestConditionParse(t *testing.T) {
 			"provider = 'abc' and (id = 123 or message like 'foo')",
 			&Condition{
 				groupOperator: GroupAnd,
-				group: []*Condition{
+				group: ConditionList{
 					{keyword: "provider", operator: Equal, value: "abc"},
 					{
 						groupOperator: GroupOr,
-						group: []*Condition{
+						group: ConditionList{
 							{keyword: "id", operator: Equal, value: "123"},
 							{keyword: "message", operator: Contains, value: "foo"},
 						},
@@ -66,6 +66,7 @@ func TestConditionParse(t *testing.T) {
 		},
 	} {
 		cond, err := NewCondition(check.input)
+		check.expect.original = check.input
 		require.NoErrorf(t, err, "ConditionParse should throw no error")
 		assert.Equal(t, check.expect, cond, fmt.Sprintf("ConditionParse(%s) -> %v", check.input, check.expect))
 	}
@@ -178,7 +179,7 @@ func TestConditionThresholdString(t *testing.T) {
 		threshold, err := NewCondition(check.threshold)
 		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
-		perfRange := ThresholdString([]string{check.name}, []*Condition{threshold}, convert.Num2String)
+		perfRange := ThresholdString([]string{check.name}, ConditionList{threshold}, convert.Num2String)
 		assert.Equalf(t, check.expect, perfRange, fmt.Sprintf("ThresholdString(%s) -> (%v) = %v", check.threshold, perfRange, check.expect))
 	}
 }

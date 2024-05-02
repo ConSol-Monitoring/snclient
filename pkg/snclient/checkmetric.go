@@ -16,11 +16,11 @@ type CheckMetric struct {
 	Name          string
 	Unit          string
 	Value         interface{}
-	ThresholdName string       // if set, use this name instead of Name to extract thresholds from conditions
-	Warning       []*Condition // threshold used for warnings
-	WarningStr    *string      // set warnings from string
-	Critical      []*Condition // threshold used for critical
-	CriticalStr   *string      // set critical from string
+	ThresholdName string        // if set, use this name instead of Name to extract thresholds from conditions
+	Warning       ConditionList // threshold used for warnings
+	WarningStr    *string       // set warnings from string
+	Critical      ConditionList // threshold used for critical
+	CriticalStr   *string       // set critical from string
 	Min           *float64
 	Max           *float64
 	PerfConfig    *PerfConfig // apply perf tweaks
@@ -156,7 +156,7 @@ func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
 	return convert.Num2String(rawNum), m.Unit
 }
 
-func (m *CheckMetric) ThresholdString(conditions []*Condition) string {
+func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 	conv := func(rawNum interface{}) string {
 		num, _ := m.tweakedNum(rawNum)
 

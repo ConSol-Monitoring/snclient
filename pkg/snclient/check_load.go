@@ -217,7 +217,7 @@ func (l *CheckLoad) appendProcs(ctx context.Context, check *CheckData) error {
 }
 
 // transform "-w num,num,num" threshold into regular threshold
-func (l *CheckLoad) transformThreshold(arg, prefix string, threshold *[]*Condition) error {
+func (l *CheckLoad) transformThreshold(arg, prefix string, threshold *ConditionList) error {
 	if arg == "" {
 		return nil
 	}

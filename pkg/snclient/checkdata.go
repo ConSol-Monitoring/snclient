@@ -85,12 +85,12 @@ type CheckData struct {
 	extraArgs              map[string]CheckArgument // internal, map of expanded args
 	argsPassthrough        bool                     // allow arbitrary arguments without complaining about unknown argument
 	rawArgs                []string
-	filter                 []*Condition // if set, only show entries matching this filter set
-	warnThreshold          []*Condition
+	filter                 ConditionList // if set, only show entries matching this filter set
+	warnThreshold          ConditionList
 	defaultWarning         string
-	critThreshold          []*Condition
+	critThreshold          ConditionList
 	defaultCritical        string
-	okThreshold            []*Condition
+	okThreshold            ConditionList
 	detailSyntax           string
 	topSyntax              string
 	okSyntax               string
@@ -127,6 +127,9 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	cd.details["ok-syntax"] = cd.okSyntax
 	cd.details["empty-syntax"] = cd.emptySyntax
 	cd.details["detail-syntax"] = cd.detailSyntax
+	log.Debugf("condition       ok: %s", cd.okThreshold.String())
+	log.Debugf("condition  warning: %s", cd.warnThreshold.String())
+	log.Debugf("condition critical: %s", cd.critThreshold.String())
 	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	log.Tracef("details: %#v", cd.details)
 
@@ -380,7 +383,7 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 }
 
 // Check tries warn/crit/ok conditions against given data and sets result state.
-func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []*Condition) {
+func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond ConditionList) {
 	data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 
 	for i := range warnCond {
@@ -403,7 +406,7 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond []
 }
 
 // CheckMetrics tries warn/crit/ok conditions against given metrics and sets final state accordingly
-func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond []*Condition) {
+func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond ConditionList) {
 	for _, metric := range cd.result.Metrics {
 		state := CheckExitOK
 		data := map[string]string{
@@ -461,7 +464,7 @@ func (cd *CheckData) MatchFilterMap(data map[string]string) (res, ok bool) {
 
 // MatchMapCondition returns true if listEntry matches filter
 // preCheck defines behavior in case an attribute does not exist (set true for pre checks and false for final filter)
-func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string]string, preCheck bool) bool {
+func (cd *CheckData) MatchMapCondition(conditions ConditionList, entry map[string]string, preCheck bool) bool {
 	for _, cond := range conditions {
 		if cond.isNone {
 			continue
@@ -481,7 +484,7 @@ func (cd *CheckData) MatchMapCondition(conditions []*Condition, entry map[string
 
 // Filter data map by conditions and return filtered list.
 // ALl items not matching given filter will be removed.
-func (cd *CheckData) Filter(conditions []*Condition, data []map[string]string) []map[string]string {
+func (cd *CheckData) Filter(conditions ConditionList, data []map[string]string) []map[string]string {
 	if len(conditions) == 0 {
 		return data
 	}
@@ -823,7 +826,7 @@ func (cd *CheckData) applyConditionAlias() {
 }
 
 // apply condition aliases to given conditions.
-func (cd *CheckData) applyConditionAliasList(cond []*Condition) {
+func (cd *CheckData) applyConditionAliasList(cond ConditionList) {
 	for _, cond := range cond {
 		if len(cond.group) > 0 {
 			cd.applyConditionAliasList(cond.group)
@@ -855,7 +858,7 @@ func (cd *CheckData) HasThreshold(name string) bool {
 }
 
 // hasThresholdCond returns true is the given list of conditions uses the given name at least once.
-func (cd *CheckData) hasThresholdCond(condList []*Condition, name string) bool {
+func (cd *CheckData) hasThresholdCond(condList ConditionList, name string) bool {
 	for _, cond := range condList {
 		if len(cond.group) > 0 {
 			return cd.hasThresholdCond(cond.group, name)
@@ -912,7 +915,7 @@ func (cd *CheckData) ExpandThresholdUnit(exponents []string, targetUnit string, 
 }
 
 // VisitAll calls callback recursively for each condition until callback returns false
-func (cd *CheckData) VisitAll(condList []*Condition, callback func(*Condition) bool) bool {
+func (cd *CheckData) VisitAll(condList ConditionList, callback func(*Condition) bool) bool {
 	for _, cond := range condList {
 		if len(cond.group) > 0 {
 			if !cd.VisitAll(cond.group, callback) {
@@ -928,8 +931,8 @@ func (cd *CheckData) VisitAll(condList []*Condition, callback func(*Condition) b
 	return true
 }
 
-func (cd *CheckData) CloneThreshold(srcThreshold []*Condition) (cloned []*Condition) {
-	cloned = make([]*Condition, 0)
+func (cd *CheckData) CloneThreshold(srcThreshold ConditionList) (cloned ConditionList) {
+	cloned = make(ConditionList, 0)
 
 	for i := range srcThreshold {
 		cloned = append(cloned, srcThreshold[i].Clone())
@@ -938,7 +941,7 @@ func (cd *CheckData) CloneThreshold(srcThreshold []*Condition) (cloned []*Condit
 	return cloned
 }
 
-func (cd *CheckData) TransformThreshold(srcThreshold []*Condition, srcName, targetName, srcUnit, targetUnit string, total float64) (threshold []*Condition) {
+func (cd *CheckData) TransformThreshold(srcThreshold ConditionList, srcName, targetName, srcUnit, targetUnit string, total float64) (threshold ConditionList) {
 	transformed := cd.CloneThreshold(srcThreshold)
 	// Warning:  check.TransformThreshold(check.warnThreshold, "used", name, "%", "B", total),
 	applyChange := func(cond *Condition) bool {
@@ -978,7 +981,7 @@ func (cd *CheckData) TransformThreshold(srcThreshold []*Condition, srcName, targ
 }
 
 // replaces source keywords in threshold with new keyword
-func (cd *CheckData) TransformMultipleKeywords(srcKeywords []string, targetKeyword string, srcThreshold []*Condition) (threshold []*Condition) {
+func (cd *CheckData) TransformMultipleKeywords(srcKeywords []string, targetKeyword string, srcThreshold ConditionList) (threshold ConditionList) {
 	transformed := cd.CloneThreshold(srcThreshold)
 	applyChange := func(cond *Condition) bool {
 		if !slices.Contains(srcKeywords, cond.keyword) {
@@ -994,7 +997,7 @@ func (cd *CheckData) TransformMultipleKeywords(srcKeywords []string, targetKeywo
 }
 
 // replaces macros in threshold values, example as in: temperature > ${crit}
-func (cd *CheckData) ExpandMetricMacros(srcThreshold []*Condition, data map[string]string) (threshold []*Condition) {
+func (cd *CheckData) ExpandMetricMacros(srcThreshold ConditionList, data map[string]string) (threshold ConditionList) {
 	replaced := cd.CloneThreshold(srcThreshold)
 	applyChange := func(cond *Condition) bool {
 		if cond.keyword == "" {
