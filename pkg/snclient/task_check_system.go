@@ -130,19 +130,19 @@ func (c *CheckSystemHandler) update(create bool) {
 func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo.TimesStat, netdata map[string]float64, err error) {
 	data = map[string]float64{}
 
-	infoAll, err := cpuinfo.Percent(0, false)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
-	}
-	data["total"] = infoAll[0]
-
 	info, err := cpuinfo.Percent(0, true)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
 	}
 
+	total := float64(0)
 	for i, d := range info {
 		data[fmt.Sprintf("core%d", i)] = d
+		total += d
+	}
+	data["total"] = 0
+	if len(info) > 0 {
+		data["total"] = total / float64(len(info))
 	}
 
 	times, err := cpuinfo.Times(false)
