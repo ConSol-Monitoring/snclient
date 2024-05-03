@@ -10,14 +10,17 @@ import (
 )
 
 type ResponseWriterCapture struct {
-	w          http.ResponseWriter
-	body       bytes.Buffer
-	statusCode int
+	w           http.ResponseWriter
+	body        bytes.Buffer
+	captureBody bool
+	statusCode  int
 }
 
 func (i *ResponseWriterCapture) Write(buf []byte) (int, error) {
-	_, err := i.body.Write(buf)
-	LogError(err)
+	if i.captureBody {
+		_, err := i.body.Write(buf)
+		LogError(err)
+	}
 
 	n, err := i.w.Write(buf)
 	if err != nil {
@@ -45,7 +48,9 @@ func (i *ResponseWriterCapture) String(req *http.Request, body bool) string {
 		}
 	}
 	buf.WriteString("\n")
-	buf.WriteString(i.body.String())
+	if i.captureBody {
+		buf.WriteString(i.body.String())
+	}
 
 	reader := bufio.NewReader(strings.NewReader(buf.String()))
 	resp, err := http.ReadResponse(reader, req)
@@ -56,7 +61,10 @@ func (i *ResponseWriterCapture) String(req *http.Request, body bool) string {
 	}
 
 	bodyAdd := ""
-	if strings.Contains(resp.Header.Get("Content-Encoding"), "zip") {
+	if !i.captureBody {
+		body = false
+		bodyAdd = "<body not capured>"
+	} else if strings.Contains(resp.Header.Get("Content-Encoding"), "zip") {
 		body = false
 		bodyAdd = "<skipped compressed body>"
 	}

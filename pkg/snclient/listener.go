@@ -397,13 +397,16 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 	logHTTPRequest(req)
 
 	resCapture := &ResponseWriterCapture{
-		w: res,
+		w:           res,
+		captureBody: log.IsV(LogVerbosityTrace2),
 	}
 	res = resCapture
 	next.ServeHTTP(res, req)
 
-	if capture, ok := res.(*ResponseWriterCapture); ok {
-		log.Tracef("http response:\n%s", capture.String(req, true))
+	if log.IsV(LogVerbosityTrace2) {
+		if capture, ok := res.(*ResponseWriterCapture); ok {
+			log.Tracef("http response:\n%s", capture.String(req, true))
+		}
 	}
 
 	duration := time.Since(startTime)
