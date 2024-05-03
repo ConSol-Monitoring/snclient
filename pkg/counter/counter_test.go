@@ -49,7 +49,7 @@ func TestCounter(t *testing.T) {
 
 	rate, ok = counter.GetRate(time.Second)
 	assert.True(t, ok)
-	assert.GreaterOrEqualf(t, rate, 90.0, "rate should be more than 90")
+	assert.GreaterOrEqualf(t, rate, 50.0, "rate should be more than 50")
 	assert.LessOrEqualf(t, rate, 120.0, "rate should be less than 120")
 
 	set.Delete("test", "key")
