@@ -23,6 +23,7 @@ import (
 	"syscall"
 	"time"
 
+	"pkg/counter"
 	"pkg/utils"
 	"pkg/wmi"
 
@@ -136,10 +137,10 @@ type AgentFlags struct {
 }
 
 type Agent struct {
-	config            *Config     // reference to global config object
-	Listeners         *ModuleSet  // Listeners stores if we started listeners
-	Tasks             *ModuleSet  // Tasks stores if we started task runners
-	Counter           *CounterSet // Counter stores collected counters from tasks
+	config            *Config      // reference to global config object
+	Listeners         *ModuleSet   // Listeners stores if we started listeners
+	Tasks             *ModuleSet   // Tasks stores if we started task runners
+	Counter           *counter.Set // Counter stores collected counters from tasks
 	flags             *AgentFlags
 	cpuProfileHandler *os.File
 	runSet            *AgentRunSet
@@ -164,7 +165,7 @@ func NewAgent(flags *AgentFlags) *Agent {
 	snc := &Agent{
 		Listeners: NewModuleSet("listener"),
 		Tasks:     NewModuleSet("task"),
-		Counter:   NewCounterSet(),
+		Counter:   counter.NewCounterSet(),
 		config:    NewConfig(true),
 		flags:     flags,
 		Log:       log,

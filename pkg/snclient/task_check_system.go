@@ -25,7 +25,7 @@ type CheckSystemHandler struct {
 	stopChannel chan bool
 	snc         *Agent
 
-	bufferLength float64
+	bufferLength time.Duration
 }
 
 func NewCheckSystemHandler() Module {
@@ -48,7 +48,7 @@ func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config,
 	if err != nil {
 		return fmt.Errorf("default buffer length: %s", err.Error())
 	}
-	c.bufferLength = bufferLength
+	c.bufferLength = time.Duration(bufferLength) * time.Second
 
 	// create counter
 	c.update(true)
@@ -94,33 +94,31 @@ func (c *CheckSystemHandler) update(create bool) {
 
 	if create {
 		for key := range data {
-			c.snc.Counter.Create("cpu", key, c.bufferLength)
+			c.snc.Counter.Create("cpu", key, c.bufferLength, SystemMetricsMeasureInterval)
 		}
-		c.snc.Counter.CreateAny("cpuinfo", "info", c.bufferLength)
+		c.snc.Counter.Create("cpuinfo", "info", c.bufferLength, SystemMetricsMeasureInterval)
 	}
 
 	for key, val := range data {
 		c.snc.Counter.Set("cpu", key, val)
 	}
-	c.snc.Counter.SetAny("cpuinfo", "info", times)
+	c.snc.Counter.Set("cpuinfo", "info", times)
 
 	// add interface traffic data
 	for key, val := range netdata {
 		if c.snc.Counter.Get("net", key) == nil {
-			c.snc.Counter.Create("net", key, c.bufferLength)
+			c.snc.Counter.Create("net", key, c.bufferLength, SystemMetricsMeasureInterval)
 		}
 		c.snc.Counter.Set("net", key, val)
 	}
 
 	// remove interface not updated within the bufferLength
-	trimData := time.Now().Add(-time.Duration(c.bufferLength) * time.Second).UnixMilli()
+	trimData := time.Now().Add(-c.bufferLength).UnixMilli()
 	for _, key := range c.snc.Counter.Keys("net") {
-		counter := c.snc.Counter.Get("net", key)
-		if last := counter.GetLast(); last != nil {
-			if last.unixMilli < trimData {
-				log.Tracef("removed old net device: %s (last update: %s)", key, time.UnixMilli(last.unixMilli).String())
-				c.snc.Counter.Delete("net", key)
-			}
+		last := c.snc.Counter.Get("net", key).GetLast()
+		if last.UnixMilli < trimData {
+			log.Tracef("removed old net device: %s (last update: %s)", key, time.UnixMilli(last.UnixMilli).String())
+			c.snc.Counter.Delete("net", key)
 		}
 	}
 
@@ -168,8 +166,8 @@ func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo
 
 func (c *CheckSystemHandler) addLinuxKernelStats(create bool) {
 	if create {
-		c.snc.Counter.Create("kernel", "ctxt", c.bufferLength)
-		c.snc.Counter.Create("kernel", "processes", c.bufferLength)
+		c.snc.Counter.Create("kernel", "ctxt", c.bufferLength, SystemMetricsMeasureInterval)
+		c.snc.Counter.Create("kernel", "processes", c.bufferLength, SystemMetricsMeasureInterval)
 	}
 
 	statFile, err := os.Open("/proc/stat")

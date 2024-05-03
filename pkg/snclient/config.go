@@ -860,7 +860,7 @@ func (cs *ConfigSection) GetBool(key string) (val, ok bool, err error) {
 }
 
 // GetDuration parses duration value from config section, it returns the value if found and sets ok to true.
-// If value is found but cannot be parsed, error is set.
+// If value is found but cannot be parsed, error is set. Return value is in seconds.
 func (cs *ConfigSection) GetDuration(key string) (val float64, ok bool, err error) {
 	raw, ok := cs.GetString(key)
 	if !ok {

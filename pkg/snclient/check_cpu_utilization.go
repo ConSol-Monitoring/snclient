@@ -164,8 +164,8 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLoo
 func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizationResult, ok bool) {
 	res = &CPUUtilizationResult{}
 
-	counter1 := l.snc.Counter.GetAny("cpuinfo", "info")
-	counter2 := l.snc.Counter.GetAny("cpuinfo", "info")
+	counter1 := l.snc.Counter.Get("cpuinfo", "info")
+	counter2 := l.snc.Counter.Get("cpuinfo", "info")
 	if counter1 == nil || counter2 == nil {
 		return nil, false
 	}
@@ -176,20 +176,20 @@ func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizati
 		return nil, false
 	}
 
-	if cpuinfo1.unixMilli < cpuinfo2.unixMilli {
+	if cpuinfo1.UnixMilli < cpuinfo2.UnixMilli {
 		return nil, false
 	}
-	duration := float64(cpuinfo1.unixMilli - cpuinfo2.unixMilli)
+	duration := float64(cpuinfo1.UnixMilli - cpuinfo2.UnixMilli)
 	if duration <= 0 {
 		return nil, false
 	}
 	duration /= 1e3 // cpu times are measured in seconds
 
-	info1, ok := cpuinfo1.value.(*cpuinfo.TimesStat)
+	info1, ok := cpuinfo1.Value.(*cpuinfo.TimesStat)
 	if !ok {
 		return nil, false
 	}
-	info2, ok := cpuinfo2.value.(*cpuinfo.TimesStat)
+	info2, ok := cpuinfo2.Value.(*cpuinfo.TimesStat)
 	if !ok {
 		return nil, false
 	}

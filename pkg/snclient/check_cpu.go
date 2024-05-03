@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"pkg/utils"
 
@@ -79,21 +80,21 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 		if counter == nil {
 			continue
 		}
-		for i, time := range l.times {
-			dur, _ := utils.ExpandDuration(time)
-			avg := counter.AvgForDuration(dur)
+		for i, durStr := range l.times {
+			dur, _ := utils.ExpandDuration(durStr)
+			avg := counter.AvgForDuration(time.Duration(dur) * time.Second)
 			if i == 0 {
 				total = avg
 			}
 			check.listData = append(check.listData, map[string]string{
-				"time":    time,
+				"time":    durStr,
 				"core":    name,
 				"core_id": name,
 				"load":    fmt.Sprintf("%.0f", utils.ToPrecision(avg, 0)),
 			})
 			check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 				ThresholdName: "load",
-				Name:          fmt.Sprintf("%s %s", name, time),
+				Name:          fmt.Sprintf("%s %s", name, durStr),
 				Value:         utils.ToPrecision(avg, 0),
 				Unit:          "%",
 				Warning:       check.warnThreshold,

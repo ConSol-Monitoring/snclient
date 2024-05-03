@@ -8,6 +8,8 @@ replace pkg/eventlog => ../../pkg/eventlog
 
 replace pkg/convert => ../../pkg/convert
 
+replace pkg/counter => ../../pkg/counter
+
 replace pkg/humanize => ../../pkg/humanize
 
 replace pkg/nrpe => ../../pkg/nrpe
@@ -47,6 +49,7 @@ require (
 	pkg/check_dns v0.0.0-00010101000000-000000000000
 	pkg/check_tcp v0.0.0-00010101000000-000000000000
 	pkg/convert v0.0.0-00010101000000-000000000000
+	pkg/counter v0.0.0-00010101000000-000000000000
 	pkg/dump v0.0.0-00010101000000-000000000000
 	pkg/eventlog v0.0.0-00010101000000-000000000000
 	pkg/humanize v0.0.0-00010101000000-000000000000

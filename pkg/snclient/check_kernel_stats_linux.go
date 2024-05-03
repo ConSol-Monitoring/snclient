@@ -130,14 +130,13 @@ func (l *CheckKernelStats) Check(_ context.Context, snc *Agent, check *CheckData
 }
 
 func (l *CheckKernelStats) getRate(name string) (rate, last float64) {
-	rate, _ = l.snc.Counter.GetRate("kernel", name, KernelRateDuration)
-	lastC := l.snc.Counter.Get("kernel", name)
-	if lastC != nil {
-		lastV := lastC.GetLast()
-		if lastV != nil {
-			last = lastV.value
-		}
+	counter := l.snc.Counter.Get("kernel", name)
+	if counter == nil {
+		return 0, 0
 	}
+
+	rate, _ = counter.GetRate(KernelRateDuration)
+	last = counter.GetLast().Float64()
 
 	if rate < 0 {
 		rate = 0
