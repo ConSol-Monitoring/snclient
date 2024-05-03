@@ -33,7 +33,7 @@ test4 += c
 # also comment
 	`
 	cfg := NewConfig(true)
-	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", nil)
+	err := cfg.ParseINI(configText, "testfile.ini", nil)
 
 	require.NoErrorf(t, err, "config parsed")
 
@@ -56,7 +56,7 @@ func TestConfigErrorI(t *testing.T) {
 Key1 = "Value1
 	`
 	cfg := NewConfig(true)
-	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", nil)
+	err := cfg.ParseINI(configText, "testfile.ini", nil)
 
 	require.Errorf(t, err, "config error found")
 	require.ErrorContains(t, err, "config error in testfile.ini:3: unclosed quotes")
@@ -78,7 +78,7 @@ Key3 = Value3
 
 	`
 	cfg := NewConfig(true)
-	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", nil)
+	err := cfg.ParseINI(configText, "testfile.ini", nil)
 	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/sub1/other")
@@ -106,10 +106,10 @@ password = test
 	`
 
 	cfg := NewConfig(false)
-	err := cfg.ParseINI(strings.NewReader(defaultConfig), "default.ini", nil)
+	err := cfg.ParseINI(defaultConfig, "default.ini", nil)
 	require.NoErrorf(t, err, "default config parsed")
 
-	err = cfg.ParseINI(strings.NewReader(customConfig), "custom.ini", nil)
+	err = cfg.ParseINI(customConfig, "custom.ini", nil)
 	require.NoErrorf(t, err, "custom config parsed")
 
 	section := cfg.Section("/settings/WEB/server")
@@ -241,7 +241,7 @@ port = 5666
 ; port - port description
 port = 443
 
-; use ssl - security i important hmmkay
+; use ssl - security is important hmmkay
 ; use ssl = false
 
 
@@ -255,7 +255,7 @@ port = 443
 	}
 
 	cfg := NewConfig(false)
-	err := cfg.ParseINI(strings.NewReader(configText), "test.ini", nil)
+	err := cfg.ParseINI(configText, "test.ini", nil)
 
 	require.NoErrorf(t, err, "parsed ini without error")
 	assert.Equalf(t, strings.TrimSpace(configText), strings.TrimSpace(cfg.ToString()), "config did no change")
@@ -273,7 +273,7 @@ port = 5666
 ; port - port description
 port = 1234
 
-; use ssl - security i important hmmkay
+; use ssl - security is important hmmkay
 use ssl = enabled
 
 
@@ -299,9 +299,6 @@ func TestConfigPackaging(t *testing.T) {
 	pkgDir := filepath.Join(testDir, "..", "..", "packaging")
 	pkgCfgFile := filepath.Join(pkgDir, "snclient.ini")
 
-	file, err := os.Open(pkgCfgFile)
-	require.NoErrorf(t, err, "open ini without error")
-
 	data, err := os.ReadFile(pkgCfgFile)
 	require.NoErrorf(t, err, "read ini without error")
 	origConfig := strings.TrimSpace(string(data))
@@ -313,8 +310,7 @@ func TestConfigPackaging(t *testing.T) {
 	}
 
 	cfg := NewConfig(false)
-	err = cfg.ParseINI(file, pkgCfgFile, nil)
-	file.Close()
+	err = cfg.ParseINIFile(pkgCfgFile, nil)
 
 	require.NoErrorf(t, err, "parse ini without error")
 	assert.Equalf(t, origConfig, strings.TrimSpace(cfg.ToString()), "default config should not change when opened and saved unchanged")
@@ -325,12 +321,8 @@ func TestConfigRelativeIncludes(t *testing.T) {
 	pkgDir := filepath.Join(testDir, "t", "configs")
 	pkgCfgFile := filepath.Join(pkgDir, "snclient_incl.ini")
 
-	file, err := os.Open(pkgCfgFile)
-	require.NoErrorf(t, err, "open ini without error")
-
 	cfg := NewConfig(true)
-	err = cfg.ParseINI(file, pkgCfgFile, nil)
-	file.Close()
+	err := cfg.ParseINIFile(pkgCfgFile, nil)
 	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/WEB/server")
@@ -349,7 +341,7 @@ func TestEmptyConfig(t *testing.T) {
 	configText := `; INI
 `
 	cfg := NewConfig(true)
-	err := cfg.ParseINI(strings.NewReader(configText), "testfile.ini", nil)
+	err := cfg.ParseINI(configText, "testfile.ini", nil)
 
 	require.NoErrorf(t, err, "empty ini parsed")
 }
@@ -359,12 +351,8 @@ func TestConfigAppend(t *testing.T) {
 	pkgDir := filepath.Join(testDir, "t", "configs")
 	pkgCfgFile := filepath.Join(pkgDir, "snclient_append.ini")
 
-	file, err := os.Open(pkgCfgFile)
-	require.NoErrorf(t, err, "open ini without error")
-
 	cfg := NewConfig(false)
-	err = cfg.ParseINI(file, pkgCfgFile, nil)
-	file.Close()
+	err := cfg.ParseINIFile(pkgCfgFile, nil)
 	require.NoErrorf(t, err, "config parsed")
 
 	section := cfg.Section("/settings/default")

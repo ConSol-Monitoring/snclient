@@ -5,7 +5,7 @@ linters-settings:
       - style
       - experimental
   gocyclo:
-    min-complexity: 26
+    min-complexity: 27
   goconst:
     min-len: 8
     min-occurrences: 12

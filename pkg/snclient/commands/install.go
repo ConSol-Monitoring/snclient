@@ -77,13 +77,10 @@ func installPkg(_ *cobra.Command, args []string) {
 	snc.Log.Infof("starting installer: %#v", installConfig)
 
 	// merge tmp_installer.ini into snclient.ini
-	err := mergeIniFile(snc, installConfig)
-	if err != nil {
-		snc.Log.Errorf("failed to write install ini: %s", err.Error())
-	}
+	mergeIniFile(snc, installConfig)
 
 	// reload config
-	_, err = snc.Init()
+	_, err := snc.Init()
 	if err != nil {
 		snc.Log.Errorf("failed to reload config: %s", err.Error())
 	}
@@ -328,39 +325,24 @@ func installService(name string) error {
 	return nil
 }
 
-func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
+func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) {
 	installDir, ok := installConfig["INSTALLDIR"]
 	if !ok {
 		snc.Log.Errorf("no install dir found in arguments: %#v", installConfig)
 
-		return nil
+		return
 	}
 
 	tmpFile := filepath.Join(installDir, "tmp_installer.ini")
 	tmpConfig := snclient.NewConfig(false)
-	file, err := os.Open(tmpFile)
-	if err != nil {
-		snc.Log.Debugf("failed to read %s: %s", tmpFile, err.Error())
-
-		return nil
-	}
-
-	err = tmpConfig.ParseINI(file, tmpFile, snc)
+	err := tmpConfig.ParseINIFile(tmpFile, snc)
 	if err != nil {
 		snc.Log.Errorf("failed to parse %s: %s", tmpFile, err.Error())
 	}
-	file.Close()
 
 	targetFile := filepath.Join(installDir, "snclient.ini")
 	targetConfig := snclient.NewConfig(false)
-	file, err = os.Open(targetFile)
-	if err != nil {
-		snc.Log.Errorf("failed to read %s: %s", targetFile, err.Error())
-
-		return fmt.Errorf("open %s: %s", targetFile, err.Error())
-	}
-	defer file.Close()
-	err = targetConfig.ParseINI(file, targetFile, snc)
+	err = targetConfig.ParseINIFile(targetFile, snc)
 	if err != nil {
 		snc.Log.Errorf("failed to parse %s: %s", targetFile, err.Error())
 	}
@@ -379,8 +361,6 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) error {
 	if err != nil {
 		snc.Log.Errorf("failed to remove %s: %s", tmpFile, err.Error())
 	}
-
-	return nil
 }
 
 func handleMergeSection(snc *snclient.Agent, section, targetSection *snclient.ConfigSection) {

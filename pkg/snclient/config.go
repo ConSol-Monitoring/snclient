@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -23,8 +22,6 @@ import (
 
 	"golang.org/x/exp/slices"
 )
-
-const MaxLineSize = 1024 * 1024 // limit max line length to 1MB
 
 var DefaultConfig = map[string]ConfigData{
 	"/modules": {
@@ -174,12 +171,17 @@ func (config *Config) ReadINI(iniPath string, snc *Agent) error {
 		return nil
 	}
 
+	return config.ParseINIFile(iniPath, snc)
+}
+
+// ParseINIFile reads ini style configuration from file path.
+func (config *Config) ParseINIFile(iniPath string, snc *Agent) error {
 	log.Debugf("reading config: %s", iniPath)
-	file, err := os.ReadFile(iniPath)
+	data, err := os.ReadFile(iniPath)
 	if err != nil {
 		return fmt.Errorf("%s: %s", iniPath, err.Error())
 	}
-	err = config.ParseINI(bytes.NewReader(file), iniPath, snc)
+	err = config.ParseINI(string(data), iniPath, snc)
 	if err != nil {
 		return fmt.Errorf("config error in file %s: %s", iniPath, err.Error())
 	}
@@ -189,19 +191,21 @@ func (config *Config) ReadINI(iniPath string, snc *Agent) error {
 
 // ParseINI reads ini style configuration and updates config object.
 // it returns the first error found but still reads the hole file
-func (config *Config) ParseINI(file io.Reader, iniPath string, snc *Agent) error {
+func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 	parseErrors := []error{}
 	var currentSection *ConfigSection
-	lineNr := 0
-
-	scanner := bufio.NewScanner(file)
-	buffer := make([]byte, 0, MaxLineSize)
-	scanner.Buffer(buffer, MaxLineSize)
 	currentComments := make([]string, 0)
-	for scanner.Scan() {
-		lineNr++
 
-		line := strings.TrimSpace(scanner.Text())
+	lines := strings.Split(configData, "\n")
+
+	// trim empty elements from the end
+	for len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
+		lines = lines[:len(lines)-1]
+	}
+
+	for x, line := range lines {
+		lineNr := x + 1
+		line = strings.TrimSpace(line)
 		if line == "" || line[0] == ';' || line[0] == '#' {
 			currentComments = append(currentComments, line)
 
@@ -695,7 +699,7 @@ func (cs *ConfigSection) Insert(key, value string) {
 	if foundComment {
 		// parse section back again
 		tmpCfg := NewConfig(false)
-		LogDebug(tmpCfg.ParseINI(strings.NewReader(cs.String()), "tmp.ini", nil))
+		LogDebug(tmpCfg.ParseINI(cs.String(), "tmp.ini", nil))
 		tmpSection := tmpCfg.Section(cs.name)
 		cs.data = tmpSection.data
 		cs.keys = tmpSection.keys
