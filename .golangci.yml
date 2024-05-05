@@ -38,6 +38,7 @@ linters:
     - depguard
     - exhaustivestruct
     - exhaustruct
+    - err113
     - gci
     - gochecknoglobals
     - gochecknoinits
@@ -55,6 +56,8 @@ linters:
     - wsl
     # deprecated
     - deadcode
+    - execinquery
+    - gomnd
     - structcheck
     - varcheck
     - scopelint
@@ -66,46 +69,45 @@ issues:
   exclude-use-default: true
   exclude:
     - "`noCopy` is unused"
-    - "mnd: Magic number: 0.1, in"
-    - "mnd: Magic number: 0.01, in"
-    - "mnd: Magic number: 0.001, in"
-    - "mnd: Magic number: 2, in"
-    - "mnd: Magic number: 3, in"
-    - "mnd: Magic number: 4, in"
-    - "mnd: Magic number: 5, in"
-    - "mnd: Magic number: 6, in"
-    - "mnd: Magic number: 7, in"
-    - "mnd: Magic number: 10, in"
-    - "mnd: Magic number: 12, in"
-    - "mnd: Magic number: 14, in"
-    - "mnd: Magic number: 15, in"
-    - "mnd: Magic number: 16, in"
-    - "mnd: Magic number: 20, in"
-    - "mnd: Magic number: 24, in"
-    - "mnd: Magic number: 32, in"
-    - "mnd: Magic number: 50, in"
-    - "mnd: Magic number: 60, in"
-    - "mnd: Magic number: 64, in"
-    - "mnd: Magic number: 100, in"
-    - "mnd: Magic number: 126, in"
-    - "mnd: Magic number: 127, in"
-    - "mnd: Magic number: 365, in"
-    - "mnd: Magic number: 500, in"
-    - "mnd: Magic number: 512, in"
-    - "mnd: Magic number: 1000, in"
-    - "mnd: Magic number: 1024, in"
-    - "mnd: Magic number: 3600, in"
-    - "mnd: Magic number: 86400, in"
-    - "mnd: Magic number: 1e3, in"
-    - "mnd: Magic number: 1e6, in"
-    - "mnd: Magic number: 1e7, in"
-    - "mnd: Magic number: 1e9, in"
-    - "mnd: Magic number: 1e12, in"
-    - "mnd: Magic number: 1e15, in"
-    - "mnd: Magic number: 0o600, in"
-    - "mnd: Magic number: 0o700, in"
+    - "Magic number: 0.1, in"
+    - "Magic number: 0.01, in"
+    - "Magic number: 0.001, in"
+    - "Magic number: 2, in"
+    - "Magic number: 3, in"
+    - "Magic number: 4, in"
+    - "Magic number: 5, in"
+    - "Magic number: 6, in"
+    - "Magic number: 7, in"
+    - "Magic number: 10, in"
+    - "Magic number: 12, in"
+    - "Magic number: 14, in"
+    - "Magic number: 15, in"
+    - "Magic number: 16, in"
+    - "Magic number: 20, in"
+    - "Magic number: 24, in"
+    - "Magic number: 32, in"
+    - "Magic number: 50, in"
+    - "Magic number: 60, in"
+    - "Magic number: 64, in"
+    - "Magic number: 100, in"
+    - "Magic number: 126, in"
+    - "Magic number: 127, in"
+    - "Magic number: 365, in"
+    - "Magic number: 500, in"
+    - "Magic number: 512, in"
+    - "Magic number: 1000, in"
+    - "Magic number: 1024, in"
+    - "Magic number: 3600, in"
+    - "Magic number: 86400, in"
+    - "Magic number: 1e3, in"
+    - "Magic number: 1e6, in"
+    - "Magic number: 1e7, in"
+    - "Magic number: 1e9, in"
+    - "Magic number: 1e12, in"
+    - "Magic number: 1e15, in"
+    - "Magic number: 0o600, in"
+    - "Magic number: 0o700, in"
     - "noCopy is missing in"
-    - 'err113:'
     - "variable name 'ok' is too short"
     - "Function 'setListenTLSConfig' has too many statements"
     - "Function 'ParseArgs' has too many statements"

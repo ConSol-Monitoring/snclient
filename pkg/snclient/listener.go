@@ -140,11 +140,11 @@ func (l *Listener) setListenTLSConfig(conf *ConfigSection) error {
 
 	// tls minimum version
 	if tlsMin, ok := conf.GetString("tls min version"); ok {
-		min, err := utils.ParseTLSMinVersion(tlsMin)
+		minV, err := utils.ParseTLSMinVersion(tlsMin)
 		if err != nil {
 			return fmt.Errorf("invalid tls min version: %s", err.Error())
 		}
-		l.tlsConfig.MinVersion = min
+		l.tlsConfig.MinVersion = minV
 	}
 
 	/* remove insecure ciphers, but only tls == 1.2

@@ -264,13 +264,13 @@ func (l *HandlerWeb) metrics2PerfInt64MinMax(metric *CheckMetric, val *CheckWebP
 	}
 
 	if metric.Min != nil {
-		min := int64(*metric.Min)
-		val.Min = &min
+		minV := int64(*metric.Min)
+		val.Min = &minV
 	}
 
 	if metric.Max != nil {
-		max := int64(*metric.Max)
-		val.Max = &max
+		maxV := int64(*metric.Max)
+		val.Max = &maxV
 	}
 }
 

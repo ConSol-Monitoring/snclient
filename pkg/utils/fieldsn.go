@@ -18,12 +18,12 @@ func FieldsN(s string, n int) []string {
 
 // FieldsFuncN is like strings.FieldsFunc, but returns at most n fields,
 // and the nth field includes any runes at the end of the string normally excluded by f.
-func FieldsFuncN(str string, fun func(rune) bool, max int) []string {
-	if max <= 0 {
+func FieldsFuncN(str string, fun func(rune) bool, maxV int) []string {
+	if maxV <= 0 {
 		return nil
 	}
 
-	fields := make([]string, 0, max)
+	fields := make([]string, 0, maxV)
 	index := 0
 	fieldStart := -1
 	for idx, rune := range str {
@@ -35,7 +35,7 @@ func FieldsFuncN(str string, fun func(rune) bool, max int) []string {
 			}
 		} else if fieldStart == -1 {
 			fieldStart = idx
-			if index+1 == max {
+			if index+1 == maxV {
 				break
 			}
 		}

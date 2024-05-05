@@ -246,21 +246,21 @@ func (cr *CheckResult) extractMetrics(str string) []*CheckMetric {
 
 		// min
 		if len(values) > 3 && values[3] != "" {
-			min, err := strconv.ParseFloat(values[3], 64)
+			minV, err := strconv.ParseFloat(values[3], 64)
 			if err != nil {
 				log.Debugf("broken performance data, no cannot parse float in %s: %s", raw, err.Error())
 			} else {
-				metric.Min = &min
+				metric.Min = &minV
 			}
 		}
 
 		// max
 		if len(values) > 4 && values[4] != "" {
-			max, err := strconv.ParseFloat(values[4], 64)
+			maxV, err := strconv.ParseFloat(values[4], 64)
 			if err != nil {
 				log.Debugf("broken performance data, no cannot parse float in %s: %s", raw, err.Error())
 			} else {
-				metric.Max = &max
+				metric.Max = &maxV
 			}
 		}
 
