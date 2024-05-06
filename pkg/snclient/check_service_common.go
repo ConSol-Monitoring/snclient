@@ -52,7 +52,7 @@ func (l *CheckService) addProcMetrics(ctx context.Context, pidStr string, listEn
 		createTimeMillis, err := proc.CreateTimeWithContext(ctx)
 		if err == nil {
 			ctMillis := createTimeMillis / 1e3
-			if ctMillis < createTimeUnix {
+			if createTimeUnix == 0 || ctMillis < createTimeUnix {
 				createTimeUnix = ctMillis
 			}
 		}
