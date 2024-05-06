@@ -27,7 +27,7 @@ replace pkg/check_dns => ./pkg/check_dns
 replace pkg/check_tcp => ./pkg/check_tcp
 
 // use fork with pulled patches
-replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240129124248-a5f3e5722a21
+replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240506201943-915d2ad98f31
 
 require (
 	github.com/stretchr/testify v1.9.0
@@ -37,7 +37,7 @@ require (
 
 require (
 	github.com/DataDog/zstd v1.5.5 // indirect
-	github.com/beevik/ntp v1.3.1 // indirect
+	github.com/beevik/ntp v1.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -57,7 +57,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/miekg/dns v1.1.59 // indirect
-	github.com/petermattis/goid v0.0.0-20240327183114-c42a807a84ba // indirect
+	github.com/petermattis/goid v0.0.0-20240503122002-4b96552b8156 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/client_golang v1.19.0 // indirect
@@ -71,7 +71,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/sassoftware/go-rpmutils v0.3.0 // indirect
 	github.com/sevlyar/go-daemon v0.1.6 // indirect
-	github.com/shirou/gopsutil/v3 v3.24.3 // indirect
+	github.com/shirou/gopsutil/v3 v3.24.4 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae // indirect
 	github.com/sni/shelltoken v0.0.0-20240314123449-84b0a0c05450 // indirect
@@ -82,15 +82,15 @@ require (
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
-	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
+	golang.org/x/crypto v0.23.0 // indirect
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/term v0.19.0 // indirect
-	golang.org/x/tools v0.20.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/term v0.20.0 // indirect
+	golang.org/x/tools v0.21.0 // indirect
+	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	pkg/check_dns v0.0.0-00010101000000-000000000000 // indirect
 	pkg/check_tcp v0.0.0-00010101000000-000000000000 // indirect

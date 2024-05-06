@@ -7,4 +7,4 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4
 )
 
-require golang.org/x/sys v0.19.0 // indirect
+require golang.org/x/sys v0.20.0 // indirect

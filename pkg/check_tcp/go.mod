@@ -7,4 +7,4 @@ require (
 	github.com/mackerelio/checkers v0.2.0
 )
 
-require golang.org/x/sys v0.19.0 // indirect
+require golang.org/x/sys v0.20.0 // indirect
