@@ -5,6 +5,8 @@ next:
          - add native aarch64 (arm64) packages for windows
          - add support for extending default filter/warn/crit
          - check_service: use cgroup pids if no main pid available
+         - fix memory leak in check_service on windows
+         - fix memory leak in check_drivesize on windows
          - fix missing scripts in inventory
 
 0.23     Mon Apr 15 17:29:53 CEST 2024

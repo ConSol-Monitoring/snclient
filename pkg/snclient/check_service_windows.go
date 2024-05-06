@@ -124,6 +124,9 @@ func (l *CheckService) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 			Output: fmt.Sprintf("Failed to open service handler: %s", err),
 		}, nil
 	}
+	defer func() {
+		LogDebug(ctrlMgr.Disconnect())
+	}()
 
 	if len(l.services) == 0 || slices.Contains(l.services, "*") {
 		serviceList, err2 := ctrlMgr.ListServices()
@@ -185,7 +188,9 @@ func (l *CheckService) getServiceDetails(ctrlMgr *mgr.Mgr, service string) (*Win
 		return nil, fmt.Errorf("failed to open service %s: %s", service, err.Error())
 	}
 	ctlSvc := &mgr.Service{Name: service, Handle: *svcHdl}
-	defer ctlSvc.Close()
+	defer func() {
+		LogDebug(ctlSvc.Close())
+	}()
 
 	statusCode, err := ctlSvc.Query()
 	if err != nil {

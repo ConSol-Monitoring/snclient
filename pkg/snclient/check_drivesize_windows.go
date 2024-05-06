@@ -329,6 +329,9 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 
 		return
 	}
+	defer func() {
+		LogDebug(windows.CloseHandle(hndl))
+	}()
 	volumes = append(volumes, syscall.UTF16ToString(volumeName))
 
 	for {
