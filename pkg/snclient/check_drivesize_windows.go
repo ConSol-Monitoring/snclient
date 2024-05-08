@@ -323,7 +323,7 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 	volumes := []string{}
 	bufLen := windows.MAX_PATH + 1
 	volumeName := make([]uint16, bufLen)
-	hndl, err := windows.FindFirstVolume(&volumeName[0], uint32(bufLen*2))
+	hndl, err := windows.FindFirstVolume(&volumeName[0], uint32(bufLen))
 	if err != nil {
 		log.Tracef("FindFirstVolume: %s", err.Error())
 
@@ -335,7 +335,7 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 	volumes = append(volumes, syscall.UTF16ToString(volumeName))
 
 	for {
-		err := windows.FindNextVolume(hndl, &volumeName[0], uint32(bufLen*2))
+		err := windows.FindNextVolume(hndl, &volumeName[0], uint32(bufLen))
 		if err != nil {
 			log.Tracef("FindNextVolume: %s", err.Error())
 
