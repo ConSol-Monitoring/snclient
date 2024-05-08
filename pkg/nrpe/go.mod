@@ -1,4 +1,4 @@
-module nrpe
+module github.com/consol-monitoring/snclient/pkg/nrpe
 
 go 1.22.0
 

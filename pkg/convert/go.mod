@@ -1,4 +1,4 @@
-module convert
+module github.com/consol-monitoring/snclient/pkg/convert
 
 go 1.22.0
 

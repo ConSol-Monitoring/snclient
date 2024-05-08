@@ -1,4 +1,4 @@
-module wmi
+module github.com/consol-monitoring/snclient/pkg/wmi
 
 go 1.22.0
 

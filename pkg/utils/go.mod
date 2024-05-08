@@ -1,4 +1,4 @@
-module utils
+module github.com/consol-monitoring/snclient/pkg/utils
 
 go 1.22.0
 

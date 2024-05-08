@@ -1,4 +1,4 @@
-module humanize
+module github.com/consol-monitoring/snclient/pkg/humanize
 
 go 1.22.0
 
