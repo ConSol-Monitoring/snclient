@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"pkg/convert"
-	"pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 // PerfConfig contains a single perf-config item.

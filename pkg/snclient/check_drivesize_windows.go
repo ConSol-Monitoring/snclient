@@ -9,8 +9,7 @@ import (
 	"unicode"
 	"unsafe"
 
-	"pkg/utils"
-
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/shirou/gopsutil/v3/disk"
 	"golang.org/x/sys/windows"
 )

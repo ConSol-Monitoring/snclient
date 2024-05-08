@@ -6,8 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"pkg/nrpe"
-
+	"github.com/consol-monitoring/snclient/pkg/nrpe"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/convert"
 )
 
 func (l *CheckNetwork) interfaceSpeed(_ int, name string) (int64, error) {

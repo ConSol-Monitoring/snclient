@@ -6,8 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"pkg/utils"
-
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/go-chi/chi/v5"
 )
 

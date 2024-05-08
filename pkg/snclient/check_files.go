@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"pkg/humanize"
-	"pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/humanize"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 func init() {

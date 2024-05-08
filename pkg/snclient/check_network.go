@@ -7,8 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"pkg/humanize"
-
+	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/shirou/gopsutil/v3/net"
 	"golang.org/x/exp/slices"
 )

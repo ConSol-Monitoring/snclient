@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"pkg/convert"
-	"pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 const (

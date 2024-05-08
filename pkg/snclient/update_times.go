@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 type UpdateHours struct {

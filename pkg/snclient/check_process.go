@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/convert"
 )
 
 func init() {

@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"pkg/snclient"
-	"pkg/utils"
 
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/reeflective/readline"
 	"github.com/spf13/cobra"
 )

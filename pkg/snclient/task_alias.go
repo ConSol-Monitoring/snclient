@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path"
 
-	"pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 func init() {

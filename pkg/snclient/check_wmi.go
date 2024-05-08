@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"strings"
 
-	"pkg/convert"
-	"pkg/wmi"
+	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/wmi"
 )
 
 func init() {

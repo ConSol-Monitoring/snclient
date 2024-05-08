@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"pkg/counter"
-	"pkg/utils"
-	"pkg/wmi"
 
+	"github.com/consol-monitoring/snclient/pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/wmi"
 	"github.com/kdar/factorlog"
 	deadlock "github.com/sasha-s/go-deadlock"
 	daemon "github.com/sevlyar/go-daemon"

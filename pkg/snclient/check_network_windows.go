@@ -3,7 +3,7 @@ package snclient
 import (
 	"fmt"
 
-	"pkg/wmi"
+	"github.com/consol-monitoring/snclient/pkg/wmi"
 )
 
 func (l *CheckNetwork) interfaceSpeed(index int, name string) (speed int64, err error) {

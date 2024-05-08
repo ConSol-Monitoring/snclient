@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"pkg/wmi"
+	"github.com/consol-monitoring/snclient/pkg/wmi"
 )
 
 const (

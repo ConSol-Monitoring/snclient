@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"pkg/wmi"
-
+	"github.com/consol-monitoring/snclient/pkg/wmi"
 	"golang.org/x/exp/slices"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"

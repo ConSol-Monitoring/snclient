@@ -8,10 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"pkg/convert"
-	"pkg/utils"
-
 	"github.com/beevik/ntp"
+	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 func init() {

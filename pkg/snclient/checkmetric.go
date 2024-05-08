@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"pkg/convert"
-	"pkg/humanize"
-	"pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/humanize"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 // CheckMetric contains a single performance value.

@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"pkg/utils"
-
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/shirou/gopsutil/v3/host"
 	"golang.org/x/exp/slices"
 )

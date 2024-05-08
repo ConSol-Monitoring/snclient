@@ -13,8 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"pkg/utils"
-
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/kdar/factorlog"
 )
 

@@ -206,16 +206,16 @@ rsrc_windows_arm64.syso: winres | tools
 	${TOOLSFOLDER}/go-winres make --arch arm64
 
 test: vendor
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) pkg/* pkg/*/commands
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) ./pkg/* ./pkg/*/commands
 	if grep -Irn TODO: ./cmd/ ./pkg/ ./packaging/ ; then exit 1; fi
 	if grep -Irn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
 
 # test with filter
 testf: vendor
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) pkg/* pkg/*/commands -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS"
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) ./pkg/* ./pkg/*/commands -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS"
 
 longtest: vendor
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) pkg/* pkg/*/commands
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -v $(TEST_FLAGS) ./pkg/* ./pkg/*/commands
 
 citest: tools vendor
 	#

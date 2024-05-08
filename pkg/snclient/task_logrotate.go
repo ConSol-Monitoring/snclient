@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"pkg/humanize"
+	"github.com/consol-monitoring/snclient/pkg/humanize"
 )
 
 const rotateCheckInterval = 60 * time.Second

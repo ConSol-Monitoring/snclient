@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"pkg/snclient"
-	"pkg/utils"
 
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"

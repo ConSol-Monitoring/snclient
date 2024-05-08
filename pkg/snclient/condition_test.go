@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"pkg/convert"
-
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

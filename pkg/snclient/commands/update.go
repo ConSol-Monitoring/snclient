@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"pkg/convert"
 	"pkg/snclient"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
 )

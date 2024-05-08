@@ -7,9 +7,8 @@ import (
 	"runtime"
 	"strings"
 
-	"pkg/humanize"
-	"pkg/utils"
-
+	"github.com/consol-monitoring/snclient/pkg/humanize"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	cpuinfo "github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/process"

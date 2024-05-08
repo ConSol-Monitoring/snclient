@@ -21,8 +21,7 @@ import (
 	"syscall"
 	"time"
 
-	"pkg/utils"
-
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/sassoftware/go-rpmutils"
 )
 

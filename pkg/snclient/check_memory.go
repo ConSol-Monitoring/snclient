@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"pkg/humanize"
-
+	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 

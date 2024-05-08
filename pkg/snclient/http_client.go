@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 var DefaultHTTPClientConfig = ConfigData{

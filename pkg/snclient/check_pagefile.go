@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"runtime"
 
-	"pkg/humanize"
-	"pkg/wmi"
+	"github.com/consol-monitoring/snclient/pkg/humanize"
+	"github.com/consol-monitoring/snclient/pkg/wmi"
 )
 
 func init() {

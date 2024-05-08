@@ -13,8 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"pkg/convert"
-
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"golang.org/x/exp/slices"
 )
 

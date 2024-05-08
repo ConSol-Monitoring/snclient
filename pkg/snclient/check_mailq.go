@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"path/filepath"
 
-	"pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/convert"
 )
 
 func init() {

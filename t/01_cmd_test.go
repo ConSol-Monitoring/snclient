@@ -5,8 +5,7 @@ import (
 	"runtime"
 	"testing"
 
-	snclientutils "pkg/utils"
-
+	snclientutils "github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/stretchr/testify/require"
 )
 

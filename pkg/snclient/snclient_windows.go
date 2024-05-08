@@ -12,8 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"pkg/utils"
-
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/sni/shelltoken"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"

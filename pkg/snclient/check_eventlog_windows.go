@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"pkg/convert"
-	"pkg/eventlog"
-	"pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/eventlog"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {

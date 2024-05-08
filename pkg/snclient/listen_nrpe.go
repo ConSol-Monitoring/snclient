@@ -5,7 +5,7 @@ import (
 	"net"
 	"strings"
 
-	"pkg/nrpe"
+	"github.com/consol-monitoring/snclient/pkg/nrpe"
 )
 
 func init() {

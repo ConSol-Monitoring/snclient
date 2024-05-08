@@ -6,8 +6,8 @@ import (
 	"syscall"
 
 	"pkg/snclient"
-	"pkg/utils"
 
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )

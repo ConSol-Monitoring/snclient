@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"pkg/convert"
-
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/shirou/gopsutil/v3/host"
 )
 

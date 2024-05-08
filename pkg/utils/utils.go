@@ -20,7 +20,6 @@ import (
 	"unicode"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
-
 	"github.com/kdar/factorlog"
 	"golang.org/x/exp/maps"
 )

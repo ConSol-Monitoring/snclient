@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"pkg/utils"
-
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/shirou/gopsutil/v3/host"
 )
 
