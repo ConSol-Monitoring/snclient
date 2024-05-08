@@ -2,7 +2,7 @@ module github.com/consol-monitoring/snclient/pkg/eventlog
 
 go 1.22.0
 
-require github.com/consol-monitoring/snclient/pkg/wmi v0.0.0-20240508104349-5db71323a8db
+require github.com/consol-monitoring/snclient/pkg/wmi v0.0.0-20240508113110-e70bd2f478ac
 
 require (
 	github.com/go-ole/go-ole v1.3.0 // indirect

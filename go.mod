@@ -30,23 +30,25 @@ replace pkg/check_tcp => ./pkg/check_tcp
 replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240506201943-915d2ad98f31
 
 require (
-	github.com/consol-monitoring/snclient/pkg/utils v0.0.0-20240508104349-5db71323a8db
+	github.com/consol-monitoring/snclient/pkg/utils v0.0.0-20240508113110-e70bd2f478ac
 	github.com/stretchr/testify v1.9.0
 	pkg/snclient/commands v0.0.0-00010101000000-000000000000
 )
 
 require (
 	github.com/DataDog/zstd v1.5.5 // indirect
+	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/beevik/ntp v1.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240321161425-fd9209e96e1f // indirect
-	github.com/consol-monitoring/snclient/pkg/convert v0.0.0-20240508104349-5db71323a8db // indirect
-	github.com/consol-monitoring/snclient/pkg/eventlog v0.0.0-00010101000000-000000000000 // indirect
-	github.com/consol-monitoring/snclient/pkg/humanize v0.0.0-00010101000000-000000000000 // indirect
-	github.com/consol-monitoring/snclient/pkg/nrpe v0.0.0-00010101000000-000000000000 // indirect
-	github.com/consol-monitoring/snclient/pkg/wmi v0.0.0-20240508104349-5db71323a8db // indirect
+	github.com/consol-monitoring/snclient/pkg/convert v0.0.0-20240508113110-e70bd2f478ac // indirect
+	github.com/consol-monitoring/snclient/pkg/eventlog v0.0.0-20240508113110-e70bd2f478ac // indirect
+	github.com/consol-monitoring/snclient/pkg/humanize v0.0.0-20240508113110-e70bd2f478ac // indirect
+	github.com/consol-monitoring/snclient/pkg/nrpe v0.0.0-20240508113110-e70bd2f478ac // indirect
+	github.com/consol-monitoring/snclient/pkg/wmi v0.0.0-20240508113110-e70bd2f478ac // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-chi/chi/v5 v5.0.12 // indirect
@@ -74,7 +76,7 @@ require (
 	github.com/rickb777/plural v1.4.2 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
-	github.com/sassoftware/go-rpmutils v0.3.0 // indirect
+	github.com/sassoftware/go-rpmutils v0.4.0 // indirect
 	github.com/sevlyar/go-daemon v0.1.6 // indirect
 	github.com/shirou/gopsutil/v3 v3.24.4 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
