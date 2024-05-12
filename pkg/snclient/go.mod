@@ -32,16 +32,16 @@ require (
 	github.com/beevik/ntp v1.4.1
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
 	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240321161425-fd9209e96e1f
-	github.com/consol-monitoring/snclient/pkg/convert v0.0.0-20240508113110-e70bd2f478ac
-	github.com/consol-monitoring/snclient/pkg/eventlog v0.0.0-20240508113110-e70bd2f478ac
-	github.com/consol-monitoring/snclient/pkg/humanize v0.0.0-20240508113110-e70bd2f478ac
-	github.com/consol-monitoring/snclient/pkg/nrpe v0.0.0-20240508113110-e70bd2f478ac
-	github.com/consol-monitoring/snclient/pkg/utils v0.0.0-20240508113110-e70bd2f478ac
-	github.com/consol-monitoring/snclient/pkg/wmi v0.0.0-20240508113110-e70bd2f478ac
+	github.com/consol-monitoring/snclient/pkg/convert v0.0.0-20240508144415-28dfb198a66a
+	github.com/consol-monitoring/snclient/pkg/eventlog v0.0.0-20240508144415-28dfb198a66a
+	github.com/consol-monitoring/snclient/pkg/humanize v0.0.0-20240508144415-28dfb198a66a
+	github.com/consol-monitoring/snclient/pkg/nrpe v0.0.0-20240508144415-28dfb198a66a
+	github.com/consol-monitoring/snclient/pkg/utils v0.0.0-20240508144415-28dfb198a66a
+	github.com/consol-monitoring/snclient/pkg/wmi v0.0.0-20240508144415-28dfb198a66a
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/otiai10/copy v1.14.0
-	github.com/prometheus/client_golang v1.19.0
+	github.com/prometheus/client_golang v1.19.1
 	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.6

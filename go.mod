@@ -30,7 +30,7 @@ replace pkg/check_tcp => ./pkg/check_tcp
 replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240506201943-915d2ad98f31
 
 require (
-	github.com/consol-monitoring/snclient/pkg/utils v0.0.0-20240508113110-e70bd2f478ac
+	github.com/consol-monitoring/snclient/pkg/utils v0.0.0-20240508144415-28dfb198a66a
 	github.com/stretchr/testify v1.9.0
 	pkg/snclient/commands v0.0.0-00010101000000-000000000000
 )
@@ -44,11 +44,11 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240321161425-fd9209e96e1f // indirect
-	github.com/consol-monitoring/snclient/pkg/convert v0.0.0-20240508113110-e70bd2f478ac // indirect
-	github.com/consol-monitoring/snclient/pkg/eventlog v0.0.0-20240508113110-e70bd2f478ac // indirect
-	github.com/consol-monitoring/snclient/pkg/humanize v0.0.0-20240508113110-e70bd2f478ac // indirect
-	github.com/consol-monitoring/snclient/pkg/nrpe v0.0.0-20240508113110-e70bd2f478ac // indirect
-	github.com/consol-monitoring/snclient/pkg/wmi v0.0.0-20240508113110-e70bd2f478ac // indirect
+	github.com/consol-monitoring/snclient/pkg/convert v0.0.0-20240508144415-28dfb198a66a // indirect
+	github.com/consol-monitoring/snclient/pkg/eventlog v0.0.0-20240508144415-28dfb198a66a // indirect
+	github.com/consol-monitoring/snclient/pkg/humanize v0.0.0-20240508144415-28dfb198a66a // indirect
+	github.com/consol-monitoring/snclient/pkg/nrpe v0.0.0-20240508144415-28dfb198a66a // indirect
+	github.com/consol-monitoring/snclient/pkg/wmi v0.0.0-20240508144415-28dfb198a66a // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-chi/chi/v5 v5.0.12 // indirect
@@ -67,7 +67,7 @@ require (
 	github.com/petermattis/goid v0.0.0-20240503122002-4b96552b8156 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/prometheus/client_golang v1.19.0 // indirect
+	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.53.0 // indirect
 	github.com/prometheus/procfs v0.14.0 // indirect
