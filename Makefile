@@ -316,7 +316,7 @@ clean:
 	rm -f rsrc_windows*.syso
 	rm -rf cmd/snclient/rsrc_windows*.syso
 	rm -f node_exporter-*.tar.gz
-	$(MAKE) -C docs clean
+	-$(MAKE) -C docs clean
 
 GOVET=$(GO) vet -all
 SRCFOLDER=./cmd/. ./pkg/. ./t/. ./buildtools/.
