@@ -36,7 +36,6 @@ linters:
   disable:
     - cyclop
     - depguard
-    - exhaustivestruct
     - exhaustruct
     - err113
     - gci
@@ -45,9 +44,6 @@ linters:
     - godot
     - gofumpt
     - gomoddirectives
-    - ifshort
-    - interfacer
-    - maligned
     - nonamedreturns
     - paralleltest
     - perfsprint
@@ -55,14 +51,8 @@ linters:
     - testpackage
     - wsl
     # deprecated
-    - deadcode
     - execinquery
     - gomnd
-    - structcheck
-    - varcheck
-    - scopelint
-    - nosnakecase
-    - golint
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
