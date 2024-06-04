@@ -1,6 +1,6 @@
 package snclient
 
-import "pkg/check_dns"
+import "github.com/consol-monitoring/snclient/pkg/check_dns"
 
 func init() {
 	AvailableChecks["check_dns"] = CheckEntry{"check_dns", NewCheckDNS}

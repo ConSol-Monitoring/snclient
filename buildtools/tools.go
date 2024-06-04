@@ -9,8 +9,6 @@ package tools
  */
 
 import (
-	_ "pkg/dump"
-
 	_ "github.com/daixiang0/gci"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/tc-hib/go-winres"

@@ -277,7 +277,7 @@ func startBackgroundDaemon(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	require.Greaterf(t, daemonPid, 0, "daemon started")
+	require.Positivef(t, daemonPid, "daemon started")
 
 	t.Logf("daemon started with pid: %d", daemonPid)
 	time.Sleep(500 * time.Millisecond)

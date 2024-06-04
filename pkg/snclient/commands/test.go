@@ -5,8 +5,7 @@ import (
 	"math"
 	"strings"
 
-	"pkg/snclient"
-
+	"github.com/consol-monitoring/snclient/pkg/snclient"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/reeflective/readline"
 	"github.com/spf13/cobra"

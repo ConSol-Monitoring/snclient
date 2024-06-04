@@ -1,6 +1,6 @@
 package snclient
 
-import "pkg/check_tcp"
+import "github.com/consol-monitoring/snclient/pkg/check_tcp"
 
 func init() {
 	AvailableChecks["check_tcp"] = CheckEntry{"check_tcp", NewCheckTCP}

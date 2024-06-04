@@ -5,8 +5,7 @@ import (
 	"os"
 	"testing"
 
-	_ "pkg/dump"
-
+	_ "github.com/consol-monitoring/snclient/pkg/dump"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"pkg/snclient/commands"
+	"github.com/consol-monitoring/snclient/pkg/snclient/commands"
 )
 
 func main() {

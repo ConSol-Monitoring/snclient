@@ -9,10 +9,7 @@ require (
 	golang.org/x/tools v0.18.0
 	golang.org/x/vuln v1.0.4
 	mvdan.cc/gofumpt v0.6.0
-	pkg/dump v0.0.0-00010101000000-000000000000
 )
-
-replace pkg/dump => ../pkg/dump
 
 require (
 	4d63.com/gocheckcompilerdirectives v1.2.1 // indirect

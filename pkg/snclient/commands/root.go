@@ -5,8 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"pkg/snclient"
-
+	"github.com/consol-monitoring/snclient/pkg/snclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )

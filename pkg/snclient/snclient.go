@@ -23,8 +23,7 @@ import (
 	"syscall"
 	"time"
 
-	"pkg/counter"
-
+	"github.com/consol-monitoring/snclient/pkg/counter"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/consol-monitoring/snclient/pkg/wmi"
 	"github.com/kdar/factorlog"
