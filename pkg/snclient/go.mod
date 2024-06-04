@@ -29,15 +29,15 @@ replace pkg/check_tcp => ../../pkg/check_tcp
 replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240506201943-915d2ad98f31
 
 require (
-	github.com/beevik/ntp v1.4.1
+	github.com/beevik/ntp v1.4.3
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
 	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240321161425-fd9209e96e1f
-	github.com/consol-monitoring/snclient/pkg/convert v0.0.0-20240508144415-28dfb198a66a
-	github.com/consol-monitoring/snclient/pkg/eventlog v0.0.0-20240508144415-28dfb198a66a
-	github.com/consol-monitoring/snclient/pkg/humanize v0.0.0-20240508144415-28dfb198a66a
-	github.com/consol-monitoring/snclient/pkg/nrpe v0.0.0-20240508144415-28dfb198a66a
-	github.com/consol-monitoring/snclient/pkg/utils v0.0.0-20240508144415-28dfb198a66a
-	github.com/consol-monitoring/snclient/pkg/wmi v0.0.0-20240508144415-28dfb198a66a
+	github.com/consol-monitoring/snclient/pkg/convert v0.0.0-20240514201752-4ef91b19d850
+	github.com/consol-monitoring/snclient/pkg/eventlog v0.0.0-20240514201752-4ef91b19d850
+	github.com/consol-monitoring/snclient/pkg/humanize v0.0.0-20240514201752-4ef91b19d850
+	github.com/consol-monitoring/snclient/pkg/nrpe v0.0.0-20240514201752-4ef91b19d850
+	github.com/consol-monitoring/snclient/pkg/utils v0.0.0-20240514201752-4ef91b19d850
+	github.com/consol-monitoring/snclient/pkg/wmi v0.0.0-20240514201752-4ef91b19d850
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/otiai10/copy v1.14.0
@@ -45,11 +45,11 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.6
-	github.com/shirou/gopsutil/v3 v3.24.4
+	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae
 	github.com/sni/shelltoken v0.0.0-20240314123449-84b0a0c05450
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
+	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
 	golang.org/x/sys v0.20.0
 	gopkg.in/yaml.v3 v3.0.1
 	pkg/check_dns v0.0.0-00010101000000-000000000000
@@ -70,7 +70,7 @@ require (
 	github.com/jessevdk/go-flags v1.5.0 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
-	github.com/lufia/plan9stats v0.0.0-20240408141607-282e7b5d6b74 // indirect
+	github.com/lufia/plan9stats v0.0.0-20240513124658-fba389f38bae // indirect
 	github.com/mackerelio/checkers v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -80,8 +80,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.53.0 // indirect
-	github.com/prometheus/procfs v0.14.0 // indirect
+	github.com/prometheus/common v0.54.0 // indirect
+	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rickb777/date v1.20.6 // indirect
 	github.com/rickb777/plural v1.4.2 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect

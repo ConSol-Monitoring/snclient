@@ -3,10 +3,10 @@ module github.com/consol-monitoring/snclient/pkg/utils
 go 1.22.0
 
 require (
-	github.com/consol-monitoring/snclient/pkg/convert v0.0.0-20240508144415-28dfb198a66a
+	github.com/consol-monitoring/snclient/pkg/convert v0.0.0-20240514201752-4ef91b19d850
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
+	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
 )
 
 replace github.com/consol-monitoring/snclient/pkg/convert => ../../pkg/convert
