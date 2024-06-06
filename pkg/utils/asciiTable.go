@@ -9,10 +9,12 @@ import (
 const maxLineLength = 120
 
 type ASCIITableHeader struct {
-	Name     string // name in table header
-	Field    string // attribute name in data row
-	Centered bool   // flag wether column is centered
-	size     int    // calculated max size of column
+	Name         string // name in table header
+	Field        string // attribute name in data row
+	Centered     bool   // flag whether column is centered
+	RightAligned bool   // flag whether column is aligned to the right
+	size         int    // calculated max size of column
+
 }
 
 // ASCIITable creates an ascii table from columns and data rows
@@ -49,7 +51,11 @@ func ASCIITable(header []ASCIITableHeader, rows interface{}, escapePipes bool) (
 		rowVal := dataRows.Index(i)
 		for _, head := range header {
 			value, _ := asciiTableRowValue(escapePipes, rowVal, head)
-			out += fmt.Sprintf(fmt.Sprintf("| %%-%ds ", head.size), value)
+			if head.RightAligned {
+				out += fmt.Sprintf(fmt.Sprintf("| %%%ds ", head.size), value)
+			} else {
+				out += fmt.Sprintf(fmt.Sprintf("| %%-%ds ", head.size), value)
+			}
 		}
 		out += "|\n"
 	}
