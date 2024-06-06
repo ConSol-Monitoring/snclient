@@ -1,5 +1,8 @@
 This file documents the revision history for the SNClient+ agent.
 
+next:
+         - update node exporter to 1.8.1
+
 0.24     Sun May 12 17:42:43 CEST 2024
          - update node exporter to 1.8.0
          - add native aarch64 (arm64) packages for windows
