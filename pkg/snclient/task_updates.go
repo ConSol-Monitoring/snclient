@@ -369,7 +369,7 @@ func (u *UpdateHandler) fetchAvailableUpdates(preRelease bool, channel string) (
 
 func (u *UpdateHandler) checkUpdate(url string, preRelease bool, channel string) (updates []updatesAvailable, err error) {
 	if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/releases`, url); ok {
-		updates, err = u.checkUpdateGithubRelease(url, preRelease)
+		updates, err = u.checkUpdateGithubRelease(url, channel, preRelease)
 	} else if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/actions/artifacts`, url); ok {
 		updates, err = u.checkUpdateGithubActions(url, channel)
 	} else if ok, _ := regexp.MatchString(`^file:`, url); ok {
@@ -392,9 +392,19 @@ func (u *UpdateHandler) checkUpdate(url string, preRelease bool, channel string)
 }
 
 // check available updates from github release page
-func (u *UpdateHandler) checkUpdateGithubRelease(url string, preRelease bool) (updates []updatesAvailable, err error) {
+func (u *UpdateHandler) checkUpdateGithubRelease(url, channel string, preRelease bool) (updates []updatesAvailable, err error) {
 	log.Tracef("[update] checking github release url at: %s", url)
-	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, nil)
+
+	conf := u.snc.config.Section("/settings/updates/channel/" + channel)
+	token, ok := conf.GetString("github token")
+	header := map[string]string{}
+	if !ok || token == "" || token == "<GITHUB-TOKEN>" { //nolint:gosec // false positive token, this is no token
+		log.Tracef("skipped github token")
+	} else {
+		header["Authorization"] = "Bearer " + token
+	}
+
+	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, header)
 	if err != nil {
 		return nil, fmt.Errorf("http: %s", err.Error())
 	}
