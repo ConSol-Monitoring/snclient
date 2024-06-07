@@ -67,11 +67,11 @@ const (
 
 var (
 	// Build contains the current git commit id
-	// compile passing -ldflags "-X pkg/snclient.Build <build sha1>" to set the id.
+	// compile passing -ldflags "-X snclient.Build <build sha1>" to set the id.
 	Build = ""
 
 	// Revision contains the minor version number (number of commits, since last tag)
-	// compile passing -ldflags "-X pkg/snclient.Revision <commits>" to set the revision number.
+	// compile passing -ldflags "-X snclient.Revision <commits>" to set the revision number.
 	Revision = ""
 )
 

@@ -52,7 +52,8 @@ ifeq ($(DEB_ARCH),386)
 endif
 DEBFILE ?= snclient-$(VERSION)-$(RPM_ARCH).deb
 
-BUILD_FLAGS=-ldflags "-s -w -X pkg/snclient.Build=$(BUILD) -X pkg/snclient.Revision=$(REVISION)"
+GITBASE=github.com/consol-monitoring/snclient
+BUILD_FLAGS=-ldflags "-s -w -X $(GITBASE)/pkg/snclient.Build=$(BUILD) -X $(GITBASE)/pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
 NODE_EXPORTER_VERSION=1.8.1
@@ -602,7 +603,7 @@ release_blog_text: release_notes.txt
 	@echo ''
 	@echo '### Download'
 	@echo ''
-	@echo '<https://github.com/ConSol-Monitoring/snclient/releases/tag/v$(VERSION)>'
+	@echo '<https://$(GITBASE)/releases/tag/v$(VERSION)>'
 
 
 # just skip unknown make targets
