@@ -9,7 +9,7 @@ func init() {
 func NewCheckTCP() CheckHandler {
 	return &CheckBuiltin{
 		name:        "check_tcp",
-		description: "Runs check_tcp to perform checks on other snclient agents.",
+		description: "Runs check_tcp to perform tcp connection checks.",
 		check:       check_tcp.Check,
 	}
 }
