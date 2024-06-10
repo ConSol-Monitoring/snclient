@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
-	"github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v4/host"
 )
 
 func init() {

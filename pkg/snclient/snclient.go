@@ -29,7 +29,7 @@ import (
 	"github.com/kdar/factorlog"
 	deadlock "github.com/sasha-s/go-deadlock"
 	daemon "github.com/sevlyar/go-daemon"
-	"github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v4/host"
 	"golang.org/x/exp/slices"
 )
 

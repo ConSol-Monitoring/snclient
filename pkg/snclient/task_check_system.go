@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
-	cpuinfo "github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/net"
+	cpuinfo "github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/net"
 )
 
 const (

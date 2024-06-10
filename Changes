@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient+ agent.
 
 next:
          - update node exporter to 1.8.1
+         - migrate v3 to github.com/shirou/gopsutil/v4
 
 0.24     Sun May 12 17:42:43 CEST 2024
          - update node exporter to 1.8.0

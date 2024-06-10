@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/humanize"
-	"github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v4/net"
 	"golang.org/x/exp/slices"
 )
 

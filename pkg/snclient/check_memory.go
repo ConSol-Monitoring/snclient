@@ -3,9 +3,10 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"runtime"
 
 	"github.com/consol-monitoring/snclient/pkg/humanize"
-	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 func init() {
@@ -89,7 +90,14 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 				l.addMemType(check, "committed", swap.Used, swap.Free, swap.Total)
 			}
 		case "virtual":
-			l.addMemType(check, "virtual", physical.VirtualTotal-physical.VirtualAvail, physical.VirtualAvail, physical.VirtualTotal)
+			if runtime.GOOS != "windows" {
+				return nil, fmt.Errorf("virtual memory is only supported on windows")
+			}
+			virtTotal, virtAvail, err := l.virtualMemory()
+			if err != nil {
+				return nil, fmt.Errorf("fetching virtual memory failed: %s", err.Error())
+			}
+			l.addMemType(check, "virtual", virtTotal-virtAvail, virtAvail, virtTotal)
 		default:
 			return nil, fmt.Errorf("unknown type, please use 'physical' or 'committed'")
 		}

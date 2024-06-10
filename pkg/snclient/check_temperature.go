@@ -1,3 +1,5 @@
+//go:build linux || windows || darwin
+
 package snclient
 
 import (
@@ -6,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
-	"github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v4/sensors"
 	"golang.org/x/exp/slices"
 )
 
@@ -18,6 +20,12 @@ type CheckTemperature struct {
 	sensors []string
 }
 
+// enhanced psutil temperatureStat with min value
+type temperatureStat struct {
+	sensors.TemperatureStat
+	Min float64 // Temperature min value.
+}
+
 func NewCheckTemperature() CheckHandler {
 	return &CheckTemperature{}
 }
@@ -26,7 +34,7 @@ func (l *CheckTemperature) Build() *CheckData {
 	return &CheckData{
 		name:         "check_temperature",
 		description:  "Check temperature sensors.",
-		implemented:  ALL,
+		implemented:  Linux | Windows | Darwin,
 		hasInventory: ListInventory,
 		args: map[string]CheckArgument{
 			"sensor": {value: &l.sensors, isFilter: true, description: "Show this sensor only"},
@@ -63,18 +71,23 @@ Show all temperature sensors and apply custom thresholds:
 }
 
 func (l *CheckTemperature) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	sensors, err := host.SensorsTemperaturesWithContext(ctx)
+	sens, err := sensors.TemperaturesWithContext(ctx)
 	if err != nil {
-		log.Debugf("host.SensorsTemperaturesWithContext: %s: %w", err.Error(), err)
+		log.Debugf("sensors.TemperaturesWithContext: %s: %w", err.Error(), err)
 	}
-	for i := range sensors {
-		l.addSensor(check, &sensors[i])
+	merged, err := l.mergeExclusiveSensors(ctx, sens)
+	if err != nil {
+		log.Debugf("os specific sensors error: %s: %w", err.Error(), err)
+	}
+
+	for i := range merged {
+		l.addSensor(check, &merged[i])
 	}
 
 	return check.Finalize()
 }
 
-func (l *CheckTemperature) addSensor(check *CheckData, sensor *host.TemperatureStat) {
+func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat) {
 	fields := utils.FieldsN(strings.ReplaceAll(sensor.SensorKey, "_", " "), 2)
 	name := fields[0]
 	label := fields[0]
@@ -88,7 +101,7 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *host.TemperatureS
 		"temperature": fmt.Sprintf("%f", sensor.Temperature),
 		"crit":        fmt.Sprintf("%f", sensor.Critical),
 		"max":         fmt.Sprintf("%f", sensor.High),
-		"min":         fmt.Sprintf("%f", sensor.Low),
+		"min":         fmt.Sprintf("%f", sensor.Min),
 	}
 
 	if len(l.sensors) > 0 && !slices.Contains(l.sensors, name) && !slices.Contains(l.sensors, label) {
@@ -103,7 +116,7 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *host.TemperatureS
 		ThresholdName: sensor.SensorKey,
 		Name:          sensor.SensorKey,
 		Value:         sensor.Temperature,
-		Min:           &sensor.Low,
+		Min:           &sensor.Min,
 		Max:           &sensor.High,
 		Warning:       check.ExpandMetricMacros(check.TransformMultipleKeywords([]string{"temp", "temperature"}, sensor.SensorKey, check.warnThreshold), entry),
 		Critical:      check.ExpandMetricMacros(check.TransformMultipleKeywords([]string{"temp", "temperature"}, sensor.SensorKey, check.critThreshold), entry),

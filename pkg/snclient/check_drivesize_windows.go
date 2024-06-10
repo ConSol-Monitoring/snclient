@@ -10,7 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
-	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v4/disk"
 	"golang.org/x/sys/windows"
 )
 

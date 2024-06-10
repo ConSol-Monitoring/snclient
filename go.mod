@@ -2,9 +2,6 @@ module github.com/consol-monitoring/snclient
 
 go 1.22.0
 
-// use fork with pulled patches
-replace github.com/shirou/gopsutil/v3 => github.com/sni/gopsutil/v3 v3.0.0-20240506201943-915d2ad98f31
-
 require (
 	github.com/beevik/ntp v1.4.3
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
@@ -22,7 +19,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.6
-	github.com/shirou/gopsutil/v3 v3.24.5
+	github.com/shirou/gopsutil/v4 v4.24.5
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae
 	github.com/sni/shelltoken v0.0.0-20240314123449-84b0a0c05450
 	github.com/spf13/cobra v1.8.0

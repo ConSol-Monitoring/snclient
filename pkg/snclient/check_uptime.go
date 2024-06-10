@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
-	"github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v4/host"
 )
 
 func init() {
