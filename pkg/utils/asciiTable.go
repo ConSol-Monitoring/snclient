@@ -14,7 +14,6 @@ type ASCIITableHeader struct {
 	Centered     bool   // flag whether column is centered
 	RightAligned bool   // flag whether column is aligned to the right
 	size         int    // calculated max size of column
-
 }
 
 // ASCIITable creates an ascii table from columns and data rows
