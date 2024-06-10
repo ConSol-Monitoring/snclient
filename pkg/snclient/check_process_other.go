@@ -77,15 +77,14 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			continue
 		}
 
+		username := ""
+		uid := -1
 		uids, err := proc.UidsWithContext(ctx)
 		if err != nil {
 			log.Debugf("check_process: uids error: %s", err.Error())
-			uids = []uint32{}
-		}
-
-		// cache user name lookups
-		username := ""
-		if len(uids) > 0 {
+		} else if len(uids) > 0 {
+			// cache user name lookups
+			uid = int(uids[0])
 			username = userNameLookup[uids[0]]
 			if username == "" {
 				username, err = proc.UsernameWithContext(ctx)
@@ -116,7 +115,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			"exe":           exe,
 			"filename":      filename,
 			"pid":           fmt.Sprintf("%d", proc.Pid),
-			"uid":           fmt.Sprintf("%d", uids[0]),
+			"uid":           fmt.Sprintf("%d", uid),
 			"username":      username,
 			"virtual":       fmt.Sprintf("%d", mem.VMS),
 			"rss":           fmt.Sprintf("%d", mem.RSS),
