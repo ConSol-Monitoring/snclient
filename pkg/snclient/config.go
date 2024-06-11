@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -890,6 +891,21 @@ func (cs *ConfigSection) GetBytes(key string) (val uint64, ok bool, err error) {
 	}
 
 	return num, true, nil
+}
+
+// GetRegexp parses config entry as regular expression. It returns the regexp if found and sets ok to true.
+// If value is found but cannot be parsed, error is set.
+func (cs *ConfigSection) GetRegexp(key string) (val *regexp.Regexp, ok bool, err error) {
+	raw, ok := cs.GetString(key)
+	if !ok {
+		return nil, false, nil
+	}
+	re, err := regexp.Compile(raw)
+	if err != nil {
+		return nil, true, fmt.Errorf("GetRegexp: %s", err.Error())
+	}
+
+	return re, true, nil
 }
 
 // ConfigData contains data for a section.

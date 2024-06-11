@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -25,6 +26,7 @@ type CheckSystemHandler struct {
 	snc         *Agent
 
 	bufferLength time.Duration
+	deviceFilter []regexp.Regexp
 }
 
 func NewCheckSystemHandler() Module {
@@ -48,6 +50,14 @@ func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config,
 		return fmt.Errorf("default buffer length: %s", err.Error())
 	}
 	c.bufferLength = time.Duration(bufferLength) * time.Second
+
+	deviceFilter, ok, err := section.GetRegexp("device filter")
+	if err != nil {
+		return fmt.Errorf("device filter: %s", err.Error())
+	}
+	if ok && deviceFilter != nil {
+		c.deviceFilter = []regexp.Regexp{*deviceFilter}
+	}
 
 	// create counter
 	c.update(true)
@@ -93,9 +103,9 @@ func (c *CheckSystemHandler) update(create bool) {
 
 	if create {
 		for key := range data {
-			c.snc.Counter.Create("cpu", key, c.bufferLength, SystemMetricsMeasureInterval)
+			c.snc.counterCreate("cpu", key, c.bufferLength)
 		}
-		c.snc.Counter.Create("cpuinfo", "info", c.bufferLength, SystemMetricsMeasureInterval)
+		c.snc.counterCreate("cpuinfo", "info", c.bufferLength)
 	}
 
 	for key, val := range data {
@@ -105,8 +115,21 @@ func (c *CheckSystemHandler) update(create bool) {
 
 	// add interface traffic data
 	for key, val := range netdata {
+		skipped := false
+		for i := range c.deviceFilter {
+			if c.deviceFilter[i].MatchString(key) {
+				skipped = true
+
+				break
+			}
+		}
+		if skipped {
+			log.Tracef("skipped network device: %s", key)
+
+			continue
+		}
 		if c.snc.Counter.Get("net", key) == nil {
-			c.snc.Counter.Create("net", key, c.bufferLength, SystemMetricsMeasureInterval)
+			c.snc.counterCreate("net", key, c.bufferLength)
 		}
 		c.snc.Counter.Set("net", key, val)
 	}
@@ -165,8 +188,8 @@ func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo
 
 func (c *CheckSystemHandler) addLinuxKernelStats(create bool) {
 	if create {
-		c.snc.Counter.Create("kernel", "ctxt", c.bufferLength, SystemMetricsMeasureInterval)
-		c.snc.Counter.Create("kernel", "processes", c.bufferLength, SystemMetricsMeasureInterval)
+		c.snc.counterCreate("kernel", "ctxt", c.bufferLength)
+		c.snc.counterCreate("kernel", "processes", c.bufferLength)
 	}
 
 	statFile, err := os.Open("/proc/stat")
