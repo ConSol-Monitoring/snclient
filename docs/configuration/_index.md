@@ -7,6 +7,8 @@ linkTitle: Configuration
 
 SNClient+ uses the ini style config format with some enhancements, ([see syntax specification below](#syntax)).
 
+The default configuration is explained in the [packaging file](https://github.com/ConSol-Monitoring/snclient/blob/main/packaging/snclient.ini).
+
 ## File Locations
 
 By default SNClient searches for a `snclient.ini` in the following folders:
