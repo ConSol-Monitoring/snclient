@@ -36,7 +36,7 @@ func NewCheckSystemHandler() Module {
 
 func (c *CheckSystemHandler) Defaults(_ *AgentRunSet) ConfigData {
 	defaults := ConfigData{
-		"default buffer length": "1h",
+		"default buffer length": "15m",
 		"device filter":         "^veth",
 		"metrics interval":      "5s",
 	}

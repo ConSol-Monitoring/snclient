@@ -4,6 +4,8 @@ next:
          - update node exporter to 1.8.1
          - migrate v3 to github.com/shirou/gopsutil/v4
          - add device filter for network counter
+         - adjust default metric counter interval to 5s and buffer length to 15m
+         - lower agent memory and cpu footprint
 
 0.24     Sun May 12 17:42:43 CEST 2024
          - update node exporter to 1.8.0
