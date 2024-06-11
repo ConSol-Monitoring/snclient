@@ -897,7 +897,7 @@ func (cs *ConfigSection) GetBytes(key string) (val uint64, ok bool, err error) {
 // If value is found but cannot be parsed, error is set.
 func (cs *ConfigSection) GetRegexp(key string) (val *regexp.Regexp, ok bool, err error) {
 	raw, ok := cs.GetString(key)
-	if !ok {
+	if !ok || raw == "" {
 		return nil, false, nil
 	}
 	re, err := regexp.Compile(raw)
