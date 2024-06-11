@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	// SystemMetricsMeasureInterval sets the ticker measuring the CPU counter
-	SystemMetricsMeasureInterval = 1 * time.Second
+	// DefaultSystemMetricsMeasureInterval sets the ticker measuring the CPU counter
+	DefaultSystemMetricsMeasureInterval = 1 * time.Second
 )
 
 type CheckSystemHandler struct {
@@ -25,8 +25,9 @@ type CheckSystemHandler struct {
 	stopChannel chan bool
 	snc         *Agent
 
-	bufferLength time.Duration
-	deviceFilter []regexp.Regexp
+	bufferLength    time.Duration
+	metricsInterval time.Duration
+	deviceFilter    []regexp.Regexp
 }
 
 func NewCheckSystemHandler() Module {
@@ -36,6 +37,8 @@ func NewCheckSystemHandler() Module {
 func (c *CheckSystemHandler) Defaults(_ *AgentRunSet) ConfigData {
 	defaults := ConfigData{
 		"default buffer length": "1h",
+		"device filter":         "^veth",
+		"metrics interval":      "5s",
 	}
 
 	return defaults
@@ -50,6 +53,15 @@ func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config,
 		return fmt.Errorf("default buffer length: %s", err.Error())
 	}
 	c.bufferLength = time.Duration(bufferLength) * time.Second
+
+	metricsInterval, _, err := section.GetDuration("metrics interval")
+	if err != nil {
+		return fmt.Errorf("metrics interval: %s", err.Error())
+	}
+	if metricsInterval <= 0 {
+		metricsInterval = DefaultSystemMetricsMeasureInterval.Seconds()
+	}
+	c.metricsInterval = time.Duration(metricsInterval) * time.Second
 
 	deviceFilter, ok, err := section.GetRegexp("device filter")
 	if err != nil {
@@ -76,7 +88,7 @@ func (c *CheckSystemHandler) Stop() {
 }
 
 func (c *CheckSystemHandler) mainLoop() {
-	ticker := time.NewTicker(SystemMetricsMeasureInterval)
+	ticker := time.NewTicker(c.metricsInterval)
 	defer ticker.Stop()
 
 	for {
@@ -103,9 +115,9 @@ func (c *CheckSystemHandler) update(create bool) {
 
 	if create {
 		for key := range data {
-			c.snc.counterCreate("cpu", key, c.bufferLength)
+			c.snc.counterCreate("cpu", key, c.bufferLength, c.metricsInterval)
 		}
-		c.snc.counterCreate("cpuinfo", "info", c.bufferLength)
+		c.snc.counterCreate("cpuinfo", "info", c.bufferLength, c.metricsInterval)
 	}
 
 	for key, val := range data {
@@ -129,7 +141,7 @@ func (c *CheckSystemHandler) update(create bool) {
 			continue
 		}
 		if c.snc.Counter.Get("net", key) == nil {
-			c.snc.counterCreate("net", key, c.bufferLength)
+			c.snc.counterCreate("net", key, c.bufferLength, c.metricsInterval)
 		}
 		c.snc.Counter.Set("net", key, val)
 	}
@@ -188,8 +200,8 @@ func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo
 
 func (c *CheckSystemHandler) addLinuxKernelStats(create bool) {
 	if create {
-		c.snc.counterCreate("kernel", "ctxt", c.bufferLength)
-		c.snc.counterCreate("kernel", "processes", c.bufferLength)
+		c.snc.counterCreate("kernel", "ctxt", c.bufferLength, c.metricsInterval)
+		c.snc.counterCreate("kernel", "processes", c.bufferLength, c.metricsInterval)
 	}
 
 	statFile, err := os.Open("/proc/stat")

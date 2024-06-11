@@ -1396,7 +1396,7 @@ func (snc *Agent) stopPProfiler() {
 }
 
 // counterCreate creates a new counter and adds some logging
-func (snc *Agent) counterCreate(category, key string, bufferLength time.Duration) {
+func (snc *Agent) counterCreate(category, key string, bufferLength, interval time.Duration) {
 	log.Debugf("creating counter %s.%s (buffer: %s)", category, key, bufferLength.String())
-	snc.Counter.Create(category, key, bufferLength, SystemMetricsMeasureInterval)
+	snc.Counter.Create(category, key, bufferLength, interval)
 }
