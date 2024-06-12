@@ -761,6 +761,12 @@ func (u *UpdateHandler) Apply(bin string) error {
 	if err != nil {
 		return fmt.Errorf("starting updater failed: %s", err.Error())
 	}
+	go func() {
+		err := cmd.Wait()
+		if err != nil {
+			log.Errorf("update failed: %s", err.Error())
+		}
+	}()
 
 	return nil
 }

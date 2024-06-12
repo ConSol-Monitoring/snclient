@@ -81,7 +81,18 @@ func (snc *Agent) finishUpdate(binPath, mode string) {
 	if mode == "update" {
 		cmd := exec.Command(binPath, "update", "apply")
 		cmd.Env = os.Environ()
-		_ = cmd.Start()
+		err := cmd.Start()
+		if err != nil {
+			log.Errorf("failed to start update apply: %s", err.Error())
+
+			return
+		}
+		go func() {
+			err := cmd.Wait()
+			if err != nil {
+				log.Errorf("update apply failed: %s", err.Error())
+			}
+		}()
 
 		return
 	}
