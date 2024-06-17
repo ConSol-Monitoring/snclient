@@ -22,7 +22,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.24.5
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20231227232912-71c069b10aae
 	github.com/sni/shelltoken v0.0.0-20240314123449-84b0a0c05450
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	github.com/yusufpapurcu/wmi v1.2.4
