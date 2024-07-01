@@ -75,7 +75,9 @@ func (l *HandlerManagedExporter) Stop() {
 
 func (l *HandlerManagedExporter) StopProc() {
 	if l.cmd != nil && l.cmd.Process != nil {
+		l.cmd.WaitDelay = managedExporterRestartDelay
 		LogDebug(l.cmd.Process.Kill())
+		LogDebug(l.cmd.Wait())
 	}
 	l.cmd = nil
 	l.pid = 0
