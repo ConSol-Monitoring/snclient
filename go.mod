@@ -7,7 +7,7 @@ require (
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
 	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240321161425-fd9209e96e1f
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/go-chi/chi/v5 v5.0.12
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-ole/go-ole v1.3.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
