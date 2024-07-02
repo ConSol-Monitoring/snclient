@@ -47,20 +47,25 @@ also sets the initial password and includes a ini file fetched by https.
 
 Here is a table of all available properties:
 
-| Property             | Default Value     | Description |
-| -------------------- | ----------------- | ----------- |
-| INCLUDES             |                   | Adds include files to the /Includes section. |
-| ALLOWEDHOSTS         | 127.0.0.1, ::1    | Sets the 'allowed hosts'. |
-| PASSWORD             | CHANGEME          | Sets the password (will be written to the .ini encrytped). |
-| WEBSERVER            | 1                 | Enable/Disable the REST web server. |
-| WEBSERVERPORT        | 8443              | Set port for web server. |
-| WEBSERVERSSL         | 1                 | Enable/Disable TLS/SSL for the web server. |
-| NRPESERVER           | 0                 | Enable/Disable the NRPE server. |
-| NRPESERVERPORT       | 5666              | Set port for NRPE server. |
-| NRPESERVERSSL        | 1                 | Enable/Disable TLS/SSL for the NRPE server. |
-| PROMETHEUSSERVER     | 0                 | Enable/Disable the Prometheus web server. |
-| PROMETHEUSSERVERPORT | 9999              | Set port for prometheus web server. |
-| PROMETHEUSSERVERSSL  | 0                 | Enable/Disable TLS/SSL for the Prometheus web server. |
+| Property             | Default Value             | Description |
+| -------------------- | ------------------------- | ----------- |
+| INSTALLDIR           | C:\Program Files\snclient | Set custom install location. |
+| INCLUDES             |                           | Adds include files to the /Includes section. |
+| ALLOWEDHOSTS         | 127.0.0.1, ::1            | Sets the 'allowed hosts'. |
+| PASSWORD             | CHANGEME                  | Sets the password (will be written to the .ini encrytped). |
+| WEBSERVER            | 1                         | Enable/Disable the REST web server. |
+| WEBSERVERPORT        | 8443                      | Set port for web server. |
+| WEBSERVERSSL         | 1                         | Enable/Disable TLS/SSL for the web server. |
+| NRPESERVER           | 0                         | Enable/Disable the NRPE server. |
+| NRPESERVERPORT       | 5666                      | Set port for NRPE server. |
+| NRPESERVERSSL        | 1                         | Enable/Disable TLS/SSL for the NRPE server. |
+| PROMETHEUSSERVER     | 0                         | Enable/Disable the Prometheus web server. |
+| PROMETHEUSSERVERPORT | 9999                      | Set port for prometheus web server. |
+| PROMETHEUSSERVERSSL  | 0                         | Enable/Disable TLS/SSL for the Prometheus web server. |
+
+To install snclient into a custom folder automated, use the following command:
+
+    msiexec.exe /i snclient.msi /qn INSTALLDIR="D:\Apps\snclient"
 
 ## Uninstall
 
