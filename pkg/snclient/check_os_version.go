@@ -50,6 +50,13 @@ func (l *CheckOSVersion) Check(ctx context.Context, _ *Agent, check *CheckData, 
 		return nil, fmt.Errorf("failed to get platform information: %s", err.Error())
 	}
 
+	if runtime.GOOS == "windows" {
+		version, err = host.KernelVersionWithContext(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get build information: %s", err.Error())
+		}
+	}
+
 	check.listData = []map[string]string{{
 		"platform": platform,
 		"family":   family,

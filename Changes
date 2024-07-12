@@ -1,5 +1,8 @@
 This file documents the revision history for the SNClient+ agent.
 
+next:
+         - fix check_os_version windows build version
+
 0.25     Fri Jun 14 14:34:25 CEST 2024
          - update node exporter to 1.8.1
          - migrate v3 to github.com/shirou/gopsutil/v4
