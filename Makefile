@@ -56,7 +56,7 @@ GITBASE=github.com/consol-monitoring/snclient
 BUILD_FLAGS=-ldflags "-s -w -X $(GITBASE)/pkg/snclient.Build=$(BUILD) -X $(GITBASE)/pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
-NODE_EXPORTER_VERSION=1.8.1
+NODE_EXPORTER_VERSION=1.8.2
 NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(GOARCH).tar.gz
 NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)/$(NODE_EXPORTER_FILE)
 
