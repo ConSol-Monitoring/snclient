@@ -983,16 +983,21 @@ func fixReturnCodes(output, stderr *string, exitCode *int64, timeout int64, proc
 	*exitCode = CheckExitUnknown
 }
 
-func catchOutputErrors(command string, stderr *string, exitCode *int64) {
+func catchOutputErrors(command, stderr *string, exitCode *int64) {
 	// cmd.exe did not find script
-	if *exitCode == 0 &&
-		(strings.HasPrefix(command, "cmd ") || strings.HasPrefix(command, "cmd.exe ")) &&
-		strings.Contains(*stderr, "ObjectNotFound") &&
+	if *exitCode != 0 {
+		return
+	}
+
+	cmd := strings.Fields(*command)
+	if !strings.HasSuffix(cmd[0], "cmd.exe") {
+		return
+	}
+
+	if strings.Contains(*stderr, "ObjectNotFound") &&
 		strings.Contains(*stderr, "CommandNotFoundException") &&
 		strings.Contains(*stderr, "FullyQualifiedErrorId") {
 		*exitCode = ExitCodeUnknown
-
-		return
 	}
 }
 
@@ -1062,7 +1067,7 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 	stdout = string(bytes.TrimSpace((bytes.Trim(outbuf.Bytes(), "\x00"))))
 	stderr = string(bytes.TrimSpace((bytes.Trim(errbuf.Bytes(), "\x00"))))
 
-	catchOutputErrors(cmd.Path, &stderr, &exitCode)
+	catchOutputErrors(&cmd.Path, &stderr, &exitCode)
 
 	log.Tracef("exit: %d", exitCode)
 	log.Tracef("stdout: %s", stdout)
