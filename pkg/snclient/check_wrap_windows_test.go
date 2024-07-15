@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/otiai10/copy"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckExternalWindowsBat(t *testing.T) {
@@ -78,6 +79,10 @@ func TestCheckExternalWindowsPs(t *testing.T) {
 
 	runTestCheckExternalDefault(t, snc)
 	runTestCheckExternalArgs(t, snc)
+
+	res := snc.RunCheck("check_win_none_ex", []string{})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state matches")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "timeout.ps1", "output matches")
 
 	StopTestAgent(t, snc)
 }

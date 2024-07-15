@@ -54,6 +54,9 @@ check_dummy_args%% = check_dummy.EXTENSION %%ARGS%%
 check_dummy_argsq = check_dummy.EXTENSION $ARGS"$
 check_dummy_subdir = subdir/check_dummy.EXTENSION 0 "i am ok in my subdir"
 
+# test some issues
+check_win_none_ex = cmd /c echo scripts\custom\wrapper\timeout.ps1 $ARG1$; exit($lastexitcode) | powershell.exe -ExecutionPolicy ByPass -command -
+
 [/settings/external scripts/wrapped scripts]
 check_dummy_wrapped_noparm = check_dummy.EXTENSION
 check_dummy_wrapped = check_dummy.EXTENSION $ARG1$ "$ARG2$"
