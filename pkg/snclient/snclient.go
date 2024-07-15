@@ -1274,14 +1274,20 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 		inventory["scripts"] = scripts
 	}
 
+	hostID, err := os.Hostname()
+	if err != nil {
+		log.Errorf("failed to get host id: %s", err.Error())
+	}
+
 	return (map[string]interface{}{
 		"inventory": inventory,
 		"localtime": time.Now().Unix(),
 		"snclient": map[string]interface{}{
-			"version": snc.Version(),
-			"build":   Build,
-			"arch":    runtime.GOARCH,
-			"os":      runtime.GOOS,
+			"version":  snc.Version(),
+			"build":    Build,
+			"arch":     runtime.GOARCH,
+			"os":       runtime.GOOS,
+			"hostname": hostID,
 		},
 	})
 }
