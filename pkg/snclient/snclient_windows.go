@@ -28,6 +28,10 @@ func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, cha
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 	go m.snc.Run()
 
+	// change working directory to shared-path (ex.: C:\Program Files\snclient) so relative paths in scripts will work
+	sharedPath, _ := m.snc.config.Section("/paths").GetString("shared-path")
+	LogError(os.Chdir(sharedPath))
+
 	keepListening := true
 	for keepListening {
 		chg := <-changeReq
