@@ -132,3 +132,21 @@ func TestCheckExternalWrappedWindowsPsPathWithSpaces(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckExternalWindowsPS1InSubdir(t *testing.T) {
+	testDir, _ := os.Getwd()
+
+	config := setupConfig(t, testDir, "ps1")
+	snc := StartTestAgent(t, config)
+
+	res := snc.RunCheck("check_win_subargs", []string{"-state 1 -message 'output 123'"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state matches")
+	assert.Equalf(t, "output 123", string(res.BuildPluginOutput()), "output matches")
+
+	// catch internal powershell errors
+	res = snc.RunCheck("check_win_subargs", []string{"-state xyz -message 'output 123'"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state matches")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "Cannot convert value", "output matches")
+
+	StopTestAgent(t, snc)
+}

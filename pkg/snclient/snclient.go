@@ -990,12 +990,12 @@ func catchOutputErrors(command, stderr *string, exitCode *int64) {
 	}
 
 	cmd := strings.Fields(*command)
-	if !strings.HasSuffix(cmd[0], "cmd.exe") {
+	if !strings.HasSuffix(cmd[0], "cmd.exe") && !strings.HasSuffix(cmd[0], "powershell.exe") {
 		return
 	}
 
-	if strings.Contains(*stderr, "ObjectNotFound") &&
-		strings.Contains(*stderr, "CommandNotFoundException") &&
+	// catch powershell errors which would result in exit code 0 otherwise
+	if strings.Contains(*stderr, "CategoryInfo") &&
 		strings.Contains(*stderr, "FullyQualifiedErrorId") {
 		*exitCode = ExitCodeUnknown
 	}
