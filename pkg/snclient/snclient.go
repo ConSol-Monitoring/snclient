@@ -965,7 +965,8 @@ func fixReturnCodes(output, stderr *string, exitCode *int64, timeout int64, proc
 		return
 	}
 	if *exitCode == 127 {
-		*output = fmt.Sprintf("UNKNOWN - Return code of %d is out of bounds. Make sure the plugin you're trying to run actually exists.\n%s", *exitCode, *output)
+		cwd, _ := os.Getwd()
+		*output = fmt.Sprintf("UNKNOWN - Return code of %d is out of bounds. Make sure the plugin you're trying to run actually exists (current working directory: %s).\n%s", *exitCode, cwd, *output)
 		*exitCode = CheckExitUnknown
 
 		return
