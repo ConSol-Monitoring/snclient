@@ -269,7 +269,9 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	// powershell files
 	case isPsFile(cmdName):
 		for i, ca := range cmdArgs {
-			cmdArgs[i] = `'` + ca + `'`
+			if strings.ContainsAny(ca, " \t") {
+				cmdArgs[i] = `'` + ca + `'`
+			}
 		}
 		cmd := execCommandContext(ctx, "powershell", env)
 		cmd.SysProcAttr.CmdLine = fmt.Sprintf(

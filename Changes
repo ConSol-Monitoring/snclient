@@ -4,6 +4,7 @@ next:
          - fix check_os_version windows build version
          - update node exporter to 1.8.2
          - chdir windows service into to shared-path folder
+         - fix escaping arguments in windows ps1 scripts
 
 0.25     Fri Jun 14 14:34:25 CEST 2024
          - update node exporter to 1.8.1
