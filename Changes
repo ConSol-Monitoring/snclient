@@ -6,6 +6,7 @@ next:
          - chdir windows service into to shared-path folder
          - fix escaping arguments in windows ps1 scripts
          - fill unused $ARGx$ macros with empty space (#110)
+         - fix if/else expression evaluation (#126)
 
 0.25     Fri Jun 14 14:34:25 CEST 2024
          - update node exporter to 1.8.1

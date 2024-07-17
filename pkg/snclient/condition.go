@@ -214,17 +214,27 @@ func (c *Condition) Match(data map[string]string) (res, ok bool) {
 
 // MatchAny checks if any given map matches current condition
 func (c *Condition) MatchAny(data []map[string]string) (res, ok bool) {
-	finalOK := true
+	finalOK := false
 	for i := range data {
 		if res, ok = c.Match(data[i]); res && ok {
 			return true, true
 		}
-		if !ok {
-			finalOK = false
+		if ok {
+			finalOK = true
 		}
 	}
 
 	return false, finalOK
+}
+
+// MatchAnyOrEmpty checks if any given map matches current condition and falls back to empty condition
+func (c *Condition) MatchAnyOrEmpty(data []map[string]string) (res bool) {
+	res, ok := c.MatchAny(data)
+	if !ok {
+		res = c.compareEmpty()
+	}
+
+	return
 }
 
 // matchSingle checks a single condition and does not recurse into logical groups
