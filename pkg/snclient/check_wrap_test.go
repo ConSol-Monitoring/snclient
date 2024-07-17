@@ -45,6 +45,7 @@ check_dummy_ok = check_dummy.EXTENSION 0 "i am ok"
 check_dummy_critical = check_dummy.EXTENSION 2 "i am critical"
 check_dummy_unknown = check_dummy.EXTENSION 3
 check_dummy_arg = check_dummy.EXTENSION "$ARG1$" "$ARG2$"
+check_dummy_arg2 = check_dummy.EXTENSION "$ARG1$" '$ARG2$'
 # for scripts with variable arguments
 check_dummy_args = check_dummy.EXTENSION $ARGS$
 # for scripts with variable arguments, %%ARGS%% is an alternative to $ARGS$
@@ -119,6 +120,14 @@ func runTestCheckExternalDefault(t *testing.T, snc *Agent) {
 	res = snc.RunCheck("check_dummy_arg", []string{"0", "arg ok"})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
 	assert.Equalf(t, "OK: arg ok", string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_dummy_arg", []string{"0"})
+	assert.Equalf(t, CheckExitOK, res.State, "state matches")
+	assert.Equalf(t, "OK", string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_dummy_arg2", []string{"0"})
+	assert.Equalf(t, CheckExitOK, res.State, "state matches")
+	assert.Equalf(t, "OK", string(res.BuildPluginOutput()), "output matches")
 }
 
 func runTestCheckExternalArgs(t *testing.T, snc *Agent) {

@@ -46,6 +46,7 @@ func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 			for i := range userArgs {
 				macros[fmt.Sprintf("ARG%d", i+1)] = check.rawArgs[i]
 			}
+			fillEmptyArgMacros(macros)
 
 			replacedStr := ReplaceRuntimeMacros(strings.Join(a.args, " "), macros)
 			cmdArgs, err = shelltoken.SplitQuotes(replacedStr, shelltoken.Whitespace)

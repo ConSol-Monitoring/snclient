@@ -44,6 +44,7 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 	for i := range check.rawArgs {
 		macros[fmt.Sprintf("ARG%d", i+1)] = check.rawArgs[i]
 	}
+	fillEmptyArgMacros(macros)
 
 	var command string
 	if l.wrapped {
