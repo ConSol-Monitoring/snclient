@@ -134,7 +134,6 @@ func TestCheckExternalWrappedWindowsPsPathWithSpaces(t *testing.T) {
 }
 
 func TestCheckExternalWindowsPS1InSubdir(t *testing.T) {
-	t.Skipf("does not work on github actions")
 	testDir, _ := os.Getwd()
 
 	config := setupConfig(t, testDir, "ps1")
