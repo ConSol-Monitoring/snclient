@@ -100,3 +100,35 @@ func TestMacroConditionals(t *testing.T) {
 		assert.Equalf(t, tst.Expect, res, "replacing: %s", tst.In)
 	}
 }
+
+func TestMacroConditionalsMulti(t *testing.T) {
+	macros := []map[string]string{{
+		"seconds":   "130",
+		"unix time": "1700834034",
+		"float":     "170.05",
+		"yesterday": fmt.Sprintf("%d", time.Now().Add(-24*time.Hour).Unix()),
+	}, {
+		"count": "5",
+	}, {
+		"state": "0",
+	}}
+
+	tests := []struct {
+		In     string
+		Expect string
+	}{
+		{In: "{{ IF seconds > 120 }}yes: $(seconds){{ ELSE }}no{{ END }}", Expect: "yes: 130"},
+		{In: "{{ IF seconds > 180 }}yes: $(seconds){{ ELSIF seconds > 120 }}elsif: $(seconds){{ ELSE }}no{{ END }}", Expect: "elsif: 130"},
+		{In: "{{ IF seconds > 120 }}outer$(seconds)-{{ IF seconds > 150 }}this not{{ ELSE }}inner$(seconds){{ END }}{{ ELSE }}also not{{ END }}", Expect: "outer130-inner130"},
+		{In: "{{ IF count < 3 }}not this{{ ELSE }}this one{{ END }}", Expect: "this one"},
+		{In: "{{ IF count > 5 }}not this{{ ELSE }}this one{{ END }}", Expect: "this one"},
+		{In: "{{ IF count == 5 }}this one{{ ELSE }}not this{{ END }}", Expect: "this one"},
+	}
+
+	for _, tst := range tests {
+		res, err := ReplaceConditionals(tst.In, macros...)
+		require.NoError(t, err)
+		res = ReplaceMacros(res, macros...)
+		assert.Equalf(t, tst.Expect, res, "replacing: %s", tst.In)
+	}
+}
