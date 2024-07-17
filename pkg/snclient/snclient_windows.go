@@ -239,10 +239,7 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	// powershell command
 	case strings.HasPrefix(command, "& "):
 		cmd := execCommandContext(ctx, "powershell", env)
-		cmd.SysProcAttr.CmdLine = fmt.Sprintf(
-			`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command %s; exit($LASTEXITCODE)`,
-			command,
-		)
+		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -command %s; exit($LASTEXITCODE)`, POWERSHELL, command)
 
 		return cmd, nil
 
@@ -275,11 +272,7 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 			}
 		}
 		cmd := execCommandContext(ctx, "powershell", env)
-		cmd.SysProcAttr.CmdLine = fmt.Sprintf(
-			`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command ". '%s' %s; exit($LASTEXITCODE)"`,
-			cmdName,
-			strings.Join(cmdArgs, " "),
-		)
+		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -Command ". '%s' %s; exit($LASTEXITCODE)"`, POWERSHELL, cmdName, strings.Join(cmdArgs, " "))
 
 		return cmd, nil
 
@@ -347,7 +340,7 @@ func powerShellCmd(ctx context.Context, command string) (cmd *exec.Cmd) {
 	cmd.Args = nil
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow: true,
-		CmdLine:    fmt.Sprintf(`powershell -WindowStyle hidden -NoLogo -NonInteractive -Command "%s"`, command), //nolint:gocritic // using %q just breaks the command from escaping newlines
+		CmdLine:    fmt.Sprintf(`%s -Command "%s"`, POWERSHELL, command), //nolint:gocritic // using %q just breaks the command from escaping newlines
 	}
 
 	return cmd

@@ -23,6 +23,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+const POWERSHELL = "powershell.exe -nologo -noprofile -WindowStyle hidden -NonInteractive -ExecutionPolicy ByPass"
+
 var DefaultConfig = map[string]ConfigData{
 	"/modules": {
 		"Logrotate":            "enabled",
@@ -51,7 +53,7 @@ var DefaultConfig = map[string]ConfigData{
 			`If (-Not (Test-Path "${script root}\%SCRIPT%") ) ` +
 			`{ Write-Host "UNKNOWN: Script ` + "`\"%SCRIPT%`\" not found.\"; exit(3) }; " +
 			`${script root}\%SCRIPT% $ARGS$; ` +
-			`exit($lastexitcode) | powershell.exe -nologo -noprofile -command -`,
+			`exit($lastexitcode) | ` + POWERSHELL + ` -command -`,
 		"vbs": `cscript.exe //T:30 //NoLogo ${script root}\\lib\\wrapper.vbs %SCRIPT% %ARGS%`,
 	},
 }
