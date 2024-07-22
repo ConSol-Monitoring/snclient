@@ -69,6 +69,7 @@ WINDOWS_EXPORTER_VERSION=0.25.1
 WINDOWS_EXPORTER_FILE=windows_exporter-$(WINDOWS_EXPORTER_VERSION)
 WINDOWS_EXPORTER_URL=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION)/
 
+WINRESARGS = --product-version "$(VERSION)" --file-version "$(VERSION)"
 DOCKER := $(shell which docker 2>/dev/null)
 SED=sed -i
 GO=go
@@ -189,13 +190,13 @@ winres: | tools
 	cp -rp packaging/windows/winres .
 
 rsrc_windows_386.syso: winres | tools
-	${TOOLSFOLDER}/go-winres make --arch 386
+	${TOOLSFOLDER}/go-winres make $(WINRESARGS) --arch 386
 
 rsrc_windows_amd64.syso: winres | tools
-	${TOOLSFOLDER}/go-winres make --arch amd64
+	${TOOLSFOLDER}/go-winres make $(WINRESARGS) --arch amd64
 
 rsrc_windows_arm64.syso: winres | tools
-	${TOOLSFOLDER}/go-winres make --arch arm64
+	${TOOLSFOLDER}/go-winres make $(WINRESARGS) --arch arm64
 
 test: vendor
 	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) ./pkg/* ./pkg/*/commands

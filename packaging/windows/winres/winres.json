@@ -1,4 +1,26 @@
 {
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "info": {
+          "0409": {
+            "Comments": "https://omd.consol.de/docs/snclient/",
+            "CompanyName": "",
+            "FileDescription": "SNClient monitoring agent",
+            "FileVersion": "",
+            "InternalName": "",
+            "LegalCopyright": "",
+            "LegalTrademarks": "",
+            "OriginalFilename": "",
+            "PrivateBuild": "",
+            "ProductName": "SNClient",
+            "ProductVersion": "",
+            "SpecialBuild": ""
+          }
+        }
+      }
+    }
+  },
   "RT_GROUP_ICON": {
     "APP": {
       "0000": [
