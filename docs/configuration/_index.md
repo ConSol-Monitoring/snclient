@@ -25,7 +25,7 @@ in a separate file has a couple of advantages.
 
 - no conflicts during package updates.
 - clean separation of upstream and user configuration.
-- no need to walk through the hole default configuration to see what has been customized.
+- no need to walk through the whole default configuration to see what has been customized.
 
 Best practice is to create a file `snclient_local.ini`, ex.: like this:
 
