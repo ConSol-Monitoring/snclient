@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jessevdk/go-flags"
 	"github.com/mackerelio/checkers"
+	"github.com/sni/go-flags"
 )
 
 func Check(ctx context.Context, output io.Writer, args []string) int {
@@ -63,7 +63,9 @@ type exchange struct {
 
 func parseArgs(args []string) (*tcpOpts, error) {
 	opts := &tcpOpts{}
-	_, err := flags.ParseArgs(opts, args)
+	psr := flags.NewParser(opts, flags.HelpFlag|flags.PassDoubleDash) // default flags without flags.PrintErrors
+	psr.Name = "check_tcp"
+	_, err := psr.ParseArgs(args)
 	return opts, err
 }
 

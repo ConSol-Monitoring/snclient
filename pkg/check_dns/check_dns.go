@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jessevdk/go-flags"
 	"github.com/mackerelio/checkers"
 	"github.com/miekg/dns"
+	"github.com/sni/go-flags"
 )
 
 func Check(ctx context.Context, output io.Writer, args []string) int {
@@ -40,7 +40,9 @@ type dnsOpts struct {
 
 func parseArgs(args []string) (*dnsOpts, error) {
 	opts := &dnsOpts{}
-	_, err := flags.ParseArgs(opts, args)
+	psr := flags.NewParser(opts, flags.HelpFlag|flags.PassDoubleDash) // default flags without flags.PrintErrors
+	psr.Name = "check_dns"
+	_, err := psr.ParseArgs(args)
 	return opts, err
 }
 

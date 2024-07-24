@@ -1,7 +1,7 @@
 This file documents the revision history for the SNClient+ agent.
 
 next:
-         - fix check_http help (#135)
+         - fix check_http/check_tcp/check_dns help (#135)
 
 0.26     Wed Jul 17 15:23:37 CEST 2024
          - fix check_os_version windows build version (#134)
