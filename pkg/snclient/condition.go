@@ -109,6 +109,45 @@ func OperatorParse(str string) (Operator, error) {
 	return 0, fmt.Errorf("unknown operator: %s", str)
 }
 
+func (o *Operator) String() string {
+	switch *o {
+	case Equal:
+		return ("=")
+	case Unequal:
+		return ("!=")
+	case Contains:
+		return ("like")
+	case ContainsNot:
+		return ("unlike")
+	case ContainsNoCase:
+		return ("ilike")
+	case ContainsNotNoCase:
+		return ("not ilike")
+	case RegexMatch:
+		return ("~")
+	case RegexMatchNot:
+		return ("!~")
+	case RegexMatchNoCase:
+		return ("~~")
+	case RegexMatchNotNoCase:
+		return ("!~~")
+	case Lower:
+		return ("<")
+	case LowerEqual:
+		return ("<=")
+	case Greater:
+		return (">")
+	case GreaterEqual:
+		return (">=")
+	case InList:
+		return ("in")
+	case NotInList:
+		return ("not in")
+	}
+
+	return ("unknown")
+}
+
 // GroupOperator is the operator used to combine multiple filter conditions.
 type GroupOperator uint8
 
@@ -118,6 +157,17 @@ const (
 	GroupAnd
 	GroupOr
 )
+
+func (g *GroupOperator) String() string {
+	switch *g {
+	case GroupAnd:
+		return ("and")
+	case GroupOr:
+		return ("or")
+	}
+
+	return ("unknown")
+}
 
 // GroupOperatorParse parses group operator
 func GroupOperatorParse(str string) (GroupOperator, error) {
@@ -173,7 +223,20 @@ func NewCondition(input string) (*Condition, error) {
 }
 
 func (c *Condition) String() string {
-	return c.original
+	if c.original != "" {
+		return c.original
+	}
+
+	if len(c.group) > 0 {
+		groups := []string{}
+		for _, g := range c.group {
+			groups = append(groups, g.String())
+		}
+
+		return " (" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ") "
+	}
+
+	return fmt.Sprintf("%s %s %v", c.keyword, c.operator.String(), c.value)
 }
 
 // Match checks if given map matches current condition
@@ -185,7 +248,7 @@ func (c *Condition) Match(data map[string]string) (res, ok bool) {
 	if len(c.group) > 0 {
 		finalOK := true
 		for i := range c.group {
-			res, ok := c.group[i].matchSingle(data)
+			res, ok := c.group[i].Match(data)
 			if !ok {
 				finalOK = false
 
