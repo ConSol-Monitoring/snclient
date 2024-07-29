@@ -45,6 +45,8 @@ Installing the development snapshot is straight forward:
    ![Actions](action_download.png "Choose download")
 4. Install just like the stable release files.
 
+**Note:** In order to download the snapshot artifacts, you need a github account you must be logged in.
+
 ## Building SNClient From Source
 
 Building snclient from source is covered in detail here: [Building from source](build)
