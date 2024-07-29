@@ -182,3 +182,27 @@ func TestConditionThresholdString(t *testing.T) {
 		assert.Equalf(t, check.expect, perfRange, fmt.Sprintf("ThresholdString(%s) -> (%v) = %v", check.threshold, perfRange, check.expect))
 	}
 }
+
+func TestConditionPreCheck(t *testing.T) {
+	filterStr := `( name = 'xinetd' or name like 'other' ) and state = 'running'`
+
+	for _, check := range []struct {
+		filter    string
+		entry     map[string]string
+		expectPre bool
+		expectFin bool
+	}{
+		{filterStr, map[string]string{"name": "xinetd", "state": "running"}, true, true},
+		{filterStr, map[string]string{"name": "none", "state": "running"}, false, false},
+		{filterStr, map[string]string{"test": "", "xyz": ""}, true, false},
+	} {
+		cond, err := NewCondition(check.filter)
+		require.NoError(t, err)
+		cd := CheckData{}
+		ok := cd.MatchMapCondition(ConditionList{cond}, check.entry, true)
+		assert.Equalf(t, check.expectPre, ok, fmt.Sprintf("precheck returned: %v", ok))
+
+		ok = cd.MatchMapCondition(ConditionList{cond}, check.entry, false)
+		assert.Equalf(t, check.expectPre, ok, fmt.Sprintf("final check returned: %v", ok))
+	}
+}
