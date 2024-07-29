@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient+ agent.
 
 next:
+         - do not use empty-state if warn/crit conditions contain check on 'count'
          - fix evaluating nested filter conditions
          - fix check_http/check_tcp/check_dns help (#135)
 

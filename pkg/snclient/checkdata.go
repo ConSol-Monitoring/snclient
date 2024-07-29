@@ -200,7 +200,9 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 		return cd.result, nil
 	case cd.emptySyntax != "" && len(cd.listData) == 0:
 		cd.result.Output = cd.emptySyntax
-		cd.result.State = cd.emptyState
+		if !cd.HasThreshold("count") {
+			cd.result.State = cd.emptyState
+		}
 	case cd.showAll:
 		cd.result.Output = "%(status) - %(list)"
 	case cd.result.State == 0 && cd.okSyntax != "":
