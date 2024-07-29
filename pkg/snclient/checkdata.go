@@ -291,28 +291,7 @@ func (cd *CheckData) buildListMacros() map[string]string {
 	result["problem_list"] = strings.Join(problemList, " ")
 	result["detail_list"] = strings.Join(detailList, " ")
 
-	if cd.addCountMetrics {
-		cd.result.Metrics = append(cd.result.Metrics,
-			&CheckMetric{
-				Name:     "count",
-				Value:    len(list),
-				Warning:  cd.warnThreshold,
-				Critical: cd.critThreshold,
-				Min:      &Zero,
-			},
-		)
-	}
-	if cd.addProblemCountMetrics {
-		cd.result.Metrics = append(cd.result.Metrics,
-			&CheckMetric{
-				Name:     "failed",
-				Value:    len(critList) + len(warnList),
-				Warning:  cd.warnThreshold,
-				Critical: cd.critThreshold,
-				Min:      &Zero,
-			},
-		)
-	}
+	cd.buildCountMetrics(len(list), len(critList), len(warnList))
 
 	return result
 }
@@ -338,6 +317,8 @@ func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
 		"detail_list":   expanded,
 	}
 
+	numWarn := 0
+	numCrit := 0
 	switch entry["_state"] {
 	case "0":
 		result["ok_list"] = expanded
@@ -346,13 +327,42 @@ func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
 		result["problem_list"] = expanded
 		result["warn_list"] = expanded
 		result["warn_count"] = "1"
+		numWarn = 1
 	case "2":
 		result["problem_list"] = expanded
 		result["crit_list"] = expanded
 		result["crit_count"] = "1"
+		numCrit = 1
 	}
 
+	cd.buildCountMetrics(1, numCrit, numWarn)
+
 	return result
+}
+
+func (cd *CheckData) buildCountMetrics(listLen, critLen, warnLen int) {
+	if cd.addCountMetrics {
+		cd.result.Metrics = append(cd.result.Metrics,
+			&CheckMetric{
+				Name:     "count",
+				Value:    listLen,
+				Warning:  cd.warnThreshold,
+				Critical: cd.critThreshold,
+				Min:      &Zero,
+			},
+		)
+	}
+	if cd.addProblemCountMetrics {
+		cd.result.Metrics = append(cd.result.Metrics,
+			&CheckMetric{
+				Name:     "failed",
+				Value:    critLen + warnLen,
+				Warning:  cd.warnThreshold,
+				Critical: cd.critThreshold,
+				Min:      &Zero,
+			},
+		)
+	}
 }
 
 // setStateFromMaps sets main state from _state or list counts.
