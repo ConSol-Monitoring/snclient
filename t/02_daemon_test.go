@@ -90,13 +90,16 @@ func TestDaemonRequests(t *testing.T) {
 		Like: []string{`OK - \w+ >\d+ \w*B/s <\d+ \w*B\/s`},
 	})
 
-	runCmd(t, &cmd{
-		Cmd: bin,
-		Args: append(baseArgs, "check_service", "crit=count == 0", "top-syntax=%(list)",
-			"filter='"+`( name = 'svc1' or name like 'svc2' ) and state = 'running'`+"'", "empty-syntax='%(status) - neither svc1 nor svc2 is started'"),
-		Like: []string{`CRITICAL - neither svc1 nor svc2 is started \|'count'=0;;0;0; 'failed'=0;;;0;`},
-		Exit: 2,
-	})
+	if runtime.GOOS == "linux" || runtime.GOOS == "windows" {
+		// check_service is only available on linux/windows
+		runCmd(t, &cmd{
+			Cmd: bin,
+			Args: append(baseArgs, "check_service", "crit=count == 0", "top-syntax=%(list)",
+				"filter='"+`( name = 'svc1' or name like 'svc2' ) and state = 'running'`+"'", "empty-syntax='%(status) - neither svc1 nor svc2 is started'"),
+			Like: []string{`CRITICAL - neither svc1 nor svc2 is started \|'count'=0;;0;0; 'failed'=0;;;0;`},
+			Exit: 2,
+		})
+	}
 
 	drive := "/"
 	if runtime.GOOS == "windows" {
