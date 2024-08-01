@@ -4,7 +4,7 @@ next:
          - do not use empty-state if warn/crit conditions contain check on 'count'
          - fix evaluating nested filter conditions
          - fix check_http/check_tcp/check_dns help (#135)
-         - update windows exporter to 0.26.0
+         - update windows exporter to 0.26.1
 
 0.26     Wed Jul 17 15:23:37 CEST 2024
          - fix check_os_version windows build version (#134)
