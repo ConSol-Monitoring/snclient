@@ -20,6 +20,14 @@ func TestCheckDrivesize(t *testing.T) {
 		"output matches",
 	)
 
+	res = snc.RunCheck("check_drivesize", []string{"warn=free_bytes > 0", "crit=free_bytes > 0", "drive=/"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
+	assert.Regexpf(t,
+		regexp.MustCompile(`^CRITICAL - / .*?\/.*? \(\d+\.\d+%\) \|'/ free'=.*?B;0;0;0;.*? '/ free %'=.*?%;0;0;0;100`),
+		string(res.BuildPluginOutput()),
+		"output matches",
+	)
+
 	res = snc.RunCheck("check_drivesize", []string{"filter=free<0", "empty-state=0"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No drives found", "output matches")

@@ -1020,10 +1020,24 @@ func (cd *CheckData) TransformThreshold(srcThreshold ConditionList, srcName, tar
 func (cd *CheckData) TransformMultipleKeywords(srcKeywords []string, targetKeyword string, srcThreshold ConditionList) (threshold ConditionList) {
 	transformed := cd.CloneThreshold(srcThreshold)
 	applyChange := func(cond *Condition) bool {
-		if !slices.Contains(srcKeywords, cond.keyword) {
+		found := ""
+		for _, keyword := range srcKeywords {
+			if keyword == cond.keyword {
+				found = keyword
+
+				break
+			}
+		}
+		if found == "" {
 			return true
 		}
 		cond.keyword = targetKeyword
+		switch {
+		case strings.HasSuffix(found, "_pct"):
+			cond.unit = "%"
+		case strings.HasSuffix(found, "_bytes"):
+			cond.unit = "B"
+		}
 
 		return true
 	}

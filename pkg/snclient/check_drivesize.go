@@ -256,14 +256,14 @@ func (l *CheckDrivesize) addMetrics(drive string, check *CheckData, usage *disk.
 		total = usage.Used + usage.Free // use this total instead of usage.Total to account in the root reserved space
 	}
 
-	if check.HasThreshold("free") || check.HasThreshold("free_pct") {
-		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.warnThreshold)
-		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.critThreshold)
+	if check.HasThreshold("free") || check.HasThreshold("free_pct") || check.HasThreshold("free_bytes") {
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct", "free_bytes"}, "free", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct", "free_bytes"}, "free", check.critThreshold)
 		check.AddBytePercentMetrics("free", drive+" free", magic*float64(usage.Free), magic*float64(total))
 	}
-	if check.HasThreshold("used") || check.HasThreshold("used_pct") {
-		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.warnThreshold)
-		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.critThreshold)
+	if check.HasThreshold("used") || check.HasThreshold("used_pct") || check.HasThreshold("used_bytes") {
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes"}, "used", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes"}, "used", check.critThreshold)
 		check.AddBytePercentMetrics("used", drive+" used", magic*float64(usage.Used), magic*float64(total))
 	}
 	if check.HasThreshold("inodes") || check.HasThreshold("inodes_used") || check.HasThreshold("inodes_used_pct") {
@@ -331,10 +331,10 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 		return
 	}
 
-	if check.HasThreshold("free") {
+	if check.HasThreshold("free") || check.HasThreshold("free_bytes") {
 		check.AddBytePercentMetrics("free", drive["drive"]+" free", float64(free), float64(total))
 	}
-	if check.HasThreshold("used") {
+	if check.HasThreshold("used") || check.HasThreshold("used_bytes") {
 		check.AddBytePercentMetrics("used", drive["drive"]+" used", float64(used), float64(total))
 	}
 }
