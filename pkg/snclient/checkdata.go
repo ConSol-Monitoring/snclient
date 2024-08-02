@@ -851,6 +851,7 @@ func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defau
 }
 
 // apply condition aliases to all filter/warn/crit/ok conditions.
+// this is useful for example in service checks, when people match for state running / started
 func (cd *CheckData) applyConditionAlias() {
 	if len(cd.conditionAlias) == 0 {
 		return
@@ -862,12 +863,12 @@ func (cd *CheckData) applyConditionAlias() {
 }
 
 // apply condition aliases to given conditions.
-func (cd *CheckData) applyConditionAliasList(cond ConditionList) {
-	for _, cond := range cond {
+func (cd *CheckData) applyConditionAliasList(condList ConditionList) {
+	for _, cond := range condList {
 		if len(cond.group) > 0 {
 			cd.applyConditionAliasList(cond.group)
 
-			return
+			continue
 		}
 
 		for replaceKeyword, aliasMap := range cd.conditionAlias {

@@ -206,3 +206,22 @@ func TestConditionPreCheck(t *testing.T) {
 		assert.Equalf(t, check.expectPre, ok, fmt.Sprintf("final check returned: %v", ok))
 	}
 }
+
+func TestConditionAlias(t *testing.T) {
+	filterStr := `( name = 'xinetd' or name like 'other' ) and state = 'started'`
+	cond, err := NewCondition(filterStr)
+	require.NoError(t, err)
+
+	check := &CheckData{
+		filter: ConditionList{cond},
+		conditionAlias: map[string]map[string]string{
+			"state": {
+				"started": "running",
+			},
+		},
+	}
+	check.applyConditionAlias()
+
+	check.filter[0].original = "" // avoid shortcut String builder
+	assert.Containsf(t, check.filter[0].String(), `state = running`, "filter condition replaced")
+}

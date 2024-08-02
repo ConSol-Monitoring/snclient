@@ -53,6 +53,11 @@ There is a specific [check_service for windows](../check_service_windows) as wel
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
+		conditionAlias: map[string]map[string]string{
+			"state": {
+				"started": "running",
+			},
+		},
 		args: map[string]CheckArgument{
 			"service": {
 				value:           &l.services,
