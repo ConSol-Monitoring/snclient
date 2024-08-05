@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"regexp"
+	"runtime"
 	"testing"
 
 	"github.com/shirou/gopsutil/v4/mem"
@@ -87,5 +88,16 @@ func TestCheckMemory(t *testing.T) {
 			"output matches",
 		)
 	}
+
+	res = snc.RunCheck("check_memory", []string{"type=virtual"})
+	assert.NotEmptyf(t, res.Output, "got something from virtual")
+	if runtime.GOOS == "windows" {
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		assert.Containsf(t, string(res.BuildPluginOutput()), "OK - virtual", "output matches")
+	} else {
+		assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN")
+		assert.Containsf(t, string(res.BuildPluginOutput()), "UNKNOWN - virtual memory is only supported on windows", "output matches")
+	}
+
 	StopTestAgent(t, snc)
 }
