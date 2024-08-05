@@ -9,7 +9,6 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-ole/go-ole v1.3.0
-	github.com/jessevdk/go-flags v1.6.1
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/mackerelio/checkers v0.2.0
 	github.com/miekg/dns v1.1.61
@@ -21,13 +20,14 @@ require (
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v4 v4.24.6
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20240724130556-96724c4c3d78
+	github.com/sni/go-flags v0.0.0-20240724130408-1ec865bcf4f3
 	github.com/sni/shelltoken v0.0.0-20240314123449-84b0a0c05450
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	github.com/yusufpapurcu/wmi v1.2.4
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
-	golang.org/x/sys v0.22.0
+	golang.org/x/sys v0.23.0
 	golang.org/x/term v0.22.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -57,7 +57,6 @@ require (
 	github.com/rickb777/plural v1.4.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
-	github.com/sni/go-flags v0.0.0-20240724130408-1ec865bcf4f3 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
 	github.com/tklauser/numcpus v0.8.0 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
