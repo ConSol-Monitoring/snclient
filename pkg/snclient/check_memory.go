@@ -87,7 +87,7 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 				return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
 			}
 			if swap.Total > 0 {
-				l.addMemType(check, "committed", swap.Used, swap.Free, swap.Total)
+				l.addMemType(check, memType, swap.Used, swap.Free, swap.Total)
 			}
 		case "virtual":
 			if runtime.GOOS != "windows" {
