@@ -41,7 +41,7 @@ func (l *CheckMemory) Build() *CheckData {
 		topSyntax:       "%(status) - ${list}",
 		attributes: []CheckAttribute{
 			{name: "<type>", description: "used bytes with the type as key"},
-			{name: "type", description: "checked type, either 'physical' or 'committed' (swap)"},
+			{name: "type", description: "checked type, either 'physical' or 'committed' (swap) or 'virtual' (windows only)"},
 			{name: "used", description: "Used memory in human readable bytes (IEC)"},
 			{name: "used_bytes", description: "Used memory in bytes (IEC)"},
 			{name: "used_pct", description: "Used memory in percent"},
@@ -70,7 +70,7 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 
 	physical, err := mem.VirtualMemory()
 	if err != nil {
-		return nil, fmt.Errorf("fetching virtual memory failed: %s", err.Error())
+		return nil, err
 	}
 
 	if physical.Total == 0 {
@@ -81,7 +81,7 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 		switch memType {
 		case "physical":
 			l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total)
-		case "committed":
+		case "committed", "swap":
 			swap, err := mem.SwapMemory()
 			if err != nil {
 				return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
@@ -99,7 +99,7 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 			}
 			l.addMemType(check, "virtual", virtTotal-virtAvail, virtAvail, virtTotal)
 		default:
-			return nil, fmt.Errorf("unknown type, please use 'physical' or 'committed'")
+			return nil, fmt.Errorf("unknown type, please use 'physical',  'committed', 'swap' or 'virtual'")
 		}
 	}
 
