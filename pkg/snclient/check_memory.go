@@ -70,7 +70,7 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 
 	physical, err := mem.VirtualMemory()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetching virtual memory failed: %s", err.Error())
 	}
 
 	if physical.Total == 0 {
@@ -95,7 +95,7 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 			}
 			virtTotal, virtAvail, err := l.virtualMemory()
 			if err != nil {
-				return nil, fmt.Errorf("fetching virtual memory failed: %s", err.Error())
+				return nil, err
 			}
 			l.addMemType(check, "virtual", virtTotal-virtAvail, virtAvail, virtTotal)
 		default:
