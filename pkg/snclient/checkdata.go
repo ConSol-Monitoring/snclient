@@ -83,6 +83,7 @@ type CheckData struct {
 	args                   map[string]CheckArgument
 	extraArgs              map[string]CheckArgument // internal, map of expanded args
 	argsPassthrough        bool                     // allow arbitrary arguments without complaining about unknown argument
+	hasArgsSupplied        map[string]bool          // map which is true if a arg has been specified on the command line
 	rawArgs                []string
 	filter                 ConditionList // if set, only show entries matching this filter set
 	warnThreshold          ConditionList
@@ -529,7 +530,7 @@ func (cd *CheckData) parseStateString(state string) int64 {
 // and returns all unknown options
 func (cd *CheckData) ParseArgs(args []string) (argList []Argument, err error) {
 	cd.rawArgs = args
-	appendArgs := map[string]bool{}
+	cd.hasArgsSupplied = map[string]bool{}
 	argList = make([]Argument, 0, len(args))
 	cd.expandArgDefinitions()
 	topSupplied := false
@@ -634,7 +635,7 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, err error) {
 		case "output":
 			cd.output = argValue
 		default:
-			parsed, err2 := cd.parseAnyArg(appendArgs, argExpr, keyword, argValue)
+			parsed, err2 := cd.parseAnyArg(argExpr, keyword, argValue)
 			switch {
 			case err2 != nil:
 				return nil, err2
@@ -739,7 +740,7 @@ func (cd *CheckData) fetchNextArg(args, split []string, keyword string, idx, num
 }
 
 // parseAnyArg parses args into the args map with custom arguments
-func (cd *CheckData) parseAnyArg(appendArgs map[string]bool, argExpr, keyword, argValue string) (bool, error) {
+func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error) {
 	arg, ok := cd.args[keyword]
 	if !ok {
 		arg, ok = cd.extraArgs[keyword]
@@ -750,21 +751,19 @@ func (cd *CheckData) parseAnyArg(appendArgs map[string]bool, argExpr, keyword, a
 
 	switch argRef := arg.value.(type) {
 	case *[]string:
-		if _, ok := appendArgs[keyword]; !ok {
+		if _, ok := cd.hasArgsSupplied[keyword]; !ok {
 			// first time this arg occurs, empty default lists
 			empty := make([]string, 0)
 			*argRef = empty
 		}
 		*argRef = append(*argRef, argValue)
-		appendArgs[keyword] = true
 	case *CommaStringList:
-		if _, ok := appendArgs[keyword]; !ok {
+		if _, ok := cd.hasArgsSupplied[keyword]; !ok {
 			// first time this arg occurs, empty default lists
 			empty := make([]string, 0)
 			*argRef = empty
 		}
 		*argRef = append(*argRef, strings.Split(argValue, ",")...)
-		appendArgs[keyword] = true
 	case *string:
 		*argRef = argValue
 	case *float64:
@@ -799,6 +798,8 @@ func (cd *CheckData) parseAnyArg(appendArgs map[string]bool, argExpr, keyword, a
 	default:
 		log.Errorf("unsupported args type: %T in %s", argRef, argExpr)
 	}
+
+	cd.hasArgsSupplied[keyword] = true
 
 	return true, nil
 }

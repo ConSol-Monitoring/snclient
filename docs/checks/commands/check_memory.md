@@ -6,6 +6,17 @@ title: memory
 
 Checks the memory usage on the host.
 
+There are several types of memory that can be checked:
+
+    physical: physical memory
+    swap: swap memory (pagefile on windows)
+    committed: committed memory as shown in the windows task manager (windows only, basically this is the physical + swap)
+    virtual: available windows virtual address space (windows only)
+
+read more on windows virtual address space:
+
+    https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex
+
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Attributes](#attributes)
@@ -58,9 +69,9 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument | Description                                          |
-| -------- | ---------------------------------------------------- |
-| type     | Type of memory to check. Default: physical,committed |
+| Argument | Description                                                                         |
+| -------- | ----------------------------------------------------------------------------------- |
+| type     | Type of memory to check. Default: physical,committed (win) or physical,swap (other) |
 
 ## Attributes
 
@@ -68,15 +79,15 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute  | Description                                           |
-| ---------- | ----------------------------------------------------- |
-| <type>     | used bytes with the type as key                       |
-| type       | checked type, either 'physical' or 'committed' (swap) |
-| used       | Used memory in human readable bytes (IEC)             |
-| used_bytes | Used memory in bytes (IEC)                            |
-| used_pct   | Used memory in percent                                |
-| free       | Free memory in human readable bytes (IEC)             |
-| free_bytes | Free memory in bytes (IEC)                            |
-| free_pct   | Free memory in percent                                |
-| size       | Total memory in human readable bytes (IEC)            |
-| size_bytes | Total memory in bytes (IEC)                           |
+| Attribute  | Description                                                                        |
+| ---------- | ---------------------------------------------------------------------------------- |
+| <type>     | used bytes with the type as key                                                    |
+| type       | checked type, either 'physical' or 'committed', 'swap' or 'virtual' (windows only) |
+| used       | Used memory in human readable bytes (IEC)                                          |
+| used_bytes | Used memory in bytes (IEC)                                                         |
+| used_pct   | Used memory in percent                                                             |
+| free       | Free memory in human readable bytes (IEC)                                          |
+| free_bytes | Free memory in bytes (IEC)                                                         |
+| free_pct   | Free memory in percent                                                             |
+| size       | Total memory in human readable bytes (IEC)                                         |
+| size_bytes | Total memory in bytes (IEC)                                                        |

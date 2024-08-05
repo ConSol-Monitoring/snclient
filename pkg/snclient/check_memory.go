@@ -14,26 +14,45 @@ func init() {
 }
 
 type CheckMemory struct {
-	memType []string
+	memType CommaStringList
 }
 
 func NewCheckMemory() CheckHandler {
+	var memType CommaStringList
+	switch runtime.GOOS {
+	case "windows":
+		memType = []string{"physical", "committed"}
+	default:
+		memType = []string{"physical", "swap"}
+	}
+
 	return &CheckMemory{
-		memType: []string{"physical", "committed"},
+		memType: memType,
 	}
 }
 
 func (l *CheckMemory) Build() *CheckData {
 	return &CheckData{
-		name:         "check_memory",
-		description:  "Checks the memory usage on the host.",
+		name: "check_memory",
+		description: `Checks the memory usage on the host.
+
+There are several types of memory that can be checked:
+
+    physical: physical memory
+    swap: swap memory (pagefile on windows)
+    committed: committed memory as shown in the windows task manager (windows only, basically this is the physical + swap)
+    virtual: available windows virtual address space (windows only)
+
+read more on windows virtual address space:
+
+    https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex`,
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"type": {value: &l.memType, description: "Type of memory to check. Default: physical,committed"},
+			"type": {value: &l.memType, description: "Type of memory to check. Default: physical,committed (win) or physical,swap (other)"},
 		},
 		defaultWarning:  "used > 80%",
 		defaultCritical: "used > 90%",
@@ -41,7 +60,7 @@ func (l *CheckMemory) Build() *CheckData {
 		topSyntax:       "%(status) - ${list}",
 		attributes: []CheckAttribute{
 			{name: "<type>", description: "used bytes with the type as key"},
-			{name: "type", description: "checked type, either 'physical' or 'committed' (swap) or 'virtual' (windows only)"},
+			{name: "type", description: "checked type, either 'physical' or 'committed', 'swap' or 'virtual' (windows only)"},
 			{name: "used", description: "Used memory in human readable bytes (IEC)"},
 			{name: "used_bytes", description: "Used memory in bytes (IEC)"},
 			{name: "used_pct", description: "Used memory in percent"},
@@ -81,13 +100,21 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 		switch memType {
 		case "physical":
 			l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total)
-		case "committed", "swap":
+		case "swap":
 			swap, err := mem.SwapMemory()
 			if err != nil {
 				return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
 			}
-			if swap.Total > 0 {
-				l.addMemType(check, memType, swap.Used, swap.Free, swap.Total)
+			if swap.Total > 0 || check.hasArgsSupplied["swap"] {
+				l.addMemType(check, "swap", swap.Used, swap.Free, swap.Total)
+			}
+		case "committed":
+			total, avail, err := l.committedMemory()
+			if err != nil {
+				return nil, err
+			}
+			if total > 0 || check.hasArgsSupplied["committed"] {
+				l.addMemType(check, "committed", total-avail, avail, total)
 			}
 		case "virtual":
 			if runtime.GOOS != "windows" {

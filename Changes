@@ -2,6 +2,8 @@ This file documents the revision history for the SNClient+ agent.
 
 next:
          - do not use empty-state if warn/crit conditions contain check on 'count'
+         - check_memory: distinguish between committed and swap memory
+         - check_memory: change default type on linux to physical,swap
          - fix evaluating nested filter conditions
          - fix check_drivesize missing performance data when using free_bytes threshold (#136)
          - fix check_http/check_tcp/check_dns help (#135)

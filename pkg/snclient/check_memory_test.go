@@ -16,14 +16,19 @@ func TestCheckMemory(t *testing.T) {
 	swap, err := mem.SwapMemory()
 	require.NoErrorf(t, err, "acquiring swap info failed")
 
+	swapName := "committed"
+	if runtime.GOOS != "windows" {
+		swapName = "swap"
+	}
+
 	hasSwap := false
 	expectedOKOutput := `^OK - physical = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\) \|`
 	expectedCriticalOutput := `^CRITICAL - physical = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\) \|`
 	if swap.Total > 0 {
 		hasSwap = true
-		expectedOKOutput = `^OK - physical = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\), committed = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\) \|`
+		expectedOKOutput = `^OK - physical = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\), ` + swapName + ` = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\) \|`
 		expectedCriticalOutput = `^CRITICAL - physical = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\), ` +
-			`committed = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\) \|`
+			swapName + ` = \d+(\.\d+)? [KMGTi]*B\/\d+(\.\d+)? [KMGTi]*B \(\d+.\d+%\) \|`
 	}
 
 	res := snc.RunCheck("check_memory", []string{"warn=used > 101", "crit=used > 102"})
@@ -45,12 +50,12 @@ func TestCheckMemory(t *testing.T) {
 	)
 	if hasSwap {
 		assert.Regexpf(t,
-			regexp.MustCompile(`'committed'=\d+B;\d+;\d+;0;\d+\s*`),
+			regexp.MustCompile(`'`+swapName+`'=\d+B;\d+;\d+;0;\d+\s*`),
 			string(res.BuildPluginOutput()),
 			"output matches",
 		)
 		assert.Regexpf(t,
-			regexp.MustCompile(`'committed %'=\d+(\.\d+)?%;\d+(\.\d+)?;\d+(\.\d+)?;0;100\s*`),
+			regexp.MustCompile(`'`+swapName+` %'=\d+(\.\d+)?%;\d+(\.\d+)?;\d+(\.\d+)?;0;100\s*`),
 			string(res.BuildPluginOutput()),
 			"output matches",
 		)
@@ -83,7 +88,7 @@ func TestCheckMemory(t *testing.T) {
 	)
 	if hasSwap {
 		assert.Regexpf(t,
-			regexp.MustCompile(`'committed_free %'=\d+(\.\d+)?%;\d+(\.\d+)?:;\d+(\.\d+)?:;0;100\s*`),
+			regexp.MustCompile(`'`+swapName+`_free %'=\d+(\.\d+)?%;\d+(\.\d+)?:;\d+(\.\d+)?:;0;100\s*`),
 			string(res.BuildPluginOutput()),
 			"output matches",
 		)
