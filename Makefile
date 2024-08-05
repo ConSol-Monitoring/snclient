@@ -65,9 +65,9 @@ WINDOWS_EXPORTER_VERSION_I386=0.24.0
 WINDOWS_EXPORTER_FILE_I386=windows_exporter-$(WINDOWS_EXPORTER_VERSION_I386)
 WINDOWS_EXPORTER_URL_I386=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION_I386)/
 
-WINDOWS_EXPORTER_VERSION=0.26.1
+WINDOWS_EXPORTER_VERSION=0.26.2
 WINDOWS_EXPORTER_FILE=windows_exporter-$(WINDOWS_EXPORTER_VERSION)
-WINDOWS_EXPORTER_URL=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION)/
+WINDOWS_EXPORTER_URL=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION)
 
 WINRESARGS = --product-version "$(VERSION)" --file-version "$(VERSION)"
 DOCKER := $(shell which docker 2>/dev/null)
@@ -702,3 +702,11 @@ gitcleandocs:
 		git status -s docs; \
 		exit 1; \
 	fi
+
+updatewindowsexporter:
+	curl -s -L -o sha256sums_windows_exporter.txt $(WINDOWS_EXPORTER_URL)/sha256sums.txt
+	AMD=$$(grep amd64.exe sha256sums_windows_exporter.txt | awk '{ print $$1 }'); \
+		sed -i packaging/sha256sums.txt -e "/windows_exporter-amd64.exe/ s/^\w*/$$AMD/"
+	ARM=$$(grep arm64.exe sha256sums_windows_exporter.txt | awk '{ print $$1 }'); \
+		sed -i packaging/sha256sums.txt -e "/windows_exporter-arm64.exe/ s/^\w*/$$ARM/"
+	rm -f sha256sums_windows_exporter.txt
