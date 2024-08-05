@@ -58,7 +58,7 @@ TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
 NODE_EXPORTER_VERSION=1.8.2
 NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(GOARCH).tar.gz
-NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)/$(NODE_EXPORTER_FILE)
+NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)
 
 # last i386 exe is the 0.24.0
 WINDOWS_EXPORTER_VERSION_I386=0.24.0
@@ -439,7 +439,7 @@ deb: | dist
 		build-deb/usr/share/man/man8 \
 		build-deb/usr/share/lintian/overrides/
 
-	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
+	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
 	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter build-deb/usr/lib/snclient/node_exporter
@@ -486,7 +486,7 @@ rpm: | dist
 	cp -rp dist snclient-$(VERSION)
 	rm -f snclient-$(VERSION)/ca.key
 
-	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
+	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
 	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter snclient-$(VERSION)/node_exporter
@@ -519,7 +519,7 @@ osx: | dist
 		build-pkg/usr/local/share/man/man1 \
 		build-pkg/usr/local/share/man/man8
 
-	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)
+	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
 	mv node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(GOARCH)/node_exporter build-pkg/usr/local/bin/node_exporter
@@ -703,10 +703,21 @@ gitcleandocs:
 		exit 1; \
 	fi
 
-updatewindowsexporter:
+updatewindowsexportersums:
 	curl -s -L -o sha256sums_windows_exporter.txt $(WINDOWS_EXPORTER_URL)/sha256sums.txt
 	AMD=$$(grep amd64.exe sha256sums_windows_exporter.txt | awk '{ print $$1 }'); \
 		sed -i packaging/sha256sums.txt -e "/windows_exporter-amd64.exe/ s/^\w*/$$AMD/"
 	ARM=$$(grep arm64.exe sha256sums_windows_exporter.txt | awk '{ print $$1 }'); \
 		sed -i packaging/sha256sums.txt -e "/windows_exporter-arm64.exe/ s/^\w*/$$ARM/"
 	rm -f sha256sums_windows_exporter.txt
+
+updatenodeexportersums:
+	curl -s -L -o sha256sums_node_exporter.txt $(NODE_EXPORTER_URL)/sha256sums.txt
+	grep -v node_exporter packaging/sha256sums.txt > sha256sums.txt
+	grep darwin-amd64.tar.gz sha256sums_node_exporter.txt >> sha256sums.txt
+	grep darwin-arm64.tar.gz sha256sums_node_exporter.txt >> sha256sums.txt
+	grep linux-386.tar.gz    sha256sums_node_exporter.txt >> sha256sums.txt
+	grep linux-amd64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
+	grep linux-arm64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
+	mv sha256sums.txt packaging/sha256sums.txt
+	rm -f sha256sums_node_exporter.txt
