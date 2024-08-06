@@ -84,14 +84,6 @@ func setLogLevel(level string) {
 	}
 }
 
-func raiseLogLevel(level string) {
-	if factorlog.StringToSeverity(strings.ToUpper(level)) < factorlog.StringToSeverity(strings.ToUpper(restoreLevel)) {
-		prev := restoreLevel
-		setLogLevel(level)
-		restoreLevel = prev
-	}
-}
-
 func disableLogsTemporarily() {
 	prev := restoreLevel
 	setLogLevel("off")

@@ -710,18 +710,6 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 			Output: fmt.Sprintf("${status} - %s", err.Error()),
 		}
 	}
-	switch {
-	case chk.verbose >= 3:
-		raiseLogLevel("trace")
-		log.SetVerbosity(LogVerbosityTrace2)
-	case chk.verbose >= 2:
-		raiseLogLevel("trace")
-	case chk.verbose >= 1:
-		raiseLogLevel("debug")
-	}
-	if chk.verbose >= 1 {
-		defer restoreLogLevel()
-	}
 
 	if chk.showHelp > 0 {
 		state := CheckExitUnknown

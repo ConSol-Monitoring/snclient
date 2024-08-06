@@ -84,7 +84,6 @@ func addFlags(cmd *cobra.Command, flags *snclient.AgentFlags) {
 }
 
 func Execute() error {
-	injectDoubleSlashAfterRunCmd(rootCmd)
 	sanitizeOSArgs()
 	maybeInjectRootAlias(rootCmd, "server")
 
@@ -132,8 +131,34 @@ func maybeInjectRootAlias(rootCmd *cobra.Command, inject string) {
 	os.Args = append([]string{os.Args[0], inject}, os.Args[1:]...)
 }
 
-// replace -option=... with --option=...
+// sanitize os.Args
 func sanitizeOSArgs() {
+	sanitizeGlobalOptions()
+	injectDoubleSlashAfterRunCmd(rootCmd)
+	sanitizeLongOptions()
+}
+
+// move global args like -v, -vv, -vvv to front
+func sanitizeGlobalOptions() {
+	sortedArgs := []string{}
+
+	cmdName := os.Args[0]
+	for _, arg := range os.Args[1:] {
+		switch arg {
+		case "-v", "-vv", "-vvv":
+			sortedArgs = append([]string{arg}, sortedArgs...)
+		default:
+			sortedArgs = append(sortedArgs, arg)
+		}
+	}
+
+	sortedArgs = append([]string{cmdName}, sortedArgs...)
+
+	os.Args = sortedArgs
+}
+
+// replace -option=... with --option=...
+func sanitizeLongOptions() {
 	// sanitize some args
 	replace := map[string]string{}
 	rootCmd.LocalFlags().VisitAll(func(f *pflag.Flag) {
