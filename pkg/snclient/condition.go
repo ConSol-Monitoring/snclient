@@ -236,7 +236,7 @@ func (c *Condition) String() string {
 		return " (" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ") "
 	}
 
-	return fmt.Sprintf("%s %s %v", c.keyword, c.operator.String(), c.value)
+	return fmt.Sprintf("%s %s %v%s", c.keyword, c.operator.String(), c.value, c.unit)
 }
 
 // Match checks if given map matches current condition
