@@ -105,7 +105,7 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 			if err != nil {
 				return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
 			}
-			if swap.Total > 0 || check.hasArgsSupplied["swap"] {
+			if swap.Total > 0 || check.hasArgsSupplied["type"] {
 				l.addMemType(check, "swap", swap.Used, swap.Free, swap.Total)
 			}
 		case "committed":
@@ -113,7 +113,7 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 			if err != nil {
 				return nil, err
 			}
-			if total > 0 || check.hasArgsSupplied["committed"] {
+			if total > 0 || check.hasArgsSupplied["type"] {
 				l.addMemType(check, "committed", total-avail, avail, total)
 			}
 		case "virtual":
