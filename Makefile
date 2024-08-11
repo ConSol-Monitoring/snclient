@@ -65,7 +65,7 @@ WINDOWS_EXPORTER_VERSION_I386=0.24.0
 WINDOWS_EXPORTER_FILE_I386=windows_exporter-$(WINDOWS_EXPORTER_VERSION_I386)
 WINDOWS_EXPORTER_URL_I386=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION_I386)/
 
-WINDOWS_EXPORTER_VERSION=0.26.2
+WINDOWS_EXPORTER_VERSION=0.27.0
 WINDOWS_EXPORTER_FILE=windows_exporter-$(WINDOWS_EXPORTER_VERSION)
 WINDOWS_EXPORTER_URL=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION)
 
@@ -721,3 +721,4 @@ updatenodeexportersums:
 	grep linux-arm64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
 	mv sha256sums.txt packaging/sha256sums.txt
 	rm -f sha256sums_node_exporter.txt
+

@@ -8,7 +8,7 @@ next:
          - fix check_drivesize missing performance data when using free_bytes threshold (#136)
          - fix check_http/check_tcp/check_dns help (#135)
          - fix using condition alias on nested filters
-         - update windows exporter to 0.26.2
+         - update windows exporter to 0.27.0
 
 0.26     Wed Jul 17 15:23:37 CEST 2024
          - fix check_os_version windows build version (#134)
