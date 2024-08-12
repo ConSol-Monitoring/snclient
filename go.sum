@@ -94,8 +94,8 @@ github.com/prometheus/common v0.55.0 h1:KEi6DK7lXW/m7Ig5i47x0vRzuBsHuvJdi5ee6Y3G
 github.com/prometheus/common v0.55.0/go.mod h1:2SECS4xJG1kd8XF9IcM1gMX6510RAEL65zxzNImwdc8=
 github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=
 github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
-github.com/reeflective/readline v1.0.14 h1:sgKLpi3figH8IcWx3Hu3rCeGJQ6W+6KtZ3PTdcAD3jA=
-github.com/reeflective/readline v1.0.14/go.mod h1:3iOe/qyb2jEy0KqLrNlb/CojBVqxga9ACqz/VU22H6A=
+github.com/reeflective/readline v1.0.15 h1:uB/M1sAc2yZGO14Ujgr/imLwQXqGdOhDDWAEHF+MBaE=
+github.com/reeflective/readline v1.0.15/go.mod h1:3iOe/qyb2jEy0KqLrNlb/CojBVqxga9ACqz/VU22H6A=
 github.com/rickb777/date v1.14.2/go.mod h1:swmf05C+hN+m8/Xh7gEq3uB6QJDNc5pQBWojKdHetOs=
 github.com/rickb777/date v1.21.1 h1:tUcQS8riIRoYK5kUAv5aevllFEYUEk2x8OYDyoldOn4=
 github.com/rickb777/date v1.21.1/go.mod h1:gnDexsbXViZr2fCKMrY3m6IfAF5U2vSkEaiGJcNFaLQ=
