@@ -248,7 +248,7 @@ func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string
 
 	query = strings.TrimSpace(query)
 	query += "\nResponseHeader: fixed16\nOutputFormat: json"
-	log.Tracef("sending livestatus query:\n" + query)
+	log.Tracef("sending livestatus query:\n%s", query)
 	_, err = fmt.Fprintf(conn, "%s\n\n", query)
 	if err != nil {
 		return nil, fmt.Errorf("socket error: %s", err.Error())

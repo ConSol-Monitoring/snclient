@@ -136,7 +136,7 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 		if targetWriter != os.Stdout && targetWriter != os.Stderr {
 			doOnce.Do(func() {
 				abs, _ := filepath.Abs(file)
-				fmt.Fprintf(os.Stdout, snc.buildStartupMsg()+"\n")
+				fmt.Fprintf(os.Stdout, "%s\n", snc.buildStartupMsg())
 				fmt.Fprintf(os.Stdout, "further logs will go into: %s\n", abs)
 			})
 		}

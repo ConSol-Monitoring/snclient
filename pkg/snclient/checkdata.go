@@ -1167,7 +1167,7 @@ func (cd *CheckData) helpHeaderMarkdown(format ShowHelp) string {
 	if !cd.argsPassthrough {
 		out += "- [Argument Defaults](#argument-defaults)\n"
 	}
-	if cd.attributes != nil && len(cd.attributes) > 0 {
+	if len(cd.attributes) > 0 {
 		out += "- [Attributes](#attributes)\n"
 	}
 	out += "\n"
@@ -1317,7 +1317,7 @@ func (cd *CheckData) helpSpecificArguments(format ShowHelp) string {
 	} else {
 		out += "Check Specific Arguments:\n\n"
 	}
-	if cd.args == nil || len(cd.args) == 0 {
+	if len(cd.args) == 0 {
 		if format == Markdown {
 			out += "None\n\n"
 		} else {
@@ -1362,7 +1362,7 @@ func (cd *CheckData) helpSpecificArguments(format ShowHelp) string {
 
 func (cd *CheckData) helpAttributes(format ShowHelp) string {
 	out := ""
-	if cd.attributes == nil || len(cd.attributes) == 0 {
+	if len(cd.attributes) == 0 {
 		return out
 	}
 

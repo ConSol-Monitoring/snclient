@@ -52,10 +52,10 @@ func TestCheckFilesNoPermission(t *testing.T) {
 
 	for _, char := range []string{"a", "b", "c"} {
 		err = os.WriteFile(filepath.Join(tmpPath, "file "+char+".txt"), []byte(strings.Repeat(char, 2000)), 0o600)
-		require.NoErrorf(t, err, "writing %s worked")
+		require.NoErrorf(t, err, "writing worked")
 
 		err = os.Mkdir(filepath.Join(tmpPath, "dir "+char), 0o700)
-		require.NoErrorf(t, err, "writing %s worked")
+		require.NoErrorf(t, err, "writing worked")
 	}
 	err = os.Chmod(filepath.Join(tmpPath, "file b.txt"), 0o000)
 	require.NoError(t, err)

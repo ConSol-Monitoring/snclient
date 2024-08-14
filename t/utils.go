@@ -103,7 +103,7 @@ func runCmd(t *testing.T, opt *cmd) *cmdResult {
 
 	if err != nil && check.ProcessState == nil {
 		logCmd(t, check, res)
-		require.NoErrorf(t, err, fmt.Sprintf("command wait: %s", opt.Cmd))
+		require.NoErrorf(t, err, "command wait: %s", opt.Cmd)
 
 		return res
 	}
@@ -126,7 +126,7 @@ func runCmd(t *testing.T, opt *cmd) *cmdResult {
 		if opt.Exit != res.ExitCode {
 			logCmd(t, check, res)
 		}
-		assert.Equalf(t, opt.Exit, res.ExitCode, fmt.Sprintf("exit code is: %d", opt.Exit))
+		assert.Equalf(t, opt.Exit, res.ExitCode, "exit code is: %d", opt.Exit)
 	}
 
 	for _, l := range opt.Like {
@@ -213,7 +213,7 @@ func writeFile(t *testing.T, path, content string) {
 	t.Helper()
 
 	err := os.WriteFile(path, []byte(content), 0o600)
-	require.NoErrorf(t, err, fmt.Sprintf("writing file %s succeeded", path))
+	require.NoErrorf(t, err, "writing file %s succeeded", path)
 }
 
 // wait a couple of seconds till daemon answers

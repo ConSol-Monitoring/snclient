@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -37,7 +36,7 @@ func TestListenerConfig(t *testing.T) {
 		{false, "192.168.125.5"},
 		{true, "1.1.1.1"},
 	} {
-		assert.Equalf(t, check.expect, ahc.Check(check.addr), fmt.Sprintf("CheckAllowedHosts(%s) -> %v", check.addr, check.expect))
+		assert.Equalf(t, check.expect, ahc.Check(check.addr), "CheckAllowedHosts(%s) -> %v", check.addr, check.expect)
 	}
 }
 

@@ -35,7 +35,7 @@ func TestCheckPerfConfig(t *testing.T) {
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
-	assert.NotContainsf(t, string(res.BuildPluginOutput()), "physical %", "must not contain %")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "physical %")
 
 	res = snc.RunCheck("check_memory", []string{
 		"type=physical",
@@ -49,7 +49,7 @@ func TestCheckPerfConfig(t *testing.T) {
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
-	assert.NotContainsf(t, string(res.BuildPluginOutput()), "physical %", "must not contain %")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "physical %")
 
 	res = snc.RunCheck("check_memory", []string{
 		"type=physical",

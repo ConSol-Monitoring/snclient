@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
@@ -67,7 +66,7 @@ func TestConditionParse(t *testing.T) {
 		cond, err := NewCondition(check.input)
 		check.expect.original = check.input
 		require.NoErrorf(t, err, "ConditionParse should throw no error")
-		assert.Equal(t, check.expect, cond, fmt.Sprintf("ConditionParse(%s) -> %v", check.input, check.expect))
+		assert.Equal(t, check.expect, cond, "ConditionParse(%s) -> %v", check.input, check.expect)
 	}
 }
 
@@ -96,7 +95,7 @@ func TestConditionParseErrors(t *testing.T) {
 	} {
 		cond, err := NewCondition(check.threshold)
 		require.Errorf(t, err, "ConditionParse should error")
-		assert.Nilf(t, cond, fmt.Sprintf("ConditionParse(%s) errors should not return condition", check.threshold))
+		assert.Nilf(t, cond, "ConditionParse(%s) errors should not return condition", check.threshold)
 	}
 }
 
@@ -158,8 +157,8 @@ func TestConditionCompare(t *testing.T) {
 		assert.NotNilf(t, threshold, "parsed threshold")
 		compare := map[string]string{check.key: check.value}
 		res, ok := threshold.Match(compare)
-		assert.Equalf(t, check.expect, res, fmt.Sprintf("Compare(%s) -> (%v) %v", check.threshold, check.value, check.expect))
-		assert.Equalf(t, check.deterministic, ok, fmt.Sprintf("Compare(%s) -> determined: (%v) %v", check.threshold, check.value, check.deterministic))
+		assert.Equalf(t, check.expect, res, "Compare(%s) -> (%v) %v", check.threshold, check.value, check.expect)
+		assert.Equalf(t, check.deterministic, ok, "Compare(%s) -> determined: (%v) %v", check.threshold, check.value, check.deterministic)
 	}
 }
 
@@ -179,7 +178,7 @@ func TestConditionThresholdString(t *testing.T) {
 		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
 		perfRange := ThresholdString([]string{check.name}, ConditionList{threshold}, convert.Num2String)
-		assert.Equalf(t, check.expect, perfRange, fmt.Sprintf("ThresholdString(%s) -> (%v) = %v", check.threshold, perfRange, check.expect))
+		assert.Equalf(t, check.expect, perfRange, "ThresholdString(%s) -> (%v) = %v", check.threshold, perfRange, check.expect)
 	}
 }
 
@@ -200,10 +199,10 @@ func TestConditionPreCheck(t *testing.T) {
 		require.NoError(t, err)
 		cd := CheckData{}
 		ok := cd.MatchMapCondition(ConditionList{cond}, check.entry, true)
-		assert.Equalf(t, check.expectPre, ok, fmt.Sprintf("precheck returned: %v", ok))
+		assert.Equalf(t, check.expectPre, ok, "precheck returned: %v", ok)
 
 		ok = cd.MatchMapCondition(ConditionList{cond}, check.entry, false)
-		assert.Equalf(t, check.expectPre, ok, fmt.Sprintf("final check returned: %v", ok))
+		assert.Equalf(t, check.expectPre, ok, "final check returned: %v", ok)
 	}
 }
 

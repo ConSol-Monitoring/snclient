@@ -22,15 +22,15 @@ func main() {
 	exitStatus := 0
 	switch os.Args[1] {
 	case "0":
-		fmt.Fprintf(os.Stdout, "OK"+message)
+		fmt.Fprintf(os.Stdout, "OK%s", message)
 	case "1":
-		fmt.Fprintf(os.Stdout, "WARNING"+message)
+		fmt.Fprintf(os.Stdout, "WARNING%s", message)
 		exitStatus = 1
 	case "2":
-		fmt.Fprintf(os.Stdout, "CRITICAL"+message)
+		fmt.Fprintf(os.Stdout, "CRITICAL%s", message)
 		exitStatus = 2
 	case "3":
-		fmt.Fprintf(os.Stdout, "UNKNOWN"+message)
+		fmt.Fprintf(os.Stdout, "UNKNOWN%s", message)
 		exitStatus = 3
 	default:
 		fmt.Fprintf(os.Stdout, "Invalid state argument. Please provide one of: 0, 1, 2, 3")
