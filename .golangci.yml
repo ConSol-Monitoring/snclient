@@ -52,6 +52,7 @@ linters:
     - wsl
     # deprecated
     - execinquery
+    - exportloopref
     - gomnd
 issues:
   max-same-issues: 0
