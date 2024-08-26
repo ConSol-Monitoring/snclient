@@ -13,7 +13,7 @@ require (
 	github.com/mackerelio/checkers v0.2.0
 	github.com/miekg/dns v1.1.62
 	github.com/otiai10/copy v1.14.0
-	github.com/prometheus/client_golang v1.20.1
+	github.com/prometheus/client_golang v1.20.2
 	github.com/reeflective/readline v1.0.15
 	github.com/sasha-s/go-deadlock v0.3.5
 	github.com/sassoftware/go-rpmutils v0.4.0
@@ -26,7 +26,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	github.com/yusufpapurcu/wmi v1.2.4
-	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
+	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
 	golang.org/x/sys v0.24.0
 	golang.org/x/term v0.23.0
 	gopkg.in/yaml.v3 v3.0.1
