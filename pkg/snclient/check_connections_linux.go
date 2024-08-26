@@ -29,16 +29,6 @@ func (l *CheckConnections) addIPV6(_ context.Context, check *CheckData) error {
 	return nil
 }
 
-func (l *CheckConnections) addEntry(name string, check *CheckData, counter []int64) {
-	entry := l.defaultEntry(name)
-	for i := range counter {
-		s := tcpStates(i)
-		entry[s.String()] = fmt.Sprintf("%d", counter[i])
-	}
-
-	check.listData = append(check.listData, entry)
-}
-
 func (l *CheckConnections) getProcStats(file string) ([]int64, error) {
 	procFile, err := os.Open(file)
 	if err != nil {

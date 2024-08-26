@@ -3,6 +3,7 @@ package snclient
 import (
 	"fmt"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/wmi"
 )
 
@@ -25,7 +26,10 @@ func (l *CheckNetwork) interfaceSpeed(index int, name string) (speed int64, err 
 		return speed, fmt.Errorf("wmi query returned no data (interface %d / %s not found)", index, name)
 	}
 
-	speed = int64(interfaces[0].Speed) / 1e6
+	speed, err = convert.Int64E(interfaces[0].Speed)
+	if err != nil {
+		return -1, fmt.Errorf("cannot convert speed to int64: %s", err.Error())
+	}
 
-	return speed, nil
+	return speed / 1e6, nil
 }

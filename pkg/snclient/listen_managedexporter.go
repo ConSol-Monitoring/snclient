@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/shirou/gopsutil/v4/process"
@@ -253,7 +254,14 @@ func (l *HandlerManagedExporter) procMemWatcher() {
 		if l.cmd == nil {
 			return
 		}
-		proc, err := process.NewProcess(int32(l.pid))
+		pid32, err := convert.Int32E(l.pid)
+		if err != nil {
+			log.Debugf("failed to convert pid %d: %s", l.pid, err.Error())
+
+			return
+		}
+
+		proc, err := process.NewProcess(pid32)
 		if err != nil {
 			log.Debugf("failed to get process: %s", err.Error())
 

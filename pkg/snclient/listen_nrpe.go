@@ -1,10 +1,10 @@
 package snclient
 
 import (
-	"math"
 	"net"
 	"strings"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/nrpe"
 )
 
@@ -132,9 +132,10 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 	}
 
 	output := statusResult.BuildPluginOutput()
-	state := uint16(3)
-	if statusResult.State >= 0 && statusResult.State <= math.MaxInt16 {
-		state = uint16(statusResult.State)
+	state, err2 := convert.UInt16E(statusResult.State)
+	if err2 != nil {
+		log.Errorf("failed to convert exit code %d: %s", statusResult.State, err2.Error())
+		state = 3
 	}
 	response := nrpe.BuildPacket(request.Version(), nrpe.NrpeResponsePacket, state, output)
 

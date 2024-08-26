@@ -22,6 +22,8 @@ func Float64E(raw interface{}) (float64, error) {
 	switch val := raw.(type) {
 	case float64:
 		return val, nil
+	case float32:
+		return float64(val), nil
 	case int64:
 		return float64(val), nil
 	default:
@@ -48,7 +50,19 @@ func Int64E(raw interface{}) (int64, error) {
 	switch val := raw.(type) {
 	case int64:
 		return val, nil
+	case int8:
+		return int64(val), nil
+	case int16:
+		return int64(val), nil
 	case int32:
+		return int64(val), nil
+	case int:
+		return int64(val), nil
+	case uint8:
+		return int64(val), nil
+	case uint16:
+		return int64(val), nil
+	case uint32:
 		return int64(val), nil
 	default:
 		num, err := strconv.ParseFloat(fmt.Sprintf("%v", val), 64)
@@ -60,29 +74,59 @@ func Int64E(raw interface{}) (int64, error) {
 	}
 }
 
-// Int converts anything into a int32
+// Int converts anything into a int
 // errors will fall back to 0
-func Int(raw interface{}) int32 {
+func Int(raw interface{}) int {
 	val, _ := IntE(raw)
 
 	return val
 }
 
-// IntE converts anything into a int32
+// IntE converts anything into a int
 // errors will be returned
-func IntE(raw interface{}) (int32, error) {
+func IntE(raw interface{}) (int, error) {
 	switch val := raw.(type) {
 	case int:
-		return int32(val), nil
+		return val, nil
+	default:
+		num, err := Int64E(val)
+		if err != nil {
+			return 0, err
+		}
+
+		if num > math.MaxInt {
+			return 0, fmt.Errorf("number to large for int")
+		}
+
+		return int(num), nil
+	}
+}
+
+// Int32 converts anything into a int32
+// errors will fall back to 0
+func Int32(raw interface{}) int32 {
+	val, _ := Int32E(raw)
+
+	return val
+}
+
+// Int32E converts anything into a int32
+// errors will be returned
+func Int32E(raw interface{}) (int32, error) {
+	switch val := raw.(type) {
 	case int32:
 		return val, nil
 	default:
-		num, err := strconv.ParseInt(fmt.Sprintf("%v", val), 10, 32)
+		num, err := Int64E(val)
 		if err != nil {
-			return 0, fmt.Errorf("cannot parse int64 value from %v (%T)", raw, raw)
+			return 0, err
 		}
 
-		return int32(num), nil
+		if num > math.MaxInt32 {
+			return 0, fmt.Errorf("number to large for int32")
+		}
+
+		return int32(num), nil //nolint:gosec // false positive, MaxInt32 has been checked but it not considered by gosec (https://github.com/securego/gosec/issues/1187)
 	}
 }
 
@@ -101,16 +145,52 @@ func UInt32E(raw interface{}) (uint32, error) {
 	case uint32:
 		return val, nil
 	default:
-		num, err := strconv.ParseUint(fmt.Sprintf("%v", val), 10, 32)
+		num, err := Int64E(val)
 		if err != nil {
-			return 0, fmt.Errorf("cannot parse uint32 value from %v (%T)", raw, raw)
+			return 0, err
 		}
 
 		if num > math.MaxUint32 {
 			return 0, fmt.Errorf("number to large for uint32")
 		}
 
-		return uint32(num), nil
+		if num < 0 {
+			return 0, fmt.Errorf("number to small for uint32")
+		}
+
+		return uint32(num), nil //nolint:gosec // false positive, MaxUint32 has been checked but it not considered by gosec (https://github.com/securego/gosec/issues/1187)
+	}
+}
+
+// UInt16 converts anything into a uint16
+// errors will fall back to 0
+func UInt16(raw interface{}) uint16 {
+	val, _ := UInt16E(raw)
+
+	return val
+}
+
+// UInt16E converts anything into a uint16
+// errors will be returned
+func UInt16E(raw interface{}) (uint16, error) {
+	switch val := raw.(type) {
+	case uint16:
+		return val, nil
+	default:
+		num, err := Int64E(val)
+		if err != nil {
+			return 0, err
+		}
+
+		if num > math.MaxUint16 {
+			return 0, fmt.Errorf("number to large for uint16")
+		}
+
+		if num < 0 {
+			return 0, fmt.Errorf("number to small for uint16")
+		}
+
+		return uint16(num), nil //nolint:gosec // false positive, MaxUint16 has been checked but it not considered by gosec (https://github.com/securego/gosec/issues/1187)
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"unicode"
 	"unsafe"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/shirou/gopsutil/v4/disk"
 	"golang.org/x/sys/windows"
@@ -246,18 +247,30 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	}
 
 	volumeName := make([]uint16, 512)
+	volumeNameLen, err := convert.UInt32E(len(volumeName))
+	if err != nil {
+		drive["_error"] = fmt.Sprintf("cannot set length of volume name: %s", err.Error())
+
+		return
+	}
 	fileSystemName := make([]uint16, 512)
+	fileSystemNameLen, err := convert.UInt32E(len(fileSystemName))
+	if err != nil {
+		drive["_error"] = fmt.Sprintf("cannot set length of filesystem name: %s", err.Error())
+
+		return
+	}
 	fileSystemFlags := uint32(0)
 	opts := []string{}
 	err = windows.GetVolumeInformation(
 		volPtr,
 		&volumeName[0],
-		uint32(len(volumeName)),
+		volumeNameLen,
 		nil,
 		nil,
 		&fileSystemFlags,
 		&fileSystemName[0],
-		uint32(len(fileSystemName)))
+		fileSystemNameLen)
 	if err != nil {
 		switch {
 		case drive["type"] == "cdrom":
@@ -321,9 +334,14 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 
 func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) {
 	volumes := []string{}
-	bufLen := windows.MAX_PATH + 1
+	bufLen, err := convert.UInt32E(windows.MAX_PATH + 1)
+	if err != nil {
+		log.Tracef("convert.UInt32E: %s", err.Error())
+
+		return
+	}
 	volumeName := make([]uint16, bufLen)
-	hndl, err := windows.FindFirstVolume(&volumeName[0], uint32(bufLen))
+	hndl, err := windows.FindFirstVolume(&volumeName[0], bufLen)
 	if err != nil {
 		log.Tracef("FindFirstVolume: %s", err.Error())
 
@@ -335,7 +353,7 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 	volumes = append(volumes, syscall.UTF16ToString(volumeName))
 
 	for {
-		err := windows.FindNextVolume(hndl, &volumeName[0], uint32(bufLen))
+		err := windows.FindNextVolume(hndl, &volumeName[0], bufLen)
 		if err != nil {
 			log.Tracef("FindNextVolume: %s", err.Error())
 
@@ -343,42 +361,51 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 		}
 		volumes = append(volumes, syscall.UTF16ToString(volumeName))
 	}
-
 	for _, vol := range volumes {
-		volPtr, err := syscall.UTF16PtrFromString(vol)
-		if err != nil {
-			log.Warnf("stringPtr: %s: %s", vol, err.Error())
-
-			continue
-		}
-		returnLen := uint32(0)
-		err = windows.GetVolumePathNamesForVolumeName(volPtr, &volumeName[0], uint32(len(volumeName)), &returnLen)
-		if err != nil {
-			log.Warnf("GetVolumePathNamesForVolumeName: %s: %s", vol, err.Error())
-
-			continue
-		}
-		names := syscall.UTF16ToString(volumeName)
-		driveOrID := names
-		if driveOrID == "" {
-			driveOrID = vol
-		}
-		entry, ok := requiredDisks[driveOrID]
-		if !ok {
-			entry = make(map[string]string)
-		}
-		entry["id"] = vol
-		entry["drive"] = names
-		entry["drive_or_id"] = driveOrID
-		entry["drive_or_name"] = names
-		entry["letter"] = ""
-		if names != "" {
-			entry["letter"] = fmt.Sprintf("%c", names[0])
-		} else {
-			entry["mounted"] = "0"
-		}
-		requiredDisks[driveOrID] = entry
+		l.setVolume(requiredDisks, vol, volumeName)
 	}
+}
+
+func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, vol string, volumeName []uint16) {
+	volPtr, err := syscall.UTF16PtrFromString(vol)
+	if err != nil {
+		log.Warnf("stringPtr: %s: %s", vol, err.Error())
+
+		return
+	}
+	returnLen := uint32(0)
+	volumeNameLen, err := convert.UInt32E(len(volumeName))
+	if err != nil {
+		log.Warnf("convert.UInt32E: %s", err.Error())
+
+		return
+	}
+	err = windows.GetVolumePathNamesForVolumeName(volPtr, &volumeName[0], volumeNameLen, &returnLen)
+	if err != nil {
+		log.Warnf("GetVolumePathNamesForVolumeName: %s: %s", vol, err.Error())
+
+		return
+	}
+	names := syscall.UTF16ToString(volumeName)
+	driveOrID := names
+	if driveOrID == "" {
+		driveOrID = vol
+	}
+	entry, ok := requiredDisks[driveOrID]
+	if !ok {
+		entry = make(map[string]string)
+	}
+	entry["id"] = vol
+	entry["drive"] = names
+	entry["drive_or_id"] = driveOrID
+	entry["drive_or_name"] = names
+	entry["letter"] = ""
+	if names != "" {
+		entry["letter"] = fmt.Sprintf("%c", names[0])
+	} else {
+		entry["mounted"] = "0"
+	}
+	requiredDisks[driveOrID] = entry
 }
 
 func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {

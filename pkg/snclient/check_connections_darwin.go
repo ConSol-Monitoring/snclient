@@ -27,16 +27,6 @@ func (l *CheckConnections) addIPV6(ctx context.Context, check *CheckData) error 
 	return nil
 }
 
-func (l *CheckConnections) addEntry(name string, check *CheckData, counter []int64) {
-	entry := l.defaultEntry(name)
-	for i := range counter {
-		s := tcpStates(i)
-		entry[s.String()] = fmt.Sprintf("%d", counter[i])
-	}
-
-	check.listData = append(check.listData, entry)
-}
-
 func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64, error) {
 	output, stderr, rc, err := l.snc.execCommand(ctx, "netstat -an -p tcp -f  "+name, DefaultCmdTimeout)
 	if err != nil {

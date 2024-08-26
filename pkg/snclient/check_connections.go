@@ -14,7 +14,7 @@ func init() {
 }
 
 // tcp states as defined in https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/net/tcp_states.h
-type tcpStates uint8
+type tcpStates uint16
 
 const (
 	tcpTotal tcpStates = iota
@@ -192,6 +192,22 @@ func (l *CheckConnections) defaultEntry(source string) map[string]string {
 	}
 
 	return entry
+}
+
+func (l *CheckConnections) addEntry(name string, check *CheckData, counter []int64) {
+	entry := l.defaultEntry(name)
+	for i64 := range counter {
+		i16, err := convert.UInt16E(i64)
+		if err != nil {
+			log.Debugf("failed to convert %d: %s", i64, err.Error())
+
+			continue
+		}
+		s := tcpStates(i16)
+		entry[s.String()] = fmt.Sprintf("%d", counter[i64])
+	}
+
+	check.listData = append(check.listData, entry)
 }
 
 func (l *CheckConnections) addMetrics(check *CheckData, entry map[string]string) {

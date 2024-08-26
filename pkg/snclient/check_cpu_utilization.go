@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	cpuinfo "github.com/shirou/gopsutil/v4/cpu"
 )
@@ -169,8 +170,15 @@ func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizati
 		return nil, false
 	}
 
+	scanLookBack64, err := convert.Int64E(scanLookBack)
+	if err != nil {
+		log.Warnf("failed to convert scan look back: %s", err.Error())
+
+		return nil, false
+	}
+
 	cpuinfo1 := counter1.GetLast()
-	cpuinfo2 := counter2.GetAt(time.Now().Add(-time.Duration(scanLookBack) * time.Second))
+	cpuinfo2 := counter2.GetAt(time.Now().Add(-time.Duration(scanLookBack64) * time.Second))
 	if cpuinfo1 == nil || cpuinfo2 == nil {
 		return nil, false
 	}

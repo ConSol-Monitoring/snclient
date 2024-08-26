@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/shirou/gopsutil/v4/host"
 )
@@ -51,12 +52,17 @@ func (l *CheckUptime) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve uptime: %s", err.Error())
 	}
-	uptime := time.Since(time.Unix(int64(bootTime), 0))
+	bootSeconds, err := convert.Int64E(bootTime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert uptime seconds: %s", err.Error())
+	}
+	bootTimeUnix := time.Unix(bootSeconds, 0)
+	uptime := time.Since(bootTimeUnix)
 
 	check.listData = append(check.listData, map[string]string{
 		"uptime":       utils.DurationString(uptime.Truncate(time.Minute)),
 		"uptime_value": fmt.Sprintf("%.1f", uptime.Seconds()),
-		"boot":         time.Unix(int64(bootTime), 0).UTC().Format("2006-01-02 15:04:05"),
+		"boot":         bootTimeUnix.UTC().Format("2006-01-02 15:04:05"),
 	})
 
 	check.result.Metrics = append(check.result.Metrics, &CheckMetric{

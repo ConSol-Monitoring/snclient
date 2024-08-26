@@ -5,6 +5,7 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/snclient"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/spf13/cobra"
@@ -54,7 +55,14 @@ snclient hash
 
 func readPassword(cmd *cobra.Command) string {
 	fmt.Fprintf(cmd.OutOrStdout(), "enter password to hash or hit ctrl+c to exit.\n")
-	b, _ := term.ReadPassword(int(syscall.Stdin)) //nolint:unconvert,nolintlint // unconvert detects a conversion here but it is one on windows
+	stdinFD, err := convert.IntE(syscall.Stdin)
+	if err != nil {
+		fmt.Fprintf(cmd.OutOrStdout(), "failed to convert stdin to int: %s", err.Error())
+
+		return ""
+	}
+
+	b, _ := term.ReadPassword(stdinFD)
 
 	return string(b)
 }
