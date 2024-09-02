@@ -64,6 +64,7 @@ func Query(query string, dst interface{}, namespace string) (err error) {
 func RawQuery(query string) (res [][]Data, err error) {
 	query = strings.TrimSpace(query)
 	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	err = ole.CoInitialize(0)
 	if err != nil {
 		return nil, fmt.Errorf("wmi: ole.CoInitialize failed: %s", err.Error())
