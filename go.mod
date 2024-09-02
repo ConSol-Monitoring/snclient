@@ -4,7 +4,6 @@ go 1.22.0
 
 require (
 	github.com/beevik/ntp v1.4.3
-	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
 	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240321161425-fd9209e96e1f
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/go-chi/chi/v5 v5.1.0
@@ -53,8 +52,6 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.57.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
-	github.com/rickb777/date v1.21.1 // indirect
-	github.com/rickb777/plural v1.4.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
