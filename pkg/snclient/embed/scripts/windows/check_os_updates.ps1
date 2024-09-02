@@ -12,6 +12,9 @@ if ($env:ONLINE_SEARCH -eq "1") {
     $Online = $true
 }
 
+# ensure output is utf8
+$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8
+
 $update = new-object -com Microsoft.update.Session
 if ($update -eq $null) { Write-Host "failed to get Microsoft.update.Session"; exit 1; }
 
