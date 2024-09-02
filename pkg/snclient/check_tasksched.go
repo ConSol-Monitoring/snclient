@@ -47,6 +47,7 @@ func (l *CheckTasksched) Build() *CheckData {
 			{name: "exit_code", description: "The last jobs exit code"},
 			{name: "exit_string", description: "The last jobs exit code as string"},
 			{name: "folder", description: "Task folder"},
+			{name: "has_run", description: "True if this task has ever been executed"},
 			{name: "max_run_time", description: "Maximum length of time the task can run"},
 			{name: "most_recent_run_time", description: "Most recent time the work item began running"},
 			{name: "priority", description: "Task priority"},
@@ -55,6 +56,7 @@ func (l *CheckTasksched) Build() *CheckData {
 			{name: "missed_runs", description: "Number of times the registered task has missed a scheduled run"},
 			{name: "task_status", description: "Task status as string"},
 			{name: "next_run_time", description: "Time when the registered task is next scheduled to run"},
+			{name: "parameters", description: "Command line parameters for the task"},
 		},
 		exampleDefault: `
     check_tasksched
@@ -64,13 +66,13 @@ func (l *CheckTasksched) Build() *CheckData {
 	}
 }
 
-func (l *CheckTasksched) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckTasksched) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	if runtime.GOOS != "windows" {
 		// this allows to run make docs on Linux as well, even if it's not in the implemented: attribute
 		return nil, fmt.Errorf("check_tasksched is a windows only check")
 	}
 
-	err := l.addTasks(check)
+	err := l.addTasks(ctx, snc, check)
 	if err != nil {
 		return nil, err
 	}

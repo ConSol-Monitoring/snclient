@@ -73,6 +73,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | exit_code            | The last jobs exit code                                            |
 | exit_string          | The last jobs exit code as string                                  |
 | folder               | Task folder                                                        |
+| has_run              | True if this task has ever been executed                           |
 | max_run_time         | Maximum length of time the task can run                            |
 | most_recent_run_time | Most recent time the work item began running                       |
 | priority             | Task priority                                                      |
@@ -81,3 +82,4 @@ these can be used in filters and thresholds (along with the default attributes):
 | missed_runs          | Number of times the registered task has missed a scheduled run     |
 | task_status          | Task status as string                                              |
 | next_run_time        | Time when the registered task is next scheduled to run             |
+| parameters           | Command line parameters for the task                               |
