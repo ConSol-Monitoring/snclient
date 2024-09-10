@@ -90,11 +90,16 @@ func (l *LogrotateHandler) mainLoop() {
 				continue
 			}
 
+			size := fileInfo.Size()
+			if size <= 0 {
+				continue
+			}
+
 			log.Tracef("check logfile rotation (threshold %s / current size: %s)",
 				humanize.IBytes(l.maxSize),
-				humanize.IBytes(uint64(fileInfo.Size())),
+				humanize.IBytes(uint64(size)),
 			)
-			if uint64(fileInfo.Size()) > l.maxSize {
+			if uint64(size) > l.maxSize {
 				l.rotate(logFile)
 			}
 

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/shirou/gopsutil/v4/disk"
@@ -313,12 +314,12 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 		"drive_or_id":   "total",
 		"drive_or_name": "total",
 		"drive":         "total",
-		"size":          humanize.IBytesF(uint64(total), 3),
+		"size":          humanize.IBytesF(convert.UInt64(total), 3),
 		"size_bytes":    fmt.Sprintf("%d", total),
-		"used":          humanize.IBytesF(uint64(used), 3),
+		"used":          humanize.IBytesF(convert.UInt64(used), 3),
 		"used_bytes":    fmt.Sprintf("%d", used),
 		"used_pct":      fmt.Sprintf("%f", usedPct),
-		"free":          humanize.IBytesF(uint64(free), 3),
+		"free":          humanize.IBytesF(convert.UInt64(free), 3),
 		"free_bytes":    fmt.Sprintf("%d", free),
 		"free_pct":      fmt.Sprintf("%f", float64(free)*100/(float64(total))),
 		"fstype":        "total",

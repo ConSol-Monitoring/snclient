@@ -74,6 +74,30 @@ func Int64E(raw interface{}) (int64, error) {
 	}
 }
 
+// UInt64 converts anything into a uint64
+// errors will fall back to 0
+func UInt64(raw interface{}) uint64 {
+	val, _ := UInt64E(raw)
+
+	return val
+}
+
+// UInt64E converts anything into a uint64
+// errors will be returned
+func UInt64E(raw interface{}) (uint64, error) {
+	switch val := raw.(type) {
+	case uint64:
+		return val, nil
+	default:
+		num, err := strconv.ParseUint(fmt.Sprintf("%v", val), 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("cannot parse uint64 value from %v (%T)", raw, raw)
+		}
+
+		return num, nil
+	}
+}
+
 // Int converts anything into a int
 // errors will fall back to 0
 func Int(raw interface{}) int {
@@ -158,7 +182,7 @@ func UInt32E(raw interface{}) (uint32, error) {
 			return 0, fmt.Errorf("number to small for uint32")
 		}
 
-		return uint32(num), nil //nolint:gosec // false positive, MaxUint32 has been checked but it not considered by gosec (https://github.com/securego/gosec/issues/1187)
+		return uint32(num), nil
 	}
 }
 
@@ -190,7 +214,7 @@ func UInt16E(raw interface{}) (uint16, error) {
 			return 0, fmt.Errorf("number to small for uint16")
 		}
 
-		return uint16(num), nil //nolint:gosec // false positive, MaxUint16 has been checked but it not considered by gosec (https://github.com/securego/gosec/issues/1187)
+		return uint16(num), nil
 	}
 }
 

@@ -121,7 +121,7 @@ func NumF(num int64, precision int) string {
 		prefix = "-"
 	}
 
-	return prefix + humanizeBytes(uint64(num), 1000, []string{"", "k", "M", "G", "T", "P", "E"}, precision)
+	return prefix + humanizeBytes(uint64(num), 1000, []string{"", "k", "M", "G", "T", "P", "E"}, precision) //nolint:gosec // underflow checked before but not recognized by gosec
 }
 
 // Bytes(82854982) -> 83 MB

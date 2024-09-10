@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 )
@@ -217,7 +218,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 	if len(check.listData) > 0 || check.emptySyntax == "" {
 		check.details = map[string]string{
 			"total_bytes": fmt.Sprintf("%d", totalSize),
-			"total_size":  humanize.IBytesF(uint64(totalSize), 2),
+			"total_size":  humanize.IBytesF(convert.UInt64(totalSize), 2),
 		}
 	}
 
