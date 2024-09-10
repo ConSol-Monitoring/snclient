@@ -24,12 +24,14 @@ All documentation is under `docs/`
 
 ## Supported Operating Systems
 
-|             | i386 | x64 | arm64     |
-|-------------|:----:|:---:|:---------:|
-| **Linux**   |   X  |  X  |   X       |
-| **Windows** |   X  |  X  |   X       |
-| **FreeBSD** |   X  |  X  |   X       |
-| **MacOSX**  |      |  X  |   X       |
+|               | i386 | x64 | arm64 |
+|---------------|:----:|:---:|:-----:|
+| **Linux**     |   X  |  X  |   X   |
+| **Windows** * |   X  |  X  |   X   |
+| **FreeBSD**   |   X  |  X  |   X   |
+| **MacOSX**    |      |  X  |   X   |
+
+\* Only Windows 10 / Windows Server 2016 or newer.
 
 A more detailed list of [supported operating systems](https://omd.consol.de/docs/snclient/install/supported/).
 

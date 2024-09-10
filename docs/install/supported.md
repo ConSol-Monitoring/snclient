@@ -26,13 +26,12 @@ by [building snclient from source](../build).
 
 Successfully tested on:
 
-- Windows 8
 - Windows 10
 - Windows 11
 - Windows Server 2019
 - Windows ARM 11 Preview
 
-Others will quite likely work as well, but haven't been tested yet.
+SNClients required Go (>= 1.21) does not support anything older than Windows 10 or Windows Server 2016.
 
 ## Linux
 
