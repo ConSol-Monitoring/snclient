@@ -12,7 +12,7 @@ require (
 	github.com/mackerelio/checkers v0.2.0
 	github.com/miekg/dns v1.1.62
 	github.com/otiai10/copy v1.14.0
-	github.com/prometheus/client_golang v1.20.2
+	github.com/prometheus/client_golang v1.20.3
 	github.com/reeflective/readline v1.0.15
 	github.com/sasha-s/go-deadlock v0.3.5
 	github.com/sassoftware/go-rpmutils v0.4.0
@@ -25,9 +25,9 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	github.com/yusufpapurcu/wmi v1.2.4
-	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
-	golang.org/x/sys v0.24.0
-	golang.org/x/term v0.23.0
+	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
+	golang.org/x/sys v0.25.0
+	golang.org/x/term v0.24.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -41,7 +41,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
-	github.com/lufia/plan9stats v0.0.0-20240819163618-b1d8f4d146e7 // indirect
+	github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.57.0 // indirect
+	github.com/prometheus/common v0.59.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
@@ -58,10 +58,10 @@ require (
 	github.com/tklauser/numcpus v0.8.0 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
-	golang.org/x/crypto v0.26.0 // indirect
-	golang.org/x/mod v0.20.0 // indirect
-	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/crypto v0.27.0 // indirect
+	golang.org/x/mod v0.21.0 // indirect
+	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/tools v0.24.0 // indirect
+	golang.org/x/tools v0.25.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
