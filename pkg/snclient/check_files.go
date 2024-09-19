@@ -269,10 +269,10 @@ func (l *CheckFiles) getDepth(path, basePath string) int64 {
 func (l *CheckFiles) setError(entry map[string]string, err error) {
 	switch {
 	case os.IsNotExist(err):
-		entry["_error"] = fmt.Sprintf("%s: no such file or directory", entry["filename"])
+		entry["_error"] = fmt.Sprintf("%s: no such file or directory", entry["fullname"])
 	case os.IsPermission(err):
-		entry["_error"] = fmt.Sprintf("%s: no such file or directory", entry["filename"])
+		entry["_error"] = fmt.Sprintf("%s: file or directory not readable", entry["fullname"])
 	default:
-		entry["_error"] = fmt.Sprintf("%s: %s", entry["filename"], err.Error())
+		entry["_error"] = fmt.Sprintf("%s: %s", entry["fullname"], err.Error())
 	}
 }
