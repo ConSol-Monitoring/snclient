@@ -1,5 +1,8 @@
 This file documents the revision history for the SNClient+ agent.
 
+next:
+         - update windows exporter to 0.29.0
+
 0.27     Mon Sep  2 19:31:14 CEST 2024
          - do not use empty-state if warn/crit conditions contain check on 'count'
          - check_memory: distinguish between committed and swap memory
