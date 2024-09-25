@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,7 +58,7 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 
 		for i := range fileEvent {
 			event := fileEvent[i]
-			timeWritten, _ := time.Parse(eventlog.WMIDateFormat, event.TimeWritten)
+			timeWritten, _ := l.ParseWMIDateTime(event.TimeWritten)
 			message := event.Message
 			if l.truncateMessage > 0 && len(event.Message) > l.truncateMessage {
 				message = event.Message[:l.truncateMessage]
@@ -95,4 +96,99 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	}
 
 	return check.Finalize()
+}
+
+// ParseWMIDateTime parses a WMI datetime string into a time.Time object.
+// returns parsed time or an error
+func (l *CheckEventlog) ParseWMIDateTime(wmiDateTime string) (time.Time, error) {
+	// Check if the string has at least 22 characters to avoid slicing errors
+	if len(wmiDateTime) < 22 {
+		return time.Time{}, fmt.Errorf("invalid WMI datetime string, must be at least 22 characters long")
+	}
+
+	// Extract the date and time components
+	yearStr := wmiDateTime[0:4]
+	monthStr := wmiDateTime[4:6]
+	dayStr := wmiDateTime[6:8]
+	hourStr := wmiDateTime[8:10]
+	minuteStr := wmiDateTime[10:12]
+	secondStr := wmiDateTime[12:14]
+	microsecStr := wmiDateTime[15:21] // Skipping the dot at position 14
+	offsetSign := wmiDateTime[21:22]
+	offsetStr := wmiDateTime[22:]
+
+	year, err := strconv.Atoi(yearStr)
+	if err2 := l.checkRange("year", year, err, -1, -1); err2 != nil {
+		return time.Time{}, err2
+	}
+
+	month, err := strconv.Atoi(monthStr)
+	if err2 := l.checkRange("month", month, err, 1, 12); err2 != nil {
+		return time.Time{}, err2
+	}
+
+	day, err := strconv.Atoi(dayStr)
+	if err2 := l.checkRange("day", day, err, 1, 31); err2 != nil {
+		return time.Time{}, err2
+	}
+
+	hour, err := strconv.Atoi(hourStr)
+	if err2 := l.checkRange("hour", hour, err, 0, 23); err2 != nil {
+		return time.Time{}, err2
+	}
+
+	minute, err := strconv.Atoi(minuteStr)
+	if err2 := l.checkRange("minute", minute, err, 0, 59); err2 != nil {
+		return time.Time{}, err2
+	}
+
+	second, err := strconv.Atoi(secondStr)
+	if err2 := l.checkRange("second", second, err, 0, 59); err2 != nil {
+		return time.Time{}, err2
+	}
+
+	microsec, err := strconv.Atoi(microsecStr)
+	if err2 := l.checkRange("microsecond", microsec, err, -1, -1); err2 != nil {
+		return time.Time{}, err2
+	}
+
+	offsetMinutes, err := strconv.Atoi(offsetStr)
+	if err2 := l.checkRange("offset", offsetMinutes, err, -1, -1); err2 != nil {
+		return time.Time{}, err2
+	}
+
+	// Apply the sign to the offset
+	if offsetSign == "-" {
+		offsetMinutes = -offsetMinutes
+	} else if offsetSign != "+" {
+		// Invalid sign, return current time
+		return time.Time{}, fmt.Errorf("invalid offset sign, must be + or -")
+	}
+
+	// Convert offset from minutes to seconds
+	offsetSeconds := offsetMinutes * 60
+
+	// Create a fixed time zone based on the offset
+	loc := time.FixedZone("WMI", offsetSeconds)
+
+	// Construct the time.Time object
+	t := time.Date(year, time.Month(month), day, hour, minute, second, microsec*1000, loc)
+
+	return t, nil
+}
+
+func (l *CheckEventlog) checkRange(name string, value int, err error, minVal, maxVal int) error {
+	if err != nil {
+		return fmt.Errorf("invalid %s: %s", name, err.Error())
+	}
+
+	if minVal != -1 && value < minVal {
+		return fmt.Errorf("%s out of range", name)
+	}
+
+	if maxVal != -1 && value > maxVal {
+		return fmt.Errorf("%s out of range", name)
+	}
+
+	return nil
 }
