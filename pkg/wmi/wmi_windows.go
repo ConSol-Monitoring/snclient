@@ -51,10 +51,12 @@ func QueryWithRetries(query string, dst interface{}, namespace string, retries i
 // Query sends a single query, the namespace is optional and can be empty
 func Query(query string, dst interface{}, namespace string) (err error) {
 	query = strings.TrimSpace(query)
+	// MS_409 equals en_US, see https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wmi/259edd31-d6eb-4bc9-a2c4-2891b78bb51d
+	// connect parameters are here: https://learn.microsoft.com/en-us/windows/win32/wmisdk/swbemlocator-connectserver
 	if namespace != "" {
-		err = ywmi.QueryNamespace(query, dst, namespace)
+		err = ywmi.Query(query, dst, nil, namespace, nil, nil, "MS_409")
 	} else {
-		err = ywmi.Query(query, dst)
+		err = ywmi.Query(query, dst, nil, nil, nil, nil, "MS_409")
 	}
 
 	return
