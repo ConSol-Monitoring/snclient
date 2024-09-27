@@ -1,7 +1,7 @@
 This file documents the revision history for the SNClient+ agent.
 
 next:
-         - update windows exporter to 0.29.0
+         - update windows exporter to 0.29.1
          - wmi: always set en_US language in query (#156)
          - check_eventlog: fix time offset parsing (#157)
 
