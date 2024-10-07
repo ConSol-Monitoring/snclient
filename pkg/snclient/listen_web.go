@@ -157,6 +157,8 @@ func (l *HandlerWeb) GetMappings(*Agent) []URLMapping {
 		{URL: "/query/{command}", Handler: l.handlerLegacy},
 		{URL: "/api/v1/queries/{command}/commands/execute", Handler: l.handlerV1},
 		{URL: "/api/v1/inventory", Handler: l.handlerV1},
+		{URL: "/api/v1/inventory/", Handler: l.handlerV1},
+		{URL: "/api/v1/inventory/{module}", Handler: l.handlerV1},
 		{URL: "/index.html", Handler: l.handlerGeneric},
 		{URL: "/", Handler: l.handlerGeneric},
 	}
@@ -387,8 +389,8 @@ type HandlerWebV1 struct {
 
 func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	path := strings.TrimSuffix(req.URL.Path, "/")
-	switch path {
-	case "/api/v1/inventory":
+	switch {
+	case strings.HasPrefix(path, "/api/v1/inventory"):
 		l.serveInventory(res, req)
 	default:
 		l.serveCommand(res, req)
@@ -412,7 +414,12 @@ func (l *HandlerWebV1) serveInventory(res http.ResponseWriter, req *http.Request
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 
-	inventory := l.Handler.snc.BuildInventory(req.Context(), nil)
+	module := chi.URLParam(req, "module")
+	var modules []string
+	if module != "" {
+		modules = []string{module}
+	}
+	inventory := l.Handler.snc.BuildInventory(req.Context(), modules)
 
 	LogError(json.NewEncoder(res).Encode(inventory))
 }

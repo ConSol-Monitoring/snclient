@@ -103,6 +103,18 @@ Returns:
         "localtime": 1702398235
     }
 
+### /api/v1/inventory/{module}
+
+Returns the check inventory for a specific modules json. Available modules
+are the keys from the inventory hash map as returned from `/api/v1/inventory`.
+
+Example:
+
+    curl \
+        -u user:changeme \
+        -X POST \
+        https://127.0.0.1:8443/api/v1/inventory/memory
+
 ## Prometheus Endpoints
 
 These endpoints are available if the `PrometheusServer` is enabled in the modules section.
