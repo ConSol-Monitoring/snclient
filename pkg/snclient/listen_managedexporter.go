@@ -46,6 +46,17 @@ type HandlerManagedExporter struct {
 // ensure we fully implement the RequestHandlerHTTP type
 var _ RequestHandlerHTTP = &HandlerManagedExporter{}
 
+// ExporterListenerExposed is a exporter which can be listed in the inventory
+type ExporterListenerExposed interface {
+	JSON() []map[string]string
+}
+
+// ensure we fully implement the ListExporter type
+var _ RequestHandlerHTTP = &HandlerManagedExporter{}
+
+// ensure managed exporters are listed in the inventory exports
+var _ ExporterListenerExposed = &HandlerManagedExporter{}
+
 func (l *HandlerManagedExporter) Type() string {
 	return l.name
 }
@@ -179,6 +190,21 @@ func (l *HandlerManagedExporter) GetMappings(*Agent) []URLMapping {
 	return []URLMapping{
 		{URL: l.urlPrefix + "/metrics", Handler: l.proxy},
 	}
+}
+
+func (l *HandlerManagedExporter) JSON() []map[string]string {
+	ssl := "0"
+	if l.listener.tlsConfig != nil {
+		ssl = "1"
+	}
+
+	return ([]map[string]string{{
+		"bind": l.BindString(),
+		"ssl":  ssl,
+		"type": l.Type(),
+		"name": l.name,
+		"url":  l.GetMappings(nil)[0].URL,
+	}})
 }
 
 func (l *HandlerManagedExporter) keepRunning() bool {

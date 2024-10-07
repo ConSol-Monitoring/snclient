@@ -5,6 +5,7 @@ next:
          - wmi: always set en_US language in query (#156)
          - check_eventlog: fix time offset parsing (#157)
          - add /api/v1/inventory/{module} rest endpoint to get specific inventory
+         - add exporter to inventory list
 
 0.27     Mon Sep  2 19:31:14 CEST 2024
          - do not use empty-state if warn/crit conditions contain check on 'count'

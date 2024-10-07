@@ -68,6 +68,9 @@ type HandlerPrometheus struct {
 // ensure we fully implement the RequestHandlerHTTP type
 var _ RequestHandlerHTTP = &HandlerPrometheus{}
 
+// ensure prometheus is listed in the inventory exports
+var _ ExporterListenerExposed = &HandlerPrometheus{}
+
 func NewHandlerPrometheus() Module {
 	promHandler := promhttp.InstrumentMetricHandler(
 		prometheus.DefaultRegisterer,
@@ -166,6 +169,21 @@ func (l *HandlerPrometheus) GetMappings(*Agent) []URLMapping {
 	return []URLMapping{
 		{URL: "/metrics", Handler: l.handler},
 	}
+}
+
+func (l *HandlerPrometheus) JSON() []map[string]string {
+	ssl := "0"
+	if l.listener.tlsConfig != nil {
+		ssl = "1"
+	}
+
+	return ([]map[string]string{{
+		"bind": l.BindString(),
+		"ssl":  ssl,
+		"type": l.Type(),
+		"name": "prometheus",
+		"url":  "/metrics",
+	}})
 }
 
 func registerMetrics() {

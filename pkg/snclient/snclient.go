@@ -1268,6 +1268,10 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 		inventory["scripts"] = scripts
 	}
 
+	if len(modules) == 0 || slices.Contains(modules, "exporter") {
+		inventory["exporter"] = snc.listExporter()
+	}
+
 	hostID, err := os.Hostname()
 	if err != nil {
 		log.Errorf("failed to get host id: %s", err.Error())
@@ -1303,6 +1307,17 @@ func (snc *Agent) getInventory(ctx context.Context, checkName string) (listData 
 	}
 
 	return nil, fmt.Errorf("could not build inventory for %s", checkName)
+}
+
+func (snc *Agent) listExporter() (listData []map[string]string) {
+	listData = make([]map[string]string, 0)
+	for _, l := range snc.Listeners.modules {
+		if j, ok := l.(ExporterListenerExposed); ok {
+			listData = append(listData, j.JSON()...)
+		}
+	}
+
+	return listData
 }
 
 func setScriptsRoot(config *Config) {

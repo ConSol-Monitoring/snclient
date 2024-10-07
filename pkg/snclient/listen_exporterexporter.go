@@ -42,6 +42,9 @@ type HandlerExporterExporter struct {
 // ensure we fully implement the RequestHandlerHTTP type
 var _ RequestHandlerHTTP = &HandlerExporterExporter{}
 
+// ensure exported exporters is listed in the inventory exports
+var _ ExporterListenerExposed = &HandlerExporterExporter{}
+
 func NewHandlerExporterExporter() Module {
 	l := &HandlerExporterExporter{}
 	l.handler = &HandlerWebExporterExporter{Handler: l}
@@ -159,6 +162,25 @@ func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map
 	}
 
 	return modules, nil
+}
+
+func (l *HandlerExporterExporter) JSON() []map[string]string {
+	list := []map[string]string{}
+	ssl := "0"
+	if l.listener.tlsConfig != nil {
+		ssl = "1"
+	}
+	for _, mod := range l.modules {
+		list = append(list, map[string]string{
+			"bind": l.BindString(),
+			"ssl":  ssl,
+			"type": l.Type(),
+			"name": mod.name,
+			"url":  l.urlPrefix + "/proxy?module=" + mod.name,
+		})
+	}
+
+	return list
 }
 
 func modulesAdd(snc *Agent, modules map[string]*exporterModuleConfig, entry fs.DirEntry, fullpath string) error {
