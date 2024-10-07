@@ -30,6 +30,7 @@ func (l *CheckConnections) addIPV6(_ context.Context, check *CheckData) error {
 }
 
 func (l *CheckConnections) getProcStats(file string) ([]int64, error) {
+	log.Debugf("collecting stats from %s", file)
 	procFile, err := os.Open(file)
 	if err != nil {
 		return nil, fmt.Errorf("open %s: %s", file, err.Error())
