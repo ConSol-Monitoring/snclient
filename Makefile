@@ -85,8 +85,8 @@ ifeq ($(GOOS),darwin)
   DARWIN=1
 endif
 ifeq ($(DARWIN),1)
-  # cgo is required to retrieve cpu information
-  CGO_ENABLED=1
+  # cgo is no longer required to retrieve cpu information (since gopsutil v4.24.9)
+  CGO_ENABLED=0
 endif
 
 ENTR=ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr
@@ -721,4 +721,3 @@ updatenodeexportersums:
 	grep linux-arm64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
 	mv sha256sums.txt packaging/sha256sums.txt
 	rm -f sha256sums_node_exporter.txt
-
