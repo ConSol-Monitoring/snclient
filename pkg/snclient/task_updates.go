@@ -195,6 +195,7 @@ func (u *UpdateHandler) mainLoop() {
 	if interval > time.Duration(u.updateInterval) {
 		interval = time.Duration(u.updateInterval) * time.Second
 	}
+	log.Debugf("[updates] checking for updates every %s", interval.String())
 
 	for {
 		select {
@@ -332,12 +333,19 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 		}
 	}
 
-	curVersion := utils.ParseVersion(u.snc.Version())
-	if bestVersion <= curVersion {
-		if forceUpdate {
-			return best
-		}
+	if forceUpdate {
+		log.Tracef("forced version is %f (channel: %s / %s)", bestVersion, best.channel, best.url)
 
+		return best
+	}
+
+	curVersion := utils.ParseVersion(u.snc.Version())
+	switch {
+	case bestVersion == curVersion:
+		log.Tracef("already at best version %f", curVersion)
+
+		return nil
+	case bestVersion < curVersion:
 		log.Tracef("best version %f is lower than current version %f", bestVersion, curVersion)
 
 		return nil
@@ -556,6 +564,18 @@ func (u *UpdateHandler) checkUpdateCustomURL(url string) (updates []updatesAvail
 
 	if resp.ContentLength < 0 {
 		return nil, fmt.Errorf("request failed %s: got content length %d", url, resp.ContentLength)
+	}
+
+	// if the content-length matches our file size, assume there no new version
+	executable := GlobalMacros["exe-full"]
+	stat, err := os.Stat(executable)
+	if err != nil {
+		return nil, fmt.Errorf("stat: %s", err.Error())
+	}
+	if resp.ContentLength > 0 && resp.ContentLength == stat.Size() {
+		log.Tracef("[update] content size matches %s: %d vs. %s: %d", url, resp.ContentLength, executable, stat.Size())
+
+		return []updatesAvailable{{url: url, version: u.snc.Version()}}, nil
 	}
 
 	refresh := false
