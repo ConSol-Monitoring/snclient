@@ -115,6 +115,8 @@ func (l *HandlerWebAdmin) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 		l.serveReload(res, req)
 	case "/api/v1/admin/certs/replace":
 		l.serveCertsReplace(res, req)
+	case "/api/v1/admin/updates/install":
+		l.serveUpdate(res, req)
 	default:
 		res.WriteHeader(http.StatusNotFound)
 		LogError2(res.Write([]byte("404 - nothing here\n")))
@@ -208,6 +210,42 @@ func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.R
 
 	if data.Reload {
 		l.Handler.snc.osSignalChannel <- syscall.SIGHUP
+	}
+}
+
+func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request) {
+	if !l.requirePostMethod(res, req) {
+		return
+	}
+
+	task := l.Handler.snc.Tasks.Get("Updates")
+	mod, ok := task.(*UpdateHandler)
+	if !ok {
+		l.sendError(res, fmt.Errorf("could not load update handler"))
+
+		return
+	}
+
+	version, err := mod.CheckUpdates(req.Context(), true, true, true, false, "", "", false)
+	if err != nil {
+		l.sendError(res, fmt.Errorf("failed to fetch updates: %s", err.Error()))
+
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	if version != "" {
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": true,
+			"message": "update found and installed",
+			"version": version,
+		}))
+	} else {
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": true,
+			"message": "no new update available",
+		}))
 	}
 }
 

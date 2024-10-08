@@ -205,7 +205,7 @@ func (u *UpdateHandler) mainLoop() {
 			return
 		case <-ticker.C:
 			ticker.Reset(interval)
-			_, err := u.CheckUpdates(false, true, u.automaticRestart, u.preRelease, "", u.channel, false)
+			_, err := u.CheckUpdates(*u.ctx, false, true, u.automaticRestart, u.preRelease, "", u.channel, false)
 			if err != nil {
 				log.Errorf("[updates] checking for updates failed: %s", err.Error())
 			}
@@ -215,7 +215,7 @@ func (u *UpdateHandler) mainLoop() {
 	}
 }
 
-func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool, downgrade, channel string, forceUpdate bool) (version string, err error) {
+func (u *UpdateHandler) CheckUpdates(ctx context.Context, force, download, restarts, preRelease bool, downgrade, channel string, forceUpdate bool) (version string, err error) {
 	if !force {
 		if !u.updatePreChecks() {
 			return "", nil
@@ -245,7 +245,7 @@ func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool,
 
 	// check for updates unless file specified
 	if updateFile == "" {
-		available := u.fetchAvailableUpdates(preRelease, channel)
+		available := u.fetchAvailableUpdates(ctx, preRelease, channel)
 		if len(available) == 0 {
 			return "", nil
 		}
@@ -260,16 +260,16 @@ func (u *UpdateHandler) CheckUpdates(force, download, restarts, preRelease bool,
 		}
 	}
 
-	return u.finishUpdateCheck(best, restarts)
+	return u.finishUpdateCheck(ctx, best, restarts)
 }
 
-func (u *UpdateHandler) finishUpdateCheck(best *updatesAvailable, restarts bool) (version string, err error) {
-	updateFile, err := u.downloadUpdate(best)
+func (u *UpdateHandler) finishUpdateCheck(ctx context.Context, best *updatesAvailable, restarts bool) (version string, err error) {
+	updateFile, err := u.downloadUpdate(ctx, best)
 	if err != nil {
 		return "", err
 	}
 
-	newVersion, err := u.verifyUpdate(updateFile)
+	newVersion, err := u.verifyUpdate(ctx, updateFile)
 	if err != nil {
 		LogError(os.Remove(updateFile))
 
@@ -356,7 +356,7 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 	return best
 }
 
-func (u *UpdateHandler) fetchAvailableUpdates(preRelease bool, channel string) (updates []updatesAvailable) {
+func (u *UpdateHandler) fetchAvailableUpdates(ctx context.Context, preRelease bool, channel string) (updates []updatesAvailable) {
 	available := []updatesAvailable{}
 	channelConfSection := u.snc.config.Section("/settings/updates/channel")
 	if channel == "all" {
@@ -378,7 +378,7 @@ func (u *UpdateHandler) fetchAvailableUpdates(preRelease bool, channel string) (
 
 		log.Tracef("next: %s channel: %s", channel, url)
 
-		updates, err := u.checkUpdate(url, preRelease, channel)
+		updates, err := u.checkUpdate(ctx, url, preRelease, channel)
 		if err != nil {
 			log.Warnf("channel %s failed: %s", channel, err.Error())
 
@@ -391,15 +391,15 @@ func (u *UpdateHandler) fetchAvailableUpdates(preRelease bool, channel string) (
 	return available
 }
 
-func (u *UpdateHandler) checkUpdate(url string, preRelease bool, channel string) (updates []updatesAvailable, err error) {
+func (u *UpdateHandler) checkUpdate(ctx context.Context, url string, preRelease bool, channel string) (updates []updatesAvailable, err error) {
 	if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/releases`, url); ok {
-		updates, err = u.checkUpdateGithubRelease(url, channel, preRelease)
+		updates, err = u.checkUpdateGithubRelease(ctx, url, channel, preRelease)
 	} else if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/actions/artifacts`, url); ok {
-		updates, err = u.checkUpdateGithubActions(url, channel)
+		updates, err = u.checkUpdateGithubActions(ctx, url, channel)
 	} else if ok, _ := regexp.MatchString(`^file:`, url); ok {
-		updates, err = u.checkUpdateFile(url)
+		updates, err = u.checkUpdateFile(ctx, url)
 	} else {
-		updates, err = u.checkUpdateCustomURL(url)
+		updates, err = u.checkUpdateCustomURL(ctx, url)
 	}
 
 	if err != nil {
@@ -420,7 +420,7 @@ func (u *UpdateHandler) checkUpdate(url string, preRelease bool, channel string)
 }
 
 // check available updates from github release page
-func (u *UpdateHandler) checkUpdateGithubRelease(url, channel string, preRelease bool) (updates []updatesAvailable, err error) {
+func (u *UpdateHandler) checkUpdateGithubRelease(ctx context.Context, url, channel string, preRelease bool) (updates []updatesAvailable, err error) {
 	log.Tracef("[update] checking github release url at: %s", url)
 
 	conf := u.snc.config.Section("/settings/updates/channel/" + channel)
@@ -432,7 +432,7 @@ func (u *UpdateHandler) checkUpdateGithubRelease(url, channel string, preRelease
 		header["Authorization"] = "Bearer " + token
 	}
 
-	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, header)
+	resp, err := u.snc.httpDo(ctx, u.httpOptions, "GET", url, header)
 	if err != nil {
 		return nil, fmt.Errorf("http: %s", err.Error())
 	}
@@ -487,7 +487,7 @@ func (u *UpdateHandler) checkUpdateGithubRelease(url, channel string, preRelease
 }
 
 // check available updates from github actions page
-func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates []updatesAvailable, err error) {
+func (u *UpdateHandler) checkUpdateGithubActions(ctx context.Context, url, channel string) (updates []updatesAvailable, err error) {
 	log.Tracef("[update] checking github action url at: %s", url)
 	conf := u.snc.config.Section("/settings/updates/channel/" + channel)
 	token, ok := conf.GetString("github token")
@@ -498,7 +498,7 @@ func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates [
 		"Authorization": "Bearer " + token,
 	}
 	// show some more than the default 30, 100 seems to be maximum
-	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url+"?per_page=100", header)
+	resp, err := u.snc.httpDo(ctx, u.httpOptions, "GET", url+"?per_page=100", header)
 	if err != nil {
 		return nil, fmt.Errorf("http: %s", err.Error())
 	}
@@ -554,9 +554,9 @@ func (u *UpdateHandler) checkUpdateGithubActions(url, channel string) (updates [
 }
 
 // check available update from any url
-func (u *UpdateHandler) checkUpdateCustomURL(url string) (updates []updatesAvailable, err error) {
+func (u *UpdateHandler) checkUpdateCustomURL(ctx context.Context, url string) (updates []updatesAvailable, err error) {
 	log.Tracef("[update] checking custom url at: %s", url)
-	resp, err := u.snc.httpDo(*u.ctx, u.httpOptions, "HEAD", url, nil)
+	resp, err := u.snc.httpDo(ctx, u.httpOptions, "HEAD", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("http: %s", err.Error())
 	}
@@ -613,7 +613,7 @@ func (u *UpdateHandler) checkUpdateCustomURL(url string) (updates []updatesAvail
 	}
 
 	log.Tracef("[update] need to refresh cache for %s", url)
-	version, err := u.getVersionFromURL(url)
+	version, err := u.getVersionFromURL(ctx, url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch version: %s", err.Error())
 	}
@@ -627,7 +627,7 @@ func (u *UpdateHandler) checkUpdateCustomURL(url string) (updates []updatesAvail
 }
 
 // check available update from local or remote filesystem
-func (u *UpdateHandler) checkUpdateFile(url string) (updates []updatesAvailable, err error) {
+func (u *UpdateHandler) checkUpdateFile(ctx context.Context, url string) (updates []updatesAvailable, err error) {
 	localPath := strings.TrimPrefix(url, "file://")
 	log.Tracef("[update] checking local file at: %s", localPath)
 	_, err = os.Stat(localPath)
@@ -654,7 +654,7 @@ func (u *UpdateHandler) checkUpdateFile(url string) (updates []updatesAvailable,
 	}
 
 	// get version from that executable
-	version, err := u.verifyUpdate(tempUpdate)
+	version, err := u.verifyUpdate(ctx, tempUpdate)
 	if err != nil {
 		return nil, err
 	}
@@ -663,7 +663,7 @@ func (u *UpdateHandler) checkUpdateFile(url string) (updates []updatesAvailable,
 }
 
 // fetch update file into tmp file
-func (u *UpdateHandler) downloadUpdate(update *updatesAvailable) (binPath string, err error) {
+func (u *UpdateHandler) downloadUpdate(ctx context.Context, update *updatesAvailable) (binPath string, err error) {
 	url := update.url
 	var src io.ReadCloser
 	if strings.HasPrefix(url, "file://") {
@@ -676,7 +676,7 @@ func (u *UpdateHandler) downloadUpdate(update *updatesAvailable) (binPath string
 		src = file
 	} else {
 		log.Tracef("[update] downloading update from %s", url)
-		resp, err2 := u.snc.httpDo(*u.ctx, u.httpOptions, "GET", url, update.header)
+		resp, err2 := u.snc.httpDo(ctx, u.httpOptions, "GET", url, update.header)
 		if err2 != nil {
 			return "", fmt.Errorf("fetching update failed %s: %s", url, err2.Error())
 		}
@@ -754,11 +754,11 @@ func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
 	return nil
 }
 
-func (u *UpdateHandler) verifyUpdate(newBinPath string) (version string, err error) {
+func (u *UpdateHandler) verifyUpdate(ctx context.Context, newBinPath string) (version string, err error) {
 	log.Tracef("[update] checking update file %s", newBinPath)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, newBinPath, "-V")
+	cmd := exec.CommandContext(ctx2, newBinPath, "-V")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("checking new version failed %s: %s", newBinPath, err.Error())
@@ -773,15 +773,15 @@ func (u *UpdateHandler) verifyUpdate(newBinPath string) (version string, err err
 	return version, nil
 }
 
-func (u *UpdateHandler) getVersionFromURL(url string) (version string, err error) {
+func (u *UpdateHandler) getVersionFromURL(ctx context.Context, url string) (version string, err error) {
 	log.Tracef("[update] trying to determine version for url %s", url)
-	filePath, err := u.downloadUpdate(&updatesAvailable{url: url})
+	filePath, err := u.downloadUpdate(ctx, &updatesAvailable{url: url})
 	if err != nil {
 		return "", err
 	}
 	defer os.Remove(filePath)
 
-	version, err = u.verifyUpdate(filePath)
+	version, err = u.verifyUpdate(ctx, filePath)
 	if err != nil {
 		return "", err
 	}

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -75,6 +76,7 @@ func runUpdates(cmd *cobra.Command, args []string) {
 	preRelease := convert.Bool(cmd.Flag("prerelease").Value.String())
 	force := convert.Bool(cmd.Flag("force").Value.String())
 	version, err := mod.CheckUpdates(
+		context.TODO(),
 		true,
 		!checkOnly,
 		false,

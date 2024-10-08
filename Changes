@@ -7,6 +7,7 @@ next:
          - add /api/v1/inventory/{module} rest endpoint to get specific inventory
          - add exporter to inventory list
          - fix updates from custom urls
+         - add /api/v1/admin/updates/install endpoint to trigger update
 
 0.27     Mon Sep  2 19:31:14 CEST 2024
          - do not use empty-state if warn/crit conditions contain check on 'count'
