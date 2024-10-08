@@ -61,9 +61,9 @@ type UpdateHandler struct {
 	updateHours      []UpdateHours
 	updateDays       []UpdateDays
 
-	httpOptions  *HTTPClientOptions
-	lastUpdate   *time.Time
-	lastModified map[string]*time.Time
+	httpOptions *HTTPClientOptions
+	lastUpdate  *time.Time
+	urlCache    map[string]cachedURLVersion // cache last modified time stamps and version
 }
 
 type updatesAvailable struct {
@@ -73,9 +73,14 @@ type updatesAvailable struct {
 	header  map[string]string
 }
 
+type cachedURLVersion struct {
+	version      string
+	responseSize int64
+}
+
 func NewUpdateHandler() Module {
 	return &UpdateHandler{
-		lastModified: make(map[string]*time.Time),
+		urlCache: make(map[string]cachedURLVersion),
 	}
 }
 
@@ -299,8 +304,8 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 	}
 
 	bestVersion := float64(0)
-	for num, u := range updates {
-		version := utils.ParseVersion(u.version)
+	for num, upd := range updates {
+		version := utils.ParseVersion(upd.version)
 		if down != -1 {
 			if version == down {
 				log.Tracef(" -> matches requested version")
@@ -308,15 +313,15 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 				return &updates[num]
 			}
 
-			log.Tracef("version %f does not match (from %s)", version, u.url)
+			log.Tracef("version %f does not match (from %s)", version, upd.url)
 
 			continue
 		}
-		log.Tracef("comparing version %f from %s with best version: %f", version, u.url, bestVersion)
+		log.Tracef("comparing version %f from %s with best version: %f", version, upd.url, bestVersion)
 		if best == nil || version > bestVersion {
 			best = &updates[num]
 			bestVersion = version
-			log.Tracef("best version so far %f from %s", version, u.url)
+			log.Tracef("best version so far %f from %s", version, upd.url)
 		}
 	}
 
@@ -394,13 +399,13 @@ func (u *UpdateHandler) checkUpdate(url string, preRelease bool, channel string)
 	}
 
 	log.Debugf("found %d version%s in %s channel:", len(updates), map[bool]string{false: "", true: "s"}[len(updates) != 1], channel)
-	for i, u := range updates {
+	for i, upd := range updates {
 		updates[i].channel = channel
-		version := u.version
-		if u.version == "" {
+		version := upd.version
+		if upd.version == "" {
 			version = "unknown version"
 		}
-		log.Debugf("  - %s (from %s)", version, u.url)
+		log.Debugf("  - %s (from %s)", version, upd.url)
 	}
 
 	return updates, nil
@@ -553,39 +558,52 @@ func (u *UpdateHandler) checkUpdateCustomURL(url string) (updates []updatesAvail
 		return nil, fmt.Errorf("request failed %s: got content length %d", url, resp.ContentLength)
 	}
 
-	executable := GlobalMacros["exe-full"]
-	stat, err := os.Stat(executable)
-	if err != nil {
-		return nil, fmt.Errorf("stat: %s", err.Error())
-	}
+	refresh := false
+	cacheEntry, cached := u.urlCache[url]
+	switch {
+	case !cached:
+		refresh = true
+	case resp.ContentLength > 0 && resp.ContentLength != cacheEntry.responseSize:
+		log.Tracef("[update] content size differs %s: %d vs. %d", url, resp.ContentLength, cacheEntry.responseSize)
+		refresh = true
+	default:
+		lastModified := resp.Header.Get("Last-Modified")
+		if lastModified == "" {
+			return nil, fmt.Errorf("failed to fetch Last-Modified header from url: %s", url)
+		}
 
-	if resp.ContentLength > 0 && resp.ContentLength != stat.Size() {
-		log.Tracef("[update] content size differs %s: %d vs. %s: %d", url, resp.ContentLength, executable, stat.Size())
+		modifiedTime, err2 := time.Parse(http.TimeFormat, lastModified)
+		if err2 != nil {
+			return nil, fmt.Errorf("error parsing Last-Modified header: %s", err2.Error())
+		}
 
-		return []updatesAvailable{{url: url, version: ""}}, nil
-	}
+		log.Tracef("[update] last modified %s", modifiedTime.UTC().String())
+		log.Tracef("[update] last update   %s", u.lastUpdate.UTC().String())
 
-	lastModified := resp.Header.Get("Last-Modified")
-	if lastModified != "" {
-		modifiedTime, err := time.Parse(http.TimeFormat, lastModified)
-		if err != nil {
-			log.Debugf("error parsing Last-Modified header: %s", err)
-		} else {
-			prev, ok := u.lastModified[url]
-			if ok && prev.Before(modifiedTime) {
-				log.Tracef("[update] last-modified differs for %s", url)
-				log.Tracef("[update] old %s", modifiedTime.UTC().String())
-				log.Tracef("[update] new %s", u.lastUpdate.UTC().String())
-
-				return []updatesAvailable{{url: url, version: ""}}, nil
-			}
-			u.lastModified[url] = &modifiedTime
+		if u.lastUpdate.Before(modifiedTime) {
+			log.Tracef("[update] last-modified differs for %s", url)
+			refresh = true
 		}
 	}
 
-	log.Tracef("[update] no update available, %s matches the last version from %s.", executable, url)
+	if !refresh {
+		log.Tracef("[update] using cached entry for %s", url)
 
-	return []updatesAvailable{{url: url, version: ""}}, nil
+		return []updatesAvailable{{url: url, version: cacheEntry.version}}, nil
+	}
+
+	log.Tracef("[update] need to refresh cache for %s", url)
+	version, err := u.getVersionFromURL(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch version: %s", err.Error())
+	}
+
+	u.urlCache[url] = cachedURLVersion{
+		version:      version,
+		responseSize: resp.ContentLength,
+	}
+
+	return []updatesAvailable{{url: url, version: version}}, nil
 }
 
 // check available update from local or remote filesystem
@@ -730,6 +748,22 @@ func (u *UpdateHandler) verifyUpdate(newBinPath string) (version string, err err
 		version = matches[1]
 	} else {
 		return "", fmt.Errorf("could not extract version from updated binary: %s", output)
+	}
+
+	return version, nil
+}
+
+func (u *UpdateHandler) getVersionFromURL(url string) (version string, err error) {
+	log.Tracef("[update] trying to determine version for url %s", url)
+	filePath, err := u.downloadUpdate(&updatesAvailable{url: url})
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(filePath)
+
+	version, err = u.verifyUpdate(filePath)
+	if err != nil {
+		return "", err
 	}
 
 	return version, nil
