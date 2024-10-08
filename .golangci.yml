@@ -90,6 +90,7 @@ issues:
     - "Magic number: 365, in"
     - "Magic number: 500, in"
     - "Magic number: 512, in"
+    - "Magic number: 600, in"
     - "Magic number: 1000, in"
     - "Magic number: 1024, in"
     - "Magic number: 3600, in"

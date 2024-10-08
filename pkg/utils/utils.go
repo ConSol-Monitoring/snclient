@@ -151,6 +151,10 @@ func DurationString(dur time.Duration) string {
 	case hours > 0:
 		return fmt.Sprintf("%s%02d:%02dh", prefix, hours, minutes)
 	case minutes > 0:
+		if seconds == 0 {
+			return fmt.Sprintf("%s%dm", prefix, minutes)
+		}
+
 		return fmt.Sprintf("%s%dm %02ds", prefix, minutes, int64(seconds))
 	case seconds >= 10:
 		return fmt.Sprintf("%s%.0fs", prefix, seconds)

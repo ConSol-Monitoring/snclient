@@ -59,8 +59,14 @@ func (l *CheckUptime) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 	bootTimeUnix := time.Unix(bootSeconds, 0)
 	uptime := time.Since(bootTimeUnix)
 
+	// improve readabilty and truncate to full minutes when boot time is more then 10minutes
+	trunc := time.Minute
+	if uptime.Seconds() < 600 {
+		trunc = time.Second
+	}
+
 	check.listData = append(check.listData, map[string]string{
-		"uptime":       utils.DurationString(uptime.Truncate(time.Minute)),
+		"uptime":       utils.DurationString(uptime.Truncate(trunc)),
 		"uptime_value": fmt.Sprintf("%.1f", uptime.Seconds()),
 		"boot":         bootTimeUnix.UTC().Format("2006-01-02 15:04:05"),
 	})

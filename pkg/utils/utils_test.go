@@ -110,7 +110,7 @@ func TestDurationString(t *testing.T) {
 	}{
 		{time.Second * 5, "5000ms"},
 		{time.Second * 90, "1m 30s"},
-		{time.Minute * 5, "5m 00s"},
+		{time.Minute * 5, "5m"},
 		{time.Hour * 5, "05:00h"},
 		{time.Hour * 24, "1d 00:00h"},
 		{time.Hour * 200, "8d 08:00h"},
