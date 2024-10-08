@@ -295,6 +295,7 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 	down := float64(-1)
 	if downgrade != "" {
 		down = utils.ParseVersion(downgrade)
+		log.Tracef("searching for version %f...", down)
 	}
 
 	bestVersion := float64(0)
@@ -302,14 +303,20 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 		version := utils.ParseVersion(u.version)
 		if down != -1 {
 			if version == down {
+				log.Tracef(" -> matches requested version")
+
 				return &updates[num]
 			}
 
+			log.Tracef("version %f does not match (from %s)", version, u.url)
+
 			continue
 		}
+		log.Tracef("comparing version %f from %s with best version: %f", version, u.url, bestVersion)
 		if best == nil || version > bestVersion {
 			best = &updates[num]
 			bestVersion = version
+			log.Tracef("best version so far %f from %s", version, u.url)
 		}
 	}
 
@@ -326,8 +333,12 @@ func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade s
 			return best
 		}
 
+		log.Tracef("best version %f is lower than current version %f", bestVersion, curVersion)
+
 		return nil
 	}
+
+	log.Tracef("best version is %f (channel: %s / %s)", bestVersion, best.channel, best.url)
 
 	return best
 }
@@ -382,10 +393,14 @@ func (u *UpdateHandler) checkUpdate(url string, preRelease bool, channel string)
 		return nil, err
 	}
 
-	log.Debugf("found %d versions in %s channel:", len(updates), channel)
+	log.Debugf("found %d version%s in %s channel:", len(updates), map[bool]string{false: "", true: "s"}[len(updates) != 1], channel)
 	for i, u := range updates {
 		updates[i].channel = channel
-		log.Debugf("  - %s (from %s)", u.version, u.url)
+		version := u.version
+		if u.version == "" {
+			version = "unknown version"
+		}
+		log.Debugf("  - %s (from %s)", version, u.url)
 	}
 
 	return updates, nil
