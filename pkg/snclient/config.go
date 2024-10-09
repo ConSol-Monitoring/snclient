@@ -618,11 +618,11 @@ func (config *Config) ResetDefaultMacros() {
 
 // ConfigSection contains a single config section.
 type ConfigSection struct {
-	cfg      *Config
-	name     string
-	data     ConfigData
-	keys     []string
-	comments map[string][]string
+	cfg      *Config             // reference to parent config collection
+	name     string              // section name
+	data     ConfigData          // actual config data
+	keys     []string            // keys from config data
+	comments map[string][]string // comments sorted by config keys
 }
 
 // NewConfigSection creates a new ConfigSection.
