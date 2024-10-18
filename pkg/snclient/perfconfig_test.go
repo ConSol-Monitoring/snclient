@@ -91,7 +91,7 @@ func TestCheckPerfSyntax(t *testing.T) {
 	})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`'mem:PHYSICAL %'=[\d\.]+%;101;102;0;100`),
+		regexp.MustCompile(`'mem:PHYSICAL %'=[\d.]+%;101;102;0;100`),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
