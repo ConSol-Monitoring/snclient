@@ -87,6 +87,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | written     | Date when file was last written to                |
 | write       | Alias for written                                 |
 | age         | Seconds since file was last written               |
+| version     | Windows exe/dll file version (windows only)       |
 | line_count  | Number of lines in the files (text files)         |
 | total_bytes | Total size over all files in bytes                |
 | total_size  | Total size over all files as human readable bytes |

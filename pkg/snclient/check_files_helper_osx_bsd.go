@@ -21,3 +21,7 @@ func getCheckFileTimes(fileInfo fs.FileInfo) (*FileInfoUnified, error) {
 		Ctime: time.Unix(int64(fileInfoSys.Ctimespec.Sec), int64(fileInfoSys.Ctimespec.Nsec)), //nolint:unconvert // same
 	}, nil
 }
+
+func getFileVersion(path string) (string, error) {
+	return "0.0.0.0", fmt.Errorf("file version not supported: %s", path)
+}

@@ -4,6 +4,7 @@ go 1.22.0
 
 require (
 	github.com/beevik/ntp v1.4.3
+	github.com/bi-zone/go-fileversion v1.0.0
 	github.com/consol-monitoring/check_nsc_web/pkg/checknscweb v0.0.0-20240321161425-fd9209e96e1f
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/go-chi/chi/v5 v5.1.0
@@ -63,5 +64,6 @@ require (
 	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
+	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )

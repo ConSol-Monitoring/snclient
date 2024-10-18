@@ -138,6 +138,43 @@ func ReplaceConditionals(value string, macroSets ...map[string]string) (string, 
 	return result.String(), nil
 }
 
+// MacroNames returns list of used macros.
+func MacroNames(text string) []string {
+	list := []string{}
+	uniq := map[string]bool{}
+
+	splitBy := map[string]string{
+		"$(": ")",
+		"${": "}",
+		"%(": ")",
+		"%{": "}",
+	}
+	token, err := splitToken(text, splitBy)
+	if err != nil {
+		return list
+	}
+
+	for _, piece := range token {
+		for startPattern, endPattern := range splitBy {
+			if !strings.HasPrefix(piece, startPattern) || !strings.HasSuffix(piece, endPattern) {
+				continue
+			}
+			piece = strings.TrimPrefix(piece, startPattern)
+			piece = strings.TrimSuffix(piece, endPattern)
+			piece = strings.TrimSpace(piece)
+
+			if _, ok := uniq[piece]; !ok {
+				uniq[piece] = true
+				list = append(list, piece)
+			}
+
+			break
+		}
+	}
+
+	return list
+}
+
 /* replaceMacros replaces variables in given string (config ini file style macros).
  * possible macros are:
  *   ${macro} / $(macro)

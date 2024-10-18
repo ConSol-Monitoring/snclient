@@ -75,6 +75,7 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "written", description: "Date when file was last written to"},
 			{name: "write", description: "Alias for written"},
 			{name: "age", description: "Seconds since file was last written"},
+			{name: "version", description: "Windows exe/dll file version (windows only)"},
 			{name: "line_count", description: "Number of lines in the files (text files)"},
 			{name: "total_bytes", description: "Total size over all files in bytes"},
 			{name: "total_size", description: "Total size over all files as human readable bytes"},
@@ -105,6 +106,8 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 	if err != nil {
 		return nil, fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
 	}
+
+	needVersion := check.HasMacro("version")
 
 	totalSize := int64(0)
 	for _, checkPath := range l.paths {
@@ -193,6 +196,14 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 			entry["size"] = fmt.Sprintf("%d", fileInfo.Size())
 			entry["write"] = fileInfoSys.Mtime.In(timeZone).Format("2006-01-02 15:04:05 MST")
 			entry["written"] = fileInfoSys.Mtime.In(timeZone).Format("2006-01-02 15:04:05 MST")
+
+			if needVersion {
+				version, err := getFileVersion(path)
+				if err != nil {
+					log.Debugf("%s", err.Error())
+				}
+				entry["version"] = version
+			}
 
 			if hasLineCount {
 				// check filter before doing even slower things

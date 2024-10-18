@@ -313,6 +313,10 @@ func (c *Condition) matchSingle(data map[string]string) (res, ok bool) {
 	condStr := fmt.Sprintf("%v", c.value)
 	varNum, err1 := strconv.ParseFloat(varStr, 64)
 	condNum, err2 := strconv.ParseFloat(condStr, 64)
+	if c.keyword == "version" {
+		varNum, err1 = convert.VersionF64E(varStr)
+		condNum, err2 = convert.VersionF64E(condStr)
+	}
 	switch c.operator {
 	case Equal:
 		if err1 == nil && err2 == nil {

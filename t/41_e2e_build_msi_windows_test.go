@@ -58,6 +58,14 @@ func TestMSIinstaller(t *testing.T) {
 		require.FileExistsf(t, `C:\Program Files\snclient\`+file, file+" has been installed")
 	}
 
+	// make sure snclient.exe has a file version set
+	runCmd(t, &cmd{
+		Cmd:    bin,
+		Args:   []string{"run", "check_files", `path='C:\Program Files\snclient\snclient.exe'`, "detail-syntax='%{name} %{version}'", "top-syntax='%(problem_list)'", "show-all"},
+		Like:   []string{`OK - snclient.exe \d+`},
+		Unlike: []string{`%\{version\}`, `0.0.0.0`},
+	})
+
 	// verify installation
 	runCmd(t, &cmd{
 		Cmd:     "net",

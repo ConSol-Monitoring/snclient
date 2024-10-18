@@ -835,6 +835,18 @@ func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defau
 	return nil
 }
 
+// HasMacro returns true is the syntax attributes contain a macro with the given name.
+func (cd *CheckData) HasMacro(name string) bool {
+	for _, syntax := range []string{cd.detailSyntax, cd.topSyntax, cd.okSyntax, cd.emptySyntax, cd.perfSyntax} {
+		macros := MacroNames(syntax)
+		if slices.Contains(macros, name) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // apply condition aliases to all filter/warn/crit/ok conditions.
 // this is useful for example in service checks, when people match for state running / started
 func (cd *CheckData) applyConditionAlias() {
