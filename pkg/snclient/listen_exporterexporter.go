@@ -140,6 +140,11 @@ func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map
 	modules := map[string]*exporterModuleConfig{}
 
 	mfs, err := os.ReadDir(moduleDir)
+	if os.IsNotExist(err) {
+		log.Warnf("cannot open exporter_exporter modules dir %s: no such directory", moduleDir)
+
+		return modules, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed reading directory: %s, %s", moduleDir, err.Error())
 	}
