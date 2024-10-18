@@ -3,7 +3,6 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -440,8 +439,8 @@ allowed hosts  += 192.168.3.3`
 
 	// wait up to 30 seconds for mock server to start
 	for range 300 {
-		_, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", testPort), DefaultSocketTimeout*time.Second)
-		if err == nil {
+		res, err := snc.httpClient(&HTTPClientOptions{reqTimeout: DefaultSocketTimeout}).Get(fmt.Sprintf("http://localhost:%d", testPort))
+		if err == nil && res.StatusCode == http.StatusOK {
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
