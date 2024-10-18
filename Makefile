@@ -189,14 +189,19 @@ winres: | tools
 	rm -rf winres
 	cp -rp packaging/windows/winres .
 
+rsrc_windows: tools winres rsrc_windows_386.syso rsrc_windows_amd64.syso rsrc_windows_arm64.syso
+
 rsrc_windows_386.syso: winres | tools
 	${TOOLSFOLDER}/go-winres make $(WINRESARGS) --arch 386
+	cp rsrc_windows_386.syso cmd/snclient/
 
 rsrc_windows_amd64.syso: winres | tools
 	${TOOLSFOLDER}/go-winres make $(WINRESARGS) --arch amd64
+	cp rsrc_windows_amd64.syso cmd/snclient/
 
 rsrc_windows_arm64.syso: winres | tools
 	${TOOLSFOLDER}/go-winres make $(WINRESARGS) --arch arm64
+	cp rsrc_windows_arm64.syso cmd/snclient/
 
 test: vendor
 	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) ./pkg/* ./pkg/*/commands
@@ -721,4 +726,3 @@ updatenodeexportersums:
 	grep linux-arm64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
 	mv sha256sums.txt packaging/sha256sums.txt
 	rm -f sha256sums_node_exporter.txt
-
