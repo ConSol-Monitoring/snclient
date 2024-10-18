@@ -438,9 +438,18 @@ allowed hosts  += 192.168.3.3`
 	}()
 
 	// wait up to 30 seconds for mock server to start
+	testReq, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("http://localhost:%d", testPort), http.NoBody)
+	require.NoErrorf(t, err, "request created")
+	httpClient := snc.httpClient(&HTTPClientOptions{reqTimeout: DefaultSocketTimeout})
 	for range 300 {
-		res, err := snc.httpClient(&HTTPClientOptions{reqTimeout: DefaultSocketTimeout}).Get(fmt.Sprintf("http://localhost:%d", testPort))
-		if err == nil && res.StatusCode == http.StatusOK {
+		res, err2 := httpClient.Do(testReq)
+		if err2 != nil {
+			time.Sleep(100 * time.Millisecond)
+
+			continue
+		}
+		res.Body.Close()
+		if res.StatusCode == http.StatusOK {
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -460,7 +469,7 @@ auth = http://user:pass@localhost:%d/tmp/test3.ini
 	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
-	err := iniFile.Close()
+	err = iniFile.Close()
 	require.NoErrorf(t, err, "config written")
 	cfg := NewConfig(true)
 	err = cfg.ReadINI(iniFile.Name(), snc)
