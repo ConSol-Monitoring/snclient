@@ -10,6 +10,7 @@ next:
          - add /api/v1/admin/updates/install endpoint to trigger update
          - fix agent not starting if exporter_modules folder does not exist
          - check_files: add version macro support for .exe/.dll files
+         - fix missing thresholds when using perf-syntax
 
 0.27     Mon Sep  2 19:31:14 CEST 2024
          - do not use empty-state if warn/crit conditions contain check on 'count'

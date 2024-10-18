@@ -103,6 +103,10 @@ func (cr *CheckResult) ApplyPerfSyntax(perfSyntax string) {
 		macros := map[string]string{
 			"key": metric.Name,
 		}
+		// save original name, so thresholds can be added properly later
+		if metric.ThresholdName == "" {
+			metric.ThresholdName = metric.Name
+		}
 		metric.Name = ReplaceMacros(perfSyntax, macros)
 	}
 }
