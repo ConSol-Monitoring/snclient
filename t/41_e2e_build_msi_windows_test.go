@@ -61,7 +61,7 @@ func TestMSIinstaller(t *testing.T) {
 	// make sure snclient.exe has a file version set
 	runCmd(t, &cmd{
 		Cmd:    bin,
-		Args:   []string{"run", "check_files", `path='C:\Program Files\snclient\snclient.exe'`, "detail-syntax='%{name} %{version}'", "top-syntax='%(problem_list)'", "show-all"},
+		Args:   []string{"run", "check_files", `path='C:\Program Files\snclient\snclient.exe'`, "detail-syntax='%{name} %{version}'", "top-syntax='%(problem_list)'", "crit=version = 0", "show-all"},
 		Like:   []string{`OK - snclient.exe \d+`},
 		Unlike: []string{`%\{version\}`, `0.0.0.0`},
 	})
