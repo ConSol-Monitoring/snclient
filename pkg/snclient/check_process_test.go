@@ -3,10 +3,14 @@
 package snclient
 
 import (
-	"regexp"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/shirou/gopsutil/v4/process"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckProcess(t *testing.T) {
@@ -14,16 +18,34 @@ func TestCheckProcess(t *testing.T) {
 
 	res := snc.RunCheck("check_process", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	assert.Regexpf(t,
-		regexp.MustCompile(`^OK - all \d+ processes are ok`),
-		string(res.BuildPluginOutput()),
-		"output matches",
-	)
+	assert.Regexpf(t, `^OK - all \d+ processes are ok`, string(res.BuildPluginOutput()), "output matches")
+	assert.Regexpf(t, `'count'=\d+;0;0;0$`, string(res.BuildPluginOutput()), "perfdata ok")
 
 	res = snc.RunCheck("check_process", []string{"process=noneexisting.exe"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
-	assert.Equalf(t, "UNKNOWN - check_process failed to find anything with this filter. |'count'=0;;;0 'rss'=0B;;;0 'virtual'=0B;;;0 'cpu'=0%;;;0",
+	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
+	assert.Equalf(t, "CRITICAL - no processes found with this filter. |'count'=0;0;0;0 'rss'=0B;;;0 'virtual'=0B;;;0 'cpu'=0%;;;0",
 		string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_process", []string{"process=noneexisting.exe", "ok=count=0"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Equalf(t, "OK - no processes found with this filter. |'count'=0;0;0;0 'rss'=0B;;;0 'virtual'=0B;;;0 'cpu'=0%;;;0",
+		string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_process", []string{"process=noneexisting.exe", "crit=count>0", "warn=none"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `OK - no processes found with this filter.`, string(res.BuildPluginOutput()), "output ok")
+
+	// get name of current process
+	pid, err := convert.Int32E(os.Getpid())
+	require.NoErrorf(t, err, "got own pid")
+	me, err := process.NewProcess(pid)
+	require.NoErrorf(t, err, "got own process")
+	myExe, err := me.Exe()
+	require.NoErrorf(t, err, "got own exe")
+	res = snc.RunCheck("check_process", []string{"process=" + filepath.Base(myExe)})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `OK - all \d+ processes are ok.`, string(res.BuildPluginOutput()), "output ok")
+	assert.Regexpf(t, `rss'=\d{1,15}B;;;0`, string(res.BuildPluginOutput()), "rss ok")
 
 	StopTestAgent(t, snc)
 }
