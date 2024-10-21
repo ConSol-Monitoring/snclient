@@ -41,8 +41,9 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			exe = filepath.Base(filename)
 		} else {
 			cmd, err2 := proc.CmdlineSliceWithContext(ctx)
-			if err2 != nil && len(cmd) >= 1 {
-				exe = cmd[0]
+			if err2 == nil && len(cmd) >= 1 {
+				filename = cmd[0]
+				exe = filepath.Base(filename)
 			}
 		}
 		if exe == "" {
@@ -95,6 +96,13 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			}
 		}
 
+		// process does not exist anymore
+		if exe == "" && uid == -1 {
+			if ok, _ := process.PidExistsWithContext(ctx, proc.Pid); !ok {
+				continue
+			}
+		}
+
 		mem, err := proc.MemoryInfoWithContext(ctx)
 		if err != nil {
 			log.Debugf("check_process: meminfo error: %s", err.Error())
@@ -143,6 +151,8 @@ func convertStatusChar(letter string) string {
 		return "wait"
 	case "z", "zombie":
 		return "zombie"
+	case "b", "blocked":
+		return "blocked"
 	default:
 		return "unknown"
 	}
