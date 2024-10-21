@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 )
 
 type CheckBuiltin struct {
@@ -47,4 +48,14 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	check.result.State = int64(rc)
 
 	return check.Finalize()
+}
+
+func (l *CheckBuiltin) Help(ctx context.Context, snc *Agent, check *CheckData, format ShowHelp) (help string) {
+	check.rawArgs = []string{"--help"}
+	res, _ := l.Check(ctx, snc, check, []Argument{})
+
+	help = string(res.BuildPluginOutput())
+
+	help = strings.TrimSpace(help)
+	return help
 }
