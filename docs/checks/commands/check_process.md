@@ -23,7 +23,7 @@ Checks the state and metrics of one or multiple processes.
     check_process
     OK - 417 processes. |'count'=417;;;0
 
-Check specific process by name (adding some metrics as well)
+Check specific process(es) by name (adding some metrics as well)
 
     check_process \
         process=httpd \
@@ -32,10 +32,15 @@ Check specific process by name (adding some metrics as well)
         top-syntax='%{status} - %{count} processes, memory %{rss|h}B, cpu %{cpu:fmt=%.1f}%, started %{oldest:age|duration} ago'
     WARNING - 12 processes, memory 62.58 MB, started 01:11h ago |...
 
-If zero is a valid threshold, set the empty-state to ok
+If zero is a valid threshold, set thresholds accordingly
 
-    check_process process=qemu warn='count <= 0 || count > 10' crit='count <= 0 || count > 20' empty-state=0
-    OK - check_process failed to find anything with this filter.
+    check_process process=qemu warn='count < 0 || count > 10' crit='count < 0 || count > 20'
+    OK - no processes found with this filter.
+
+In case you want to check if a given process is NOT running use something like:
+
+	check_process process=must_not_run.exe 'crit=count>0' warn=none
+	OK - no processes found with this filter.
 
 ### Example using NRPE and Naemon
 
@@ -55,13 +60,15 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                       |
-| ------------- | ------------------------------------------------------------------- |
-| empty-state   | 3 (UNKNOWN)                                                         |
-| empty-syntax  | %(status) - check_process failed to find anything with this filter. |
-| top-syntax    | %(status) - \${problem_list}                                        |
-| ok-syntax     | %(status) - all %{count} processes are ok.                          |
-| detail-syntax | \${exe}=\${state}                                                   |
+| Argument      | Default Value                                    |
+| ------------- | ------------------------------------------------ |
+| warning       | count = 0                                        |
+| critical      | state = 'stopped' or count = 0                   |
+| empty-state   | 2 (CRITICAL)                                     |
+| empty-syntax  | %(status) - no processes found with this filter. |
+| top-syntax    | %(status) - \${problem_list}                     |
+| ok-syntax     | %(status) - all %{count} processes are ok.       |
+| detail-syntax | \${exe}=\${state}                                |
 
 ## Check Specific Arguments
 

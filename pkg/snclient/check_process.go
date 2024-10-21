@@ -35,11 +35,19 @@ func (l *CheckProcess) Build() *CheckData {
 			"process":  {value: &l.processes, description: "The process to check, set to * to check all. Default: *", isFilter: true},
 			"timezone": {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
 		},
-		okSyntax:     "%(status) - all %{count} processes are ok.",
-		detailSyntax: "${exe}=${state}",
-		topSyntax:    "%(status) - ${problem_list}",
-		emptyState:   3,
-		emptySyntax:  "%(status) - check_process failed to find anything with this filter.",
+		conditionAlias: map[string]map[string]string{
+			"state": {
+				"started": "running",
+				"stopped": "stop",
+			},
+		},
+		okSyntax:        "%(status) - all %{count} processes are ok.",
+		detailSyntax:    "${exe}=${state}",
+		topSyntax:       "%(status) - ${problem_list}",
+		emptyState:      2,
+		emptySyntax:     "%(status) - no processes found with this filter.",
+		defaultWarning:  "count = 0",
+		defaultCritical: "state = 'stopped' or count = 0",
 		attributes: []CheckAttribute{
 			{name: "process", description: "Name of the executable (without path)"},
 			{name: "exe", description: "Name of the executable (without path)"},
@@ -67,7 +75,7 @@ func (l *CheckProcess) Build() *CheckData {
     check_process
     OK - 417 processes. |'count'=417;;;0
 
-Check specific process by name (adding some metrics as well)
+Check specific process(es) by name (adding some metrics as well)
 
     check_process \
         process=httpd \
@@ -76,22 +84,27 @@ Check specific process by name (adding some metrics as well)
         top-syntax='%{status} - %{count} processes, memory %{rss|h}B, cpu %{cpu:fmt=%.1f}%, started %{oldest:age|duration} ago'
     WARNING - 12 processes, memory 62.58 MB, started 01:11h ago |...
 
-If zero is a valid threshold, set the empty-state to ok
+If zero is a valid threshold, set thresholds accordingly
 
-    check_process process=qemu warn='count <= 0 || count > 10' crit='count <= 0 || count > 20' empty-state=0
-    OK - check_process failed to find anything with this filter.
+    check_process process=qemu warn='count < 0 || count > 10' crit='count < 0 || count > 20'
+    OK - no processes found with this filter.
+
+In case you want to check if a given process is NOT running use something like:
+
+	check_process process=must_not_run.exe 'crit=count>0' warn=none
+	OK - no processes found with this filter.
 	`,
 		exampleArgs: `warn='count <= 0 || count > 10' crit='count <= 0 || count > 20'`,
 	}
 }
 
 func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"rss", "virtual", "pagefile"})
+
 	err := l.fetchProcs(ctx, check)
 	if err != nil {
 		return nil, err
 	}
-
-	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"rss", "virtual", "pagefile"})
 
 	check.listData = check.Filter(check.filter, check.listData)
 	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
