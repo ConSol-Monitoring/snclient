@@ -52,6 +52,8 @@ ex.:
 
     'warn=load > 90%'
 
+Syntax is explained in details on the [expresions page](../expressions).
+
 ### Warning+
 
 Extend default warning threshold.
@@ -72,6 +74,8 @@ ex.:
 
     'crit=load > 98%'
 
+Syntax is explained in details on the [expresions page](../expressions).
+
 ### Critical+
 
 Extend default critical threshold.
@@ -91,6 +95,8 @@ removed but the status is reset to ok state.
 ex.:
 
     'ok=enabled = 0'
+
+Syntax is explained in details on the [expresions page](../expressions).
 
 ### Empty-State
 
@@ -161,20 +167,3 @@ Apply tweaks to performance data, like unit conversion.
 ex.:
 
     'perf-config=used(unit:G)'
-
-## Common Filter Attributes
-
-| Attribute     | Description |
-| ------------- | ----------- |
-| status        | The returned status (OK/WARN/CRIT/UNKNOWN) |
-| count         | Number of items matching the filter. |
-| total         | Total number of items |
-| list          | List of all items matching the filter. |
-| ok_count      | Number of items that are ok |
-| ok_list       | List of items that are ok |
-| warn_count    | Number of items that matched the warning threshold |
-| warn_list     | List of items that matched the warning threshold |
-| crit_count    | Number of items that matched the critical threshold |
-| crit_list     | List of items that matched the critical threshold |
-| problem_count | Number of items that matched either warning or critical threshold |
-| problem_list  | List of items that matched either warning or critical threshold |

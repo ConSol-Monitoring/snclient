@@ -12,13 +12,17 @@ as threshold, the corresponding status will be set.
 ## Syntax
 
 All filter follow the syntax `<attribute> <operator> <value>`. For a list and explanation
-of allowed operators see [the operator list](#operator).
+of allowed operators see [the operator list](../expressions).
 
 The list of possible attributes is documented along with each [check plugin](../plugins).
+
+[Common attributes](#common-filter-attributes) are listed at the end of this page.
 
 ex.:
 
     filter="status = 'started'"
+
+Syntax is explained in details on the [expresions page](../expressions).
 
 ## Default Filter
 
@@ -33,40 +37,29 @@ The default filter can be unset by using a `none` filter, ex.:
 
 Default filter will be overwritten if a new filter is set.
 
+## Extending Filters
+
 Existing default filter can be extended by using a `filter+="..."` syntax, ex.:
 
     filter+="status = 'started'"
 
-## Logical Operator
+## Expressions
 
-To combine multiple filter you can use logical operator and brackets.
+Expressions are explained on the [expresions page](../expressions).
 
-| Operator | Alias  | Description |
-| -------- | -------| ----------- |
-| `and`    | `&&`   | Logical **and** operator |
-| `or`     | `\|\|` | Logical **or** operator  |
+## Common Filter Attributes
 
-ex.:
-
-    filter="(status = 'started' or status = 'pending') and usage > 5%"
-
-## Operator
-
-| Operator    | Alias                       | Types   | Description |
-| ----------- | --------------------------- | --------| ----------- |
-| `=`         | `==`, `is`, `eq`            | Strings, Numbers | Matches on **exact equality**, ex.: `status = 'started'` |
-| `!=`        | `is not`, `ne`              | Strings, Numbers | Matches if value is **not exactly equal**. ex.: `5 != 3` |
-| `like`      |                             | Strings | Matches if value contains the condition (**substring match**), ex.: `status like "pend"` |
-| `unlike`    | `not like`                  | Strings | Matches if value does **not contain** the **substring**, ex.: `status unlike "stopped"` |
-| `ilike`     |                             | Strings | Matches a **case insensitive substring**, ex.: `name ilike "WMI"` |
-| `not ilike` |                             | Strings | Matches if a **case insensitive substring** cannot be found, ex.: `name not ilike "WMI"` |
-| `~`         | `regex`, `regexp`           | Strings | Performs a **regular expression** match, ex.: `status ~ '^pend'` |
-| `!~`        | `not regex`, `not regexp`   | Strings | Performs a **inverse regular expression** match, ex.: `status !~ 'stop'` |
-| `~~`        | `regexi`, `regexpi`         | Strings | Performs a **case insensitive regular expression** match, ex.: `status ~~ '^pend'`. An alternative way is to use `//i` as in `status ~ /^pend/i` |
-| `!~~`       | `not regexi`, `not regexpi` | Strings | Performs a **inverse case insensitive regular expression** match, ex.: `status !~~ 'stop'` |
-| `<`         | `lt`                        | Numbers | Matches **lower than** numbers, ex.: `usage < 5%` |
-| `<=`        | `le`                        | Numbers | Matches **lower or equal** numbers, ex.: `usage <= 5%` |
-| `>`         | `gt`                        | Numbers | Matches **greater than** numbers, ex.: `usage > 5%` |
-| `>=`        | `ge`                        | Numbers | Matches **greater or equal** numbers, ex.: `usage >= 5%` |
-| `in`        |                             | Strings | Matches if element **is in list**  ex.: `status in ('start', 'pending')` |
-| `not in`    |                             | Strings | Matches if element **is not in list**  ex.: `status not in ('stopped', 'starting')` |
+| Attribute     | Description |
+| ------------- | ----------- |
+| status        | The returned status (OK/WARN/CRIT/UNKNOWN) |
+| count         | Number of items matching the filter. |
+| total         | Total number of items |
+| list          | List of all items matching the filter. |
+| ok_count      | Number of items that are ok |
+| ok_list       | List of items that are ok |
+| warn_count    | Number of items that matched the warning threshold |
+| warn_list     | List of items that matched the warning threshold |
+| crit_count    | Number of items that matched the critical threshold |
+| crit_list     | List of items that matched the critical threshold |
+| problem_count | Number of items that matched either warning or critical threshold |
+| problem_list  | List of items that matched either warning or critical threshold |
