@@ -182,6 +182,7 @@ func (l *CheckPing) parsePingOutput(output, stderr string) (entry map[string]str
 	switch {
 	case strings.Contains(output, "Name or service not known"),
 		strings.Contains(output, "Unknown host"),
+		strings.Contains(output, "Name does not resolve"),
 		strings.Contains(output, "could not find host"):
 		entry["_error"] = "failed to resolve hostname"
 	default:
