@@ -717,13 +717,14 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 			state = CheckExitOK
 		}
 
-		help := ""
+		var help string
 		switch builtin := handler.(type) {
 		case *CheckBuiltin:
 			help = builtin.Help(ctx, snc, chk, chk.showHelp)
 		default:
 			help = chk.Help(chk.showHelp)
 		}
+
 		return &CheckResult{
 			Raw:    chk,
 			State:  state,

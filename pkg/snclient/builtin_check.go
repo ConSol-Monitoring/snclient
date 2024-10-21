@@ -50,12 +50,13 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	return check.Finalize()
 }
 
-func (l *CheckBuiltin) Help(ctx context.Context, snc *Agent, check *CheckData, format ShowHelp) (help string) {
+func (l *CheckBuiltin) Help(ctx context.Context, snc *Agent, check *CheckData, _ ShowHelp) (help string) {
 	check.rawArgs = []string{"--help"}
 	res, _ := l.Check(ctx, snc, check, []Argument{})
 
 	help = string(res.BuildPluginOutput())
 
 	help = strings.TrimSpace(help)
+
 	return help
 }
