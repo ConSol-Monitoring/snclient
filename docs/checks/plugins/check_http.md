@@ -2,7 +2,7 @@
 title: check_http
 ---
 
-This builtin check command wraps the `check_http` plugin from https://github.com/sni/check_http_go
+This builtin check command wraps the `check_http` plugin from [github.com/sni/check_http_go](https://github.com/sni/check_http_go)
 
 ### Implementation
 
