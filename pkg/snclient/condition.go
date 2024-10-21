@@ -94,9 +94,9 @@ func OperatorParse(str string) (Operator, error) {
 		return RegexMatchNotNoCase, nil
 	case "<", "lt":
 		return Lower, nil
-	case "<=", "le":
+	case "<=", "le", "lte":
 		return LowerEqual, nil
-	case ">", "gt":
+	case ">", "gt", "gte":
 		return Greater, nil
 	case ">=", "ge":
 		return GreaterEqual, nil
