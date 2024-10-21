@@ -91,6 +91,7 @@ func (l *CheckPing) addSources(ctx context.Context, check *CheckData) (err error
 	case "linux", "darwin", "freebsd":
 		err = l.addPingLinux(ctx, check)
 	case "windows":
+		err = l.addPingWindows(ctx, check)
 	}
 	if err != nil {
 		log.Debugf("failed: ping: %s", err.Error())
@@ -129,12 +130,44 @@ func (l *CheckPing) addPingLinux(ctx context.Context, check *CheckData) error {
 	return nil
 }
 
+// run ping command on windows
+func (l *CheckPing) addPingWindows(ctx context.Context, check *CheckData) error {
+	cmd := fmt.Sprintf("ping.exe -n %d '%s'", l.packets, l.hostname)
+	if l.ipv4 {
+		cmd += " -4"
+	}
+	if l.ipv6 {
+		cmd += " -6"
+	}
+
+	command, err := l.snc.MakeCmd(ctx, cmd)
+	if err != nil {
+		return err
+	}
+
+	output, stderr, _, _, err := l.snc.runExternalCommand(ctx, command, int64(check.timeout)-1)
+	if err != nil {
+		return fmt.Errorf("ping failed: %s\n%s", err.Error(), stderr)
+	}
+
+	entry := l.parsePingOutput(output, stderr)
+	check.listData = append(check.listData, entry)
+	l.addMetrics(check, entry)
+
+	return nil
+}
+
 func (l *CheckPing) parsePingOutput(output, stderr string) (entry map[string]string) {
 	entry = l.defaultEntry()
 
 	l.parsePingRTA(entry, output)
 	l.parsePingTTL(entry, output)
 	l.parsePingPackets(entry, output)
+
+	// stupid windows get packet loss wrong
+	if entry["rta"] == "" && entry["pl"] == "0" {
+		entry["pl"] = "100"
+	}
 
 	if entry["sent"] != "" {
 		return entry
@@ -154,7 +187,7 @@ func (l *CheckPing) parsePingOutput(output, stderr string) (entry map[string]str
 	}
 	entry["pl"] = "100"
 
-	return
+	return entry
 }
 
 func (l *CheckPing) parsePingRTA(entry map[string]string, output string) {
@@ -164,6 +197,8 @@ func (l *CheckPing) parsePingRTA(entry map[string]string, output string) {
 	rtaList := reRTA.FindStringSubmatch(output)
 	if len(rtaList) >= 3 {
 		entry["rta"] = rtaList[2]
+
+		return
 	}
 
 	// osx 14.7
@@ -172,16 +207,31 @@ func (l *CheckPing) parsePingRTA(entry map[string]string, output string) {
 	rtaList = reRTA.FindStringSubmatch(output)
 	if len(rtaList) >= 3 {
 		entry["rta"] = rtaList[2]
+
+		return
+	}
+
+	// windows 10
+	// Approximate round trip times in milli-seconds:
+	// Minimum = 5ms, Maximum = 11ms, Average = 7ms
+	reRTA = regexp.MustCompile(` = ([\d.]+)ms,.*? = ([\d.]+)ms,.*? = ([\d.]+)ms`)
+	rtaList = reRTA.FindStringSubmatch(output)
+	if len(rtaList) >= 3 {
+		entry["rta"] = rtaList[3]
+
+		return
 	}
 }
 
 func (l *CheckPing) parsePingTTL(entry map[string]string, output string) {
 	// linux (debian 12)
 	// 64 bytes from localhost (::1): icmp_seq=1 ttl=64 time=0.019 ms
-	reTTL := regexp.MustCompile(`\s+ttl=(\d+)\s+`)
+	reTTL := regexp.MustCompile(`\s+(ttl|TTL)=(\d+)\s+`)
 	ttlList := reTTL.FindStringSubmatch(output)
-	if len(ttlList) >= 2 {
-		entry["ttl"] = ttlList[1]
+	if len(ttlList) >= 3 {
+		entry["ttl"] = ttlList[2]
+
+		return
 	}
 }
 
@@ -206,6 +256,8 @@ func (l *CheckPing) parsePingPackets(entry map[string]string, output string) {
 		entry["sent"] = packetsList[1]
 		entry["received"] = packetsList[2]
 		entry["pl"] = packetsList[3]
+
+		return
 	}
 
 	// osx 14.7
@@ -216,6 +268,20 @@ func (l *CheckPing) parsePingPackets(entry map[string]string, output string) {
 		entry["sent"] = packetsList[1]
 		entry["received"] = packetsList[2]
 		entry["pl"] = packetsList[3]
+
+		return
+	}
+
+	// windows 10
+	// Packets: Sent = 3, Received = 3, Lost = 0 (0% loss),
+	rePackets = regexp.MustCompile(` = (\d+),.*? = (\d+),.*? = (\d+) \(([\d.]+)%`)
+	packetsList = rePackets.FindStringSubmatch(output)
+	if len(packetsList) >= 5 {
+		entry["sent"] = packetsList[1]
+		entry["received"] = packetsList[2]
+		entry["pl"] = packetsList[4]
+
+		return
 	}
 }
 

@@ -77,6 +77,84 @@ From 10.0.2.1 icmp_seq=2 Destination Host Unreachable
 	assert.Equalf(t, exp, entry, "parsed ping ok output")
 }
 
+func TestPingParserWindowsOK(t *testing.T) {
+	exp := map[string]string{
+		"host_name": "",
+		"sent":      "3",
+		"received":  "3",
+		"rta":       "7",
+		"pl":        "0",
+		"ttl":       "127",
+	}
+	// windows 10
+	out := `
+Pinging 10.0.2.1 with 32 bytes of data:
+Reply from 10.0.2.1: bytes=32 time=11ms TTL=127
+Reply from 10.0.2.1: bytes=32 time=5ms TTL=127
+Reply from 10.0.2.1: bytes=32 time=5ms TTL=127
+
+Ping statistics for 10.0.2.1:
+    Packets: Sent = 3, Received = 3, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 5ms, Maximum = 11ms, Average = 7ms
+`
+	chk := &CheckPing{}
+	entry := chk.parsePingOutput(out, "")
+	delete(entry, "_error")
+	assert.Equalf(t, exp, entry, "parsed ping ok output")
+}
+
+func TestPingParserWindowsBad(t *testing.T) {
+	exp := map[string]string{
+		"host_name": "",
+		"sent":      "4",
+		"received":  "4",
+		"rta":       "",
+		"pl":        "100",
+		"ttl":       "",
+	}
+	// windows 10
+	out := `
+Pinging 10.0.0.1 with 32 bytes of data:
+Reply from 82.135.16.21: Destination net unreachable.
+Reply from 82.135.16.21: Destination net unreachable.
+Reply from 82.135.16.21: Destination net unreachable.
+Reply from 82.135.16.21: Destination net unreachable.
+
+Ping statistics for 10.0.0.1:
+Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+`
+	chk := &CheckPing{}
+	entry := chk.parsePingOutput(out, "")
+	delete(entry, "_error")
+	assert.Equalf(t, exp, entry, "parsed ping ok output")
+}
+
+func TestPingParserWindowsBad2(t *testing.T) {
+	exp := map[string]string{
+		"host_name": "",
+		"sent":      "3",
+		"received":  "0",
+		"rta":       "",
+		"pl":        "100",
+		"ttl":       "",
+	}
+	// windows 10
+	out := `
+Pinging 4.4.4.4 with 32 bytes of data:
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 4.4.4.4:
+Packets: Sent = 3, Received = 0, Lost = 3 (100% loss),
+	`
+	chk := &CheckPing{}
+	entry := chk.parsePingOutput(out, "")
+	delete(entry, "_error")
+	assert.Equalf(t, exp, entry, "parsed ping ok output")
+}
+
 func TestPingParserOSXOK(t *testing.T) {
 	exp := map[string]string{
 		"host_name": "",
