@@ -76,3 +76,57 @@ From 10.0.2.1 icmp_seq=2 Destination Host Unreachable
 	delete(entry, "_error")
 	assert.Equalf(t, exp, entry, "parsed ping ok output")
 }
+
+func TestPingParserOSXOK(t *testing.T) {
+	exp := map[string]string{
+		"host_name": "",
+		"sent":      "5",
+		"received":  "5",
+		"rta":       "0.066",
+		"pl":        "0.0",
+		"ttl":       "64",
+	}
+	// osx 14.7
+	out := `
+PING localhost (127.0.0.1): 56 data bytes
+64 bytes from 127.0.0.1: icmp_seq=0 ttl=64 time=0.040 ms
+64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.095 ms
+64 bytes from 127.0.0.1: icmp_seq=2 ttl=64 time=0.086 ms
+64 bytes from 127.0.0.1: icmp_seq=3 ttl=64 time=0.060 ms
+64 bytes from 127.0.0.1: icmp_seq=4 ttl=64 time=0.051 ms
+
+--- localhost ping statistics ---
+5 packets transmitted, 5 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 0.040/0.066/0.095/0.021 ms
+`
+	chk := &CheckPing{}
+	entry := chk.parsePingOutput(out, "")
+	delete(entry, "_error")
+	assert.Equalf(t, exp, entry, "parsed ping ok output")
+}
+
+func TestPingParserOSXBad(t *testing.T) {
+	exp := map[string]string{
+		"host_name": "",
+		"sent":      "5",
+		"received":  "0",
+		"rta":       "",
+		"pl":        "100.0",
+		"ttl":       "",
+	}
+	// osx 14.7
+	out := `
+PING 10.99.99.99 (10.99.99.99): 56 data bytes
+Request timeout for icmp_seq 0
+Request timeout for icmp_seq 1
+Request timeout for icmp_seq 2
+Request timeout for icmp_seq 3
+
+--- 10.99.99.99 ping statistics ---
+5 packets transmitted, 0 packets received, 100.0% packet loss
+`
+	chk := &CheckPing{}
+	entry := chk.parsePingOutput(out, "")
+	delete(entry, "_error")
+	assert.Equalf(t, exp, entry, "parsed ping ok output")
+}

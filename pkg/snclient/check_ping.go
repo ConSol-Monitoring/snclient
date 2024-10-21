@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
@@ -86,7 +87,11 @@ func (l *CheckPing) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 }
 
 func (l *CheckPing) addSources(ctx context.Context, check *CheckData) (err error) {
-	err = l.addPingLinux(ctx, check)
+	switch runtime.GOOS {
+	case "linux", "darwin", "freebsd":
+		err = l.addPingLinux(ctx, check)
+	case "windows":
+	}
 	if err != nil {
 		log.Debugf("failed: ping: %s", err.Error())
 
@@ -105,7 +110,14 @@ func (l *CheckPing) addPingLinux(ctx context.Context, check *CheckData) error {
 	if l.ipv6 {
 		cmd += " -6"
 	}
-	output, stderr, _, err := l.snc.execCommand(ctx, cmd, DefaultCmdTimeout)
+
+	command, err := l.snc.MakeCmd(ctx, cmd)
+	if err != nil {
+		return err
+	}
+	command.Env = append(command.Env, "LC_ALL=C", "LANG=C")
+
+	output, stderr, _, _, err := l.snc.runExternalCommand(ctx, command, int64(check.timeout)-1)
 	if err != nil {
 		return fmt.Errorf("ping failed: %s\n%s", err.Error(), stderr)
 	}
@@ -153,6 +165,14 @@ func (l *CheckPing) parsePingRTA(entry map[string]string, output string) {
 	if len(rtaList) >= 3 {
 		entry["rta"] = rtaList[2]
 	}
+
+	// osx 14.7
+	// round-trip min/avg/max/stddev = 0.040/0.066/0.095/0.021 ms
+	reRTA = regexp.MustCompile(`round-trip min/avg/max/stddev = ([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+) ms`)
+	rtaList = reRTA.FindStringSubmatch(output)
+	if len(rtaList) >= 3 {
+		entry["rta"] = rtaList[2]
+	}
 }
 
 func (l *CheckPing) parsePingTTL(entry map[string]string, output string) {
@@ -180,8 +200,18 @@ func (l *CheckPing) parsePingPackets(entry map[string]string, output string) {
 
 	// linux (debian 12)
 	// 3 packets transmitted, 0 received, +3 errors, 100% packet loss, time 2003ms
-	rePacketsError := regexp.MustCompile(`(\d+) packets transmitted, (\d+) received, [\+\d]+ errors, (\d+)% packet loss`)
-	packetsList = rePacketsError.FindStringSubmatch(output)
+	rePackets = regexp.MustCompile(`(\d+) packets transmitted, (\d+) received, [\+\d]+ errors, (\d+)% packet loss`)
+	packetsList = rePackets.FindStringSubmatch(output)
+	if len(packetsList) >= 4 {
+		entry["sent"] = packetsList[1]
+		entry["received"] = packetsList[2]
+		entry["pl"] = packetsList[3]
+	}
+
+	// osx 14.7
+	// 5 packets transmitted, 5 packets received, 0.0% packet loss
+	rePackets = regexp.MustCompile(`(\d+) packets transmitted, (\d+) packets received, ([\d.]+)% packet loss`)
+	packetsList = rePackets.FindStringSubmatch(output)
 	if len(packetsList) >= 4 {
 		entry["sent"] = packetsList[1]
 		entry["received"] = packetsList[2]
