@@ -16,15 +16,15 @@ CheckBuiltinPlugins = enabled
 
 	res := snc.RunCheck("check_ping", []string{"host=localhost"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	assert.Regexpf(t, `^OK - Packet loss = \d+%, RTA = [\d.]+ms \|'rta'=[\d.]+ms;1000;5000 'pl'=\d+%;30;80;0`, string(res.BuildPluginOutput()), "output matches")
+	assert.Regexpf(t, `^OK - Packet loss = [\d.]+%, RTA = [\d.]+ms \|'rta'=[\d.]+ms;1000;5000 'pl'=\d+%;30;80;0`, string(res.BuildPluginOutput()), "output matches")
 
 	res = snc.RunCheck("check_ping", []string{"host=10.99.99.99"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
-	assert.Regexpf(t, `^CRITICAL - Packet loss = 100% \|'rta'=U 'pl'=100%;30;80;0`, string(res.BuildPluginOutput()), "output matches")
+	assert.Regexpf(t, `^CRITICAL - Packet loss = 100(|\.0)% \|'rta'=U 'pl'=100%;30;80;0`, string(res.BuildPluginOutput()), "output matches")
 
 	res = snc.RunCheck("check_ping", []string{"host=should_not_resolve.nowhere"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
-	assert.Regexpf(t, `^UNKNOWN - ping: should_not_resolve.nowhere: Name or service not known`, string(res.BuildPluginOutput()), "output matches")
+	assert.Regexpf(t, `^UNKNOWN - failed to resolve hostname`, string(res.BuildPluginOutput()), "output matches")
 
 	StopTestAgent(t, snc)
 }

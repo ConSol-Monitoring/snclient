@@ -180,8 +180,9 @@ func (l *CheckPing) parsePingOutput(output, stderr string) (entry map[string]str
 	output = strings.TrimSpace(output)
 	// passthrough some known errors
 	switch {
-	case strings.Contains(output, "Name or service not known"):
-		entry["_error"] = output
+	case strings.Contains(output, "Name or service not known"),
+		strings.Contains(output, "Unknown host"):
+		entry["_error"] = "failed to resolve hostname"
 	default:
 		entry["_error"] = fmt.Sprintf("cannot parse ping output: %s", output)
 	}
