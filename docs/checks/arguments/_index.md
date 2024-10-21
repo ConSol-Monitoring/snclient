@@ -95,6 +95,7 @@ ex.:
 ### Empty-State
 
 Status to be returned when no item matches the filter. If no filter is given this won't happen.
+Empty-State won't be used at all if there is a `count` warning/critical/ok threshold used.
 
 ex.:
 

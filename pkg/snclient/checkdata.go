@@ -197,8 +197,10 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	case cd.result.Output != "":
 		// already set, leave it
 		return cd.result, nil
-	case cd.emptySyntax != "" && len(cd.listData) == 0:
-		cd.result.Output = cd.emptySyntax
+	case len(cd.listData) == 0 && (len(cd.filter) > 0 || cd.hasArgsFilter):
+		if cd.emptySyntax != "" {
+			cd.result.Output = cd.emptySyntax
+		}
 		if !cd.HasThreshold("count") {
 			cd.result.State = cd.emptyState
 		}
