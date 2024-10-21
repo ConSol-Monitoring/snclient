@@ -38,6 +38,7 @@ func TestPingParserLinuxOK(t *testing.T) {
 		"pl":        "0",
 		"ttl":       "64",
 	}
+	// debian 12
 	out := `
 PING 10.0.1.1 (10.0.1.1) 56(84) bytes of data.
 64 bytes from 10.0.1.1: icmp_seq=1 ttl=64 time=0.359 ms
@@ -61,6 +62,7 @@ func TestPingParserLinuxBad(t *testing.T) {
 		"pl":        "100",
 		"ttl":       "",
 	}
+	// debian 12
 	out := `
 PING 10.0.1.11 (10.0.1.11) 56(84) bytes of data.
 From 10.0.2.1 icmp_seq=1 Destination Host Unreachable

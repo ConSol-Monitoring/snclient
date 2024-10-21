@@ -120,52 +120,73 @@ func (l *CheckPing) addPingLinux(ctx context.Context, check *CheckData) error {
 func (l *CheckPing) parsePingOutput(output, stderr string) (entry map[string]string) {
 	entry = l.defaultEntry()
 
+	l.parsePingRTA(entry, output)
+	l.parsePingTTL(entry, output)
+	l.parsePingPackets(entry, output)
+
+	if entry["sent"] != "" {
+		return entry
+	}
+
+	// failed to extract packets
+	if stderr != "" {
+		output += stderr
+	}
+	output = strings.TrimSpace(output)
+	// passthrough some known errors
+	switch {
+	case strings.Contains(output, "Name or service not known"):
+		entry["_error"] = output
+	default:
+		entry["_error"] = fmt.Sprintf("cannot parse ping output: %s", output)
+	}
+	entry["pl"] = "100"
+
+	return
+}
+
+func (l *CheckPing) parsePingRTA(entry map[string]string, output string) {
+	// linux (debian 12)
+	// rtt min/avg/max/mdev = 0.019/0.019/0.021/0.000 ms
 	reRTA := regexp.MustCompile(`rtt min/avg/max/mdev = ([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+) ms`)
 	rtaList := reRTA.FindStringSubmatch(output)
 	if len(rtaList) >= 3 {
 		entry["rta"] = rtaList[2]
 	}
+}
 
+func (l *CheckPing) parsePingTTL(entry map[string]string, output string) {
+	// linux (debian 12)
+	// 64 bytes from localhost (::1): icmp_seq=1 ttl=64 time=0.019 ms
 	reTTL := regexp.MustCompile(`\s+ttl=(\d+)\s+`)
 	ttlList := reTTL.FindStringSubmatch(output)
 	if len(ttlList) >= 2 {
 		entry["ttl"] = ttlList[1]
 	}
+}
 
+func (l *CheckPing) parsePingPackets(entry map[string]string, output string) {
+	// linux (debian 12)
+	// 3 packets transmitted, 3 received, 0% packet loss, time 2052ms
 	rePackets := regexp.MustCompile(`(\d+) packets transmitted, (\d+) received, (\d+)% packet loss`)
 	packetsList := rePackets.FindStringSubmatch(output)
 	if len(packetsList) >= 4 {
 		entry["sent"] = packetsList[1]
 		entry["received"] = packetsList[2]
 		entry["pl"] = packetsList[3]
+
+		return
 	}
 
-	if entry["sent"] == "" {
-		rePacketsError := regexp.MustCompile(`(\d+) packets transmitted, (\d+) received, [\+\d]+ errors, (\d+)% packet loss`)
-		packetsList = rePacketsError.FindStringSubmatch(output)
-		if len(packetsList) >= 4 {
-			entry["sent"] = packetsList[1]
-			entry["received"] = packetsList[2]
-			entry["pl"] = packetsList[3]
-		}
+	// linux (debian 12)
+	// 3 packets transmitted, 0 received, +3 errors, 100% packet loss, time 2003ms
+	rePacketsError := regexp.MustCompile(`(\d+) packets transmitted, (\d+) received, [\+\d]+ errors, (\d+)% packet loss`)
+	packetsList = rePacketsError.FindStringSubmatch(output)
+	if len(packetsList) >= 4 {
+		entry["sent"] = packetsList[1]
+		entry["received"] = packetsList[2]
+		entry["pl"] = packetsList[3]
 	}
-
-	if entry["sent"] == "" {
-		if stderr != "" {
-			output += stderr
-		}
-		output = strings.TrimSpace(output)
-		// passthrough some known errors
-		switch {
-		case strings.Contains(output, "Name or service not known"):
-			entry["_error"] = output
-		default:
-			entry["_error"] = fmt.Sprintf("cannot parse ping output: %s", output)
-		}
-		entry["pl"] = "100"
-	}
-
-	return entry
 }
 
 func (l *CheckPing) defaultEntry() map[string]string {
