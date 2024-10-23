@@ -155,6 +155,36 @@ Packets: Sent = 3, Received = 0, Lost = 3 (100% loss),
 	assert.Equalf(t, exp, entry, "parsed ping ok output")
 }
 
+func TestPingParserWindowsOKDE(t *testing.T) {
+	exp := map[string]string{
+		"host_name": "",
+		"sent":      "5",
+		"received":  "5",
+		"rta":       "6",
+		"pl":        "0",
+		"ttl":       "",
+	}
+	// windows 10
+	out := `
+Ping wird ausgeführt für test-12345 [::1] mit 32 Bytes Daten:
+Antwort von ::1: Zeit<1ms
+Antwort von ::1: Zeit<1ms
+Antwort von ::1: Zeit<1ms
+Antwort von ::1: Zeit<1ms
+Antwort von ::1: Zeit<1ms
+
+Ping-Statistik für ::1:
+    Pakete: Gesendet = 5, Empfangen = 5, Verloren = 0
+    (0% Verlust),
+Ca. Zeitangaben in Millisek.:
+    Minimum = 3ms, Maximum = 9ms, Mittelwert = 6ms
+`
+	chk := &CheckPing{}
+	entry := chk.parsePingOutput(out, "")
+	delete(entry, "_error")
+	assert.Equalf(t, exp, entry, "parsed ping ok output")
+}
+
 func TestPingParserOSXOK(t *testing.T) {
 	exp := map[string]string{
 		"host_name": "",
