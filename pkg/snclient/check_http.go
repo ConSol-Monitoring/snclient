@@ -10,11 +10,12 @@ func init() {
 
 func NewCheckHTTP() CheckHandler {
 	return &CheckBuiltin{
-		name:        "check_http",
-		description: "Runs check_http to perform http(s) checks",
-		check:       checkhttp.Check,
-		docTitle:    `check_http`,
-		usage:       `check_http [<options>]`,
+		name: "check_http",
+		description: `Runs check_http to perform http(s) checks
+It basically wraps the plugin from https://github.com/sni/check_http_go`,
+		check:    checkhttp.Check,
+		docTitle: `check_http`,
+		usage:    `check_http [<options>]`,
 		exampleDefault: `
 Alert if http server does not respond:
 

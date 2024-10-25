@@ -11,4 +11,6 @@ For example:
 
     ./snclient run check_nsc_web --help
 
+Check plugins cannot use filtering as the normal checks.
+
 The list of built-in checks can be found [here](../commands/).

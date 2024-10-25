@@ -1154,6 +1154,10 @@ func (cd *CheckData) helpHeader(format ShowHelp, usageHeader bool) string {
 	if cd.usage == "" {
 		cd.usage = fmt.Sprintf("%s [<options>] [<filter>]", cd.name)
 	}
+
+	cd.exampleDefault = strings.TrimRight(cd.exampleDefault, " \t\n\r")
+	cd.exampleDefault = strings.TrimLeft(cd.exampleDefault, "\n")
+
 	if format == Markdown {
 		out += cd.helpHeaderMarkdown(format, usageHeader)
 	} else {
@@ -1161,7 +1165,7 @@ func (cd *CheckData) helpHeader(format ShowHelp, usageHeader bool) string {
 		out += fmt.Sprintf("    %s\n\n", cd.description)
 		if cd.exampleDefault != "" {
 			out += "Example:\n\n"
-			out += fmt.Sprintf("    %s\n\n", strings.TrimSpace(cd.exampleDefault))
+			out += fmt.Sprintf("%s\n\n", cd.exampleDefault)
 		}
 	}
 
@@ -1196,7 +1200,7 @@ func (cd *CheckData) helpHeaderMarkdown(format ShowHelp, usageHeader bool) strin
 	out += "## Examples\n\n"
 	if cd.exampleDefault != "" {
 		out += "### Default Check\n\n"
-		out += fmt.Sprintf("    %s\n\n", strings.TrimSpace(cd.exampleDefault))
+		out += fmt.Sprintf("%s\n\n", cd.exampleDefault)
 	}
 	out += "### Example using NRPE and Naemon\n\n"
 	out += fmt.Sprintf(`Naemon Config

@@ -668,7 +668,10 @@ DOC_COMMANDS=\
 	check_wmi \
 
 DOC_PLUGINS=\
+	check_dns \
 	check_http \
+	check_nsc_web \
+	check_tcp \
 
 docs: build docs_checks docs_check_service docs_plugins
 

@@ -22,7 +22,7 @@ There is a specific [check_service for linux](../check_service_linux) as well.
 
 ### Default Check
 
-    Checking all services except some excluded ones:
+Checking all services except some excluded ones:
 
     check_service exclude=edgeupdate exclude=RemoteRegistry
     OK - All 15 service(s) are ok |'count'=15;;;0 'failed'=0;;;0

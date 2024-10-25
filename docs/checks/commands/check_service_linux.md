@@ -22,7 +22,7 @@ There is a specific [check_service for windows](../check_service_windows) as wel
 
 ### Default Check
 
-    Checking all services except some excluded ones:
+Checking all services except some excluded ones:
 
     check_service exclude=bluetooth
     OK - All 74 service(s) are ok.

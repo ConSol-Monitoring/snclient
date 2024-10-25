@@ -1,45 +1,77 @@
-﻿---
+---
 title: check_nsc_web
 ---
 
-This builtin check command wraps the `check_nsc_web` plugin from https://github.com/ConSol-Monitoring/check_nsc_web
+## check_nsc_web
 
-### Implementation
+Runs check_nsc_web to perform checks on other snclient agents.
+It basically wraps the plugin from https://github.com/ConSol-Monitoring/check_nsc_web
 
-| Windows | Linux | FreeBSD | MacOSX |
-|:-------:|:-----:|:-------:|:------:|
+- [Examples](#examples)
+- [Usage](#usage)
+
+## Implementation
+
+| Windows            | Linux              | FreeBSD            | MacOSX             |
+|:------------------:|:------------------:|:------------------:|:------------------:|
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Examples
 
-### Default check
+### Default Check
 
     check_nsc_web -p ... -u https://localhost:8443
     OK - REST API reachable on https://localhost:8443
 
+Check specific plugin:
+
+    check_nsc_web -p ... -u https://localhost:8443 -c check_process process=snclient.exe
+    OK - all 1 processes are ok. | ...
+
+### Example using NRPE and Naemon
+
+Naemon Config
+
+    define command{
+        command_name         check_nrpe
+        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+    }
+
+    define service {
+        host_name            testhost
+        service_description  check_nsc_web
+        use                  generic-service
+        check_command        check_nrpe!check_nsc_web!'-H' 'omd.consol.de' '--uri=/docs' '-S'
+    }
+
 ## Usage
 
-    check_nsc_web -h
-
-```
-Usage:
+```Usage:
   check_nsc_web [options] [query parameters]
 
 Description:
   check_nsc_web is a REST client for the NSClient++/SNClient+ webserver for querying
-  and receiving check information over HTTPS.
+  and receiving check information over HTTP(S).
 
 Version:
-  check_nsc_web v0.6.1
+  check_nsc_web v0.7.2
 
 Example:
-  check_nsc_web -p "password" -u "https://<SERVER_RUNNING_NSCLIENT>:8443" check_cpu
+  connectivity check (parent service):
+  check_nsc_web -p "password" -u "https://<SERVER>:8443"
 
-  check_nsc_web -p "password" -u "https://<SERVER_RUNNING_NSCLIENT>:8443" check_drivesize disk=c
+  check without arguments:
+  check_nsc_web -p "password" -u "https://<SERVER>:8443" check_cpu
+
+  check with arguments:
+  check_nsc_web -p "password" -u "https://<SERVER>:8443" check_drivesize disk=c
 
 Options:
   -u <url>                 SNClient/NSCLient++ URL, for example https://10.1.2.3:8443
-  -t <seconds>             Connection timeout in seconds. Default: 10
+  -t <seconds>[:<STATE>]   Connection timeout in seconds. Default: 10sec
+                           Optional set timeout state: 0-3 or OK, WARNING, CRITICAL, UNKNOWN
+                           (default timeout state is UNKNOWN)
+  -e <STATE>               exit code for connection errors. Default is UNKNOWN.
   -a <api version>         API version of SNClient/NSClient++ (legacy or 1) Default: legacy
   -l <username>            REST webserver login. Default: admin
   -p <password>            REST webserver password
@@ -57,8 +89,10 @@ TLS/SSL Options:
 Output Options:
   -h                       Print help
   -v                       Enable verbose output
+  -vv                      Enable very verbose output (and log directly to stdout)
   -V                       Print program version
   -f <integer>             Round performance data float values to this number of digits. Default: -1
   -j                       Print out JSON response body
+  -r                       Print raw result without pre/post processing
   -query <string>          Placeholder for query string from config file
 ```
