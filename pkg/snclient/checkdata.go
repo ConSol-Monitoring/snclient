@@ -1139,7 +1139,7 @@ func (cd *CheckData) expandArgDefinitions() {
 
 // generate help, set docs to true to generate markdown docs page, otherwise check plugin help page will be generated.
 func (cd *CheckData) Help(format ShowHelp) string {
-	out := cd.helpHeader(format)
+	out := cd.helpHeader(format, false)
 	out += cd.helpDefaultArguments(format)
 	out += cd.helpSpecificArguments(format)
 	out += cd.helpAttributes(format)
@@ -1149,13 +1149,13 @@ func (cd *CheckData) Help(format ShowHelp) string {
 	return out
 }
 
-func (cd *CheckData) helpHeader(format ShowHelp) string {
+func (cd *CheckData) helpHeader(format ShowHelp, usageHeader bool) string {
 	out := ""
 	if cd.usage == "" {
 		cd.usage = fmt.Sprintf("%s [<options>] [<filter>]", cd.name)
 	}
 	if format == Markdown {
-		out += cd.helpHeaderMarkdown(format)
+		out += cd.helpHeaderMarkdown(format, usageHeader)
 	} else {
 		out += fmt.Sprintf("Usage:\n\n    %s\n\n", cd.usage)
 		out += fmt.Sprintf("    %s\n\n", cd.description)
@@ -1168,7 +1168,7 @@ func (cd *CheckData) helpHeader(format ShowHelp) string {
 	return out
 }
 
-func (cd *CheckData) helpHeaderMarkdown(format ShowHelp) string {
+func (cd *CheckData) helpHeaderMarkdown(format ShowHelp, usageHeader bool) string {
 	out := ""
 	title := strings.TrimPrefix(cd.name, "check_")
 	if cd.docTitle != "" {
@@ -1178,6 +1178,9 @@ func (cd *CheckData) helpHeaderMarkdown(format ShowHelp) string {
 	out += fmt.Sprintf("## %s\n\n", cd.name)
 	out += fmt.Sprintf("%s\n\n", cd.description)
 	out += "- [Examples](#examples)\n"
+	if usageHeader {
+		out += "- [Usage](#usage)\n"
+	}
 	if !cd.argsPassthrough {
 		out += "- [Argument Defaults](#argument-defaults)\n"
 	}

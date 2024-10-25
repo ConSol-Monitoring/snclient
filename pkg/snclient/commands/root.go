@@ -134,8 +134,8 @@ func maybeInjectRootAlias(rootCmd *cobra.Command, inject string) {
 // sanitize os.Args
 func sanitizeOSArgs() {
 	sanitizeGlobalOptions()
-	injectDoubleSlashAfterRunCmd(rootCmd)
 	sanitizeLongOptions()
+	injectDoubleSlashAfterRunCmd(rootCmd)
 }
 
 // move global args like -v, -vv, -vvv to front

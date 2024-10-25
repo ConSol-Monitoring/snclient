@@ -667,14 +667,29 @@ DOC_COMMANDS=\
 	check_uptime \
 	check_wmi \
 
-docs: build
+DOC_PLUGINS=\
+	check_http \
+
+docs: build docs_checks docs_check_service docs_plugins
+
+docs_checks:
 	set -e; \
 	for CHK in $(DOC_COMMANDS); do \
 		echo "updating docs/checks/commands/$$CHK.md"; \
 		./snclient -logfile stderr run $$CHK help=md > docs/checks/commands/$$CHK.md ; \
 	done
+
+docs_plugins:
+	set -e; \
+	for CHK in $(DOC_PLUGINS); do \
+		echo "updating docs/checks/plugins/$$CHK.md"; \
+		./snclient -logfile stderr run $$CHK help=md > docs/checks/plugins/$$CHK.md ; \
+	done
+
+docs_check_service:
 	# create fake linux check_service with help from the windows one to update the markdown file
 	if [ $(GOOS) = "linux" ]; then \
+		set -e; \
 		./snclient -logfile stderr run check_service help=md > docs/checks/commands/check_service_linux.md ; \
 		cp pkg/snclient/check_service_linux.go check_service_linux.go.tmp; \
 		cp pkg/snclient/check_service_windows.go check_service_windows.go.tmp; \

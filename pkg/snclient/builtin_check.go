@@ -5,13 +5,18 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 )
 
 type CheckBuiltin struct {
-	name        string
-	description string
-	check       func(context.Context, io.Writer, []string) int
+	name           string
+	description    string
+	check          func(context.Context, io.Writer, []string) int
+	usage          string
+	exampleDefault string
+	exampleArgs    string
+	docTitle       string
 }
 
 func (l *CheckBuiltin) Build() *CheckData {
@@ -19,9 +24,14 @@ func (l *CheckBuiltin) Build() *CheckData {
 		name:            l.name,
 		description:     l.description,
 		argsPassthrough: true,
+		implemented:     ALL,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
+		docTitle:       l.docTitle,
+		usage:          l.usage,
+		exampleDefault: l.exampleDefault,
+		exampleArgs:    l.exampleArgs,
 	}
 }
 
@@ -42,21 +52,43 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		}, nil
 	}
 
+	args := []string{}
+	args = append(args, check.rawArgs...)
+	switch {
+	case snc.flags.Verbose >= 3:
+		args = append(args, "-vvv")
+	case snc.flags.Verbose >= 2:
+		args = append(args, "-vv")
+	case snc.flags.Verbose >= 1:
+		args = append(args, "-v")
+	}
+
 	output := bytes.NewBuffer(nil)
-	rc := l.check(ctx, output, check.rawArgs)
+	rc := l.check(ctx, output, args)
 	check.result.Output = output.String()
 	check.result.State = int64(rc)
 
 	return check.Finalize()
 }
 
-func (l *CheckBuiltin) Help(ctx context.Context, snc *Agent, check *CheckData, _ ShowHelp) (help string) {
+func (l *CheckBuiltin) Help(ctx context.Context, snc *Agent, check *CheckData, format ShowHelp) (out string) {
 	check.rawArgs = []string{"--help"}
 	res, _ := l.Check(ctx, snc, check, []Argument{})
 
-	help = string(res.BuildPluginOutput())
+	out = check.helpHeader(format, true)
 
-	help = strings.TrimSpace(help)
+	usage := string(res.BuildPluginOutput())
+	usage = "    " + strings.Join(strings.Split(usage, "\n"), "\n    ")
+	usage = regexp.MustCompile(`(?m)^\s+$`).ReplaceAllString(usage, "")
+	if format == Markdown {
+		out += "## Usage\n\n"
+		out += usage
+	} else {
+		out += "Usage:\n\n    "
+		out += usage
+	}
 
-	return help
+	out = strings.TrimSpace(out)
+
+	return out
 }
