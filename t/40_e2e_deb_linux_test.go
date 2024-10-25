@@ -69,7 +69,7 @@ func TestDEBinstaller(t *testing.T) {
 		Args: []string{"chmod", "666", localDEBINIPath},
 	})
 	writeFile(t, localDEBINIPath, localTestINI)
-	writeFile(t, `snclient.ini`, localINI)
+	writeFile(t, `snclient.ini`, localDaemonINI)
 
 	runCmd(t, &cmd{
 		Cmd:  "sudo",

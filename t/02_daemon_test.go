@@ -18,6 +18,7 @@ var (
 	localDaemonINI           = `
 [/modules]
 CheckBuiltinPlugins = enabled
+CheckExternalScripts = enabled
 WEBAdminServer = enabled
 
 [/settings/default]
@@ -37,16 +38,31 @@ password = ` + localDaemonAdminPassword + `
 [/settings/external scripts/scripts]
 check_echo = echo '%ARG1%'
 check_echo_win = cmd /c echo '%ARG1%'
+
+[/settings/updates/channel]
+local = file://./tmpupdates/snclient${file-ext}
 `
 )
 
-func daemonInit(t *testing.T) (bin, baseURL string, baseArgs []string, cleanUp func()) {
+func localInit(t *testing.T) (bin string, cleanUp func()) {
 	t.Helper()
 
 	bin = getBinary()
 	require.FileExistsf(t, bin, "snclient binary must exist")
 
 	writeFile(t, `snclient.ini`, localDaemonINI)
+
+	cleanUp = func() {
+		os.Remove("snclient.ini")
+	}
+
+	return bin, cleanUp
+}
+
+func daemonInit(t *testing.T) (bin, baseURL string, baseArgs []string, cleanUp func()) {
+	t.Helper()
+
+	bin, localClean := localInit(t)
 
 	startBackgroundDaemon(t)
 	baseURL = fmt.Sprintf("http://127.0.0.1:%d", localDaemonPort)
@@ -56,7 +72,7 @@ func daemonInit(t *testing.T) (bin, baseURL string, baseArgs []string, cleanUp f
 	cleanUp = func() {
 		ok := stopBackgroundDaemon(t)
 		assert.Truef(t, ok, "stopping worked")
-		os.Remove("snclient.ini")
+		localClean()
 	}
 
 	return bin, baseURL, baseArgs, cleanUp

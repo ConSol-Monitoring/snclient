@@ -9,23 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var localINI = `
-[/modules]
-CheckBuiltinPlugins = enabled
-CheckExternalScripts = enabled
-
-[/settings/default]
-password = test
-
-[/settings/updates/channel]
-local = file://./tmpupdates/snclient${file-ext}
-`
-
 func TestCommandFlags(t *testing.T) {
-	bin := getBinary()
-	require.FileExistsf(t, bin, "snclient binary must exist")
-
-	writeFile(t, `snclient.ini`, localINI)
+	bin, cleanup := localInit(t)
+	defer cleanup()
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
@@ -64,14 +50,19 @@ func TestCommandFlags(t *testing.T) {
 		Like: []string{`uptime`, `inventory`},
 	})
 
-	os.Remove("snclient.ini")
+	runCmd(t, &cmd{
+		Cmd:     bin,
+		Args:    []string{"-vv", "run", "check_http", "-H", "localhost", "-p", "60666", "--uri=/test"},
+		Like:    []string{`HTTP CRITICAL`, `\[Debug\]`},
+		ErrLike: []string{`GET`},
+		Exit:    2,
+	})
 }
 
 func TestCommandUpdate(t *testing.T) {
-	bin := getBinary()
-	require.FileExistsf(t, bin, "snclient binary must exist")
-
-	writeFile(t, `snclient.ini`, localINI)
+	bin, cleanup := localInit(t)
+	defer cleanup()
+	defer os.RemoveAll("./tmpupdates")
 
 	err := os.Mkdir("tmpupdates", 0o700)
 	require.NoError(t, err)
@@ -88,8 +79,4 @@ func TestCommandUpdate(t *testing.T) {
 		Args: []string{"update", "local", "--force"},
 		Like: []string{`successfully downloaded`, `applied successfully`},
 	})
-
-	defer os.RemoveAll("./tmpupdates")
-
-	os.Remove("snclient.ini")
 }

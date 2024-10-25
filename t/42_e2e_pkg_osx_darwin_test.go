@@ -56,7 +56,7 @@ func TestOSXinstaller(t *testing.T) {
 		Args: []string{"chmod", "666", localOSXINIPath},
 	})
 	writeFile(t, localOSXINIPath, localTestINI)
-	writeFile(t, `snclient.ini`, localINI)
+	writeFile(t, `snclient.ini`, localDaemonINI)
 
 	runCmd(t, &cmd{
 		Cmd:  "/usr/local/bin/snclient",

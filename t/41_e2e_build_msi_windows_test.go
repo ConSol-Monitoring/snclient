@@ -76,7 +76,7 @@ func TestMSIinstaller(t *testing.T) {
 
 	// add custom .ini
 	writeFile(t, localINIPath, localTestINI)
-	writeFile(t, `snclient.ini`, localINI)
+	writeFile(t, `snclient.ini`, localDaemonINI)
 
 	// restart with new config
 	runCmd(t, &cmd{Cmd: "net", Args: []string{"stop", "snclient"}})
