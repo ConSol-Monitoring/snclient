@@ -4,26 +4,25 @@ import (
 	"os"
 	"testing"
 
-	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCmdVersion(t *testing.T) {
-	out, err := RunCommand(t, rootCmd, []string{"-V"})
+	out, err := runCommand(t, []string{"-V"})
 	require.NoError(t, err, "command runs without error")
 	assert.Contains(t, out, "SNClient+ v", "output matches")
 }
 
 func TestCmdHelp(t *testing.T) {
-	out, err := RunCommand(t, rootCmd, []string{"-h"})
+	out, err := runCommand(t, []string{"-h"})
 	require.NoError(t, err, "command runs without error")
 	assert.Contains(t, out, "Usage:", "output matches")
 }
 
-// RunCommand runs cmd and returns output / error
-func RunCommand(t *testing.T, cmd *cobra.Command, args []string) (output string, err error) {
+// runCommand runs cmd and returns output / error
+func runCommand(t *testing.T, args []string) (output string, err error) {
 	t.Helper()
 
 	outFile, _ := os.CreateTemp("", "snclient-test")
@@ -36,17 +35,16 @@ func RunCommand(t *testing.T, cmd *cobra.Command, args []string) (output string,
 		os.Stderr = serr
 	}()
 
-	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+	rootCmd.Flags().VisitAll(func(f *pflag.Flag) {
 		err = f.Value.Set(f.DefValue)
 		require.NoError(t, err)
 	})
-	cmd.SetArgs(args)
-	err = cmd.Execute()
-	require.NoError(t, err)
-
+	rootCmd.SetArgs(args)
+	err = Execute()
 	outFile.Close()
+	outputBytes, err2 := os.ReadFile(outFile.Name())
 
-	outputBytes, err := os.ReadFile(outFile.Name())
+	require.NoErrorf(t, err, "command errored, output:\n%s", string(outputBytes))
 
-	return string(outputBytes), err
+	return string(outputBytes), err2
 }
