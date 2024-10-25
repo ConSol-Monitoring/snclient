@@ -683,11 +683,13 @@ docs_checks:
 	done
 
 docs_plugins:
+	echo -e "[/modules]\nCheckBuiltinPlugins = enabled\n" > snclient_docs.ini
 	set -e; \
 	for CHK in $(DOC_PLUGINS); do \
 		echo "updating docs/checks/plugins/$$CHK.md"; \
-		./snclient -logfile stderr run $$CHK help=md > docs/checks/plugins/$$CHK.md ; \
+		./snclient --config snclient_docs.ini -logfile stderr run $$CHK help=md > docs/checks/plugins/$$CHK.md ; \
 	done
+	rm -f snclient_docs.ini
 
 docs_check_service:
 	# create fake linux check_service with help from the windows one to update the markdown file
