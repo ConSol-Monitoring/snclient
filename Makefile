@@ -722,6 +722,7 @@ docs_test:
 # ensure docs folder is clean
 gitcleandocs:
 	@if [ $$(git status -s docs | wc -l) -gt 0 ]; then \
+		git diff docs; \
 		echo "docs folder not clean:"; \
 		git status -s docs; \
 		exit 1; \
