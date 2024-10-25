@@ -53,7 +53,7 @@ func TestCommandFlags(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:     bin,
 		Args:    []string{"-vv", "run", "check_http", "-H", "localhost", "-p", "60666", "--uri=/test"},
-		Like:    []string{`HTTP CRITICAL`, `\[Debug\]`},
+		Like:    []string{`HTTP CRITICAL`, `command: check_http`},
 		ErrLike: []string{`GET`},
 		Exit:    2,
 	})
