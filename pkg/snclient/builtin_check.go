@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -72,6 +73,9 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 }
 
 func (l *CheckBuiltin) Help(ctx context.Context, snc *Agent, check *CheckData, format ShowHelp) (out string) {
+	// use fixed size when printing help pages
+	os.Setenv("COLS", "80")
+
 	check.rawArgs = []string{"--help"}
 	res, _ := l.Check(ctx, snc, check, []Argument{})
 

@@ -57,7 +57,9 @@ Application Options:
   -p, --port=            Port number you want to use (default: 53)
   -q, --querytype=       DNS record query type (default: A)
       --norec            Set not recursive mode
-  -e, --expected-string= IP-ADDRESS string you expect the DNS server to return. If multiple IP-ADDRESS are returned at once, you have to specify whole string
+  -e, --expected-string= IP-ADDRESS string you expect the DNS server to return.
+                         If multiple IP-ADDRESS are returned at once, you have
+                         to specify whole string
 
 Help Options:
   -h, --help             Show this help message
