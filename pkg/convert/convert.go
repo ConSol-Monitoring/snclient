@@ -96,6 +96,10 @@ func UInt64E(raw interface{}) (uint64, error) {
 			return 0, fmt.Errorf("cannot parse uint64 value from %v (%T)", raw, raw)
 		}
 
+		if num < 0 {
+			return 0, fmt.Errorf("number to small for uint64")
+		}
+
 		return uint64(num), nil
 	}
 }
