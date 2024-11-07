@@ -64,6 +64,8 @@ func TestCheckPerfConfig(t *testing.T) {
 		"output matches",
 	)
 	assert.NotContainsf(t, string(res.BuildPluginOutput()), "=0mib;", "must not contain 0mib")
+	// perf config should not break printing thresholds
+	assert.NotContainsf(t, string(res.BuildPluginOutput()), ";@0:0;", "must not contain ;@0:0;")
 
 	res = snc.RunCheck("check_uptime", []string{
 		"warn=uptime > 0",
