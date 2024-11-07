@@ -17,6 +17,8 @@ func TestConvertFloat64E(t *testing.T) {
 		{"1.5", 1.5, false},
 		{"1", 1, false},
 		{"1e7", 1e7, false},
+		{"1.4847215616e+10", 14847215616, false},
+		{"1.4847215616e+8", 148472156.16, false},
 		{"", 0, true},
 		{"abc", 0, true},
 	}

@@ -64,8 +64,10 @@ func Int64E(raw interface{}) (int64, error) {
 		return int64(val), nil
 	case uint32:
 		return int64(val), nil
+	case float64:
+		return int64(val), nil
 	default:
-		num, err := strconv.ParseFloat(fmt.Sprintf("%v", val), 64)
+		num, err := Float64E(raw)
 		if err != nil {
 			return 0, fmt.Errorf("cannot parse int64 value from %v (%T)", raw, raw)
 		}
@@ -89,12 +91,12 @@ func UInt64E(raw interface{}) (uint64, error) {
 	case uint64:
 		return val, nil
 	default:
-		num, err := strconv.ParseUint(fmt.Sprintf("%v", val), 10, 64)
+		num, err := Float64E(raw)
 		if err != nil {
 			return 0, fmt.Errorf("cannot parse uint64 value from %v (%T)", raw, raw)
 		}
 
-		return num, nil
+		return uint64(num), nil
 	}
 }
 
@@ -305,7 +307,7 @@ func Num2StringE(raw interface{}) (string, error) {
 	case int64:
 		return fmt.Sprintf("%d", num), nil
 	default:
-		fNum, err := strconv.ParseFloat(fmt.Sprintf("%v", raw), 64)
+		fNum, err := Float64E(raw)
 		if err != nil {
 			return "", fmt.Errorf("cannot convert %v (%T) into string", raw, raw)
 		}
