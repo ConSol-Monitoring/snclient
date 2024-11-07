@@ -54,7 +54,7 @@ var DefaultConfig = map[string]ConfigData{
 			`{ Write-Host "UNKNOWN: Script ` + "`\"%SCRIPT%`\" not found.\"; exit(3) }; " +
 			`${script root}\%SCRIPT% $ARGS$; ` +
 			`exit($lastexitcode) | ` + POWERSHELL + ` -command -`,
-		"vbs": `cscript.exe //T:30 //NoLogo ${script root}\\lib\\wrapper.vbs %SCRIPT% %ARGS%`,
+		"vbs": `cscript.exe //T:30 //NoLogo "${script root}\%SCRIPT%" %ARGS%`,
 	},
 }
 
