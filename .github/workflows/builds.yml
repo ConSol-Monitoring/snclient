@@ -194,7 +194,7 @@ jobs:
     runs-on: windows-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
-      certhash: ${{ secrets.WIN_SIGN_CERTHASH }}
+      CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -202,19 +202,30 @@ jobs:
           name: "${{ env.BIN }}"
           path: "."
 
+      - name: "install Azure Sign Tool"
+        if: ${{ env.CERTURL != '' }}
+        run: |
+          dotnet tool install --global --version 6.0.0 AzureSignTool
+
       - name: "Sign snclient.exe"
-        if: ${{ env.certhash != '' }}
-        uses: sni/signtool-code-sign@v1.0
-        with:
-          certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
-          cert-password: '${{ secrets.WIN_SIGN_PASSWORD }}'
-          cert-sha1: '${{ secrets.WIN_SIGN_CERTHASH }}'
-          cert-description: 'SNClient+ Agent (https://omd.consol.de/docs/snclient/)'
-          timestamp-server: 'http://timestamp.digicert.com'
-          folder: "./"
+        if: ${{ env.CERTURL != '' }}
+        run: |
+          AzureSignTool.exe sign `
+            --description="SNClient+ Agent (https://omd.consol.de/docs/snclient/)" `
+            --description-url="https://omd.consol.de/docs/snclient/" `
+            --file-digest=sha384 `
+            --azure-key-vault-url="${{ secrets.AZURE_VAULT_CERT_URL }}" `
+            --azure-key-vault-client-id="${{ secrets.AZURE_VAULT_APPLICATION_ID }}" `
+            --azure-key-vault-tenant-id="${{ secrets.AZURE_VAULT_TENANT_ID }}" `
+            --azure-key-vault-client-secret="${{ secrets.AZURE_VAULT_SECRET_VALUE }}" `
+            --azure-key-vault-certificate="ConSol-Codesign" `
+            -tr http://timestamp.digicert.com `
+            -td sha384 `
+            -v `
+            "snclient.exe"
 
       - name: "Verify snclient.exe"
-        if: ${{ env.certhash != '' }}
+        if: ${{ env.CERTURL != '' }}
         run: |
           Write-Host "Verify snclient.exe"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa snclient.exe
@@ -278,7 +289,7 @@ jobs:
     runs-on: windows-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
-      certhash: ${{ secrets.WIN_SIGN_CERTHASH }}
+      CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -301,19 +312,30 @@ jobs:
             -rev "${{needs.get-version.outputs.revision}}" `
             -sha "${{ needs.get-version.outputs.sha }}"
 
+      - name: "install Azure Sign Tool"
+        if: ${{ env.CERTURL != '' }}
+        run: |
+          dotnet tool install --global --version 6.0.0 AzureSignTool
+
       - name: "Sign snclient.msi"
-        if: ${{ env.certhash != '' }}
-        uses: sni/signtool-code-sign@v1.0
-        with:
-          certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
-          cert-password: '${{ secrets.WIN_SIGN_PASSWORD }}'
-          cert-sha1: '${{ secrets.WIN_SIGN_CERTHASH }}'
-          cert-description: 'SNClient+ Agent (https://omd.consol.de/docs/snclient/)'
-          timestamp-server: 'http://timestamp.digicert.com'
-          folder: "./"
+        if: ${{ env.CERTURL != '' }}
+        run: |
+          AzureSignTool.exe sign `
+            --description="SNClient+ Agent (https://omd.consol.de/docs/snclient/)" `
+            --description-url="https://omd.consol.de/docs/snclient/" `
+            --file-digest=sha384 `
+            --azure-key-vault-url="${{ secrets.AZURE_VAULT_CERT_URL }}" `
+            --azure-key-vault-client-id="${{ secrets.AZURE_VAULT_APPLICATION_ID }}" `
+            --azure-key-vault-tenant-id="${{ secrets.AZURE_VAULT_TENANT_ID }}" `
+            --azure-key-vault-client-secret="${{ secrets.AZURE_VAULT_SECRET_VALUE }}" `
+            --azure-key-vault-certificate="ConSol-Codesign" `
+            -tr http://timestamp.digicert.com `
+            -td sha384 `
+            -v `
+            "${{ env.BIN }}.msi"
 
       - name: "Verify snclient.msi"
-        if: ${{ env.certhash != '' }}
+        if: ${{ env.CERTURL != '' }}
         run: |
           Write-Host "Verify snclient.msi"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa ${{ env.BIN }}.msi
