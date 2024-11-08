@@ -75,7 +75,10 @@ func (l *CheckNetwork) Build() *CheckData {
 func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	l.snc = snc
 
-	interfaceList, _ := net.Interfaces()
+	interfaceList, err := net.Interfaces()
+	if err != nil {
+		return nil, fmt.Errorf("net.Interfaces: %s", err.Error())
+	}
 	IOList, err := net.IOCounters(true)
 	if err != nil {
 		return nil, fmt.Errorf("net.IOCounters: %s", err.Error())
@@ -103,15 +106,24 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 		recvRate, sentRate := l.getTrafficRates(int.Name)
 
+		total_received := uint64(0)
+		total_sent := uint64(0)
+		if len(IOList) <= intnr {
+			log.Debugf("failed to get interface counters for %s, only have %d io counters", int.Name, len(IOList))
+		} else {
+			total_received = IOList[intnr].BytesRecv
+			total_sent = IOList[intnr].BytesSent
+		}
+
 		entry := map[string]string{
 			"MAC":               int.HardwareAddr,
 			"enabled":           strconv.FormatBool(slices.Contains(int.Flags, "up")),
 			"name":              int.Name,
 			"net_connection_id": int.Name,
 			"received":          humanize.IBytes(uint64(recvRate)) + "/s",
-			"total_received":    fmt.Sprintf("%d", IOList[intnr].BytesRecv),
+			"total_received":    fmt.Sprintf("%d", total_received),
 			"sent":              humanize.IBytes(uint64(sentRate)) + "/s",
-			"total_sent":        fmt.Sprintf("%d", IOList[intnr].BytesSent),
+			"total_sent":        fmt.Sprintf("%d", total_sent),
 			"total":             fmt.Sprintf("%.2f", recvRate+sentRate),
 			"speed":             fmt.Sprintf("%d", speed),
 			"flags":             strings.Join(int.Flags, ","),
@@ -131,7 +143,7 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			ThresholdName: int.Name,
 			Name:          fmt.Sprintf("%s_traffic_in", int.Name),
-			Value:         IOList[intnr].BytesRecv,
+			Value:         total_received,
 			Unit:          "c",
 			Warning:       check.warnThreshold,
 			Critical:      check.critThreshold,
@@ -139,7 +151,7 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			ThresholdName: int.Name,
 			Name:          fmt.Sprintf("%s_traffic_out", int.Name),
-			Value:         IOList[intnr].BytesSent,
+			Value:         total_sent,
 			Unit:          "c",
 			Warning:       check.warnThreshold,
 			Critical:      check.critThreshold,
