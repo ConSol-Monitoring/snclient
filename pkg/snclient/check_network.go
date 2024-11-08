@@ -106,13 +106,13 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 		recvRate, sentRate := l.getTrafficRates(int.Name)
 
-		total_received := uint64(0)
-		total_sent := uint64(0)
+		totalReceived := uint64(0)
+		totalSent := uint64(0)
 		if len(IOList) <= intnr {
 			log.Debugf("failed to get interface counters for %s, only have %d io counters", int.Name, len(IOList))
 		} else {
-			total_received = IOList[intnr].BytesRecv
-			total_sent = IOList[intnr].BytesSent
+			totalReceived = IOList[intnr].BytesRecv
+			totalSent = IOList[intnr].BytesSent
 		}
 
 		entry := map[string]string{
@@ -121,9 +121,9 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 			"name":              int.Name,
 			"net_connection_id": int.Name,
 			"received":          humanize.IBytes(uint64(recvRate)) + "/s",
-			"total_received":    fmt.Sprintf("%d", total_received),
+			"total_received":    fmt.Sprintf("%d", totalReceived),
 			"sent":              humanize.IBytes(uint64(sentRate)) + "/s",
-			"total_sent":        fmt.Sprintf("%d", total_sent),
+			"total_sent":        fmt.Sprintf("%d", totalSent),
 			"total":             fmt.Sprintf("%.2f", recvRate+sentRate),
 			"speed":             fmt.Sprintf("%d", speed),
 			"flags":             strings.Join(int.Flags, ","),
@@ -143,7 +143,7 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			ThresholdName: int.Name,
 			Name:          fmt.Sprintf("%s_traffic_in", int.Name),
-			Value:         total_received,
+			Value:         totalReceived,
 			Unit:          "c",
 			Warning:       check.warnThreshold,
 			Critical:      check.critThreshold,
@@ -151,7 +151,7 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			ThresholdName: int.Name,
 			Name:          fmt.Sprintf("%s_traffic_out", int.Name),
-			Value:         total_sent,
+			Value:         totalSent,
 			Unit:          "c",
 			Warning:       check.warnThreshold,
 			Critical:      check.critThreshold,
