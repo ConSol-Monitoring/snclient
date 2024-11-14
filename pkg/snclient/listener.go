@@ -79,6 +79,15 @@ func SharedWebListener(snc *Agent, conf *ConfigSection, webHandler RequestHandle
 		if handler := reqHandler.Listener(); handler != nil {
 			handler.handler = append(handler.handler, webHandler)
 
+			if (handler.tlsConfig == nil) != (listener.tlsConfig == nil) {
+				return nil, fmt.Errorf("shared port configuration must also share tls/ssl configuration: %s: %v vs. %s: %v",
+					handler.connType,
+					handler.tlsConfig == nil,
+					listener.connType,
+					listener.tlsConfig == nil,
+				)
+			}
+
 			return handler, nil
 		}
 	}
