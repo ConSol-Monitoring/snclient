@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"runtime"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 )
@@ -35,12 +36,7 @@ func (l *CheckProcess) Build() *CheckData {
 			"process":  {value: &l.processes, description: "The process to check, set to * to check all. Default: *", isFilter: true},
 			"timezone": {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
 		},
-		conditionAlias: map[string]map[string]string{
-			"state": {
-				"started": "running",
-				"stopped": "stop",
-			},
-		},
+		conditionAlias:  l.buildConditionAlias(),
 		okSyntax:        "%(status) - all %{count} processes are ok.",
 		detailSyntax:    "${exe}=${state}",
 		topSyntax:       "%(status) - ${problem_list}",
@@ -95,6 +91,25 @@ In case you want to check if a given process is NOT running use something like:
 	OK - no processes found with this filter.
 	`,
 		exampleArgs: `warn='count <= 0 || count > 10' crit='count <= 0 || count > 20'`,
+	}
+}
+
+func (l *CheckProcess) buildConditionAlias() map[string]map[string]string {
+	switch runtime.GOOS {
+	case "windows":
+		return (map[string]map[string]string{
+			"state": {
+				"running": "started",
+				"stop":    "stopped",
+			},
+		})
+	default:
+		return (map[string]map[string]string{
+			"state": {
+				"started": "running",
+				"stopped": "stop",
+			},
+		})
 	}
 }
 
