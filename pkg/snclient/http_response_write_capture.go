@@ -35,7 +35,7 @@ func (i *ResponseWriterCapture) WriteHeader(statusCode int) {
 	i.w.WriteHeader(statusCode)
 }
 
-func (i ResponseWriterCapture) Header() http.Header {
+func (i *ResponseWriterCapture) Header() http.Header {
 	return i.w.Header()
 }
 
