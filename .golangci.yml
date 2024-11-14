@@ -51,9 +51,7 @@ linters:
     - testpackage
     - wsl
     # deprecated
-    - execinquery
     - exportloopref
-    - gomnd
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
