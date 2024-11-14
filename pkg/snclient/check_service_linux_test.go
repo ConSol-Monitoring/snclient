@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +19,7 @@ func TestCheckServiceLinux(t *testing.T) {
 
 	res := snc.RunCheck("check_service", []string{"filter='state=running'"})
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK - All \d+ service\(s\) are ok.|UNKNOWN - No services found`),
+		`^OK - All \d+ service\(s\) are ok.|UNKNOWN - No services found`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)

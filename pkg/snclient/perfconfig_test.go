@@ -31,7 +31,7 @@ func TestCheckPerfConfig(t *testing.T) {
 	})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^OK - physical = [\d.]+ \w+\/[\d.]+ \w+ \([\d.]+%\) \|'gib_phy'=[\d.]+MB;[\d.]+;[\d.]+;0;[\d.]+$`),
+		`^OK - physical = [\d.]+ \w+\/[\d.]+ \w+ \([\d.]+%\) \|'gib_phy'=[\d.]+MB;[\d.]+;[\d.]+;0;[\d.]+$`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -45,7 +45,7 @@ func TestCheckPerfConfig(t *testing.T) {
 	})
 	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^WARNING - physical = [\d.]+ \w+\/[\d.]+ \w+ \([\d.]+%\) \|'gib_phy'=[\d.]+MB;@[\d.]+:[\d.]+;[\d.]+;0;[\d.]+$`),
+		`^WARNING - physical = [\d.]+ \w+\/[\d.]+ \w+ \([\d.]+%\) \|'gib_phy'=[\d.]+MB;@[\d.]+:[\d.]+;[\d.]+;0;[\d.]+$`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -59,7 +59,7 @@ func TestCheckPerfConfig(t *testing.T) {
 	})
 	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^WARNING - physical = [\d.]+ \w+\/[\d.]+ \w+ \([\d.]+%\) \|'physical'=[\d.]+mib;@[\d.]+:[\d.]+;[\d.]+;0;[\d.]+`),
+		`^WARNING - physical = [\d.]+ \w+\/[\d.]+ \w+ \([\d.]+%\) \|'physical'=[\d.]+mib;@[\d.]+:[\d.]+;[\d.]+;0;[\d.]+`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -74,7 +74,7 @@ func TestCheckPerfConfig(t *testing.T) {
 	})
 	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
 	assert.Regexpf(t,
-		regexp.MustCompile(`'uptime'=[\d.]+d;0;0`),
+		`'uptime'=[\d.]+d;0;0`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -93,7 +93,7 @@ func TestCheckPerfSyntax(t *testing.T) {
 	})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t,
-		regexp.MustCompile(`'mem:PHYSICAL %'=[\d.]+%;101;102;0;100`),
+		`'mem:PHYSICAL %'=[\d.]+%;101;102;0;100`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)

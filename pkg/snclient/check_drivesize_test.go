@@ -3,7 +3,6 @@
 package snclient
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,7 @@ func TestCheckDrivesize(t *testing.T) {
 	res := snc.RunCheck("check_drivesize", []string{"warn=free > 0", "crit=free > 0", "drive=/"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^CRITICAL - / .*?\/.*? \(\d+\.\d+%\) \|'/ free'=.*?B;0;0;0;.*? '/ free %'=.*?%;0;0;0;100`),
+		`^CRITICAL - / .*?\/.*? \(\d+\.\d+%\) \|'/ free'=.*?B;0;0;0;.*? '/ free %'=.*?%;0;0;0;100`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -23,7 +22,7 @@ func TestCheckDrivesize(t *testing.T) {
 	res = snc.RunCheck("check_drivesize", []string{"warn=free_bytes > 0", "crit=free_bytes > 0", "drive=/"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^CRITICAL - / .*?\/.*? \(\d+\.\d+%\) \|'/ free'=.*?B;0;0;0;.*? '/ free %'=.*?%;0;0;0;100`),
+		`^CRITICAL - / .*?\/.*? \(\d+\.\d+%\) \|'/ free'=.*?B;0;0;0;.*? '/ free %'=.*?%;0;0;0;100`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)

@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +12,7 @@ func TestCheckDrivesize(t *testing.T) {
 	res := snc.RunCheck("check_drivesize", []string{"warn=free > 0", "crit=free > 0", "drive=c"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^CRITICAL - c: .*?\/.*? \(\d+\.\d+%\) \|'c: free'=.*?B;0;0;0;.*? 'c: free %'=.*?%;0;0;0;100`),
+		`^CRITICAL - c: .*?\/.*? \(\d+\.\d+%\) \|'c: free'=.*?B;0;0;0;.*? 'c: free %'=.*?%;0;0;0;100`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)

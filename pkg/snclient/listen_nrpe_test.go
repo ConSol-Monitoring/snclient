@@ -2,7 +2,6 @@ package snclient
 
 import (
 	"net"
-	"regexp"
 	"testing"
 	"time"
 
@@ -42,7 +41,7 @@ use ssl = false
 	res, err := nrpe.ReadNrpePacket(con)
 	require.NoErrorf(t, err, "response read")
 	cmd, _ := res.Data()
-	assert.Regexpf(t, regexp.MustCompile("^SNClient"), cmd, "response matches")
+	assert.Regexpf(t, "^SNClient", cmd, "response matches")
 
 	StopTestAgent(t, snc)
 }

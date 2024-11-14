@@ -3,7 +3,6 @@
 package snclient
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +24,7 @@ password = test
 	res := snc.RunCheck("check_http", []string{"-H", "localhost", "-p", "45666", "-u", "/index.html"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(t,
-		regexp.MustCompile(`^HTTP OK - HTTP/1.1 200 OK`),
+		`^HTTP OK - HTTP/1.1 200 OK`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
