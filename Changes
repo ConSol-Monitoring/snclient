@@ -1,6 +1,6 @@
 This file documents the revision history for the SNClient+ agent.
 
-next:
+0.29     Thu Nov 14 16:35:10 CET 2024
          - fix vbs wrapper in default config (#170)
          - fix empty performance data when using perf-config units
          - fix fix process state filter on windows (#169)
