@@ -748,11 +748,17 @@ func conditionSetValue(cond *Condition, str string, expand bool) error {
 			switch strings.ToLower(cond.unit) {
 			case "kb", "mb", "gb", "tb", "pb",
 				"kib", "mib", "gib", "tib", "pib":
-				value, _ := humanize.ParseBytes(str)
+				value, err := humanize.ParseBytes(str)
+				if err != nil {
+					return fmt.Errorf("invalid bytes value: %s", err.Error())
+				}
 				cond.value = strconv.FormatUint(value, 10)
 				cond.unit = "B"
 			case "m", "h", "d":
-				value, _ := utils.ExpandDuration(str)
+				value, err := utils.ExpandDuration(str)
+				if err != nil {
+					return fmt.Errorf("invalid duration value: %s", err.Error())
+				}
 				cond.value = strconv.FormatFloat(value, 'f', 0, 64)
 				cond.unit = "s"
 			}

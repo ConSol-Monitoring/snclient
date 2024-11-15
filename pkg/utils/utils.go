@@ -49,6 +49,8 @@ func ExpandDuration(val string) (res float64, err error) {
 		val = val[1:]
 	}
 
+	val = strings.ToLower(val)
+
 	for _, f := range TimeFactors {
 		if strings.HasSuffix(val, f.suffix) {
 			num, err = strconv.ParseFloat(strings.TrimSuffix(val, f.suffix), 64)
