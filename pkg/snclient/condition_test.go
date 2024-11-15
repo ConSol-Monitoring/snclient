@@ -21,6 +21,7 @@ func TestConditionParse(t *testing.T) {
 		{"state = dead", &Condition{keyword: "state", operator: Equal, value: "dead"}},
 		{"uptime < 180s", &Condition{keyword: "uptime", operator: Lower, value: "180", unit: "s"}},
 		{"uptime < 2h", &Condition{keyword: "uptime", operator: Lower, value: "7200", unit: "s"}},
+		{"uptime < 2H", &Condition{keyword: "uptime", operator: Lower, value: "7200", unit: "s"}},
 		{"version not like  '1 2 3'", &Condition{keyword: "version", operator: ContainsNot, value: "1 2 3"}},
 		{"state is not 0", &Condition{keyword: "state", operator: Unequal, value: "0"}},
 		{"used gt 0", &Condition{keyword: "used", operator: Greater, value: "0"}},
@@ -73,25 +74,24 @@ func TestConditionParse(t *testing.T) {
 func TestConditionParseErrors(t *testing.T) {
 	for _, check := range []struct {
 		threshold string
-		error     error
 	}{
-		{"val like", nil},
-		{"val like '", nil},
-		{"val like 'a", nil},
-		{`val like "`, nil},
-		{`val like "a`, nil},
-		{"a > 5 and", nil},
-		{"a >", nil},
-		{"a 5", nil},
-		{"> 5", nil},
-		{"(a > 1 or b > 1", nil},
-		{"((a > 1 or b > 1)", nil},
-		{"a > 1 ) 1)", nil},
-		{"state in ('a', 'b',)", nil},
-		{"state in ('a', 'b',", nil},
-		{"state in ('a', 'b'", nil},
-		{"state in (", nil},
-		{"a > 0 && b < 0 || x > 3", nil},
+		{"val like"},
+		{"val like '"},
+		{"val like 'a"},
+		{`val like "`},
+		{`val like "a`},
+		{"a > 5 and"},
+		{"a >"},
+		{"a 5"},
+		{"> 5"},
+		{"(a > 1 or b > 1"},
+		{"((a > 1 or b > 1)"},
+		{"a > 1 ) 1)"},
+		{"state in ('a', 'b',)"},
+		{"state in ('a', 'b',"},
+		{"state in ('a', 'b'"},
+		{"state in ("},
+		{"a > 0 && b < 0 || x > 3"},
 	} {
 		cond, err := NewCondition(check.threshold)
 		require.Errorf(t, err, "ConditionParse should error")

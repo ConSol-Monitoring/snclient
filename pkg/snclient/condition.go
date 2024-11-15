@@ -754,7 +754,7 @@ func conditionSetValue(cond *Condition, str string, expand bool) error {
 				}
 				cond.value = strconv.FormatUint(value, 10)
 				cond.unit = "B"
-			case "m", "h", "d":
+			case "ms", "m", "h", "d", "w", "y":
 				value, err := utils.ExpandDuration(str)
 				if err != nil {
 					return fmt.Errorf("invalid duration value: %s", err.Error())
