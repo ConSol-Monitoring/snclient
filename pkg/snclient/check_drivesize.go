@@ -240,10 +240,16 @@ func (l *CheckDrivesize) driveEntry(drive string) map[string]string {
 
 func (l *CheckDrivesize) isExcluded(drive map[string]string, excludes []string) bool {
 	for _, exclude := range excludes {
+		// exact match
 		if strings.EqualFold(exclude, drive["drive"]) {
 			return true
 		}
+		// /tmp excludes /tmp/
 		if strings.EqualFold(exclude+"/", drive["drive"]) {
+			return true
+		}
+		// c: excludes c:\
+		if strings.EqualFold(exclude+"\\", drive["drive"]) {
 			return true
 		}
 	}
