@@ -24,7 +24,7 @@ require (
 	github.com/sni/shelltoken v0.0.0-20240314123449-84b0a0c05450
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/yusufpapurcu/wmi v1.2.4
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
 	golang.org/x/sys v0.27.0
