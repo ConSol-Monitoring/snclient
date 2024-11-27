@@ -198,3 +198,33 @@ func TestCheckServiceLinuxSystemCtlOutput_5(t *testing.T) {
 	}
 	assert.Equalf(t, expect, entry, "parsed systemctl output")
 }
+
+func TestCheckServiceLinuxSystemCtlOutput_6(t *testing.T) {
+	output := `× dnf-makecache.service - dnf makecache
+     Loaded: loaded (/usr/lib/systemd/system/dnf-makecache.service; static)
+     Active: failed (Result: exit-code) since Wed 2024-11-27 14:39:00 CET; 36min ago
+TriggeredBy: ● dnf-makecache.timer
+    Process: 4033387 ExecStart=/usr/bin/dnf makecache --timer (code=exited, status=1/FAILURE)
+   Main PID: 4033387 (code=exited, status=1/FAILURE)
+        CPU: 431ms`
+
+	cs := &CheckService{}
+	entry := cs.parseSystemCtlStatus("dnf-makecache", output)
+
+	expect := map[string]string{
+		"name":    "dnf-makecache",
+		"service": "dnf-makecache",
+		"desc":    "dnf makecache",
+		"state":   "static",
+		"active":  "failed",
+		"preset":  "",
+		"created": "",
+		"pid":     "4033387",
+		"age":     "",
+		"cpu":     "",
+		"rss":     "",
+		"vms":     "",
+		"tasks":   "",
+	}
+	assert.Equalf(t, expect, entry, "parsed systemctl output")
+}

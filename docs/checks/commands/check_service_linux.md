@@ -55,15 +55,15 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                         |
-| ------------- | --------------------------------------------------------------------- |
-| filter        | active != inactive                                                    |
-| critical      | state not in ('running', 'oneshot', 'static') && preset != 'disabled' |
-| empty-state   | 3 (UNKNOWN)                                                           |
-| empty-syntax  | %(status) - No services found                                         |
-| top-syntax    | %(status) - %(crit_list)                                              |
-| ok-syntax     | %(status) - All %(count) service(s) are ok.                           |
-| detail-syntax | \${name}=\${state}                                                    |
+| Argument      | Default Value                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------- |
+| filter        | active != inactive                                                                                |
+| critical      | ( state not in ('running', 'oneshot', 'static') \|\| active = 'failed' )  && preset != 'disabled' |
+| empty-state   | 3 (UNKNOWN)                                                                                       |
+| empty-syntax  | %(status) - No services found                                                                     |
+| top-syntax    | %(status) - %(crit_list)                                                                          |
+| ok-syntax     | %(status) - All %(count) service(s) are ok.                                                       |
+| detail-syntax | \${name}=\${state}                                                                                |
 
 ## Check Specific Arguments
 
@@ -78,18 +78,18 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute | Description                                                                      |
-| --------- | -------------------------------------------------------------------------------- |
-| name      | The name of the service                                                          |
-| service   | Alias for name                                                                   |
-| desc      | Description of the service                                                       |
-| active    | The active attribute of a service, one of: active, inactive or failed            |
-| state     | The state of the service, one of: stopped, starting, oneshot, running or unknown |
-| pid       | The pid of the service                                                           |
-| created   | Date when service was started (unix timestamp)                                   |
-| age       | Seconds since service was started                                                |
-| rss       | Memory rss in bytes (main process)                                               |
-| vms       | Memory vms in bytes (main process)                                               |
-| cpu       | CPU usage in percent (main process)                                              |
-| preset    | The preset attribute of the service, one of: enabled or disabled                 |
-| tasks     | Number of tasks for this service                                                 |
+| Attribute | Description                                                                              |
+| --------- | ---------------------------------------------------------------------------------------- |
+| name      | The name of the service                                                                  |
+| service   | Alias for name                                                                           |
+| desc      | Description of the service                                                               |
+| active    | The active attribute of a service, one of: active, inactive or failed                    |
+| state     | The state of the service, one of: stopped, starting, oneshot, running, static or unknown |
+| pid       | The pid of the service                                                                   |
+| created   | Date when service was started (unix timestamp)                                           |
+| age       | Seconds since service was started                                                        |
+| rss       | Memory rss in bytes (main process)                                                       |
+| vms       | Memory vms in bytes (main process)                                                       |
+| cpu       | CPU usage in percent (main process)                                                      |
+| preset    | The preset attribute of the service, one of: enabled or disabled                         |
+| tasks     | Number of tasks for this service                                                         |

@@ -40,7 +40,7 @@ func NewCheckService() CheckHandler {
 }
 
 func (l *CheckService) Build() *CheckData {
-	stateCondition := "state not in ('running', 'oneshot', 'static')"
+	stateCondition := "( state not in ('running', 'oneshot', 'static') || active = 'failed' ) "
 
 	return &CheckData{
 		name: "check_service",
@@ -79,7 +79,7 @@ There is a specific [check_service for windows](../check_service_windows) as wel
 			{name: "service", description: "Alias for name"},
 			{name: "desc", description: "Description of the service"},
 			{name: "active", description: "The active attribute of a service, one of: active, inactive or failed"},
-			{name: "state", description: "The state of the service, one of: stopped, starting, oneshot, running or unknown"},
+			{name: "state", description: "The state of the service, one of: stopped, starting, oneshot, running, static or unknown"},
 			{name: "pid", description: "The pid of the service"},
 			{name: "created", description: "Date when service was started (unix timestamp)"},
 			{name: "age", description: "Seconds since service was started"},
