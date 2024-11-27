@@ -1,7 +1,7 @@
 github.com/DataDog/zstd v1.5.6 h1:LbEglqepa/ipmmQJUDnSsfvA8e8IStVcGaFWDuxvGOY=
 github.com/DataDog/zstd v1.5.6/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
-github.com/ProtonMail/go-crypto v1.1.2 h1:A7JbD57ThNqh7XjmHE+PXpQ3Dqt3BrSAC0AL0Go3KS0=
-github.com/ProtonMail/go-crypto v1.1.2/go.mod h1:rA3QumHc/FZ8pAHreoekgiAbzpNsfQAosU5td4SnOrE=
+github.com/ProtonMail/go-crypto v1.1.3 h1:nRBOetoydLeUb4nHajyO2bKqMLfWQ/ZPwkXqXxPxCFk=
+github.com/ProtonMail/go-crypto v1.1.3/go.mod h1:rA3QumHc/FZ8pAHreoekgiAbzpNsfQAosU5td4SnOrE=
 github.com/beevik/ntp v1.4.3 h1:PlbTvE5NNy4QHmA4Mg57n7mcFTmr1W1j3gcK7L1lqho=
 github.com/beevik/ntp v1.4.3/go.mod h1:Unr8Zg+2dRn7d8bHFuehIMSvvUYssHMxW3Q5Nx4RW5Q=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -97,8 +97,8 @@ github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20240724130556-96724c4c3d78 h1
 github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20240724130556-96724c4c3d78/go.mod h1:Ja52a8d0K4032zY9tOXLcIh2E0e/NprRnl7nXJjebI0=
 github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9 h1:UDgM4SP5Fd2PKVRdeUFlA/WRNHkvMNeIx0Nmw7sn21k=
 github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9/go.mod h1:VXyAUYIG8zcjjzf5DO9KlhWTStq/PQZTZfbgW93GOPg=
-github.com/sni/shelltoken v0.0.0-20240314123449-84b0a0c05450 h1:SeS7fOQd4OM5XtWFzHGYY48c28Ow3DZPiR9Lsbe4Qmc=
-github.com/sni/shelltoken v0.0.0-20240314123449-84b0a0c05450/go.mod h1:cXwJUaHDAOKKNTNhvEhApdzY5EqX4uZYFQ1u1ItS4iA=
+github.com/sni/shelltoken v0.0.0-20241125181525-84152f22ccd3 h1:ewNzm/u2121rlYTFpmieP6oFWOzF19nBbRzBGg+Lcc0=
+github.com/sni/shelltoken v0.0.0-20241125181525-84152f22ccd3/go.mod h1:49JJKFONnNNVv6h4WVK54oXj4KC+laTyzC0qXdAiUPw=
 github.com/spf13/cobra v1.8.1 h1:e5/vxKd/rZsfSJMUX1agtjeTDf+qv1/JdBF8gg5k9ZM=
 github.com/spf13/cobra v1.8.1/go.mod h1:wHxEcudfqmLYa8iTfL+OuZPbBZkmvliBWKIezN3kD9Y=
 github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
@@ -141,8 +141,8 @@ golang.org/x/tools v0.27.0/go.mod h1:sUi0ZgbwW9ZPAq26Ekut+weQPR5eIM6GQLQ1Yjm1H0Q
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da h1:noIWHXmPHxILtqtCOPIhSt0ABwskkZKjD3bXGnZGpNY=
 golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da/go.mod h1:NDW/Ps6MPRej6fsCIbMTohpP40sJ/P/vI1MoTEGwX90=
-google.golang.org/protobuf v1.35.1 h1:m3LfL6/Ca+fqnjnlqQXNpFPABW1UD7mjh8KO2mKFytA=
-google.golang.org/protobuf v1.35.1/go.mod h1:9fA7Ob0pmnwhb644+1+CVWFRbNajQ6iRojtC/QF5bRE=
+google.golang.org/protobuf v1.35.2 h1:8Ar7bF+apOIoThw1EdZl0p1oWvMqTHmpA2fRTyZO8io=
+google.golang.org/protobuf v1.35.2/go.mod h1:9fA7Ob0pmnwhb644+1+CVWFRbNajQ6iRojtC/QF5bRE=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
