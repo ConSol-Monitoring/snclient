@@ -28,7 +28,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
 	golang.org/x/sys v0.28.0
-	golang.org/x/term v0.26.0
+	golang.org/x/term v0.27.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
