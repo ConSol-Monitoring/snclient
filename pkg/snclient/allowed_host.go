@@ -48,6 +48,8 @@ func (ahc *AllowedHostConfig) Check(remoteAddr string) bool {
 		return true
 	}
 
+	addressCopy := remoteAddr
+
 	idx := strings.LastIndex(remoteAddr, ":")
 	if idx != -1 {
 		remoteAddr = remoteAddr[:idx]
@@ -60,7 +62,7 @@ func (ahc *AllowedHostConfig) Check(remoteAddr string) bool {
 
 	addr, err := netip.ParseAddr(remoteAddr)
 	if err != nil {
-		log.Warnf("cannot parse remote address: %s: %s", remoteAddr, err.Error())
+		log.Warnf("cannot parse remote address: %s: %s", addressCopy, err.Error())
 
 		return false
 	}
