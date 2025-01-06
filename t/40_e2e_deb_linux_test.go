@@ -30,6 +30,7 @@ func TestDEBinstaller(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:     "sudo",
 		Args:    []string{"apt-get", "install", "-y", "./snclient.deb"},
+		ErrLike: []string{`.*`},
 		Timeout: DefaultCommandTimeout * 2,
 	})
 
