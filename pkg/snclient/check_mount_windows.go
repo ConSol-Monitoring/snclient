@@ -3,9 +3,8 @@ package snclient
 import (
 	"context"
 	"os"
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
 // getVolumes retrieves volumes and their details, excluding specified partitions, and returns a list of drives and any potential errors.

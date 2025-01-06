@@ -25,7 +25,7 @@ func TestCmdHelp(t *testing.T) {
 func runCommand(t *testing.T, args []string) (output string, err error) {
 	t.Helper()
 
-	outFile, _ := os.CreateTemp("", "snclient-test")
+	outFile, _ := os.CreateTemp(t.TempDir(), "snclient-test")
 	sout := os.Stdout
 	serr := os.Stderr
 	os.Stdout = outFile

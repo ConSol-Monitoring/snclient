@@ -3,10 +3,10 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/wmi"
-	"golang.org/x/exp/slices"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"

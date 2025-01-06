@@ -47,17 +47,16 @@ func TestCheckFiles(t *testing.T) {
 func TestCheckFilesNoPermission(t *testing.T) {
 	snc := StartTestAgent(t, "")
 	// prepare test folder
-	tmpPath, err := os.MkdirTemp("", "testtmp*")
-	require.NoError(t, err)
+	tmpPath := t.TempDir()
 
 	for _, char := range []string{"a", "b", "c"} {
-		err = os.WriteFile(filepath.Join(tmpPath, "file "+char+".txt"), []byte(strings.Repeat(char, 2000)), 0o600)
+		err := os.WriteFile(filepath.Join(tmpPath, "file "+char+".txt"), []byte(strings.Repeat(char, 2000)), 0o600)
 		require.NoErrorf(t, err, "writing worked")
 
 		err = os.Mkdir(filepath.Join(tmpPath, "dir "+char), 0o700)
 		require.NoErrorf(t, err, "writing worked")
 	}
-	err = os.Chmod(filepath.Join(tmpPath, "file b.txt"), 0o000)
+	err := os.Chmod(filepath.Join(tmpPath, "file b.txt"), 0o000)
 	require.NoError(t, err)
 	err = os.Chmod(filepath.Join(tmpPath, "dir b"), 0o000)
 	require.NoError(t, err)

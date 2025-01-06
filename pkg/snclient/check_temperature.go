@@ -5,11 +5,11 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/shirou/gopsutil/v4/sensors"
-	"golang.org/x/exp/slices"
 )
 
 func init() {

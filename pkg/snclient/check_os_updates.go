@@ -8,10 +8,10 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
-	"golang.org/x/exp/slices"
 )
 
 func init() {

@@ -131,7 +131,7 @@ password = supersecret
 custom_ini = %s/nrpe_web_ports.ini
 
 	`, configsDir)
-	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
+	iniFile, _ := os.CreateTemp(t.TempDir(), "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
 	err := iniFile.Close()
@@ -168,7 +168,7 @@ custom_ini = %s/nrpe_web_ports.ini
 custom_ini_dir = %s
 
 	`, configsDir, customDir)
-	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
+	iniFile, _ := os.CreateTemp(t.TempDir(), "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
 	err := iniFile.Close()
@@ -206,7 +206,7 @@ custom_ini_dir = %s
 custom_ini_wc = %s/nrpe_web_ports_*.ini
 
 	`, configsDir, customDir, configsDir)
-	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
+	iniFile, _ := os.CreateTemp(t.TempDir(), "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
 	err := iniFile.Close()
@@ -371,7 +371,7 @@ allowed hosts  = 127.0.0.1, ::1, 192.168.1.1`
 	}
 	configText += "\n"
 
-	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
+	iniFile, _ := os.CreateTemp(t.TempDir(), "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
 	err := iniFile.Close()
@@ -466,7 +466,7 @@ url = http://localhost:%d/tmp/test2.ini
 auth = http://user:pass@localhost:%d/tmp/test3.ini
 `, testPort, testPort, testPort)
 
-	iniFile, _ := os.CreateTemp("", "snclient-*.ini")
+	iniFile, _ := os.CreateTemp(t.TempDir(), "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
 	err = iniFile.Close()

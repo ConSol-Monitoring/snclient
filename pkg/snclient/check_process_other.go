@@ -6,11 +6,11 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/shirou/gopsutil/v4/process"
-	"golang.org/x/exp/slices"
 )
 
 func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {

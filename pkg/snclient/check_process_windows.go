@@ -3,10 +3,10 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/wmi"
-	"golang.org/x/exp/slices"
 )
 
 // https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-process

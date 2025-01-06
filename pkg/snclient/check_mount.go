@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/shirou/gopsutil/v4/disk"
-	"golang.org/x/exp/slices"
 )
 
 func init() {

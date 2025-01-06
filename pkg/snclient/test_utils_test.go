@@ -35,7 +35,7 @@ func StartTestAgent(t *testing.T, config string) *Agent {
 [/modules]
 WEBServer = disabled
 `
-	tmpConfig, err := os.CreateTemp("", "testconfig")
+	tmpConfig, err := os.CreateTemp(t.TempDir(), "testconfig")
 	require.NoErrorf(t, err, "tmp config created")
 	_, err = tmpConfig.WriteString(testDefaultConfig)
 	require.NoErrorf(t, err, "tmp defaults written")
@@ -45,7 +45,7 @@ WEBServer = disabled
 	require.NoErrorf(t, err, "tmp config created")
 	defer os.Remove(tmpConfig.Name())
 
-	tmpPidfile, err := os.CreateTemp("", "testpid")
+	tmpPidfile, err := os.CreateTemp(t.TempDir(), "testpid")
 	require.NoErrorf(t, err, "tmp pidfile created")
 	tmpPidfile.Close()
 	os.Remove(tmpPidfile.Name())
@@ -87,11 +87,10 @@ func MockSystemUtilities(t *testing.T, utils map[string]string) (tmpPath string)
 
 	// if first element is not a tmp path already, create one
 	if !strings.Contains(tmpPath, "/testtmp") {
-		newTmp, err := os.MkdirTemp("", "testtmp*")
-		require.NoErrorf(t, err, "mkdirTemp worked")
+		newTmp := t.TempDir()
 
 		newPath := append([]string{newTmp}, pathElements...)
-		err = os.Setenv("PATH", strings.Join(newPath, ":"))
+		err := os.Setenv("PATH", strings.Join(newPath, ":"))
 		require.NoErrorf(t, err, "set env worked")
 		tmpPath = newTmp
 	}

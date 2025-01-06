@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
 func init() {

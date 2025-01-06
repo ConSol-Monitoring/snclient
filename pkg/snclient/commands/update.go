@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/snclient"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slices"
 )
 
 func init() {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/humanize"
@@ -12,7 +13,6 @@ import (
 	cpuinfo "github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/process"
-	"golang.org/x/exp/slices"
 )
 
 func init() {

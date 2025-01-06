@@ -5,12 +5,12 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/shirou/gopsutil/v4/process"
-	"golang.org/x/exp/slices"
 )
 
 func (l *CheckService) addProcMetrics(ctx context.Context, pidStr string, listEntry map[string]string) error {

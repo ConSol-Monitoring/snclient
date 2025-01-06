@@ -3,10 +3,10 @@ package snclient
 import (
 	"fmt"
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/exp/slices"
 )
 
 func TestDocsExists(t *testing.T) {

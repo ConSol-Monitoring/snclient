@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -20,7 +21,6 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/consol-monitoring/snclient/pkg/utils"
-	"golang.org/x/exp/slices"
 )
 
 const POWERSHELL = "powershell.exe -nologo -noprofile -WindowStyle hidden -NonInteractive -ExecutionPolicy ByPass"

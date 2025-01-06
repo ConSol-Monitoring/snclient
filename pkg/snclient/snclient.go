@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
+	"slices"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -31,7 +32,6 @@ import (
 	daemon "github.com/sevlyar/go-daemon"
 	"github.com/shirou/gopsutil/v4/host"
 	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 const (

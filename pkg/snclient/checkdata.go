@@ -3,6 +3,7 @@ package snclient
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/consol-monitoring/snclient/pkg/utils"
-	"golang.org/x/exp/slices"
 )
 
 var (

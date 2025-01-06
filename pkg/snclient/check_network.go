@@ -3,13 +3,13 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/shirou/gopsutil/v4/net"
-	"golang.org/x/exp/slices"
 )
 
 func init() {
