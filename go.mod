@@ -12,7 +12,7 @@ require (
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/mackerelio/checkers v0.2.0
 	github.com/miekg/dns v1.1.62
-	github.com/otiai10/copy v1.14.0
+	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.20.5
 	github.com/reeflective/readline v1.0.15
 	github.com/sasha-s/go-deadlock v0.3.5
@@ -48,6 +48,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/petermattis/goid v0.0.0-20241211131331-93ee7e083c43 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
