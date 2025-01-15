@@ -3,6 +3,7 @@ This file documents the revision history for the SNClient+ agent.
 next:
          - fix check_drivesize letter: excludes
          - fix check_service default threshold for linux
+         - chore: update dependencies
 
 0.29     Thu Nov 14 16:35:10 CET 2024
          - fix vbs wrapper in default config (#170)
