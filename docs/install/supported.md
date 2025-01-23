@@ -30,8 +30,9 @@ Successfully tested on:
 - Windows 11
 - Windows Server 2019
 - Windows ARM 11 Preview
+- It should work on any windows newer than Windows 10 / Windows Server 2016.
 
-SNClients required Go (>= 1.21) does not support anything older than Windows 10 or Windows Server 2016.
+SNClients required Go (>= 1.22) does not support anything older than Windows 10 or Windows Server 2016.
 
 ## Linux
 
