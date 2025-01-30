@@ -425,6 +425,9 @@ func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond ConditionList) {
 		data := map[string]string{
 			metric.Name: fmt.Sprintf("%v", metric.Value),
 		}
+		if metric.ThresholdName != "" {
+			data[metric.ThresholdName] = fmt.Sprintf("%v", metric.Value)
+		}
 		for i := range warnCond {
 			if res, ok := warnCond[i].Match(data); res && ok {
 				state = CheckExitWarning
@@ -443,6 +446,7 @@ func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond ConditionList) {
 			}
 		}
 		if state > CheckExitOK {
+			log.Debugf("metric %s is %s", metric.Name, convert.StateString(state))
 			cd.result.EscalateStatus(state)
 		}
 	}
