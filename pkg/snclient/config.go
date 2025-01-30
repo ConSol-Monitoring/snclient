@@ -157,29 +157,31 @@ func (config *Config) ReadINI(iniPath string, snc *Agent) error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", iniPath, err.Error())
 	}
-	if fileStat.IsDir() {
-		log.Debugf("recursing into config folder: %s", iniPath)
-		err = filepath.WalkDir(iniPath, func(path string, dir fs.DirEntry, err error) error {
-			if err != nil {
-				return fmt.Errorf("%s: %s", path, err.Error())
-			}
-			if dir.IsDir() {
-				return nil
-			}
-			if match, _ := filepath.Match(`*.ini`, dir.Name()); !match {
-				return nil
-			}
 
-			return config.ReadINI(path, snc)
-		})
-		if err != nil {
-			return fmt.Errorf("%s: %s", iniPath, err.Error())
-		}
-
-		return nil
+	if !fileStat.IsDir() {
+		return config.ParseINIFile(iniPath, snc)
 	}
 
-	return config.ParseINIFile(iniPath, snc)
+	// read sub folder
+	log.Debugf("recursing into config folder: %s", iniPath)
+	err = filepath.WalkDir(iniPath, func(path string, dir fs.DirEntry, err error) error {
+		if err != nil {
+			return fmt.Errorf("%s: %s", path, err.Error())
+		}
+		if dir.IsDir() {
+			return nil
+		}
+		if match, _ := filepath.Match(`*.ini`, dir.Name()); !match {
+			return nil
+		}
+
+		return config.ReadINI(path, snc)
+	})
+	if err != nil {
+		return fmt.Errorf("%s: %s", iniPath, err.Error())
+	}
+
+	return nil
 }
 
 // ParseINIFile reads ini style configuration from file path.
