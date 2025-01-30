@@ -130,9 +130,15 @@ func (config *Config) WriteINI(iniPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to write ini %s: %s", iniPath, err.Error())
 	}
-	defer file.Close()
 
 	_, err = file.WriteString(configData)
+	if err != nil {
+		LogDebug(file.Close())
+
+		return fmt.Errorf("failed to write ini %s: %s", iniPath, err.Error())
+	}
+
+	err = file.Close()
 	if err != nil {
 		return fmt.Errorf("failed to write ini %s: %s", iniPath, err.Error())
 	}

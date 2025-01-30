@@ -72,6 +72,8 @@ use ssl = false
 password = test
 `)
 	require.NoErrorf(t, err, "tmp include created")
+	err = tmpInclude.Close()
+	require.NoErrorf(t, err, "tmp include created")
 
 	snc := StartTestAgent(t, config)
 
