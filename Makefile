@@ -65,7 +65,7 @@ WINDOWS_EXPORTER_VERSION_I386=0.24.0
 WINDOWS_EXPORTER_FILE_I386=windows_exporter-$(WINDOWS_EXPORTER_VERSION_I386)
 WINDOWS_EXPORTER_URL_I386=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION_I386)/
 
-WINDOWS_EXPORTER_VERSION=0.29.1
+WINDOWS_EXPORTER_VERSION=0.30.2
 WINDOWS_EXPORTER_FILE=windows_exporter-$(WINDOWS_EXPORTER_VERSION)
 WINDOWS_EXPORTER_URL=https://github.com/prometheus-community/windows_exporter/releases/download/v$(WINDOWS_EXPORTER_VERSION)
 
