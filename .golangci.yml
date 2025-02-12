@@ -51,7 +51,7 @@ linters:
     - testpackage
     - wsl
     # deprecated
-    - exportloopref
+    - tenv
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

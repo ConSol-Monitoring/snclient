@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"net/http"
 	_ "net/http/pprof" //nolint:gosec // default muxer is not exposed by default
 	"os"
@@ -31,7 +32,6 @@ import (
 	deadlock "github.com/sasha-s/go-deadlock"
 	daemon "github.com/sevlyar/go-daemon"
 	"github.com/shirou/gopsutil/v4/host"
-	"golang.org/x/exp/maps"
 )
 
 const (
@@ -893,7 +893,7 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 	lastStat := map[string]*fs.FileInfo{}
 	files := []string{}
 	files = append(files, snc.runSet.files...)
-	files = append(files, maps.Keys(snc.config.alreadyIncluded)...)
+	files = slices.AppendSeq(files, maps.Keys(snc.config.alreadyIncluded))
 	files = append(files, binFile)
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()

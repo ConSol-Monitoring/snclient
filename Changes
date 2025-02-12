@@ -4,6 +4,7 @@ next:
          - fix check_files thresholds on total_size
          - update windows exporter to 0.30.2
          - chore: update dependencies
+         - change minimum golang requirement to 1.23
 
 0.30     Wed Jan 15 12:08:28 CET 2025
          - fix check_drivesize letter: excludes

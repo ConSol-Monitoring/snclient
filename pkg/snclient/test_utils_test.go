@@ -90,8 +90,7 @@ func MockSystemUtilities(t *testing.T, utils map[string]string) (tmpPath string)
 		newTmp := t.TempDir()
 
 		newPath := append([]string{newTmp}, pathElements...)
-		err := os.Setenv("PATH", strings.Join(newPath, ":"))
-		require.NoErrorf(t, err, "set env worked")
+		t.Setenv("PATH", strings.Join(newPath, ":"))
 		tmpPath = newTmp
 	}
 

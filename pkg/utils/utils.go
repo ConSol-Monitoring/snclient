@@ -7,12 +7,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -21,7 +23,6 @@ import (
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/kdar/factorlog"
-	"golang.org/x/exp/maps"
 )
 
 var reMountPassword = regexp.MustCompile(`//.*:.*@`)
@@ -522,7 +523,7 @@ func SortRanked(list []string, ranks map[string]int) []string {
 
 // returns string map keys in sorted order
 func SortedKeys[V interface{}](m map[string]V) []string {
-	keys := maps.Keys(m)
+	keys := slices.AppendSeq(make([]string, 0, len(m)), maps.Keys(m))
 	sort.Strings(keys)
 
 	return keys

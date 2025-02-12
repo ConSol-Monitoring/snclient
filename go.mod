@@ -1,6 +1,6 @@
 module github.com/consol-monitoring/snclient
 
-go 1.22.0
+go 1.23.6
 
 require (
 	github.com/beevik/ntp v1.4.3
@@ -14,7 +14,7 @@ require (
 	github.com/miekg/dns v1.1.63
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.20.5
-	github.com/reeflective/readline v1.0.15
+	github.com/reeflective/readline v1.1.2
 	github.com/sasha-s/go-deadlock v0.3.5
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.6
@@ -49,7 +49,7 @@ require (
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/otiai10/mint v1.6.3 // indirect
-	github.com/petermattis/goid v0.0.0-20250121172306-05bcfb9a85dc // indirect
+	github.com/petermattis/goid v0.0.0-20250211185408-f2b9d978cd7a // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
