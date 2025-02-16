@@ -16,7 +16,7 @@ on:
 
 # set go version for all steps
 env:
-  GOVERSION: 1.22.x
+  GOVERSION: 1.23.x
 
 jobs:
   get-version:
