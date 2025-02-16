@@ -1,0 +1,3 @@
+#!/bin/sh
+
+rc-service -q snclient start

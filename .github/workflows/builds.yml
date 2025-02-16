@@ -384,6 +384,52 @@ jobs:
           if-no-files-found: error
 
 
+  pkg-apk:
+    strategy:
+      matrix:
+        go-os: [linux]
+        go-arch: [x86_64]
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+    needs: [get-version, build, dist-linux-osx]
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GOVERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: "${{ env.BIN }}"
+          path: "dist"
+      - uses: actions/download-artifact@v4
+        with:
+          name: "dist"
+          path: "dist"
+      - name: prepare environment
+        run: |
+          apk update
+          apk add --no-cache bash
+          apk add curl
+          apk add git
+          apk add make
+          apk add openssl
+          apk add abuild
+          apk add logrotate
+          apk add sudo
+      - run: |
+          echo "Building ${{ env.BIN }}.apk"
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make apk
+          mv snclient*.apk ${{ env.BIN }}.apk
+      - uses: actions/upload-artifact@v4.6.0
+        with:
+          name: "${{ env.BIN }}.apk"
+          path: "${{ env.BIN }}.apk"
+          if-no-files-found: error
+
+
   pkg-rpm:
     strategy:
       matrix:
@@ -462,7 +508,7 @@ jobs:
         go-os: [linux]
         go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
-    needs: [get-version,pkg-rpm,pkg-deb]
+    needs: [get-version,pkg-rpm,pkg-deb,pkg-apk]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
@@ -582,7 +628,7 @@ jobs:
   make-release:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    needs: [get-version,pkg-msi,pkg-deb,pkg-rpm,pkg-osx,integration-test-linux,integration-test-windows, integration-test-osx, test-linux, test-win, test-osx, test-bsd]
+    needs: [get-version,pkg-msi,pkg-deb,pkg-rpm,pkg-apk,pkg-osx,integration-test-linux,integration-test-windows, integration-test-osx, test-linux, test-win, test-osx, test-bsd]
     outputs:
       release-upload-url: ${{ steps.create-release.outputs.upload_url }}
     steps:
@@ -652,6 +698,25 @@ jobs:
         with:
           name: "${{ env.BIN }}.rpm"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.rpm
+
+
+  upload-linux-apk-assets:
+    if: startsWith(github.ref, 'refs/tags/')
+    strategy:
+      matrix:
+        go-os: [linux]
+        go-arch: [x86_64]
+    runs-on: ubuntu-latest
+    needs: [get-version,make-release]
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: "${{ env.BIN }}.apk"
+      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.apk
 
 
   upload-osx-pkg-assets:

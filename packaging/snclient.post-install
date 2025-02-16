@@ -1,0 +1,4 @@
+#!/bin/sh
+
+rc-update -q add snclient default
+rc-service -q snclient start

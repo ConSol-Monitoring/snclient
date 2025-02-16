@@ -35,6 +35,7 @@ ifeq ($(RPM_ARCH),arm64)
 	RPM_ARCH := aarch64
 endif
 RPMFILE ?= snclient-$(VERSION)-$(RPM_ARCH).rpm
+APKFILE ?= snclient-$(VERSION)-$(RPM_ARCH).apk
 
 ifeq ($(GOARCH),i386)
 	export GOARCH := 386
@@ -85,6 +86,14 @@ ifeq ($(GOOS),darwin)
   DARWIN=1
 endif
 ifeq ($(DARWIN),1)
+  # cgo is required to retrieve cpu information
+  CGO_ENABLED=1
+endif
+ALPINE=0
+ifneq ($(findstring alpine,$(MAKE_HOST)),)
+  ALPINE=1
+endif
+ifeq ($(ALPINE),1)
   # cgo is required to retrieve cpu information
   CGO_ENABLED=1
 endif
@@ -513,6 +522,36 @@ rpm: | dist
 	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm $(RPMFILE)
 	rm -rf $(RPM_TOPDIR) build-rpm
 	-rpmlint -f packaging/rpmlintrc $(RPMFILE)
+
+apk: | dist
+	rm -rf snclient-$(VERSION)
+	cp ./packaging/APKBUILD dist/
+	cp ./packaging/snclient.initd dist/
+	cp ./packaging/snclient.post-install dist/
+	sed -i dist/APKBUILD -e 's|^pkgver=.*|pkgver=$(VERSION)|'
+	sed -i dist/APKBUILD -e 's|^arch=.*|arch=$(RPM_ARCH)|'
+	cp -rp dist snclient-$(VERSION)
+	rm -f snclient-$(VERSION)/ca.key
+	mv snclient-$(VERSION)/snclient.ini snclient-$(VERSION)/snclient.confd
+
+	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
+	tar zxvf $(NODE_EXPORTER_FILE)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter snclient-$(VERSION)/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)
+
+	chmod 755 \
+		snclient-$(VERSION)/snclient \
+		snclient-$(VERSION)/node_exporter
+	adduser -D build
+	addgroup build abuild
+	echo "%abuild ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/abuild.conf
+	chown -R build snclient-$(VERSION)
+	su build -c "cd snclient-*; abuild-keygen -a -n"
+	# /home/build/.abuild/abuild.conf contains PACKAGER_PRIVKEY="/home/build/.abuild/build-...rsa"
+	cp /home/build/.abuild/build-*.rsa.pub /etc/apk/keys
+	su build -c "cd snclient-*; abuild checksum"
+	su build -c "cd snclient-*; abuild -r"
+	mv ~build/packages/snclient/*/snclient-*.apk $(APKFILE)
 
 osx: | dist
 	rm -rf build-pkg

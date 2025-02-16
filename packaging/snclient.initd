@@ -1,0 +1,18 @@
+#!/sbin/openrc-run
+
+description="SNClient+ (Secure Naemon Client)"
+command="/usr/bin/snclient"
+command_args="--config /etc/snclient/snclient.ini"
+command_args_background="--pidfile ${pidfile} daemon"
+command_user="root:root"
+pidfile="/var/run/snclient.pid"
+
+reload() {
+  ebegin "Reloading ${RC_SVCNAME}"
+  start-stop-daemon --signal HUP --pidfile "${pidfile}"
+  eend $?
+}
+
+depend() {
+    need net
+}
