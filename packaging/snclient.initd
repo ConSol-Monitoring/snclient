@@ -1,6 +1,7 @@
 #!/sbin/openrc-run
 
 description="SNClient+ (Secure Naemon Client)"
+supervisor="supervise-daemon"
 command="/usr/bin/snclient"
 command_args="--config /etc/snclient/snclient.ini"
 command_args_background="--pidfile ${pidfile} daemon"
@@ -8,8 +9,8 @@ command_user="root:root"
 pidfile="/var/run/snclient.pid"
 
 reload() {
-  ebegin "Reloading ${RC_SVCNAME}"
-  start-stop-daemon --signal HUP --pidfile "${pidfile}"
+  ebegin "Reloading acpid configuration"
+  ${supervisor} ${RC_SVCNAME} --signal HUP --pidfile "${pidfile}"
   eend $?
 }
 
