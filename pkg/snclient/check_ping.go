@@ -183,6 +183,7 @@ func (l *CheckPing) parsePingOutput(output, stderr string) (entry map[string]str
 	case strings.Contains(output, "Name or service not known"),
 		strings.Contains(output, "Unknown host"),
 		strings.Contains(output, "Name does not resolve"),
+		strings.Contains(output, "bad address"),
 		strings.Contains(output, "could not find host"):
 		entry["_error"] = "failed to resolve hostname"
 	default:
@@ -198,6 +199,16 @@ func (l *CheckPing) parsePingRTA(entry map[string]string, output string) {
 	// rtt min/avg/max/mdev = 0.019/0.019/0.021/0.000 ms
 	reRTA := regexp.MustCompile(`rtt min/avg/max/mdev = ([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+) ms`)
 	rtaList := reRTA.FindStringSubmatch(output)
+	if len(rtaList) >= 3 {
+		entry["rta"] = rtaList[2]
+
+		return
+	}
+
+	// linux (alpine 3.21)
+	// round-trip min/avg/max = 0.028/0.056/0.087 ms
+	reRTA = regexp.MustCompile(`round-trip min/avg/max = ([\d.]+)/([\d.]+)/([\d.]+) ms`)
+	rtaList = reRTA.FindStringSubmatch(output)
 	if len(rtaList) >= 3 {
 		entry["rta"] = rtaList[2]
 
@@ -253,7 +264,9 @@ func (l *CheckPing) parsePingPackets(entry map[string]string, output string) {
 
 	// linux (debian 12)
 	// 3 packets transmitted, 0 received, +3 errors, 100% packet loss, time 2003ms
-	rePackets = regexp.MustCompile(`(\d+) packets transmitted, (\d+) received, [\+\d]+ errors, (\d+)% packet loss`)
+	// linux (alpine 3.21)
+	// 3 packets transmitted, 0 packets received, 100% packet loss
+	rePackets = regexp.MustCompile(`(\d+) packets transmitted, (\d+) (?:packets )?received(?:, [\+\d]+ errors)?, (\d+)% packet loss`)
 	packetsList = rePackets.FindStringSubmatch(output)
 	if len(packetsList) >= 4 {
 		entry["sent"] = packetsList[1]
