@@ -22,7 +22,7 @@ require (
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20240724130556-96724c4c3d78
 	github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9
 	github.com/sni/shelltoken v0.0.0-20241125181525-84152f22ccd3
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
 	github.com/yusufpapurcu/wmi v1.2.4
