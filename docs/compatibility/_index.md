@@ -57,10 +57,12 @@ All bytes related performance data uses bytes in the performance data now.
 
 SNClient uses IEC units if possible. This means for example:
 
-	GB  = 1000000000 bytes (base 10) 1000^3
-	GiB = 1073741824 bytes (base 2)  1024^3
-	Gb  = same as GiB
-	G   = same as GB
+| Unit | Description                       |
+| ---- | --------------------------------- |
+| GB   | 1000000000 bytes (base 10) 1000^3 |
+| GiB  | 1073741824 bytes (base 2)  1024^3 |
+| Gb   | same as GiB                       |
+| G    | same as GB                        |
 
 ### Perf-Config
 
@@ -95,7 +97,9 @@ In addition to the existing characters, SNClient does not allow the `$` characte
 
 The list of not allowed nasty characters is therefore:
 
-	$|`&><'\"\\[]{}
+```txt
+$|`&><'\"\\[]{}
+```
 
 Change the list of nasty chars with the `nasty characters` configuration option.
 
@@ -126,7 +130,9 @@ tls min version = "tls1.3"
 ```
 
 Allowing tls 1.2 or higher (default) disables known insecure ciphers. Allowing
-tls lower than 1.2 enables all ciphers.
+tls lower than 1.2 enables all ciphers (even the insecure ones).
+
+The list of ciphers can be found on [go.dev](https://pkg.go.dev/crypto/tls#pkg-constants).
 
 ## Passwords
 
@@ -134,10 +140,12 @@ tls lower than 1.2 enables all ciphers.
 
 SNClient supports using hashed passwords in the configuration file.
 
-	%> snclient hash
-	enter password to hash or hit ctrl+c to exit.
-	<entering password>
-	hash sum: SHA256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+```bash
+%> snclient hash
+enter password to hash or hit ctrl+c to exit.
+<entering password>
+hash sum: SHA256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+```
 
 Then use this hash as password:
 
@@ -156,8 +164,10 @@ Check specific changes and enhancements:
 
 The `check_service` adds memory and cpu metrics if the service is running.
 
-	check_service service=snclient
-	OK - All 1 service(s) are ok. |'snclient'=4;;;; 'snclient rss'=12943360B;;;; 'snclient vms'=6492160B;;;; 'snclient cpu'=0%;;;;
+```bash
+check_service service=snclient
+OK - All 1 service(s) are ok. |'snclient'=4;;;; 'snclient rss'=12943360B;;;; 'snclient vms'=6492160B;;;; 'snclient cpu'=0%;;;;
+```
 
 ### check_files
 
@@ -167,7 +177,9 @@ The `check_service` adds memory and cpu metrics if the service is running.
 
 Example:
 
-	check_files path=c:/windows warn=size>2MB max-depth=1 timezone=Europe/Berlin
+```bash
+check_files path=c:/windows warn=size>2MB max-depth=1 timezone=Europe/Berlin
+```
 
 ### check_tasksched
 
