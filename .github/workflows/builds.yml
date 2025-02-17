@@ -419,6 +419,7 @@ jobs:
           apk add abuild
           apk add logrotate
           apk add sudo
+          touch /a/b/c
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
