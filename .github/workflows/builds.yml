@@ -419,6 +419,7 @@ jobs:
           apk add abuild
           apk add logrotate
           apk add sudo
+          apk add binutils
       - run: |
           echo "Building ${{ env.BIN }}.apk"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make apk
