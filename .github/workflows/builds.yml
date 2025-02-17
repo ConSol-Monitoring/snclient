@@ -14,10 +14,6 @@ on:
   push:
   pull_request:
 
-# set go version for all steps
-env:
-  GOVERSION: 1.23.x
-
 jobs:
   get-version:
     runs-on: ubuntu-latest
@@ -49,7 +45,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - run: make citest
 
 
@@ -59,9 +55,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - run: |
-          echo "Testing with ${{ env.GOVERSION }}"
           go work init
           go work use .
           $Env:GOWORK = "off"
@@ -75,7 +70,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - run: make test
 
   test-bsd:
@@ -116,7 +111,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
@@ -143,7 +138,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
@@ -170,7 +165,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - run: |
           echo "Building ${{ env.BIN }}.exe"
           rm -rf winres rsrc_windows_*
@@ -245,7 +240,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - run: sudo apt-get update
       - run: sudo apt-get install help2man tofrodos
       - run: |
@@ -266,7 +261,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - run: sudo apt-get update
       - run: sudo apt-get install help2man tofrodos
       - run: |
@@ -360,7 +355,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
@@ -397,7 +392,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
@@ -431,7 +426,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}"
@@ -484,7 +479,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}.deb"
@@ -508,7 +503,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - uses: actions/download-artifact@v4
         with:
           name: "${{ env.BIN }}.pkg"
@@ -532,7 +527,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GOVERSION }}
+          go-version-file: './go.mod'
       - uses: actions/download-artifact@v4
         with:
           name: "windist"
