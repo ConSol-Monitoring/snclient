@@ -419,18 +419,16 @@ jobs:
           apk add abuild
           apk add logrotate
           apk add sudo
-          touch /a/b/c
+      - run: |
+          echo "Building ${{ env.BIN }}.apk"
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make apk
+#          mv snclient*.apk ${{ env.BIN }}.apk
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
         timeout-minutes: 120
         with:
           limit-access-to-actor: true
-
-#      - run: |
-#          echo "Building ${{ env.BIN }}.apk"
-#          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make apk
-#          mv snclient*.apk ${{ env.BIN }}.apk
 #      - uses: actions/upload-artifact@v4.6.0
 #        with:
 #          name: "${{ env.BIN }}.apk"
