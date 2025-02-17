@@ -545,13 +545,12 @@ apk: | dist
 	# /github/home/.abuild/abuild.conf
 	# PACKAGER_PRIVKEY="/github/home/.abuild/-67b3b1a6.rsa"
 	if ! [ -f $HOME/.abuild/abuild.conf ]; then abuild-keygen --numbits 4096 --append -n; fi
-	cd snclient-$(VERSION)
-	abuild -F -d checksum
-	abuild -F -d fetch
-	abuild -F -d package
-	abuild -F -d rootpkg
-	cd ..
+	cd snclient-$(VERSION) && abuild -F -d checksum
+	cd snclient-$(VERSION) && abuild -F -d fetch
+	cd snclient-$(VERSION) && abuild -F -d package
+	cd snclient-$(VERSION) && abuild -F -d rootpkg
 	mv $HOME/packages/snclient/*/snclient-*.apk $(APKFILE)
+	rm -rf snclient-$(VERSION)
 	rm -rf $HOME/packages
 	rm -rf $HOME/.abuild
 	touch /a/b/c
