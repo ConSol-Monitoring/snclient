@@ -1,6 +1,6 @@
 module github.com/consol-monitoring/snclient
 
-go 1.23
+go 1.23.0
 
 require (
 	github.com/beevik/ntp v1.4.3
@@ -26,7 +26,6 @@ require (
 	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
 	github.com/yusufpapurcu/wmi v1.2.4
-	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac
 	golang.org/x/sys v0.30.0
 	golang.org/x/term v0.29.0
 	gopkg.in/yaml.v3 v3.0.1
