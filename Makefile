@@ -542,16 +542,18 @@ apk: | dist
 	chmod 755 \
 		snclient-$(VERSION)/snclient \
 		snclient-$(VERSION)/node_exporter
-#	adduser -D build
-#	addgroup build abuild
-#	echo "%abuild ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/abuild.conf
-#	chown -R build snclient-$(VERSION)
-#	su build -c "cd snclient-*; abuild-keygen -a -n"
-#	# /home/build/.abuild/abuild.conf contains PACKAGER_PRIVKEY="/home/build/.abuild/build-...rsa"
-#	cp /home/build/.abuild/build-*.rsa.pub /etc/apk/keys
-#	su build -c "cd snclient-*; abuild checksum"
-#	su build -c "cd snclient-*; abuild -r"
-#	mv ~build/packages/snclient/*/snclient-*.apk $(APKFILE)
+	# /github/home/.abuild/abuild.conf
+	# PACKAGER_PRIVKEY="/github/home/.abuild/-67b3b1a6.rsa"
+	if ! [ -f $HOME/.abuild/abuild.conf ]; then abuild-keygen --numbits 4096 --append -n; fi
+	cd snclient-$(VERSION)
+	abuild -F -d checksum
+	abuild -F -d fetch
+	abuild -F -d package
+	abuild -F -d rootpkg
+	cd ..
+	mv $HOME/packages/snclient/*/snclient-*.apk $(APKFILE)
+	rm -rf $HOME/packages
+	rm -rf $HOME/.abuild
 	touch /a/b/c
 
 osx: | dist
