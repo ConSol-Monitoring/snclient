@@ -422,9 +422,11 @@ jobs:
           apk add binutils
       - run: |
           mkdir $HOME/.abuild
-          echo "$RSA_FOR_PACKAGE_SIGNATURE" > $HOME/.abuild/pkgsign.rsa
-          openssl rsa -pubout -in $HOME/.abuild/pkgsign.rsa -out $HOME/.abuild/pkgsign.rsa.pub
-          printf 'PACKAGER_PRIVKEY="%s"\n' $HOME/.abuild/pkgsign.rsa > $HOME/.abuild/abuild.conf
+          RSASERIAL="0001"
+          KEYNAME="monitoring-team@consol.de-$RSASERIAL"
+          echo "$RSA_FOR_PACKAGE_SIGNATURE" > $HOME/.abuild/$KEYNAME.rsa
+          openssl rsa -pubout -in $HOME/.abuild/$KEYNAME.rsa -out $HOME/.abuild/$KEYNAME.rsa.pub
+          printf 'PACKAGER_PRIVKEY="%s"\n' $HOME/.abuild/$KEYNAME.rsa > $HOME/.abuild/abuild.conf
         env:
           RSA_FOR_PACKAGE_SIGNATURE: ${{ secrets.RSA_FOR_PACKAGE_SIGNATURE }}
       - run: |
