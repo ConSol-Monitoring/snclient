@@ -424,9 +424,7 @@ jobs:
           mkdir $HOME/.abuild
           RSASERIAL="0001"
           KEYNAME="monitoring-team@consol.de-$RSASERIAL"
-          echo "$RSA_FOR_PACKAGE_SIGNATURE" > $HOME/.abuild/$KEYNAME.rsa
-          openssl rsa -pubout -in $HOME/.abuild/$KEYNAME.rsa -out $HOME/.abuild/$KEYNAME.rsa.pub
-          printf 'PACKAGER_PRIVKEY="%s"\n' $HOME/.abuild/$KEYNAME.rsa > $HOME/.abuild/abuild.conf
+          if [ -n "$RSA_FOR_PACKAGE_SIGNATURE" ]; then echo "$RSA_FOR_PACKAGE_SIGNATURE" > $HOME/.abuild/$KEYNAME.rsa; openssl rsa -pubout -in $HOME/.abuild/$KEYNAME.rsa -out $HOME/.abuild/$KEYNAME.rsa.pub; printf 'PACKAGER_PRIVKEY="%s"\n' $HOME/.abuild/$KEYNAME.rsa > $HOME/.abuild/abuild.conf; fi
         env:
           RSA_FOR_PACKAGE_SIGNATURE: ${{ secrets.RSA_FOR_PACKAGE_SIGNATURE }}
       - run: |
