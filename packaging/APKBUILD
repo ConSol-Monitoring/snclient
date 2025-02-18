@@ -8,7 +8,7 @@ arch="all"
 license="MIT"
 depends="openrc logrotate"
 makedepends=""
-source="snclient snclient.confd server.key server.crt cacert.pem snclient.logrotate README.md LICENSE snclient.1 snclient.8 snclient.initd"
+source="snclient snclient.confd server.key server.crt cacert.pem snclient.logrotate README.md LICENSE snclient.1 snclient.8 snclient.initd node_exporter"
 
 package() {
     install -Dm755 "$srcdir/snclient" "$pkgdir/usr/bin/snclient"
