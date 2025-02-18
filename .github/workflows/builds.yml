@@ -421,20 +421,27 @@ jobs:
           apk add sudo
           apk add binutils
       - run: |
+          mkdir /root/.abuild
+          echo "$RSA_FOR_PACKAGE_SIGNATURE" > /root/.abuild/pkgsign.rsa
+          openssl rsa -pubout -in /root/.abuild/pkgsign.rsa -out /root/.abuild/pkgsign.rsa.pub
+          printf 'PACKAGER_PRIVKEY="%s"\n' "/root/.abuild/pkgsign.rsa" > /root/.abuild/abuild.conf
+        env:
+          RSA_FOR_PACKAGE_SIGNATURE: ${{ secrets.RSA_FOR_PACKAGE_SIGNATURE }}
+      - run: |
           echo "Building ${{ env.BIN }}.apk"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make apk
-#          mv snclient*.apk ${{ env.BIN }}.apk
+          mv snclient*.apk ${{ env.BIN }}.apk
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
         timeout-minutes: 120
         with:
           limit-access-to-actor: true
-#      - uses: actions/upload-artifact@v4.6.0
-#        with:
-#          name: "${{ env.BIN }}.apk"
-#          path: "${{ env.BIN }}.apk"
-#          if-no-files-found: error
+      - uses: actions/upload-artifact@v4.6.0
+        with:
+          name: "${{ env.BIN }}.apk"
+          path: "${{ env.BIN }}.apk"
+          if-no-files-found: error
 
 
   pkg-rpm:

@@ -553,7 +553,6 @@ apk: | dist
 	rm -rf snclient-$(VERSION)
 	rm -rf $$HOME/packages
 	rm -rf $$HOME/.abuild
-	touch /a/b/c
 
 osx: | dist
 	rm -rf build-pkg
