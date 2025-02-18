@@ -18,6 +18,8 @@ package() {
     install -Dm600 "$srcdir/server.crt" "$pkgdir/etc/snclient/server.crt"
     install -Dm600 "$srcdir/cacert.pem" "$pkgdir/etc/snclient/cacert.pem"
 
+    install -Dm755 "$srcdir/node_exporter" "$pkgdir/usr/lib/snclient/node_exporter"
+
     install -Dm644 "$srcdir/snclient.logrotate" "$pkgdir/etc/logrotate.d/snclient"
 
     install -Dm644 "$srcdir/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
