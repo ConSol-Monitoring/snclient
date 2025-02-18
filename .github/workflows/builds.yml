@@ -421,10 +421,10 @@ jobs:
           apk add sudo
           apk add binutils
       - run: |
-          mkdir /root/.abuild
-          echo "$RSA_FOR_PACKAGE_SIGNATURE" > /root/.abuild/pkgsign.rsa
-          openssl rsa -pubout -in /root/.abuild/pkgsign.rsa -out /root/.abuild/pkgsign.rsa.pub
-          printf 'PACKAGER_PRIVKEY="%s"\n' "/root/.abuild/pkgsign.rsa" > /root/.abuild/abuild.conf
+          mkdir $HOME/.abuild
+          echo "$RSA_FOR_PACKAGE_SIGNATURE" > $HOME/.abuild/pkgsign.rsa
+          openssl rsa -pubout -in $HOME/.abuild/pkgsign.rsa -out $HOME/.abuild/pkgsign.rsa.pub
+          printf 'PACKAGER_PRIVKEY="%s"\n' $HOME/.abuild/pkgsign.rsa > $HOME/.abuild/abuild.conf
         env:
           RSA_FOR_PACKAGE_SIGNATURE: ${{ secrets.RSA_FOR_PACKAGE_SIGNATURE }}
       - run: |
