@@ -58,6 +58,7 @@ case "$*" in
   1)
     # First installation
     systemctl --system daemon-reload >/dev/null || true
+    systemctl enable snclient.service >/dev/null || true
     systemctl start snclient.service >/dev/null || true
   ;;
   2)
