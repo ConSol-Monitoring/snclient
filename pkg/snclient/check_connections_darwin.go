@@ -70,6 +70,8 @@ func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64
 			counter[tcpSynRecv]++
 		case "SYN_SEND", "SYN_SENT":
 			counter[tcpSynSent]++
+		case "SYN_SEND", "SYN_RCVD":
+			counter[tcpSynSent]++
 		case "TIMED_WAIT", "TIME_WAIT":
 			counter[tcpTimeWait]++
 		default:
