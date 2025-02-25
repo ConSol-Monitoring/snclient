@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -348,7 +349,7 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 	result := l.Handler.snc.RunCheckWithContext(req.Context(), command, args)
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
-	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+	data, err := json.Marshal(map[string]interface{}{
 		"payload": []interface{}{
 			map[string]interface{}{
 				"command": command,
@@ -361,7 +362,24 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 				},
 			},
 		},
-	}))
+	})
+	if err != nil {
+		msg := fmt.Sprintf("json error: %s", err.Error())
+		log.Errorf("%s", msg)
+		res.WriteHeader(http.StatusInternalServerError)
+		LogError2(res.Write([]byte(msg)))
+
+		return
+	}
+	res.WriteHeader(http.StatusOK)
+	LogError2(res.Write(data))
+
+	if log.IsV(2) {
+		log.Tracef("sending legacy json result:")
+		log.Tracef("<<<<")
+		log.Tracef("%s", data)
+		log.Tracef(">>>>")
+	}
 }
 
 type HandlerWebGeneric struct {
@@ -402,12 +420,28 @@ func (l *HandlerWebV1) serveCommand(res http.ResponseWriter, req *http.Request) 
 	args := queryParam2CommandArgs(req)
 	result := l.Handler.snc.RunCheckWithContext(req.Context(), command, args)
 	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
-	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+	data, err := json.Marshal(map[string]interface{}{
 		"command": command,
 		"result":  result.State,
 		"lines":   l.Handler.result2V1(result),
-	}))
+	})
+	if err != nil {
+		msg := fmt.Sprintf("json error: %s", err.Error())
+		log.Errorf("%s", msg)
+		res.WriteHeader(http.StatusInternalServerError)
+		LogError2(res.Write([]byte(msg)))
+
+		return
+	}
+	res.WriteHeader(http.StatusOK)
+	LogError2(res.Write(data))
+
+	if log.IsV(2) {
+		log.Tracef("sending v1 json result:")
+		log.Tracef("<<<<")
+		log.Tracef("%s", data)
+		log.Tracef(">>>>")
+	}
 }
 
 func (l *HandlerWebV1) serveInventory(res http.ResponseWriter, req *http.Request) {
