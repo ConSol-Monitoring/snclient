@@ -96,6 +96,7 @@ type CheckData struct {
 	hasArgsFilter          bool // will be true if any arg supplied which has isFilter set
 	emptySyntax            string
 	emptyState             int64
+	emptyStateSet          bool
 	details                map[string]string
 	listData               []map[string]string
 	listCombine            string // join string for detail list
@@ -201,7 +202,8 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 		if cd.emptySyntax != "" {
 			cd.result.Output = cd.emptySyntax
 		}
-		if !cd.HasThreshold("count") {
+		if cd.emptyStateSet || !cd.HasThreshold("count") {
+			log.Debugf("exit code set by empty state: %d", cd.emptyState)
 			cd.result.State = cd.emptyState
 		}
 	case cd.showAll:
@@ -609,6 +611,7 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, err error) {
 			cd.emptySyntax = argValue
 		case "empty-state":
 			cd.emptyState = cd.parseStateString(argValue)
+			cd.emptyStateSet = true
 		case "show-all":
 			if argValue == "" {
 				cd.showAll = true

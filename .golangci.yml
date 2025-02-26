@@ -126,6 +126,7 @@ issues:
     - "cyclomatic complexity .* of func .*.matchSingle"
     - "Function 'ParseINI' has too many statements"
     - "Function 'buildListMacros' has too many statements"
+    - "Function 'finalizeOutput' has too many statements"
     - "cognitive complexity .* of func .*ParseINI`"
     - "cognitive complexity .* of func .*ThresholdString"
     - "appendAssign: append result not assigned to the same slice"

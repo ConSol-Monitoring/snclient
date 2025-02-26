@@ -31,6 +31,11 @@ func TestCheckProcess(t *testing.T) {
 	assert.Equalf(t, "OK - no processes found with this filter. |'count'=0;0;0;0 'rss'=0B;;;0 'virtual'=0B;;;0 'cpu'=0%;;;0",
 		string(res.BuildPluginOutput()), "output matches")
 
+	res = snc.RunCheck("check_process", []string{"process=noneexisting.exe", "empty-state=0"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Equalf(t, "OK - no processes found with this filter. |'count'=0;0;0;0 'rss'=0B;;;0 'virtual'=0B;;;0 'cpu'=0%;;;0",
+		string(res.BuildPluginOutput()), "output matches")
+
 	res = snc.RunCheck("check_process", []string{"process=noneexisting.exe", "crit=count>0", "warn=none"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(t, `OK - no processes found with this filter.`, string(res.BuildPluginOutput()), "output ok")
