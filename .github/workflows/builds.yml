@@ -412,6 +412,66 @@ jobs:
           if-no-files-found: error
 
 
+  pkg-apk:
+    strategy:
+      matrix:
+        go-os: [linux]
+        go-arch: [x86_64]
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+    needs: [get-version, build, dist-linux-osx]
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GOVERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: "${{ env.BIN }}"
+          path: "dist"
+      - uses: actions/download-artifact@v4
+        with:
+          name: "dist"
+          path: "dist"
+      - name: prepare environment
+        run: |
+          apk update
+          apk add --no-cache bash
+          apk add curl
+          apk add git
+          apk add make
+          apk add openssl
+          apk add abuild
+          apk add logrotate
+          apk add sudo
+          apk add binutils
+      - run: |
+          mkdir $HOME/.abuild
+          RSASERIAL="0001"
+          KEYNAME="monitoring-team@consol.de-$RSASERIAL"
+          if [ -n "$RSA_FOR_PACKAGE_SIGNATURE" ]; then echo "$RSA_FOR_PACKAGE_SIGNATURE" > $HOME/.abuild/$KEYNAME.rsa; openssl rsa -pubout -in $HOME/.abuild/$KEYNAME.rsa -out $HOME/.abuild/$KEYNAME.rsa.pub; printf 'PACKAGER_PRIVKEY="%s"\n' $HOME/.abuild/$KEYNAME.rsa > $HOME/.abuild/abuild.conf; fi
+        env:
+          RSA_FOR_PACKAGE_SIGNATURE: ${{ secrets.RSA_FOR_PACKAGE_SIGNATURE }}
+      - run: |
+          echo "Building ${{ env.BIN }}.apk"
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make apk
+          mv snclient*.apk ${{ env.BIN }}.apk
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 120
+        with:
+          limit-access-to-actor: true
+      - uses: actions/upload-artifact@v4.6.0
+        with:
+          name: "${{ env.BIN }}.apk"
+          path: "${{ env.BIN }}.apk"
+          if-no-files-found: error
+
+
   pkg-osx:
     strategy:
       matrix:
@@ -647,6 +707,25 @@ jobs:
         with:
           name: "${{ env.BIN }}.rpm"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.rpm
+
+
+  upload-linux-apk-assets:
+    if: startsWith(github.ref, 'refs/tags/')
+    strategy:
+      matrix:
+        go-os: [linux]
+        go-arch: [x86_64]
+    runs-on: ubuntu-latest
+    needs: [get-version,make-release]
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: "${{ env.BIN }}.apk"
+      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.apk
 
 
   upload-osx-pkg-assets:
