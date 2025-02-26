@@ -1,0 +1,36 @@
+# Maintainer: Sven Nierlein <sven.nierlein@consol.de>
+pkgname=snclient
+pkgver=1.0.0  # Replace with the actual version
+pkgrel=0
+pkgdesc="SNClient+ (Secure Naemon Client) is a general-purpose monitoring agent."
+url="https://github.com/Consol-Monitoring/snclient/"
+arch="all"
+license="MIT"
+depends="openrc logrotate"
+makedepends=""
+source="snclient snclient.confd server.key server.crt cacert.pem snclient.logrotate README.md LICENSE snclient.1 snclient.8 snclient.initd node_exporter"
+
+package() {
+    install -Dm755 "$srcdir/snclient" "$pkgdir/usr/bin/snclient"
+
+    install -Dm644 "$srcdir/snclient.confd" "$pkgdir/etc/snclient/snclient.ini"
+    install -Dm600 "$srcdir/server.key" "$pkgdir/etc/snclient/server.key"
+    install -Dm600 "$srcdir/server.crt" "$pkgdir/etc/snclient/server.crt"
+    install -Dm600 "$srcdir/cacert.pem" "$pkgdir/etc/snclient/cacert.pem"
+
+    install -Dm755 "$srcdir/node_exporter" "$pkgdir/usr/lib/snclient/node_exporter"
+
+    install -Dm644 "$srcdir/snclient.logrotate" "$pkgdir/etc/logrotate.d/snclient"
+
+    install -Dm644 "$srcdir/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+    install -Dm644 "$srcdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 "$srcdir/snclient.1" "$pkgdir/usr/share/man/man1/snclient.1"
+    gzip -9 "$pkgdir/usr/share/man/man1/snclient.1"
+    install -Dm644 "$srcdir/snclient.8" "$pkgdir/usr/share/man/man8/snclient.8"
+    gzip -9 "$pkgdir/usr/share/man/man8/snclient.8"
+
+    install -Dm755 "$srcdir/snclient.initd" "$pkgdir/etc/init.d/snclient"
+
+    mkdir -p "$pkgdir/var/log/snclient"
+}
+
