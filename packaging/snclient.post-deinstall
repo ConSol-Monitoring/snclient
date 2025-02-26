@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# remove leftover additional config files.
+rm -rf /etc/snclient
