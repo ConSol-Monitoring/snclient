@@ -542,8 +542,6 @@ apk: | dist
 	chmod 755 \
 		snclient-$(VERSION)/snclient \
 		snclient-$(VERSION)/node_exporter
-	# /github/home/.abuild/abuild.conf
-	# PACKAGER_PRIVKEY="/github/home/.abuild/-67b3b1a6.rsa"
 	if ! [ -f $$HOME/.abuild/abuild.conf ]; then abuild-keygen --numbits 4096 --append -n; fi
 	cd snclient-$(VERSION) && abuild -F -d checksum
 	cd snclient-$(VERSION) && abuild -F -d fetch
