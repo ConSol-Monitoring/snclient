@@ -183,7 +183,8 @@ func (l *CheckPing) parsePingOutput(output, stderr string) (entry map[string]str
 	case strings.Contains(output, "Name or service not known"),
 		strings.Contains(output, "Unknown host"),
 		strings.Contains(output, "Name does not resolve"),
-		strings.Contains(output, "could not find host"):
+		strings.Contains(output, "could not find host"),
+		strings.Contains(output, "ping: bad address "):
 		entry["_error"] = "failed to resolve hostname"
 	default:
 		entry["_error"] = fmt.Sprintf("cannot parse ping output: %s", output)
@@ -198,6 +199,16 @@ func (l *CheckPing) parsePingRTA(entry map[string]string, output string) {
 	// rtt min/avg/max/mdev = 0.019/0.019/0.021/0.000 ms
 	reRTA := regexp.MustCompile(`rtt min/avg/max/mdev = ([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+) ms`)
 	rtaList := reRTA.FindStringSubmatch(output)
+	if len(rtaList) >= 3 {
+		entry["rta"] = rtaList[2]
+
+		return
+	}
+
+	// linux alpine 3.19
+	// round-trip min/avg/max = 0.066/0.103/0.145 ms
+	reRTA = regexp.MustCompile(`round-trip min/avg/max = ([\d.]+)/([\d.]+)/([\d.]+) ms`)
+	rtaList = reRTA.FindStringSubmatch(output)
 	if len(rtaList) >= 3 {
 		entry["rta"] = rtaList[2]
 

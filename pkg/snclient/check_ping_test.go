@@ -77,6 +77,71 @@ From 10.0.2.1 icmp_seq=2 Destination Host Unreachable
 	assert.Equalf(t, exp, entry, "parsed ping ok output")
 }
 
+func TestPingParserLinuxAlpineOK(t *testing.T) {
+	exp := map[string]string{
+		"host_name": "",
+		"sent":      "2",
+		"received":  "2",
+		"rta":       "0.083",
+		"pl":        "0",
+		"ttl":       "64",
+	}
+	// alpine 3.19
+	out := `
+PING localhost (::1): 56 data bytes
+64 bytes from ::1: seq=0 ttl=64 time=0.067 ms
+64 bytes from ::1: seq=1 ttl=64 time=0.100 ms
+
+--- localhost ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max = 0.067/0.083/0.100 ms
+`
+	chk := &CheckPing{}
+	entry := chk.parsePingOutput(out, "")
+	assert.Equalf(t, exp, entry, "parsed ping ok output")
+}
+
+func TestPingParserLinuxAlpineBad(t *testing.T) {
+	exp := map[string]string{
+		"host_name": "",
+		"sent":      "2",
+		"received":  "0",
+		"rta":       "",
+		"pl":        "100",
+		"ttl":       "",
+	}
+	// alpine 3.19
+	out := `
+PING 192.168.123.123 (192.168.123.123): 56 data bytes
+
+--- 192.168.123.123 ping statistics ---
+2 packets transmitted, 0 packets received, 100% packet loss
+`
+	chk := &CheckPing{}
+	entry := chk.parsePingOutput(out, "")
+	delete(entry, "_error")
+	assert.Equalf(t, exp, entry, "parsed ping ok output")
+}
+
+func TestPingParserLinuxAlpineBad2(t *testing.T) {
+	exp := map[string]string{
+		"host_name": "",
+		"sent":      "",
+		"received":  "",
+		"rta":       "",
+		"pl":        "100",
+		"ttl":       "",
+	}
+	// alpine 3.19
+	out := `
+ping: bad address 'does.not.exist'
+`
+	chk := &CheckPing{}
+	entry := chk.parsePingOutput(out, "")
+	delete(entry, "_error")
+	assert.Equalf(t, exp, entry, "parsed ping ok output")
+}
+
 func TestPingParserWindowsOK(t *testing.T) {
 	exp := map[string]string{
 		"host_name": "",
