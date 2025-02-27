@@ -547,7 +547,7 @@ apk: | dist
 	cd snclient-$(VERSION) && abuild -F -d fetch
 	cd snclient-$(VERSION) && abuild -F -d package
 	cd snclient-$(VERSION) && abuild -F -d rootpkg
-	mv $$HOME/packages/snclient/*/snclient-*.apk $(APKFILE)
+	mv $$HOME/packages/snclient*/*/snclient-*.apk $(APKFILE)
 	rm -rf snclient-$(VERSION)
 	rm -rf $$HOME/packages
 	rm -rf $$HOME/.abuild
