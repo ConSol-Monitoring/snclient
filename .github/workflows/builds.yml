@@ -459,7 +459,7 @@ jobs:
           echo "Building ${{ env.BIN }}.apk"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make apk
           mv snclient*.apk ${{ env.BIN }}.apk
-      - uses: actions/upload-artifact@v4.6.0
+      - uses: actions/upload-artifact@v4.6.1
         with:
           name: "${{ env.BIN }}.apk"
           path: "${{ env.BIN }}.apk"
