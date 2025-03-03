@@ -8,6 +8,7 @@ next:
          - add support for str() operator
          - check_process: make process filter case insensitive
          - check_service: make service filter case insensitive
+         - managed exporter: passthrough all urls, not just /metrics
 
 0.31     Wed Feb 12 18:14:54 CET 2025
          - fix check_files thresholds on total_size
