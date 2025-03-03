@@ -22,10 +22,12 @@ var (
 	reSvcStatic    = regexp.MustCompile(`;\sstatic\)`)
 	reSvcActive    = regexp.MustCompile(`\s*Active:\s+(\S+)`)
 	reSvcFirstLine = regexp.MustCompile(`^.\s(\S+)\.service\s+`)
+	reSvcNameLine  = regexp.MustCompile(`^\s*(\S+)\.service\s+`)
 )
 
 const (
 	systemctlStatusCmd = "systemctl status --lines=0 --no-pager --quiet"
+	systemctlNames     = "systemctl list-units --lines=0 --no-pager --quiet --no-legend"
 )
 
 type CheckService struct {
@@ -61,10 +63,10 @@ There is a specific [check_service for windows](../check_service_windows) as wel
 			"service": {
 				value:           &l.services,
 				isFilter:        true,
-				description:     "Name of the service to check (set to * to check all services). Default: *",
+				description:     "Name of the service to check (set to * to check all services). (case insensitive) Default: *",
 				defaultCritical: stateCondition,
 			},
-			"exclude": {value: &l.excludes, description: "List of services to exclude from the check (mainly used when service is set to *)"},
+			"exclude": {value: &l.excludes, description: "List of services to exclude from the check (mainly used when service is set to *) (case insensitive)"},
 		},
 		defaultFilter:   "active != inactive",
 		defaultCritical: stateCondition + " && preset != 'disabled'",
@@ -111,6 +113,11 @@ Check memory usage of specific service:
 func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	l.snc = snc
 
+	// make excludes case insensitive
+	for i := range l.excludes {
+		l.excludes[i] = strings.ToLower(l.excludes[i])
+	}
+
 	if len(l.services) == 0 || slices.Contains(l.services, "*") {
 		// fetch status of all services at once instead of calling systemctl over and over
 		output, stderr, _, err := snc.execCommand(ctx, fmt.Sprintf("%s --type=service --all", systemctlStatusCmd), DefaultCmdTimeout)
@@ -131,7 +138,7 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		}
 		found := false
 		for _, e := range check.listData {
-			if e["name"] == service {
+			if strings.EqualFold(e["name"], service) {
 				found = true
 
 				break
@@ -156,6 +163,20 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 }
 
 func (l *CheckService) addServiceByName(ctx context.Context, check *CheckData, service string, services, excludes []string) error {
+	err := l.addServiceByExactName(ctx, check, service, services, excludes)
+	if err == nil {
+		return nil
+	}
+
+	realService := l.findServiceByName(ctx, service)
+	if realService == "" {
+		return err
+	}
+
+	return l.addServiceByExactName(ctx, check, realService, services, excludes)
+}
+
+func (l *CheckService) addServiceByExactName(ctx context.Context, check *CheckData, service string, services, excludes []string) error {
 	output, stderr, _, err := l.snc.execCommand(ctx, fmt.Sprintf("%s %s.service ", systemctlStatusCmd, service), DefaultCmdTimeout)
 	if err != nil {
 		return fmt.Errorf("systemctl failed: %s\n%s", err.Error(), stderr)
@@ -307,7 +328,7 @@ func (l *CheckService) parseAllServices(ctx context.Context, check *CheckData, o
 		}
 		service := serviceMatches[1]
 
-		if slices.Contains(l.excludes, service) {
+		if slices.Contains(l.excludes, strings.ToLower(service)) {
 			log.Tracef("service %s excluded by 'exclude' argument", service)
 
 			continue
@@ -321,4 +342,26 @@ func (l *CheckService) parseAllServices(ctx context.Context, check *CheckData, o
 	}
 
 	return nil
+}
+
+func (l *CheckService) findServiceByName(ctx context.Context, service string) (name string) {
+	output, _, _, err := l.snc.execCommand(ctx, systemctlNames, DefaultCmdTimeout)
+	if err != nil {
+		log.Tracef("systemctl failed: %s", err.Error())
+
+		return ""
+	}
+
+	services := strings.Split(output, "\n")
+	for _, svc := range services {
+		match := reSvcNameLine.FindStringSubmatch(svc)
+		if len(match) > 1 {
+			realService := strings.TrimSpace(match[1])
+			if strings.EqualFold(realService, service) {
+				return realService
+			}
+		}
+	}
+
+	return ("")
 }

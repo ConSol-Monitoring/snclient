@@ -58,11 +58,11 @@ There is a specific [check_service for linux](../check_service_linux) as well.`,
 			"service": {
 				value:           &l.services,
 				isFilter:        true,
-				description:     "Name of the service to check (set to * to check all services). Default: *",
+				description:     "Name of the service to check (set to * to check all services). (case insensitive) Default: *",
 				defaultWarning:  "state != 'running'",
 				defaultCritical: "state != 'running'",
 			},
-			"exclude": {value: &l.excludes, description: "List of services to exclude from the check (mainly used when service is set to *)"},
+			"exclude": {value: &l.excludes, description: "List of services to exclude from the check (mainly used when service is set to *) (case insensitive)"},
 		},
 		defaultFilter:   "none",
 		defaultCritical: "state != 'running' && start_type = 'auto'",
@@ -137,7 +137,7 @@ func (l *CheckService) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 		}
 
 		for _, service := range serviceList {
-			if slices.Contains(l.excludes, strings.TrimSpace(service)) {
+			if slices.Contains(l.excludes, strings.ToLower(strings.TrimSpace(service))) {
 				log.Tracef("service %s excluded by 'exclude' argument", service)
 
 				continue
@@ -157,7 +157,7 @@ func (l *CheckService) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 		}
 		found := false
 		for _, e := range check.listData {
-			if e["name"] == service || e["desc"] == service {
+			if strings.EqualFold(e["name"], service) || strings.EqualFold(e["desc"], service) {
 				found = true
 
 				break
@@ -361,7 +361,10 @@ func (l *CheckService) GetNameByDisplayName(name string) (string, error) {
 	}
 
 	for _, s := range l.AllServices {
-		if s.DisplayName == name {
+		if strings.EqualFold(s.DisplayName, name) {
+			return s.Name, nil
+		}
+		if strings.EqualFold(s.Name, name) {
 			return s.Name, nil
 		}
 	}

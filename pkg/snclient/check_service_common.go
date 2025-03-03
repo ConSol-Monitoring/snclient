@@ -147,8 +147,8 @@ func (l *CheckService) addServiceMetrics(service string, serviceState float64, c
 }
 
 func (l *CheckService) isRequired(check *CheckData, entry map[string]string, services, excludes []string) bool {
-	name := entry["name"]
-	desc := entry["desc"]
+	name := strings.ToLower(entry["name"])
+	desc := strings.ToLower(entry["desc"])
 	if slices.Contains(excludes, name) || slices.Contains(excludes, desc) {
 		log.Tracef("service %s excluded by exclude list", name)
 
@@ -157,7 +157,11 @@ func (l *CheckService) isRequired(check *CheckData, entry map[string]string, ser
 	if slices.Contains(services, "*") {
 		return true
 	}
-	if len(services) > 0 && !slices.Contains(services, name) && !slices.Contains(services, desc) {
+
+	foundByName := slices.ContainsFunc(services, func(e string) bool { return strings.EqualFold(e, name) })
+	foundByDesc := slices.ContainsFunc(services, func(e string) bool { return strings.EqualFold(e, desc) })
+
+	if len(services) > 0 && !foundByName && !foundByDesc {
 		log.Tracef("service %s excluded by not matching service list", name)
 
 		return false

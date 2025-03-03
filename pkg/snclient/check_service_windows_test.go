@@ -24,4 +24,9 @@ func TestCheckService(t *testing.T) {
 	res = snc.RunCheck("check_service", []string{"service=Server"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 service", "output matches")
+
+	// search service by non case name
+	res = snc.RunCheck("check_service", []string{"service=server"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 service", "output matches")
 }
