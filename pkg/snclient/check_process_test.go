@@ -5,6 +5,7 @@ package snclient
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
@@ -48,6 +49,12 @@ func TestCheckProcess(t *testing.T) {
 	myExe, err := me.Exe()
 	require.NoErrorf(t, err, "got own exe")
 	res = snc.RunCheck("check_process", []string{"process=" + filepath.Base(myExe)})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `OK - all \d+ processes are ok.`, string(res.BuildPluginOutput()), "output ok")
+	assert.Regexpf(t, `rss'=\d{1,15}B;;;0`, string(res.BuildPluginOutput()), "rss ok")
+
+	// should work case insensitive
+	res = snc.RunCheck("check_process", []string{"process=" + strings.ToUpper(filepath.Base(myExe))})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(t, `OK - all \d+ processes are ok.`, string(res.BuildPluginOutput()), "output ok")
 	assert.Regexpf(t, `rss'=\d{1,15}B;;;0`, string(res.BuildPluginOutput()), "rss ok")

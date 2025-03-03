@@ -55,7 +55,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			}
 		}
 
-		if len(l.processes) > 0 && !slices.Contains(l.processes, exe) && !slices.Contains(l.processes, "*") {
+		if len(l.processes) > 0 && !slices.Contains(l.processes, strings.ToLower(exe)) && !slices.Contains(l.processes, "*") {
 			continue
 		}
 

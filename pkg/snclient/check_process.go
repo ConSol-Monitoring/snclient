@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 )
@@ -33,7 +34,7 @@ func (l *CheckProcess) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"process":  {value: &l.processes, description: "The process to check, set to * to check all. Default: *", isFilter: true},
+			"process":  {value: &l.processes, description: "The process to check, set to * to check all. (Case insensitive) Default: *", isFilter: true},
 			"timezone": {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
 		},
 		conditionAlias:  l.buildConditionAlias(),
@@ -115,6 +116,11 @@ func (l *CheckProcess) buildConditionAlias() map[string]map[string]string {
 
 func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"rss", "virtual", "pagefile"})
+
+	// make process arg lowercase
+	for i := range l.processes {
+		l.processes[i] = strings.ToLower(l.processes[i])
+	}
 
 	err := l.fetchProcs(ctx, check)
 	if err != nil {

@@ -6,6 +6,7 @@ next:
          - change like operator to be case insensitive
          - add new slike operator which is case sensitive
          - add support for str() operator
+         - check_process: make process filter is case insensitive
 
 0.31     Wed Feb 12 18:14:54 CET 2025
          - fix check_files thresholds on total_size

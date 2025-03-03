@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/wmi"
@@ -63,7 +64,7 @@ func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
 	for i := range processData {
 		proc := processData[i]
 
-		if len(l.processes) > 0 && !slices.Contains(l.processes, proc.Name) && !slices.Contains(l.processes, "*") {
+		if len(l.processes) > 0 && !slices.Contains(l.processes, strings.ToLower(proc.Name)) && !slices.Contains(l.processes, "*") {
 			continue
 		}
 

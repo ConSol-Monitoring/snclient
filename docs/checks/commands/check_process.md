@@ -72,10 +72,10 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument | Description                                                |
-| -------- | ---------------------------------------------------------- |
-| process  | The process to check, set to \* to check all. Default: \*  |
-| timezone | Sets the timezone for time metrics (default is local time) |
+| Argument | Description                                                                  |
+| -------- | ---------------------------------------------------------------------------- |
+| process  | The process to check, set to \* to check all. (Case insensitive) Default: \* |
+| timezone | Sets the timezone for time metrics (default is local time)                   |
 
 ## Attributes
 
