@@ -154,14 +154,14 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 	}
 
 	l.proxy = &httputil.ReverseProxy{
-		Rewrite: func(pr *httputil.ProxyRequest) {
+		Rewrite: func(proxyReq *httputil.ProxyRequest) {
 			prefix := strings.TrimSuffix(l.urlPrefix, "/")
-			proxyUrl := "http://" + l.agentAddress + strings.TrimPrefix(pr.In.URL.Path, prefix)
-			if len(pr.In.URL.Query()) > 0 {
-				proxyUrl = proxyUrl + "?" + pr.In.URL.Query().Encode()
+			proxyURL := "http://" + l.agentAddress + strings.TrimPrefix(proxyReq.In.URL.Path, prefix)
+			if len(proxyReq.In.URL.Query()) > 0 {
+				proxyURL = proxyURL + "?" + proxyReq.In.URL.Query().Encode()
 			}
-			uri, _ := url.Parse(proxyUrl)
-			pr.Out.URL = uri
+			uri, _ := url.Parse(proxyURL)
+			proxyReq.Out.URL = uri
 		},
 		ErrorHandler: getReverseProxyErrorHandlerFunc(l.Type()),
 	}
@@ -188,9 +188,8 @@ func (l *HandlerManagedExporter) CheckPassword(req *http.Request, _ URLMapping) 
 }
 
 func (l *HandlerManagedExporter) GetMappings(*Agent) []URLMapping {
-	prefix := strings.TrimSuffix(l.urlPrefix, "/")
 	return []URLMapping{
-		{URL: prefix + "/*", Handler: l.proxy},
+		{URL: strings.TrimSuffix(l.urlPrefix, "/") + "/*", Handler: l.proxy},
 	}
 }
 
