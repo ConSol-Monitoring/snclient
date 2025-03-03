@@ -50,10 +50,10 @@ const (
 	Unequal // !=
 
 	// Text
-	Contains            // like
-	ContainsNot         // unlike
-	ContainsNoCase      // ilike
-	ContainsNotNoCase   // not ilike
+	Contains            // like / ilike
+	ContainsNot         // unlike / not ilike
+	ContainsCase        // slike
+	ContainsNotCase     // not slike
 	RegexMatch          // ~
 	RegexMatchNot       // !~
 	RegexMatchNoCase    // ~~
@@ -76,14 +76,14 @@ func OperatorParse(str string) (Operator, error) {
 		return Equal, nil
 	case "!=", "is not", "ne":
 		return Unequal, nil
-	case "like":
+	case "like", "ilike":
 		return Contains, nil
-	case "unlike", "not like":
+	case "unlike", "not like", "not ilike":
 		return ContainsNot, nil
-	case "ilike":
-		return ContainsNoCase, nil
-	case "not ilike":
-		return ContainsNotNoCase, nil
+	case "slike", "strictlike":
+		return ContainsCase, nil
+	case "not slike", "not strictlike":
+		return ContainsNotCase, nil
 	case "~", "regexp", "regex":
 		return RegexMatch, nil
 	case "!~", "not regex", "not regexp":
@@ -119,10 +119,10 @@ func (o *Operator) String() string {
 		return ("like")
 	case ContainsNot:
 		return ("unlike")
-	case ContainsNoCase:
-		return ("ilike")
-	case ContainsNotNoCase:
-		return ("not ilike")
+	case ContainsCase:
+		return ("slike")
+	case ContainsNotCase:
+		return ("not slike")
 	case RegexMatch:
 		return ("~")
 	case RegexMatchNot:
@@ -188,7 +188,7 @@ func NewCondition(input string) (*Condition, error) {
 		return &Condition{isNone: true, original: input}, nil
 	}
 
-	token := utils.Tokenize(input)
+	token := utils.Tokenize(replaceStrOp(input))
 	cond, remainingToken, err := conditionAdd(token)
 	if err != nil {
 		return nil, err
@@ -331,13 +331,13 @@ func (c *Condition) matchSingle(data map[string]string) (res, ok bool) {
 		// fallback to string compare
 		return condStr != varStr, true
 	case Contains:
-		return strings.Contains(varStr, condStr), true
-	case ContainsNot:
-		return !strings.Contains(varStr, condStr), true
-	case ContainsNoCase:
 		return strings.Contains(strings.ToLower(varStr), strings.ToLower(condStr)), true
-	case ContainsNotNoCase:
+	case ContainsNot:
 		return !strings.Contains(strings.ToLower(varStr), strings.ToLower(condStr)), true
+	case ContainsCase:
+		return strings.Contains(varStr, condStr), true
+	case ContainsNotCase:
+		return !strings.Contains(varStr, condStr), true
 	case GreaterEqual:
 		if err1 == nil && err2 == nil {
 			return varNum >= condNum, true
@@ -431,7 +431,7 @@ func (c *Condition) compareEmpty() bool {
 	switch c.operator {
 	case Equal,
 		Contains,
-		ContainsNoCase,
+		ContainsCase,
 		GreaterEqual,
 		Greater,
 		RegexMatch,
@@ -440,7 +440,7 @@ func (c *Condition) compareEmpty() bool {
 		return false
 	case Unequal,
 		ContainsNot,
-		ContainsNotNoCase,
+		ContainsNotCase,
 		LowerEqual,
 		Lower,
 		RegexMatchNot,
@@ -910,4 +910,42 @@ func (cl *ConditionList) String() string {
 
 	// top level conditions are joined as OR
 	return strings.Join(res, " or ")
+}
+
+func replaceStrOp(input string) string {
+	token := utils.TokenizeBy(input, "()", true, true)
+
+	output := make([]string, 0, len(token))
+	for idx := 0; idx < len(token); idx++ {
+		str := token[idx]
+		if strings.HasSuffix(str, "str") && len(token) >= idx+3 && token[idx+1] == "(" {
+			// str()
+			if token[idx+2] == ")" {
+				output = append(output, strings.TrimSuffix(str, "str"), "''")
+				idx += 2
+
+				continue
+			}
+
+			// str(')
+			if strings.HasSuffix(token[idx+2], ")") {
+				output = append(output, strings.TrimSuffix(str, "str"), "'"+strings.ReplaceAll(strings.TrimSuffix(token[idx+2], ")"), "'", "\\'")+"'")
+				idx += 2
+
+				continue
+			}
+
+			// str(txt)
+			if len(token) >= idx+4 && token[idx+3] == ")" {
+				output = append(output, strings.TrimSuffix(str, "str"), "'"+strings.ReplaceAll(token[idx+2], "'", "\\'")+"'")
+				idx += 3
+
+				continue
+			}
+		}
+
+		output = append(output, str)
+	}
+
+	return strings.Join(output, "")
 }

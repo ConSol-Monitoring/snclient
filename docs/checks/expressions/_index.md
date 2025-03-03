@@ -21,10 +21,10 @@ ex.:
 
 To combine multiple expressions you can use logical operator and brackets.
 
-| Operator | Alias  | Description |
-| -------- | -------| ----------- |
-| `and`    | `&&`   | Logical **and** operator |
-| `or`     | `\|\|` | Logical **or** operator  |
+| Operator | Alias  | Description              | Example                  |
+| -------- | -------| ------------------------ | ------------------------ |
+| `and`    | `&&`   | Logical **and** operator | count = 0 and state != 1 |
+| `or`     | `\|\|` | Logical **or** operator  | used > 5 or free < 20    |
 
 ex.:
 
@@ -32,21 +32,29 @@ ex.:
 
 ## Operator
 
-| Operator    | Alias / Safe expression     | Types   | Description |
-| ----------- | --------------------------- | --------| ----------- |
-| `=`         | `==`, `is`, `eq`            | Strings, Numbers | Matches on **exact equality**, ex.: `status = 'started'` |
-| `!=`        | `is not`, `ne`              | Strings, Numbers | Matches if value is **not exactly equal**. ex.: `5 != 3` |
-| `like`      |                             | Strings | Matches if value contains the condition (**substring match**), ex.: `status like "pend"` |
-| `unlike`    | `not like`                  | Strings | Matches if value does **not contain** the **substring**, ex.: `status unlike "stopped"` |
-| `ilike`     |                             | Strings | Matches a **case insensitive substring**, ex.: `name ilike "WMI"` |
-| `not ilike` |                             | Strings | Matches if a **case insensitive substring** cannot be found, ex.: `name not ilike "WMI"` |
-| `~`         | `regex`, `regexp`           | Strings | Performs a **regular expression** match, ex.: `status ~ '^pend'` |
-| `!~`        | `not regex`, `not regexp`   | Strings | Performs a **inverse regular expression** match, ex.: `status !~ 'stop'` |
-| `~~`        | `regexi`, `regexpi`         | Strings | Performs a **case insensitive regular expression** match, ex.: `status ~~ '^pend'`. An alternative way is to use `//i` as in `status ~ /^pend/i` |
-| `!~~`       | `not regexi`, `not regexpi` | Strings | Performs a **inverse case insensitive regular expression** match, ex.: `status !~~ 'stop'` |
-| `<`         | `lt`                        | Numbers | Matches **lower than** numbers, ex.: `usage < 5%` |
-| `<=`        | `le`, `lte`                 | Numbers | Matches **lower or equal** numbers, ex.: `usage <= 5%` |
-| `>`         | `gt`                        | Numbers | Matches **greater than** numbers, ex.: `usage > 5%` |
-| `>=`        | `ge`, `gte`                 | Numbers | Matches **greater or equal** numbers, ex.: `usage >= 5%` |
-| `in`        |                             | Strings | Matches if element **is in list**  ex.: `status in ('start', 'pending')` |
-| `not in`    |                             | Strings | Matches if element **is not in list**  ex.: `status not in ('stopped', 'starting')` |
+| Operator    | Alias / Safe expression     | Types            | Case Sens. | Description |
+| ----------- | --------------------------- | -----------------| ---------- | ----------- |
+| `=`         | `==`, `is`, `eq`            | Strings, Numbers | Yes        | Matches on **exact equality**, ex.: `status = 'started'` |
+| `!=`        | `is not`, `ne`              | Strings, Numbers | Yes        | Matches if value is **not exactly equal**. ex.: `5 != 3` |
+| `like`      | `ilike`                     | Strings          | No         | Matches if value contains the condition (**case insensitive substring match**), ex.: `status like "pend"` |
+| `unlike`    | `not like`, `not ilike`     | Strings          | No         | Matches if value does **not contain** the **case insensitive substring**, ex.: `status unlike "stopped"` |
+| `slike`     | `strictlike`                | Strings          | Yes        | Matches a **case sensitive substring**, ex.: `name slike "WMI"` |
+| `not slike` | `not strictlike`            | Strings          | Yes        | Matches if a **case sensitive substring** cannot be found, ex.: `name not slike "WMI"` |
+| `~`         | `regex`, `regexp`           | Strings          | Yes        | Performs a **regular expression** match, ex.: `status ~ '^pend'` |
+| `!~`        | `not regex`, `not regexp`   | Strings          | Yes        | Performs a **inverse regular expression** match, ex.: `status !~ 'stop'` |
+| `~~`        | `regexi`, `regexpi`         | Strings          | No         | Performs a **case insensitive regular expression** match, ex.: `status ~~ '^pend'`. An alternative way is to use `//i` as in `status ~ /^pend/i` |
+| `!~~`       | `not regexi`, `not regexpi` | Strings          | No         | Performs a **inverse case insensitive regular expression** match, ex.: `status !~~ 'stop'` |
+| `<`         | `lt`                        | Numbers          | -          | Matches **lower than** numbers, ex.: `usage < 5%` |
+| `<=`        | `le`, `lte`                 | Numbers          | -          | Matches **lower or equal** numbers, ex.: `usage <= 5%` |
+| `>`         | `gt`                        | Numbers          | -          | Matches **greater than** numbers, ex.: `usage > 5%` |
+| `>=`        | `ge`, `gte`                 | Numbers          | -          | Matches **greater or equal** numbers, ex.: `usage >= 5%` |
+| `in`        |                             | Strings          | Yes        | Matches if element **is in list**  ex.: `status in ('start', 'pending')` |
+| `not in`    |                             | Strings          | Yes        | Matches if element **is not in list**  ex.: `status not in ('stopped', 'starting')` |
+
+## Other Operators
+
+For backwards compatibility there more operators available:
+
+| Operator | Alias   | Description     | Example                     |
+| -------- | --------| ----------------| --------------------------- |
+| `''`     | `str()` | String constant | exe like str(winlogon.exe)  |

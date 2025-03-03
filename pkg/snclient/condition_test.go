@@ -151,6 +151,13 @@ func TestConditionCompare(t *testing.T) {
 		{"unknown like blah or test unlike blah", "test", "blah", false, false},
 		{"unknown unlike blah and test like blah", "test", "blah", false, false},
 		{"unknown like blah and test unlike blah", "test", "blah", false, true},
+		{"test like 'blah'", "test", "blah", true, true},
+		{"test ilike 'blah'", "test", "blah", true, true},
+		{"test like 'Blah'", "test", "blah", true, true},
+		{"test ilike 'Blah'", "test", "blah", true, true},
+		{"test slike 'blah'", "test", "blah", true, true},
+		{"test slike 'Blah'", "test", "blah", false, true},
+		{"test like str(blah)", "test", "blah", true, true},
 	} {
 		threshold, err := NewCondition(check.threshold)
 		require.NoErrorf(t, err, "parsed threshold")
@@ -223,4 +230,30 @@ func TestConditionAlias(t *testing.T) {
 
 	check.filter[0].original = "" // avoid shortcut String builder
 	assert.Containsf(t, check.filter[0].String(), `state = running`, "filter condition replaced")
+}
+
+func TestConditionStrOp(t *testing.T) {
+	input := "'blah' like str(Blah)"
+	output := replaceStrOp(input)
+	assert.Equal(t, `'blah' like 'Blah'`, output)
+
+	input = "'blah' like str()"
+	output = replaceStrOp(input)
+	assert.Equal(t, `'blah' like ''`, output)
+
+	input = "'blah' like str(a'b)"
+	output = replaceStrOp(input)
+	assert.Equal(t, `'blah' like 'a\'b'`, output)
+
+	input = "'blah' like str(a\"'b)"
+	output = replaceStrOp(input)
+	assert.Equal(t, `'blah' like 'a"\'b'`, output)
+
+	input = "'blah' like str(a'b'c)"
+	output = replaceStrOp(input)
+	assert.Equal(t, `'blah' like 'a\'b\'c'`, output)
+
+	input = "( state not in ('running', 'oneshot', 'static') || active = 'failed' )  && preset != 'disabled'"
+	output = replaceStrOp(input)
+	assert.Equal(t, input, output)
 }

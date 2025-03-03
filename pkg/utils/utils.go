@@ -250,13 +250,16 @@ func TokenizeBy(str, separator string, keepQuotes, keepSeparator bool) []string 
 			if keepQuotes || inDbl {
 				token = append(token, char)
 			}
-		case strings.ContainsRune(separator, char):
+		case separator != "" && strings.ContainsRune(separator, char):
 			switch {
 			case inQuotes, inDbl:
 				token = append(token, char)
 			case len(token) > 0:
 				tokens = append(tokens, string(token))
 				token = make([]rune, 0)
+
+				fallthrough
+			case len(token) == 0:
 				if keepSeparator {
 					tokens = append(tokens, string(char))
 				}
