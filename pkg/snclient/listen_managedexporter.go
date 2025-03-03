@@ -324,11 +324,11 @@ func (l *HandlerManagedExporter) procMemWatcher() {
 func (l *HandlerManagedExporter) logPass(f string, v ...interface{}) {
 	entry := fmt.Sprintf(f, v...)
 	switch {
-	case strings.Contains(entry, "level=warn"):
+	case strings.Contains(strings.ToLower(entry), "level=warn"):
 		log.Warn(entry)
-	case strings.Contains(entry, "level=info"):
+	case strings.Contains(strings.ToLower(entry), "level=info"):
 		log.Debug(entry)
-	case strings.Contains(entry, "level=debug"):
+	case strings.Contains(strings.ToLower(entry), "level=debug"):
 		log.Trace(entry)
 	default:
 		log.Error(entry)
