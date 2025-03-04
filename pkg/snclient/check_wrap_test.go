@@ -62,6 +62,7 @@ check_win_subargs = t\scripts\check_args.ps1 $ARG1$
 [/settings/external scripts/wrapped scripts]
 check_dummy_wrapped_noparm = check_dummy.EXTENSION
 check_dummy_wrapped = check_dummy.EXTENSION $ARG1$ "$ARG2$"
+check_dummy_wrapped_args = check_dummy.EXTENSION $ARGS"$
 check_dummy_wrapped_ok = check_dummy.EXTENSION 0 "i am ok wrapped"
 check_dummy_wrapped_critical = check_dummy.EXTENSION 2 "i am critical wrapped"
 
@@ -157,6 +158,10 @@ func runTestCheckExternalWrapped(t *testing.T, snc *Agent) {
 	assert.Equalf(t, "Invalid state argument. Please provide one of: 0, 1, 2, 3", string(res.BuildPluginOutput()), "output matches")
 
 	res = snc.RunCheck("check_dummy_wrapped", []string{"0", "i am wrapped"})
+	assert.Equalf(t, CheckExitOK, res.State, "state matches")
+	assert.Equalf(t, "OK: i am wrapped", string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_dummy_wrapped_args", []string{"0", "i am wrapped"})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
 	assert.Equalf(t, "OK: i am wrapped", string(res.BuildPluginOutput()), "output matches")
 

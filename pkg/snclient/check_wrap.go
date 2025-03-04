@@ -49,10 +49,15 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 	var command string
 	if l.wrapped {
 		// substitute $ARGn$ in the command
+		log.Debugf("command string: %s", l.commandString)
+		macros["ARGS"] = strings.Join(check.rawArgs, " ")
+		macros["ARGS\""] = stringJoinQuoted(check.rawArgs, " ")
 		commandString := ReplaceRuntimeMacros(l.commandString, macros)
+
 		cmdToken := utils.Tokenize(commandString)
 		macros["SCRIPT"] = cmdToken[0]
 		macros["ARGS"] = strings.Join(cmdToken[1:], " ")
+		macros["ARGS\""] = stringJoinQuoted(cmdToken[1:], " ")
 		ext := strings.TrimPrefix(filepath.Ext(cmdToken[0]), ".")
 		log.Debugf("command wrapping for extension: %s", ext)
 		wrapping, ok := snc.config.Section("/settings/external scripts/wrappings").GetString(ext)
@@ -62,18 +67,13 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		wrapping = l.fixWrappingCmd(ext, wrapping)
 		log.Debugf("%s wrapper: %s", ext, wrapping)
 		command = ReplaceRuntimeMacros(wrapping, macros)
+		log.Debugf("command after macros expanded: %s", command)
 	} else {
 		macros["ARGS"] = strings.Join(check.rawArgs, " ")
-		macros["ARGS\""] = strings.Join(func(arr []string) []string {
-			quoteds := make([]string, len(arr))
-			for i, v := range arr {
-				quoteds[i] = fmt.Sprintf("%q", v)
-			}
-
-			return quoteds
-		}(check.rawArgs), " ")
+		macros["ARGS\""] = stringJoinQuoted(check.rawArgs, " ")
 		log.Debugf("command before macros expanded: %s", l.commandString)
 		command = ReplaceRuntimeMacros(l.commandString, macros)
+		log.Debugf("command after macros expanded: %s", command)
 	}
 
 	timeoutSeconds := check.timeout
@@ -132,4 +132,13 @@ func (l *CheckWrap) fixWrappingCmd(ext, wrapping string) string {
 	wrapping = strings.ReplaceAll(wrapping, "\""+escapedScriptRoot, "\""+scriptRoot)
 
 	return wrapping
+}
+
+func stringJoinQuoted(arr []string, sep string) string {
+	quoteds := make([]string, len(arr))
+	for i, v := range arr {
+		quoteds[i] = fmt.Sprintf("%q", v)
+	}
+
+	return strings.Join(quoteds, sep)
 }
