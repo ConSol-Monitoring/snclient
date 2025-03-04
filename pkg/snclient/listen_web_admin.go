@@ -11,7 +11,20 @@ import (
 )
 
 func init() {
-	RegisterModule(&AvailableListeners, "WEBAdminServer", "/settings/WEBAdmin/server", NewHandlerAdmin)
+	RegisterModule(&AvailableListeners,
+		"WEBAdminServer",
+		"/settings/WEBAdmin/server",
+		NewHandlerAdmin,
+		ConfigInit{
+			ConfigData{
+				"port":            "${/settings/WEB/server/port}",
+				"use ssl":         "${/settings/WEB/server/use ssl}",
+				"allow arguments": "true",
+			},
+			"/settings/default",
+			DefaultListenHTTPConfig,
+		},
+	)
 }
 
 type HandlerAdmin struct {
@@ -53,18 +66,6 @@ func (l *HandlerAdmin) Stop() {
 	if l.listener != nil {
 		l.listener.Stop()
 	}
-}
-
-func (l *HandlerAdmin) Defaults(runSet *AgentRunSet) ConfigData {
-	defaults := ConfigData{
-		"port":            "8443",
-		"use ssl":         "1",
-		"allow arguments": "true",
-	}
-	defaults.Merge(runSet.config.Section("/settings/default").data)
-	defaults.Merge(DefaultListenHTTPConfig)
-
-	return defaults
 }
 
 func (l *HandlerAdmin) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {

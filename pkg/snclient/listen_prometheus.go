@@ -10,7 +10,20 @@ import (
 )
 
 func init() {
-	RegisterModule(&AvailableListeners, "PrometheusServer", "/settings/Prometheus/server", NewHandlerPrometheus)
+	RegisterModule(
+		&AvailableListeners,
+		"PrometheusServer",
+		"/settings/Prometheus/server",
+		NewHandlerPrometheus,
+		ConfigInit{
+			ConfigData{
+				"port":    "9999",
+				"use ssl": "0",
+			},
+			"/settings/default",
+			DefaultListenHTTPConfig,
+		},
+	)
 }
 
 var (
@@ -116,17 +129,6 @@ func (l *HandlerPrometheus) Start() error {
 
 func (l *HandlerPrometheus) Stop() {
 	l.listener.Stop()
-}
-
-func (l *HandlerPrometheus) Defaults(runSet *AgentRunSet) ConfigData {
-	defaults := ConfigData{
-		"port":    "9999",
-		"use ssl": "0",
-	}
-	defaults.Merge(runSet.config.Section("/settings/default").data)
-	defaults.Merge(DefaultListenHTTPConfig)
-
-	return defaults
 }
 
 func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {

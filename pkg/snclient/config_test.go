@@ -386,6 +386,28 @@ allowed hosts  = 127.0.0.1, ::1, 192.168.1.1`
 	assert.Containsf(t, allowed, "192.168.1.1", "reading appended config")
 }
 
+func TestConfigDefaults(t *testing.T) {
+	configText := `
+[/modules]
+NodeExporterServer = enabled
+`
+
+	iniFile, _ := os.CreateTemp(t.TempDir(), "snclient-*.ini")
+	defer os.Remove(iniFile.Name())
+	_, _ = iniFile.WriteString(configText)
+	err := iniFile.Close()
+	require.NoErrorf(t, err, "config written")
+
+	snc := &Agent{}
+	initSet, err := snc.readConfiguration([]string{iniFile.Name()})
+	require.NoErrorf(t, err, "config parsed")
+
+	section := initSet.config.Section("/settings/NodeExporter/server")
+	port, _ := section.GetString("port")
+
+	assert.Containsf(t, port, "8443", "reading default config")
+}
+
 func TestConfigHTTPInclude(t *testing.T) {
 	snc := StartTestAgent(t, "")
 	testPort := 55557

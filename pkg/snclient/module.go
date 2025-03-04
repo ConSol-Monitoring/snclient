@@ -4,9 +4,10 @@ import (
 	"fmt"
 )
 
+var moduleConfigDefaults map[string]ConfigInit
+
 // Module is a generic module interface to abstract optional agent functionality
 type Module interface {
-	Defaults(runSet *AgentRunSet) ConfigData
 	Init(snc *Agent, section *ConfigSection, cfg *Config, runSet *AgentRunSet) error
 	Start() error
 	Stop()
@@ -99,13 +100,24 @@ type LoadableModule struct {
 }
 
 // RegisterModule creates a new Module object and puts it on the list of available modules.
-func RegisterModule(list *[]*LoadableModule, moduleKey, confKey string, creator func() Module) {
+func RegisterModule(list *[]*LoadableModule, moduleKey, confKey string, creator func() Module, confInit ConfigInit) *LoadableModule {
 	module := LoadableModule{
 		ModuleKey: moduleKey,
 		ConfigKey: confKey,
 		Creator:   creator,
 	}
 	*list = append(*list, &module)
+
+	if moduleConfigDefaults == nil {
+		moduleConfigDefaults = map[string]ConfigInit{}
+	}
+
+	if _, ok := moduleConfigDefaults[confKey]; ok {
+		log.Panicf("module section %s registered twice", confKey)
+	}
+	moduleConfigDefaults[confKey] = confInit
+
+	return &module
 }
 
 // Name returns name of this module
@@ -116,10 +128,7 @@ func (lm *LoadableModule) Name() string {
 // Init creates the actual TaskHandler for this task
 func (lm *LoadableModule) Init(snc *Agent, conf *Config, runSet *AgentRunSet) (Module, error) {
 	handler := lm.Creator()
-
 	modConf := conf.Section(lm.ConfigKey)
-	modConf.MergeData(handler.Defaults(runSet))
-	conf.ReplaceMacrosDefault(modConf)
 
 	err := handler.Init(snc, modConf, conf, runSet)
 	if err != nil {

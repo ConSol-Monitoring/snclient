@@ -11,11 +11,24 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-const (
-	// DefaultPassword sets default password, login with default password is not
-	// possible. It needs to be changed in the ini file.
-	DefaultPassword = "CHANGEME"
-)
+func init() {
+	RegisterModule(
+		&AvailableListeners,
+		"WEBServer",
+		"/settings/WEB/server",
+		NewHandlerWeb,
+		ConfigInit{
+			ConfigData{
+				"port":                   "8443",
+				"use ssl":                "1",
+				"allow arguments":        "true",
+				"allow nasty characters": "false",
+			},
+			"/settings/default",
+			DefaultListenHTTPConfig,
+		},
+	)
+}
 
 type CheckWebLine struct {
 	Message string         `json:"message"`
@@ -50,10 +63,6 @@ func (n CheckWebPerfNumber) MarshalJSON() ([]byte, error) {
 	}
 
 	return []byte(n), nil
-}
-
-func init() {
-	RegisterModule(&AvailableListeners, "WEBServer", "/settings/WEB/server", NewHandlerWeb)
 }
 
 type HandlerWeb struct {
@@ -103,19 +112,6 @@ func (l *HandlerWeb) Stop() {
 	if l.listener != nil {
 		l.listener.Stop()
 	}
-}
-
-func (l *HandlerWeb) Defaults(runSet *AgentRunSet) ConfigData {
-	defaults := ConfigData{
-		"port":                   "8443",
-		"use ssl":                "1",
-		"allow arguments":        "true",
-		"allow nasty characters": "false",
-	}
-	defaults.Merge(runSet.config.Section("/settings/default").data)
-	defaults.Merge(DefaultListenHTTPConfig)
-
-	return defaults
 }
 
 func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {

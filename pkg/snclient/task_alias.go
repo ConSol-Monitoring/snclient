@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	RegisterModule(&AvailableTasks, "CheckAlias", "/settings/external scripts/alias", NewAliasHandler)
+	RegisterModule(&AvailableTasks, "CheckAlias", "/settings/external scripts/alias", NewAliasHandler, nil)
 }
 
 type AliasHandler struct {
@@ -17,10 +17,6 @@ type AliasHandler struct {
 
 func NewAliasHandler() Module {
 	return &AliasHandler{}
-}
-
-func (a *AliasHandler) Defaults(_ *AgentRunSet) ConfigData {
-	return nil
 }
 
 func (a *AliasHandler) Init(_ *Agent, section *ConfigSection, conf *Config, runSet *AgentRunSet) error {

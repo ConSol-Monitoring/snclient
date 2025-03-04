@@ -11,15 +11,6 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
-var DefaultHTTPClientConfig = ConfigData{
-	"insecure":            "false",
-	"tls min version":     "tls1.2",
-	"request timeout":     "60",
-	"username":            "",
-	"password":            "",
-	"client certificates": "",
-}
-
 type HTTPClientOptions struct {
 	tlsConfig  *tls.Config
 	reqTimeout int64

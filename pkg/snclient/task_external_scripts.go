@@ -8,7 +8,22 @@ import (
 )
 
 func init() {
-	RegisterModule(&AvailableTasks, "CheckExternalScripts", "/settings/external scripts", NewExternalScriptsHandler)
+	RegisterModule(
+		&AvailableTasks,
+		"CheckExternalScripts",
+		"/settings/external scripts",
+		NewExternalScriptsHandler,
+		ConfigInit{
+			ConfigData{
+				"timeout":                "60",
+				"script root":            "${scripts}", // root path of all scripts
+				"script path":            "",           // load scripts from this folder automatically
+				"allow nasty characters": "false",
+				"allow arguments":        "false",
+				"ignore perfdata":        "false",
+			},
+		},
+	)
 }
 
 type ExternalScriptsHandler struct {
@@ -18,19 +33,6 @@ type ExternalScriptsHandler struct {
 
 func NewExternalScriptsHandler() Module {
 	return &ExternalScriptsHandler{}
-}
-
-func (e *ExternalScriptsHandler) Defaults(_ *AgentRunSet) ConfigData {
-	defaults := ConfigData{
-		"timeout":                "60",
-		"script root":            "${scripts}", // root path of all scripts
-		"script path":            "",           // load scripts from this folder automatically
-		"allow nasty characters": "false",
-		"allow arguments":        "false",
-		"ignore perfdata":        "false",
-	}
-
-	return defaults
 }
 
 func (e *ExternalScriptsHandler) Init(snc *Agent, defaultScriptConfig *ConfigSection, conf *Config, runSet *AgentRunSet) error {

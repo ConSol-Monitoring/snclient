@@ -9,7 +9,22 @@ import (
 )
 
 func init() {
-	RegisterModule(&AvailableListeners, "NRPEServer", "/settings/NRPE/server", NewHandlerNRPE)
+	RegisterModule(
+		&AvailableListeners,
+		"NRPEServer",
+		"/settings/NRPE/server",
+		NewHandlerNRPE,
+		ConfigInit{
+			ConfigData{
+				"allow arguments":        "false",
+				"allow nasty characters": "false",
+				"port":                   "5666",
+				"use ssl":                "true",
+			},
+			"/settings/default",
+			DefaultListenTCPConfig,
+		},
+	)
 }
 
 const NastyCharacters = "$|`&><'\"\\[]{}"
@@ -27,19 +42,6 @@ var _ RequestHandlerTCP = &HandlerNRPE{}
 
 func NewHandlerNRPE() Module {
 	return &HandlerNRPE{}
-}
-
-func (l *HandlerNRPE) Defaults(runSet *AgentRunSet) ConfigData {
-	defaults := ConfigData{
-		"allow arguments":        "false",
-		"allow nasty characters": "false",
-		"port":                   "5666",
-		"use ssl":                "true",
-	}
-	defaults.Merge(runSet.config.Section("/settings/default").data)
-	defaults.Merge(DefaultListenTCPConfig)
-
-	return defaults
 }
 
 func (l *HandlerNRPE) Init(snc *Agent, conf *ConfigSection, _ *Config, _ *AgentRunSet) error {

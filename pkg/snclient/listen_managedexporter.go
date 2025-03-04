@@ -95,20 +95,6 @@ func (l *HandlerManagedExporter) StopProc() {
 	l.pid = 0
 }
 
-func (l *HandlerManagedExporter) Defaults(runSet *AgentRunSet) ConfigData {
-	defaults := ConfigData{
-		"port":             "8443",
-		"agent address":    "127.0.0.1:9999",
-		"agent max memory": "256M",
-		"use ssl":          "1",
-		"url prefix":       "/custom",
-	}
-	defaults.Merge(runSet.config.Section("/settings/default").data)
-	defaults.Merge(DefaultListenHTTPConfig)
-
-	return defaults
-}
-
 func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
 	l.conf = conf

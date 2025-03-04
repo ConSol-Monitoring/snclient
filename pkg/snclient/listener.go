@@ -17,24 +17,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-var DefaultListenTCPConfig = ConfigData{
-	"allowed hosts":       "127.0.0.1, [::1]",
-	"bind to":             "",
-	"cache allowed hosts": "1",
-	"certificate":         "${certificate-path}/server.crt",
-	"certificate key":     "${certificate-path}/server.key",
-	"timeout":             "30",
-	"use ssl":             "0",
-}
-
-var DefaultListenHTTPConfig = ConfigData{
-	"password": DefaultPassword,
-}
-
-func init() {
-	DefaultListenHTTPConfig.Merge(DefaultListenTCPConfig)
-}
-
 // Listener is a generic tcp listener and handles all incoming connections.
 type Listener struct {
 	noCopy        noCopy

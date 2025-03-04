@@ -474,6 +474,22 @@ func (snc *Agent) readConfiguration(files []string) (initSet *AgentRunSet, err e
 		section.MergeData(defaults)
 	}
 
+	// apply module defaults
+	for key, modConf := range moduleConfigDefaults {
+		section := config.Section(key)
+		for _, modInit := range modConf {
+			switch val := modInit.(type) {
+			case string:
+				s := config.Section(val)
+				section.MergeData(s.data)
+			case ConfigData:
+				section.MergeData(val)
+			default:
+				log.Panicf("unsupported config init type: %#v", val)
+			}
+		}
+	}
+
 	// set defaults in path section
 	pathSection := snc.setDefaultPaths(config, files)
 

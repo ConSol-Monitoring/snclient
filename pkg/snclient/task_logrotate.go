@@ -11,7 +11,17 @@ import (
 const rotateCheckInterval = 60 * time.Second
 
 func init() {
-	RegisterModule(&AvailableTasks, "Logrotate", "/settings/log/file", NewLogrotateHandler)
+	RegisterModule(
+		&AvailableTasks,
+		"Logrotate",
+		"/settings/log/file",
+		NewLogrotateHandler,
+		ConfigInit{
+			ConfigData{
+				"max size": "0",
+			},
+		},
+	)
 }
 
 type LogrotateHandler struct {
@@ -25,14 +35,6 @@ type LogrotateHandler struct {
 
 func NewLogrotateHandler() Module {
 	return &LogrotateHandler{}
-}
-
-func (l *LogrotateHandler) Defaults(_ *AgentRunSet) ConfigData {
-	defaults := ConfigData{
-		"max size": "0",
-	}
-
-	return defaults
 }
 
 func (l *LogrotateHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *AgentRunSet) error {

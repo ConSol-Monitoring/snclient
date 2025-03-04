@@ -42,7 +42,24 @@ const (
 var reVersion = regexp.MustCompile(`SNClient.*?\s+(v[\d.]+)\s+`)
 
 func init() {
-	RegisterModule(&AvailableTasks, "Updates", "/settings/updates", NewUpdateHandler)
+	RegisterModule(
+		&AvailableTasks,
+		"Updates",
+		"/settings/updates",
+		NewUpdateHandler,
+		ConfigInit{
+			ConfigData{
+				"automatic updates": "disabled",
+				"automatic restart": "disabled",
+				"channel":           "stable",
+				"pre release":       "false",
+				"update interval":   "1h",
+				"update hours":      "0-24",
+				"update days":       "mon-sun",
+			},
+			DefaultHTTPClientConfig,
+		},
+	)
 }
 
 type UpdateHandler struct {
@@ -82,22 +99,6 @@ func NewUpdateHandler() Module {
 	return &UpdateHandler{
 		urlCache: make(map[string]cachedURLVersion),
 	}
-}
-
-func (u *UpdateHandler) Defaults(_ *AgentRunSet) ConfigData {
-	defaults := ConfigData{
-		"automatic updates": "disabled",
-		"automatic restart": "disabled",
-		"channel":           "stable",
-		"pre release":       "false",
-		"update interval":   "1h",
-		"update hours":      "0-24",
-		"update days":       "mon-sun",
-	}
-
-	defaults.Merge(DefaultHTTPClientConfig)
-
-	return defaults
 }
 
 func (u *UpdateHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *AgentRunSet) error {

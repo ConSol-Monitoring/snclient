@@ -25,6 +25,12 @@ import (
 
 const POWERSHELL = "powershell.exe -nologo -noprofile -WindowStyle hidden -NonInteractive -ExecutionPolicy ByPass"
 
+const (
+	// DefaultPassword sets default password, login with default password is not
+	// possible. It needs to be changed in the ini file.
+	DefaultPassword = "CHANGEME"
+)
+
 var DefaultConfig = map[string]ConfigData{
 	"/modules": {
 		"Logrotate":            "enabled",
@@ -39,6 +45,7 @@ var DefaultConfig = map[string]ConfigData{
 		"PrometheusServer":     "disabled",
 		"Updates":              "enabled",
 	},
+	"/settings/default": {},
 	"/settings/updates": {
 		"channel": "stable",
 	},
@@ -56,6 +63,34 @@ var DefaultConfig = map[string]ConfigData{
 			`exit($lastexitcode) | ` + POWERSHELL + ` -command -`,
 		"vbs": `cscript.exe //T:30 //NoLogo "${script root}\%SCRIPT%" %ARGS%`,
 	},
+}
+
+var DefaultListenTCPConfig = ConfigData{
+	"allowed hosts":       "127.0.0.1, [::1]",
+	"bind to":             "",
+	"cache allowed hosts": "1",
+	"certificate":         "${certificate-path}/server.crt",
+	"certificate key":     "${certificate-path}/server.key",
+	"timeout":             "30",
+	"use ssl":             "0",
+}
+
+var DefaultListenHTTPConfig = ConfigData{
+	"password": DefaultPassword,
+}
+
+var DefaultHTTPClientConfig = ConfigData{
+	"insecure":            "false",
+	"tls min version":     "tls1.2",
+	"request timeout":     "60",
+	"username":            "",
+	"password":            "",
+	"client certificates": "",
+}
+
+func init() {
+	// HTTP inherits TCP defaults
+	DefaultListenHTTPConfig.Merge(DefaultListenTCPConfig)
 }
 
 type configFiles []string
@@ -929,3 +964,5 @@ func (d *ConfigData) Merge(defaults ConfigData) {
 		}
 	}
 }
+
+type ConfigInit []interface{}

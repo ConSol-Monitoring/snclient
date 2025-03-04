@@ -4,8 +4,19 @@ import (
 	"path"
 )
 
+var defaultManagedExporterConfig = ConfigData{
+	"agent path":       "",
+	"agent args":       "",
+	"agent address":    "127.0.0.1:9990",
+	"agent max memory": "256M",
+	"agent user":       "",
+	"port":             "${/settings/WEB/server/port}",
+	"use ssl":          "${/settings/WEB/server/use ssl}",
+	"url prefix":       "",
+}
+
 func init() {
-	RegisterModule(&AvailableTasks, "ManagedExporterServer", "/settings/ManagedExporter", NewManagedExporterHandler)
+	RegisterModule(&AvailableTasks, "ManagedExporterServer", "/settings/ManagedExporter", NewManagedExporterHandler, nil)
 }
 
 type ManagedExporterHandler struct {
@@ -15,12 +26,6 @@ type ManagedExporterHandler struct {
 
 func NewManagedExporterHandler() Module {
 	return &ManagedExporterHandler{}
-}
-
-func (ch *ManagedExporterHandler) Defaults(_ *AgentRunSet) ConfigData {
-	defaults := ConfigData{}
-
-	return defaults
 }
 
 func (ch *ManagedExporterHandler) Init(snc *Agent, _ *ConfigSection, conf *Config, _ *AgentRunSet) error {
@@ -53,7 +58,8 @@ func (ch *ManagedExporterHandler) registerHandler(conf *Config) (nr int64) {
 
 			return expModule
 		}
-		RegisterModule(&AvailableListeners, "ManagedExporterServer", sectionName, expModule)
+
+		RegisterModule(&AvailableListeners, "ManagedExporterServer", sectionName, expModule, ConfigInit{defaultManagedExporterConfig})
 		nr++
 	}
 

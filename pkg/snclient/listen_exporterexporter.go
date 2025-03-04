@@ -24,7 +24,21 @@ import (
 )
 
 func init() {
-	RegisterModule(&AvailableListeners, "ExporterExporterServer", "/settings/ExporterExporter/server", NewHandlerExporterExporter)
+	RegisterModule(
+		&AvailableListeners,
+		"ExporterExporterServer",
+		"/settings/ExporterExporter/server",
+		NewHandlerExporterExporter,
+		ConfigInit{
+			ConfigData{
+				"port":       "${/settings/WEB/server/port}",
+				"use ssl":    "${/settings/WEB/server/use ssl}",
+				"url prefix": "/",
+			},
+			"/settings/default",
+			DefaultListenHTTPConfig,
+		},
+	)
 }
 
 type HandlerExporterExporter struct {
@@ -70,18 +84,6 @@ func (l *HandlerExporterExporter) Start() error {
 
 func (l *HandlerExporterExporter) Stop() {
 	l.listener.Stop()
-}
-
-func (l *HandlerExporterExporter) Defaults(runSet *AgentRunSet) ConfigData {
-	defaults := ConfigData{
-		"port":       "8443",
-		"use ssl":    "1",
-		"url prefix": "/",
-	}
-	defaults.Merge(runSet.config.Section("/settings/default").data)
-	defaults.Merge(DefaultListenHTTPConfig)
-
-	return defaults
 }
 
 func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {

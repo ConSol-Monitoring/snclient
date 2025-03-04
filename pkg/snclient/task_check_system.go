@@ -19,6 +19,13 @@ const (
 	DefaultSystemMetricsMeasureInterval = 1 * time.Second
 )
 
+// DefaultSystemTaskConfig sets defaults for windows and unix system task
+var DefaultSystemTaskConfig = ConfigData{
+	"default buffer length": "15m",
+	"device filter":         "^veth",
+	"metrics interval":      "5s",
+}
+
 type CheckSystemHandler struct {
 	noCopy noCopy
 
@@ -32,16 +39,6 @@ type CheckSystemHandler struct {
 
 func NewCheckSystemHandler() Module {
 	return &CheckSystemHandler{}
-}
-
-func (c *CheckSystemHandler) Defaults(_ *AgentRunSet) ConfigData {
-	defaults := ConfigData{
-		"default buffer length": "15m",
-		"device filter":         "^veth",
-		"metrics interval":      "5s",
-	}
-
-	return defaults
 }
 
 func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *AgentRunSet) error {
