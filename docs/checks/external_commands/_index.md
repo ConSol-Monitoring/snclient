@@ -51,6 +51,12 @@ You can manage script arguments in two ways: embedding them directly into the co
 allow arguments = true
 ```
 
+Arguments are available in macros:
+
+- `$ARGS$` contains all macros space separated **without** quotes.
+- `$ARGS"$` contains all macros space separated **with quotes**.
+- `$ARGSn$` contains the value of the argument at position `n`.
+
 ### Configuration Reference
 
 Below, you'll find a reference section for configuring the External Script Integration feature of SNClient+
@@ -87,7 +93,7 @@ Define scripts available for execution via the External Script Integration featu
 command = custom_script.bat
 ```
 
-Scipts with an extension of .bat, .ps1 and .exe (Windows) or .sh and no extension at all (Unix) can be defined as follows.
+Scripts with an extension of .bat, .ps1 and .exe (Windows) or .sh and no extension at all (Unix) can be defined as follows.
 
 ```ini
 check_dummy = check_dummy.bat
@@ -96,7 +102,7 @@ check_dummy_critical = check_dummy.exe 2 "i am critical"
 check_dummy_arg = check_dummy.exe "$ARG1$" "$ARG2$"
 # for scripts with variable arguments
 check_dummy_args = check_dummy.bat $ARGS$
-check_dummy_args% = C:/Program Fles/snclient/scripts/check_dummy.exe %ARGS%
+check_dummy_args% = C:/Program Files/snclient/scripts/check_dummy.exe %ARGS%
 # put variable arguments in quotes
 check_dummy_argsq = ${scripts}/check_dummy.ps1 $ARGS"$
 restart_service = NET START "$ARG1$"
