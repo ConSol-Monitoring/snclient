@@ -162,16 +162,7 @@ type AgentRunSet struct {
 
 // NewAgent returns a new Agent object ready to be started by Run()
 func NewAgent(flags *AgentFlags) *Agent {
-	snc := &Agent{
-		Listeners: NewModuleSet("listener"),
-		Tasks:     NewModuleSet("task"),
-		Counter:   counter.NewCounterSet(),
-		config:    NewConfig(true),
-		flags:     flags,
-		Log:       log,
-	}
-	snc.checkFlags()
-	snc.createLogger(nil)
+	snc := NewAgentSimple(flags)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
 	initSet, err := snc.Init()
@@ -191,6 +182,22 @@ func NewAgent(flags *AgentFlags) *Agent {
 	snc.osSignalChannel = make(chan os.Signal, 1)
 
 	log.Tracef("os args: %#v", os.Args)
+
+	return snc
+}
+
+// NewAgentSimple returns a new Agent object and only checks flags
+func NewAgentSimple(flags *AgentFlags) *Agent {
+	snc := &Agent{
+		Listeners: NewModuleSet("listener"),
+		Tasks:     NewModuleSet("task"),
+		Counter:   counter.NewCounterSet(),
+		config:    NewConfig(true),
+		flags:     flags,
+		Log:       log,
+	}
+	snc.checkFlags()
+	snc.createLogger(nil)
 
 	return snc
 }
@@ -364,11 +371,10 @@ func (snc *Agent) startModules(initSet *AgentRunSet) {
 	snc.runSet = initSet
 }
 
-func (snc *Agent) Init() (*AgentRunSet, error) {
-	var files configFiles
-	files = snc.flags.ConfigFiles
+func (snc *Agent) FindConfigFiles() (files, defaultLocations ConfigFiles) {
+	files = ConfigFiles(snc.flags.ConfigFiles)
 
-	defaultLocations := []string{
+	defaultLocations = []string{
 		"./snclient.ini",
 		"/etc/snclient/snclient.ini",
 		filepath.Join(GlobalMacros["exe-path"], "snclient.ini"),
@@ -393,13 +399,19 @@ func (snc *Agent) Init() (*AgentRunSet, error) {
 		}
 	}
 
+	return files, defaultLocations
+}
+
+func (snc *Agent) Init() (*AgentRunSet, error) {
+	files, defaultLocations := snc.FindConfigFiles()
+
 	// still empty
 	if len(files) == 0 && snc.flags.Mode == ModeServer {
 		return nil, fmt.Errorf("no config file supplied (--config=..) and no readable config file found in default locations (%s)",
 			strings.Join(defaultLocations, ", "))
 	}
 
-	initSet, err := snc.readConfiguration(files)
+	initSet, err := snc.ReadConfiguration(files)
 	if err != nil {
 		return initSet, err
 	}
@@ -452,7 +464,7 @@ func getGlobalMacros() map[string]string {
 	return macros
 }
 
-func (snc *Agent) readConfiguration(files []string) (initSet *AgentRunSet, err error) {
+func (snc *Agent) ReadConfiguration(files []string) (initSet *AgentRunSet, err error) {
 	config := NewConfig(true)
 	initSet = &AgentRunSet{
 		config:     config,

@@ -399,7 +399,7 @@ NodeExporterServer = enabled
 	require.NoErrorf(t, err, "config written")
 
 	snc := &Agent{}
-	initSet, err := snc.readConfiguration([]string{iniFile.Name()})
+	initSet, err := snc.ReadConfiguration([]string{iniFile.Name()})
 	require.NoErrorf(t, err, "config parsed")
 
 	section := initSet.config.Section("/settings/NodeExporter/server")

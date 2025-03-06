@@ -93,15 +93,15 @@ func init() {
 	DefaultListenHTTPConfig.Merge(DefaultListenTCPConfig)
 }
 
-type configFiles []string
+type ConfigFiles []string
 
 // String returns the config files list as string.
-func (c *configFiles) String() string {
+func (c *ConfigFiles) String() string {
 	return fmt.Sprintf("%s", *c)
 }
 
 // Set appends a config file to the list of config files.
-func (c *configFiles) Set(value string) error {
+func (c *ConfigFiles) Set(value string) error {
 	// check if the file exists but skip errors for file globs
 	_, err := os.Stat(value)
 	if err != nil && !strings.ContainsAny(value, "?*") {
