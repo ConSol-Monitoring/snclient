@@ -96,6 +96,7 @@ Check for folder size:
 }
 
 func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"size", "total_size"})
 	l.paths = append(l.paths, l.pathList...)
 	if len(l.paths) == 0 {
 		return nil, fmt.Errorf("no path specified")

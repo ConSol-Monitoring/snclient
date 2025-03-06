@@ -15,8 +15,10 @@ func TestParseBytes(t *testing.T) {
 	}{
 		{"1B", 1, false},
 		{"1MB", 1000000, false},
+		{"1M", 1000000, false},
 		{"1MiB", 1048576, false},
 		{"1.5GB", 1500000000, false},
+		{"1.5G", 1500000000, false},
 		{"1.5GiB", 1610612736, false},
 		{"xyz", 0, true},
 	}
@@ -28,7 +30,7 @@ func TestParseBytes(t *testing.T) {
 		} else {
 			require.NoError(t, err)
 		}
-		assert.Equalf(t, tst.res, res, "ParseBytes: %s -> %d", tst.in, res)
+		assert.Equalf(t, int64(tst.res), int64(res), "ParseBytes: %s -> %d", tst.in, res) //nolint:gosec // no overflow, fixed range of numbers
 	}
 }
 

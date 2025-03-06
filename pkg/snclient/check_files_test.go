@@ -41,6 +41,18 @@ func TestCheckFiles(t *testing.T) {
 	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
 	assert.Contains(t, string(res.BuildPluginOutput()), "'count'=")
 
+	res = snc.RunCheck("check_files", []string{"paths=t", "crit=size>10M"})
+	assert.Contains(t, string(res.BuildPluginOutput()), ";10000000;")
+
+	res = snc.RunCheck("check_files", []string{"paths=t", "crit=size>10m"})
+	assert.Contains(t, string(res.BuildPluginOutput()), ";10000000;")
+
+	res = snc.RunCheck("check_files", []string{"paths=t", "crit=size>10G"})
+	assert.Contains(t, string(res.BuildPluginOutput()), ";10000000000;")
+
+	res = snc.RunCheck("check_files", []string{"paths=t", "crit=size gt 10g"})
+	assert.Contains(t, string(res.BuildPluginOutput()), ";10000000000;")
+
 	StopTestAgent(t, snc)
 }
 
