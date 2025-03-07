@@ -67,11 +67,11 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute | Description                 |
-| --------- | --------------------------- |
-| host_name | host name ping was sent to. |
-| ttl       | time to live.               |
-| sent      | number of packets sent.     |
-| received  | number of packets received. |
-| rta       | average round trip time.    |
-| pl        | packet loss in percent.     |
+| Attribute | Description                              |
+| --------- | ---------------------------------------- |
+| host_name | host name ping was sent to.              |
+| ttl       | time to live.                            |
+| sent      | number of packets sent.                  |
+| received  | number of packets received.              |
+| rta       | average round trip time in milliseconds. |
+| pl        | packet loss in percent.                  |

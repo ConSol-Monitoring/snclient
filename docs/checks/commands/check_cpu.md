@@ -76,4 +76,4 @@ these can be used in filters and thresholds (along with the default attributes):
 | idle      | Current idle load for a given core (currently not supported)   |
 | kernel    | Current kernel load for a given core (currently not supported) |
 | load      | Current load for a given core                                  |
-| time      | Time frame to check                                            |
+| time      | Time frame checked                                             |
