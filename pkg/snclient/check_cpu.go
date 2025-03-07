@@ -49,7 +49,7 @@ func (l *CheckCPU) Build() *CheckData {
 			{name: "idle", description: "Current idle load for a given core (currently not supported)"},
 			{name: "kernel", description: "Current kernel load for a given core (currently not supported)"},
 			{name: "load", description: "Current load for a given core"},
-			{name: "time", description: "Time frame to check"},
+			{name: "time", description: "Time frame checked"},
 		},
 		exampleDefault: `
     check_cpu

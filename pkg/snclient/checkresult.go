@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/utils"
@@ -35,13 +36,13 @@ type CheckResult struct {
 	Details string
 }
 
-func (cr *CheckResult) Finalize(macros ...map[string]string) {
+func (cr *CheckResult) Finalize(timezone *time.Location, macros ...map[string]string) {
 	macroSet := []map[string]string{{
 		"status": cr.StateString(),
 	}}
 	macroSet = append(macroSet, macros...)
 
-	output, err := ReplaceTemplate(cr.Output, macroSet...)
+	output, err := ReplaceTemplate(cr.Output, timezone, macroSet...)
 	if err != nil {
 		log.Debugf("replacing template failed: %s: %s", cr.Output, err.Error())
 	}
@@ -54,9 +55,9 @@ func (cr *CheckResult) Finalize(macros ...map[string]string) {
 
 	// replace macros twice to make nested assignments work
 	for range []int64{1, 2} {
-		cr.Output = ReplaceMacros(cr.Output, macroSet...)
+		cr.Output = ReplaceMacros(cr.Output, timezone, macroSet...)
 	}
-	cr.Details = ReplaceMacros(cr.Details, macroSet...)
+	cr.Details = ReplaceMacros(cr.Details, timezone, macroSet...)
 }
 
 func (cr *CheckResult) ApplyPerfConfig(perfCfg []PerfConfig) error {
@@ -93,7 +94,7 @@ func (cr *CheckResult) ApplyPerfConfig(perfCfg []PerfConfig) error {
 	return nil
 }
 
-func (cr *CheckResult) ApplyPerfSyntax(perfSyntax string) {
+func (cr *CheckResult) ApplyPerfSyntax(perfSyntax string, timezone *time.Location) {
 	if perfSyntax == "" || perfSyntax == "%(key)" {
 		return
 	}
@@ -107,7 +108,7 @@ func (cr *CheckResult) ApplyPerfSyntax(perfSyntax string) {
 		if metric.ThresholdName == "" {
 			metric.ThresholdName = metric.Name
 		}
-		metric.Name = ReplaceMacros(perfSyntax, macros)
+		metric.Name = ReplaceMacros(perfSyntax, timezone, macros)
 	}
 }
 

@@ -115,28 +115,28 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "fstype", description: "Filesystem type"},
 			{name: "mounted", description: "Flag wether drive is mounter (0/1)"},
 
-			{name: "free", description: "Free (human readable) bytes"},
-			{name: "free_bytes", description: "Number of free bytes"},
-			{name: "free_pct", description: "Free bytes in percent"},
-			{name: "user_free", description: "Number of total free bytes (from user perspective)"},
-			{name: "user_free_pct", description: "Number of total % free space (from user perspective)"},
-			{name: "total_free", description: "Number of total free bytes"},
-			{name: "total_free_pct", description: "Number of total % free space"},
-			{name: "used", description: "Used (human readable) bytes"},
-			{name: "used_bytes", description: "Number of used bytes"},
-			{name: "used_pct", description: "Used bytes in percent (from user perspective)"},
-			{name: "user_used", description: "Number of total used bytes (from user perspective)"},
-			{name: "user_used_pct", description: "Number of total % used space"},
-			{name: "total_used", description: "Number of total used bytes (including root reserved)"},
-			{name: "total_used_pct", description: "Number of total % used space  (including root reserved)"},
-			{name: "size", description: "Total size in human readable bytes"},
-			{name: "size_bytes", description: "Total size in bytes"},
+			{name: "free", description: "Free (human readable) bytes", unit: UByte},
+			{name: "free_bytes", description: "Number of free bytes", unit: UByte},
+			{name: "free_pct", description: "Free bytes in percent", unit: UPercent},
+			{name: "user_free", description: "Number of total free bytes (from user perspective)", unit: UByte},
+			{name: "user_free_pct", description: "Number of total % free space (from user perspective)", unit: UPercent},
+			{name: "total_free", description: "Number of total free bytes", unit: UByte},
+			{name: "total_free_pct", description: "Number of total % free space", unit: UPercent},
+			{name: "used", description: "Used (human readable) bytes", unit: UByte},
+			{name: "used_bytes", description: "Number of used bytes", unit: UByte},
+			{name: "used_pct", description: "Used bytes in percent (from user perspective)", unit: UPercent},
+			{name: "user_used", description: "Number of total used bytes (from user perspective)", unit: UByte},
+			{name: "user_used_pct", description: "Number of total % used space", unit: UPercent},
+			{name: "total_used", description: "Number of total used bytes (including root reserved)", unit: UByte},
+			{name: "total_used_pct", description: "Number of total % used space  (including root reserved)", unit: UPercent},
+			{name: "size", description: "Total size in human readable bytes", unit: UByte},
+			{name: "size_bytes", description: "Total size in bytes", unit: UByte},
 
 			{name: "inodes_free", description: "Number of free inodes"},
-			{name: "inodes_free_pct", description: "Number of free inodes in percent"},
+			{name: "inodes_free_pct", description: "Number of free inodes in percent", unit: UPercent},
 			{name: "inodes_total", description: "Number of total free inodes"},
 			{name: "inodes_used", description: "Number of used inodes"},
-			{name: "inodes_used_pct", description: "Number of used inodes in percent"},
+			{name: "inodes_used_pct", description: "Number of used inodes in percent", unit: UPercent},
 
 			{name: "media_type", description: "Windows only: numeric media type of drive"},
 			{name: "type", description: "Windows only: type of drive, ex.: fixed, cdrom, ramdisk,..."},
@@ -158,7 +158,6 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	}
 
 	check.SetDefaultThresholdUnit("%", []string{"used_pct", "used", "free", "free_pct", "inodes", "inodes_free"})
-	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
 	if len(l.drives)+len(l.folders) == 0 {
 		l.drives = []string{"all"}

@@ -59,16 +59,16 @@ read more on windows virtual address space:
 		detailSyntax:    "%(type) = %(used)/%(size) (%(used_pct | fmt=%.1f )%)",
 		topSyntax:       "%(status) - ${list}",
 		attributes: []CheckAttribute{
-			{name: "<type>", description: "used bytes with the type as key"},
+			{name: "<type>", description: "used bytes with the type as key", unit: UByte},
 			{name: "type", description: "checked type, either 'physical' or 'committed', 'swap' or 'virtual' (windows only)"},
-			{name: "used", description: "Used memory in human readable bytes (IEC)"},
-			{name: "used_bytes", description: "Used memory in bytes (IEC)"},
-			{name: "used_pct", description: "Used memory in percent"},
-			{name: "free", description: "Free memory in human readable bytes (IEC)"},
-			{name: "free_bytes", description: "Free memory in bytes (IEC)"},
-			{name: "free_pct", description: "Free memory in percent"},
-			{name: "size", description: "Total memory in human readable bytes (IEC)"},
-			{name: "size_bytes", description: "Total memory in bytes (IEC)"},
+			{name: "used", description: "Used memory in human readable bytes (IEC)", unit: UByte},
+			{name: "used_bytes", description: "Used memory in bytes (IEC)", unit: UByte},
+			{name: "used_pct", description: "Used memory in percent", unit: UPercent},
+			{name: "free", description: "Free memory in human readable bytes (IEC)", unit: UByte},
+			{name: "free_bytes", description: "Free memory in bytes (IEC)", unit: UByte},
+			{name: "free_pct", description: "Free memory in percent", unit: UPercent},
+			{name: "size", description: "Total memory in human readable bytes (IEC)", unit: UByte},
+			{name: "size_bytes", description: "Total memory in bytes (IEC)", unit: UByte},
 		},
 		exampleDefault: `
     check_memory
@@ -85,7 +85,6 @@ Changing the return syntax to get more information:
 
 func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
-	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
 	physical, err := mem.VirtualMemory()
 	if err != nil {

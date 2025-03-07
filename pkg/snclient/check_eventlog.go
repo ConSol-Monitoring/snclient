@@ -8,7 +8,6 @@ const DefaultUniqueIndex = "${log}-${source}-${id}"
 
 type CheckEventlog struct {
 	files           []string
-	timeZoneStr     string
 	scanRange       string
 	truncateMessage int
 	uniqueIndex     string
@@ -16,7 +15,6 @@ type CheckEventlog struct {
 
 func NewCheckEventlog() CheckHandler {
 	return &CheckEventlog{
-		timeZoneStr: "Local",
 		scanRange:   "-24h",
 		uniqueIndex: "1",
 	}
@@ -54,7 +52,7 @@ a description of the provided fields.
 		args: map[string]CheckArgument{
 			"file":             {value: &l.files, description: "File to read (can be specified multiple times to check multiple files)"},
 			"log":              {value: &l.files, description: "Alias for file"},
-			"timezone":         {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
+			"timezone":         {description: "Sets the timezone for time metrics (default is local time)"},
 			"scan-range":       {value: &l.scanRange, description: "Sets time range to scan for message (default is 24h)"},
 			"truncate-message": {value: &l.truncateMessage, description: "Maximum length of message for each event log message text"},
 			"unique-index":     {value: &l.uniqueIndex, description: "Combination of fields that identifies unique events, set to 0 to disable. Default is \"" + DefaultUniqueIndex + "\""},
@@ -78,7 +76,7 @@ a description of the provided fields.
 			{name: "message", description: "The message as a string"},
 			{name: "source", description: "The source system (SourceName)"},
 			{name: "provider", description: "Alias for source"},
-			{name: "written", description: "Time of the message being written( TimeWritten)"},
+			{name: "written", description: "Time of the message being written( TimeWritten)", unit: UDate},
 		},
 		exampleDefault: `
     check_eventlog

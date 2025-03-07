@@ -57,10 +57,11 @@ func (l *CheckNetwork) Build() *CheckData {
 			{name: "enabled", description: "True if the network interface is enabled (true/false)"},
 			{name: "name", description: "Name of the interface"},
 			{name: "net_connection_id", description: "same as name"},
-			{name: "received", description: "Bytes received per second (calculated over the last " + TrafficRateDuration.String() + ")"},
-			{name: "total_received", description: "Total bytes received"},
-			{name: "sent", description: "Bytes sent per second (calculated over the last " + TrafficRateDuration.String() + ")"},
-			{name: "total_sent", description: "Total bytes sent"},
+			// unit would be B/s but unit is only used to expand threshold inputs here
+			{name: "received", description: "Bytes received per second (calculated over the last " + TrafficRateDuration.String() + ")", unit: UByte},
+			{name: "total_received", description: "Total bytes received", unit: UByte},
+			{name: "sent", description: "Bytes sent per second (calculated over the last " + TrafficRateDuration.String() + ")", unit: UByte}, // received comment applies here as well
+			{name: "total_sent", description: "Total bytes sent", unit: UByte},
 			{name: "speed", description: "Network interface speed (in Mbits/sec)"},
 			{name: "flags", description: "Interface flags"},
 			{name: "total", description: "Sum of sent and received bytes per second"},

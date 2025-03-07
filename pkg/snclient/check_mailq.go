@@ -47,9 +47,9 @@ func (l *CheckMailq) Build() *CheckData {
 			{name: "mta", description: "name of the mta"},
 			{name: "folder", description: "checked spool folder"},
 			{name: "active", description: "number of active mails"},
-			{name: "active_size", description: "size of active mails in bytes"},
+			{name: "active_size", description: "size of active mails in bytes", unit: UByte},
 			{name: "deferred", description: "number of deferred mails"},
-			{name: "deferred_size", description: "size of deferred mails in bytes"},
+			{name: "deferred_size", description: "size of deferred mails in bytes", unit: UByte},
 		},
 		exampleDefault: `
     check_mailq

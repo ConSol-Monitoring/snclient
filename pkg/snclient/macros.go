@@ -30,12 +30,12 @@ var (
 )
 
 // ReplaceTemplate combines ReplaceConditionals and ReplaceMacros
-func ReplaceTemplate(value string, macroSets ...map[string]string) (string, error) {
+func ReplaceTemplate(value string, timezone *time.Location, macroSets ...map[string]string) (string, error) {
 	expanded, err := ReplaceConditionals(value, macroSets...)
 	if err != nil {
 		return expanded, err
 	}
-	expanded = ReplaceMacros(expanded, macroSets...)
+	expanded = ReplaceMacros(expanded, timezone, macroSets...)
 
 	return expanded, nil
 }
@@ -77,7 +77,7 @@ func ReplaceConditionals(value string, macroSets ...map[string]string) (string, 
 				if len(fields) < 2 {
 					return value, fmt.Errorf("missing condition in %s clause :%s", strings.ToUpper(fields[0]), piece)
 				}
-				condition, err := NewCondition(fields[1])
+				condition, err := NewCondition(fields[1], nil)
 				if err != nil {
 					return value, fmt.Errorf("parsing condition in %s failed: %s", fields[1], err.Error())
 				}
@@ -97,7 +97,7 @@ func ReplaceConditionals(value string, macroSets ...map[string]string) (string, 
 
 					break
 				}
-				condition, err := NewCondition(fields[1])
+				condition, err := NewCondition(fields[1], nil)
 				if err != nil {
 					return value, fmt.Errorf("parsing condition in %s failed: %s", fields[1], err.Error())
 				}
@@ -180,7 +180,7 @@ func MacroNames(text string) []string {
  *   ${macro} / $(macro)
  *   %(macro) / %{macro}
  */
-func ReplaceMacros(value string, macroSets ...map[string]string) string {
+func ReplaceMacros(value string, timezone *time.Location, macroSets ...map[string]string) string {
 	splitBy := map[string]string{
 		"$(": ")",
 		"${": "}",
@@ -206,7 +206,7 @@ func ReplaceMacros(value string, macroSets ...map[string]string) string {
 			piece = strings.TrimSuffix(piece, endPattern)
 			piece = strings.TrimSpace(piece)
 
-			result.WriteString(getMacrosetsValue(piece, orig, macroSets...))
+			result.WriteString(getMacrosetsValue(piece, orig, timezone, macroSets...))
 			inMacro = true
 
 			break
@@ -225,7 +225,7 @@ func ReplaceMacros(value string, macroSets ...map[string]string) string {
  *   %macro%
  *   $macro$
  */
-func ReplaceRuntimeMacros(value string, macroSets ...map[string]string) string {
+func ReplaceRuntimeMacros(value string, timezone *time.Location, macroSets ...map[string]string) string {
 	value = reRuntimeMacro.ReplaceAllStringFunc(value, func(str string) string {
 		orig := str
 		str = strings.TrimSpace(str)
@@ -241,7 +241,7 @@ func ReplaceRuntimeMacros(value string, macroSets ...map[string]string) string {
 			str = strings.TrimSuffix(str, "$")
 		}
 
-		return getMacrosetsValue(str, orig, macroSets...)
+		return getMacrosetsValue(str, orig, timezone, macroSets...)
 	})
 
 	return value
@@ -274,7 +274,7 @@ func extractMacroString(str string) string {
 	return (str)
 }
 
-func getMacrosetsValue(macro, orig string, macroSets ...map[string]string) string {
+func getMacrosetsValue(macro, orig string, timezone *time.Location, macroSets ...map[string]string) string {
 	// split by : and |
 	flags := strings.FieldsFunc(macro, func(r rune) bool { return r == '|' || r == ':' })
 
@@ -301,10 +301,10 @@ func getMacrosetsValue(macro, orig string, macroSets ...map[string]string) strin
 		return value
 	}
 
-	return (replaceMacroOperators(value, flags[1:]))
+	return (replaceMacroOperators(value, flags[1:], timezone))
 }
 
-func replaceMacroOperators(value string, flags []string) string {
+func replaceMacroOperators(value string, flags []string, timezone *time.Location) string {
 	for _, flag := range flags {
 		flag = strings.TrimSpace(flag)
 
@@ -320,7 +320,7 @@ func replaceMacroOperators(value string, flags []string) string {
 			value = humanize.NumF(convert.Int64(value), 2)
 		// date -> unix timestamp to date with local timezone
 		case "date":
-			value = time.Unix(convert.Int64(value), 0).Format("2006-01-02 15:04:05 MST")
+			value = time.Unix(convert.Int64(value), 0).In(timezone).Format("2006-01-02 15:04:05 MST")
 		// date -> unix timestamp to utc date
 		case "utc":
 			value = time.Unix(convert.Int64(value), 0).UTC().Format("2006-01-02 15:04:05 MST")

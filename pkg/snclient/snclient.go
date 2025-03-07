@@ -510,7 +510,7 @@ func (snc *Agent) ReadConfiguration(files []string) (initSet *AgentRunSet, err e
 
 	// replace macros in path section early
 	for key, val := range pathSection.data {
-		val = ReplaceMacros(val, pathSection.data, GlobalMacros)
+		val = ReplaceMacros(val, nil, pathSection.data, GlobalMacros)
 		pathSection.Set(key, val)
 		(*config.defaultMacros)[key] = val
 	}
@@ -522,7 +522,7 @@ func (snc *Agent) ReadConfiguration(files []string) (initSet *AgentRunSet, err e
 
 	// replace other sections
 	for _, section := range config.sections {
-		config.ReplaceMacrosDefault(section)
+		config.ReplaceMacrosDefault(section, nil)
 	}
 
 	for key, val := range pathSection.data {
@@ -710,15 +710,19 @@ func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 
 // RunCheckWithContext calls check by name and returns the check result
 func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string) *CheckResult {
-	res := snc.runCheck(ctx, name, args)
+	res, chk := snc.runCheck(ctx, name, args)
 	if res.Raw == nil || res.Raw.showHelp == 0 {
-		res.Finalize()
+		if chk != nil {
+			res.Finalize(chk.timezone)
+		} else {
+			res.Finalize(nil)
+		}
 	}
 
 	return res
 }
 
-func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *CheckResult {
+func (snc *Agent) runCheck(ctx context.Context, name string, args []string) (*CheckResult, *CheckData) {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
 	check, ok := snc.getCheck(name)
@@ -726,7 +730,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 		return &CheckResult{
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("${status} - No such check: %s", name),
-		}
+		}, nil
 	}
 
 	handler := check.Handler()
@@ -736,7 +740,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 		return &CheckResult{
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("${status} - %s", err.Error()),
-		}
+		}, chk
 	}
 
 	if chk.showHelp > 0 {
@@ -757,7 +761,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 			Raw:    chk,
 			State:  state,
 			Output: help,
-		}
+		}, chk
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(chk.timeout+1)*time.Second)
@@ -768,10 +772,10 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) *Che
 		return &CheckResult{
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("${status} - %s", err.Error()),
-		}
+		}, chk
 	}
 
-	return res
+	return res, chk
 }
 
 func (snc *Agent) getCheck(name string) (_ *CheckEntry, ok bool) {

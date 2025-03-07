@@ -10,14 +10,10 @@ func init() {
 	AvailableChecks["check_tasksched"] = CheckEntry{"check_tasksched", NewCheckTasksched}
 }
 
-type CheckTasksched struct {
-	timeZoneStr string
-}
+type CheckTasksched struct{}
 
 func NewCheckTasksched() CheckHandler {
-	return &CheckTasksched{
-		timeZoneStr: "Local",
-	}
+	return &CheckTasksched{}
 }
 
 func (l *CheckTasksched) Build() *CheckData {
@@ -29,7 +25,7 @@ func (l *CheckTasksched) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"timezone": {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
+			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
 		},
 		defaultFilter:   "enabled = true",
 		defaultCritical: "exit_code < 0",
@@ -48,14 +44,14 @@ func (l *CheckTasksched) Build() *CheckData {
 			{name: "exit_string", description: "The last jobs exit code as string"},
 			{name: "folder", description: "Task folder"},
 			{name: "has_run", description: "True if this task has ever been executed"},
-			{name: "max_run_time", description: "Maximum length of time the task can run"},
-			{name: "most_recent_run_time", description: "Most recent time the work item began running"},
+			{name: "max_run_time", description: "Maximum length of time the task can run", unit: UDuration},
+			{name: "most_recent_run_time", description: "Most recent time the work item began running", unit: UDate},
 			{name: "priority", description: "Task priority"},
 			{name: "title", description: "Task title"},
 			{name: "hidden", description: "Indicates that the task will not be visible in the UI (true/false)"},
 			{name: "missed_runs", description: "Number of times the registered task has missed a scheduled run"},
 			{name: "task_status", description: "Task status as string"},
-			{name: "next_run_time", description: "Time when the registered task is next scheduled to run"},
+			{name: "next_run_time", description: "Time when the registered task is next scheduled to run", unit: UDate},
 			{name: "parameters", description: "Command line parameters for the task"},
 		},
 		exampleDefault: `

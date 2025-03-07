@@ -42,17 +42,17 @@ func (l *CheckPagefile) Build() *CheckData {
 		topSyntax:       "%(status) - ${list}",
 		attributes: []CheckAttribute{
 			{name: "name", description: "The name of the page file (location)"},
-			{name: "used", description: "Used memory in human readable bytes"},
-			{name: "used_bytes", description: "Used memory in bytes"},
-			{name: "used_pct", description: "Used memory in percent"},
-			{name: "free", description: "Free memory in human readable bytes"},
-			{name: "free_bytes", description: "Free memory in bytes"},
-			{name: "free_pct", description: "Free memory in percent"},
-			{name: "peak", description: "Peak memory usage in human readable bytes"},
-			{name: "peak_bytes", description: "Peak memory in bytes"},
-			{name: "peak_pct", description: "Peak memory in percent"},
-			{name: "size", description: "Total size of pagefile (human readable)"},
-			{name: "size_bytes", description: "Total size of pagefile in bytes"},
+			{name: "used", description: "Used memory in human readable bytes", unit: UByte},
+			{name: "used_bytes", description: "Used memory in bytes", unit: UByte},
+			{name: "used_pct", description: "Used memory in percent", unit: UPercent},
+			{name: "free", description: "Free memory in human readable bytes", unit: UByte},
+			{name: "free_bytes", description: "Free memory in bytes", unit: UByte},
+			{name: "free_pct", description: "Free memory in percent", unit: UPercent},
+			{name: "peak", description: "Peak memory usage in human readable bytes", unit: UByte},
+			{name: "peak_bytes", description: "Peak memory in bytes", unit: UByte},
+			{name: "peak_pct", description: "Peak memory in percent", unit: UPercent},
+			{name: "size", description: "Total size of pagefile (human readable)", unit: UByte},
+			{name: "size_bytes", description: "Total size of pagefile in bytes", unit: UByte},
 		},
 		exampleDefault: `
     check_pagefile
@@ -68,7 +68,6 @@ func (l *CheckPagefile) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 		return nil, fmt.Errorf("check_pagefile is a windows only check")
 	}
 	check.SetDefaultThresholdUnit("%", []string{"used", "used_pct", "free", "free_pct"})
-	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"used", "free"})
 
 	// https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-pagefileusage
 	pageSizes := []win32PageFile{}

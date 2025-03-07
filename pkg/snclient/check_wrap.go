@@ -52,7 +52,7 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		log.Debugf("command string: %s", l.commandString)
 		macros["ARGS"] = strings.Join(check.rawArgs, " ")
 		macros["ARGS\""] = stringJoinQuoted(check.rawArgs, " ")
-		commandString := ReplaceRuntimeMacros(l.commandString, macros)
+		commandString := ReplaceRuntimeMacros(l.commandString, check.timezone, macros)
 
 		cmdToken := utils.Tokenize(commandString)
 		macros["SCRIPT"] = cmdToken[0]
@@ -66,13 +66,13 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		}
 		wrapping = l.fixWrappingCmd(ext, wrapping)
 		log.Debugf("%s wrapper: %s", ext, wrapping)
-		command = ReplaceRuntimeMacros(wrapping, macros)
+		command = ReplaceRuntimeMacros(wrapping, check.timezone, macros)
 		log.Debugf("command after macros expanded: %s", command)
 	} else {
 		macros["ARGS"] = strings.Join(check.rawArgs, " ")
 		macros["ARGS\""] = stringJoinQuoted(check.rawArgs, " ")
 		log.Debugf("command before macros expanded: %s", l.commandString)
-		command = ReplaceRuntimeMacros(l.commandString, macros)
+		command = ReplaceRuntimeMacros(l.commandString, check.timezone, macros)
 		log.Debugf("command after macros expanded: %s", command)
 	}
 

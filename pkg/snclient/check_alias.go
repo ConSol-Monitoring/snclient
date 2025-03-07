@@ -48,7 +48,7 @@ func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 			}
 			fillEmptyArgMacros(macros)
 
-			replacedStr := ReplaceRuntimeMacros(strings.Join(a.args, " "), macros)
+			replacedStr := ReplaceRuntimeMacros(strings.Join(a.args, " "), check.timezone, macros)
 			cmdArgs, err = shelltoken.SplitQuotes(replacedStr, shelltoken.Whitespace)
 			if err != nil {
 				return nil, fmt.Errorf("error parsing command: %s", err.Error())
@@ -56,7 +56,7 @@ func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 
 			log.Debugf("command after macros expanded: %s %s", a.command, replacedStr)
 		}
-		statusResult = snc.runCheck(ctx, a.command, cmdArgs)
+		statusResult, _ = snc.runCheck(ctx, a.command, cmdArgs)
 	}
 
 	statusResult.ParsePerformanceDataFromOutputCond(a.command, a.config)

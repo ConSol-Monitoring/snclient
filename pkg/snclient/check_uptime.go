@@ -34,9 +34,9 @@ func (l *CheckUptime) Build() *CheckData {
 		topSyntax:       "%(status) - ${list}",
 		detailSyntax:    "uptime: ${uptime}, boot: ${boot} (UTC)",
 		attributes: []CheckAttribute{
-			{name: "uptime", description: "Human readable time since last boot"},
-			{name: "uptime_value", description: "Uptime in seconds"},
-			{name: "boot", description: "Human readable date of last boot"},
+			{name: "uptime", description: "Human readable time since last boot", unit: UDuration},
+			{name: "uptime_value", description: "Uptime in seconds", unit: UDuration},
+			{name: "boot", description: "Human readable date of last boot", unit: UDate},
 		},
 		exampleDefault: `
     check_uptime

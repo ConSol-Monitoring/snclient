@@ -57,8 +57,8 @@ func (l *CheckPing) Build() *CheckData {
 			{name: "ttl", description: "time to live."},
 			{name: "sent", description: "number of packets sent."},
 			{name: "received", description: "number of packets received."},
-			{name: "rta", description: "average round trip time."},
-			{name: "pl", description: "packet loss in percent."},
+			{name: "rta", description: "average round trip time in milliseconds."},
+			{name: "pl", description: "packet loss in percent.", unit: UPercent},
 		},
 		exampleDefault: `
     check_ping host=localhost

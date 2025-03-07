@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
-	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
@@ -65,9 +65,21 @@ const (
 	PluginHelp
 )
 
+type Unit uint8
+
+const (
+	UNone Unit = iota
+	UByte
+	UDuration
+	UDate
+	UTimestamp
+	UPercent
+)
+
 type CheckAttribute struct {
 	name        string
 	description string
+	unit        Unit
 }
 
 // CheckData contains the runtime data of a generic check plugin
@@ -100,7 +112,7 @@ type CheckData struct {
 	details                map[string]string
 	listData               []map[string]string
 	listCombine            string // join string for detail list
-	showAll                bool
+	showAll                bool   // flag if check called with show-all
 	addCountMetrics        bool
 	addProblemCountMetrics bool
 	result                 *CheckResult
@@ -114,6 +126,7 @@ type CheckData struct {
 	attributes             []CheckAttribute
 	exampleDefault         string
 	exampleArgs            string
+	timezone               *time.Location // timezone used for date output set by --timezone
 }
 
 func (cd *CheckData) Finalize() (*CheckResult, error) {
@@ -188,7 +201,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 		return nil, fmt.Errorf("%s", err.Error())
 	}
 
-	cd.result.ApplyPerfSyntax(cd.perfSyntax)
+	cd.result.ApplyPerfSyntax(cd.perfSyntax, cd.timezone)
 
 	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	cd.setStateFromMaps(finalMacros)
@@ -216,7 +229,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 
 	log.Tracef("output template: %s", cd.result.Output)
 
-	cd.result.Finalize(cd.details, finalMacros)
+	cd.result.Finalize(cd.timezone, cd.details, finalMacros)
 
 	return cd.result, nil
 }
@@ -239,7 +252,7 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		if _, ok := entry["count"]; !ok {
 			entry["count"] = fmt.Sprintf("%d", weight)
 		}
-		expanded, err := ReplaceTemplate(cd.detailSyntax, entry)
+		expanded, err := ReplaceTemplate(cd.detailSyntax, cd.timezone, entry)
 		if err != nil {
 			log.Debugf("replacing syntax failed %s: %s", cd.detailSyntax, err.Error())
 		}
@@ -303,7 +316,7 @@ func (cd *CheckData) buildListMacros() map[string]string {
 
 func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
 	entry := cd.listData[0]
-	expanded, err := ReplaceTemplate(cd.detailSyntax, entry)
+	expanded, err := ReplaceTemplate(cd.detailSyntax, cd.timezone, entry)
 	if err != nil {
 		log.Debugf("replacing template failed: %s: %s", cd.detailSyntax, err.Error())
 	}
@@ -561,7 +574,7 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, err error) {
 
 			return nil, nil
 		case "ok":
-			cond, err2 := NewCondition(argValue)
+			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, err2
 			}
@@ -571,7 +584,7 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, err error) {
 
 			fallthrough
 		case "warn", "warning":
-			cond, err2 := NewCondition(argValue)
+			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, err2
 			}
@@ -581,7 +594,7 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, err error) {
 
 			fallthrough
 		case "crit", "critical":
-			cond, err2 := NewCondition(argValue)
+			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, err2
 			}
@@ -592,7 +605,7 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, err error) {
 			fallthrough
 		case "filter":
 			applyDefaultFilter = false
-			cond, err2 := NewCondition(argValue)
+			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, err2
 			}
@@ -622,6 +635,12 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, err error) {
 				}
 				cd.showAll = showAll
 			}
+		case "timezone":
+			timeZone, err2 := time.LoadLocation(argValue)
+			if err2 != nil {
+				return nil, fmt.Errorf("couldn't find timezone: %s", argValue)
+			}
+			cd.timezone = timeZone
 		case "timeout":
 			timeout, err2 := convert.Float64E(argValue)
 			if err2 != nil {
@@ -657,6 +676,11 @@ func (cd *CheckData) ParseArgs(args []string) (argList []Argument, err error) {
 
 	if topSupplied && !okSupplied {
 		cd.okSyntax = cd.topSyntax
+	}
+
+	if cd.timezone == nil {
+		timeZone, _ := time.LoadLocation("Local")
+		cd.timezone = timeZone
 	}
 
 	err = cd.setFallbacks(applyDefaultFilter, defaultWarning, defaultCritical)
@@ -819,7 +843,7 @@ func (cd *CheckData) removeQuotes(str string) string {
 // setFallbacks sets default filter/warn/crit thresholds unless already set.
 func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defaultCritical string) error {
 	if applyDefaultFilter && cd.defaultFilter != "" {
-		cond, err := NewCondition(cd.defaultFilter)
+		cond, err := NewCondition(cd.defaultFilter, &cd.attributes)
 		if err != nil {
 			return err
 		}
@@ -935,28 +959,6 @@ func (cd *CheckData) SetDefaultThresholdUnit(defaultUnit string, names []string)
 	cd.VisitAll(cd.filter, setDefault)
 }
 
-// ExpandThresholdUnit multiplies the threshold value if the unit matches the exponents. Unit is then replaced with the targetUnit.
-func (cd *CheckData) ExpandThresholdUnit(exponents []string, targetUnit string, names []string) {
-	apply := func(cond *Condition) bool {
-		if len(cond.group) > 0 {
-			return true
-		}
-		unit := strings.ToLower(cond.unit)
-		if slices.Contains(names, cond.keyword) && slices.Contains(exponents, unit) {
-			val, err := humanize.ParseBytes(fmt.Sprintf("%f%s%s", convert.Float64(cond.value), cond.unit, targetUnit))
-			if err == nil {
-				cond.unit = targetUnit
-				cond.value = val
-			}
-		}
-
-		return true
-	}
-	cd.VisitAll(cd.warnThreshold, apply)
-	cd.VisitAll(cd.critThreshold, apply)
-	cd.VisitAll(cd.okThreshold, apply)
-}
-
 // VisitAll calls callback recursively for each condition until callback returns false
 func (cd *CheckData) VisitAll(condList ConditionList, callback func(*Condition) bool) bool {
 	for _, cond := range condList {
@@ -1065,7 +1067,7 @@ func (cd *CheckData) ExpandMetricMacros(srcThreshold ConditionList, data map[str
 		}
 		switch v := cond.value.(type) {
 		case string:
-			cond.value = ReplaceMacros(v, data)
+			cond.value = ReplaceMacros(v, cd.timezone, data)
 		default:
 		}
 
@@ -1428,8 +1430,9 @@ func (cd *CheckData) fillDefaultThreshold(defaultThreshold string, list Conditio
 	if len(list) > 0 {
 		return list
 	}
-	condDef, err := NewCondition(defaultThreshold)
+	condDef, err := NewCondition(defaultThreshold, &cd.attributes)
 	if err != nil {
+		log.Errorf("default threshold: %s", defaultThreshold)
 		log.Panicf("default threshold failed: %s", err.Error())
 	}
 	list = append(list, condDef)

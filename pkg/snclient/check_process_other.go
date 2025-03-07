@@ -18,10 +18,6 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 	if err != nil {
 		return fmt.Errorf("fetching processes failed: %s", err.Error())
 	}
-	timeZone, err := time.LoadLocation(l.timeZoneStr)
-	if err != nil {
-		return fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
-	}
 
 	userNameLookup := map[uint32]string{}
 
@@ -115,20 +111,19 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 		}
 
 		check.listData = append(check.listData, map[string]string{
-			"process":       exe,
-			"state":         strings.Join(state, ","),
-			"command_line":  cmdLine,
-			"creation":      time.UnixMilli(ctime).In(timeZone).Format("2006-01-02 15:04:05 MST"),
-			"creation_unix": fmt.Sprintf("%d", time.UnixMilli(ctime).Unix()),
-			"exe":           exe,
-			"filename":      filename,
-			"pid":           fmt.Sprintf("%d", proc.Pid),
-			"uid":           fmt.Sprintf("%d", uid),
-			"username":      username,
-			"virtual":       fmt.Sprintf("%d", mem.VMS),
-			"rss":           fmt.Sprintf("%d", mem.RSS),
-			"pagefile":      fmt.Sprintf("%d", mem.Swap),
-			"cpu":           fmt.Sprintf("%f", cpu),
+			"process":      exe,
+			"state":        strings.Join(state, ","),
+			"command_line": cmdLine,
+			"creation":     fmt.Sprintf("%d", ctime),
+			"exe":          exe,
+			"filename":     filename,
+			"pid":          fmt.Sprintf("%d", proc.Pid),
+			"uid":          fmt.Sprintf("%d", uid),
+			"username":     username,
+			"virtual":      fmt.Sprintf("%d", mem.VMS),
+			"rss":          fmt.Sprintf("%d", mem.RSS),
+			"pagefile":     fmt.Sprintf("%d", mem.Swap),
+			"cpu":          fmt.Sprintf("%f", cpu),
 		})
 	}
 

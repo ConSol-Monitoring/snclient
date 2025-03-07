@@ -205,7 +205,7 @@ func (l *HandlerManagedExporter) procMainLoop() {
 			args = []string{}
 		}
 		if l.agentExtraArgs != "" {
-			extra := ReplaceMacros(l.agentExtraArgs, l.conf.data)
+			extra := ReplaceMacros(l.agentExtraArgs, nil, l.conf.data)
 			args = append(args, extra)
 		}
 		cmd := exec.Command(l.agentPath, args...) //nolint:gosec // input source is the config file

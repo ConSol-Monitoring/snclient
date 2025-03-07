@@ -16,11 +16,6 @@ import (
 var scheduledTasksPS1 string
 
 func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckData) error {
-	timeZone, err := time.LoadLocation(l.timeZoneStr)
-	if err != nil {
-		return fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
-	}
-
 	cmd := powerShellCmd(ctx, scheduledTasksPS1)
 	output, stderr, exitCode, _, err := snc.runExternalCommand(ctx, cmd, DefaultCmdTimeout)
 	if err != nil {
@@ -54,13 +49,13 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 			"folder":               task.Path,
 			"has_run":              fmt.Sprintf("%t", hasRun),
 			"max_run_time":         task.TimeLimit,
-			"most_recent_run_time": l.parseDate(task.LastRunTime).In(timeZone).Format("2006-01-02 15:04:05 MST"),
+			"most_recent_run_time": fmt.Sprintf("%d", l.parseDate(task.LastRunTime).Unix()),
 			"priority":             fmt.Sprintf("%d", task.Priority),
 			"title":                task.Name,
 			"hidden":               fmt.Sprintf("%t", task.Hidden),
 			"missed_runs":          fmt.Sprintf("%d", task.MissedRuns),
 			"task_status":          task.State.String(),
-			"next_run_time":        l.parseDate(task.NextRunTime).In(timeZone).Format("2006-01-02 15:04:05 MST"),
+			"next_run_time":        fmt.Sprintf("%d", l.parseDate(task.NextRunTime).Unix()),
 			"parameters":           parameters,
 		}
 		check.listData = append(check.listData, entry)

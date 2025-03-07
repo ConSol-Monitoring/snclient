@@ -58,7 +58,7 @@ func (l *CheckNTPOffset) Build() *CheckData {
 			{name: "stratum", description: "stratum value (distance to root ntp server)"},
 			{name: "jitter", description: "jitter of the clock in milliseconds"},
 			{name: "offset", description: "time offset to ntp server in milliseconds"},
-			{name: "offset_seconds", description: "time offset to ntp server in seconds"},
+			{name: "offset_seconds", description: "time offset to ntp server in seconds", unit: UDuration},
 		},
 		exampleDefault: `
     check_ntp_offset

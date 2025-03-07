@@ -13,11 +13,6 @@ import (
 )
 
 func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	timeZone, err := time.LoadLocation(l.timeZoneStr)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
-	}
-
 	if len(l.files) == 0 {
 		filenames, err2 := eventlog.GetFileNames()
 		if err2 != nil {
@@ -64,16 +59,15 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 				message = event.Message[:l.truncateMessage]
 			}
 			listData := map[string]string{
-				"computer":  event.ComputerName,
-				"file":      event.LogFile,
-				"log":       event.LogFile,
-				"id":        fmt.Sprintf("%d", event.EventCode),
-				"level":     strings.ToLower(event.Type),
-				"message":   message,
-				"provider":  event.SourceName,
-				"source":    event.SourceName,
-				"written":   timeWritten.In(timeZone).Format("2006-01-02 15:04:05 MST"),
-				"writtenTS": fmt.Sprintf("%d", timeWritten.Unix()),
+				"computer": event.ComputerName,
+				"file":     event.LogFile,
+				"log":      event.LogFile,
+				"id":       fmt.Sprintf("%d", event.EventCode),
+				"level":    strings.ToLower(event.Type),
+				"message":  message,
+				"provider": event.SourceName,
+				"source":   event.SourceName,
+				"written":  fmt.Sprintf("%d", timeWritten.Unix()),
 			}
 			if !filterUnique {
 				check.listData = append(check.listData, listData)
@@ -82,7 +76,7 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 			}
 
 			// filter out duplicate events based on the unique-index argument
-			uniqueID := ReplaceMacros(l.uniqueIndex, listData)
+			uniqueID := ReplaceMacros(l.uniqueIndex, check.timezone, listData)
 			log.Tracef("expanded unique filter: %s", uniqueID)
 			if prevEntry, ok := uniqueIndexList[uniqueID]; ok {
 				count := convert.Int64(prevEntry["_count"])

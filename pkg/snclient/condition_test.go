@@ -22,6 +22,7 @@ func TestConditionParse(t *testing.T) {
 		{"uptime < 180s", &Condition{keyword: "uptime", operator: Lower, value: "180", unit: "s"}},
 		{"uptime < 2h", &Condition{keyword: "uptime", operator: Lower, value: "7200", unit: "s"}},
 		{"uptime < 2H", &Condition{keyword: "uptime", operator: Lower, value: "7200", unit: "s"}},
+		{"something < 3OP", &Condition{keyword: "something", operator: Lower, value: "3", unit: "OP"}},
 		{"version not like  '1 2 3'", &Condition{keyword: "version", operator: ContainsNot, value: "1 2 3"}},
 		{"state is not 0", &Condition{keyword: "state", operator: Unequal, value: "0"}},
 		{"used gt 0", &Condition{keyword: "used", operator: Greater, value: "0"}},
@@ -64,7 +65,7 @@ func TestConditionParse(t *testing.T) {
 			},
 		},
 	} {
-		cond, err := NewCondition(check.input)
+		cond, err := NewCondition(check.input, nil)
 		check.expect.original = check.input
 		require.NoErrorf(t, err, "ConditionParse should throw no error")
 		assert.Equal(t, check.expect, cond, "ConditionParse(%s) -> %v", check.input, check.expect)
@@ -93,7 +94,7 @@ func TestConditionParseErrors(t *testing.T) {
 		{"state in ("},
 		{"a > 0 && b < 0 || x > 3"},
 	} {
-		cond, err := NewCondition(check.threshold)
+		cond, err := NewCondition(check.threshold, nil)
 		require.Errorf(t, err, "ConditionParse should error")
 		assert.Nilf(t, cond, "ConditionParse(%s) errors should not return condition", check.threshold)
 	}
@@ -159,7 +160,7 @@ func TestConditionCompare(t *testing.T) {
 		{"test slike 'Blah'", "test", "blah", false, true},
 		{"test like str(blah)", "test", "blah", true, true},
 	} {
-		threshold, err := NewCondition(check.threshold)
+		threshold, err := NewCondition(check.threshold, nil)
 		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
 		compare := map[string]string{check.key: check.value}
@@ -181,7 +182,7 @@ func TestConditionThresholdString(t *testing.T) {
 		{"test > 10 and test < 20", "test", "@10:20"},
 		{"test < 20 and test > 10", "test", "@10:20"},
 	} {
-		threshold, err := NewCondition(check.threshold)
+		threshold, err := NewCondition(check.threshold, nil)
 		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
 		perfRange := ThresholdString([]string{check.name}, ConditionList{threshold}, convert.Num2String)
@@ -202,7 +203,7 @@ func TestConditionPreCheck(t *testing.T) {
 		{filterStr, map[string]string{"name": "none", "state": "running"}, false, false},
 		{filterStr, map[string]string{"test": "", "xyz": ""}, true, false},
 	} {
-		cond, err := NewCondition(check.filter)
+		cond, err := NewCondition(check.filter, nil)
 		require.NoError(t, err)
 		cd := CheckData{}
 		ok := cd.MatchMapCondition(ConditionList{cond}, check.entry, true)
@@ -215,7 +216,7 @@ func TestConditionPreCheck(t *testing.T) {
 
 func TestConditionAlias(t *testing.T) {
 	filterStr := `( name = 'xinetd' or name like 'other' ) and state = 'started'`
-	cond, err := NewCondition(filterStr)
+	cond, err := NewCondition(filterStr, nil)
 	require.NoError(t, err)
 
 	check := &CheckData{

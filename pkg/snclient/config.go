@@ -576,7 +576,7 @@ func (config *Config) SectionNamesSorted() []string {
  *   ${/settings/section/attribute}
  *   %(/settings/section/attribute)
  */
-func (config *Config) ReplaceOnDemandConfigMacros(value string) string {
+func (config *Config) ReplaceOnDemandConfigMacros(value string, timezone *time.Location) string {
 	value = reOnDemandMacro.ReplaceAllStringFunc(value, func(macro string) string {
 		orig := macro
 		macro = extractMacroString(macro)
@@ -609,17 +609,17 @@ func (config *Config) ReplaceOnDemandConfigMacros(value string) string {
 			macro = fmt.Sprintf("%s:%s", macro, flag)
 		}
 
-		return getMacrosetsValue(macro, orig, macroSets)
+		return getMacrosetsValue(macro, orig, timezone, macroSets)
 	})
 
 	return value
 }
 
 // ReplaceMacrosDefault replaces default macros in all config data.
-func (config *Config) ReplaceMacrosDefault(section *ConfigSection) {
+func (config *Config) ReplaceMacrosDefault(section *ConfigSection, timezone *time.Location) {
 	defaultMacros := config.DefaultMacros()
 	for key, val := range section.data {
-		val = ReplaceMacros(val, defaultMacros)
+		val = ReplaceMacros(val, timezone, defaultMacros)
 		section.Set(key, val)
 	}
 }
@@ -827,8 +827,8 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 			macros = append(macros, cs.cfg.DefaultMacros())
 		}
 		macros = append(macros, GlobalMacros)
-		val = ReplaceMacros(val, macros...)
-		val = cs.cfg.ReplaceOnDemandConfigMacros(val)
+		val = ReplaceMacros(val, nil, macros...)
+		val = cs.cfg.ReplaceOnDemandConfigMacros(val, nil)
 
 		return val, ok
 	}

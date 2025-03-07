@@ -25,19 +25,17 @@ type FileInfoUnified struct {
 }
 
 type CheckFiles struct {
-	paths       []string
-	pathList    CommaStringList
-	pattern     string
-	maxDepth    int64
-	timeZoneStr string
+	paths    []string
+	pathList CommaStringList
+	pattern  string
+	maxDepth int64
 }
 
 func NewCheckFiles() CheckHandler {
 	return &CheckFiles{
-		pathList:    CommaStringList{},
-		pattern:     "*",
-		maxDepth:    int64(-1),
-		timeZoneStr: "Local",
+		pathList: CommaStringList{},
+		pattern:  "*",
+		maxDepth: int64(-1),
 	}
 }
 
@@ -55,7 +53,7 @@ func (l *CheckFiles) Build() *CheckData {
 			"paths":     {value: &l.pathList, description: "A comma separated list of paths", isFilter: true},
 			"pattern":   {value: &l.pattern, description: "Pattern of files to search for", isFilter: true},
 			"max-depth": {value: &l.maxDepth, description: "Maximum recursion depth. Default: no limit. '0' disables recursion, '1' includes first sub folder level, etc..."},
-			"timezone":  {value: &l.timeZoneStr, description: "Sets the timezone for time metrics (default is local time)"},
+			"timezone":  {description: "Sets the timezone for time metrics (default is local time)"},
 		},
 		detailSyntax: "%(name)",
 		okSyntax:     "%(status) - All %(count) files are ok: (%(total_size))",
@@ -69,16 +67,16 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "file", description: "Alias for filename"},
 			{name: "fullname", description: "Full name of the file including path"},
 			{name: "type", description: "Type of item (file or dir)"},
-			{name: "access", description: "Last access time"},
-			{name: "creation", description: "Date when file was created"},
-			{name: "size", description: "File size in bytes"},
-			{name: "written", description: "Date when file was last written to"},
-			{name: "write", description: "Alias for written"},
-			{name: "age", description: "Seconds since file was last written"},
+			{name: "access", description: "Last access time", unit: UDate},
+			{name: "creation", description: "Date when file was created", unit: UDate},
+			{name: "size", description: "File size in bytes", unit: UByte},
+			{name: "written", description: "Date when file was last written to", unit: UDate},
+			{name: "write", description: "Alias for written", unit: UDate},
+			{name: "age", description: "Seconds since file was last written", unit: UDuration},
 			{name: "version", description: "Windows exe/dll file version (windows only)"},
 			{name: "line_count", description: "Number of lines in the files (text files)"},
-			{name: "total_bytes", description: "Total size over all files in bytes"},
-			{name: "total_size", description: "Total size over all files as human readable bytes"},
+			{name: "total_bytes", description: "Total size over all files in bytes", unit: UByte},
+			{name: "total_size", description: "Total size over all files as human readable bytes", unit: UByte},
 		},
 		exampleDefault: `
 Alert if there are logs older than 1 hour in /tmp:
@@ -96,135 +94,32 @@ Check for folder size:
 }
 
 func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	check.ExpandThresholdUnit([]string{"k", "m", "g", "p", "e", "ki", "mi", "gi", "pi", "ei"}, "B", []string{"size", "total_size"})
 	l.paths = append(l.paths, l.pathList...)
 	if len(l.paths) == 0 {
 		return nil, fmt.Errorf("no path specified")
 	}
 
-	hasLineCount := check.HasThreshold("line_count")
-	timeZone, err := time.LoadLocation(l.timeZoneStr)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
-	}
+	needLineCount := check.HasThreshold("line_count")
+	needVersion := check.HasThreshold("version") || check.HasMacro("version")
 
-	needVersion := check.HasMacro("version")
-
-	totalSize := int64(0)
 	for _, checkPath := range l.paths {
 		if l.maxDepth == 0 {
 			break
 		}
+
 		checkPath = l.normalizePath(checkPath)
 
 		err := filepath.WalkDir(checkPath, func(path string, dirEntry fs.DirEntry, err error) error {
-			path = l.normalizePath(path)
-			filename := filepath.Base(path)
-			entry := map[string]string{
-				"file":     filename,
-				"filename": filename,
-				"name":     filename,
-				"path":     filepath.Dir(path),
-				"fullname": path,
-				"type":     "file",
-			}
-
-			pathDepth := l.getDepth(path, checkPath)
-			log.Tracef("entry: %s (depth: %d)", path, pathDepth)
-
-			if dirEntry != nil && dirEntry.IsDir() {
-				// start path is never returned
-				if path == checkPath {
-					return nil
-				}
-				entry["type"] = "dir"
-				if l.maxDepth != -1 && pathDepth > l.maxDepth {
-					log.Tracef("skipping dir, max-depth reached: %s", path)
-
-					return fs.SkipDir
-				}
-				if err != nil {
-					// silently skip failed sub folder
-					return fs.SkipDir
-				}
-			}
-
-			if l.maxDepth != -1 && pathDepth > l.maxDepth {
-				log.Tracef("skipping file, max-depth reached: %s", path)
-
-				return nil
-			}
-
-			// check filter and pattern before doing more expensive things
-			if match, _ := filepath.Match(l.pattern, entry["filename"]); !match {
-				return nil
-			}
-			if !check.MatchMapCondition(check.filter, entry, true) {
-				return nil
-			}
-
-			fileSize := int64(0)
-			defer func() {
-				if check.MatchMapCondition(check.filter, entry, false) {
-					check.listData = append(check.listData, entry)
-					totalSize += fileSize
-				}
-			}()
-
-			// check for errors here, maybe the file would have been filtered out anyway
-			if err != nil {
-				l.setError(entry, err)
-
-				return nil
-			}
-
-			fileInfo, err := dirEntry.Info()
-			if err != nil {
-				l.setError(entry, err)
-
-				return nil
-			}
-
-			fileSize = fileInfo.Size()
-			fileInfoSys, err := getCheckFileTimes(fileInfo)
-			if err != nil {
-				return fmt.Errorf("type assertion for fileInfo.Sys() failed")
-			}
-
-			entry["access"] = fileInfoSys.Atime.In(timeZone).Format("2006-01-02 15:04:05 MST")
-			entry["age"] = fmt.Sprintf("%d", time.Now().Unix()-fileInfoSys.Mtime.Unix())
-			entry["creation"] = fileInfoSys.Ctime.In(timeZone).Format("2006-01-02 15:04:05 MST")
-			entry["size"] = fmt.Sprintf("%d", fileInfo.Size())
-			entry["write"] = fileInfoSys.Mtime.In(timeZone).Format("2006-01-02 15:04:05 MST")
-			entry["written"] = fileInfoSys.Mtime.In(timeZone).Format("2006-01-02 15:04:05 MST")
-
-			if needVersion {
-				version, err := getFileVersion(path)
-				if err != nil {
-					log.Debugf("%s", err.Error())
-				}
-				entry["version"] = version
-			}
-
-			if hasLineCount {
-				// check filter before doing even slower things
-				if !check.MatchMapCondition(check.filter, entry, true) {
-					return nil
-				}
-
-				fileHandler, err := os.Open(path)
-				if err != nil {
-					return fmt.Errorf("could not open file %s: %s", path, err.Error())
-				}
-				entry["line_count"] = fmt.Sprintf("%d", utils.LineCounter(fileHandler))
-				fileHandler.Close()
-			}
-
-			return nil
+			return l.addFile(check, path, checkPath, dirEntry, needLineCount, needVersion, err)
 		})
 		if err != nil {
 			return nil, fmt.Errorf("error walking directory %s: %s", checkPath, err.Error())
 		}
+	}
+
+	totalSize := uint64(0)
+	for _, data := range check.listData {
+		totalSize += convert.UInt64(data["size"])
 	}
 
 	if len(check.listData) > 0 || check.emptySyntax == "" {
@@ -234,26 +129,212 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		}
 	}
 
-	check.result.Metrics = append(check.result.Metrics,
-		&CheckMetric{
-			Name:     "count",
-			Value:    int64(len(check.listData)),
-			Warning:  check.warnThreshold,
-			Critical: check.critThreshold,
-			Min:      &Zero,
-		},
-		&CheckMetric{
-			ThresholdName: "total_size",
-			Name:          "size",
-			Value:         totalSize,
-			Unit:          "B",
-			Warning:       check.warnThreshold,
-			Critical:      check.critThreshold,
-			Min:           &Zero,
-		},
-	)
+	if check.HasThreshold("count") {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				Name:     "count",
+				Value:    int64(len(check.listData)),
+				Warning:  check.warnThreshold,
+				Critical: check.critThreshold,
+				Min:      &Zero,
+			})
+	}
+	if check.HasThreshold("size") || check.HasThreshold("total_size") {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				ThresholdName: "total_size",
+				Name:          "size",
+				Value:         totalSize,
+				Unit:          "B",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+				Min:           &Zero,
+			})
+	}
+
+	// skip file metrics unless show-all is set
+	if check.showAll {
+		l.addFileMetrics(check, needLineCount)
+	}
 
 	return check.Finalize()
+}
+
+func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, needLineCount, needVersion bool, err error) error {
+	path = l.normalizePath(path)
+	filename := filepath.Base(path)
+	entry := map[string]string{
+		"file":     filename,
+		"filename": filename,
+		"name":     filename,
+		"path":     filepath.Dir(path),
+		"fullname": path,
+		"type":     "file",
+	}
+
+	pathDepth := l.getDepth(path, checkPath)
+	log.Tracef("entry: %s (depth: %d)", path, pathDepth)
+
+	if dirEntry != nil && dirEntry.IsDir() {
+		// start path is never returned
+		if path == checkPath {
+			return nil
+		}
+		entry["type"] = "dir"
+		if l.maxDepth != -1 && pathDepth > l.maxDepth {
+			log.Tracef("skipping dir, max-depth reached: %s", path)
+
+			return fs.SkipDir
+		}
+
+		if err != nil {
+			// silently skip failed sub folder
+			return fs.SkipDir
+		}
+	}
+
+	if l.maxDepth != -1 && pathDepth > l.maxDepth {
+		log.Tracef("skipping file, max-depth reached: %s", path)
+
+		return nil
+	}
+
+	// check filter and pattern before doing more expensive things
+	if match, _ := filepath.Match(l.pattern, entry["filename"]); !match {
+		return nil
+	}
+	if !check.MatchMapCondition(check.filter, entry, true) {
+		return nil
+	}
+
+	defer func() {
+		if check.MatchMapCondition(check.filter, entry, false) {
+			check.listData = append(check.listData, entry)
+		}
+	}()
+
+	// check for errors here, maybe the file would have been filtered out anyway
+	if err != nil {
+		l.setError(entry, err)
+
+		return nil
+	}
+
+	fileInfo, err := dirEntry.Info()
+	if err != nil {
+		if dirEntry != nil && dirEntry.IsDir() {
+			return fs.SkipDir
+		}
+		l.setError(entry, err)
+
+		return nil
+	}
+
+	fileInfoSys, err := getCheckFileTimes(fileInfo)
+	if err != nil {
+		return fmt.Errorf("type assertion for fileInfo.Sys() failed")
+	}
+
+	entry["access"] = fmt.Sprintf("%d", fileInfoSys.Atime.Unix())
+	entry["age"] = fmt.Sprintf("%d", time.Now().Unix()-fileInfoSys.Mtime.Unix())
+	entry["creation"] = fmt.Sprintf("%d", fileInfoSys.Ctime.Unix())
+	entry["size"] = fmt.Sprintf("%d", fileInfo.Size())
+	entry["write"] = fmt.Sprintf("%d", fileInfoSys.Mtime.Unix())
+	entry["written"] = fmt.Sprintf("%d", fileInfoSys.Mtime.Unix())
+
+	if needVersion {
+		version, err := getFileVersion(path)
+		if err != nil {
+			log.Debugf("%s", err.Error())
+		}
+		entry["version"] = version
+	}
+
+	if needLineCount {
+		// check filter before doing even slower things
+		if !check.MatchMapCondition(check.filter, entry, true) {
+			return nil
+		}
+
+		fileHandler, err := os.Open(path)
+		if err != nil {
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
+		}
+		entry["line_count"] = fmt.Sprintf("%d", utils.LineCounter(fileHandler))
+		fileHandler.Close()
+	}
+
+	return nil
+}
+
+func (l *CheckFiles) addFileMetrics(check *CheckData, needLineCount bool) {
+	needSize := check.HasThreshold("size")
+	needAge := check.HasThreshold("age")
+	needAccess := check.HasThreshold("access")
+	needWritten := check.HasThreshold("written")
+
+	for _, data := range check.listData {
+		if needSize {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					ThresholdName: "size",
+					Name:          data["filename"] + " " + "size",
+					Value:         convert.UInt64(data["size"]),
+					Unit:          "B",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				})
+		}
+		if needAge {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					ThresholdName: "age",
+					Name:          data["filename"] + " " + "age",
+					Value:         convert.UInt64(data["age"]),
+					Unit:          "s",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				})
+		}
+		if needLineCount {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					ThresholdName: "line_count",
+					Name:          data["filename"] + " " + "line_count",
+					Value:         convert.UInt64(data["line_count"]),
+					Unit:          "",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				})
+		}
+		if needAccess {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					ThresholdName: "access",
+					Name:          data["filename"] + " " + "access",
+					Value:         convert.UInt64(data["access"]),
+					Unit:          "",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				})
+		}
+		if needWritten {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					ThresholdName: "written",
+					Name:          data["filename"] + " " + "written",
+					Value:         convert.UInt64(data["written"]),
+					Unit:          "",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				})
+		}
+	}
 }
 
 // normalizePath returns a trimmed path without spaces and trailing slashes or leading ./

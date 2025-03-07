@@ -51,12 +51,12 @@ func (l *CheckCPUUtilization) Build() *CheckData {
 		topSyntax:       "${status} - ${list}",
 		detailSyntax:    "user: ${user}% - system: ${system}% - iowait: ${iowait}% - steal: ${steal}% - guest: ${guest}%",
 		attributes: []CheckAttribute{
-			{name: "total", description: "Sum of user,system,iowait,steal and guest in percent"},
-			{name: "user", description: "User cpu utilization in percent"},
-			{name: "system", description: "System cpu utilization in percent"},
-			{name: "iowait", description: "IOWait cpu utilization in percent"},
-			{name: "steal", description: "Steal cpu utilization in percent"},
-			{name: "guest", description: "Guest cpu utilization in percent"},
+			{name: "total", description: "Sum of user,system,iowait,steal and guest in percent", unit: UPercent},
+			{name: "user", description: "User cpu utilization in percent", unit: UPercent},
+			{name: "system", description: "System cpu utilization in percent", unit: UPercent},
+			{name: "iowait", description: "IOWait cpu utilization in percent", unit: UPercent},
+			{name: "steal", description: "Steal cpu utilization in percent", unit: UPercent},
+			{name: "guest", description: "Guest cpu utilization in percent", unit: UPercent},
 		},
 		exampleDefault: `
     check_cpu_utilization

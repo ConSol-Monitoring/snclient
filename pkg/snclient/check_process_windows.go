@@ -30,11 +30,6 @@ type winProcess struct {
 }
 
 func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
-	timeZone, err := time.LoadLocation(l.timeZoneStr)
-	if err != nil {
-		return fmt.Errorf("couldn't find timezone: %s", l.timeZoneStr)
-	}
-
 	processData := []winProcess{}
 	query := `
 		Select
@@ -56,7 +51,7 @@ func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
 		From
 			Win32_Process
 	`
-	err = wmi.QueryDefaultRetry(query, &processData)
+	err := wmi.QueryDefaultRetry(query, &processData)
 	if err != nil {
 		return fmt.Errorf("wmi query failed: %s", err.Error())
 	}
@@ -84,8 +79,7 @@ func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
 			"process":          proc.Name,
 			"state":            state,
 			"command_line":     proc.CommandLine,
-			"creation":         proc.CreationDate.In(timeZone).Format("2006-01-02 15:04:05 MST"),
-			"creation_unix":    fmt.Sprintf("%d", proc.CreationDate.Unix()),
+			"creation":         fmt.Sprintf("%d", proc.CreationDate.Unix()),
 			"exe":              proc.Name,
 			"filename":         proc.ExecutablePath,
 			"handles":          fmt.Sprintf("%d", proc.HandleCount),

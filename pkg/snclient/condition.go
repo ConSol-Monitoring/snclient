@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
@@ -14,7 +15,7 @@ import (
 )
 
 var (
-	reConditionValueUnit = regexp.MustCompile(`^(\d+\.\d+|\d+)\s*(\D+)$`)
+	reConditionValueUnit = regexp.MustCompile(`^(\-?\d+\.\d+|\-?\d+)\s*(\D+)$`)
 	reCuddleKeyword      = regexp.MustCompile(`^([A-Za-z_]+)([!=><~]+)(.*)$`)
 	reCuddleOperator     = regexp.MustCompile(`^([!=><~]+)(.*?)$`)
 )
@@ -37,6 +38,9 @@ type Condition struct {
 
 	// store initial string
 	original string
+
+	// reference to check attributes (used to expand by unit)
+	attr *[]CheckAttribute
 }
 
 // Operator defines a filter operator.
@@ -182,14 +186,14 @@ func GroupOperatorParse(str string) (GroupOperator, error) {
 }
 
 // NewCondition parse filter= from check args
-func NewCondition(input string) (*Condition, error) {
+func NewCondition(input string, attr *[]CheckAttribute) (*Condition, error) {
 	input = strings.TrimSpace(input)
 	if input == "none" {
-		return &Condition{isNone: true, original: input}, nil
+		return &Condition{isNone: true, original: input, attr: attr}, nil
 	}
 
 	token := utils.Tokenize(replaceStrOp(input))
-	cond, remainingToken, err := conditionAdd(token)
+	cond, remainingToken, err := conditionAdd(token, attr)
 	if err != nil {
 		return nil, err
 	}
@@ -488,6 +492,7 @@ func (c *Condition) Clone() *Condition {
 		value:         c.value,
 		groupOperator: c.groupOperator,
 		group:         make(ConditionList, 0),
+		attr:          c.attr,
 	}
 
 	for i := range c.group {
@@ -498,7 +503,7 @@ func (c *Condition) Clone() *Condition {
 }
 
 // add parsed condition, returns remaining token
-func conditionAdd(token []string) (cond *Condition, remaining []string, err error) {
+func conditionAdd(token []string, attr *[]CheckAttribute) (cond *Condition, remaining []string, err error) {
 	if len(token) == 0 {
 		return nil, nil, nil
 	}
@@ -537,7 +542,7 @@ func conditionAdd(token []string) (cond *Condition, remaining []string, err erro
 			}
 
 			// parse sub group
-			condsub, rem, err := conditionAdd(token)
+			condsub, rem, err := conditionAdd(token, attr)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -552,7 +557,7 @@ func conditionAdd(token []string) (cond *Condition, remaining []string, err erro
 			continue
 		}
 
-		condsub, rem, err := conditionNext(token)
+		condsub, rem, err := conditionNext(token, attr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -567,13 +572,14 @@ func conditionAdd(token []string) (cond *Condition, remaining []string, err erro
 	cond = &Condition{
 		group:         conditions,
 		groupOperator: groupOp,
+		attr:          attr,
 	}
 
 	return cond, token, nil
 }
 
 // parse and remove next keyword/op/value combo from token list
-func conditionNext(token []string) (cond *Condition, remaining []string, err error) {
+func conditionNext(token []string, attr *[]CheckAttribute) (cond *Condition, remaining []string, err error) {
 	keyword := token[0]
 	token = token[1:]
 
@@ -607,6 +613,7 @@ func conditionNext(token []string) (cond *Condition, remaining []string, err err
 
 	cond = &Condition{
 		keyword: keyword,
+		attr:    attr,
 	}
 
 	token = conditionFixTokenOperator(token)
@@ -623,7 +630,7 @@ func conditionNext(token []string) (cond *Condition, remaining []string, err err
 		return nil, nil, fmt.Errorf("expected value after '%s'", query)
 	}
 
-	rem, err := conditionValue(cond, token)
+	rem, err := cond.conditionValue(token)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -632,10 +639,10 @@ func conditionNext(token []string) (cond *Condition, remaining []string, err err
 }
 
 // parse and remove condition value
-func conditionValue(cond *Condition, token []string) (remaining []string, err error) {
+func (c *Condition) conditionValue(token []string) (remaining []string, err error) {
 	// check for list values like ("a", "b",...)
 	if strings.HasPrefix(token[0], "(") {
-		rem, err2 := conditionListValue(cond, token)
+		rem, err2 := c.conditionListValue(token)
 		if err2 != nil {
 			return nil, err2
 		}
@@ -654,7 +661,7 @@ func conditionValue(cond *Condition, token []string) (remaining []string, err er
 		token = append([]string{")"}, token...)
 	}
 
-	err = conditionSetValue(cond, str, true)
+	err = c.conditionSetValue(str, true)
 	if err != nil {
 		return nil, err
 	}
@@ -663,7 +670,7 @@ func conditionValue(cond *Condition, token []string) (remaining []string, err er
 }
 
 // parse and remove condition list value
-func conditionListValue(cond *Condition, token []string) (remaining []string, err error) {
+func (c *Condition) conditionListValue(token []string) (remaining []string, err error) {
 	token[0] = strings.TrimPrefix(token[0], "(")
 	if token[0] == "" {
 		token = token[1:]
@@ -700,12 +707,12 @@ func conditionListValue(cond *Condition, token []string) (remaining []string, er
 	for _, e := range list {
 		subList := utils.TokenizeBy(e, ",", false, false)
 		for _, elem := range subList {
-			c := &Condition{}
-			err = conditionSetValue(c, elem, false)
+			cond := &Condition{attr: c.attr}
+			err = cond.conditionSetValue(elem, false)
 			if err != nil {
 				return nil, err
 			}
-			if v, ok := c.value.(string); ok {
+			if v, ok := cond.value.(string); ok {
 				res = append(res, v)
 			}
 		}
@@ -714,13 +721,13 @@ func conditionListValue(cond *Condition, token []string) (remaining []string, er
 	if len(res) == 0 {
 		return nil, fmt.Errorf("empty value")
 	}
-	cond.value = res
+	c.value = res
 
 	return token, nil
 }
 
 // remove quotes and optionally expand known units
-func conditionSetValue(cond *Condition, str string, expand bool) error {
+func (c *Condition) conditionSetValue(str string, expand bool) error {
 	switch {
 	case strings.HasPrefix(str, "'"):
 		if !strings.HasSuffix(str, "'") || len(str) == 1 {
@@ -728,43 +735,112 @@ func conditionSetValue(cond *Condition, str string, expand bool) error {
 		}
 		str = strings.TrimPrefix(str, "'")
 		str = strings.TrimSuffix(str, "'")
-		cond.value = str
+		c.value = str
+
+		return nil
 	case strings.HasPrefix(str, `"`):
 		if !strings.HasSuffix(str, `"`) || len(str) == 1 {
 			return fmt.Errorf("unbalanced quotes in '%s'", str)
 		}
 		str = strings.TrimPrefix(str, `"`)
 		str = strings.TrimSuffix(str, `"`)
-		cond.value = str
-	case !expand:
-		cond.value = str
-	default:
-		match := reConditionValueUnit.FindStringSubmatch(str)
-		if len(match) == 3 {
-			cond.value = match[1]
-			cond.unit = match[2]
+		c.value = str
 
-			// expand known units
-			switch strings.ToLower(cond.unit) {
-			case "kb", "mb", "gb", "tb", "pb",
-				"kib", "mib", "gib", "tib", "pib":
-				value, err := humanize.ParseBytes(str)
-				if err != nil {
-					return fmt.Errorf("invalid bytes value: %s", err.Error())
-				}
-				cond.value = strconv.FormatUint(value, 10)
-				cond.unit = "B"
-			case "ms", "m", "h", "d", "w", "y":
-				value, err := utils.ExpandDuration(str)
-				if err != nil {
-					return fmt.Errorf("invalid duration value: %s", err.Error())
-				}
-				cond.value = strconv.FormatFloat(value, 'f', 0, 64)
-				cond.unit = "s"
-			}
-		} else {
-			cond.value = str
+		return nil
+	case !expand:
+		c.value = str
+
+		return nil
+	default:
+		return c.expandUnitByType(str)
+	}
+}
+
+func (c *Condition) getUnit(keyword string) Unit {
+	if c.attr == nil {
+		return UNone
+	}
+	for _, k := range *c.attr {
+		if strings.EqualFold(k.name, keyword) {
+			return k.unit
 		}
+	}
+
+	return UNone
+}
+
+func (c *Condition) expandUnitByType(str string) error {
+	match := reConditionValueUnit.FindStringSubmatch(str)
+	if len(match) < 3 {
+		c.value = str
+
+		return nil
+	}
+	c.value = match[1]
+	c.unit = match[2]
+
+	// bytes value support % thresholds as well but we cannot expand them yet
+	if c.unit == "%" {
+		return nil
+	}
+
+	// expand known units
+	unit := c.getUnit(c.keyword)
+	switch unit {
+	case UByte:
+		value, err := humanize.ParseBytes(str)
+		if err != nil {
+			return fmt.Errorf("invalid bytes value: %s", err.Error())
+		}
+		c.value = strconv.FormatUint(value, 10)
+		c.unit = "B"
+
+		return nil
+	case UDate, UTimestamp:
+		value, err := utils.ExpandDuration(str)
+		if err != nil {
+			return fmt.Errorf("invalid duration value: %s", err.Error())
+		}
+		c.value = strconv.FormatFloat(float64(time.Now().Unix())+value, 'f', 0, 64)
+		c.unit = ""
+
+		return nil
+	case UDuration:
+		value, err := utils.ExpandDuration(str)
+		if err != nil {
+			return fmt.Errorf("invalid duration value: %s", err.Error())
+		}
+		c.value = strconv.FormatFloat(value, 'f', 0, 64)
+		c.unit = "s"
+
+		return nil
+	case UPercent:
+		return nil
+	case UNone:
+		// best effort unit expansion
+		return c.expandUnitByName(str)
+	}
+
+	return nil
+}
+
+func (c *Condition) expandUnitByName(str string) error {
+	// best effort unit expansion
+	switch strings.ToLower(c.unit) {
+	case "kb", "mb", "gb", "tb", "pb", "kib", "mib", "gib", "tib", "pib":
+		value, err := humanize.ParseBytes(str)
+		if err != nil {
+			return fmt.Errorf("invalid bytes value: %s", err.Error())
+		}
+		c.value = strconv.FormatUint(value, 10)
+		c.unit = "B"
+	case "ms", "h", "d", "w", "y": // do not expand "m" here, as it is ambiguous
+		value, err := utils.ExpandDuration(str)
+		if err != nil {
+			return fmt.Errorf("invalid duration value: %s", err.Error())
+		}
+		c.value = strconv.FormatFloat(value, 'f', 0, 64)
+		c.unit = "s"
 	}
 
 	return nil

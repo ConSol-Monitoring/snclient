@@ -1,10 +1,12 @@
 package snclient
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,6 +54,12 @@ func TestCheckFiles(t *testing.T) {
 
 	res = snc.RunCheck("check_files", []string{"paths=t", "crit=size gt 10g"})
 	assert.Contains(t, string(res.BuildPluginOutput()), ";10000000000;")
+
+	res = snc.RunCheck("check_files", []string{"paths=t", "crit=age gt 10m", "show-all"})
+	assert.Contains(t, string(res.BuildPluginOutput()), ";600;")
+
+	res = snc.RunCheck("check_files", []string{"paths=t", "crit=written lt -10m", "show-all"})
+	assert.Contains(t, string(res.BuildPluginOutput()), fmt.Sprintf(";%d:;", time.Now().Unix()-600))
 
 	StopTestAgent(t, snc)
 }

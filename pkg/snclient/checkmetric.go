@@ -13,9 +13,9 @@ import (
 
 // CheckMetric contains a single performance value.
 type CheckMetric struct {
-	Name          string
-	Unit          string
-	Value         interface{}
+	Name          string        // Name as used in the perf data string
+	Unit          string        // Unit of the value
+	Value         interface{}   // Current value
 	ThresholdName string        // if set, use this name instead of Name to extract thresholds from conditions
 	Warning       ConditionList // threshold used for warnings
 	WarningStr    *string       // set warnings from string
