@@ -104,9 +104,6 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		return nil, fmt.Errorf("no path specified")
 	}
 
-	needLineCount := check.HasThreshold("line_count")
-	needVersion := check.HasThreshold("version") || check.HasMacro("version")
-
 	for _, checkPath := range l.paths {
 		if l.maxDepth == 0 {
 			break
@@ -115,7 +112,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		checkPath = l.normalizePath(checkPath)
 
 		err := filepath.WalkDir(checkPath, func(path string, dirEntry fs.DirEntry, err error) error {
-			return l.addFile(check, path, checkPath, dirEntry, needLineCount, needVersion, err)
+			return l.addFile(check, path, checkPath, dirEntry, err)
 		})
 		if err != nil {
 			return nil, fmt.Errorf("error walking directory %s: %s", checkPath, err.Error())
@@ -159,13 +156,14 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 
 	// skip file metrics unless show-all is set
 	if check.showAll {
-		l.addFileMetrics(check, needLineCount)
+		l.addFileMetrics(check)
 	}
 
 	return check.Finalize()
 }
 
-func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, needLineCount, needVersion bool, err error) error {
+func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, err error) error {
+	needVersion := check.HasThreshold("version") || check.HasMacro("version")
 	path = l.normalizePath(path)
 	filename := filepath.Base(path)
 	entry := map[string]string{
@@ -255,7 +253,7 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		entry["version"] = version
 	}
 
-	if needLineCount {
+	if check.HasThreshold("line_count") {
 		// check filter before doing even slower things
 		if !check.MatchMapCondition(check.filter, entry, true) {
 			return nil
@@ -276,9 +274,9 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		}
 		value, err := utils.MD5FileSum(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
 		}
-		entry["md5_checksum"] = fmt.Sprintf("%s", value)
+		entry["md5_checksum"] = value
 	}
 	if check.HasThreshold("sha1_checksum") {
 		if !check.MatchMapCondition(check.filter, entry, true) {
@@ -286,9 +284,9 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		}
 		value, err := utils.Sha1FileSum(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
 		}
-		entry["sha1_checksum"] = fmt.Sprintf("%s", value)
+		entry["sha1_checksum"] = value
 	}
 	if check.HasThreshold("sha256_checksum") {
 		if !check.MatchMapCondition(check.filter, entry, true) {
@@ -296,9 +294,9 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		}
 		value, err := utils.Sha256FileSum(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
 		}
-		entry["sha256_checksum"] = fmt.Sprintf("%s", value)
+		entry["sha256_checksum"] = value
 	}
 	if check.HasThreshold("sha384_checksum") {
 		if !check.MatchMapCondition(check.filter, entry, true) {
@@ -306,9 +304,9 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		}
 		value, err := utils.Sha384FileSum(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
 		}
-		entry["sha384_checksum"] = fmt.Sprintf("%s", value)
+		entry["sha384_checksum"] = value
 	}
 	if check.HasThreshold("sha512_checksum") {
 		if !check.MatchMapCondition(check.filter, entry, true) {
@@ -316,19 +314,20 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		}
 		value, err := utils.Sha512FileSum(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
 		}
-		entry["sha512_checksum"] = fmt.Sprintf("%s", value)
+		entry["sha512_checksum"] = value
 	}
 
 	return nil
 }
 
-func (l *CheckFiles) addFileMetrics(check *CheckData, needLineCount bool) {
+func (l *CheckFiles) addFileMetrics(check *CheckData) {
 	needSize := check.HasThreshold("size")
 	needAge := check.HasThreshold("age")
 	needAccess := check.HasThreshold("access")
 	needWritten := check.HasThreshold("written")
+	needLineCount := check.HasThreshold("line_count")
 
 	for _, data := range check.listData {
 		if needSize {

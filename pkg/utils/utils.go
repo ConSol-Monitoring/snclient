@@ -2,8 +2,8 @@ package utils
 
 import (
 	"bytes"
-	"crypto/md5"
-	"crypto/sha1"
+	"crypto/md5"  //nolint:gosec // needed for md5 file hash
+	"crypto/sha1" //nolint:gosec // needed for sha1 file hash
 	"crypto/sha256"
 	"crypto/sha512"
 	"crypto/tls"
@@ -350,11 +350,11 @@ func FileHash(path string, algorithm hash.Hash) (hash string, err error) {
 }
 
 func MD5FileSum(path string) (hash string, err error) {
-	return FileHash(path, md5.New())
+	return FileHash(path, md5.New()) //nolint:gosec // needed for md5 file hash
 }
 
 func Sha1FileSum(path string) (hash string, err error) {
-	return FileHash(path, sha1.New())
+	return FileHash(path, sha1.New()) //nolint:gosec // needed for sha1 file hash
 }
 func Sha384FileSum(path string) (hash string, err error) {
 	return FileHash(path, sha512.New384())
