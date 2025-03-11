@@ -162,7 +162,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 	return check.Finalize()
 }
 
-func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, err error) error {
+func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, err error) error { //nolint:gocyclo // Locality of behaviour
 	needVersion := check.HasThreshold("version") || check.HasMacro("version")
 	path = l.normalizePath(path)
 	filename := filepath.Base(path)
