@@ -77,6 +77,11 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "line_count", description: "Number of lines in the files (text files)"},
 			{name: "total_bytes", description: "Total size over all files in bytes", unit: UByte},
 			{name: "total_size", description: "Total size over all files as human readable bytes", unit: UByte},
+			{name: "md5_checksum", description: "MD5 checksum Of the file"},
+			{name: "md5_checksum", description: "SHA1 checksum Of the file"},
+			{name: "md5_checksum", description: "SHA256 checksum Of the file"},
+			{name: "md5_checksum", description: "SHA384 checksum Of the file"},
+			{name: "md5_checksum", description: "SHA512 checksum Of the file"},
 		},
 		exampleDefault: `
 Alert if there are logs older than 1 hour in /tmp:
@@ -262,6 +267,58 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		}
 		entry["line_count"] = fmt.Sprintf("%d", utils.LineCounter(fileHandler))
 		fileHandler.Close()
+	}
+
+	if check.HasThreshold("md5_checksum") {
+		// check filter before doing even slower things
+		if !check.MatchMapCondition(check.filter, entry, true) {
+			return nil
+		}
+		value, err := utils.MD5FileSum(path)
+		if err != nil {
+			return err
+		}
+		entry["md5_checksum"] = fmt.Sprintf("%s", value)
+	}
+	if check.HasThreshold("sha1_checksum") {
+		if !check.MatchMapCondition(check.filter, entry, true) {
+			return nil
+		}
+		value, err := utils.Sha1FileSum(path)
+		if err != nil {
+			return err
+		}
+		entry["sha1_checksum"] = fmt.Sprintf("%s", value)
+	}
+	if check.HasThreshold("sha256_checksum") {
+		if !check.MatchMapCondition(check.filter, entry, true) {
+			return nil
+		}
+		value, err := utils.Sha256FileSum(path)
+		if err != nil {
+			return err
+		}
+		entry["sha256_checksum"] = fmt.Sprintf("%s", value)
+	}
+	if check.HasThreshold("sha384_checksum") {
+		if !check.MatchMapCondition(check.filter, entry, true) {
+			return nil
+		}
+		value, err := utils.Sha384FileSum(path)
+		if err != nil {
+			return err
+		}
+		entry["sha384_checksum"] = fmt.Sprintf("%s", value)
+	}
+	if check.HasThreshold("sha512_checksum") {
+		if !check.MatchMapCondition(check.filter, entry, true) {
+			return nil
+		}
+		value, err := utils.Sha512FileSum(path)
+		if err != nil {
+			return err
+		}
+		entry["sha512_checksum"] = fmt.Sprintf("%s", value)
 	}
 
 	return nil

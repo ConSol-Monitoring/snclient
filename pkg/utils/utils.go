@@ -2,10 +2,14 @@ package utils
 
 import (
 	"bytes"
+	"crypto/md5"
+	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
+	"hash"
 	"io"
 	"maps"
 	"math"
@@ -329,6 +333,34 @@ func Sha256FileSum(path string) (hash string, err error) {
 	}
 
 	return fmt.Sprintf("%x", sha.Sum(nil)), nil
+}
+
+func FileHash(path string, algorithm hash.Hash) (hash string, err error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("open %s: %s", path, err.Error())
+	}
+	defer file.Close()
+
+	if _, err := io.Copy(algorithm, file); err != nil {
+		return "", fmt.Errorf("read %s: %s", path, err.Error())
+	}
+
+	return fmt.Sprintf("%x", algorithm.Sum(nil)), nil
+}
+
+func MD5FileSum(path string) (hash string, err error) {
+	return FileHash(path, md5.New())
+}
+
+func Sha1FileSum(path string) (hash string, err error) {
+	return FileHash(path, sha1.New())
+}
+func Sha384FileSum(path string) (hash string, err error) {
+	return FileHash(path, sha512.New384())
+}
+func Sha512FileSum(path string) (hash string, err error) {
+	return FileHash(path, sha512.New())
 }
 
 // Sha256Sum returns sha256 sum for given string

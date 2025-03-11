@@ -61,6 +61,26 @@ func TestCheckFiles(t *testing.T) {
 	res = snc.RunCheck("check_files", []string{"paths=t", "crit=written lt -10m", "show-all"})
 	assert.Contains(t, string(res.BuildPluginOutput()), fmt.Sprintf(";%d:;", time.Now().Unix()-600))
 
+	res = snc.RunCheck("check_files", []string{"path=./check_files.go", "crit=md5_checksum == 192DBAFDB0EDD58F425CA760199679E7"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "files are ok")
+
+	res = snc.RunCheck("check_files", []string{"path=./check_files.go", "crit=sha1_checksum == 192DBAFDB0EDD58F425CA760199679E7"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "files are ok")
+
+	res = snc.RunCheck("check_files", []string{"path=./check_files.go", "crit=sha256_checksum == 192DBAFDB0EDD58F425CA760199679E7"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "files are ok")
+
+	res = snc.RunCheck("check_files", []string{"path=./check_files.go", "crit=sha384_checksum == 192DBAFDB0EDD58F425CA760199679E7"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "files are ok")
+
+	res = snc.RunCheck("check_files", []string{"path=./check_files.go", "crit=sha512_checksum == 192DBAFDB0EDD58F425CA760199679E7"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "files are ok")
+
 	StopTestAgent(t, snc)
 }
 
