@@ -74,7 +74,7 @@ Naemon Config
 these can be used in filters and thresholds (along with the default attributes):
 
 | Attribute       | Description                                       |
-|-----------------|---------------------------------------------------|
+| --------------- | ------------------------------------------------- |
 | path            | Path to the file                                  |
 | filename        | Name of the file                                  |
 | name            | Alias for filename                                |
