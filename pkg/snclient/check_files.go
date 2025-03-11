@@ -78,10 +78,10 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "total_bytes", description: "Total size over all files in bytes", unit: UByte},
 			{name: "total_size", description: "Total size over all files as human readable bytes", unit: UByte},
 			{name: "md5_checksum", description: "MD5 checksum Of the file"},
-			{name: "md5_checksum", description: "SHA1 checksum Of the file"},
-			{name: "md5_checksum", description: "SHA256 checksum Of the file"},
-			{name: "md5_checksum", description: "SHA384 checksum Of the file"},
-			{name: "md5_checksum", description: "SHA512 checksum Of the file"},
+			{name: "sha1_checksum", description: "SHA1 checksum Of the file"},
+			{name: "sha256_checksum", description: "SHA256 checksum Of the file"},
+			{name: "sha384_checksum", description: "SHA384 checksum Of the file"},
+			{name: "sha512_checksum", description: "SHA512 checksum Of the file"},
 		},
 		exampleDefault: `
 Alert if there are logs older than 1 hour in /tmp:
