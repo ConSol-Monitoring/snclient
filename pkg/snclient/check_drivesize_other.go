@@ -127,6 +127,11 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 }
 
 func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, drive map[string]string, magic float64) {
+	// check filter before querying disk
+	if !check.MatchMapCondition(check.filter, drive, true) {
+		return
+	}
+
 	// set some defaults
 	drive["id"] = ""
 	drive["name"] = ""

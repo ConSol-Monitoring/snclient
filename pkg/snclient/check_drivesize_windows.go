@@ -81,6 +81,11 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) 
 }
 
 func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, drive map[string]string, magic float64) {
+	// check filter before querying disk
+	if !check.MatchMapCondition(check.filter, drive, true) {
+		return
+	}
+
 	// set some defaults
 	drive["id"] = ""
 	drive["name"] = ""
