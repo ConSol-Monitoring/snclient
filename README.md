@@ -20,7 +20,9 @@ SNClient+ (Secure Naemon Client) is a general purpose monitoring agent designed 
 
 ## Documentation
 
-All documentation is under `docs/`
+The documentation can be found on [omd.consol.de](https://omd.consol.de/docs/snclient/).
+
+It is maintained in [docs/](docs/)
 
 ## Supported Operating Systems
 
@@ -33,7 +35,7 @@ All documentation is under `docs/`
 
 \* Only Windows 10 / Windows Server 2016 or newer.
 
-A more detailed list of [supported operating systems](https://omd.consol.de/docs/snclient/install/supported/).
+A more detailed list of [supported operating systems](docs/install/supported.md).
 
 ## Supported Protocols
 
