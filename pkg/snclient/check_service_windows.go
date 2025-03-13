@@ -115,6 +115,11 @@ func MgrConnectReadOnly() (*mgr.Mgr, error) {
 }
 
 func (l *CheckService) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	// make excludes case insensitive
+	for i := range l.excludes {
+		l.excludes[i] = strings.ToLower(l.excludes[i])
+	}
+
 	// collect service state
 	ctrlMgr, err := MgrConnectReadOnly()
 	if err != nil {
