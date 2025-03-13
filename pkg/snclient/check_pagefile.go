@@ -102,6 +102,17 @@ func (l *CheckPagefile) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 }
 
 func (l *CheckPagefile) addPagefile(check *CheckData, name string, data map[string]uint64) {
+	if data["AllocatedBaseSize"] == 0 {
+		entry := map[string]string{
+			"name":   name,
+			"_error": "no data",
+		}
+
+		check.listData = append(check.listData, entry)
+
+		return
+	}
+
 	entry := map[string]string{
 		"name":       name,
 		"used":       humanize.IBytesF(data["CurrentUsage"], 2),
