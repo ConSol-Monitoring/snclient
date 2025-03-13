@@ -70,7 +70,7 @@ func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []
 	if err != nil {
 		return nil, err
 	}
-	volumes, err := l.getVolumes(ctx, partitionMap)
+	volumes, err := l.getVolumes(ctx, check, partitionMap)
 	if err != nil {
 		return nil, err
 	}

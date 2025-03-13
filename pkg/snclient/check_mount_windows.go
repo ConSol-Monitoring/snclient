@@ -12,7 +12,7 @@ import (
 // ctx - The context of the operation.
 // partitionMap - A map of mounted partitions to exclude from the retrieval.
 // []map[string]string, error - Returns a list of drives and any potential errors.
-func (l *CheckMount) getVolumes(ctx context.Context, partitionMap map[string]bool) (drives []map[string]string, err error) {
+func (l *CheckMount) getVolumes(ctx context.Context, check *CheckData, partitionMap map[string]bool) (drives []map[string]string, err error) {
 	driveSize := &CheckDrivesize{}
 	volumes := map[string]map[string]string{}
 	driveSize.setVolumes(volumes)
@@ -20,7 +20,7 @@ func (l *CheckMount) getVolumes(ctx context.Context, partitionMap map[string]boo
 
 	for i := range volumes {
 		partition := volumes[i]
-		driveSize.addDiskDetails(ctx, nil, partition, 1)
+		driveSize.addDiskDetails(ctx, check, partition, 1)
 		if mounted, ok := partition["mounted"]; ok {
 			if mounted == "0" {
 				continue
