@@ -24,12 +24,12 @@ All documentation is under `docs/`
 
 ## Supported Operating Systems
 
-|               | i386 | x64 | arm64 |
-|---------------|:----:|:---:|:-----:|
-| **Linux**     |   X  |  X  |   X   |
-| **Windows** * |   X  |  X  |   X   |
-| **FreeBSD**   |   X  |  X  |   X   |
-| **MacOSX**    |      |  X  |   X   |
+|               | i386 | x84_64 | arm64 |
+|---------------|:----:|:------:|:-----:|
+| **Linux**     |   X  |    X   |   X   |
+| **Windows**\* |   X  |    X   |   X   |
+| **FreeBSD**   |   X  |    X   |   X   |
+| **MacOS**     |      |    X   |   X   |
 
 \* Only Windows 10 / Windows Server 2016 or newer.
 

@@ -15,12 +15,12 @@ by [building snclient from source](../build).
 
 ## CPU Architectures
 
-|             | i386 | x64 | arm64     |
-|-------------|:----:|:---:|:---------:|
-| **Linux**   |   X  |  X  |   X       |
-| **Windows** |   X  |  X  |   X       |
-| **FreeBSD** |   X  |  X  |   X       |
-| **MacOSX**  |      |  X  |   X       |
+|             | i386 | x84_64 | arm64 |
+|-------------|:----:|:------:|:-----:|
+| **Linux**   |   X  |    X   |   X   |
+| **Windows** |   X  |    X   |   X   |
+| **FreeBSD** |   X  |    X   |   X   |
+| **MacOS**   |      |    X   |   X   |
 
 ## Windows
 
