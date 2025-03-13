@@ -158,6 +158,28 @@ password = SHA256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a
 
 Check specific changes and enhancements:
 
+### check_drivesize
+
+![Change](../icons/changed.png "this is different in SNClient+")
+
+The `check_drivesize` handles multiple drives different if some are not available. SNClient requires all specified paths to exist.
+
+Example:
+
+```bash
+check_drivesize drive=c drive=f
+
+UNKNOWN - failed to find disk partition: CreateFile f:: The system cannot find the path specified.
+```
+
+If the drives are optional as long as one drive exists, you could make use of a filter like this:
+
+```bash
+check_drivesize filter="letter='C' or letter='F'"
+
+OK - All 1 drive(s) are ok |....
+```
+
 ### check_service
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient+")
