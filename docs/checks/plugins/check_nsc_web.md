@@ -50,7 +50,7 @@ Naemon Config
   check_nsc_web [options] [query parameters]
 
 Description:
-  check_nsc_web is a REST client for the NSClient++/SNClient webserver for querying
+  check_nsc_web is a REST client for the NSClient++/SNClient+ webserver for querying
   and receiving check information over HTTP(S).
 
 Version:
