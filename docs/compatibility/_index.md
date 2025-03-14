@@ -192,6 +192,20 @@ Example:
 check_files path=c:/windows warn=size>2MB max-depth=1 timezone=Europe/Berlin
 ```
 
+### check_process
+
+![Change](../icons/changed.png "this is different in SNClient")
+
+The `check_process` behaves a bit different when checking for not running processes.
+
+```bash
+check_process process=noneexisting.exe crit="state = 'started'" empty-state=0
+OK - no processes found with this filter. |...
+```
+
+The trick is to add `empty-state=0` so in case there is no process, the result will be OK. And in
+case there is a process, the normal critical expression will be used.
+
 ### check_service
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
