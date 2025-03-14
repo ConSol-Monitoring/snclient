@@ -12,7 +12,7 @@ tags:
 
 ## Node Exporter
 
-When running SNClient+ on linux or osx there is a builtin node exporter which can be
+When running SNClient on linux or osx there is a builtin node exporter which can be
 enabled by:
 
 ```ini

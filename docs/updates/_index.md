@@ -15,10 +15,10 @@ Then install the file as described on the [install page](../install/).
 
 ## Automatic Updates
 
-### SNClient+ Automatic Updates
+### SNClient Automatic Updates
 
 If possible, use the OS own solution to automatically install updates.
-If not, SNClient+ can install periodic update itself.
+If not, SNClient can install periodic update itself.
 
 Configuration:
 
@@ -30,7 +30,7 @@ automatic updates = enabled
 automatic restart = enabled
 ```
 
-This will update SNClient+ to the latest stable release.
+This will update SNClient to the latest stable release.
 
 In case you want to use the development builds, ex. on test systems you can
 add the dev channel as well.

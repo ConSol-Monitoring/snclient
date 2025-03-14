@@ -12,7 +12,7 @@ import (
 func TestCmdVersion(t *testing.T) {
 	out, err := runCommand(t, []string{"-V"})
 	require.NoError(t, err, "command runs without error")
-	assert.Contains(t, out, "SNClient+ v", "output matches")
+	assert.Contains(t, out, "SNClient v", "output matches")
 }
 
 func TestCmdHelp(t *testing.T) {

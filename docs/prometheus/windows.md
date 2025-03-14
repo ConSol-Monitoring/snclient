@@ -11,7 +11,7 @@ tags:
 
 ## Windows Exporter
 
-When running SNClient+ on windows there is a builtin windows exporter which can be
+When running SNClient on windows there is a builtin windows exporter which can be
 enabled by:
 
 ```ini

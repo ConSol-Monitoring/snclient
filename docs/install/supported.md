@@ -4,10 +4,10 @@ linkTitle: Supported OS
 
 # Supported Systems
 
-We are trying to build the SNClient+ to be as compatible as possible. Due to
+We are trying to build the SNClient to be as compatible as possible. Due to
 limited hardware, we are not able to test the agent on all operating systems.
 
-If you are using SNClient+ anywhere not listed here, feel free to open an issue
+If you are using SNClient anywhere not listed here, feel free to open an issue
 on github to update this page.
 
 If there are no installer package for your system available for download, you might still succeed

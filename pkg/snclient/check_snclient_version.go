@@ -35,7 +35,7 @@ func (l *CheckSNClientVersion) Build() *CheckData {
 		},
 		exampleDefault: `
     check_snclient_version
-    SNClient+ v0.12.0036 (Build: 5e351bb, go1.21.6)
+    SNClient v0.12.0036 (Build: 5e351bb, go1.21.6)
 
 There is an alias 'check_nscp_version' for this command.
 	`,

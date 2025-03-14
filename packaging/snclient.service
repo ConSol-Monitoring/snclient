@@ -1,5 +1,5 @@
 [Unit]
-Description=SNClient+ Agent
+Description=SNClient Agent
 After=network.target
 
 [Service]

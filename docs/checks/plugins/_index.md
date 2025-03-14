@@ -9,7 +9,9 @@ Each plugin usually has a help page which can be accessed by the `-h` or `--help
 
 For example:
 
-    ./snclient run check_nsc_web --help
+```bash
+./snclient run check_nsc_web --help
+```
 
 Check plugins cannot use filtering as the normal checks.
 
@@ -17,7 +19,7 @@ The list of built-in checks can be found [here](../commands/).
 
 ## Enabling Builtin Plugins
 
-To enable the builtin plugins feature in SNClient+, you need to activate them in the config file as follows:
+To enable the builtin plugins feature in SNClient, you need to activate them in the config file as follows:
 
 ```ini
 [/modules]

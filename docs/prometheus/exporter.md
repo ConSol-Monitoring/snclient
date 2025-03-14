@@ -8,7 +8,7 @@ tags:
 ---
 
 The exporter exporter is a simple reverse proxy for prometheus exporters not
-managed by SNClient+.
+managed by SNClient.
 
 It makes multiple exporters accessible via a single proxy url.
 
@@ -59,5 +59,5 @@ and not checked if it contains valid prometheus metrics.
 ### Changed Index Path
 
 Since this exporter exporter (optionally) shares the web server with the rest of
-the SNClient+, the `/` url path is in use already. The available exporter
+the SNClient, the `/` url path is in use already. The available exporter
 modules can therefore be requested with the `/list` path.

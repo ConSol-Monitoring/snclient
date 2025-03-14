@@ -1,6 +1,6 @@
 #!/sbin/openrc-run
 
-description="SNClient+ (Secure Naemon Client)"
+description="SNClient (Secure Naemon Client)"
 supervisor="supervise-daemon"
 command="/usr/bin/snclient"
 command_args="--config /etc/snclient/snclient.ini"

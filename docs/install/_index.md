@@ -15,7 +15,7 @@ There is a OS specific installation documentation available for:
 
 ## Using Binary Packages
 
-Using packages is the recommended way to install SNClient+.
+Using packages is the recommended way to install SNClient.
 
 Find a list of [supported OS distributions](supported) here.
 
@@ -38,7 +38,7 @@ to test something.
 
 Installing the development snapshot is straight forward:
 
-1. Open the [SNClient+ Github Actions](https://github.com/ConSol-Monitoring/snclient/actions/workflows/builds.yml?query=branch%3Amain) page
+1. Open the [SNClient Github Actions](https://github.com/ConSol-Monitoring/snclient/actions/workflows/builds.yml?query=branch%3Amain) page
 2. Choose first green build like in
    ![Actions](actions.png "Choose latest green build")
 3. Scroll down and choose the download which matches your architecture:

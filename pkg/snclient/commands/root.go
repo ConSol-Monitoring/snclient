@@ -18,7 +18,7 @@ func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "snclient [global flags] [command]",
 		Short: "Multi-platform monitoring agent for Naemon and Prometheus.",
-		Long: `SNClient+ is a generic monitoring agent available for multiple platforms.
+		Long: `SNClient is a generic monitoring agent available for multiple platforms.
 It aims to provide a basic set of fault monitoring and metrics
 while being easily extendible with own script and checks.`,
 		Example: `  * Start server

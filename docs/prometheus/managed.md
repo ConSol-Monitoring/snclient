@@ -7,8 +7,8 @@ tags:
   - exporter
 ---
 
-Managed exporters are exporters started and managed by SNClient+. They will get
-a unique assigned url in the main webserver of SNClient+.
+Managed exporters are exporters started and managed by SNClient. They will get
+a unique assigned url in the main webserver of SNClient.
 
 Enable the managed exporters in the modules section:
 
@@ -29,5 +29,5 @@ use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /example
 ```
 
-SNClient+ will then start the exporter automatically and watch its memory usage.
+SNClient will then start the exporter automatically and watch its memory usage.
 The metrics can be scaped from `https://<ip>:8443/example/metrics`.

@@ -312,7 +312,7 @@ func installService(name string) error {
 		mgr.Config{
 			StartType:        windows.SERVICE_AUTO_START,
 			DelayedAutoStart: true,
-			Description:      "SNClient+ (Secure Naemon Client) is a general purpose monitoring agent.",
+			Description:      "SNClient (Secure Naemon Client) is a general purpose monitoring agent.",
 			SidType:          windows.SERVICE_SID_TYPE_UNRESTRICTED,
 		},
 		"winservice",
@@ -425,7 +425,7 @@ func addFireWallRule(snc *snclient.Agent) error {
 		"action=allow",
 		"protocol=TCP",
 		"profile=any",
-		"description=SNClient+ Remote Access",
+		"description=SNClient Remote Access",
 		fmt.Sprintf("program=%s", execPath),
 		fmt.Sprintf("name=%s", FIREWALLPREFIX),
 	}

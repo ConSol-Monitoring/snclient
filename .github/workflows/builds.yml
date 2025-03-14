@@ -206,7 +206,7 @@ jobs:
         if: ${{ env.CERTURL != '' }}
         run: |
           AzureSignTool.exe sign `
-            --description="SNClient+ Agent (https://omd.consol.de/docs/snclient/)" `
+            --description="SNClient Agent (https://omd.consol.de/docs/snclient/)" `
             --description-url="https://omd.consol.de/docs/snclient/" `
             --file-digest=sha384 `
             --azure-key-vault-url="${{ secrets.AZURE_VAULT_CERT_URL }}" `
@@ -316,7 +316,7 @@ jobs:
         if: ${{ env.CERTURL != '' }}
         run: |
           AzureSignTool.exe sign `
-            --description="SNClient+ Agent (https://omd.consol.de/docs/snclient/)" `
+            --description="SNClient Agent (https://omd.consol.de/docs/snclient/)" `
             --description-url="https://omd.consol.de/docs/snclient/" `
             --file-digest=sha384 `
             --azure-key-vault-url="${{ secrets.AZURE_VAULT_CERT_URL }}" `

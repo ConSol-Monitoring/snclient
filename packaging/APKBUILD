@@ -2,7 +2,7 @@
 pkgname=snclient
 pkgver=1.0.0  # Replace with the actual version
 pkgrel=0
-pkgdesc="SNClient+ (Secure Naemon Client) is a general-purpose monitoring agent."
+pkgdesc="SNClient (Secure Naemon Client) is a general-purpose monitoring agent."
 url="https://github.com/Consol-Monitoring/snclient/"
 arch="all"
 license="MIT"
@@ -33,4 +33,3 @@ package() {
 
     mkdir -p "$pkgdir/var/log/snclient"
 }
-

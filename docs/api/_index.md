@@ -3,7 +3,7 @@ title: REST API
 linkTitle: REST API
 ---
 
-SNClient+ comes with a REST API which can be used to run checks or do administrative tasks.
+SNClient comes with a REST API which can be used to run checks or do administrative tasks.
 
 For the sake of completeness the list of endpoints also contains the available none-rest URLs.
 

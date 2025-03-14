@@ -7,11 +7,11 @@ weight: 2000
 
 **Overview:**
 
-The SNClient+ agent provides a flexible and extensible solution for executing custom scripts and external programs to monitor (plugins) and manage (event handlers) your Windows systems. This guide will walk you through configuring and utilizing this feature, which is equivalent to NSClient++'s `CheckExternalScripts` module.
+The SNClient agent provides a flexible and extensible solution for executing custom scripts and external programs to monitor (plugins) and manage (event handlers) your Windows systems. This guide will walk you through configuring and utilizing this feature, which is equivalent to NSClient++'s `CheckExternalScripts` module.
 
 ### Enabling External Script Integration
 
-To enable the external script integration feature in SNClient+, you need to activate it in the config file as follows:
+To enable the external script integration feature in SNClient, you need to activate it in the config file as follows:
 
 ```ini
 [/modules]
@@ -20,7 +20,7 @@ CheckExternalScripts = enabled
 
 ### Adding Custom Scripts
 
-You can add your custom scripts to SNClient+ using either a concise or verbose format. Here are examples of both:
+You can add your custom scripts to SNClient using either a concise or verbose format. Here are examples of both:
 
 **Concise Format**:
 
@@ -59,7 +59,7 @@ Arguments are available in macros:
 
 ### Configuration Reference
 
-Below, you'll find a reference section for configuring the External Script Integration feature of SNClient+
+Below, you'll find a reference section for configuring the External Script Integration feature of SNClient
 
 #### External Script Integration Settings
 
@@ -108,7 +108,7 @@ check_dummy_argsq = ${scripts}/check_dummy.ps1 $ARGS"$
 restart_service = NET START "$ARG1$"
 ```
 
-If your scripts are located within the `${scripts}` folder, you can specify them using relative paths, as demonstrated in the examples. SNClient+ will automatically obtain the absolute path for these scripts and use it for execution. Prior to running the scripts, SNClient+ configures the working directory to be ${shared-dir}.
+If your scripts are located within the `${scripts}` folder, you can specify them using relative paths, as demonstrated in the examples. SNClient will automatically obtain the absolute path for these scripts and use it for execution. Prior to running the scripts, SNClient configures the working directory to be ${shared-dir}.
 
 #### Wrapped Scripts
 
