@@ -6,7 +6,7 @@ linkTitle: From Source
 
 ## Requirements
 
-- go >= 1.22
+- go >= 1.23
 - openssl
 - make
 - help2man

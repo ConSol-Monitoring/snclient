@@ -26,12 +26,12 @@ It is maintained in [docs/](docs/)
 
 ## Supported Operating Systems
 
-|               | i386 | x84_64 | arm64 |
-|---------------|:----:|:------:|:-----:|
-| **Linux**     |   X  |    X   |   X   |
-| **Windows**\* |   X  |    X   |   X   |
-| **FreeBSD**   |   X  |    X   |   X   |
-| **MacOS**     |      |    X   |   X   |
+|               | i386 | x86_64 | aarch64 (arm) |
+|---------------|:----:|:------:|:-------------:|
+| **Linux**     |   X  |    X   |   X           |
+| **Windows**\* |   X  |    X   |   X           |
+| **FreeBSD**   |   X  |    X   |   X           |
+| **MacOS**     |      |    X   |   X           |
 
 \* Only Windows 10 / Windows Server 2016 or newer.
 
@@ -139,7 +139,7 @@ Find a brief overview of what is planned and what is done already:
   * [ ] use strong typed config items
 * [X] osx
   * [X] check pkg uninstall
-* [X] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, amd64 -> aarch64
+* [X] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, arm64 -> aarch64
 
 ## Not gonna happen
 
