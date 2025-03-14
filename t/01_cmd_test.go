@@ -29,7 +29,7 @@ func TestCommandFlags(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: []string{"run", "check_snclient_version"},
-		Like: []string{`SNClient\+ v`},
+		Like: []string{`SNClient v`},
 	})
 
 	runCmd(t, &cmd{

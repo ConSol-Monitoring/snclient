@@ -89,7 +89,7 @@ func TestMSIinstaller(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
-		Like: []string{`^SNClient\+ v`},
+		Like: []string{`^SNClient v`},
 	})
 
 	// build second msi file (from the parent folder) to test upgrade
@@ -125,7 +125,7 @@ func TestMSIinstaller(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
-		Like: []string{`^SNClient\+ v`},
+		Like: []string{`^SNClient v`},
 	})
 	runCmd(t, &cmd{
 		Cmd:  bin,

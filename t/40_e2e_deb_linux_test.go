@@ -51,7 +51,7 @@ func TestDEBinstaller(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  "/usr/bin/snclient",
 		Args: []string{"-V"},
-		Like: []string{`^SNClient\+ v`},
+		Like: []string{`^SNClient v`},
 	})
 
 	runCmd(t, &cmd{
@@ -83,7 +83,7 @@ func TestDEBinstaller(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
-		Like: []string{`^SNClient\+ v`},
+		Like: []string{`^SNClient v`},
 	})
 
 	runCmd(t, &cmd{
