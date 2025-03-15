@@ -4,6 +4,7 @@ next:
          - check_service: fix case insensitive excludes
          - check_pagefile: fix crash if there is no pagefile
          - update windows exporter to 0.30.5
+         - update node exporter to 1.9.0
 
 0.32     Thu Mar 13 12:55:24 CET 2025
          - add alpine support
