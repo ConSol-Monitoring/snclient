@@ -252,6 +252,15 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		}
 		entry["version"] = version
 	}
+
+	if err := checkSlowFileOperations(check, entry, path); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checkSlowFileOperations(check *CheckData, entry map[string]string, path string) error {
 	// check filter before doing even slower things
 	if !check.MatchMapCondition(check.filter, entry, true) {
 		return nil
