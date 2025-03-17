@@ -88,6 +88,7 @@ Application Options:
   -6                              use tcp6 only
   -V, --version                   Show version
   -v, --verbose                   Show verbose output
+      --proxy=                    Proxy that should be used
 
 Help Options:
   -h, --help                      Show this help message
