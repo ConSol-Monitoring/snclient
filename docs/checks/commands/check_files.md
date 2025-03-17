@@ -73,21 +73,26 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute   | Description                                       |
-| ----------- | ------------------------------------------------- |
-| path        | Path to the file                                  |
-| filename    | Name of the file                                  |
-| name        | Alias for filename                                |
-| file        | Alias for filename                                |
-| fullname    | Full name of the file including path              |
-| type        | Type of item (file or dir)                        |
-| access      | Last access time                                  |
-| creation    | Date when file was created                        |
-| size        | File size in bytes                                |
-| written     | Date when file was last written to                |
-| write       | Alias for written                                 |
-| age         | Seconds since file was last written               |
-| version     | Windows exe/dll file version (windows only)       |
-| line_count  | Number of lines in the files (text files)         |
-| total_bytes | Total size over all files in bytes                |
-| total_size  | Total size over all files as human readable bytes |
+| Attribute       | Description                                       |
+| --------------- | ------------------------------------------------- |
+| path            | Path to the file                                  |
+| filename        | Name of the file                                  |
+| name            | Alias for filename                                |
+| file            | Alias for filename                                |
+| fullname        | Full name of the file including path              |
+| type            | Type of item (file or dir)                        |
+| access          | Last access time                                  |
+| creation        | Date when file was created                        |
+| size            | File size in bytes                                |
+| written         | Date when file was last written to                |
+| write           | Alias for written                                 |
+| age             | Seconds since file was last written               |
+| version         | Windows exe/dll file version (windows only)       |
+| line_count      | Number of lines in the files (text files)         |
+| total_bytes     | Total size over all files in bytes                |
+| total_size      | Total size over all files as human readable bytes |
+| md5_checksum    | MD5 checksum of the file                          |
+| sha1_checksum   | SHA1 checksum of the file                         |
+| sha256_checksum | SHA256 checksum of the file                       |
+| sha384_checksum | SHA384 checksum of the file                       |
+| sha512_checksum | SHA512 checksum of the file                       |

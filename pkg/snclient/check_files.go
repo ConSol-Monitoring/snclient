@@ -77,6 +77,11 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "line_count", description: "Number of lines in the files (text files)"},
 			{name: "total_bytes", description: "Total size over all files in bytes", unit: UByte},
 			{name: "total_size", description: "Total size over all files as human readable bytes", unit: UByte},
+			{name: "md5_checksum", description: "MD5 checksum of the file"},
+			{name: "sha1_checksum", description: "SHA1 checksum of the file"},
+			{name: "sha256_checksum", description: "SHA256 checksum of the file"},
+			{name: "sha384_checksum", description: "SHA384 checksum of the file"},
+			{name: "sha512_checksum", description: "SHA512 checksum of the file"},
 		},
 		exampleDefault: `
 Alert if there are logs older than 1 hour in /tmp:
@@ -99,9 +104,6 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		return nil, fmt.Errorf("no path specified")
 	}
 
-	needLineCount := check.HasThreshold("line_count")
-	needVersion := check.HasThreshold("version") || check.HasMacro("version")
-
 	for _, checkPath := range l.paths {
 		if l.maxDepth == 0 {
 			break
@@ -110,7 +112,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		checkPath = l.normalizePath(checkPath)
 
 		err := filepath.WalkDir(checkPath, func(path string, dirEntry fs.DirEntry, err error) error {
-			return l.addFile(check, path, checkPath, dirEntry, needLineCount, needVersion, err)
+			return l.addFile(check, path, checkPath, dirEntry, err)
 		})
 		if err != nil {
 			return nil, fmt.Errorf("error walking directory %s: %s", checkPath, err.Error())
@@ -154,13 +156,14 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 
 	// skip file metrics unless show-all is set
 	if check.showAll {
-		l.addFileMetrics(check, needLineCount)
+		l.addFileMetrics(check)
 	}
 
 	return check.Finalize()
 }
 
-func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, needLineCount, needVersion bool, err error) error {
+func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, err error) error {
+	needVersion := check.HasThreshold("version") || check.HasMacro("version")
 	path = l.normalizePath(path)
 	filename := filepath.Base(path)
 	entry := map[string]string{
@@ -250,12 +253,19 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		entry["version"] = version
 	}
 
-	if needLineCount {
-		// check filter before doing even slower things
-		if !check.MatchMapCondition(check.filter, entry, true) {
-			return nil
-		}
+	if err := checkSlowFileOperations(check, entry, path); err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func checkSlowFileOperations(check *CheckData, entry map[string]string, path string) error {
+	// check filter before doing even slower things
+	if !check.MatchMapCondition(check.filter, entry, true) {
+		return nil
+	}
+	if check.HasThreshold("line_count") {
 		fileHandler, err := os.Open(path)
 		if err != nil {
 			return fmt.Errorf("could not open file %s: %s", path, err.Error())
@@ -264,14 +274,51 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		fileHandler.Close()
 	}
 
+	if check.HasThreshold("md5_checksum") {
+		value, err := utils.MD5FileSum(path)
+		if err != nil {
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
+		}
+		entry["md5_checksum"] = value
+	}
+	if check.HasThreshold("sha1_checksum") {
+		value, err := utils.Sha1FileSum(path)
+		if err != nil {
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
+		}
+		entry["sha1_checksum"] = value
+	}
+	if check.HasThreshold("sha256_checksum") {
+		value, err := utils.Sha256FileSum(path)
+		if err != nil {
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
+		}
+		entry["sha256_checksum"] = value
+	}
+	if check.HasThreshold("sha384_checksum") {
+		value, err := utils.Sha384FileSum(path)
+		if err != nil {
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
+		}
+		entry["sha384_checksum"] = value
+	}
+	if check.HasThreshold("sha512_checksum") {
+		value, err := utils.Sha512FileSum(path)
+		if err != nil {
+			return fmt.Errorf("could not open file %s: %s", path, err.Error())
+		}
+		entry["sha512_checksum"] = value
+	}
+
 	return nil
 }
 
-func (l *CheckFiles) addFileMetrics(check *CheckData, needLineCount bool) {
+func (l *CheckFiles) addFileMetrics(check *CheckData) {
 	needSize := check.HasThreshold("size")
 	needAge := check.HasThreshold("age")
 	needAccess := check.HasThreshold("access")
 	needWritten := check.HasThreshold("written")
+	needLineCount := check.HasThreshold("line_count")
 
 	for _, data := range check.listData {
 		if needSize {
