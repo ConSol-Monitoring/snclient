@@ -7,6 +7,7 @@ next:
          - update node exporter to 1.9.0
          - check_dns: fix crash without any nameserver
          - fix timeout race condition when rebooting windows service
+         - change handling exporter arguments and keep quotes
 
 0.32     Thu Mar 13 12:55:24 CET 2025
          - add alpine support
