@@ -218,9 +218,9 @@ func (l *HandlerManagedExporter) procMainLoop() {
 
 		// drop privileges when started as root
 		if l.agentUser != "" && os.Geteuid() == 0 {
-			if err := setCmdUser(cmd, l.agentUser); err != nil {
-				err = fmt.Errorf("failed to drop privileges for %s agent: %s", l.Type(), err.Error())
-				log.Errorf("agent startup error: %s", err)
+			if err2 := setCmdUser(cmd, l.agentUser); err2 != nil {
+				err2 = fmt.Errorf("failed to drop privileges for %s agent: %s", l.Type(), err2.Error())
+				log.Errorf("agent startup error: %s", err2)
 
 				return
 			}

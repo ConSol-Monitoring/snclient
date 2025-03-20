@@ -37,13 +37,13 @@ func (a *AliasHandler) Init(_ *Agent, section *ConfigSection, conf *Config, runS
 		}
 		cmdConf := conf.Section(sectionName)
 		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
-			f := utils.Tokenize(command)
-			f, err := utils.TrimQuotesList(f)
+			args := utils.Tokenize(command)
+			args, err := utils.TrimQuotesList(args)
 			if err != nil {
 				return fmt.Errorf("failed to register alias %s: %s", name, err.Error())
 			}
 			log.Tracef("registered alias script: %s -> %s", name, command)
-			runSet.cmdAliases[name] = CheckEntry{name, func() CheckHandler { return &CheckAlias{command: f[0], args: f[1:], config: cmdConf} }}
+			runSet.cmdAliases[name] = CheckEntry{name, func() CheckHandler { return &CheckAlias{command: args[0], args: args[1:], config: cmdConf} }}
 		} else {
 			return fmt.Errorf("missing command in alias script %s", name)
 		}
