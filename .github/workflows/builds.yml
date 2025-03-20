@@ -115,7 +115,7 @@ jobs:
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "${{ env.BIN }}"
           path: "snclient"
@@ -142,7 +142,7 @@ jobs:
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "${{ env.BIN }}"
           path: "snclient"
@@ -172,7 +172,7 @@ jobs:
           make rsrc_windows
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
           mv snclient snclient.exe
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "${{ env.BIN }}"
           path: "snclient.exe"
@@ -225,7 +225,7 @@ jobs:
           Write-Host "Verify snclient.exe"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa snclient.exe
 
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "${{ env.BIN }}"
           path: "snclient.exe"
@@ -247,7 +247,7 @@ jobs:
           echo "Creating dist folder for linux/osx"
           make dist
           rm dist/snclient
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "dist"
           path: "dist"
@@ -268,7 +268,7 @@ jobs:
           echo "Creating dist folder for windows"
           make windist
           rm dist/snclient
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "windist"
           path: "windist"
@@ -335,7 +335,7 @@ jobs:
           Write-Host "Verify snclient.msi"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa ${{ env.BIN }}.msi
 
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "${{ env.BIN }}.msi"
           path: "${{ env.BIN }}.msi"
@@ -372,7 +372,7 @@ jobs:
           export DEBFULLNAME="Sven Nierlein"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make deb
           mv snclient*.deb ${{ env.BIN }}.deb
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "${{ env.BIN }}.deb"
           path: "${{ env.BIN }}.deb"
@@ -405,7 +405,7 @@ jobs:
           echo "Building ${{ env.BIN }}.rpm"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make rpm
           mv snclient*.rpm ${{ env.BIN }}.rpm
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "${{ env.BIN }}.rpm"
           path: "${{ env.BIN }}.rpm"
@@ -459,7 +459,7 @@ jobs:
           echo "Building ${{ env.BIN }}.apk"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make apk
           mv snclient*.apk ${{ env.BIN }}.apk
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "${{ env.BIN }}.apk"
           path: "${{ env.BIN }}.apk"
@@ -494,7 +494,7 @@ jobs:
           export PATH="/usr/local/opt/openssl@3/bin:$PATH"
           make osx
           mv snclient*.pkg ${{ env.DIST }}.pkg
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: "${{ env.DIST }}.pkg"
           path: "${{ env.DIST }}.pkg"
