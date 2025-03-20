@@ -38,6 +38,10 @@ func (a *AliasHandler) Init(_ *Agent, section *ConfigSection, conf *Config, runS
 		cmdConf := conf.Section(sectionName)
 		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
 			f := utils.Tokenize(command)
+			f, err := utils.TrimQuotesList(f)
+			if err != nil {
+				return fmt.Errorf("failed to register alias %s: %s", name, err.Error())
+			}
 			log.Tracef("registered alias script: %s -> %s", name, command)
 			runSet.cmdAliases[name] = CheckEntry{name, func() CheckHandler { return &CheckAlias{command: f[0], args: f[1:], config: cmdConf} }}
 		} else {
