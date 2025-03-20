@@ -281,6 +281,7 @@ func TokenizeBy(str, separator string, keepQuotes, keepSeparator bool) []string 
 	return tokens
 }
 
+// TrimQuotesList returns list of string with quotes removed
 func TrimQuotesList(list []string) (res []string, err error) {
 	res = make([]string, len(list))
 	for i := range list {
@@ -294,6 +295,7 @@ func TrimQuotesList(list []string) (res []string, err error) {
 	return res, nil
 }
 
+// TrimQuotes returns string with quotes removed
 func TrimQuotes(str string) (res string, err error) {
 	switch {
 	case strings.HasPrefix(str, "'"):
