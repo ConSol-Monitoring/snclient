@@ -25,17 +25,20 @@ type winService struct {
 }
 
 func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
-	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
+	// change working directory to shared-path (ex.: C:\Program Files\snclient) so relative paths in scripts will work
+	sharedPath, _ := m.snc.config.Section("/paths").GetString("shared-path")
+	err := os.Chdir(sharedPath)
+	if err != nil {
+		log.Fatalf("failed to change working directory to %s: %s", sharedPath, err.Error())
+	}
+
 	changes <- svc.Status{State: svc.StartPending}
-	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
+	changes <- svc.Status{State: svc.Running, Accepts: svc.AcceptStop | svc.AcceptShutdown}
+
 	go m.snc.Run()
 	if !m.snc.StartWait(svcWaitTimeOut) {
 		log.Fatalf("snclient failed to start within %s", svcWaitTimeOut.String())
 	}
-
-	// change working directory to shared-path (ex.: C:\Program Files\snclient) so relative paths in scripts will work
-	sharedPath, _ := m.snc.config.Section("/paths").GetString("shared-path")
-	LogError(os.Chdir(sharedPath))
 
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
