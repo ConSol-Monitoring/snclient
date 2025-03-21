@@ -343,8 +343,6 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 	command := chi.URLParam(req, "command")
 	args := queryParam2CommandArgs(req)
 	result := l.Handler.snc.RunCheckWithContext(req.Context(), command, args)
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
 	data, err := json.Marshal(map[string]interface{}{
 		"payload": []interface{}{
 			map[string]interface{}{
@@ -368,6 +366,7 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 		return
 	}
 	res.WriteHeader(http.StatusOK)
+	res.Header().Set("Content-Type", "application/json")
 	LogError2(res.Write(data))
 
 	if log.IsV(2) {
