@@ -214,6 +214,8 @@ func (snc *Agent) Run() {
 	if snc.IsRunning() {
 		log.Panicf("agent is already running")
 	}
+	snc.running.Store(true)
+	defer snc.running.Store(false)
 
 	log.Infof("%s", snc.buildStartupMsg())
 
@@ -234,7 +236,6 @@ func (snc *Agent) Run() {
 	})
 
 	snc.startModules(snc.runSet)
-	snc.running.Store(true)
 
 	for {
 		exitState := snc.mainLoop()
@@ -244,7 +245,6 @@ func (snc *Agent) Run() {
 		}
 	}
 
-	snc.running.Store(false)
 	log.Infof("snclient exited (pid:%d)\n", os.Getpid())
 }
 
