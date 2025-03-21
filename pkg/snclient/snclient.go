@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
@@ -804,8 +805,12 @@ func (snc *Agent) buildStartupMsg() string {
 	if err != nil {
 		log.Debugf("failed to get platform host id: %s", err.Error())
 	}
-	msg := fmt.Sprintf("%s starting (version:v%s.%s - build:%s - host:%s - pid:%d - os:%s %s - arch:%s - %s)",
-		NAME, VERSION, Revision, Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH, runtime.Version())
+	u, err := user.Current()
+	if err != nil {
+		log.Debugf("failed to get current user: %s", err.Error())
+	}
+	msg := fmt.Sprintf("%s starting (version:v%s.%s - build:%s - host:%s - pid:%d - os:%s %s - arch:%s - %s - user:%s)",
+		NAME, VERSION, Revision, Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH, runtime.Version(), u.Username)
 
 	return msg
 }
