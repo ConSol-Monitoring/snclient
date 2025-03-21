@@ -35,7 +35,6 @@ func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, cha
 	changes <- svc.Status{State: svc.StartPending}
 	changes <- svc.Status{State: svc.Running, Accepts: svc.AcceptStop | svc.AcceptShutdown}
 
-	go m.snc.Run()
 	if !m.snc.StartWait(svcWaitTimeOut) {
 		log.Fatalf("snclient failed to start within %s", svcWaitTimeOut.String())
 	}
