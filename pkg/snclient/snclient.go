@@ -114,6 +114,20 @@ var (
 	GlobalMacros = getGlobalMacros()
 )
 
+// RunState is used to set different states of the main loop.
+type RunState int32
+
+const (
+	// Stopped is used for when the mainloop is stopped
+	Stopped RunState = iota
+
+	// Pending is used for when the mainloop is starting right now
+	Pending
+
+	// Started is used for when the mainloop is running
+	Started
+)
+
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
 type noCopy struct{}
 
@@ -146,7 +160,7 @@ type Agent struct {
 	cpuProfileHandler *os.File
 	runSet            *AgentRunSet
 	osSignalChannel   chan os.Signal
-	running           atomic.Bool
+	running           atomic.Value
 	Log               *factorlog.FactorLog
 	profileServer     *http.Server
 }
@@ -197,6 +211,7 @@ func NewAgentSimple(flags *AgentFlags) *Agent {
 		flags:     flags,
 		Log:       log,
 	}
+	snc.running.Store(Stopped)
 	snc.checkFlags()
 	snc.createLogger(nil)
 
@@ -205,18 +220,23 @@ func NewAgentSimple(flags *AgentFlags) *Agent {
 
 // IsRunning returns true if the agent is running
 func (snc *Agent) IsRunning() bool {
-	return snc.running.Load()
+	val := snc.running.Load()
+	if val == nil {
+		return false
+	}
+
+	return val == Started
 }
 
 // Run starts the main loop and blocks until Stop() is called
 func (snc *Agent) Run() {
 	defer snc.logPanicExit()
 
-	if snc.IsRunning() {
+	if snc.running.Load() != Stopped {
 		log.Panicf("agent is already running")
 	}
-	snc.running.Store(true)
-	defer snc.running.Store(false)
+	snc.running.Store(Pending)
+	defer snc.running.Store(Stopped)
 
 	log.Infof("%s", snc.buildStartupMsg())
 
@@ -237,6 +257,7 @@ func (snc *Agent) Run() {
 	})
 
 	snc.startModules(snc.runSet)
+	snc.running.Store(Started)
 
 	for {
 		exitState := snc.mainLoop()

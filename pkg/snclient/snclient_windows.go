@@ -210,7 +210,7 @@ func (snc *Agent) StartRestartWatcher() {
 		os.Exit(0)
 	}()
 
-	snc.running.Store(true)
+	snc.running.Store(Started)
 	snc.restartWatcherCb(func() {
 		LogDebug(cmd.Process.Kill())
 		_ = cmd.Wait()
