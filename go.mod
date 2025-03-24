@@ -11,7 +11,7 @@ require (
 	github.com/go-ole/go-ole v1.3.0
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/mackerelio/checkers v0.2.0
-	github.com/miekg/dns v1.1.63
+	github.com/miekg/dns v1.1.64
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.21.1
 	github.com/reeflective/readline v1.1.2
