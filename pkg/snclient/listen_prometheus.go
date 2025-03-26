@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"encoding/json"
 	"net/http"
 	"runtime"
 
@@ -97,10 +96,6 @@ func NewHandlerPrometheus() Module {
 	listen.handler = http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		if !verifyRequestPassword(listen.snc, req, listen.password) {
 			http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-			res.Header().Set("Content-Type", "application/json")
-			LogError(json.NewEncoder(res).Encode(map[string]interface{}{
-				"error": "permission denied",
-			}))
 
 			return
 		}

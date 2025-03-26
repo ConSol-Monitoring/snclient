@@ -302,27 +302,11 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 			continue
 		}
 
-		useAppend := false
-		if strings.HasSuffix(val[0], "+") {
-			val[0] = strings.TrimSpace(strings.TrimSuffix(val[0], "+"))
-			useAppend = true
-		}
-
-		value, err := config.parseString(val[1])
+		err := currentSection.SetRaw(val[0], val[1])
 		if err != nil {
 			parseErrors = append(parseErrors, fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, err.Error()))
-
-			continue
 		}
 
-		if useAppend {
-			cur, ok := currentSection.GetString(val[0])
-			if ok {
-				value = cur + value
-			}
-		}
-
-		currentSection.Set(val[0], value)
 		if len(currentComments) > 0 {
 			currentSection.comments[val[0]] = currentComments
 			currentComments = make([]string, 0)
@@ -330,7 +314,13 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 
 		// recurse directly when in an includes section to maintain order of settings
 		if config.recursive && strings.HasPrefix(currentSection.name, "/includes") {
-			err := config.parseInclude(value, iniPath, currentSection, snc)
+			value, err := configParseString(val[1])
+			if err != nil {
+				parseErrors = append(parseErrors, fmt.Errorf("%s (included in %s:%d)", err.Error(), iniPath, lineNr))
+
+				continue
+			}
+			err = config.parseInclude(value, iniPath, currentSection, snc)
 			if err != nil {
 				parseErrors = append(parseErrors, fmt.Errorf("%s (included in %s:%d)", err.Error(), iniPath, lineNr))
 
@@ -516,7 +506,7 @@ func (config *Config) SectionsByPrefix(prefix string) map[string]*ConfigSection 
 }
 
 // parseString parses string from config section.
-func (config *Config) parseString(val string) (string, error) {
+func configParseString(val string) (string, error) {
 	val = strings.TrimSpace(val)
 
 	switch {
@@ -620,7 +610,11 @@ func (config *Config) ReplaceMacrosDefault(section *ConfigSection, timezone *tim
 	defaultMacros := config.DefaultMacros()
 	for key, val := range section.data {
 		val = ReplaceMacros(val, timezone, defaultMacros)
-		section.Set(key, val)
+		section.data[key] = val
+
+		raw := section.raw[key]
+		raw = ReplaceMacros(raw, timezone, defaultMacros)
+		section.raw[key] = raw
 	}
 }
 
@@ -664,6 +658,7 @@ type ConfigSection struct {
 	cfg      *Config             // reference to parent config collection
 	name     string              // section name
 	data     ConfigData          // actual config data
+	raw      ConfigData          // raw config data (including quotes and such)
 	keys     []string            // keys from config data
 	comments map[string][]string // comments sorted by config keys
 }
@@ -674,6 +669,7 @@ func NewConfigSection(cfg *Config, name string) *ConfigSection {
 		cfg:      cfg,
 		name:     name,
 		data:     make(map[string]string, 0),
+		raw:      make(map[string]string, 0),
 		keys:     make([]string, 0),
 		comments: make(map[string][]string, 0),
 	}
@@ -690,6 +686,10 @@ func (cs *ConfigSection) String() string {
 	for _, key := range cs.keys {
 		data = append(data, cs.comments[key]...)
 		val := cs.data[key]
+		raw := cs.raw[key]
+		if raw != "" {
+			val = raw
+		}
 		if val == "" {
 			data = append(data, fmt.Sprintf("%s =", key))
 		} else {
@@ -702,12 +702,49 @@ func (cs *ConfigSection) String() string {
 	return strings.Join(data, "\n")
 }
 
+// Set sets a raw single key/value pair. Existing keys will be overwritten.
+// Raw means this value will be stored parsed (stripping quotes) but also
+// be stored as is, including quotes.
+func (cs *ConfigSection) SetRaw(key, value string) error {
+	rawValue := value
+
+	useAppend := false
+	if strings.HasSuffix(key, "+") {
+		key = strings.TrimSpace(strings.TrimSuffix(key, "+"))
+		useAppend = true
+	}
+
+	value, err := configParseString(value)
+	if err != nil {
+		return err
+	}
+
+	if useAppend {
+		curRaw, cur, ok := cs.GetStringRaw(key)
+		if ok {
+			value = cur + value
+			rawValue = curRaw + rawValue
+		}
+	}
+
+	if !cs.HasKey(key) {
+		cs.keys = append(cs.keys, key)
+	}
+
+	cs.data[key] = value
+	cs.raw[key] = rawValue
+
+	return nil
+}
+
 // Set sets a single key/value pair. Existing keys will be overwritten.
 func (cs *ConfigSection) Set(key, value string) {
 	if !cs.HasKey(key) {
 		cs.keys = append(cs.keys, key)
 	}
+
 	cs.data[key] = value
+	cs.raw[key] = ""
 }
 
 // Insert is just like Set but trys to find the key in comments first and will uncomment that one
@@ -763,6 +800,7 @@ func (cs *ConfigSection) Insert(key, value string) {
 // Remove removes a single key.
 func (cs *ConfigSection) Remove(key string) {
 	delete(cs.data, key)
+	delete(cs.raw, key)
 
 	index := slices.Index(cs.keys, key)
 	if index != -1 {
@@ -798,6 +836,7 @@ func (cs *ConfigSection) Clone() *ConfigSection {
 	clone := NewConfigSection(cs.cfg, cs.name)
 	for k, v := range cs.data {
 		clone.data[k] = v
+		clone.raw[k] = cs.raw[k]
 	}
 	clone.keys = append(clone.keys, clone.keys...)
 	clone.cfg = cs.cfg
@@ -818,9 +857,23 @@ func (cs *ConfigSection) HasKey(key string) (ok bool) {
 	return ok
 }
 
-// GetString parses string from config section, it returns the value if found and sets ok to true.
+// GetString returns string from config section.
+// it returns the value if found and sets ok to true.
 func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
+	_, val, ok = cs.GetStringRaw(key)
+
+	return val, ok
+}
+
+// GetStringRaw returns the raw string (including quotes)
+// along the clean string from config section.
+// it returns the value if found and sets ok to true.
+func (cs *ConfigSection) GetStringRaw(key string) (raw, val string, ok bool) {
+	raw = cs.raw[key]
 	val, ok = cs.data[key]
+	if raw == "" {
+		raw = val
+	}
 	if ok && cs.isUsable(key, val) {
 		macros := make([]map[string]string, 0)
 		if cs.cfg != nil {
@@ -830,11 +883,11 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 		val = ReplaceMacros(val, nil, macros...)
 		val = cs.cfg.ReplaceOnDemandConfigMacros(val, nil)
 
-		return val, ok
+		return raw, val, ok
 	}
 
 	if cs.cfg == nil {
-		return val, ok
+		return raw, val, ok
 	}
 
 	// try default folder for defaults
@@ -842,34 +895,34 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	folder := path.Dir(cs.name)
 	if base != "default" && folder != "/" {
 		defSection := cs.cfg.Section(folder + "/default")
-		val, ok = defSection.GetString(key)
+		raw, val, ok = defSection.GetStringRaw(key)
 		if ok {
-			return val, ok
+			return raw, val, ok
 		}
 	}
 	if folder != cs.name {
 		defSection := cs.cfg.Section(folder)
 		if defSection.name == cs.name {
-			return val, ok
+			return raw, val, ok
 		}
-		val, ok = defSection.GetString(key)
+		raw, val, ok = defSection.GetStringRaw(key)
 		if ok {
-			return val, ok
+			return raw, val, ok
 		}
 	}
 	parent := path.Dir(strings.TrimSuffix(folder, "/"))
 	if parent != "." && parent != "/" && parent != "" {
 		parSection := cs.cfg.Section(parent)
-		val, ok = parSection.GetString(key)
+		raw, val, ok = parSection.GetStringRaw(key)
 		if ok {
-			return val, ok
+			return raw, val, ok
 		}
 	}
 
-	return val, ok
+	return raw, val, ok
 }
 
-// returns true if value is usable
+// returns true if value is usable (ex, password is not default)
 func (cs *ConfigSection) isUsable(key, val string) bool {
 	if key == "password" && val == DefaultPassword {
 		return false

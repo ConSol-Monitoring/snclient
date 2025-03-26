@@ -3,7 +3,6 @@ package snclient
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -366,6 +365,12 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 		ErrorLog:          NewStandardLog("WARN"),
 	}
 
+	if l.listen == nil {
+		log.Error("listener for %s is nil", l.bindAddress)
+
+		return
+	}
+
 	if err := server.Serve(l.listen); err != nil {
 		log.Tracef("http server finished: %s", err.Error())
 	}
@@ -417,22 +422,13 @@ func (l *Listener) WrappedCheckHTTPHandler(webHandler RequestHandlerHTTP, mappin
 	allowed := webHandler.GetAllowedHosts()
 	if !allowed.Check(req.RemoteAddr) {
 		log.Warnf("ip %s is not in the allowed hosts", req.RemoteAddr)
-
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-		res.Header().Set("Content-Type", "application/json")
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
-			"error": "permission denied",
-		}))
 
 		return
 	}
 
 	if !webHandler.CheckPassword(req, *mapping) {
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-		res.Header().Set("Content-Type", "application/json")
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
-			"error": "permission denied",
-		}))
 
 		return
 	}

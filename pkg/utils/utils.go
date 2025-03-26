@@ -281,6 +281,21 @@ func TokenizeBy(str, separator string, keepQuotes, keepSeparator bool) []string 
 	return tokens
 }
 
+// TrimQuotesList returns list of string with quotes removed
+func TrimQuotesList(list []string) (res []string, err error) {
+	res = make([]string, len(list))
+	for i := range list {
+		val, err := TrimQuotes(list[i])
+		if err != nil {
+			return nil, err
+		}
+		res[i] = val
+	}
+
+	return res, nil
+}
+
+// TrimQuotes returns string with quotes removed
 func TrimQuotes(str string) (res string, err error) {
 	switch {
 	case strings.HasPrefix(str, "'"):
@@ -356,9 +371,11 @@ func MD5FileSum(path string) (hash string, err error) {
 func Sha1FileSum(path string) (hash string, err error) {
 	return FileHash(path, sha1.New()) //nolint:gosec // needed for sha1 file hash
 }
+
 func Sha384FileSum(path string) (hash string, err error) {
 	return FileHash(path, sha512.New384())
 }
+
 func Sha512FileSum(path string) (hash string, err error) {
 	return FileHash(path, sha512.New())
 }

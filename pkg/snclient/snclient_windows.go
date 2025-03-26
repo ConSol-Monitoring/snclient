@@ -18,48 +18,67 @@ import (
 	"golang.org/x/sys/windows/svc"
 )
 
+const svcWaitTimeOut = 10 * time.Second
+
 type winService struct {
 	snc *Agent
 }
 
 func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
-	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
-	changes <- svc.Status{State: svc.StartPending}
-	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
-	go m.snc.Run()
-
 	// change working directory to shared-path (ex.: C:\Program Files\snclient) so relative paths in scripts will work
 	sharedPath, _ := m.snc.config.Section("/paths").GetString("shared-path")
-	LogError(os.Chdir(sharedPath))
+	err := os.Chdir(sharedPath)
+	if err != nil {
+		log.Fatalf("failed to change working directory to %s: %s", sharedPath, err.Error())
+	}
+
+	changes <- svc.Status{State: svc.StartPending}
+	changes <- svc.Status{State: svc.Running, Accepts: svc.AcceptStop | svc.AcceptShutdown}
+
+	if !m.snc.StartWait(svcWaitTimeOut) {
+		log.Fatalf("snclient failed to start within %s", svcWaitTimeOut.String())
+	}
+
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
 
 	keepListening := true
 	for keepListening {
-		chg := <-changeReq
-		switch chg.Cmd {
-		case svc.Interrogate:
-			changes <- chg.CurrentStatus
-			// Testing deadlock from https://code.google.com/p/winsvc/issues/detail?id=4
-			time.Sleep(100 * time.Millisecond)
-			changes <- chg.CurrentStatus
-		case svc.Stop, svc.Shutdown:
-			log.Infof("got windows service stop request")
-			m.snc.stop()
-			keepListening = false
-		case svc.Pause,
-			svc.Continue,
-			svc.ParamChange,
-			svc.NetBindAdd,
-			svc.NetBindRemove,
-			svc.NetBindEnable,
-			svc.NetBindDisable,
-			svc.DeviceEvent,
-			svc.HardwareProfileChange,
-			svc.PowerEvent,
-			svc.SessionChange,
-			svc.PreShutdown:
-			// ignored
-		default:
-			log.Errorf("unexpected control request #%d", chg)
+		select {
+		case chg := <-changeReq:
+			switch chg.Cmd {
+			case svc.Interrogate:
+				changes <- chg.CurrentStatus
+				// Testing deadlock from https://code.google.com/p/winsvc/issues/detail?id=4
+				time.Sleep(100 * time.Millisecond)
+				changes <- chg.CurrentStatus
+			case svc.Stop, svc.Shutdown:
+				log.Infof("got windows service stop request")
+				m.snc.stop()
+				keepListening = false
+			case svc.Pause,
+				svc.Continue,
+				svc.ParamChange,
+				svc.NetBindAdd,
+				svc.NetBindRemove,
+				svc.NetBindEnable,
+				svc.NetBindDisable,
+				svc.DeviceEvent,
+				svc.HardwareProfileChange,
+				svc.PowerEvent,
+				svc.SessionChange,
+				svc.PreShutdown:
+				// ignored
+			default:
+				log.Errorf("unexpected control request #%d", chg)
+			}
+		case <-ticker.C:
+			if !m.snc.IsRunning() {
+				log.Debugf("main loop exited, stopping windows service")
+				keepListening = false
+
+				break
+			}
 		}
 	}
 	changes <- svc.Status{State: svc.StopPending}
@@ -191,7 +210,7 @@ func (snc *Agent) StartRestartWatcher() {
 		os.Exit(0)
 	}()
 
-	snc.running.Store(true)
+	snc.running.Store(Started)
 	snc.restartWatcherCb(func() {
 		LogDebug(cmd.Process.Kill())
 		_ = cmd.Wait()

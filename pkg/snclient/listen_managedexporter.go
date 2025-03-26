@@ -119,7 +119,7 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 		return fmt.Errorf("agent path is required to start the %s agent", l.Type())
 	}
 
-	if agentArgs, ok := conf.GetString("agent args"); ok {
+	if agentArgs, _, ok := conf.GetStringRaw("agent args"); ok {
 		l.agentArgs = agentArgs
 	}
 
@@ -208,13 +208,19 @@ func (l *HandlerManagedExporter) procMainLoop() {
 			extra := ReplaceMacros(l.agentExtraArgs, nil, l.conf.data)
 			args = append(args, extra)
 		}
+		args, err := utils.TrimQuotesList(args)
+		if err != nil {
+			log.Errorf("export startup error: %s", err)
+
+			return
+		}
 		cmd := exec.Command(l.agentPath, args...) //nolint:gosec // input source is the config file
 
 		// drop privileges when started as root
 		if l.agentUser != "" && os.Geteuid() == 0 {
-			if err := setCmdUser(cmd, l.agentUser); err != nil {
-				err = fmt.Errorf("failed to drop privileges for %s agent: %s", l.Type(), err.Error())
-				log.Errorf("agent startup error: %s", err)
+			if err2 := setCmdUser(cmd, l.agentUser); err2 != nil {
+				err2 = fmt.Errorf("failed to drop privileges for %s agent: %s", l.Type(), err2.Error())
+				log.Errorf("agent startup error: %s", err2)
 
 				return
 			}
@@ -224,7 +230,7 @@ func (l *HandlerManagedExporter) procMainLoop() {
 		l.snc.passthroughLogs("stdout", "["+l.Type()+"] ", log.Debugf, cmd.StdoutPipe)
 		l.snc.passthroughLogs("stderr", "["+l.Type()+"] ", l.logPass, cmd.StderrPipe)
 
-		err := cmd.Start()
+		err = cmd.Start()
 		if err != nil {
 			err = fmt.Errorf("failed to start %s agent: %s", l.Type(), err.Error())
 			log.Errorf("agent startup error: %s", err)
