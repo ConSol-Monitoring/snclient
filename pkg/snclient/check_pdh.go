@@ -18,11 +18,12 @@ func init() {
 }
 
 type CheckPDH struct {
-	CounterPath string
-	HostName    string
-	Type        string
-	Instances   bool
-	ExpandIndex bool
+	CounterPath          string
+	HostName             string
+	Type                 string
+	Instances            bool
+	ExpandIndex          bool
+	EnglishFallBackNames bool
 }
 
 func NewCheckPDH() CheckHandler {
@@ -33,25 +34,28 @@ func NewCheckPDH() CheckHandler {
 
 func (c *CheckPDH) Build() *CheckData {
 	return &CheckData{
-		implemented: Windows,
-		name:        "check_pdh",
-		description: "Checks pdh paths Handles WildCard Expansion",
+		implemented:  Windows,
+		name:         "check_pdh",
+		description:  "Checks pdh paths Handles WildCard Expansion",
+		detailSyntax: "%(name)",
+		okSyntax:     "%(status) - All %(count) Counter Values are ok",
+		topSyntax:    "%(status) - %(problem_count)/%(count) Counter (%(count)) %(problem_list)",
+		emptySyntax:  "No Counter Found",
+		emptyState:   CheckExitUnknown,
 		args: map[string]CheckArgument{
 			"counter":      {value: &c.CounterPath, description: "The fully qualified Counter Name"},
-			"HostName":     {value: &c.HostName, description: "The Name Of the Host Mashine in Network where the Counter should be searhced, defults to local mashine"},
-			"expand-index": {value: &c.ExpandIndex, description: "Should \\4\\3 be translated?"},
+			"host":         {value: &c.HostName, description: "The Name Of the Host Mashine in Network where the Counter should be searched, defults to local mashine"},
+			"expand-index": {value: &c.ExpandIndex, description: "Should Indices be translated?"},
 			"instances":    {value: &c.Instances, description: "Expand WildCards And Fethch all instances"},
 			"type":         {value: &c.Type, description: "this can be large or float depending what you expect, defualt is large "},
+			"english":      {value: &c.EnglishFallBackNames, description: "Using English Names Regardless of system Language requires Windows Vista or higher"},
 		},
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		attributes: []CheckAttribute{
 			{name: "count ", description: "Number of items matching the filter. Common option for all checks."},
-			{name: "total ", description: "Total number of items. Common option for all checks."},
 			{name: "value ", description: "The counter value (either float or int)"},
-			{name: "value_f ", description: "The counter value (force float value)"},
-			{name: "value_i ", description: "The counter value (force int value)"},
 		},
 		exampleDefault: `
 		check_pdh "counter=foo" "warn=value > 80" "crit=value > 90"
@@ -71,13 +75,13 @@ func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args
 		- Gather All Possible Path *
 		- Add All Possible Path to Query and Save Coounter Handles in Map
 		- Gather All Data
-		Run checks
-
-
 		- Request Formatted Values as Array - Single Values are arrays with one entry
-
 	*/
 	tmpPath := c.CounterPath
+	// Open Query needs HosterName in Counter Path
+	if c.HostName != "" {
+		tmpPath = "\\\\" + c.HostName + "\\" + c.CounterPath
+	}
 	r := regexp.MustCompile("\\d+")
 	matches := r.FindAllString(c.CounterPath, -1)
 	for _, m := range matches {
@@ -94,7 +98,7 @@ func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args
 
 	// Expand Counter Path That Ends with WildCard *
 	if c.Instances && strings.HasSuffix(tmpPath, "*") {
-		res, paths := win.PdhExpandCounterPath(c.HostName, tmpPath, 0)
+		res, paths := win.PdhExpandCounterPath("", tmpPath, 0)
 		if res != win.ERROR_SUCCESS {
 			return nil, fmt.Errorf("Something Went wrong when Expanding the CounterPath Api Call Returned %d", res)
 		}
@@ -104,71 +108,60 @@ func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args
 	}
 
 	var hQuery win.PDH_HQUERY
-	// Open Query  - Data Source = 0 => Local Mashine
-	// ptr, _ := syscall.UTF16PtrFromString(c.HostName)
+	// Open Query  - Data Source = 0 => Real Time Datasource
 	ret := win.PdhOpenQuery(uintptr(0), uintptr(0), &hQuery)
 
 	if ret != win.ERROR_SUCCESS {
 		return nil, fmt.Errorf("Could not open Query, Something is wrong with the countername")
 	}
 
-	fmt.Printf("PDH Open Return Code: %d\n", ret)
-
-	counters, err := addAllPathToCounter(hQuery, possiblePaths, c.HostName)
+	counters, err := addAllPathToCounter(hQuery, possiblePaths)
 	if err != nil {
 		return nil, err
 	}
 
 	// Collect Values For All Counters and save values in check.listData
-	// TODO decide what Values are requested
 	collectValuesForAllCounters(hQuery, counters, check)
-
-	if check.HasThreshold("count") {
-		check.result.Metrics = append(check.result.Metrics,
-			&CheckMetric{
-				Name:     "count",
-				Value:    int64(len(check.listData)),
-				Warning:  check.warnThreshold,
-				Critical: check.critThreshold,
-				Min:      &Zero,
-			})
-	}
 
 	return check.Finalize()
 }
 
 func collectValuesForAllCounters(hQuery win.PDH_HQUERY, counters map[string]win.PDH_HCOUNTER, check *CheckData) {
 	for counterPath, hCounter := range counters {
-		var resArr [1]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE // Need at least one nil pointer
+		var resArr [1]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE       // Need at least one nil pointer
+		var resArrFloat [1]win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE // Need at least one nil pointer
 
 		// TODO Default is large Values but should also support Float
 		largeArr, ret := collectLargeValuesArray(hCounter, hQuery, resArr)
+		floatArr, ret := collectDoubleValuesArray(hCounter, hQuery, resArrFloat)
 		if ret != win.ERROR_SUCCESS && ret != win.PDH_MORE_DATA && ret != win.PDH_NO_MORE_DATA {
-
 			// return nil, fmt.Errorf("Could not collect formatted value %v", ret)
 		}
 
 		entry := map[string]string{}
-		for _, v := range largeArr {
-			entry["Name"] = strings.Replace(counterPath, "*", utf16PtrToString(v.SzName), 1)
-			entry["Value"] = fmt.Sprintf("%d", v.FmtValue.LargeValue)
+		for i, v := range largeArr {
+			entry["name"] = strings.Replace(counterPath, "*", utf16PtrToString(v.SzName), 1)
+			entry["value"] = fmt.Sprintf("%d", v.FmtValue.LargeValue)
 			if check.showAll {
+				fmt.Printf("Large: %d, Float %f, name: %s\n", v.FmtValue.LargeValue, floatArr[i].FmtValue.DoubleValue, entry["name"])
 				check.result.Metrics = append(check.result.Metrics,
 					&CheckMetric{
-						Name:     strings.Replace(counterPath, "*", utf16PtrToString(v.SzName), 1),
-						Value:    v.FmtValue.LargeValue,
-						Warning:  check.warnThreshold,
-						Critical: check.critThreshold,
-						Min:      &Zero,
+						Name:          strings.Replace(counterPath, "*", utf16PtrToString(v.SzName), 1),
+						ThresholdName: "value",
+						Value:         v.FmtValue.LargeValue,
+						Warning:       check.warnThreshold,
+						Critical:      check.critThreshold,
+						Min:           &Zero,
 					})
 			}
-
-			check.listData = append(check.listData, entry)
+			if check.MatchMapCondition(check.filter, entry, true) {
+				check.listData = append(check.listData, entry)
+			}
 		}
 	}
 }
 
-func addAllPathToCounter(hQuery win.PDH_HQUERY, possiblePaths []string, host string) (map[string]win.PDH_HCOUNTER, error) {
+func addAllPathToCounter(hQuery win.PDH_HQUERY, possiblePaths []string) (map[string]win.PDH_HCOUNTER, error) {
 	counters := map[string]win.PDH_HCOUNTER{}
 	// TODO PTR for hostName
 	for _, path := range possiblePaths {
@@ -184,15 +177,16 @@ func addAllPathToCounter(hQuery win.PDH_HQUERY, possiblePaths []string, host str
 }
 
 func collectQueryData(pDH_HQUERY *win.PDH_HQUERY) uint32 {
+	// TODO Error returning or Logging
 	ret := win.PdhCollectQueryData(*pDH_HQUERY)
 	if ret != win.PDH_MORE_DATA && ret != win.ERROR_SUCCESS {
-		fmt.Printf("Might be something %d\n", ret)
+		fmt.Printf("Could not Collect Data %d\n", ret)
 	}
 	// PDH requires for some data a double collection with a second wait between the calls See MSDN
 	time.Sleep(time.Duration(1))
 	ret = win.PdhCollectQueryData(*pDH_HQUERY)
 	if ret != win.ERROR_SUCCESS {
-		fmt.Printf("Something is wrong with the countername\n")
+		fmt.Printf("Could not Collect Data %d\n", ret)
 		return ret
 	}
 	return ret
@@ -209,13 +203,29 @@ func collectLargeValuesArray(hCounter win.PDH_HCOUNTER, hQuery win.PDH_HQUERY, r
 	var size uint32 = uint32(unsafe.Sizeof(win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE{}))
 	bufferCount := uint32(0)
 	if res := collectQueryData(&hQuery); res != win.ERROR_SUCCESS {
-		// Error
-		panic("unimplemented")
+		// TODO Error
 	}
 	if ret = win.PdhGetFormattedCounterArrayLarge(hCounter, &size, &bufferCount, &resArr[0]); ret == win.PDH_MORE_DATA {
 		//create array of size size =bufferCount * sizeOf(win.PDH_FMT_COUNTERVALUE_ITEM_LARGE)
 		filledBuf = make([]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE, bufferCount)
 		ret = win.PdhGetFormattedCounterArrayLarge(hCounter, &size, &bufferCount, &filledBuf[0])
+	}
+
+	return filledBuf, size
+}
+
+func collectDoubleValuesArray(hCounter win.PDH_HCOUNTER, hQuery win.PDH_HQUERY, resArr [1]win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE) ([]win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE, uint32) {
+	var ret uint32
+	var filledBuf []win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE
+	var size uint32 = uint32(unsafe.Sizeof(win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE{}))
+	bufferCount := uint32(0)
+	if res := collectQueryData(&hQuery); res != win.ERROR_SUCCESS {
+		// TODO Error
+	}
+	if ret = win.PdhGetFormattedCounterArrayDouble(hCounter, &size, &bufferCount, &resArr[0]); ret == win.PDH_MORE_DATA {
+		//create array of size size =bufferCount * sizeOf(win.PDH_FMT_COUNTERVALUE_ITEM_LARGE)
+		filledBuf = make([]win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE, bufferCount)
+		ret = win.PdhGetFormattedCounterArrayDouble(hCounter, &size, &bufferCount, &filledBuf[0])
 	}
 
 	return filledBuf, size
