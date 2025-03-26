@@ -15,6 +15,9 @@ func adapterAddress() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if len(conf.Servers) == 0 {
+		return "", fmt.Errorf("no valid nameserver found")
+	}
 	nameserver := conf.Servers[0]
 	// ref: https://github.com/miekg/exdns/blob/d851fa434ad51cb84500b3e18b8aa7d3bead2c51/q/q.go#L148-L153
 	// if the nameserver is from /etc/resolv.conf the [ and ] are already

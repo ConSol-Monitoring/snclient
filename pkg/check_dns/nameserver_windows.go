@@ -28,15 +28,18 @@ func adapterAddress() (string, error) {
 			break
 		}
 		if err.(syscall.Errno) != syscall.ERROR_BUFFER_OVERFLOW {
-			return "", os.NewSyscallError("getadaptersaddresses", err)
+			return "", os.NewSyscallError("syscall failed: GetAdaptersAddresses", err)
 		}
 		if l <= uint32(len(b)) {
-			return "", os.NewSyscallError("getadaptersaddresses", err)
+			return "", os.NewSyscallError("syscall failed: GetAdaptersAddresses", err)
 		}
 	}
 	var aas []*windows.IpAdapterAddresses
 	for aa := (*windows.IpAdapterAddresses)(unsafe.Pointer(&b[0])); aa != nil; aa = aa.Next {
 		aas = append(aas, aa)
+	}
+	if len(aas) == 0 {
+		return "", fmt.Errorf("no valid nameserver found")
 	}
 	nameserver := aas[0].FirstDnsServerAddress.Address.IP().String()
 	// ref: https://github.com/miekg/exdns/blob/d851fa434ad51cb84500b3e18b8aa7d3bead2c51/q/q.go#L154-L158

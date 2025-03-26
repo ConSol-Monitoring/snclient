@@ -63,10 +63,11 @@ func (e *ExternalScriptsHandler) Stop() {
 func (e *ExternalScriptsHandler) registerScripts(conf *Config, runSet *AgentRunSet) error {
 	// merge command shortcuts into separate config sections
 	scripts := conf.Section("/settings/external scripts/scripts")
-	for name, command := range scripts.data {
+	for name := range scripts.data {
 		cmdConf := conf.Section("/settings/external scripts/scripts/" + name)
 		if !cmdConf.HasKey("command") {
-			cmdConf.Set("command", command)
+			raw, _, _ := scripts.GetStringRaw(name)
+			cmdConf.Set("command", raw)
 		}
 	}
 
@@ -77,7 +78,7 @@ func (e *ExternalScriptsHandler) registerScripts(conf *Config, runSet *AgentRunS
 			continue
 		}
 		cmdConf := conf.Section(sectionName)
-		if command, ok := cmdConf.GetString("command"); ok {
+		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
 			log.Tracef("registered script: %s -> %s", name, command)
 			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler { return &CheckWrap{name: name, commandString: command, config: cmdConf} }}
 		} else {
@@ -105,7 +106,7 @@ func (e *ExternalScriptsHandler) registerWrapped(conf *Config, runSet *AgentRunS
 			continue
 		}
 		cmdConf := conf.Section(sectionName)
-		if command, ok := cmdConf.GetString("command"); ok {
+		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
 			log.Tracef("registered wrapped script: %s -> %s", name, command)
 			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler {
 				return &CheckWrap{name: name, commandString: command, wrapped: true, config: cmdConf}

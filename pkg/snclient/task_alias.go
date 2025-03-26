@@ -21,10 +21,11 @@ func NewAliasHandler() Module {
 
 func (a *AliasHandler) Init(_ *Agent, section *ConfigSection, conf *Config, runSet *AgentRunSet) error {
 	// merge alias shortcuts into separate config sections
-	for name, command := range section.data {
+	for name := range section.data {
 		cmdConf := conf.Section("/settings/external scripts/alias/" + name)
 		if !cmdConf.HasKey("command") {
-			cmdConf.Set("command", command)
+			raw, _, _ := section.GetStringRaw(name)
+			cmdConf.Set("command", raw)
 		}
 	}
 
@@ -35,10 +36,14 @@ func (a *AliasHandler) Init(_ *Agent, section *ConfigSection, conf *Config, runS
 			continue
 		}
 		cmdConf := conf.Section(sectionName)
-		if command, ok := cmdConf.GetString("command"); ok {
-			f := utils.Tokenize(command)
+		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
+			args := utils.Tokenize(command)
+			args, err := utils.TrimQuotesList(args)
+			if err != nil {
+				return fmt.Errorf("failed to register alias %s: %s", name, err.Error())
+			}
 			log.Tracef("registered alias script: %s -> %s", name, command)
-			runSet.cmdAliases[name] = CheckEntry{name, func() CheckHandler { return &CheckAlias{command: f[0], args: f[1:], config: cmdConf} }}
+			runSet.cmdAliases[name] = CheckEntry{name, func() CheckHandler { return &CheckAlias{command: args[0], args: args[1:], config: cmdConf} }}
 		} else {
 			return fmt.Errorf("missing command in alias script %s", name)
 		}

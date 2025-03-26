@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
@@ -113,6 +114,20 @@ var (
 	GlobalMacros = getGlobalMacros()
 )
 
+// RunState is used to set different states of the main loop.
+type RunState int32
+
+const (
+	// Stopped is used for when the mainloop is stopped
+	Stopped RunState = iota
+
+	// Pending is used for when the mainloop is starting right now
+	Pending
+
+	// Started is used for when the mainloop is running
+	Started
+)
+
 // https://github.com/golang/go/issues/8005#issuecomment-190753527
 type noCopy struct{}
 
@@ -145,7 +160,7 @@ type Agent struct {
 	cpuProfileHandler *os.File
 	runSet            *AgentRunSet
 	osSignalChannel   chan os.Signal
-	running           atomic.Bool
+	running           atomic.Value
 	Log               *factorlog.FactorLog
 	profileServer     *http.Server
 }
@@ -196,6 +211,7 @@ func NewAgentSimple(flags *AgentFlags) *Agent {
 		flags:     flags,
 		Log:       log,
 	}
+	snc.running.Store(Stopped)
 	snc.checkFlags()
 	snc.createLogger(nil)
 
@@ -204,16 +220,23 @@ func NewAgentSimple(flags *AgentFlags) *Agent {
 
 // IsRunning returns true if the agent is running
 func (snc *Agent) IsRunning() bool {
-	return snc.running.Load()
+	val := snc.running.Load()
+	if val == nil {
+		return false
+	}
+
+	return val == Started
 }
 
 // Run starts the main loop and blocks until Stop() is called
 func (snc *Agent) Run() {
 	defer snc.logPanicExit()
 
-	if snc.IsRunning() {
+	if snc.running.Load() != Stopped {
 		log.Panicf("agent is already running")
 	}
+	snc.running.Store(Pending)
+	defer snc.running.Store(Stopped)
 
 	log.Infof("%s", snc.buildStartupMsg())
 
@@ -234,7 +257,7 @@ func (snc *Agent) Run() {
 	})
 
 	snc.startModules(snc.runSet)
-	snc.running.Store(true)
+	snc.running.Store(Started)
 
 	for {
 		exitState := snc.mainLoop()
@@ -244,7 +267,6 @@ func (snc *Agent) Run() {
 		}
 	}
 
-	snc.running.Store(false)
 	log.Infof("snclient exited (pid:%d)\n", os.Getpid())
 }
 
@@ -804,8 +826,12 @@ func (snc *Agent) buildStartupMsg() string {
 	if err != nil {
 		log.Debugf("failed to get platform host id: %s", err.Error())
 	}
-	msg := fmt.Sprintf("%s starting (version:v%s.%s - build:%s - host:%s - pid:%d - os:%s %s - arch:%s - %s)",
-		NAME, VERSION, Revision, Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH, runtime.Version())
+	u, err := user.Current()
+	if err != nil {
+		log.Debugf("failed to get current user: %s", err.Error())
+	}
+	msg := fmt.Sprintf("%s starting (version:v%s.%s - build:%s - host:%s - pid:%d - os:%s %s - arch:%s - %s - user:%s)",
+		NAME, VERSION, Revision, Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH, runtime.Version(), u.Username)
 
 	return msg
 }
