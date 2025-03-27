@@ -12,10 +12,9 @@ require (
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-ole/go-ole v1.3.0
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
-	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/mackerelio/checkers v0.2.0
-	github.com/niemp100/win v0.0.0-20250325102432-d7b37c9198d2
 	github.com/miekg/dns v1.1.64
+	github.com/niemp100/win v0.0.0-20250325102432-d7b37c9198d2
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.21.1
 	github.com/reeflective/readline v1.1.2

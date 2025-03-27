@@ -85,10 +85,10 @@ func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args
 	if c.HostName != "" {
 		tmpPath = "\\\\" + c.HostName + "\\" + c.CounterPath
 	}
-	r := regexp.MustCompile("\\d+")
+	r := regexp.MustCompile("\\\\\\d+")
 	matches := r.FindAllString(c.CounterPath, -1)
 	for _, m := range matches {
-		index, err := strconv.Atoi(m)
+		index, err := strconv.Atoi(strings.Replace(m, "\\", "", -1))
 		if err != nil {
 			return nil, fmt.Errorf("Could not convert index error was %s", err.Error())
 		}
@@ -96,7 +96,7 @@ func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args
 		if res != win.ERROR_SUCCESS {
 			return nil, fmt.Errorf("PDH Could not find given Index: %d response code: %d", index, res)
 		}
-		tmpPath = strings.Replace(tmpPath, m, path, 1)
+		tmpPath = strings.Replace(tmpPath, m, "\\"+path, 1)
 	}
 
 	// Expand Counter Path That Ends with WildCard *
@@ -118,7 +118,7 @@ func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args
 		return nil, fmt.Errorf("Could not open Query, Something is wrong with the countername")
 	}
 
-	counters, err := addAllPathToCounter(hQuery, possiblePaths)
+	counters, err := c.addAllPathToCounter(hQuery, possiblePaths)
 	if err != nil {
 		return nil, err
 	}
@@ -131,22 +131,19 @@ func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args
 
 func collectValuesForAllCounters(hQuery win.PDH_HQUERY, counters map[string]win.PDH_HCOUNTER, check *CheckData) {
 	for counterPath, hCounter := range counters {
-		var resArr [1]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE       // Need at least one nil pointer
-		var resArrFloat [1]win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE // Need at least one nil pointer
+		var resArr [1]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE // Need at least one nil pointer
 
 		// TODO Default is large Values but should also support Float
 		largeArr, ret := collectLargeValuesArray(hCounter, hQuery, resArr)
-		floatArr, ret := collectDoubleValuesArray(hCounter, hQuery, resArrFloat)
 		if ret != win.ERROR_SUCCESS && ret != win.PDH_MORE_DATA && ret != win.PDH_NO_MORE_DATA {
 			// return nil, fmt.Errorf("Could not collect formatted value %v", ret)
 		}
 
 		entry := map[string]string{}
-		for i, v := range largeArr {
+		for _, v := range largeArr {
 			entry["name"] = strings.Replace(counterPath, "*", utf16PtrToString(v.SzName), 1)
 			entry["value"] = fmt.Sprintf("%d", v.FmtValue.LargeValue)
 			if check.showAll {
-				fmt.Printf("Large: %d, Float %f, name: %s\n", v.FmtValue.LargeValue, floatArr[i].FmtValue.DoubleValue, entry["name"])
 				check.result.Metrics = append(check.result.Metrics,
 					&CheckMetric{
 						Name:          strings.Replace(counterPath, "*", utf16PtrToString(v.SzName), 1),
@@ -164,12 +161,17 @@ func collectValuesForAllCounters(hQuery win.PDH_HQUERY, counters map[string]win.
 	}
 }
 
-func addAllPathToCounter(hQuery win.PDH_HQUERY, possiblePaths []string) (map[string]win.PDH_HCOUNTER, error) {
+func (c *CheckPDH) addAllPathToCounter(hQuery win.PDH_HQUERY, possiblePaths []string) (map[string]win.PDH_HCOUNTER, error) {
 	counters := map[string]win.PDH_HCOUNTER{}
-	// TODO PTR for hostName
+
 	for _, path := range possiblePaths {
 		var hCounter win.PDH_HCOUNTER
-		ret := win.PdhAddCounter(hQuery, path, 0, &hCounter)
+		var ret uint32
+		if c.EnglishFallBackNames {
+			ret = win.PdhAddEnglishCounter(hQuery, path, 0, &hCounter)
+		} else {
+			ret = win.PdhAddCounter(hQuery, path, 0, &hCounter)
+		}
 		if ret != win.ERROR_SUCCESS {
 			return nil, fmt.Errorf("Could not Add One OF the Possible Paths to the Query path: %s, api response code: %d", path, ret)
 		}
