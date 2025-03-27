@@ -26,8 +26,8 @@ func Test_ExpandingWildCardPath(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	res := snc.RunCheck("check_pdh", []string{"counter=\\4\\*", "expand-index", "instances", "warn=value > 80", "crit=value > 90"})
-	assert.Equalf(t, CheckExitOK, res.State, "The check could not be run")
-	assert.Contains(t, string(res.BuildPluginOutput()), "89")
+	assert.Equalf(t, CheckExitCritical, res.State, "The check could not be run")
+	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL")
 }
 
 func TestIndexLookup(t *testing.T) {
