@@ -19,7 +19,7 @@ import (
 func Check(ctx context.Context, output io.Writer, args []string) int {
 	opts, err := parseArgs(args)
 	if err != nil {
-		fmt.Fprintf(output, err.Error())
+		fmt.Fprintf(output, "%s", err.Error())
 		return 2
 	}
 
