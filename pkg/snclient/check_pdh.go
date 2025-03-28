@@ -129,14 +129,14 @@ func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args
 	return check.Finalize()
 }
 
-func collectValuesForAllCounters(hQuery win.PDH_HQUERY, counters map[string]win.PDH_HCOUNTER, check *CheckData) {
+func collectValuesForAllCounters(hQuery win.PDH_HQUERY, counters map[string]win.PDH_HCOUNTER, check *CheckData) error {
 	for counterPath, hCounter := range counters {
 		var resArr [1]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE // Need at least one nil pointer
 
 		// TODO Default is large Values but should also support Float
 		largeArr, ret := collectLargeValuesArray(hCounter, hQuery, resArr)
 		if ret != win.ERROR_SUCCESS && ret != win.PDH_MORE_DATA && ret != win.PDH_NO_MORE_DATA {
-			// return nil, fmt.Errorf("Could not collect formatted value %v", ret)
+			return fmt.Errorf("Could not collect formatted value %v", ret)
 		}
 
 		entry := map[string]string{}
@@ -159,6 +159,7 @@ func collectValuesForAllCounters(hQuery win.PDH_HQUERY, counters map[string]win.
 			}
 		}
 	}
+return nil
 }
 
 func (c *CheckPDH) addAllPathToCounter(hQuery win.PDH_HQUERY, possiblePaths []string) (map[string]win.PDH_HCOUNTER, error) {
@@ -173,7 +174,7 @@ func (c *CheckPDH) addAllPathToCounter(hQuery win.PDH_HQUERY, possiblePaths []st
 			ret = win.PdhAddCounter(hQuery, path, 0, &hCounter)
 		}
 		if ret != win.ERROR_SUCCESS {
-			return nil, fmt.Errorf("Could not Add One OF the Possible Paths to the Query path: %s, api response code: %d", path, ret)
+			return nil, fmt.Errorf("Could not Add One Of the Possible Paths to the Query path: %s, api response code: %d", path, ret)
 		}
 		counters[path] = hCounter
 	}
@@ -216,7 +217,7 @@ func collectLargeValuesArray(hCounter win.PDH_HCOUNTER, hQuery win.PDH_HQUERY, r
 		ret = win.PdhGetFormattedCounterArrayLarge(hCounter, &size, &bufferCount, &filledBuf[0])
 	}
 
-	return filledBuf, size
+	return filledBuf, ret
 }
 
 func collectDoubleValuesArray(hCounter win.PDH_HCOUNTER, hQuery win.PDH_HQUERY, resArr [1]win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE) ([]win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE, uint32) {

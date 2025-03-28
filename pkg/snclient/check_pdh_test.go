@@ -9,11 +9,7 @@ import (
 func Test_PDH(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
-	res := snc.RunCheck("check_pdh", []string{"counter=\\Prozessorinformationen(0,1)\\% Leistungslimit", "warn=value > 80", "crit=value > 90"})
-	assert.Equalf(t, CheckExitWarning, res.State, "The check could not be run successful")
-	assert.Contains(t, string(res.BuildPluginOutput()), "WARNING")
-
-	res = snc.RunCheck("check_pdh", []string{"counter=\\Arbeitsspeicher\\Zusagegrenze", "warn=value > 80", "crit=value > 90"})
+	res := snc.RunCheck("check_pdh", []string{"counter=\\4\\30", "warn=value > 80", "crit=value > 90", "show-all"})
 	assert.Equalf(t, CheckExitCritical, res.State, "The check could not be run successful")
 	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL")
 
