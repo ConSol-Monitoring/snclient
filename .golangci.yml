@@ -142,6 +142,8 @@ issues:
         - dupword
         - funlen
         - copyloopvar
-    - path: (check_tcp|check_dns|check_pdh|nameserver.*)\.go
+    - path: (check_tcp|check_dns|nameserver.*)\.go
       linters:
         - nolintlint
+  exclude-files:
+    - pkg/pdh/pdh.go
