@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_PDH(t *testing.T) {
+func TestCheckPDH(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	res := snc.RunCheck("check_pdh", []string{"counter=\\4\\30", "warn=value > 80", "crit=value > 90", "show-all"})
@@ -21,7 +21,7 @@ func Test_PDH(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK")
 }
 
-func Test_ExpandingWildCardPath(t *testing.T) {
+func TestCheckPDHExpandingWildCardPath(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	res := snc.RunCheck("check_pdh", []string{"counter=\\4\\*", "expand-index", "instances", "warn=value > 80", "crit=value > 90"})
@@ -29,7 +29,7 @@ func Test_ExpandingWildCardPath(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL")
 }
 
-func TestIndexLookup(t *testing.T) {
+func TestCheckPDHIndexLookup(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	res := snc.RunCheck("check_pdh", []string{"counter=\\4\\30", "crit=value > 90", "show-all", "expand-index"})
