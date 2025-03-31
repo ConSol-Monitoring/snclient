@@ -59,10 +59,13 @@ None
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute | Description         |
-| --------- | ------------------- |
-| platform  | Platform of the OS  |
-| family    | OS Family           |
-| version   | Full version number |
-| arch      | OS architecture     |
-| os        | OS name             |
+| Attribute      | Description                           |
+| -------------- | ------------------------------------- |
+| platform       | Platform of the OS                    |
+| family         | OS Family                             |
+| version        | Full version number                   |
+| arch           | OS architecture (go arch, ex.: amd64) |
+| os             | OS name                               |
+| hostname       | hostname (probably without fqdn)      |
+| kernel_arch    | kernel architecture, ex.: x86_64      |
+| kernel_version | kernel version                        |
