@@ -94,16 +94,16 @@ func (c *CheckPDH) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argu
 		var hCounter win.PDH_HCOUNTER
 		ret = win.PdhAddEnglishCounter(hQuery, tmpPath, 0, &hCounter)
 		if ret != win.ERROR_SUCCESS {
-			return nil, fmt.Errorf("cannot use provided counterpath as english fallback path, api response: %d", ret)
+			return nil, fmt.Errorf("cannot use provided counter path as english fallback path, api response: %d", ret)
 		}
 		tpm, err := win.PdhGetCounterInfo(hCounter, false)
 		if err != nil {
-			return nil, fmt.Errorf("cannot use provided counterpath as english fallback path, error: %s", err.Error())
+			return nil, fmt.Errorf("cannot use provided counter path as english fallback path, error: %s", err.Error())
 		}
 		tmpPath = tpm
 	}
 
-	// If HostName is set it needs to be part of the counterpath
+	// If HostName is set it needs to be part of the counter path
 	if c.HostName != "" {
 		tmpPath = `\\` + c.HostName + `\` + c.CounterPath
 	}
@@ -136,13 +136,13 @@ func (c *CheckPDH) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argu
 
 	counters, err := c.addAllPathToCounter(hQuery, possiblePaths)
 	if err != nil {
-		return nil, fmt.Errorf("could not add all counterpath to query, error: %s", err.Error())
+		return nil, fmt.Errorf("could not add all counter path to query, error: %s", err.Error())
 	}
 
 	// Collect Values For All Counters and save values in check.listData
 	err = collectValuesForAllCounters(hQuery, counters, check)
 	if err != nil {
-		return nil, fmt.Errorf("could not get values for all counterpath, error: %s", err.Error())
+		return nil, fmt.Errorf("could not get values for all counter path, error: %s", err.Error())
 	}
 
 	return check.Finalize()
