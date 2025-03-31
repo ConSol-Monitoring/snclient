@@ -145,3 +145,5 @@ issues:
     - path: (check_tcp|check_dns|nameserver.*)\.go
       linters:
         - nolintlint
+  exclude-files:
+    - pkg/pdh/pdh.go
