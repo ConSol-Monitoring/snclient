@@ -70,8 +70,16 @@ func (c *CheckPDH) Build() *CheckData {
 }
 
 // Check implements CheckHandler.
-func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args []Argument) (*CheckResult, error) {
+func (c *CheckPDH) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	var possiblePaths []string
+	var hQuery win.PDH_HQUERY
+	// Open Query  - Data Source = 0 => Real Time Datasource
+	ret := win.PdhOpenQuery(uintptr(0), uintptr(0), &hQuery)
+	defer win.PdhCloseQuery(hQuery)
+
+	if ret != win.ERROR_SUCCESS {
+		return nil, fmt.Errorf("could not open query, something is wrong with the countername")
+	}
 	/*
 		- If Expand Index -> Number to Names (is 4\30) *
 		- Check If Counter is Valid *
@@ -80,19 +88,35 @@ func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args
 		- Gather All Data
 		- Request Formatted Values as Array - Single Values are arrays with one entry
 	*/
+
 	tmpPath := c.CounterPath
-	// Open Query needs HosterName in Counter Path
-	if c.HostName != "" {
-		tmpPath = "\\\\" + c.HostName + "\\" + c.CounterPath
+	if c.EnglishFallBackNames {
+		var hCounter win.PDH_HCOUNTER
+		ret = win.PdhAddEnglishCounter(hQuery, tmpPath, 0, &hCounter)
+		if ret != win.ERROR_SUCCESS {
+			return nil, fmt.Errorf("cannot use provided counterpath as english fallback path, api response: %d", ret)
+		}
+		tpm, err := win.PdhGetCounterInfo(hCounter, false)
+		if err != nil {
+			return nil, fmt.Errorf("cannot use provided counterpath as english fallback path, error: %s", err.Error())
+		}
+		tmpPath = tpm
 	}
+
+	// If HostName is set it needs to be part of the counterpath
+	if c.HostName != "" {
+		tmpPath = `\\` + c.HostName + `\` + c.CounterPath
+	}
+
+	// Find Indices and replace with Performance Name
 	r := regexp.MustCompile(`\\d+`)
 	matches := r.FindAllString(c.CounterPath, -1)
 	for _, match := range matches {
-		index, err := strconv.Atoi(strings.Replace(match, "\\", "", -1))
+		index, err := strconv.Atoi(strings.ReplaceAll(match, `\`, ""))
 		if err != nil {
 			return nil, fmt.Errorf("could not convert index. error was %s", err.Error())
 		}
-		res, path := win.PdhLookupPerfNameByIndex(uint32(index))
+		res, path := win.PdhLookupPerfNameByIndex(uint32(index)) //nolint:gosec // Index is small and needs  to be uint32 for system call
 		if res != win.ERROR_SUCCESS {
 			return nil, fmt.Errorf("could not find given index: %d response code: %d", index, res)
 		}
@@ -110,21 +134,16 @@ func (c *CheckPDH) Check(ctx context.Context, snc *Agent, check *CheckData, args
 		possiblePaths = append(possiblePaths, tmpPath)
 	}
 
-	var hQuery win.PDH_HQUERY
-	// Open Query  - Data Source = 0 => Real Time Datasource
-	ret := win.PdhOpenQuery(uintptr(0), uintptr(0), &hQuery)
-
-	if ret != win.ERROR_SUCCESS {
-		return nil, fmt.Errorf("could not open query, something is wrong with the countername")
-	}
-
 	counters, err := c.addAllPathToCounter(hQuery, possiblePaths)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not add all counterpath to query, error: %s", err.Error())
 	}
 
 	// Collect Values For All Counters and save values in check.listData
-	collectValuesForAllCounters(hQuery, counters, check)
+	err = collectValuesForAllCounters(hQuery, counters, check)
+	if err != nil {
+		return nil, fmt.Errorf("could not get values for all counterpath, error: %s", err.Error())
+	}
 
 	return check.Finalize()
 }
@@ -133,7 +152,6 @@ func collectValuesForAllCounters(hQuery win.PDH_HQUERY, counters map[string]win.
 	for counterPath, hCounter := range counters {
 		var resArr [1]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE // Need at least one nil pointer
 
-		// TODO Default is large Values but should also support Float
 		largeArr, ret := collectLargeValuesArray(hCounter, hQuery, resArr)
 		if ret != win.ERROR_SUCCESS && ret != win.PDH_MORE_DATA && ret != win.PDH_NO_MORE_DATA {
 			return fmt.Errorf("could not collect formatted value %v", ret)
@@ -141,7 +159,7 @@ func collectValuesForAllCounters(hQuery win.PDH_HQUERY, counters map[string]win.
 
 		entry := map[string]string{}
 		for _, fmtValue := range largeArr {
-			entry["name"] = strings.Replace(counterPath, "*", utf16PtrToString(fmtValue.SzName), 1) // What happens in cases where no instance expansion is done?
+			entry["name"] = strings.Replace(counterPath, "*", utf16PtrToString(fmtValue.SzName), 1)
 			entry["value"] = fmt.Sprintf("%d", fmtValue.FmtValue.LargeValue)
 			if check.showAll {
 				check.result.Metrics = append(check.result.Metrics,
@@ -168,12 +186,7 @@ func (c *CheckPDH) addAllPathToCounter(hQuery win.PDH_HQUERY, possiblePaths []st
 
 	for _, path := range possiblePaths {
 		var hCounter win.PDH_HCOUNTER
-		var ret uint32
-		if c.EnglishFallBackNames {
-			ret = win.PdhAddEnglishCounter(hQuery, path, 0, &hCounter)
-		} else {
-			ret = win.PdhAddCounter(hQuery, path, 0, &hCounter)
-		}
+		ret := win.PdhAddCounter(hQuery, path, 0, &hCounter)
 		if ret != win.ERROR_SUCCESS {
 			return nil, fmt.Errorf("could not add one of the possible paths to the query: %s, api response code: %d", path, ret)
 		}
@@ -183,20 +196,14 @@ func (c *CheckPDH) addAllPathToCounter(hQuery win.PDH_HQUERY, possiblePaths []st
 	return counters, nil
 }
 
-func collectQueryData(pDH_HQUERY *win.PDH_HQUERY) uint32 {
-	// TODO Error returning or Logging
-	ret := win.PdhCollectQueryData(*pDH_HQUERY)
+func collectQueryData(hQuery *win.PDH_HQUERY) uint32 {
+	ret := win.PdhCollectQueryData(*hQuery)
 	if ret != win.PDH_MORE_DATA && ret != win.ERROR_SUCCESS {
-		fmt.Printf("Could not Collect Data %d\n", ret)
-	}
-	// PDH requires for some data a double collection with a second wait between the calls See MSDN
-	time.Sleep(time.Duration(1))
-	ret = win.PdhCollectQueryData(*pDH_HQUERY)
-	if ret != win.ERROR_SUCCESS {
-		fmt.Printf("Could not Collect Data %d\n", ret)
-
 		return ret
 	}
+	// PDH requires a double collection with a second wait between the calls See MSDN
+	time.Sleep(time.Duration(1))
+	ret = win.PdhCollectQueryData(*hQuery)
 
 	return ret
 }
@@ -206,17 +213,16 @@ func collectQueryData(pDH_HQUERY *win.PDH_HQUERY) uint32 {
 - Collect formatted with size = 0 to get actual size
 - if More Data -> Create Actual Array and fill
 */
-func collectLargeValuesArray(hCounter win.PDH_HCOUNTER, hQuery win.PDH_HQUERY, resArr [1]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE) ([]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE, uint32) {
+func collectLargeValuesArray(hCounter win.PDH_HCOUNTER, hQuery win.PDH_HQUERY, resArr [1]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE) (values []win.PDH_FMT_COUNTERVALUE_ITEM_LARGE, apiResponseCode uint32) {
 	var ret uint32
 	var filledBuf []win.PDH_FMT_COUNTERVALUE_ITEM_LARGE
-	var size uint32 = uint32(unsafe.Sizeof(win.PDH_FMT_COUNTERVALUE_ITEM_DOUBLE{}))
+	size := uint32(0)
 	bufferCount := uint32(0)
 	if res := collectQueryData(&hQuery); res != win.ERROR_SUCCESS {
-		// TODO Error
-		fmt.Printf("res: %v\n", res)
+		return nil, res
 	}
 	if ret = win.PdhGetFormattedCounterArrayLarge(hCounter, &size, &bufferCount, &resArr[0]); ret == win.PDH_MORE_DATA {
-		//create array of size size =bufferCount * sizeOf(win.PDH_FMT_COUNTERVALUE_ITEM_LARGE)
+		// create array of size = bufferCount * sizeOf(win.PDH_FMT_COUNTERVALUE_ITEM_LARGE)
 		filledBuf = make([]win.PDH_FMT_COUNTERVALUE_ITEM_LARGE, bufferCount)
 		ret = win.PdhGetFormattedCounterArrayLarge(hCounter, &size, &bufferCount, &filledBuf[0])
 	}
