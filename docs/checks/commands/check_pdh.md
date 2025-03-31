@@ -45,21 +45,21 @@ Naemon Config
 | Argument      | Default Value                                                            |
 | ------------- | ------------------------------------------------------------------------ |
 | empty-state   | 3 (UNKNOWN)                                                              |
-| empty-syntax  | No Counter Found                                                         |
-| top-syntax    | %(status) - %(problem_count)/%(count) Counter (%(count)) %(problem_list) |
-| ok-syntax     | %(status) - All %(count) Counter Values are ok                           |
+| empty-syntax  | %(status) - No counter found                                             |
+| top-syntax    | %(status) - %(problem_count)/%(count) counter (%(count)) %(problem_list) |
+| ok-syntax     | %(status) - All %(count) counter values are ok                           |
 | detail-syntax | %(name)                                                                  |
 
 ## Check Specific Arguments
 
 | Argument     | Description                                                                                            |
 | ------------ | ------------------------------------------------------------------------------------------------------ |
-| counter      | The fully qualified Counter Name                                                                       |
-| english      | Using English Names Regardless of system Language requires Windows Vista or higher                     |
-| expand-index | Should Indices be translated?                                                                          |
-| host         | The Name Of the Host Mashine in Network where the Counter should be searched, defults to local mashine |
-| instances    | Expand WildCards And Fethch all instances                                                              |
-| type         | this can be large or float depending what you expect, defualt is large                                 |
+| counter      | The fully qualified counter name                                                                       |
+| english      | Using English names regardless of system language. Requires Windows Vista or higher                    |
+| expand-index | Should indices be translated?                                                                          |
+| host         | The name of the host machine in network where the counter should be searched, defaults to local machine |
+| instances    | Expand wildcards and fetch all instances                                                               |
+| type         | This can be large or float depending what you expect, default is large                                 |
 
 ## Attributes
 

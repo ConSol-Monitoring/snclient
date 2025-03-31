@@ -568,7 +568,6 @@ returns the localized Counter Path String
 contains the same wildcards as before
 */
 func PdhGetCounterInfo(hConuter PDH_HCOUNTER, retrieveExplainText bool) (string, error) {
-
 	zz := uint32(0)
 	tr := uint8(1)
 	if res, _, _ := pdh_PdhGetCounterInfoW.Call(
