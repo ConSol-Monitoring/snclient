@@ -40,7 +40,7 @@ on [github](https://github.com/QubitProducts/exporter_exporter#configuration).
 
 A simple http exporter module file could look like:
 
-exporter_modules/http.yaml:
+exporter_modules/name.yaml:
 
 ```yml
 method: http
@@ -48,6 +48,22 @@ http:
     port: 9100
     path: '/metrics'
 ```
+
+Using the default ports, you can test the exporter above with the command:
+
+```sh
+%> curl 'https://hostname:8443/proxy?module=name'
+```
+
+## Endpoints
+
+The exporter provides the following endpoints:
+
+- `/proxy`: used to query the exported exporter. Accepts these parameters:
+  - `module`: use `?module=name` parameter to specify the exporter.
+  - `args`: arguments for exec exporters.
+  - other arguments are passed through to http exporters.
+- `/list`: list available exporter.
 
 ## Incompatibilities
 
@@ -62,3 +78,7 @@ and not checked if it contains valid prometheus metrics.
 Since this exporter exporter (optionally) shares the web server with the rest of
 the SNClient, the `/` url path is in use already. The available exporter
 modules can therefore be requested with the `/list` path.
+
+### No separate /metrics endpoint
+
+The embedded exporter exporter has no separate /metrics endpoint.
