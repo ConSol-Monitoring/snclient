@@ -42,11 +42,10 @@ A simple http exporter module file could look like:
 
 exporter_modules/http.yaml:
 
-    node:
-        method: http
-        http:
-            port: 9100
-            path: '/metrics'
+    method: http
+    http:
+        port: 9100
+        path: '/metrics'
 
 ## Incompatibilities
 
