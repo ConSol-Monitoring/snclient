@@ -124,10 +124,18 @@ func processTimeoutKill(process *os.Process) {
 		LogDebug(syscall.Kill(-pid, syscall.SIGTERM))
 		time.Sleep(1 * time.Second)
 
-		LogDebug(syscall.Kill(-pid, syscall.SIGINT))
+		LogTrace(syscall.Kill(-pid, syscall.SIGINT))
 		time.Sleep(1 * time.Second)
 
-		LogDebug(syscall.Kill(-pid, syscall.SIGKILL))
+		LogTrace(syscall.Kill(-pid, syscall.SIGKILL))
+	}(process.Pid)
+}
+
+func processKill(process *os.Process) {
+	go func(pid int) {
+		LogDebug(syscall.Kill(-pid, syscall.SIGTERM))
+		time.Sleep(100 * time.Millisecond)
+		LogTrace(syscall.Kill(-pid, syscall.SIGKILL))
 	}(process.Pid)
 }
 

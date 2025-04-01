@@ -207,6 +207,15 @@ func LogDebug(err error) {
 	}
 }
 
+func LogTrace(err error) {
+	if err != nil {
+		logErr := log.Output(factorlog.TRACE, 2, err.Error())
+		if logErr != nil {
+			LogStderrf("failed to log: %s (%s)", err.Error(), logErr.Error())
+		}
+	}
+}
+
 func LogStderrf(format string, args ...interface{}) {
 	if !IsInteractive() && LogFileHandle != nil {
 		// log into standard logfile as well, otherwise we would miss daemon startup errors

@@ -727,12 +727,12 @@ func (snc *Agent) logPanicRecover() {
 
 // RunCheck calls check by name and returns the check result
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
-	return snc.RunCheckWithContext(context.TODO(), name, args)
+	return snc.RunCheckWithContext(context.TODO(), name, args, 0)
 }
 
 // RunCheckWithContext calls check by name and returns the check result
-func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string) *CheckResult {
-	res, chk := snc.runCheck(ctx, name, args)
+func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOveride float64) *CheckResult {
+	res, chk := snc.runCheck(ctx, name, args, timeoutOveride)
 	if res.Raw == nil || res.Raw.showHelp == 0 {
 		if chk != nil {
 			res.Finalize(chk.timezone)
@@ -744,9 +744,36 @@ func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []s
 	return res
 }
 
-func (snc *Agent) runCheck(ctx context.Context, name string, args []string) (*CheckResult, *CheckData) {
+// runCheckFromWeb calls check by name and returns the check result
+func (snc *Agent) runCheckFromWeb(req *http.Request, command string) *CheckResult {
+	args := queryParam2CommandArgs(req)
+
+	// extend timeout from check_nsc_web
+	timeoutSeconds := float64(0)
+	timeout := req.Header.Get("X-Nsc-Web-Timeout")
+	if timeout != "" {
+		dur, err := time.ParseDuration(timeout)
+		if err == nil {
+			if dur <= MaxHTTPHeaderTimeoutOverride {
+				timeoutSeconds = dur.Seconds()
+				log.Tracef("extended timeout from http header: %s", dur)
+			}
+		} else {
+			log.Debugf("failed to parse timeout: %s", err.Error())
+		}
+	}
+
+	result := snc.RunCheckWithContext(req.Context(), command, args, timeoutSeconds)
+
+	return result
+}
+
+func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOveride float64) (*CheckResult, *CheckData) {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
+	if deadline, ok := ctx.Deadline(); ok {
+		log.Tracef("ctx deadline: %s", time.Until(deadline).String())
+	}
 	check, ok := snc.getCheck(name)
 	if !ok {
 		return &CheckResult{
@@ -763,6 +790,10 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string) (*Ch
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("${status} - %s", err.Error()),
 		}, chk
+	}
+
+	if timeoutOveride > 0 {
+		chk.timeout = timeoutOveride
 	}
 
 	if chk.showHelp > 0 {
@@ -1138,12 +1169,19 @@ func procTimeoutGuard(ctx context.Context, snc *Agent, proc *os.Process) {
 		return
 	}
 	cmdErr := ctx.Err()
+	if cmdErr == nil {
+		return
+	}
+	log.Tracef("procTimeoutGuard: (%#T) %s", cmdErr, cmdErr.Error())
 	switch {
 	case errors.Is(cmdErr, context.DeadlineExceeded):
 		// timeout
 		processTimeoutKill(proc)
 	case errors.Is(cmdErr, context.Canceled):
-		// normal exit
+		// context canceled means either normal exit or the client context was canceled
+		// either way, make sure there is no lingering process
+		processKill(proc)
+
 		return
 	}
 }

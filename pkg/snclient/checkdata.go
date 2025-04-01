@@ -18,7 +18,7 @@ var (
 	Zero    = float64(0)
 	Hundred = float64(100)
 
-	DefaultCheckTimeout = float64(60)
+	DefaultCheckTimeout = 60 * time.Second
 )
 
 // InventoryMode sets available inventory move
@@ -117,7 +117,7 @@ type CheckData struct {
 	addProblemCountMetrics bool
 	result                 *CheckResult
 	showHelp               ShowHelp
-	timeout                float64
+	timeout                float64 // timeout in seconds
 	perfConfig             []PerfConfig
 	perfSyntax             string
 	hasInventory           InventoryMode
@@ -862,7 +862,7 @@ func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defau
 	cd.critThreshold = cd.fillDefaultThreshold(cd.defaultCritical, cd.critThreshold)
 
 	if cd.timeout == 0 {
-		cd.timeout = DefaultCheckTimeout
+		cd.timeout = DefaultCheckTimeout.Seconds()
 	}
 
 	return nil

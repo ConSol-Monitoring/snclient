@@ -98,7 +98,7 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	l.bindAddress = bindAddress
 
 	// parse / set socket timeout.
-	socketTimeout, ok, err := conf.GetInt("timeout")
+	socketTimeout, ok, err := conf.GetDuration("timeout")
 	switch {
 	case err != nil:
 		return fmt.Errorf("invalid timeout specification: %s", err.Error())
@@ -355,11 +355,11 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 		}
 	}
 
-	log.Tracef("http timeout: %s", l.socketTimeout.String())
+	log.Tracef("http default read timeout: %s", l.socketTimeout.String())
 	server := &http.Server{
-		ReadTimeout:       l.socketTimeout,
+		ReadTimeout:       0,
 		ReadHeaderTimeout: l.socketTimeout,
-		WriteTimeout:      l.socketTimeout,
+		WriteTimeout:      0,
 		IdleTimeout:       l.socketTimeout,
 		Handler:           mux,
 		ErrorLog:          NewStandardLog("WARN"),

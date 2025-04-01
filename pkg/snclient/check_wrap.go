@@ -22,9 +22,9 @@ type CheckWrap struct {
 
 func (l *CheckWrap) Build() *CheckData {
 	// set default timeout
-	timeoutSeconds, ok, err := l.config.GetInt("timeout")
+	timeoutSeconds, ok, err := l.config.GetDuration("timeout")
 	if err != nil || !ok {
-		timeoutSeconds = int64(DefaultCheckTimeout)
+		timeoutSeconds = DefaultCheckTimeout.Seconds()
 	}
 
 	return &CheckData{
@@ -32,7 +32,7 @@ func (l *CheckWrap) Build() *CheckData {
 		implemented:     ALL,
 		hasInventory:    ScriptsInventory,
 		argsPassthrough: true,
-		timeout:         float64(timeoutSeconds),
+		timeout:         timeoutSeconds,
 	}
 }
 

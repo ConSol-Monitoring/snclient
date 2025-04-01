@@ -241,6 +241,10 @@ func processTimeoutKill(process *os.Process) {
 	LogDebug(process.Signal(syscall.SIGKILL))
 }
 
+func processKill(process *os.Process) {
+	LogDebug(process.Signal(syscall.SIGKILL))
+}
+
 func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
 	cmdName, cmdArgs, hasShellCode, err := snc.shellParse(command)
 	if err != nil {

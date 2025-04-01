@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/go-chi/chi/v5"
@@ -29,6 +30,8 @@ func init() {
 		},
 	)
 }
+
+const MaxHTTPHeaderTimeoutOverride = 5 * time.Minute
 
 type CheckWebLine struct {
 	Message string         `json:"message"`
@@ -341,8 +344,7 @@ type HandlerWebLegacy struct {
 
 func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	command := chi.URLParam(req, "command")
-	args := queryParam2CommandArgs(req)
-	result := l.Handler.snc.RunCheckWithContext(req.Context(), command, args)
+	result := l.Handler.snc.runCheckFromWeb(req, command)
 	data, err := json.Marshal(map[string]interface{}{
 		"payload": []interface{}{
 			map[string]interface{}{
@@ -412,8 +414,7 @@ func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 func (l *HandlerWebV1) serveCommand(res http.ResponseWriter, req *http.Request) {
 	command := chi.URLParam(req, "command")
-	args := queryParam2CommandArgs(req)
-	result := l.Handler.snc.RunCheckWithContext(req.Context(), command, args)
+	result := l.Handler.snc.runCheckFromWeb(req, command)
 	res.Header().Set("Content-Type", "application/json")
 	data, err := json.Marshal(map[string]interface{}{
 		"command": command,

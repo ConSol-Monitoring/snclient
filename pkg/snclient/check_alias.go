@@ -56,7 +56,7 @@ func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 
 			log.Debugf("command after macros expanded: %s %s", a.command, replacedStr)
 		}
-		statusResult, _ = snc.runCheck(ctx, a.command, cmdArgs)
+		statusResult, _ = snc.runCheck(ctx, a.command, cmdArgs, check.timeout)
 	}
 
 	statusResult.ParsePerformanceDataFromOutputCond(a.command, a.config)
