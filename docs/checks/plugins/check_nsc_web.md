@@ -54,7 +54,7 @@ Description:
   and receiving check information over HTTP(S).
 
 Version:
-  check_nsc_web v0.7.2
+  check_nsc_web v0.7.3
 
 Example:
   connectivity check (parent service):
