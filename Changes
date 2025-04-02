@@ -4,7 +4,7 @@ next:
          - check_service: fix case insensitive excludes
          - check_pagefile: fix crash if there is no pagefile
          - update windows exporter to 0.30.5
-         - update node exporter to 1.9.0
+         - update node exporter to 1.9.1
          - check_dns: fix crash without any nameserver
          - fix timeout race condition when rebooting windows service
          - change handling exporter arguments and keep quotes
