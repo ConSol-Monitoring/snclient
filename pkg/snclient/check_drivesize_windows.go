@@ -409,6 +409,8 @@ func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, v
 }
 
 func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
+	// Also allow c:/, d:/volume, f:/folder/with/slash
+	drive = strings.ReplaceAll(drive, "/", "\\")
 	// match a drive, ex: "c" or "c:"
 	switch len(drive) {
 	case 1, 2:

@@ -60,5 +60,11 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), `OK - All 1 drive`, "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), `c:\Windows used %`, "output matches")
 
+	// check with forward slash
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "folder=c:/Windows"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:/"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+
 	StopTestAgent(t, snc)
 }
