@@ -136,8 +136,13 @@ func TestCheckExternalWrappedWindowsPsPathWithSpaces(t *testing.T) {
 func TestCheckExternalWindowsPS1InSubdir(t *testing.T) {
 	testDir, _ := os.Getwd()
 
+	extConfig := `
+[/settings/external scripts]
+allow arguments = true
+allow nasty characters = true
+`
 	config := setupConfig(t, testDir, "ps1")
-	snc := StartTestAgent(t, config)
+	snc := StartTestAgent(t, config+extConfig)
 
 	res := snc.RunCheck("check_win_subargs", []string{"-state 1 -message 'output 123'"})
 	assert.Equalf(t, CheckExitWarning, res.State, "state matches")
