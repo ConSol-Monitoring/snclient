@@ -35,6 +35,9 @@ use ssl = disabled
 port = ` + fmt.Sprintf("%d", localDaemonPort) + `
 password = ` + localDaemonAdminPassword + `
 
+[/settings/external scripts]
+allow arguments = true
+
 [/settings/external scripts/scripts]
 check_echo = echo '%ARG1%'
 check_echo_win = cmd /c echo '%ARG1%'

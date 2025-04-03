@@ -73,6 +73,7 @@ type HandlerWeb struct {
 	handlerGeneric http.Handler
 	handlerLegacy  http.Handler
 	handlerV1      http.Handler
+	conf           *ConfigSection
 	password       string
 	snc            *Agent
 	listener       *Listener
@@ -119,6 +120,7 @@ func (l *HandlerWeb) Stop() {
 
 func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
+	l.conf = conf
 	l.password = DefaultPassword
 	if password, ok := conf.GetString("password"); ok {
 		l.password = password
@@ -337,6 +339,28 @@ func verifyRequestPassword(snc *Agent, req *http.Request, requiredPassword strin
 	return snc.verifyPassword(requiredPassword, password)
 }
 
+// runCheck calls check by name and returns the check result
+func (l *HandlerWeb) runCheck(req *http.Request, command string) (result *CheckResult) {
+	args := queryParam2CommandArgs(req)
+
+	// extend timeout from check_nsc_web
+	timeoutSeconds := float64(0)
+	timeout := req.Header.Get("X-Nsc-Web-Timeout")
+	if timeout != "" {
+		dur, err := time.ParseDuration(timeout)
+		if err == nil {
+			if dur <= MaxHTTPHeaderTimeoutOverride {
+				timeoutSeconds = dur.Seconds()
+				log.Tracef("extended timeout from http header: %s", dur)
+			}
+		} else {
+			log.Debugf("failed to parse timeout: %s", err.Error())
+		}
+	}
+
+	return l.snc.RunCheckWithContext(req.Context(), command, args, timeoutSeconds, l.conf)
+}
+
 type HandlerWebLegacy struct {
 	noCopy  noCopy
 	Handler *HandlerWeb
@@ -344,7 +368,7 @@ type HandlerWebLegacy struct {
 
 func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	command := chi.URLParam(req, "command")
-	result := l.Handler.snc.runCheckFromWeb(req, command)
+	result := l.Handler.runCheck(req, command)
 	data, err := json.Marshal(map[string]interface{}{
 		"payload": []interface{}{
 			map[string]interface{}{
@@ -414,7 +438,7 @@ func (l *HandlerWebV1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 func (l *HandlerWebV1) serveCommand(res http.ResponseWriter, req *http.Request) {
 	command := chi.URLParam(req, "command")
-	result := l.Handler.snc.runCheckFromWeb(req, command)
+	result := l.Handler.runCheck(req, command)
 	res.Header().Set("Content-Type", "application/json")
 	data, err := json.Marshal(map[string]interface{}{
 		"command": command,

@@ -30,6 +30,8 @@ exe = %%SCRIPT%% %%ARGS%%
 
 [/settings/external scripts]
 timeout = 1111111
+allow arguments = true
+
 [/settings/external scripts/scripts]
 check_doesnotexist = /a/path/that/does/not/exist/nonexisting_script "no" "no"
 check_cwd_rel_win = cmd /c type pluginoutput

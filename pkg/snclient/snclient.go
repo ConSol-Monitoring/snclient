@@ -725,14 +725,15 @@ func (snc *Agent) logPanicRecover() {
 	}
 }
 
-// RunCheck calls check by name and returns the check result
+// RunCheck calls check by name and returns the check result.
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
-	return snc.RunCheckWithContext(context.TODO(), name, args, 0)
+	return snc.RunCheckWithContext(context.TODO(), name, args, 0, nil)
 }
 
-// RunCheckWithContext calls check by name and returns the check result
-func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOveride float64) *CheckResult {
-	res, chk := snc.runCheck(ctx, name, args, timeoutOveride)
+// RunCheckWithContext calls check by name and returns the check result.
+// secCon configuration section will be used to check for nasty characters and allowed arguments.
+func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOveride float64, transportConf *ConfigSection) *CheckResult {
+	res, chk := snc.runCheck(ctx, name, args, timeoutOveride, transportConf)
 	if res.Raw == nil || res.Raw.showHelp == 0 {
 		if chk != nil {
 			res.Finalize(chk.timezone)
@@ -744,31 +745,7 @@ func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []s
 	return res
 }
 
-// runCheckFromWeb calls check by name and returns the check result
-func (snc *Agent) runCheckFromWeb(req *http.Request, command string) *CheckResult {
-	args := queryParam2CommandArgs(req)
-
-	// extend timeout from check_nsc_web
-	timeoutSeconds := float64(0)
-	timeout := req.Header.Get("X-Nsc-Web-Timeout")
-	if timeout != "" {
-		dur, err := time.ParseDuration(timeout)
-		if err == nil {
-			if dur <= MaxHTTPHeaderTimeoutOverride {
-				timeoutSeconds = dur.Seconds()
-				log.Tracef("extended timeout from http header: %s", dur)
-			}
-		} else {
-			log.Debugf("failed to parse timeout: %s", err.Error())
-		}
-	}
-
-	result := snc.RunCheckWithContext(req.Context(), command, args, timeoutSeconds)
-
-	return result
-}
-
-func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOveride float64) (*CheckResult, *CheckData) {
+func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOveride float64, transportConf *ConfigSection) (*CheckResult, *CheckData) {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
 	if deadline, ok := ctx.Deadline(); ok {
@@ -784,7 +761,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 
 	handler := check.Handler()
 	chk := handler.Build()
-	parsedArgs, err := chk.ParseArgs(args)
+	parsedArgs, err := chk.parseArgs(args)
 	if err != nil {
 		return &CheckResult{
 			State:  CheckExitUnknown,
@@ -792,29 +769,17 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 		}, chk
 	}
 
-	if timeoutOveride > 0 {
-		chk.timeout = timeoutOveride
+	if chk.showHelp > 0 {
+		return snc.runHelp(ctx, chk, handler), chk
 	}
 
-	if chk.showHelp > 0 {
-		state := CheckExitUnknown
-		if chk.showHelp == Markdown {
-			state = CheckExitOK
-		}
+	secRes := snc.checkSecure(name, chk, handler, parsedArgs, transportConf)
+	if secRes != nil {
+		return secRes, chk
+	}
 
-		var help string
-		switch builtin := handler.(type) {
-		case *CheckBuiltin:
-			help = builtin.Help(ctx, snc, chk, chk.showHelp)
-		default:
-			help = chk.Help(chk.showHelp)
-		}
-
-		return &CheckResult{
-			Raw:    chk,
-			State:  state,
-			Output: help,
-		}, chk
+	if timeoutOveride > 0 {
+		chk.timeout = timeoutOveride
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(chk.timeout+1)*time.Second)
@@ -829,6 +794,71 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 	}
 
 	return res, chk
+}
+
+// check arguments and nasty characters against our security settings.
+// only check passed through and unknown arguments here. Known arguments are validated already.
+func (snc *Agent) checkSecure(command string, chk *CheckData, handler CheckHandler, parsedArgs []Argument, transportConf *ConfigSection) *CheckResult {
+	var chkConfig *ConfigSection
+	switch hdl := handler.(type) {
+	case *CheckAlias:
+		chkConfig = hdl.config
+	case *CheckWrap:
+		chkConfig = hdl.config
+	}
+	if chkConfig != nil {
+		switch {
+		case !checkAllowArguments(chkConfig, chk.rawArgs):
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: "Exception processing request: Request contained arguments (check the allow arguments option).",
+			}
+		case !checkNastyCharacters(chkConfig, "", chk.rawArgs):
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: "Exception processing request: Request contained illegal characters (check the allow nasty characters option).",
+			}
+		}
+	}
+
+	if transportConf != nil {
+		switch {
+		case !checkAllowArguments(transportConf, ArgumentList(parsedArgs).RawList()):
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: "Exception processing request: Request contained arguments (check the allow arguments option).",
+			}
+		case !checkNastyCharacters(transportConf, command, ArgumentList(parsedArgs).RawList()):
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: "Exception processing request: Request contained illegal characters (check the allow nasty characters option).",
+			}
+		}
+	}
+
+	return nil
+}
+
+// build help output and return checkresult with help text
+func (snc *Agent) runHelp(ctx context.Context, chk *CheckData, handler CheckHandler) *CheckResult {
+	state := CheckExitUnknown
+	if chk.showHelp == Markdown {
+		state = CheckExitOK
+	}
+
+	var help string
+	switch builtin := handler.(type) {
+	case *CheckBuiltin:
+		help = builtin.Help(ctx, snc, chk, chk.showHelp)
+	default:
+		help = chk.Help(chk.showHelp)
+	}
+
+	return &CheckResult{
+		Raw:    chk,
+		State:  state,
+		Output: help,
+	}
 }
 
 func (snc *Agent) getCheck(name string) (_ *CheckEntry, ok bool) {
@@ -1520,4 +1550,54 @@ func (snc *Agent) stopPProfiler() {
 func (snc *Agent) counterCreate(category, key string, bufferLength, interval time.Duration) {
 	log.Tracef("creating counter %s.%s (buffer: %s)", category, key, bufferLength.String())
 	snc.Counter.Create(category, key, bufferLength, interval)
+}
+
+func checkAllowArguments(conf *ConfigSection, args []string) bool {
+	allowed, _, err := conf.GetBool("allow arguments")
+	if err != nil {
+		log.Errorf("config error: %s", err.Error())
+
+		return false
+	}
+
+	if allowed {
+		return true
+	}
+
+	return len(args) == 0
+}
+
+func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
+	allowed, _, err := conf.GetBool("allow nasty characters")
+	if err != nil {
+		log.Errorf("config error: %s", err.Error())
+
+		return false
+	}
+
+	if allowed {
+		return true
+	}
+
+	nastyChars, ok := conf.GetString("nasty characters")
+	if !ok {
+		nastyChars = DefaultNastyCharacters
+	}
+
+	if strings.ContainsAny(cmd, nastyChars) {
+		log.Debugf("command string contained nasty character", cmd)
+
+		return false
+	}
+
+	for i, arg := range args {
+		if strings.ContainsAny(arg, nastyChars) {
+			log.Debugf("cmd arg (#%d) contained nasty character", i)
+			log.Errorf("cmd arg (#%d) contained nasty character: '%s'", i, arg)
+
+			return false
+		}
+	}
+
+	return true
 }

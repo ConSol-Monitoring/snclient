@@ -29,6 +29,9 @@ const (
 	// DefaultPassword sets default password, login with default password is not
 	// possible. It needs to be changed in the ini file.
 	DefaultPassword = "CHANGEME"
+
+	// DefaultNastyCharacters set the list of nasty characters which are not allowed
+	DefaultNastyCharacters = "$|`&><'\"\\[]{}"
 )
 
 var DefaultConfig = map[string]ConfigData{
@@ -45,7 +48,9 @@ var DefaultConfig = map[string]ConfigData{
 		"PrometheusServer":     "disabled",
 		"Updates":              "enabled",
 	},
-	"/settings/default": {},
+	"/settings/default": {
+		"nasty characters": DefaultNastyCharacters,
+	},
 	"/settings/updates": {
 		"channel": "stable",
 	},
@@ -53,7 +58,14 @@ var DefaultConfig = map[string]ConfigData{
 		"stable": "https://api.github.com/repos/ConSol-monitoring/snclient/releases",
 		"dev":    "https://api.github.com/repos/ConSol-monitoring/snclient/actions/artifacts",
 	},
-
+	"/settings/external scripts": {
+		"timeout":                "60",
+		"script root":            "${scripts}", // root path of all scripts
+		"script path":            "",           // load scripts from this folder automatically
+		"allow nasty characters": "false",
+		"allow arguments":        "false",
+		"ignore perfdata":        "false",
+	},
 	"/settings/external scripts/wrappings": {
 		"bat": `${scripts}\%SCRIPT% %ARGS%`,
 		"ps1": `cmd /c echo ` +

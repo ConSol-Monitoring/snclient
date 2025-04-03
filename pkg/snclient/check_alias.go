@@ -22,42 +22,27 @@ func (a *CheckAlias) Build() *CheckData {
 }
 
 func (a *CheckAlias) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (res *CheckResult, err error) {
-	userArgs := check.rawArgs
-	var statusResult *CheckResult
-	switch {
-	case !checkAllowArguments(a.config, userArgs):
-		statusResult = &CheckResult{
-			State:  CheckExitUnknown,
-			Output: "Exception processing request: Request contained arguments (check the allow arguments option).",
+	cmdArgs := a.args
+	argStr := strings.Join(a.args, " ")
+	if strings.Contains(argStr, "$ARG") {
+		log.Debugf("command before macros expanded: %s %s", a.command, argStr)
+		macros := map[string]string{
+			"ARGS": strings.Join(check.rawArgs, " "),
 		}
-	case !checkNastyCharacters(a.config, "", userArgs):
-		statusResult = &CheckResult{
-			State:  CheckExitUnknown,
-			Output: "Exception processing request: Request contained illegal characters (check the allow nasty characters option).",
+		for i := range check.rawArgs {
+			macros[fmt.Sprintf("ARG%d", i+1)] = check.rawArgs[i]
 		}
-	default:
-		cmdArgs := a.args
-		argStr := strings.Join(a.args, " ")
-		if strings.Contains(argStr, "$ARG") {
-			log.Debugf("command before macros expanded: %s %s", a.command, argStr)
-			macros := map[string]string{
-				"ARGS": strings.Join(userArgs, " "),
-			}
-			for i := range userArgs {
-				macros[fmt.Sprintf("ARG%d", i+1)] = check.rawArgs[i]
-			}
-			fillEmptyArgMacros(macros)
+		fillEmptyArgMacros(macros)
 
-			replacedStr := ReplaceRuntimeMacros(strings.Join(a.args, " "), check.timezone, macros)
-			cmdArgs, err = shelltoken.SplitQuotes(replacedStr, shelltoken.Whitespace)
-			if err != nil {
-				return nil, fmt.Errorf("error parsing command: %s", err.Error())
-			}
-
-			log.Debugf("command after macros expanded: %s %s", a.command, replacedStr)
+		replacedStr := ReplaceRuntimeMacros(strings.Join(a.args, " "), check.timezone, macros)
+		cmdArgs, err = shelltoken.SplitQuotes(replacedStr, shelltoken.Whitespace)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing command: %s", err.Error())
 		}
-		statusResult, _ = snc.runCheck(ctx, a.command, cmdArgs, check.timeout)
+
+		log.Debugf("command after macros expanded: %s %s", a.command, replacedStr)
 	}
+	statusResult, _ := snc.runCheck(ctx, a.command, cmdArgs, check.timeout, nil)
 
 	statusResult.ParsePerformanceDataFromOutputCond(a.command, a.config)
 

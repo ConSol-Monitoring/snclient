@@ -545,9 +545,9 @@ func (cd *CheckData) parseStateString(state string) int64 {
 	return 3
 }
 
-// ParseArgs parses check arguments into the CheckData struct
+// parseArgs parses check arguments into the CheckData struct
 // and returns all unknown options
-func (cd *CheckData) ParseArgs(args []string) (argList []Argument, err error) {
+func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 	cd.rawArgs = args
 	cd.hasArgsSupplied = map[string]bool{}
 	argList = make([]Argument, 0, len(args))

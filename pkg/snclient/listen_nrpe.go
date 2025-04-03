@@ -1,8 +1,8 @@
 package snclient
 
 import (
+	"context"
 	"net"
-	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/nrpe"
@@ -16,18 +16,16 @@ func init() {
 		NewHandlerNRPE,
 		ConfigInit{
 			ConfigData{
-				"allow arguments":        "false",
-				"allow nasty characters": "false",
 				"port":                   "5666",
 				"use ssl":                "true",
+				"allow arguments":        "false",
+				"allow nasty characters": "false",
 			},
 			"/settings/default",
 			DefaultListenTCPConfig,
 		},
 	)
 }
-
-const NastyCharacters = "$|`&><'\"\\[]{}"
 
 type HandlerNRPE struct {
 	noCopy       noCopy
@@ -113,25 +111,12 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 		return
 	}
 
-	var statusResult *CheckResult
-
-	switch {
-	case !checkAllowArguments(l.conf, args):
-		statusResult = &CheckResult{
-			State:  CheckExitUnknown,
-			Output: "Exception processing request: Request contained arguments (check the allow arguments option).",
-		}
-	case !checkNastyCharacters(l.conf, cmd, args):
-		statusResult = &CheckResult{
-			State:  CheckExitUnknown,
-			Output: "Exception processing request: Request contained illegal characters (check the allow nasty characters option).",
-		}
-	case cmd == "_NRPE_CHECK":
+	if cmd == "_NRPE_CHECK" {
 		// version check
-		statusResult = snc.RunCheck("check_snclient_version", args)
-	default:
-		statusResult = snc.RunCheck(cmd, args)
+		cmd = "check_snclient_version"
+		args = []string{}
 	}
+	statusResult := snc.RunCheckWithContext(context.TODO(), cmd, args, 0, l.conf)
 
 	output := statusResult.BuildPluginOutput()
 	state, err2 := convert.UInt16E(statusResult.State)
@@ -146,53 +131,4 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 
 		return
 	}
-}
-
-func checkAllowArguments(conf *ConfigSection, args []string) bool {
-	allowed, _, err := conf.GetBool("allow arguments")
-	if err != nil {
-		log.Errorf("config error: %s", err.Error())
-
-		return false
-	}
-
-	if allowed {
-		return true
-	}
-
-	return len(args) == 0
-}
-
-func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
-	allowed, _, err := conf.GetBool("allow nasty characters")
-	if err != nil {
-		log.Errorf("config error: %s", err.Error())
-
-		return false
-	}
-
-	if allowed {
-		return true
-	}
-
-	nastyChars, ok := conf.GetString("nasty characters")
-	if !ok {
-		nastyChars = NastyCharacters
-	}
-
-	if strings.ContainsAny(cmd, nastyChars) {
-		log.Debugf("command string contained nasty character", cmd)
-
-		return false
-	}
-
-	for i, arg := range args {
-		if strings.ContainsAny(arg, nastyChars) {
-			log.Debugf("cmd arg (#%d) contained nasty character", i)
-
-			return false
-		}
-	}
-
-	return true
 }

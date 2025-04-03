@@ -8,22 +8,7 @@ import (
 )
 
 func init() {
-	RegisterModule(
-		&AvailableTasks,
-		"CheckExternalScripts",
-		"/settings/external scripts",
-		NewExternalScriptsHandler,
-		ConfigInit{
-			ConfigData{
-				"timeout":                "60",
-				"script root":            "${scripts}", // root path of all scripts
-				"script path":            "",           // load scripts from this folder automatically
-				"allow nasty characters": "false",
-				"allow arguments":        "false",
-				"ignore perfdata":        "false",
-			},
-		},
-	)
+	RegisterModule(&AvailableTasks, "CheckExternalScripts", "/settings/external scripts", NewExternalScriptsHandler, nil)
 }
 
 type ExternalScriptsHandler struct {
@@ -145,7 +130,7 @@ func (e *ExternalScriptsHandler) registerScriptPath(defaultScriptConfig *ConfigS
 		if !cmdConf.HasKey("command") {
 			allow, _, _ := defaultScriptConfig.GetBool("allow arguments")
 			if allow {
-				cmdConf.Set("command", command+" %ARGS%")
+				cmdConf.Set("command", command+" %ARGS\"%")
 			} else {
 				cmdConf.Set("command", command)
 			}
