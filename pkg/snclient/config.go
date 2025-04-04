@@ -32,6 +32,9 @@ const (
 
 	// DefaultNastyCharacters set the list of nasty characters which are not allowed
 	DefaultNastyCharacters = "$|`&><'\"\\[]{}"
+
+	// SystemCmdNastyCharacters is a list of nasty characters which are not allowed in hostnames, ex.: in check_ping
+	SystemCmdNastyCharacters = "$|`&><'\"\\{}"
 )
 
 var DefaultConfig = map[string]ConfigData{
@@ -62,8 +65,8 @@ var DefaultConfig = map[string]ConfigData{
 		"timeout":                "60",
 		"script root":            "${scripts}", // root path of all scripts
 		"script path":            "",           // load scripts from this folder automatically
-		"allow nasty characters": "false",
 		"allow arguments":        "false",
+		"allow nasty characters": "false",
 		"ignore perfdata":        "false",
 	},
 	"/settings/external scripts/wrappings": {

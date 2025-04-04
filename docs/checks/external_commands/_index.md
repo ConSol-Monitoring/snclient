@@ -79,7 +79,7 @@ timeout = 60
 You can create aliases for existing commands with arguments to simplify usage. Ensure that you don't create loops in alias definitions.
 
 ```ini
-[/settings/external scripts/aliases/sample-alias]
+[/settings/external scripts/alias/sample-alias]
 alias = sample-alias
 command = original-command
 ```

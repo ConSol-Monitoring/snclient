@@ -47,13 +47,17 @@ local = file://./tmpupdates/snclient${file-ext}
 `
 )
 
-func localInit(t *testing.T) (bin string, cleanUp func()) {
+func localInit(t *testing.T, configOverride string) (bin string, cleanUp func()) {
 	t.Helper()
 
 	bin = getBinary()
 	require.FileExistsf(t, bin, "snclient binary must exist")
 
-	writeFile(t, `snclient.ini`, localDaemonINI)
+	if configOverride != "" {
+		writeFile(t, `snclient.ini`, configOverride)
+	} else {
+		writeFile(t, `snclient.ini`, localDaemonINI)
+	}
 
 	cleanUp = func() {
 		os.Remove("snclient.ini")
@@ -62,10 +66,10 @@ func localInit(t *testing.T) (bin string, cleanUp func()) {
 	return bin, cleanUp
 }
 
-func daemonInit(t *testing.T) (bin, baseURL string, baseArgs []string, cleanUp func()) {
+func daemonInit(t *testing.T, configOverride string) (bin, baseURL string, baseArgs []string, cleanUp func()) {
 	t.Helper()
 
-	bin, localClean := localInit(t)
+	bin, localClean := localInit(t, configOverride)
 
 	startBackgroundDaemon(t)
 	baseURL = fmt.Sprintf("http://127.0.0.1:%d", localDaemonPort)
@@ -82,7 +86,7 @@ func daemonInit(t *testing.T) (bin, baseURL string, baseArgs []string, cleanUp f
 }
 
 func TestDaemonRequests(t *testing.T) {
-	bin, baseURL, baseArgs, cleanUp := daemonInit(t)
+	bin, baseURL, baseArgs, cleanUp := daemonInit(t, "")
 	defer cleanUp()
 
 	runCmd(t, &cmd{
@@ -146,7 +150,7 @@ func TestDaemonRequests(t *testing.T) {
 }
 
 func TestDaemonAdminReload(t *testing.T) {
-	bin, baseURL, _, cleanUp := daemonInit(t)
+	bin, baseURL, _, cleanUp := daemonInit(t, "")
 	defer cleanUp()
 
 	runCmd(t, &cmd{
@@ -170,7 +174,7 @@ func TestDaemonAdminReload(t *testing.T) {
 }
 
 func TestDaemonAdminCertReplace(t *testing.T) {
-	_, baseURL, _, cleanUp := daemonInit(t)
+	_, baseURL, _, cleanUp := daemonInit(t, "")
 	defer cleanUp()
 
 	// test unknown post data

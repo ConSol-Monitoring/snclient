@@ -733,7 +733,7 @@ func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 // RunCheckWithContext calls check by name and returns the check result.
 // secCon configuration section will be used to check for nasty characters and allowed arguments.
 func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOveride float64, transportConf *ConfigSection) *CheckResult {
-	res, chk := snc.runCheck(ctx, name, args, timeoutOveride, transportConf)
+	res, chk := snc.runCheck(ctx, name, args, timeoutOveride, transportConf, false)
 	if res.Raw == nil || res.Raw.showHelp == 0 {
 		if chk != nil {
 			res.Finalize(chk.timezone)
@@ -745,7 +745,7 @@ func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []s
 	return res
 }
 
-func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOveride float64, transportConf *ConfigSection) (*CheckResult, *CheckData) {
+func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOveride float64, transportConf *ConfigSection, skipAllowedCheck bool) (*CheckResult, *CheckData) {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
 	if deadline, ok := ctx.Deadline(); ok {
@@ -772,13 +772,14 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 	if chk.showHelp > 0 {
 		return snc.runHelp(ctx, chk, handler), chk
 	}
-
-	err = snc.checkAllowed(name, chk, handler, parsedArgs, transportConf)
-	if err != nil {
-		return &CheckResult{
-			State:  CheckExitUnknown,
-			Output: err.Error(),
-		}, chk
+	if !skipAllowedCheck {
+		err = snc.checkAllowed(name, chk, handler, parsedArgs, transportConf)
+		if err != nil {
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: err.Error(),
+			}, chk
+		}
 	}
 
 	if timeoutOveride > 0 {
@@ -801,6 +802,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 
 // check allowed arguments and nasty characters settings.
 func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHandler, parsedArgs []Argument, transportConf *ConfigSection) error {
+	log.Tracef("check allowed: chk:%T cmd:%s: %#v // %#v", handler, command, parsedArgs, chk.rawArgs)
 	var chkConfig *ConfigSection
 	switch hdl := handler.(type) {
 	case *CheckAlias:
@@ -817,9 +819,9 @@ func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHand
 		_, nastyOk, _ = chkConfig.GetBool("allow nasty characters")
 		switch {
 		case !checkAllowArguments(chkConfig, chk.rawArgs):
-			return fmt.Errorf("exception processing request: Request contained arguments (check the allow arguments option)")
+			return fmt.Errorf("exception processing request: request contained arguments (check the allow arguments option)")
 		case !checkNastyCharacters(chkConfig, "", chk.rawArgs):
-			return fmt.Errorf("exception processing request: Request contained illegal characters (check the allow nasty characters option)")
+			return fmt.Errorf("exception processing request: request contained illegal characters (check the allow nasty characters option)")
 		}
 	}
 
@@ -827,10 +829,10 @@ func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHand
 	// only check passed through and unknown arguments here. Known arguments are validated already.
 	if transportConf != nil {
 		switch {
-		case !argsOk && !checkAllowArguments(transportConf, ArgumentList(parsedArgs).RawList()):
-			return fmt.Errorf("exception processing request: Request contained arguments (check the allow arguments option)")
+		case !argsOk && !checkAllowArguments(transportConf, chk.rawArgs):
+			return fmt.Errorf("exception processing request: request contained arguments (check the allow arguments option)")
 		case !nastyOk && !checkNastyCharacters(transportConf, command, ArgumentList(parsedArgs).RawList()):
-			return fmt.Errorf("exception processing request: Request contained illegal characters (check the allow nasty characters option)")
+			return fmt.Errorf("exception processing request: request contained illegal characters (check the allow nasty characters option)")
 		}
 	}
 
@@ -1591,7 +1593,7 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	for i, arg := range args {
 		if strings.ContainsAny(arg, nastyChars) {
 			log.Debugf("cmd arg (#%d) contained nasty character", i)
-			log.Errorf("cmd arg (#%d) contained nasty character: '%s'", i, arg)
+			log.Tracef("cmd arg (#%d) contained nasty character: '%s'", i, arg)
 
 			return false
 		}

@@ -261,7 +261,7 @@ func startBackgroundDaemon(t *testing.T) {
 		require.NotNilf(t, res, "got daemon result") //nolint:testifylint // assertions outside of main goroutine secured by channel
 		t.Logf("daemon finished")
 		assert.NotContainsf(t, res.Stdout, "[Error]", "log does not contain errors")
-		assert.NotContainsf(t, res.Stderr, "[Error]", "log does not contain errors")
+		assert.Emptyf(t, res.Stderr, "stderr should be empty")
 		daemonFinChan <- true
 	}()
 

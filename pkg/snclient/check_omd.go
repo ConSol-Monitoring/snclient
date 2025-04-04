@@ -99,6 +99,9 @@ func (l *CheckOMD) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 	}
 
 	for _, site := range sites {
+		if strings.ContainsAny(site, SystemCmdNastyCharacters) {
+			return nil, fmt.Errorf("site name must not contain nasty characters")
+		}
 		l.addOmdSite(ctx, check, site)
 	}
 
@@ -127,7 +130,7 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 		return
 	}
 
-	statusRaw, stderr, _, err := l.snc.execCommand(ctx, fmt.Sprintf("omd -b status %s", site), DefaultCmdTimeout)
+	statusRaw, stderr, _, err := l.snc.execCommand(ctx, fmt.Sprintf("omd -b status '%s'", site), DefaultCmdTimeout)
 	if err != nil {
 		log.Warnf("omd status: %s%s", statusRaw, stderr)
 		details["_error"] = err.Error()

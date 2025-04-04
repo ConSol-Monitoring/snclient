@@ -14,8 +14,6 @@ func init() {
 	AvailableChecks["check_ping"] = CheckEntry{"check_ping", NewCheckPing}
 }
 
-const NastyHostCharacters = "$|`&><'\"\\{}"
-
 type CheckPing struct {
 	snc      *Agent
 	hostname string
@@ -74,7 +72,7 @@ func (l *CheckPing) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 	if l.hostname == "" {
 		return nil, fmt.Errorf("host name is required")
 	}
-	if strings.ContainsAny(l.hostname, NastyHostCharacters) {
+	if strings.ContainsAny(l.hostname, SystemCmdNastyCharacters) {
 		return nil, fmt.Errorf("host name must not contain nasty characters")
 	}
 

@@ -22,7 +22,7 @@ func init() {
 			ConfigData{
 				"port":                   "8443",
 				"use ssl":                "1",
-				"allow arguments":        "false",
+				"allow arguments":        "true",
 				"allow nasty characters": "false",
 			},
 			"/settings/default",
@@ -347,19 +347,11 @@ func (l *HandlerWeb) runCheck(req *http.Request, command string) (result *CheckR
 	timeoutSeconds := float64(0)
 	timeout := req.Header.Get("X-Nsc-Web-Timeout")
 	if timeout != "" {
-		dur, err := time.ParseDuration(timeout)
-		if err != nil {
-			// fallback to seconds
-			dur2, err2 := time.ParseDuration(timeout + "s")
-			if err2 == nil {
-				dur = dur2
-				err = nil
-			}
-		}
+		dur, err := utils.ExpandDuration(timeout)
 		if err == nil {
-			if dur > DefaultCheckTimeout && dur <= MaxHTTPHeaderTimeoutOverride {
-				timeoutSeconds = dur.Seconds()
-				log.Tracef("extended timeout from http header: %s", dur)
+			if dur > DefaultCheckTimeout.Seconds() && dur <= MaxHTTPHeaderTimeoutOverride.Seconds() {
+				timeoutSeconds = dur
+				log.Tracef("extended timeout from http header: %s", time.Duration(dur*float64(time.Second)).String())
 			}
 		} else {
 			log.Debugf("failed to parse timeout: %s", err.Error())

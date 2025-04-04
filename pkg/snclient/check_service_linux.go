@@ -148,6 +148,10 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 			continue
 		}
 
+		if strings.ContainsAny(service, SystemCmdNastyCharacters) {
+			return nil, fmt.Errorf("service name must not contain nasty characters")
+		}
+
 		err := l.addServiceByName(ctx, check, service, l.services, l.excludes)
 		if err != nil {
 			return nil, err

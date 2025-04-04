@@ -18,7 +18,7 @@ func init() {
 			ConfigData{
 				"port":                   "5666",
 				"use ssl":                "true",
-				"allow arguments":        "false",
+				"allow arguments":        "true",
 				"allow nasty characters": "false",
 			},
 			"/settings/default",
