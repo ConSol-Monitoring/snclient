@@ -773,9 +773,12 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 		return snc.runHelp(ctx, chk, handler), chk
 	}
 
-	secRes := snc.checkSecure(name, chk, handler, parsedArgs, transportConf)
-	if secRes != nil {
-		return secRes, chk
+	err = snc.checkAllowed(name, chk, handler, parsedArgs, transportConf)
+	if err != nil {
+		return &CheckResult{
+			State:  CheckExitUnknown,
+			Output: err.Error(),
+		}, chk
 	}
 
 	if timeoutOveride > 0 {
@@ -796,9 +799,8 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 	return res, chk
 }
 
-// check arguments and nasty characters against our security settings.
-// only check passed through and unknown arguments here. Known arguments are validated already.
-func (snc *Agent) checkSecure(command string, chk *CheckData, handler CheckHandler, parsedArgs []Argument, transportConf *ConfigSection) *CheckResult {
+// check allowed arguments and nasty characters settings.
+func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHandler, parsedArgs []Argument, transportConf *ConfigSection) error {
 	var chkConfig *ConfigSection
 	switch hdl := handler.(type) {
 	case *CheckAlias:
@@ -806,33 +808,29 @@ func (snc *Agent) checkSecure(command string, chk *CheckData, handler CheckHandl
 	case *CheckWrap:
 		chkConfig = hdl.config
 	}
+
+	// this is the config section from ex.: the script or command alias config
+	argsOk := false
+	nastyOk := false
 	if chkConfig != nil {
+		_, argsOk, _ = chkConfig.GetBool("allow arguments")
+		_, nastyOk, _ = chkConfig.GetBool("allow nasty characters")
 		switch {
 		case !checkAllowArguments(chkConfig, chk.rawArgs):
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: "Exception processing request: Request contained arguments (check the allow arguments option).",
-			}
+			return fmt.Errorf("exception processing request: Request contained arguments (check the allow arguments option)")
 		case !checkNastyCharacters(chkConfig, "", chk.rawArgs):
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: "Exception processing request: Request contained illegal characters (check the allow nasty characters option).",
-			}
+			return fmt.Errorf("exception processing request: Request contained illegal characters (check the allow nasty characters option)")
 		}
 	}
 
+	// this is the config section from ex.: the nrpe listener or the web listener
+	// only check passed through and unknown arguments here. Known arguments are validated already.
 	if transportConf != nil {
 		switch {
-		case !checkAllowArguments(transportConf, ArgumentList(parsedArgs).RawList()):
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: "Exception processing request: Request contained arguments (check the allow arguments option).",
-			}
-		case !checkNastyCharacters(transportConf, command, ArgumentList(parsedArgs).RawList()):
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: "Exception processing request: Request contained illegal characters (check the allow nasty characters option).",
-			}
+		case !argsOk && !checkAllowArguments(transportConf, ArgumentList(parsedArgs).RawList()):
+			return fmt.Errorf("exception processing request: Request contained arguments (check the allow arguments option)")
+		case !nastyOk && !checkNastyCharacters(transportConf, command, ArgumentList(parsedArgs).RawList()):
+			return fmt.Errorf("exception processing request: Request contained illegal characters (check the allow nasty characters option)")
 		}
 	}
 

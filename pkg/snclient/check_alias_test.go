@@ -50,7 +50,7 @@ allow arguments = yes
 	// arguments not allowed
 	res = snc.RunCheck("alias_cpu", []string{"argument"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Equalf(t, "Exception processing request: Request contained arguments (check the allow arguments option).", res.Output, "plugin output")
+	assert.Equalf(t, "exception processing request: Request contained arguments (check the allow arguments option)", res.Output, "plugin output")
 
 	res = snc.RunCheck("alias_cpu2", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
@@ -68,7 +68,7 @@ allow arguments = yes
 	// nasty char
 	res = snc.RunCheck("alias_cpu3", []string{"filter=core!=$"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Equalf(t, "Exception processing request: Request contained illegal characters (check the allow nasty characters option).", res.Output, "plugin output")
+	assert.Equalf(t, "exception processing request: Request contained illegal characters (check the allow nasty characters option)", res.Output, "plugin output")
 
 	// nasty char list changed
 	res = snc.RunCheck("alias_cpu4", []string{"filter=core!=$"})
