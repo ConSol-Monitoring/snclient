@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -28,9 +29,15 @@ func init() {
 	setLogLevel(level)
 }
 
+var testAgentStarted = atomic.Bool{}
+
 // Starts a full Agent from given config
 func StartTestAgent(t *testing.T, config string) *Agent {
 	t.Helper()
+	if testAgentStarted.Load() {
+		t.Fatalf("test agent already started, forgot to call StopTestAgent()?")
+	}
+	testAgentStarted.Store(true)
 	testDefaultConfig := `
 [/modules]
 WEBServer = disabled
@@ -74,6 +81,7 @@ func StopTestAgent(t *testing.T, snc *Agent) {
 	if !stopped {
 		t.Fatalf("agent did not stop")
 	}
+	testAgentStarted.Store(false)
 }
 
 // mock utilities in a tmp path
