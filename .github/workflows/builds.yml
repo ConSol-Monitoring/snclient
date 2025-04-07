@@ -90,6 +90,7 @@ jobs:
           sysctl hw.usermem
           pkg install -y bash
           pkg install -y gmake
+          pkg install -y git
 
         run: |
           # install go version from go.mod
