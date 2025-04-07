@@ -83,14 +83,24 @@ jobs:
         usesh: true
         copyback: false
         prepare: |
-          pkg install -y gmake
-          pkg install -y go
-          pkg install -y bash
           freebsd-version
           sysctl hw.model
           sysctl hw.ncpu
           sysctl hw.physmem
           sysctl hw.usermem
+          pkg install -y bash
+          pkg install -y gmake
+
+          # install go version from go.mod
+          GOVERSION=$(awk '/^go / { print $2 }' go.mod)
+          GO_TARBALL="go${GOVERSION}.freebsd-amd64.tar.gz"
+          GO_URL="https://go.dev/dl/${GO_TARBALL}"
+          echo "Installing Go $GOVERSION... ($GO_URL)"
+          fetch "$GO_URL"
+          tar -C /usr/local -xzf "$GO_TARBALL"
+          echo 'export PATH="/usr/local/go/bin:$PATH"' >> ~/.profile
+          export PATH="/usr/local/go/bin:$PATH"
+          go version
 
         run: |
           gmake test
