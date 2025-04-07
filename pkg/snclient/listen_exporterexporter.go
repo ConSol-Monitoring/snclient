@@ -472,15 +472,17 @@ func (cfg *exporterModuleConfig) getReverseProxyDirectorFunc() (func(*http.Reque
 }
 
 func getReverseProxyErrorHandlerFunc(name string) func(http.ResponseWriter, *http.Request, error) {
-	return func(res http.ResponseWriter, _ *http.Request, err error) {
+	return func(res http.ResponseWriter, req *http.Request, err error) {
 		if errors.Is(err, context.DeadlineExceeded) {
-			log.Errorf("Request time out for module '%s'", name)
+			log.Errorf("proxy request time out for module '%s'", name)
+			logHTTPRequest(req)
 			http.Error(res, http.StatusText(http.StatusGatewayTimeout), http.StatusGatewayTimeout)
 
 			return
 		}
 
-		log.Errorf("Proxy error for module '%s': %v", name, err)
+		log.Errorf("proxy error for module '%s': %s", name, err.Error())
+		logHTTPRequest(req)
 		http.Error(res, http.StatusText(http.StatusBadGateway), http.StatusBadGateway)
 	}
 }
