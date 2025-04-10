@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/wincpu"
 	cpuinfo "github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/net"
 )
@@ -161,7 +162,7 @@ func (c *CheckSystemHandler) update(create bool) {
 func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo.TimesStat, netdata map[string]float64, err error) {
 	data = map[string]float64{}
 
-	info, err := cpuinfo.Percent(0, true)
+	info, err := wincpu.Percent(0, true)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("cpuinfo failed: %s", err.Error())
 	}

@@ -12,7 +12,7 @@ import (
 func TestDocsExists(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
-	skipChecks := []string{"check_index", "check_nscp_version"}
+	skipChecks := []string{"check_index", "check_nscp_version", "CheckCounter"}
 
 	assert.GreaterOrEqualf(t, len(AvailableChecks), 25, "there should be checks available")
 

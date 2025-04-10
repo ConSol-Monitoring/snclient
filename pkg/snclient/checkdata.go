@@ -625,7 +625,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 		case "empty-state":
 			cd.emptyState = cd.parseStateString(argValue)
 			cd.emptyStateSet = true
-		case "show-all":
+		case "show-all", "ShowAll":
 			if argValue == "" {
 				cd.showAll = true
 			} else {
