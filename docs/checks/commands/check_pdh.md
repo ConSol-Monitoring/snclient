@@ -4,7 +4,7 @@ title: pdh
 
 ## check_pdh
 
-Checks pdh paths and handles WildCard expansion. Also available with the alias CheckCounter
+Checks pdh paths and handles wildcard expansion. Also available with the alias CheckCounter
 
 - [Examples](#examples)
 - [Attributes](#attributes)

@@ -171,7 +171,6 @@ func perfInfo() ([]win32_SystemProcessorPerformanceInformation, error) {
 	// check return code for errors
 	if retCode != 0 {
 		if retCode == utils.STATUS_INFO_LENGTH_MISMATCH {
-
 		}
 
 		return nil, fmt.Errorf("call to NtQuerySystemInformation returned %d. err: %s", retCode, err.Error())

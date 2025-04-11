@@ -27,7 +27,7 @@ func (c *CheckPDH) Build() *CheckData {
 	return &CheckData{
 		implemented:  Windows,
 		name:         "check_pdh",
-		description:  "Checks pdh paths and handles WildCard expansion. Also available with the alias CheckCounter",
+		description:  "Checks pdh paths and handles wildcard expansion. Also available with the alias CheckCounter",
 		detailSyntax: "%(name)",
 		okSyntax:     "%(status) - All %(count) counter values are ok",
 		topSyntax:    "%(status) - %(problem_count)/%(count) counter (%(count)) %(problem_list)",
