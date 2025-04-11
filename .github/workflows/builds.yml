@@ -51,6 +51,9 @@ jobs:
 
   test-win:
     runs-on: windows-latest
+    env:
+      GODEBUG: "invalidptr=1,cgocheck=1,madvdontneed=1"
+      GOGC: "2"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
