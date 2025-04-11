@@ -14,7 +14,14 @@ import (
 )
 
 // Check implements CheckHandler.
-func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, args []Argument) (*CheckResult, error) {
+	// If the counter path is empty we need to parse the argument ourself for the optional alias case counter:alias=...
+	if c.CounterPath == "" {
+		err := c.parseCheckSpecificArgs(args)
+		if err != nil {
+			return nil, err
+		}
+	}
 	var possiblePaths []string
 	var hQuery pdh.PDH_HQUERY
 	// Open Query  - Data Source = 0 => Real Time Datasource
@@ -22,7 +29,7 @@ func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, _ []Argu
 	defer pdh.PdhCloseQuery(hQuery)
 
 	if ret != pdh.ERROR_SUCCESS {
-		return nil, fmt.Errorf("could not open query, something is wrong with the counter name")
+		return nil, fmt.Errorf("could not open query, something is wrong with the countername")
 	}
 
 	tmpPath := c.CounterPath
@@ -45,7 +52,7 @@ func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, _ []Argu
 	}
 
 	// Find Indices and replace with Performance Name
-	r := regexp.MustCompile(`\\d+`)
+	r := regexp.MustCompile(`\d+`)
 	matches := r.FindAllString(c.CounterPath, -1)
 	for _, match := range matches {
 		index, err := strconv.Atoi(strings.ReplaceAll(match, `\`, ""))
@@ -56,7 +63,7 @@ func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, _ []Argu
 		if res != pdh.ERROR_SUCCESS {
 			return nil, fmt.Errorf("could not find given index: %d response code: %d", index, res)
 		}
-		tmpPath = strings.Replace(tmpPath, match, "\\"+path, 1)
+		tmpPath = strings.Replace(tmpPath, match, path, 1)
 	}
 
 	// Expand Counter Path That Ends with WildCard *
@@ -76,7 +83,7 @@ func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, _ []Argu
 	}
 
 	// Collect Values For All Counters and save values in check.listData
-	err = collectValuesForAllCounters(hQuery, counters, check)
+	err = c.collectValuesForAllCounters(hQuery, counters, check)
 	if err != nil {
 		return nil, fmt.Errorf("could not get values for all counter path, error: %s", err.Error())
 	}
@@ -84,7 +91,25 @@ func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, _ []Argu
 	return check.Finalize()
 }
 
-func collectValuesForAllCounters(hQuery pdh.PDH_HQUERY, counters map[string]pdh.PDH_HCOUNTER, check *CheckData) error {
+func (c *CheckPDH) parseCheckSpecificArgs(args []Argument) error {
+	carg := args[0]
+	parts := strings.Split(carg.key, ":")
+	if len(parts) < 2 {
+		return fmt.Errorf("no counter defined")
+	}
+	counterKey := parts[0]
+	alias := parts[1]
+
+	if !strings.EqualFold(counterKey, "counter") {
+		return fmt.Errorf("expected a counter definition")
+	}
+	c.OptionalAlias = alias
+	c.CounterPath = carg.value
+
+	return nil
+}
+
+func (c *CheckPDH) collectValuesForAllCounters(hQuery pdh.PDH_HQUERY, counters map[string]pdh.PDH_HCOUNTER, check *CheckData) error {
 	for counterPath, hCounter := range counters {
 		var resArr [1]pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE // Need at least one nil pointer
 
@@ -92,15 +117,20 @@ func collectValuesForAllCounters(hQuery pdh.PDH_HQUERY, counters map[string]pdh.
 		if ret != pdh.ERROR_SUCCESS && ret != pdh.PDH_MORE_DATA && ret != pdh.PDH_NO_MORE_DATA {
 			return fmt.Errorf("could not collect formatted value %v", ret)
 		}
-
 		entry := map[string]string{}
 		for _, fmtValue := range largeArr {
-			entry["name"] = strings.Replace(counterPath, "*", utf16PtrToString(fmtValue.SzName), 1)
+			var name string
+			if c.OptionalAlias != "" {
+				name = c.OptionalAlias
+			} else {
+				name = strings.Replace(counterPath, "*", utf16PtrToString(fmtValue.SzName), 1)
+			}
+			entry["name"] = name
 			entry["value"] = fmt.Sprintf("%d", fmtValue.FmtValue.LargeValue)
 			if check.showAll {
 				check.result.Metrics = append(check.result.Metrics,
 					&CheckMetric{
-						Name:          strings.Replace(counterPath, "*", utf16PtrToString(fmtValue.SzName), 1),
+						Name:          name,
 						ThresholdName: "value",
 						Value:         fmtValue.FmtValue.LargeValue,
 						Warning:       check.warnThreshold,
