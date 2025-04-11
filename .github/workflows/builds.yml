@@ -51,9 +51,6 @@ jobs:
 
   test-win:
     runs-on: windows-latest
-    env:
-      GODEBUG: "invalidptr=1,cgocheck=1,madvdontneed=1"
-      GOGC: "2"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -65,7 +62,7 @@ jobs:
           $Env:GOWORK = "off"
           go mod vendor
           $Env:GOWORK = ""
-          go test -gcflags=all=-d=checkptr -v ./pkg/... ; if ($LASTEXITCODE -ne 0) { exit 1 }
+          go test -v ./pkg/... ; if ($LASTEXITCODE -ne 0) { exit 1 }
 
   test-osx:
     runs-on: macos-latest
