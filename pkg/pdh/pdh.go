@@ -617,7 +617,7 @@ func mszExpandedPathListToStringArr(ptr *uint16) []string {
 	for *(*uint16)(end) != 0 {
 		curr, n := utf16PtrToString((*uint16)(end))
 		result = append(result, curr)
-		end = unsafe.Pointer(uintptr(n+1)*uintptr(unsafe.Sizeof(*ptr)) + uintptr(end)) //
+		end = unsafe.Add(end, (n+1)*int(unsafe.Sizeof(*ptr))) //
 	}
 	return result
 }

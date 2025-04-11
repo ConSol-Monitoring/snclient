@@ -6,11 +6,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
-	"unsafe"
 
 	"github.com/consol-monitoring/snclient/pkg/pdh"
+	"golang.org/x/sys/windows"
 )
 
 // Check implements CheckHandler.
@@ -123,7 +122,7 @@ func (c *CheckPDH) collectValuesForAllCounters(hQuery pdh.PDH_HQUERY, counters m
 			if c.OptionalAlias != "" {
 				name = c.OptionalAlias
 			} else {
-				name = strings.Replace(counterPath, "*", utf16PtrToString(fmtValue.SzName), 1)
+				name = strings.Replace(counterPath, "*", windows.UTF16PtrToString(fmtValue.SzName), 1)
 			}
 			entry["name"] = name
 			entry["value"] = fmt.Sprintf("%d", fmtValue.FmtValue.LargeValue)
@@ -194,18 +193,4 @@ func collectLargeValuesArray(hCounter pdh.PDH_HCOUNTER, hQuery pdh.PDH_HQUERY, r
 	}
 
 	return filledBuf, ret
-}
-
-func utf16PtrToString(ptr *uint16) string {
-	if ptr == nil {
-		return ""
-	}
-	end := unsafe.Pointer(ptr)
-	charCounter := 0
-	for *(*uint16)(end) != 0 {
-		end = unsafe.Pointer(uintptr(end) + unsafe.Sizeof(*ptr))
-		charCounter++
-	}
-
-	return syscall.UTF16ToString(unsafe.Slice(ptr, charCounter))
 }
