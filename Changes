@@ -12,6 +12,7 @@ next:
          - fix timeout race condition when rebooting windows service
          - fix checking for allowed arguments / nasty characters for web api requests
          - fix checking for allowed arguments / nasty characters from external scripts (#158)
+         - change minimum golang requirement to 1.23.8
 
 0.32     Thu Mar 13 12:55:24 CET 2025
          - add alpine support
