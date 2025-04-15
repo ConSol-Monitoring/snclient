@@ -506,3 +506,16 @@ auth = http://user:pass@localhost:%d/tmp/test3.ini
 
 	StopTestAgent(t, snc)
 }
+
+func TestConfigQuotes(t *testing.T) {
+	configText := `
+[/settings/external scripts/alias]
+alias_foo1=check_process process=postgres4.exe ok-syntax='Total processes = ${total}'
+alias_foo2=check_service service="Eventlog" show-all "top-syntax=${list}" "detail-syntax=${name}:${state} " "crit=(state != 'running')"
+`
+	cfg := NewConfig(true)
+	err := cfg.ParseINI(configText, "testfile.ini", nil)
+	require.NoErrorf(t, err, "config parsed")
+	snc := StartTestAgent(t, configText)
+	StopTestAgent(t, snc)
+}
