@@ -32,19 +32,19 @@ The prometheus scrape config might look like this:
 
 ```yaml
 - job_name: 'windows'
-    # Override the global default and scrape targets from this job every 5 seconds.
-    scrape_interval: 5s
+  # Override the global default and scrape targets from this job every 5 seconds.
+  scrape_interval: 5s
 
-    # metrics_path defaults to '/metrics', but here we use the snclient-prefix
-    metrics_path: /node/metrics
+  # metrics_path defaults to '/metrics', but here we use the snclient-prefix
+  metrics_path: /node/metrics
 
-    # scheme defaults to 'http'.
-    scheme: https
-    tls_config:
-        insecure_skip_verify: true
+  # scheme defaults to 'http'.
+  scheme: https
+  tls_config:
+    insecure_skip_verify: true
 
-    static_configs:
-    - targets: ['<ip>:8443']
+  static_configs:
+  - targets: ['<ip>:8443']
 ```
 
 SNClient will monitor the windows exporter memory usage and restart the exporter if
