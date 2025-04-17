@@ -46,14 +46,13 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument          | Description                                                                                     |
-| ----------------- | ----------------------------------------------------------------------------------------------- |
-| comlumn-split     | Tab slit default: \t                                                                            |
-| file              | The file that should be checked                                                                 |
-| files             | Comma Seperated list of files                                                                   |
-| label-pattern     | label:pattern => If the pattern is matched in a line the line will have the label set as detail |
-| line-split        | Character string used to split a file into several lines (default \n)                           |
-| timestamp-pattern | The pattern of the timestamps in the log                                                        |
+| Argument      | Description                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| comlumn-split | Tab slit default: \t                                                                            |
+| file          | The file that should be checked                                                                 |
+| files         | Comma separated list of files                                                                   |
+| label-pattern | label:pattern => If the pattern is matched in a line the line will have the label set as detail |
+| line-split    | Character string used to split a file into several lines (default \n)                           |
 
 ## Attributes
 
