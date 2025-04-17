@@ -44,12 +44,11 @@ func (c *CheckLogFile) Build() *CheckData {
 		emptySyntax:  "%(status) - No files found",
 		emptyState:   CheckExitUnknown,
 		args: map[string]CheckArgument{
-			"file":              {value: &c.FilePath, description: "The file that should be checked"},
-			"files":             {value: &c.Paths, description: "Comma separated list of files"},
-			"line-split":        {value: &c.LineDelimeter, description: "Character string used to split a file into several lines (default \\n)"},
-			"comlumn-split":     {value: &c.ColumnDelimter, description: "Tab slit default: \\t"},
-			"timestamp-pattern": {value: &c.TimestampPattern, description: "The pattern of the timestamps in the log"},
-			"label-pattern":     {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
+			"file":          {value: &c.FilePath, description: "The file that should be checked"},
+			"files":         {value: &c.Paths, description: "Comma separated list of files"},
+			"line-split":    {value: &c.LineDelimeter, description: "Character string used to split a file into several lines (default \\n)"},
+			"comlumn-split": {value: &c.ColumnDelimter, description: "Tab slit default: \\t"},
+			"label-pattern": {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
 		},
 		result: &CheckResult{
 			State: CheckExitOK,
