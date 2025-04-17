@@ -114,7 +114,8 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent) (i
 	for _, parsedFile := range snc.alreadyParsedLogfiles {
 		if parsedFile.path == fileName {
 			// Was the file renewed, rotated?
-			info, err := file.Stat()
+			var info os.FileInfo
+			info, err = file.Stat()
 			if err != nil {
 				return 0, fmt.Errorf("could not get file information %s", err.Error())
 			}
