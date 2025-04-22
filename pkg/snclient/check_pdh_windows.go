@@ -128,7 +128,7 @@ func (c *CheckPDH) collectValuesForAllCounters(hQuery pdh.PDH_HQUERY, counters m
 			entry["value"] = fmt.Sprintf("%d", fmtValue.FmtValue.LargeValue)
 			check.result.Metrics = append(check.result.Metrics,
 				&CheckMetric{
-					Name:          name,
+					Name:          name + "_value",
 					ThresholdName: "value",
 					Value:         fmtValue.FmtValue.LargeValue,
 					Warning:       check.warnThreshold,

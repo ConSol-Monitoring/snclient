@@ -12,7 +12,7 @@ import (
 func TestCheckPDH(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
-	res := snc.RunCheck("check_pdh", []string{`counter=\4\30`, "warn=value > 80", "crit=value > 90", "show-all"})
+	res := snc.RunCheck("check_pdh", []string{`counter=\4\30`, "warn=value > 80", "crit=value > 90"})
 	assert.Equalf(t, CheckExitCritical, res.State, "The check could not be run successful")
 	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL")
 
@@ -26,7 +26,7 @@ func TestCheckPDH(t *testing.T) {
 func TestCheckPDHOptionalAlias(t *testing.T) {
 	// svchost.exe should run on all windows instances
 	snc := StartTestAgent(t, "")
-	res := snc.RunCheck("check_pdh", []string{`counter:svchost=\Process(svchost)\Private Bytes`, "warn=value < 200", "crit=value < 500", "show-all", "instances", "english"})
+	res := snc.RunCheck("check_pdh", []string{`counter:svchost=\Process(svchost)\Private Bytes`, "warn=value < 200", "crit=value < 500", "instances", "english"})
 	assert.Equalf(t, CheckExitOK, res.State, "The check could not be run successful")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK")
 
