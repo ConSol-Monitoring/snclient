@@ -1,8 +1,13 @@
 package snclient
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"os"
@@ -116,12 +121,102 @@ func (l *HandlerWebAdmin) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 		l.serveReload(res, req)
 	case "/api/v1/admin/certs/replace":
 		l.serveCertsReplace(res, req)
+	case "/api/v1/admin/certs/request":
+		l.serveCertsRequest(res, req)
 	case "/api/v1/admin/updates/install":
 		l.serveUpdate(res, req)
 	default:
 		res.WriteHeader(http.StatusNotFound)
 		LogError2(res.Write([]byte("404 - nothing here\n")))
 	}
+}
+
+func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.Request) {
+	if !l.requirePostMethod(res, req) {
+		return
+	}
+
+	// Extract HostName from request
+	// extract json payload
+	decoder := json.NewDecoder(req.Body)
+	decoder.DisallowUnknownFields()
+	type postData struct {
+		HostName string `json:"HostName"`
+	}
+
+	data := postData{}
+	err := decoder.Decode(&data)
+	if err != nil {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
+	}
+
+	// read private key
+
+	defSection := l.Handler.snc.config.Section("/settings/default")
+	// current certificate here only for reference
+	certFile, _ := defSection.GetString("certificate")
+	keyFile, _ := defSection.GetString("certificate key")
+	fmt.Printf("certFile: %v\n", certFile)
+
+	pemdata, err := os.ReadFile(keyFile)
+	if err != nil {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
+	}
+
+	block, _ := pem.Decode(pemdata)
+	var privateKey *rsa.PrivateKey
+	if block.Type == "RSA PRIVATE KEY" {
+		privateKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	}
+	if err != nil {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
+	}
+
+	// csr/ x509 Template
+
+	csrTemplate := x509.CertificateRequest{
+		Subject: pkix.Name{
+			Organization: []string{data.HostName},
+		},
+	}
+
+	// create certificate signing request
+	csrDER, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, privateKey)
+	if err != nil {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
+	}
+	// Marshall to pem format
+	csrPEM := &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrDER}
+	pem.Encode(res, csrPEM)
+
 }
 
 func (l *HandlerWebAdmin) serveReload(res http.ResponseWriter, req *http.Request) {
