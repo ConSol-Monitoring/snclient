@@ -41,15 +41,15 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument     | Description                                                                                            |
-| ------------ | ------------------------------------------------------------------------------------------------------ |
-| Counter      | The fully qualified Counter Name                                                                       |
-| counter      | The fully qualified Counter Name                                                                       |
-| english      | Using English Names Regardless of system Language requires Windows Vista or higher                     |
-| expand-index | Should Indices be translated?                                                                          |
-| host         | The Name Of the Mashine in the same Network where the Counter should be searched, defaults to localhost |
-| instances    | Expand WildCards And Fethch all instances                                                              |
-| type         | this can be large or float depending what you expect, default is large                                 |
+| Argument     | Description                                                                                        |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| Counter      | The fully qualified Counter Name                                                                   |
+| counter      | The fully qualified Counter Name                                                                   |
+| english      | Using English Names Regardless of system Language requires Windows Vista or higher                 |
+| expand-index | Should Indices be translated?                                                                      |
+| host         | The Name Of the machine in the Network where the Counter should be searched, defaults to localhost |
+| instances    | Expand WildCards And Fethch all instances                                                          |
+| type         | this can be large or float depending what you expect, default is large                             |
 
 ## Attributes
 
