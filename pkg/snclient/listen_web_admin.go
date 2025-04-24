@@ -136,12 +136,17 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 		return
 	}
 
-	// Extract HostName from request
 	// extract json payload
 	decoder := json.NewDecoder(req.Body)
 	decoder.DisallowUnknownFields()
+	// Like in openssl
 	type postData struct {
-		HostName string `json:"HostName"`
+		Country            string `json:"C"`
+		State              string `json:"ST"`
+		Locality           string `json:"L"`
+		Organization       string `json:"O"`
+		OrganizationalUnit string `json:"OU"`
+		CommonName         string `json:"CN"`
 	}
 
 	data := postData{}
@@ -157,15 +162,9 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 		return
 	}
 
-	// read private key
+	//Generate PK
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 
-	defSection := l.Handler.snc.config.Section("/settings/default")
-	// current certificate here only for reference
-	certFile, _ := defSection.GetString("certificate")
-	keyFile, _ := defSection.GetString("certificate key")
-	fmt.Printf("certFile: %v\n", certFile)
-
-	pemdata, err := os.ReadFile(keyFile)
 	if err != nil {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusBadRequest)
@@ -176,28 +175,15 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 
 		return
 	}
-
-	block, _ := pem.Decode(pemdata)
-	var privateKey *rsa.PrivateKey
-	if block.Type == "RSA PRIVATE KEY" {
-		privateKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
-	}
-	if err != nil {
-		res.Header().Set("Content-Type", "application/json")
-		res.WriteHeader(http.StatusBadRequest)
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
-		}))
-
-		return
-	}
-
-	// csr/ x509 Template
 
 	csrTemplate := x509.CertificateRequest{
 		Subject: pkix.Name{
-			Organization: []string{data.HostName},
+			Country:            []string{data.Country},
+			Province:           []string{data.State},
+			Locality:           []string{data.Locality},
+			Organization:       []string{data.Organization},
+			OrganizationalUnit: []string{data.OrganizationalUnit},
+			CommonName:         data.CommonName,
 		},
 	}
 
@@ -215,8 +201,10 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 	}
 	// Marshall to pem format
 	csrPEM := &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrDER}
-	pem.Encode(res, csrPEM)
 
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	res.Write(pem.EncodeToMemory(csrPEM))
 }
 
 func (l *HandlerWebAdmin) serveReload(res http.ResponseWriter, req *http.Request) {
