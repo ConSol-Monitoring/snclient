@@ -162,8 +162,9 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 		return
 	}
 
-	//Generate PK
+	// Generate PK
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	// Clarify if the old PK should be used or new one should be generated
 
 	if err != nil {
 		res.Header().Set("Content-Type", "application/json")
@@ -204,7 +205,18 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
-	res.Write(pem.EncodeToMemory(csrPEM))
+
+	err = pem.Encode(res, csrPEM)
+	if err != nil {
+		log.Debugf("admin request failed: %s", err.Error())
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusInternalServerError)
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}))
+	}
+
 }
 
 func (l *HandlerWebAdmin) serveReload(res http.ResponseWriter, req *http.Request) {
