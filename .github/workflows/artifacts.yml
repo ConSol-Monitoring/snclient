@@ -1,0 +1,172 @@
+name: Binary Artifacts
+#
+#
+# this workflow:
+#    - only builds artifacts
+#    - signs executables
+#
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  get-version:
+    runs-on: ubuntu-latest
+    outputs:
+      minor:    ${{ steps.get-minor-version.outputs.minor }}
+      major:    ${{ steps.get-major-version.outputs.major }}
+      revision: ${{ steps.get-total-revision.outputs.revision }}
+      sha:      ${{ steps.get-short-sha.outputs.sha }}
+      version:  ${{ steps.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: get-major-version
+        run: echo "major=$(./buildtools/get_version | cut -d . -f 1 | sed -e 's/[^0-9]*//g')" >> $GITHUB_OUTPUT
+      - id: get-minor-version
+        run: echo "minor=$(./buildtools/get_version | cut -d . -f 2 | sed -e 's/[^0-9]*//g')" >> $GITHUB_OUTPUT
+      - id: get-total-revision
+        run: REV=$(./buildtools/get_version | cut -d . -f 3 | sed -e 's/[^0-9]*//g'); echo "revision=${REV:-0}" >> $GITHUB_OUTPUT
+      - id: get-short-sha
+        run: echo "sha=$( git rev-parse --short HEAD )" >> $GITHUB_OUTPUT
+      - id: get-version
+        run: echo "version=$(./buildtools/get_version)" >> $GITHUB_OUTPUT
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        go-os: [linux, freebsd]
+        go-arch: [i386, x86_64, aarch64]
+    needs: [get-version]
+    runs-on: ubuntu-latest
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: './go.mod'
+      - run: |
+          echo "Building ${{ env.BIN }}"
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: "${{ env.BIN }}"
+          path: "snclient"
+          if-no-files-found: error
+
+
+  build-osx:
+    strategy:
+      fail-fast: false
+      matrix:
+        go-os: [darwin]
+        go-arch: [x86_64, aarch64]
+    needs: [get-version]
+    runs-on: macos-latest
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: './go.mod'
+      - run: |
+          echo "Building ${{ env.BIN }}"
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: "${{ env.BIN }}"
+          path: "snclient"
+          if-no-files-found: error
+
+
+  build-win:
+    strategy:
+      fail-fast: false
+      matrix:
+        go-os: [windows]
+        go-arch: [i386, x86_64, aarch64]
+    needs: [get-version]
+    runs-on: ubuntu-latest
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: './go.mod'
+      - run: |
+          echo "Building ${{ env.BIN }}.exe"
+          rm -rf winres rsrc_windows_*
+          make rsrc_windows
+          GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
+          mv snclient snclient.exe
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: "${{ env.BIN }}"
+          path: "snclient.exe"
+          if-no-files-found: error
+
+
+  sign-win:
+    strategy:
+      fail-fast: false
+      matrix:
+        go-os: [windows]
+        go-arch: [i386, x86_64, aarch64]
+    needs: [get-version, build-win]
+    runs-on: windows-latest
+    env:
+      BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: "${{ env.BIN }}"
+          path: "."
+
+      - name: "install Azure Sign Tool"
+        if: ${{ env.CERTURL != '' }}
+        run: |
+          dotnet tool install --global --version 6.0.0 AzureSignTool
+
+      - name: "Sign snclient.exe"
+        if: ${{ env.CERTURL != '' }}
+        run: |
+          AzureSignTool.exe sign `
+            --description="SNClient Agent (https://omd.consol.de/docs/snclient/)" `
+            --description-url="https://omd.consol.de/docs/snclient/" `
+            --file-digest=sha384 `
+            --azure-key-vault-url="${{ secrets.AZURE_VAULT_CERT_URL }}" `
+            --azure-key-vault-client-id="${{ secrets.AZURE_VAULT_APPLICATION_ID }}" `
+            --azure-key-vault-tenant-id="${{ secrets.AZURE_VAULT_TENANT_ID }}" `
+            --azure-key-vault-client-secret="${{ secrets.AZURE_VAULT_SECRET_VALUE }}" `
+            --azure-key-vault-certificate="ConSol-Codesign" `
+            -tr http://timestamp.digicert.com `
+            -td sha384 `
+            -v `
+            "snclient.exe"
+
+      - name: "Verify snclient.exe"
+        if: ${{ env.CERTURL != '' }}
+        run: |
+          Write-Host "Verify snclient.exe"
+          & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" verify /pa snclient.exe
+
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: "${{ env.BIN }}"
+          path: "snclient.exe"
+          if-no-files-found: error
+          overwrite: true
