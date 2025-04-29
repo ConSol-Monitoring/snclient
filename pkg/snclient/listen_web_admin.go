@@ -32,6 +32,8 @@ func init() {
 	)
 }
 
+const PrivateKeySize = 4096
+
 type HandlerAdmin struct {
 	noCopy       noCopy
 	handler      http.Handler
@@ -39,6 +41,16 @@ type HandlerAdmin struct {
 	snc          *Agent
 	listener     *Listener
 	allowedHosts *AllowedHostConfig
+}
+
+type csrRequestJSON struct {
+	HostName           string `json:"HostName"`
+	NewKey             bool   `json:"NewKey"`
+	Country            string `json:"Country"`
+	State              string `json:"State"`
+	Locality           string `json:"Locality"`
+	Organization       string `json:"Organization"`
+	OrganizationalUnit string `json:"OrganizationalUnit"`
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -139,17 +151,8 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 	// extract json payload
 	decoder := json.NewDecoder(req.Body)
 	decoder.DisallowUnknownFields()
-	// Like in openssl
-	type postData struct {
-		Country            string `json:"C"`
-		State              string `json:"ST"`
-		Locality           string `json:"L"`
-		Organization       string `json:"O"`
-		OrganizationalUnit string `json:"OU"`
-		CommonName         string `json:"CN"`
-	}
 
-	data := postData{}
+	data := csrRequestJSON{}
 	err := decoder.Decode(&data)
 	if err != nil {
 		res.Header().Set("Content-Type", "application/json")
@@ -162,21 +165,68 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 		return
 	}
 
-	// Generate PK
-	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
-	// Clarify if the old PK should be used or new one should be generated
-
-	if err != nil {
+	if data.HostName == "" {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusBadRequest)
 		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "expected HostName not to be empty",
 		}))
 
 		return
 	}
 
+	var privateKey *rsa.PrivateKey
+	if data.NewKey {
+		privateKey, err = rsa.GenerateKey(rand.Reader, PrivateKeySize)
+	} else {
+		privateKey, err = l.readPrivateKey()
+	}
+	if err != nil {
+		l.sendError(res, err)
+
+		return
+	}
+
+	csrPEM, err := l.createCSR(&data, privateKey)
+	if err != nil {
+		l.sendError(res, err)
+
+		return
+	}
+
+	type CertAndKey struct {
+		Certificate string  `json:"certificate"`
+		PrivateKey  *string `json:"private_key,omitempty"`
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	// Only send Private Key if new Private Key was requested
+	if data.NewKey {
+		pkString := string(pem.EncodeToMemory(&pem.Block{
+			Type:  "RSA  PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+		}))
+		certAndKey := &CertAndKey{
+			Certificate: string(pem.EncodeToMemory(csrPEM)),
+			PrivateKey:  &pkString,
+		}
+
+		err = json.NewEncoder(res).Encode(certAndKey)
+	} else {
+		err = json.NewEncoder(res).Encode(&CertAndKey{
+			Certificate: string(pem.EncodeToMemory(csrPEM)),
+		})
+	}
+	if err != nil {
+		l.sendError(res, err)
+
+		return
+	}
+}
+
+func (l *HandlerWebAdmin) createCSR(data *csrRequestJSON, privateKey *rsa.PrivateKey) (*pem.Block, error) {
 	csrTemplate := x509.CertificateRequest{
 		Subject: pkix.Name{
 			Country:            []string{data.Country},
@@ -184,39 +234,39 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 			Locality:           []string{data.Locality},
 			Organization:       []string{data.Organization},
 			OrganizationalUnit: []string{data.OrganizationalUnit},
-			CommonName:         data.CommonName,
+			CommonName:         data.HostName,
 		},
 	}
 
 	// create certificate signing request
 	csrDER, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, privateKey)
 	if err != nil {
-		res.Header().Set("Content-Type", "application/json")
-		res.WriteHeader(http.StatusBadRequest)
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
-		}))
-
-		return
+		return nil, fmt.Errorf("could not create x509 certificate erro was: %s", err.Error())
 	}
 	// Marshall to pem format
 	csrPEM := &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrDER}
 
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
+	return csrPEM, nil
+}
 
-	err = pem.Encode(res, csrPEM)
+func (l *HandlerWebAdmin) readPrivateKey() (*rsa.PrivateKey, error) {
+	// read private key
+	defSection := l.Handler.snc.config.Section("/settings/default")
+	keyFile, ok := defSection.GetString("certificate key")
+	if !ok {
+		return nil, fmt.Errorf("could not read certificate location from config")
+	}
+	pemdata, err := os.ReadFile(keyFile)
 	if err != nil {
-		log.Debugf("admin request failed: %s", err.Error())
-		res.Header().Set("Content-Type", "application/json")
-		res.WriteHeader(http.StatusInternalServerError)
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
-		}))
+		return nil, fmt.Errorf("could not read file: %s", err.Error())
 	}
 
+	block, _ := pem.Decode(pemdata)
+	if block.Type == "RSA PRIVATE KEY" {
+		return x509.ParsePKCS1PrivateKey(block.Bytes) //nolint:wrapcheck // Error is checked in calling method to avoid double checking
+	}
+
+	return nil, fmt.Errorf("private key in wrong format")
 }
 
 func (l *HandlerWebAdmin) serveReload(res http.ResponseWriter, req *http.Request) {
