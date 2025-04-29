@@ -195,34 +195,25 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 		return
 	}
 
-	type CertAndKey struct {
-		Certificate string  `json:"certificate"`
-		PrivateKey  *string `json:"private_key,omitempty"`
-	}
-
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
-	// Only send Private Key if new Private Key was requested
-	if data.NewKey {
-		pkString := string(pem.EncodeToMemory(&pem.Block{
-			Type:  "RSA  PRIVATE KEY",
-			Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
-		}))
-		certAndKey := &CertAndKey{
-			Certificate: string(pem.EncodeToMemory(csrPEM)),
-			PrivateKey:  &pkString,
-		}
-
-		err = json.NewEncoder(res).Encode(certAndKey)
-	} else {
-		err = json.NewEncoder(res).Encode(&CertAndKey{
-			Certificate: string(pem.EncodeToMemory(csrPEM)),
-		})
-	}
+	err = pem.Encode(res, csrPEM)
 	if err != nil {
 		l.sendError(res, err)
 
 		return
+	}
+
+	if data.NewKey {
+		defSection := l.Handler.snc.config.Section("/settings/default")
+
+		keyFile, _ := defSection.GetString("certificate key")
+		privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+		if err := os.WriteFile(keyFile, pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), 0o600); err != nil {
+			l.sendError(res, fmt.Errorf("failed to write certificate key file %s: %s", keyFile, err.Error()))
+
+			return
+		}
 	}
 }
 
