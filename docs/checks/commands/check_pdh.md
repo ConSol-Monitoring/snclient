@@ -43,12 +43,12 @@ Naemon Config
 
 | Argument     | Description                                                                                        |
 | ------------ | -------------------------------------------------------------------------------------------------- |
-| Counter      | The fully qualified Counter Name                                                                   |
-| counter      | The fully qualified Counter Name                                                                   |
+| Counter      | The fully qualified counter Name                                                                   |
+| counter      | The fully qualified counter Name                                                                   |
 | english      | Using English Names Regardless of system Language requires Windows Vista or higher                 |
-| expand-index | Should Indices be translated?                                                                      |
-| host         | The Name Of the machine in the Network where the Counter should be searched, defaults to localhost |
-| instances    | Expand WildCards And Fethch all instances                                                          |
+| expand-index | Should indices be translated?                                                                      |
+| host         | The name Of the machine in the network where the nounter should be searched, defaults to localhost |
+| instances    | Expand wildcards And fetch all instances                                                           |
 | type         | this can be large or float depending what you expect, default is large                             |
 
 ## Attributes
