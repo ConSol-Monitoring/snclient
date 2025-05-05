@@ -18,7 +18,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.5
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.6
-	github.com/shirou/gopsutil/v4 v4.25.3
+	github.com/shirou/gopsutil/v4 v4.25.4
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20250317143157-caa67455f3bb
 	github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9
 	github.com/sni/shelltoken v0.0.0-20250505124910-1de4f4c2c936
