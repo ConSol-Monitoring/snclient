@@ -1,8 +1,8 @@
-2023-04-01 12:00:00 INFO  Application started successfully
-2023-04-01 12:00:01 DEBUG User logged in: username = testUser
-2023-04-01 12:00:02 INFO  User interface initialized
-2023-04-01 12:00:03 WARNING Potential issue detected in background process
-2023-04-01 12:00:04 ERROR Failed to connect to database: Connection refused
-2023-04-01 12:00:05 INFO  Attempting to reconnect to database
-2023-04-01 12:00:06 DEBUG Reconnection to database successful
-2023-04-01 12:00:07 INFO  System check completed successfully
+2023-04-01 12:00:00;INFO;Application started successfully
+2023-04-01 12:00:01;DEBUG;User logged in: username = testUser
+2023-04-01 12:00:02;INFO;User interface initialized
+2023-04-01 12:00:03;WARNING;Potential issue detected in background process
+2023-04-01 12:00:04;ERROR;Failed to connect to database: Connection refused
+2023-04-01 12:00:05;INFO;Attempting to reconnect to database
+2023-04-01 12:00:06;DEBUG;Reconnection to database successful
+2023-04-01 12:00:07;INFO;System check completed successfully

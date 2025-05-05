@@ -60,9 +60,19 @@ func TestCheckLogFileFilter(t *testing.T) {
 func TestCheckLogfileLabel(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
-	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "label-pattern='LINE:.'", "show-all"})
+	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "label='YEAR:^\\d{4}'", "label='ERWAR:(ERROR|WARN)'", "show-all", "detail-syntax= $(ERWAR) $(YEAR)- $(line)"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - LINE")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - YEAR")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckLogFileColumnN(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "crit=column3 LIKE DEBUG", "column-split=;", "show-all"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL - ")
 
 	StopTestAgent(t, snc)
 }

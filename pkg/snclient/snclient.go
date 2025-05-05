@@ -168,8 +168,8 @@ type Agent struct {
 
 type ParsedFile struct {
 	path   string
-	line   int
 	offset int
+	inode  int
 }
 
 // AgentRunSet contains the runtime dynamic references

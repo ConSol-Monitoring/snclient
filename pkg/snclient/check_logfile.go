@@ -8,7 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
+	"slices"
+	"strconv"
 	"strings"
+	"syscall"
 )
 
 func init() {
@@ -21,7 +25,7 @@ type CheckLogFile struct {
 	LineDelimeter    string
 	TimestampPattern string
 	ColumnDelimter   string
-	LabelPattern     string
+	LabelPattern     []string
 }
 
 type LogLine struct {
@@ -35,20 +39,20 @@ func NewCheckLogFile() CheckHandler {
 
 func (c *CheckLogFile) Build() *CheckData {
 	return &CheckData{
-		implemented:  Windows,
+		implemented:  ALL,
 		name:         "check_logfile",
 		description:  "Checks logfiles or any other text format file for errors or other general patterns",
-		detailSyntax: "%(label): %(line)",
+		detailSyntax: "%(line)", // cut to 200 chars
 		okSyntax:     "%(status) - All %(count) / %(total) Lines OK",
 		topSyntax:    "%(status) - %(problem_count)/%(count) lines (%(count)) %(problem_list)",
 		emptySyntax:  "%(status) - No files found",
 		emptyState:   CheckExitUnknown,
 		args: map[string]CheckArgument{
-			"file":          {value: &c.FilePath, description: "The file that should be checked"},
-			"files":         {value: &c.Paths, description: "Comma separated list of files"},
-			"line-split":    {value: &c.LineDelimeter, description: "Character string used to split a file into several lines (default \\n)"},
-			"comlumn-split": {value: &c.ColumnDelimter, description: "Tab slit default: \\t"},
-			"label-pattern": {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
+			"file":         {value: &c.FilePath, description: "The file that should be checked"},
+			"files":        {value: &c.Paths, description: "Comma separated list of files"},
+			"line-split":   {value: &c.LineDelimeter, description: "Character string used to split a file into several lines (default \\n)"},
+			"column-split": {value: &c.ColumnDelimter, description: "Tab slit default: \\t"},
+			"label":        {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
 		},
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -57,7 +61,7 @@ func (c *CheckLogFile) Build() *CheckData {
 			{name: "count ", description: "Number of items matching the filter. Common option for all checks."},
 			{name: "filename ", description: "The name of the file"},
 			{name: "line", description: "Match the content of an entire line"},
-			{name: "column1", description: "Match the content of the first column"},
+			{name: "columnN", description: "Match the content of the N-th column only if enough columns exists"},
 		},
 		exampleDefault: `
 		`,
@@ -76,23 +80,31 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		snc.alreadyParsedLogfiles = make(map[string]ParsedFile, 0)
 	}
 
+	patterns := make(map[string]*regexp.Regexp, len(c.LabelPattern))
+	for _, labelPattern := range c.LabelPattern {
+		parts := strings.SplitN(labelPattern, ":", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("the label pattern is in the wrong format")
+		}
+		patterns[parts[0]] = regexp.MustCompile(parts[1])
+	}
+
 	totalLineCount := 0
 	for _, fileNamme := range c.FilePath {
 		if fileNamme == "" {
 			continue
 		}
 		count := 0
-		if strings.HasSuffix(fileNamme, "*") {
-			matches, err := filepath.Glob(fileNamme)
+		files, err := filepath.Glob(fileNamme)
+		if err != nil {
+			return nil, fmt.Errorf("could not get files for pattern %s, error was: %s", fileNamme, err.Error())
+		}
+		for _, fileName := range files {
+			tmpCount, err := c.addFile(fileName, check, snc, patterns)
 			if err != nil {
-				return nil, fmt.Errorf("could not get files for pattern %s, error was: %s", fileNamme, err.Error())
+				return nil, fmt.Errorf("error for file %s, error was: %s", fileNamme, err.Error())
 			}
-			for _, match := range matches {
-				tmpCount, _ := c.addFile(match, check, snc)
-				count += tmpCount
-			}
-		} else {
-			count, _ = c.addFile(fileNamme, check, snc)
+			count += tmpCount
 		}
 		totalLineCount += count
 	}
@@ -103,7 +115,7 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	return check.Finalize()
 }
 
-func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent) (int, error) {
+func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, labels map[string]*regexp.Regexp) (int, error) {
 	file, err := os.Open(fileName)
 	if err != nil {
 		return 0, fmt.Errorf("could not open file: %s error was: %s", fileName, err.Error())
@@ -112,18 +124,24 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent) (i
 
 	// If file was already parsed return immediately with 0 Bytes read and nil error
 	for _, parsedFile := range snc.alreadyParsedLogfiles {
-		if parsedFile.path == fileName {
-			// Was the file renewed, rotated?
-			var info os.FileInfo
-			info, err = file.Stat()
-			if err != nil {
-				return 0, fmt.Errorf("could not get file information %s", err.Error())
-			}
-			if info.Size() <= int64(parsedFile.offset) {
-				return 0, nil
-			}
+		if parsedFile.path != fileName {
+			continue
+		}
+		// Was the file renewed, rotated?
+		var info os.FileInfo
+		info, err = file.Stat()
+		inode := getInode(fileName)
+		if err != nil {
+			return 0, fmt.Errorf("could not get file information %s", err.Error())
+		}
+		if info.Size() <= int64(parsedFile.offset) {
+			return 0, nil
+		}
+		if parsedFile.inode == int(inode) {
+			parsedFile.offset = 0
 		}
 	}
+
 	// Jump to last read bytes
 	_, err = file.Seek(int64(snc.alreadyParsedLogfiles[fileName].offset), 0)
 
@@ -137,34 +155,63 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent) (i
 	okReset := len(check.okThreshold) > 0
 	lineStorage := make([]map[string]string, 0)
 	var lineIndex int
-	var labelRegex *regexp.Regexp
-	label := ""
-	if c.LabelPattern != "" {
-		parts := strings.Split(c.LabelPattern, ":")
-		if len(parts) != 2 {
-			return 0, fmt.Errorf("the label pattern is in the wrong format")
-		}
-		labelRegex = regexp.MustCompile(parts[1])
-		label = parts[0]
-	}
+
 	// filter each line
 	for lineIndex = 0; scanner.Scan(); lineIndex++ {
 		line := scanner.Text()
 		entry := map[string]string{
 			"filename": fileName,
+			"line":     line,
 		}
-		entry["line"] = line
-
-		// Only match if label is set
-		if label != "" && labelRegex.MatchString(line) {
-			entry["label"] = label
-		} else {
-			entry["label"] = ""
+		// We have n Labels that all somehow need to be accessed
+		// We have n Labels that all need to check on each line
+		for label, pattern := range labels {
+			entry[label] = pattern.FindString(line)
 		}
 
-		if check.HasThreshold("column1") {
-			entry["column1"] = strings.Split(line, c.ColumnDelimter)[0]
+		// get all Thresholds with prefix coulumn
+		// if len(thres) > 0
+		allThresh := append(check.warnThreshold, check.critThreshold...)
+		var columnNumbers []int
+		// Extract all needed threshold number
+		numReg := regexp.MustCompile(`\d+`)
+
+		for _, thresh := range allThresh {
+			if strings.HasPrefix(thresh.keyword, "column") {
+				match := numReg.FindString(thresh.keyword)
+				if match == "" {
+					continue
+				}
+				index, err := strconv.Atoi(match)
+				if err != nil {
+					// Something went wrong in parsing logic - should we just skipt this key?
+					return 0, err
+				}
+				columnNumbers = append(columnNumbers, index)
+			}
 		}
+
+		if len(columnNumbers) > 0 {
+			cols := strings.Split(line, c.ColumnDelimter)
+			var maxC int
+			if len(columnNumbers) == 0 {
+				maxC = 0
+			} else {
+				maxC = slices.Max(columnNumbers)
+			}
+
+			if len(cols) <= maxC {
+				return 0, fmt.Errorf("not enough columns in log for separator and index")
+			}
+
+			// in range of number of coulumns
+			// Fill entryp map
+			for _, columnIndex := range columnNumbers {
+				entry[fmt.Sprintf("column%d", columnIndex)] = cols[columnIndex]
+			}
+
+		}
+
 		lineStorage = append(lineStorage, entry)
 		// Do not check for OK with empty conditionlist, it would match all
 		if okReset && check.MatchMapCondition(check.okThreshold, entry, true) {
@@ -182,9 +229,25 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent) (i
 	if err != nil {
 		return 0, fmt.Errorf("could not get file information %s", err.Error())
 	}
-	snc.alreadyParsedLogfiles[fileName] = ParsedFile{path: fileName, line: lineIndex, offset: int(info.Size())}
+	pf := ParsedFile{path: fileName, offset: int(info.Size())}
+	if runtime.GOOS == "linux" {
+		pf.inode = int(getInode(fileName))
+	}
+	snc.alreadyParsedLogfiles[fileName] = pf
 
 	return lineIndex, nil
+}
+
+func getInode(fileName string) uint64 {
+	if runtime.GOOS == "linux" {
+		var struttu syscall.Stat_t
+		err := syscall.Stat(fileName, &struttu)
+		if err != nil {
+			return 0
+		}
+		return struttu.Ino
+	}
+	return 0
 }
 
 func (c *CheckLogFile) getCustomSplitFunction() bufio.SplitFunc {
