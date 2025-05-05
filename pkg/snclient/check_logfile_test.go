@@ -70,7 +70,7 @@ func TestCheckLogfileLabel(t *testing.T) {
 func TestCheckLogFileColumnN(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
-	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "crit=column3 LIKE DEBUG", "column-split=;", "show-all"})
+	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "crit=column1 LIKE DEBUG", "column-split=;", "show-all"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL - ")
 

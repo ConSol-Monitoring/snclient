@@ -12,9 +12,9 @@ Checks logfiles or any other text format file for errors or other general patter
 
 ## Implementation
 
-| Windows            | Linux | FreeBSD | MacOSX |
-|:------------------:|:-----:|:-------:|:------:|
-| :white_check_mark: |       |         |        |
+| Windows            | Linux              | FreeBSD            | MacOSX             |
+|:------------------:|:------------------:|:------------------:|:------------------:|
+| :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Examples
 
@@ -42,17 +42,17 @@ Naemon Config
 | empty-syntax  | %(status) - No files found                                             |
 | top-syntax    | %(status) - %(problem_count)/%(count) lines (%(count)) %(problem_list) |
 | ok-syntax     | %(status) - All %(count) / %(total) Lines OK                           |
-| detail-syntax | %(label): %(line)                                                      |
+| detail-syntax | %(line)                                                                |
 
 ## Check Specific Arguments
 
-| Argument      | Description                                                                                     |
-| ------------- | ----------------------------------------------------------------------------------------------- |
-| comlumn-split | Tab slit default: \t                                                                            |
-| file          | The file that should be checked                                                                 |
-| files         | Comma separated list of files                                                                   |
-| label-pattern | label:pattern => If the pattern is matched in a line the line will have the label set as detail |
-| line-split    | Character string used to split a file into several lines (default \n)                           |
+| Argument     | Description                                                                                     |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| column-split | Tab slit default: \t                                                                            |
+| file         | The file that should be checked                                                                 |
+| files        | Comma separated list of files                                                                   |
+| label        | label:pattern => If the pattern is matched in a line the line will have the label set as detail |
+| line-split   | Character string used to split a file into several lines (default \n)                           |
 
 ## Attributes
 
@@ -65,4 +65,4 @@ these can be used in filters and thresholds (along with the default attributes):
 | count     | Number of items matching the filter. Common option for all checks. |
 | filename  | The name of the file                                               |
 | line      | Match the content of an entire line                                |
-| column1   | Match the content of the first column                              |
+| columnN   | Match the content of the N-th column only if enough columns exists |
