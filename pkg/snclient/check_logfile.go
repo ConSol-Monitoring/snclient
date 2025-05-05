@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 func init() {
@@ -137,14 +136,13 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 		if info.Size() <= int64(parsedFile.offset) {
 			return 0, nil
 		}
-		if parsedFile.inode == int(inode) {
+		if inode == parsedFile.inode {
 			parsedFile.offset = 0
 		}
 	}
 
 	// Jump to last read bytes
 	_, err = file.Seek(int64(snc.alreadyParsedLogfiles[fileName].offset), 0)
-
 	if err != nil {
 		return 0, fmt.Errorf("while skipping already read file an error occurred: %s", err.Error())
 	}
@@ -177,30 +175,31 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 		numReg := regexp.MustCompile(`\d+`)
 
 		for _, thresh := range allThresh {
-			if strings.HasPrefix(thresh.keyword, "column") {
-				match := numReg.FindString(thresh.keyword)
-				if match == "" {
-					continue
-				}
-				index, err := strconv.Atoi(match)
-				if err != nil {
-					// Something went wrong in parsing logic - should we just skipt this key?
-					return 0, err
-				}
-				columnNumbers = append(columnNumbers, index)
+			if !strings.HasPrefix(thresh.keyword, "column") {
+				continue
 			}
+			match := numReg.FindString(thresh.keyword)
+			if match == "" {
+				continue
+			}
+			var index int
+			index, err = strconv.Atoi(match)
+			if err != nil {
+				return 0, fmt.Errorf("could not extract coulumn number from argument err: %s", err.Error())
+			}
+			columnNumbers = append(columnNumbers, index)
 		}
 
 		if len(columnNumbers) > 0 {
 			cols := strings.Split(line, c.ColumnDelimter)
-			var maxC int
+			var maxColoumns int
 			if len(columnNumbers) == 0 {
-				maxC = 0
+				maxColoumns = 0
 			} else {
-				maxC = slices.Max(columnNumbers)
+				maxColoumns = slices.Max(columnNumbers)
 			}
 
-			if len(cols) <= maxC {
+			if len(cols) <= maxColoumns {
 				return 0, fmt.Errorf("not enough columns in log for separator and index")
 			}
 
@@ -209,7 +208,6 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 			for _, columnIndex := range columnNumbers {
 				entry[fmt.Sprintf("column%d", columnIndex)] = cols[columnIndex]
 			}
-
 		}
 
 		lineStorage = append(lineStorage, entry)
@@ -231,23 +229,11 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 	}
 	pf := ParsedFile{path: fileName, offset: int(info.Size())}
 	if runtime.GOOS == "linux" {
-		pf.inode = int(getInode(fileName))
+		pf.inode = getInode(fileName)
 	}
 	snc.alreadyParsedLogfiles[fileName] = pf
 
 	return lineIndex, nil
-}
-
-func getInode(fileName string) uint64 {
-	if runtime.GOOS == "linux" {
-		var struttu syscall.Stat_t
-		err := syscall.Stat(fileName, &struttu)
-		if err != nil {
-			return 0
-		}
-		return struttu.Ino
-	}
-	return 0
 }
 
 func (c *CheckLogFile) getCustomSplitFunction() bufio.SplitFunc {

@@ -60,9 +60,9 @@ func TestCheckLogFileFilter(t *testing.T) {
 func TestCheckLogfileLabel(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
-	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "label='YEAR:^\\d{4}'", "label='ERWAR:(ERROR|WARN)'", "show-all", "detail-syntax= $(ERWAR) $(YEAR)- $(line)"})
+	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "label='YEAR:^\\d{4}'", "label='ERWAR:(ERROR|WARN)'", "show-all", "detail-syntax=$(ERWAR)$(YEAR)- $(line:cut=50)"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - YEAR")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - 2023")
 
 	StopTestAgent(t, snc)
 }
