@@ -3,6 +3,7 @@ package snclient
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -354,6 +355,19 @@ func replaceMacroOpString(value, flag string) string {
 		default:
 			log.Warnf("unsupported format string used: %s", format)
 		}
+	case strings.HasPrefix(flag, "cut="):
+		// Expect cut=%d+ (number of chars)
+		cut, err := strconv.Atoi(strings.TrimPrefix(flag, "cut="))
+		runes := []rune(value)
+		if err != nil {
+			log.Warn("could not extract cut macro exspected format cut=%d+")
+
+			return ""
+		}
+		if cut > len(runes) {
+			return value
+		}
+		value = string(runes[0:cut])
 	case strings.HasPrefix(flag, "s/"):
 		token, err := shelltoken.SplitQuotes(flag[1:], "/", shelltoken.SplitKeepBackslashes|shelltoken.SplitKeepQuotes|shelltoken.SplitKeepSeparator)
 		if err != nil {
