@@ -570,11 +570,12 @@ contains the same wildcards as before
 func PdhGetCounterInfo(hConuter PDH_HCOUNTER, retrieveExplainText bool) (string, error) {
 	zz := uint32(0)
 	tr := uint8(1)
+	var fakeBuffer [1]byte
 	if res, _, _ := pdh_PdhGetCounterInfoW.Call(
 		uintptr(hConuter),
 		uintptr(unsafe.Pointer(&tr)),
 		uintptr(unsafe.Pointer(&zz)),
-		uintptr(0),
+		uintptr(unsafe.Pointer(&fakeBuffer[0])),
 	); res != PDH_MORE_DATA {
 		return "", fmt.Errorf("Could not get Counter Info Response Code from Api Call: %d", res)
 	}
