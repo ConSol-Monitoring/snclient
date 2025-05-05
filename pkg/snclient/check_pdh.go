@@ -6,7 +6,6 @@ import (
 
 func init() {
 	AvailableChecks["check_pdh"] = CheckEntry{"check_pdh", NewCheckPDH}
-	AvailableChecks["CheckCounter"] = CheckEntry{"check_pdh", NewCheckPDH}
 }
 
 type CheckPDH struct {
@@ -34,11 +33,11 @@ func (c *CheckPDH) Build() *CheckData {
 		emptySyntax:  "%(status) - No counter found",
 		emptyState:   CheckExitUnknown,
 		args: map[string]CheckArgument{
-			"counter":      {value: &c.CounterPath, description: "The fully qualified Counter Name"},
-			"Counter":      {value: &c.CounterPath, description: "The fully qualified Counter Name"},
-			"host":         {value: &c.HostName, description: "The Name Of the Host Mashine in Network where the Counter should be searched, defults to local mashine"},
-			"expand-index": {value: &c.ExpandIndex, description: "Should Indices be translated?"},
-			"instances":    {value: &c.Instances, description: "Expand WildCards And Fethch all instances"},
+			"counter":      {value: &c.CounterPath, description: "The fully qualified counter Name"},
+			"Counter":      {value: &c.CounterPath, description: "The fully qualified counter Name"},
+			"host":         {value: &c.HostName, description: "The name Of the machine in the network where the nounter should be searched, defaults to localhost"},
+			"expand-index": {value: &c.ExpandIndex, description: "Should indices be translated?"},
+			"instances":    {value: &c.Instances, description: "Expand wildcards And fetch all instances"},
 			"type":         {value: &c.Type, description: "this can be large or float depending what you expect, default is large "},
 			"english":      {value: &c.EnglishFallBackNames, description: "Using English Names Regardless of system Language requires Windows Vista or higher"},
 		},

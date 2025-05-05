@@ -126,17 +126,15 @@ func (c *CheckPDH) collectValuesForAllCounters(hQuery pdh.PDH_HQUERY, counters m
 			}
 			entry["name"] = name
 			entry["value"] = fmt.Sprintf("%d", fmtValue.FmtValue.LargeValue)
-			if check.showAll {
-				check.result.Metrics = append(check.result.Metrics,
-					&CheckMetric{
-						Name:          name,
-						ThresholdName: "value",
-						Value:         fmtValue.FmtValue.LargeValue,
-						Warning:       check.warnThreshold,
-						Critical:      check.critThreshold,
-						Min:           &Zero,
-					})
-			}
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					Name:          name + "_value",
+					ThresholdName: "value",
+					Value:         fmtValue.FmtValue.LargeValue,
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				})
 			if check.MatchMapCondition(check.filter, entry, true) {
 				check.listData = append(check.listData, entry)
 			}
