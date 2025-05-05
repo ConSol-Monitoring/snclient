@@ -51,6 +51,7 @@ type csrRequestJSON struct {
 	Locality           string `json:"Locality"`
 	Organization       string `json:"Organization"`
 	OrganizationalUnit string `json:"OrganizationalUnit"`
+	KeyLength          int    `json:"KeyLength"`
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -178,7 +179,11 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 
 	var privateKey *rsa.PrivateKey
 	if data.NewKey {
-		privateKey, err = rsa.GenerateKey(rand.Reader, PrivateKeySize)
+		if data.KeyLength != 0 {
+			privateKey, err = rsa.GenerateKey(rand.Reader, data.KeyLength)
+		} else {
+			privateKey, err = rsa.GenerateKey(rand.Reader, PrivateKeySize)
+		}
 	} else {
 		privateKey, err = l.readPrivateKey()
 	}
