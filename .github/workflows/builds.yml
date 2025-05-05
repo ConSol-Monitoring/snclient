@@ -14,6 +14,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   get-version:
     runs-on: ubuntu-latest
@@ -645,6 +648,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     needs: [get-version,pkg-msi,pkg-deb,pkg-rpm,pkg-osx,integration-test-linux,integration-test-windows, integration-test-osx, test-linux, test-win, test-osx, test-bsd]
+    permissions:
+      contents: write
     outputs:
       release-upload-url: ${{ steps.create-release.outputs.upload_url }}
     steps:
@@ -667,6 +672,8 @@ jobs:
         go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
+    permissions:
+      contents: write
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -686,6 +693,8 @@ jobs:
         go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
+    permissions:
+      contents: write
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -705,6 +714,8 @@ jobs:
         go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
+    permissions:
+      contents: write
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -724,6 +735,8 @@ jobs:
         go-arch: [x86_64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
+    permissions:
+      contents: write
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -743,6 +756,8 @@ jobs:
         go-arch: [x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
+    permissions:
+      contents: write
     env:
       BIN:  "snclient-${{needs.get-version.outputs.version}}-osx-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -762,6 +777,8 @@ jobs:
         go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
+    permissions:
+      contents: write
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

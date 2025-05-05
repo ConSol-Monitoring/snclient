@@ -10,6 +10,9 @@ on:
     tags:
       - "*"
 
+permissions:
+  contents: read
+
 jobs:
   copy-doc:
     runs-on: ubuntu-latest
