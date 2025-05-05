@@ -1,4 +1,4 @@
-//run -gcflags=-d=checkptr
+// run -gcflags=-d=checkptr
 //go:build windows
 // +build windows
 
