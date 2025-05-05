@@ -8,6 +8,7 @@ import (
 	"crypto/sha512"
 	"crypto/tls"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -27,6 +28,7 @@ import (
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/kdar/factorlog"
+	st "github.com/sni/shelltoken"
 )
 
 var reMountPassword = regexp.MustCompile(`//.*:.*@`)
@@ -298,22 +300,25 @@ func TrimQuotesList(list []string) (res []string, err error) {
 // TrimQuotes returns string with quotes removed
 func TrimQuotes(str string) (res string, err error) {
 	switch {
-	case strings.HasPrefix(str, "'"):
-		if !strings.HasSuffix(str, "'") || len(str) == 1 {
-			return "", fmt.Errorf("unbalanced quotes in '%s'", str)
+	case strings.HasPrefix(str, "'"),
+		strings.HasSuffix(str, "'"),
+		strings.HasPrefix(str, `"`),
+		strings.HasSuffix(str, `"`):
+		_, err = st.SplitQuotes(str, st.Whitespace, st.SplitKeepAll)
+		if err != nil && errors.Is(err, &st.UnbalancedQuotesError{}) {
+			return str, fmt.Errorf("unbalanced quotes in '%s'", str)
 		}
 		str = strings.TrimPrefix(str, "'")
 		str = strings.TrimSuffix(str, "'")
-	case strings.HasPrefix(str, `"`):
-		if !strings.HasSuffix(str, `"`) || len(str) == 1 {
-			return "", fmt.Errorf("unbalanced quotes in '%s'", str)
-		}
+	}
+
+	switch {
+	case strings.HasPrefix(str, "'") && strings.HasSuffix(str, "'") && len(str) >= 2:
+		str = strings.TrimPrefix(str, "'")
+		str = strings.TrimSuffix(str, "'")
+	case strings.HasPrefix(str, `"`) && strings.HasSuffix(str, `"`) && len(str) >= 2:
 		str = strings.TrimPrefix(str, `"`)
 		str = strings.TrimSuffix(str, `"`)
-	case strings.HasSuffix(str, "'"):
-		return "", fmt.Errorf("unbalanced quotes in '%s'", str)
-	case strings.HasSuffix(str, `"`):
-		return "", fmt.Errorf("unbalanced quotes in '%s'", str)
 	}
 
 	return str, nil

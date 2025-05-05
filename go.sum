@@ -96,8 +96,8 @@ github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20250317143157-caa67455f3bb h1
 github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20250317143157-caa67455f3bb/go.mod h1:Ja52a8d0K4032zY9tOXLcIh2E0e/NprRnl7nXJjebI0=
 github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9 h1:UDgM4SP5Fd2PKVRdeUFlA/WRNHkvMNeIx0Nmw7sn21k=
 github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9/go.mod h1:VXyAUYIG8zcjjzf5DO9KlhWTStq/PQZTZfbgW93GOPg=
-github.com/sni/shelltoken v0.0.0-20241125181525-84152f22ccd3 h1:ewNzm/u2121rlYTFpmieP6oFWOzF19nBbRzBGg+Lcc0=
-github.com/sni/shelltoken v0.0.0-20241125181525-84152f22ccd3/go.mod h1:49JJKFONnNNVv6h4WVK54oXj4KC+laTyzC0qXdAiUPw=
+github.com/sni/shelltoken v0.0.0-20250505124910-1de4f4c2c936 h1:q7RpM2D0LMUVscxJdthSIkw4E+OzBq/tYtSJpwnyjV0=
+github.com/sni/shelltoken v0.0.0-20250505124910-1de4f4c2c936/go.mod h1:+l+z+QVOUPYcXdCDwMU7+xUbVaZ7nq0EihwadTJM2gM=
 github.com/spf13/cobra v1.9.1 h1:CXSaggrXdbHK9CF+8ywj8Amf7PBRmPCOJugH954Nnlo=
 github.com/spf13/cobra v1.9.1/go.mod h1:nDyEzZ8ogv936Cinf6g1RU9MRY64Ir93oCnqb9wxYW0=
 github.com/spf13/pflag v1.0.6 h1:jFzHGLGAlb3ruxLB8MhbI6A8+AQX/2eW4qeyNZXNp2o=
