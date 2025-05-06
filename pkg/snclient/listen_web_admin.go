@@ -32,7 +32,7 @@ func init() {
 	)
 }
 
-const PrivateKeySize = 4096
+const DefaultPrivateKeySize = 4096
 
 type HandlerAdmin struct {
 	noCopy       noCopy
@@ -134,7 +134,7 @@ func (l *HandlerWebAdmin) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 		l.serveReload(res, req)
 	case "/api/v1/admin/certs/replace":
 		l.serveCertsReplace(res, req)
-	case "/api/v1/admin/certs/request":
+	case "/api/v1/admin/csr":
 		l.serveCertsRequest(res, req)
 	case "/api/v1/admin/updates/install":
 		l.serveUpdate(res, req)
@@ -179,11 +179,10 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 
 	var privateKey *rsa.PrivateKey
 	if data.NewKey {
-		if data.KeyLength != 0 {
-			privateKey, err = rsa.GenerateKey(rand.Reader, data.KeyLength)
-		} else {
-			privateKey, err = rsa.GenerateKey(rand.Reader, PrivateKeySize)
+		if data.KeyLength == 0 {
+			data.KeyLength = DefaultPrivateKeySize
 		}
+		privateKey, err = rsa.GenerateKey(rand.Reader, data.KeyLength)
 	} else {
 		privateKey, err = l.readPrivateKey()
 	}
@@ -200,25 +199,28 @@ func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.R
 		return
 	}
 
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
-	err = pem.Encode(res, csrPEM)
-	if err != nil {
-		l.sendError(res, err)
-
-		return
-	}
-
 	if data.NewKey {
 		defSection := l.Handler.snc.config.Section("/settings/default")
 
 		keyFile, _ := defSection.GetString("certificate key")
 		privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-		if err := os.WriteFile(keyFile, pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), 0o600); err != nil {
+		if err = os.WriteFile(keyFile, pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), 0o600); err != nil {
 			l.sendError(res, fmt.Errorf("failed to write certificate key file %s: %s", keyFile, err.Error()))
 
 			return
 		}
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	err = pem.Encode(res, csrPEM)
+	if err != nil {
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
 	}
 }
 

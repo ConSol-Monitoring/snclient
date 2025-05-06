@@ -210,3 +210,26 @@ func TestDaemonAdminCertReplace(t *testing.T) {
 	assert.Equalf(t, "testcert", string(crt), "test certificate written")
 	assert.Equalf(t, "testkey", string(key), "test certificate key written")
 }
+
+func TestDaemonAdminCSR(t *testing.T) {
+	_, baseURL, _, cleanUp := daemonInit(t, "")
+	defer cleanUp()
+
+	postData, err := json.Marshal(map[string]interface{}{
+		"Country":            "DE",
+		"State":              "Bavaria",
+		"Locality":           "Earth",
+		"Organization":       "snclient",
+		"OrganizationalUnit": "IT",
+		"HostName":           "Root CA SNClient",
+		"NewKey":             true,
+		"KeyLength":          4096,
+	})
+	require.NoErrorf(t, err, "post data json encoded")
+
+	runCmd(t, &cmd{
+		Cmd:  "curl",
+		Args: []string{"-s", "-u", "user:" + localDaemonAdminPassword, "-k", "-s", "-d", string(postData), baseURL + "/api/v1/admin/csr"},
+		Like: []string{"CERTIFICATE REQUEST"},
+	})
+}
