@@ -192,6 +192,22 @@ Returns
 
     {"success":true}
 
+### /api/v1/admin/csr
+
+Request a new csr, creates new private key if requested by the user or uses the alreaday existing one
+The Only Field that needs to be set is CommonName the rest of the fiields is optional
+
+Example:
+
+    curl \
+    -u user:changeme \
+    -d '{"Country":"DE","State":"Bavaria","Locality":"Earth","Organization":"snclient","OrganizationalUnit":"IT","HostName":"Root CA SNClient", "NewKey":true, "KeyLength":4096}' \
+    https://127.0.0.1:8443/api/v1/admin/csr
+
+Returns
+
+    PEM Encoded CSR
+
 ### /api/v1/admin/updates/install
 
 Trigger checking for updates.

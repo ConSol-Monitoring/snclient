@@ -1,8 +1,13 @@
 package snclient
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"os"
@@ -27,6 +32,8 @@ func init() {
 	)
 }
 
+const DefaultPrivateKeySize = 4096
+
 type HandlerAdmin struct {
 	noCopy       noCopy
 	handler      http.Handler
@@ -34,6 +41,17 @@ type HandlerAdmin struct {
 	snc          *Agent
 	listener     *Listener
 	allowedHosts *AllowedHostConfig
+}
+
+type csrRequestJSON struct {
+	HostName           string `json:"HostName"`
+	NewKey             bool   `json:"NewKey"`
+	Country            string `json:"Country"`
+	State              string `json:"State"`
+	Locality           string `json:"Locality"`
+	Organization       string `json:"Organization"`
+	OrganizationalUnit string `json:"OrganizationalUnit"`
+	KeyLength          int    `json:"KeyLength"`
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -116,12 +134,137 @@ func (l *HandlerWebAdmin) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 		l.serveReload(res, req)
 	case "/api/v1/admin/certs/replace":
 		l.serveCertsReplace(res, req)
+	case "/api/v1/admin/csr":
+		l.serveCertsRequest(res, req)
 	case "/api/v1/admin/updates/install":
 		l.serveUpdate(res, req)
 	default:
 		res.WriteHeader(http.StatusNotFound)
 		LogError2(res.Write([]byte("404 - nothing here\n")))
 	}
+}
+
+func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.Request) {
+	if !l.requirePostMethod(res, req) {
+		return
+	}
+
+	// extract json payload
+	decoder := json.NewDecoder(req.Body)
+	decoder.DisallowUnknownFields()
+
+	data := csrRequestJSON{}
+	err := decoder.Decode(&data)
+	if err != nil {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
+	}
+
+	if data.HostName == "" {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "expected HostName not to be empty",
+		}))
+
+		return
+	}
+
+	var privateKey *rsa.PrivateKey
+	if data.NewKey {
+		if data.KeyLength == 0 {
+			data.KeyLength = DefaultPrivateKeySize
+		}
+		privateKey, err = rsa.GenerateKey(rand.Reader, data.KeyLength)
+	} else {
+		privateKey, err = l.readPrivateKey()
+	}
+	if err != nil {
+		l.sendError(res, err)
+
+		return
+	}
+
+	csrPEM, err := l.createCSR(&data, privateKey)
+	if err != nil {
+		l.sendError(res, err)
+
+		return
+	}
+
+	if data.NewKey {
+		defSection := l.Handler.snc.config.Section("/settings/default")
+
+		keyFile, _ := defSection.GetString("certificate key")
+		privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+		if err = os.WriteFile(keyFile, pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), 0o600); err != nil {
+			l.sendError(res, fmt.Errorf("failed to write certificate key file %s: %s", keyFile, err.Error()))
+
+			return
+		}
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	err = pem.Encode(res, csrPEM)
+	if err != nil {
+		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
+	}
+}
+
+func (l *HandlerWebAdmin) createCSR(data *csrRequestJSON, privateKey *rsa.PrivateKey) (*pem.Block, error) {
+	csrTemplate := x509.CertificateRequest{
+		Subject: pkix.Name{
+			Country:            []string{data.Country},
+			Province:           []string{data.State},
+			Locality:           []string{data.Locality},
+			Organization:       []string{data.Organization},
+			OrganizationalUnit: []string{data.OrganizationalUnit},
+			CommonName:         data.HostName,
+		},
+	}
+
+	// create certificate signing request
+	csrDER, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("could not create x509 certificate erro was: %s", err.Error())
+	}
+	// Marshall to pem format
+	csrPEM := &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrDER}
+
+	return csrPEM, nil
+}
+
+func (l *HandlerWebAdmin) readPrivateKey() (*rsa.PrivateKey, error) {
+	// read private key
+	defSection := l.Handler.snc.config.Section("/settings/default")
+	keyFile, ok := defSection.GetString("certificate key")
+	if !ok {
+		return nil, fmt.Errorf("could not read certificate location from config")
+	}
+	pemdata, err := os.ReadFile(keyFile)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %s", err.Error())
+	}
+
+	block, _ := pem.Decode(pemdata)
+	if block.Type == "RSA PRIVATE KEY" {
+		return x509.ParsePKCS1PrivateKey(block.Bytes) //nolint:wrapcheck // Error is checked in calling method to avoid double checking
+	}
+
+	return nil, fmt.Errorf("private key in wrong format")
 }
 
 func (l *HandlerWebAdmin) serveReload(res http.ResponseWriter, req *http.Request) {
