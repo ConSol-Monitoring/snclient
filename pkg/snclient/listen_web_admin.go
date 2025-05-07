@@ -135,7 +135,7 @@ func (l *HandlerWebAdmin) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 	case "/api/v1/admin/certs/replace":
 		l.serveCertsReplace(res, req)
 	case "/api/v1/admin/csr":
-		l.serveCertsRequest(res, req)
+		l.serveCertsCSR(res, req)
 	case "/api/v1/admin/updates/install":
 		l.serveUpdate(res, req)
 	default:
@@ -144,7 +144,7 @@ func (l *HandlerWebAdmin) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 	}
 }
 
-func (l *HandlerWebAdmin) serveCertsRequest(res http.ResponseWriter, req *http.Request) {
+func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Request) {
 	if !l.requirePostMethod(res, req) {
 		return
 	}
@@ -239,7 +239,7 @@ func (l *HandlerWebAdmin) createCSR(data *csrRequestJSON, privateKey *rsa.Privat
 	// create certificate signing request
 	csrDER, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, privateKey)
 	if err != nil {
-		return nil, fmt.Errorf("could not create x509 certificate erro was: %s", err.Error())
+		return nil, fmt.Errorf("could not create x509 certificate error was: %s", err.Error())
 	}
 	// Marshall to pem format
 	csrPEM := &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrDER}
@@ -254,12 +254,12 @@ func (l *HandlerWebAdmin) readPrivateKey() (*rsa.PrivateKey, error) {
 	if !ok {
 		return nil, fmt.Errorf("could not read certificate location from config")
 	}
-	pemdata, err := os.ReadFile(keyFile)
+	pemData, err := os.ReadFile(keyFile)
 	if err != nil {
 		return nil, fmt.Errorf("could not read file: %s", err.Error())
 	}
 
-	block, _ := pem.Decode(pemdata)
+	block, _ := pem.Decode(pemData)
 	if block.Type == "RSA PRIVATE KEY" {
 		return x509.ParsePKCS1PrivateKey(block.Bytes) //nolint:wrapcheck // Error is checked in calling method to avoid double checking
 	}
