@@ -13,7 +13,7 @@ These endpoints are available if the `WEBServer` is enabled in the modules secti
 
 ### /
 
-Redirects to `/index.hmtl`
+Redirects to `/index.html`
 
 ### /index.html
 
@@ -21,14 +21,18 @@ Returns simple OK message:
 
 Example:
 
-    curl \
-        -u user:changeme \
-        -X POST \
-        https://127.0.0.1:8443/index.html
+```bash
+curl \
+    -u user:changeme \
+    -X POST \
+    https://127.0.0.1:8443/index.html
+```
 
 Returns:
 
-    snclient working...
+```text
+snclient working...
+```
 
 ## Checks Endpoints
 
@@ -40,10 +44,12 @@ Legacy check command endpoint.
 
 Example:
 
-    curl \
-        -u user:changeme \
-        -X POST \
-        https://127.0.0.1:8443/query/check_uptime
+```bash
+curl \
+    -u user:changeme \
+    -X POST \
+    https://127.0.0.1:8443/query/check_uptime
+```
 
 ### /api/v1/queries/{command}/commands/execute
 
@@ -51,10 +57,12 @@ Version 1 check command endpoint.
 
 Example:
 
-    curl \
-        -u user:changeme \
-        -X POST \
-        https://127.0.0.1:8443/api/v1/queries/check_uptime/commands/execute
+```bash
+curl \
+    -u user:changeme \
+    -X POST \
+    https://127.0.0.1:8443/api/v1/queries/check_uptime/commands/execute
+```
 
 ### /api/v1/inventory
 
@@ -62,46 +70,50 @@ Returns the check inventory as json
 
 Example:
 
-    curl \
-        -u user:changeme \
-        -X POST \
-        https://127.0.0.1:8443/api/v1/inventory
+```bash
+curl \
+    -u user:changeme \
+    -X POST \
+    https://127.0.0.1:8443/api/v1/inventory
+```
 
 Returns:
 
-    {
-        "inventory": {
-            "cpu": [
-                {
-                    "core": "core1",
-                    "core_id": "core1",
-                    "load": "43",
-                    "time": "5m"
-                },
-                ...
-            ],
+```json
+{
+    "inventory": {
+        "cpu": [
+            {
+                "core": "core1",
+                "core_id": "core1",
+                "load": "43",
+                "time": "5m"
+            },
             ...
-            "temperature": [
-                {
-                    "crit": "100.000000",
-                    "label": "Core 1",
-                    "max": "100.000000",
-                    "min": "0.000000",
-                    "name": "coretemp",
-                    "path": "/sys/class/hwmon/hwmon5/temp3_input",
-                    "temperature": "44.000000"
-                }
-            ],
-            "uptime": [
-                {
-                    "boot": "2023-12-04 07:16:01",
-                    "uptime": "8d 09:07h",
-                    "uptime_value": "724072.8"
-                }
-            ]
-        },
-        "localtime": 1702398235
-    }
+        ],
+        ...
+        "temperature": [
+            {
+                "crit": "100.000000",
+                "label": "Core 1",
+                "max": "100.000000",
+                "min": "0.000000",
+                "name": "coretemp",
+                "path": "/sys/class/hwmon/hwmon5/temp3_input",
+                "temperature": "44.000000"
+            }
+        ],
+        "uptime": [
+            {
+                "boot": "2023-12-04 07:16:01",
+                "uptime": "8d 09:07h",
+                "uptime_value": "724072.8"
+            }
+        ]
+    },
+    "localtime": 1702398235
+}
+```
 
 ### /api/v1/inventory/{module}
 
@@ -110,10 +122,12 @@ are the keys from the inventory hash map as returned from `/api/v1/inventory`.
 
 Example:
 
-    curl \
-        -u user:changeme \
-        -X POST \
-        https://127.0.0.1:8443/api/v1/inventory/memory
+```bash
+curl \
+    -u user:changeme \
+    -X POST \
+    https://127.0.0.1:8443/api/v1/inventory/memory
+```
 
 ## Prometheus Endpoints
 
@@ -139,13 +153,13 @@ These endpoints are available if the `ExporterExporterServer` is enabled in the 
 
 ### /list
 
-Used by the [ExporterExporer](../prometheus/exporter/) server.
+Used by the [ExporterExporter](../prometheus/exporter/) server.
 
 Returns list of exporters.
 
 ### /proxy
 
-Used by the [ExporterExporer](../prometheus/exporter/) server.
+Used by the [ExporterExporter](../prometheus/exporter/) server.
 
 Returns metrics for given exporter.
 
@@ -166,14 +180,18 @@ Reload the configuration.
 
 Example:
 
-    curl \
-        -u user:changeme \
-        -X POST \
-        https://127.0.0.1:8443/api/v1/admin/reload
+```bash
+curl \
+    -u user:changeme \
+    -X POST \
+    https://127.0.0.1:8443/api/v1/admin/reload
+```
 
 Returns
 
-    {"success":true}
+```json
+{"success":true}
+```
 
 ### /api/v1/admin/certs/replace
 
@@ -183,30 +201,34 @@ The certificates need to be base64 encoded as in the following example.
 
 Example:
 
-    curl \
-        -u user:changeme \
-        -d '{ "certdata": "'$(base64 -w 0 ./server.crt)'", "keydata": "'$(base64 -w 0 dist/server.key)'", "reload": true }' \
-        https://127.0.0.1:8443/api/v1/admin/certs/replace
+```bash
+curl \
+    -u user:changeme \
+    -d '{ "certdata": "'$(base64 -w 0 ./server.crt)'", "keydata": "'$(base64 -w 0 dist/server.key)'", "reload": true }' \
+    https://127.0.0.1:8443/api/v1/admin/certs/replace
+```
 
 Returns
 
-    {"success":true}
+```json
+{"success":true}
+```
 
 ### /api/v1/admin/csr
 
-Request a new csr, creates new private key if requested by the user or uses the alreaday existing one
-The Only Field that needs to be set is CommonName the rest of the fiields is optional
+Request a new csr, creates new private key if requested by the user or uses the already existing one.
+The only field that needs to be set is `CommonName` the rest of the fields is optional.
 
 Example:
 
-    curl \
-    -u user:changeme \
-    -d '{"Country":"DE","State":"Bavaria","Locality":"Earth","Organization":"snclient","OrganizationalUnit":"IT","HostName":"Root CA SNClient", "NewKey":true, "KeyLength":4096}' \
-    https://127.0.0.1:8443/api/v1/admin/csr
+```bash
+curl \
+-u user:changeme \
+-d '{"Country":"DE","State":"Bavaria","Locality":"Earth","Organization":"snclient","OrganizationalUnit":"IT","HostName":"Root CA SNClient", "NewKey":true, "KeyLength":4096}' \
+https://127.0.0.1:8443/api/v1/admin/csr
+```
 
-Returns
-
-    PEM Encoded CSR
+Returns PEM encoded csr
 
 ### /api/v1/admin/updates/install
 
@@ -214,15 +236,19 @@ Trigger checking for updates.
 
 Example:
 
-    curl \
-        -u user:changeme \
-        -X POST \
-        https://127.0.0.1:8443/api/v1/admin/updates/install
+```bash
+curl \
+    -u user:changeme \
+    -X POST \
+    https://127.0.0.1:8443/api/v1/admin/updates/install
+```
 
 Returns
 
-    {
-        "success":  true,
-        "message": "update found and installed",
-        "version": "v0.27.0024"
-    }
+```json
+{
+    "success":  true,
+    "message": "update found and installed",
+    "version": "v0.27.0024"
+}
+```
