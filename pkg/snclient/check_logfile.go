@@ -50,7 +50,7 @@ func (c *CheckLogFile) Build() *CheckData {
 			"file":         {value: &c.FilePath, description: "The file that should be checked"},
 			"files":        {value: &c.Paths, description: "Comma separated list of files"},
 			"line-split":   {value: &c.LineDelimeter, description: "Character string used to split a file into several lines (default \\n)"},
-			"column-split": {value: &c.ColumnDelimter, description: "Tab slit default: \\t"},
+			"column-split": {value: &c.ColumnDelimter, description: "Tab split default: \\t"},
 			"label":        {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
 		},
 		result: &CheckResult{
@@ -75,17 +75,17 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		return nil, fmt.Errorf("no file defined")
 	}
 
-	if snc.alreadyParsedLogfiles == nil {
-		snc.alreadyParsedLogfiles = make(map[string]ParsedFile, 0)
-	}
-
 	patterns := make(map[string]*regexp.Regexp, len(c.LabelPattern))
 	for _, labelPattern := range c.LabelPattern {
 		parts := strings.SplitN(labelPattern, ":", 2)
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("the label pattern is in the wrong format")
 		}
-		patterns[parts[0]] = regexp.MustCompile(parts[1])
+		var err error
+		patterns[parts[0]], err = regexp.Compile(parts[1])
+		if err != nil {
+			return nil, fmt.Errorf("could not compile regex from patter: %s", err.Error())
+		}
 	}
 
 	totalLineCount := 0
@@ -122,33 +122,30 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 	defer file.Close()
 
 	// If file was already parsed return immediately with 0 Bytes read and nil error
-	for _, parsedFile := range snc.alreadyParsedLogfiles {
-		if parsedFile.path != fileName {
-			continue
-		}
-		// Was the file renewed, rotated?
+	unCastedFile, ok := snc.alreadyParsedLogfiles.Load(fileName)
+	if ok {
+		parsedFile := unCastedFile.(ParsedFile)
 		var info os.FileInfo
 		info, err = file.Stat()
-		inode := getInode(fileName)
 		if err != nil {
-			return 0, fmt.Errorf("could not get file information %s", err.Error())
+			return 0, fmt.Errorf("could not read file stats: %s", err.Error())
 		}
 		if info.Size() <= int64(parsedFile.offset) {
 			return 0, nil
 		}
-		if inode == parsedFile.inode {
+		inode := getInode(fileName)
+		if inode != parsedFile.inode {
 			parsedFile.offset = 0
+		}
+
+		// Jump to last read bytes
+		_, err = file.Seek(int64(parsedFile.offset), 0)
+		if err != nil {
+			return 0, fmt.Errorf("while skipping already read file an error occurred: %s", err.Error())
 		}
 	}
 
-	// Jump to last read bytes
-	_, err = file.Seek(int64(snc.alreadyParsedLogfiles[fileName].offset), 0)
-	if err != nil {
-		return 0, fmt.Errorf("while skipping already read file an error occurred: %s", err.Error())
-	}
-
 	scanner := bufio.NewScanner(file)
-
 	scanner.Split(c.getCustomSplitFunction())
 	okReset := len(check.okThreshold) > 0
 	lineStorage := make([]map[string]string, 0)
@@ -231,7 +228,7 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 	if runtime.GOOS == "linux" {
 		pf.inode = getInode(fileName)
 	}
-	snc.alreadyParsedLogfiles[fileName] = pf
+	snc.alreadyParsedLogfiles.Store(fileName, pf)
 
 	return lineIndex, nil
 }

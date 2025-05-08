@@ -12,8 +12,6 @@ func TestCheckLogFile(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK")
 
-	snc.alreadyParsedLogfiles = make(map[string]ParsedFile, 0)
-
 	res = snc.RunCheck("check_logfile", []string{"files=./t/test*"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "All 16")
@@ -28,11 +26,15 @@ func TestCheckLogFilePathWildCards(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK")
 
-	snc.alreadyParsedLogfiles = make(map[string]ParsedFile, 0)
+	snc.alreadyParsedLogfiles.Clear()
 
 	res = snc.RunCheck("check_logfile", []string{"files=./t/test*", "warn=line LIKE WARNING"})
 	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
 	assert.Contains(t, string(res.BuildPluginOutput()), "WARNING - 2/16")
+
+	res = snc.RunCheck("check_logfile", []string{"files=./t/test*", "warn=line LIKE WARNING"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - All 0 / 0")
 
 	StopTestAgent(t, snc)
 }

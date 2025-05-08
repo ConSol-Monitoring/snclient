@@ -21,6 +21,7 @@ import (
 	"runtime/pprof"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -163,7 +164,7 @@ type Agent struct {
 	Log                   *factorlog.FactorLog
 	profileServer         *http.Server
 	invCache              *InvCache
-	alreadyParsedLogfiles map[string]ParsedFile
+	alreadyParsedLogfiles sync.Map
 }
 
 type ParsedFile struct {
