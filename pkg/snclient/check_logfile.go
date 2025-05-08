@@ -123,8 +123,11 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 
 	// If file was already parsed return immediately with 0 Bytes read and nil error
 	unCastedFile, ok := snc.alreadyParsedLogfiles.Load(fileName)
-	if ok {
-		parsedFile := unCastedFile.(ParsedFile)
+	if ok { //nolint:nestif //errors needs to be checked
+		parsedFile, ok := unCastedFile.(ParsedFile)
+		if !ok {
+			return 0, fmt.Errorf("could not load already parsed files")
+		}
 		var info os.FileInfo
 		info, err = file.Stat()
 		if err != nil {

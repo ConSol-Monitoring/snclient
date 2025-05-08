@@ -48,7 +48,7 @@ Naemon Config
 
 | Argument     | Description                                                                                     |
 | ------------ | ----------------------------------------------------------------------------------------------- |
-| column-split | Tab slit default: \t                                                                            |
+| column-split | Tab split default: \t                                                                           |
 | file         | The file that should be checked                                                                 |
 | files        | Comma separated list of files                                                                   |
 | label        | label:pattern => If the pattern is matched in a line the line will have the label set as detail |
