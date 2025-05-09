@@ -145,6 +145,13 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 		if len(l.serviceFilter) > 0 && slices.Contains(l.serviceFilter, service) {
 			continue
 		}
+
+		if len(state) < 2 {
+			details["_error"] = fmt.Sprintf("cannot parse service status: %s", stateRaw)
+
+			return
+		}
+
 		res, err := convert.Int32E(state[1])
 		if err != nil {
 			details["_error"] = fmt.Sprintf("cannot parse service status: %s (%s)", state[1], err.Error())
