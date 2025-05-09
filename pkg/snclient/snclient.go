@@ -20,7 +20,6 @@ import (
 	"runtime/debug"
 	"runtime/pprof"
 	"slices"
-	"sort"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -163,6 +162,7 @@ type Agent struct {
 	running           atomic.Value
 	Log               *factorlog.FactorLog
 	profileServer     *http.Server
+	invCache          *InvCache
 }
 
 // AgentRunSet contains the runtime dynamic references
@@ -193,6 +193,7 @@ func NewAgent(flags *AgentFlags) *Agent {
 	snc.runSet = initSet
 	snc.Tasks = initSet.tasks
 	snc.config = initSet.config
+	snc.invCache = NewInvCache()
 
 	snc.osSignalChannel = make(chan os.Signal, 1)
 
@@ -214,6 +215,7 @@ func NewAgentSimple(flags *AgentFlags) *Agent {
 	snc.running.Store(Stopped)
 	snc.checkFlags()
 	snc.createLogger(nil)
+	snc.invCache = NewInvCache()
 
 	return snc
 }
@@ -732,8 +734,8 @@ func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 
 // RunCheckWithContext calls check by name and returns the check result.
 // secCon configuration section will be used to check for nasty characters and allowed arguments.
-func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOveride float64, transportConf *ConfigSection) *CheckResult {
-	res, chk := snc.runCheck(ctx, name, args, timeoutOveride, transportConf, false)
+func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection) *CheckResult {
+	res, chk := snc.runCheck(ctx, name, args, timeoutOverride, transportConf, false)
 	if res.Raw == nil || res.Raw.showHelp == 0 {
 		if chk != nil {
 			res.Finalize(chk.timezone)
@@ -745,7 +747,7 @@ func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []s
 	return res
 }
 
-func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOveride float64, transportConf *ConfigSection, skipAllowedCheck bool) (*CheckResult, *CheckData) {
+func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection, skipAllowedCheck bool) (*CheckResult, *CheckData) {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
 	if deadline, ok := ctx.Deadline(); ok {
@@ -782,8 +784,8 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 		}
 	}
 
-	if timeoutOveride > 0 {
-		chk.timeout = timeoutOveride
+	if timeoutOverride > 0 {
+		chk.timeout = timeoutOverride
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(chk.timeout+1)*time.Second)
@@ -1344,75 +1346,14 @@ func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ..
 }
 
 // returns inventory structure
-func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[string]interface{} {
-	scripts := make([]string, 0)
-	inventory := make(map[string]interface{})
-
-	keys := make([]string, 0)
-	for k := range AvailableChecks {
-		keys = append(keys, k)
-	}
-	for k := range snc.runSet.cmdAliases {
-		keys = append(keys, k)
-	}
-	for k := range snc.runSet.cmdWraps {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		check, _ := snc.getCheck(k)
-		handler := check.Handler()
-		meta := handler.Build()
-		if !meta.isImplemented(runtime.GOOS) {
-			log.Debugf("skipping inventory for unimplemented (%s) check: %s / %s", runtime.GOOS, k, check.Name)
-
-			continue
-		}
-		switch meta.hasInventory {
-		case NoInventory:
-			// skipped
-		case ListInventory:
-			name := strings.TrimPrefix(check.Name, "check_")
-			if len(modules) > 0 && (!slices.Contains(modules, name)) {
-				continue
-			}
-			meta.output = "inventory_json"
-			meta.filter = ConditionList{{isNone: true}}
-			data, err := handler.Check(ctx, snc, meta, []Argument{})
-			if err != nil && (data == nil || data.Raw == nil) {
-				log.Tracef("inventory %s returned error: %s", check.Name, err.Error())
-
-				continue
-			}
-
-			inventory[name] = data.Raw.listData
-		case NoCallInventory:
-			name := strings.TrimPrefix(check.Name, "check_")
-			if len(modules) > 0 && !slices.Contains(modules, name) {
-				continue
-			}
-			inventory[name] = []interface{}{}
-		case ScriptsInventory:
-			scripts = append(scripts, check.Name)
-		}
-	}
-
-	if len(modules) == 0 || slices.Contains(modules, "scripts") {
-		inventory["scripts"] = scripts
-	}
-
-	if len(modules) == 0 || slices.Contains(modules, "exporter") {
-		inventory["exporter"] = snc.listExporter()
-	}
-
+func (snc *Agent) GetInventory(ctx context.Context, modules []string) map[string]interface{} {
 	hostID, err := os.Hostname()
 	if err != nil {
 		log.Errorf("failed to get host id: %s", err.Error())
 	}
 
 	return (map[string]interface{}{
-		"inventory": inventory,
+		"inventory": snc.getCachedInventory(ctx, modules),
 		"localtime": time.Now().Unix(),
 		"snclient": map[string]interface{}{
 			"version":  snc.Version(),
@@ -1424,23 +1365,12 @@ func (snc *Agent) BuildInventory(ctx context.Context, modules []string) map[stri
 	})
 }
 
-func (snc *Agent) getInventory(ctx context.Context, checkName string) (listData []map[string]string, err error) {
-	checkName = strings.TrimPrefix(checkName, "check_")
-	rawInv := snc.BuildInventory(ctx, []string{checkName})
-	inv, ok := rawInv["inventory"]
-	if !ok {
-		return nil, fmt.Errorf("check %s not found in inventory", checkName)
+func (snc *Agent) getCachedInventory(ctx context.Context, modules []string) *Inventory {
+	if len(modules) > 0 {
+		return snc.buildInventory(ctx, modules)
 	}
 
-	if inv, ok := inv.(map[string]interface{}); ok {
-		if list, ok := inv[checkName]; ok {
-			if data, ok := list.([]map[string]string); ok {
-				return data, nil
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("could not build inventory for %s", checkName)
+	return snc.invCache.Get(ctx, snc)
 }
 
 func (snc *Agent) listExporter() (listData []map[string]string) {

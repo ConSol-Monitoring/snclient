@@ -27,7 +27,7 @@ snclient inventory mounts
 			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
 
-			inventory := snc.BuildInventory(context.Background(), args)
+			inventory := snc.GetInventory(context.Background(), args)
 			encoder := json.NewEncoder(rootCmd.OutOrStdout())
 			encoder.SetIndent("", "  ")
 			err := encoder.Encode(inventory)

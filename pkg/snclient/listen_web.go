@@ -473,7 +473,7 @@ func (l *HandlerWebV1) serveInventory(res http.ResponseWriter, req *http.Request
 	if module != "" {
 		modules = []string{module}
 	}
-	inventory := l.Handler.snc.BuildInventory(req.Context(), modules)
+	inventory := l.Handler.snc.GetInventory(req.Context(), modules)
 
 	LogError(json.NewEncoder(res).Encode(inventory))
 }

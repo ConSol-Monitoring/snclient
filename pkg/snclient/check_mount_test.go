@@ -24,7 +24,7 @@ func TestMount(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK - mounts are as expected", "output matches")
 
-	inv, err := snc.getInventory(context.TODO(), "check_mount")
+	inv, err := snc.getInventoryEntry(context.TODO(), "check_mount")
 	require.NoError(t, err)
 	require.NotEmptyf(t, inv, "expected mounts list to be non-empty")
 	res = snc.RunCheck("check_mount", []string{"mount=" + inv[0]["mount"], "options=" + inv[0]["options"], "fstype=" + inv[0]["fstype"]})

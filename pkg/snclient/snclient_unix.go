@@ -99,7 +99,7 @@ func (snc *Agent) finishUpdate(binPath, mode string) {
 	if mode != "daemon" && mode != "server" {
 		return
 	}
-	log.Debugf("[update] reexec into new file %s %v", binPath, os.Args[1:])
+	log.Debugf("[update] re-exec into new file %s %v", binPath, os.Args[1:])
 	err := syscall.Exec(binPath, os.Args, os.Environ()) //nolint:gosec // false positive? There should be no tainted input here
 	if err != nil {
 		log.Errorf("restart failed: %s", err.Error())
