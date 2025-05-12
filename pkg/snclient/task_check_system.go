@@ -16,7 +16,7 @@ import (
 
 const (
 	// DefaultSystemMetricsMeasureInterval sets the ticker measuring the CPU counter
-	DefaultSystemMetricsMeasureInterval = 1 * time.Second
+	DefaultSystemMetricsMeasureInterval = 50 * time.Millisecond
 )
 
 // DefaultSystemTaskConfig sets defaults for windows and unix system task
