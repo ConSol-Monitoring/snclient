@@ -203,7 +203,7 @@ type PDHCounterInfoA struct {
 	DwUserData      uintptr
 	DwQueryUserData uintptr
 	SzFullPath      *uint16 // Korrigiert: UTF-16
-	union           [unsafe.Sizeof(union{})]byte
+	CounterPath     PDH_COUNTER_PATH_ELEMENTS_A
 	SzExplainText   *uint16 // Korrigiert: UTF-16
 	DataBuffer      [1]uint32
 }
@@ -589,8 +589,9 @@ func PdhGetCounterInfo(hConuter PDH_HCOUNTER, retrieveExplainText bool) (string,
 	if res != ERROR_SUCCESS {
 		return "", fmt.Errorf("Could not get Counter Info Response Code from Api Call: %d", res)
 	}
+
 	counterInfo := *(*PDHCounterInfoA)(unsafe.Pointer(&buffer[0]))
-	path, _ := utf16PtrToString(counterInfo.SzFullPath)
+	path := windows.UTF16PtrToString(counterInfo.SzFullPath)
 
 	return path, nil
 }
