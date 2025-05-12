@@ -173,15 +173,6 @@ type PDH_FMT_COUNTERVALUE_ITEM_LONG struct {
 	FmtValue PDH_FMT_COUNTERVALUE_LONG
 }
 
-type PDH_DATA_ITEM_PATH_ELEMENTS_A struct {
-	szMachineName  uint16
-	ObjectGUID     [16]byte
-	dwItemId       uint32
-	szInstanceName uint16
-}
-
-type PPDH_DATA_ITEM_PATH_ELEMENTS_A = *PDH_DATA_ITEM_PATH_ELEMENTS_A
-
 type PDH_COUNTER_PATH_ELEMENTS_A struct {
 	szMachineName    *uint16 // pointer to a string
 	szObjectName     *uint16 // pointer to a string
@@ -206,19 +197,6 @@ type PDHCounterInfoA struct {
 	CounterPath     PDH_COUNTER_PATH_ELEMENTS_A
 	SzExplainText   *uint16 // Korrigiert: UTF-16
 	DataBuffer      [1]uint32
-}
-
-type union struct {
-	DataItemPath PDH_DATA_ITEM_PATH_ELEMENTS_A
-	CounterPath  PDH_COUNTER_PATH_ELEMENTS_A
-	anonymous    struct {
-		SzMachineName    *uint16 // Korrigiert: UTF-16
-		SzObjectName     *uint16 // Korrigiert: UTF-16
-		SzInstanceName   *uint16 // Korrigiert: UTF-16
-		SzParentInstance *uint16 // Korrigiert: UTF-16
-		DwInstanceIndex  uint32
-		SzCounterName    *uint16 // Korrigiert: UTF-16
-	}
 }
 
 type PPDHCounterInfoA = *PDHCounterInfoA
