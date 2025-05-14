@@ -66,6 +66,7 @@ jobs:
           go mod vendor
           $Env:GOWORK = ""
           $Env:CGO_ENABLED=1
+          $Env:GOEXPERIMENT="cgocheck2" 
           go test -v -race ./pkg/... ; if ($LASTEXITCODE -ne 0) { exit 1 }
 
   test-osx:
