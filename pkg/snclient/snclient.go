@@ -21,6 +21,7 @@ import (
 	"runtime/pprof"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -151,18 +152,25 @@ type AgentFlags struct {
 }
 
 type Agent struct {
-	config            *Config      // reference to global config object
-	Listeners         *ModuleSet   // Listeners stores if we started listeners
-	Tasks             *ModuleSet   // Tasks stores if we started task runners
-	Counter           *counter.Set // Counter stores collected counters from tasks
-	flags             *AgentFlags
-	cpuProfileHandler *os.File
-	runSet            *AgentRunSet
-	osSignalChannel   chan os.Signal
-	running           atomic.Value
-	Log               *factorlog.FactorLog
-	profileServer     *http.Server
-	invCache          *InvCache
+	config                *Config      // reference to global config object
+	Listeners             *ModuleSet   // Listeners stores if we started listeners
+	Tasks                 *ModuleSet   // Tasks stores if we started task runners
+	Counter               *counter.Set // Counter stores collected counters from tasks
+	flags                 *AgentFlags
+	cpuProfileHandler     *os.File
+	runSet                *AgentRunSet
+	osSignalChannel       chan os.Signal
+	running               atomic.Value
+	Log                   *factorlog.FactorLog
+	profileServer         *http.Server
+	invCache              *InvCache
+	alreadyParsedLogfiles sync.Map
+}
+
+type ParsedFile struct {
+	path   string
+	offset int
+	inode  uint64
 }
 
 // AgentRunSet contains the runtime dynamic references

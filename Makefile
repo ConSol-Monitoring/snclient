@@ -699,6 +699,7 @@ DOC_COMMANDS=\
 	check_pagefile \
 	check_ping \
 	check_pdh \
+	check_logfile \
 	check_process \
 	check_snclient_version \
 	check_tasksched \

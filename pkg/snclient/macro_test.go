@@ -43,6 +43,7 @@ func TestMacros(t *testing.T) {
 		{In: "${characters | ascii }", Expect: "utf"},
 		{In: "$(seconds)$(seconds)", Expect: "130130"},
 		{In: "...'$(seconds)'...", Expect: "...'130'..."},
+		{In: "$(characters:cut=1 )", Expect: "ö"},
 	}
 
 	for i, tst := range tests {
