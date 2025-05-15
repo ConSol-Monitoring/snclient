@@ -30,14 +30,12 @@ func TestCheckPDHOptionalAlias(t *testing.T) {
 	res := snc.RunCheck("check_pdh", []string{`counter:svchost=\Process(svchost)\Private Bytes`, "warn=value < 200", "crit=value < 500", "instances", "english"})
 	assert.Equalf(t, CheckExitOK, res.State, "The check could not be run successful")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK")
-
 	StopTestAgent(t, snc)
 }
 
 func TestCheckPDHExpandingWildCardPath(t *testing.T) {
 	snc := StartTestAgent(t, "")
-
-	res := snc.RunCheck("check_pdh", []string{`counter=\4\*`, "expand-index", "instances", "warn=value > 80", "crit=value > 90"})
+	res := snc.RunCheck("check_pdh", []string{`counter=\4\*`, "expand-index", "instances", "warn=count < 5", "crit=count < 10", "english"})
 	assert.Equalf(t, CheckExitCritical, res.State, "The check could not be run")
 	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL")
 

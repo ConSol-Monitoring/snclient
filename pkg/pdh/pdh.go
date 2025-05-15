@@ -173,15 +173,6 @@ type PDH_FMT_COUNTERVALUE_ITEM_LONG struct {
 	FmtValue PDH_FMT_COUNTERVALUE_LONG
 }
 
-type PDH_DATA_ITEM_PATH_ELEMENTS_A struct {
-	szMachineName  uint16
-	ObjectGUID     [16]byte
-	dwItemId       uint32
-	szInstanceName uint16
-}
-
-type PPDH_DATA_ITEM_PATH_ELEMENTS_A = *PDH_DATA_ITEM_PATH_ELEMENTS_A
-
 type PDH_COUNTER_PATH_ELEMENTS_A struct {
 	szMachineName    *uint16 // pointer to a string
 	szObjectName     *uint16 // pointer to a string
@@ -203,22 +194,9 @@ type PDHCounterInfoA struct {
 	DwUserData      uintptr
 	DwQueryUserData uintptr
 	SzFullPath      *uint16 // Korrigiert: UTF-16
-	union           [unsafe.Sizeof(union{})]byte
+	CounterPath     PDH_COUNTER_PATH_ELEMENTS_A
 	SzExplainText   *uint16 // Korrigiert: UTF-16
 	DataBuffer      [1]uint32
-}
-
-type union struct {
-	DataItemPath PDH_DATA_ITEM_PATH_ELEMENTS_A
-	CounterPath  PDH_COUNTER_PATH_ELEMENTS_A
-	anonymous    struct {
-		SzMachineName    *uint16 // Korrigiert: UTF-16
-		SzObjectName     *uint16 // Korrigiert: UTF-16
-		SzInstanceName   *uint16 // Korrigiert: UTF-16
-		SzParentInstance *uint16 // Korrigiert: UTF-16
-		DwInstanceIndex  uint32
-		SzCounterName    *uint16 // Korrigiert: UTF-16
-	}
 }
 
 type PPDHCounterInfoA = *PDHCounterInfoA
@@ -589,24 +567,10 @@ func PdhGetCounterInfo(hConuter PDH_HCOUNTER, retrieveExplainText bool) (string,
 	if res != ERROR_SUCCESS {
 		return "", fmt.Errorf("Could not get Counter Info Response Code from Api Call: %d", res)
 	}
-	counterInfo := *(*PDHCounterInfoA)(unsafe.Pointer(&buffer[0]))
-	path, _ := utf16PtrToString(counterInfo.SzFullPath)
 
+	counterInfo := (*PDHCounterInfoA)(unsafe.Pointer(&buffer[0]))
+	path := windows.UTF16PtrToString(counterInfo.SzFullPath)
 	return path, nil
-}
-
-func utf16PtrToString(ptr *uint16) (string, int) {
-	if ptr == nil {
-		return "", 0
-	}
-	end := unsafe.Pointer(ptr)
-	sizeOfPtr := unsafe.Sizeof(*ptr)
-	n := 0
-	for *(*uint16)(end) != 0 {
-		end = unsafe.Add(end, sizeOfPtr)
-		n++
-	}
-	return syscall.UTF16ToString(unsafe.Slice(ptr, n)), n
 }
 
 func mszExpandedPathListToStringArr(ptr *uint16) []string {
@@ -615,10 +579,18 @@ func mszExpandedPathListToStringArr(ptr *uint16) []string {
 	}
 	var result []string
 	end := unsafe.Pointer(ptr)
-	for *(*uint16)(end) != 0 {
-		curr, n := utf16PtrToString((*uint16)(end))
-		result = append(result, curr)
-		end = unsafe.Add(end, (n+1)*int(unsafe.Sizeof(*ptr))) //
+	for {
+		if *(*uint16)(end) == 0 {
+			break
+		}
+		currStr := windows.UTF16PtrToString((*uint16)(end))
+		result = append(result, currStr)
+		for {
+			if *(*uint16)(end) == 0 {
+				break
+			}
+			end = unsafe.Add(end, 2)
+		}
 	}
 	return result
 }

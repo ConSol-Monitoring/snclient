@@ -12,6 +12,11 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+type PdhValue struct {
+	CounterInstance string
+	Value           int64
+}
+
 // Check implements CheckHandler.
 func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, args []Argument) (*CheckResult, error) {
 	// If the counter path is empty we need to parse the argument ourself for the optional alias case counter:alias=...
@@ -110,9 +115,7 @@ func (c *CheckPDH) parseCheckSpecificArgs(args []Argument) error {
 
 func (c *CheckPDH) collectValuesForAllCounters(hQuery pdh.PDH_HQUERY, counters map[string]pdh.PDH_HCOUNTER, check *CheckData) error {
 	for counterPath, hCounter := range counters {
-		var resArr [1]pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE // Need at least one nil pointer
-
-		largeArr, ret := collectLargeValuesArray(hCounter, hQuery, resArr)
+		largeArr, ret := collectLargeValuesArray(hCounter, hQuery)
 		if ret != pdh.ERROR_SUCCESS && ret != pdh.PDH_MORE_DATA && ret != pdh.PDH_NO_MORE_DATA {
 			return fmt.Errorf("could not collect formatted value %v", ret)
 		}
@@ -122,15 +125,15 @@ func (c *CheckPDH) collectValuesForAllCounters(hQuery pdh.PDH_HQUERY, counters m
 			if c.OptionalAlias != "" {
 				name = c.OptionalAlias
 			} else {
-				name = strings.Replace(counterPath, "*", windows.UTF16PtrToString(fmtValue.SzName), 1)
+				name = strings.Replace(counterPath, "*", fmtValue.CounterInstance, 1)
 			}
 			entry["name"] = name
-			entry["value"] = fmt.Sprintf("%d", fmtValue.FmtValue.LargeValue)
+			entry["value"] = fmt.Sprintf("%d", fmtValue.Value)
 			check.result.Metrics = append(check.result.Metrics,
 				&CheckMetric{
 					Name:          name + "_value",
 					ThresholdName: "value",
-					Value:         fmtValue.FmtValue.LargeValue,
+					Value:         fmtValue.Value,
 					Warning:       check.warnThreshold,
 					Critical:      check.critThreshold,
 					Min:           &Zero,
@@ -176,7 +179,8 @@ func collectQueryData(hQuery *pdh.PDH_HQUERY) uint32 {
 - Collect formatted with size = 0 to get actual size
 - if More Data -> Create Actual Array and fill
 */
-func collectLargeValuesArray(hCounter pdh.PDH_HCOUNTER, hQuery pdh.PDH_HQUERY, resArr [1]pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE) (values []pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE, apiResponseCode uint32) {
+func collectLargeValuesArray(hCounter pdh.PDH_HCOUNTER, hQuery pdh.PDH_HQUERY) (values []PdhValue, apiResponseCode uint32) {
+	var resArr [1]pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE // Need at least one nil pointer
 	var ret uint32
 	var filledBuf []pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE
 	size := uint32(0)
@@ -189,6 +193,13 @@ func collectLargeValuesArray(hCounter pdh.PDH_HCOUNTER, hQuery pdh.PDH_HQUERY, r
 		filledBuf = make([]pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE, bufferCount)
 		ret = pdh.PdhGetFormattedCounterArrayLarge(hCounter, &size, &bufferCount, &filledBuf[0])
 	}
+	returnArray := make([]PdhValue, 0, bufferCount)
+	for _, pdhVal := range filledBuf {
+		returnArray = append(returnArray, PdhValue{
+			CounterInstance: windows.UTF16PtrToString(pdhVal.SzName),
+			Value:           pdhVal.FmtValue.LargeValue,
+		})
+	}
 
-	return filledBuf, ret
+	return returnArray, ret
 }
