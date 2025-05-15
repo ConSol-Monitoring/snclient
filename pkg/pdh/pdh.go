@@ -583,7 +583,6 @@ func mszExpandedPathListToStringArr(ptr *uint16) []string {
 		if *(*uint16)(end) == 0 {
 			break
 		}
-		fmt.Printf("end: %v\n", end)
 		currStr := windows.UTF16PtrToString((*uint16)(end))
 		result = append(result, currStr)
 		for {
