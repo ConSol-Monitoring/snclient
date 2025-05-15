@@ -67,6 +67,7 @@ Further details are covered in the [documentation](https://omd.consol.de/docs/sn
 | **check_index**                   |    X    |    X    |    X    |    X    |
 | **check_kernel_stats**            |         |    X    |         |         |
 | **check_load**                    |    X    |    X    |    X    |    X    |
+| **check_log**                     |    X    |    X    |    X    |    X    |
 | **check_mailq**                   |         |    X    |    X    |    X    |
 | **check_memory**                  |    X    |    X    |    X    |    X    |
 | **check_mount**                   |    X    |    X    |    X    |    X    |
@@ -77,8 +78,8 @@ Further details are covered in the [documentation](https://omd.consol.de/docs/sn
 | **check_os_updates**              |    X    |    X    |    X    |         |
 | **check_os_version**              |    X    |    X    |    X    |    X    |
 | **check_pagefile**                |    X    |         |         |         |
-| **check_ping**                    |    X    |    X    |    X    |    X    |
 | **check_pdh**                     |    X    |         |         |         |
+| **check_ping**                    |    X    |    X    |    X    |    X    |
 | **check_process**                 |    X    |    X    |    X    |    X    |
 | **check_service**                 |    X    |    X    |         |         |
 | **check_snclient_version**        |    X    |    X    |    X    |    X    |
