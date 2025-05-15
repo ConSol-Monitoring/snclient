@@ -568,24 +568,9 @@ func PdhGetCounterInfo(hConuter PDH_HCOUNTER, retrieveExplainText bool) (string,
 		return "", fmt.Errorf("Could not get Counter Info Response Code from Api Call: %d", res)
 	}
 
-	counterInfo := *(*PDHCounterInfoA)(unsafe.Pointer(&buffer[0]))
+	counterInfo := (*PDHCounterInfoA)(unsafe.Pointer(&buffer[0]))
 	path := windows.UTF16PtrToString(counterInfo.SzFullPath)
-
 	return path, nil
-}
-
-func utf16PtrToString(ptr *uint16) (string, int) {
-	if ptr == nil {
-		return "", 0
-	}
-	end := unsafe.Pointer(ptr)
-	sizeOfPtr := unsafe.Sizeof(*ptr)
-	n := 0
-	for *(*uint16)(end) != 0 {
-		end = unsafe.Add(end, sizeOfPtr)
-		n++
-	}
-	return syscall.UTF16ToString(unsafe.Slice(ptr, n)), n
 }
 
 func mszExpandedPathListToStringArr(ptr *uint16) []string {
@@ -594,10 +579,19 @@ func mszExpandedPathListToStringArr(ptr *uint16) []string {
 	}
 	var result []string
 	end := unsafe.Pointer(ptr)
-	for *(*uint16)(end) != 0 {
-		curr, n := utf16PtrToString((*uint16)(end))
-		result = append(result, curr)
-		end = unsafe.Add(end, (n+1)*int(unsafe.Sizeof(*ptr))) //
+	for {
+		if *(*uint16)(end) == 0 {
+			break
+		}
+		fmt.Printf("end: %v\n", end)
+		currStr := windows.UTF16PtrToString((*uint16)(end))
+		result = append(result, currStr)
+		for {
+			if *(*uint16)(end) == 0 {
+				break
+			}
+			end = unsafe.Add(end, 2)
+		}
 	}
 	return result
 }
