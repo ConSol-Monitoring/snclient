@@ -226,6 +226,19 @@ custom_ini_wc = %s/nrpe_web_ports_*.ini
 	assert.Equalf(t, "s00pers3cr3t", webPassword, "got web password")
 }
 
+func TestConfigUTF8BOM(t *testing.T) {
+	testDir, _ := os.Getwd()
+	configDir := filepath.Join(testDir, "t", "configs", "utf8_bom")
+
+	cfg := NewConfig(true)
+	err := cfg.ReadINI(configDir+"/snclient.ini", nil)
+	require.NoErrorf(t, err, "config parsed")
+
+	section := cfg.Section("/paths")
+	exePath, _ := section.GetString("exe-path")
+	assert.Equalf(t, "./tmp", exePath, "got path")
+}
+
 func TestConfigWrite(t *testing.T) {
 	configText := `
 ; nrpe help

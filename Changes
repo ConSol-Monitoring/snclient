@@ -6,6 +6,7 @@ next:
          - fix check_omd out of bounds read
          - fix detecting unbalanced quotes (#225)
          - fix crash in check_pdh
+         - fix reading config files with utf-8 bom
 
 0.33     Fri Apr 11 16:05:32 CEST 2025
          - check_pdh: added windows performance counter check

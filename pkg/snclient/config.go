@@ -256,6 +256,9 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 	var currentSection *ConfigSection
 	currentComments := make([]string, 0)
 
+	// trim UTF-8 BOM from start of file
+	configData = strings.TrimPrefix(configData, "\xEF\xBB\xBF")
+
 	lines := strings.Split(configData, "\n")
 
 	// trim empty elements from the end
