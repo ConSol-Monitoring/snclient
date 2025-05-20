@@ -64,7 +64,7 @@ case "$*" in
   2)
     # Upgrading
     systemctl --system daemon-reload >/dev/null || true
-    systemctl condrestart snclient.service >/dev/null || true
+    systemctl try-restart snclient.service >/dev/null || true
   ;;
   *) echo case "$*" not handled in post
 esac
