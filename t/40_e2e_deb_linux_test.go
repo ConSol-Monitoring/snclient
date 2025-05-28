@@ -28,8 +28,12 @@ func TestDEBinstaller(t *testing.T) {
 
 	// install deb file
 	runCmd(t, &cmd{
-		Cmd:     "sudo",
-		Args:    []string{"apt-get", "install", "-y", "./snclient.deb"},
+		Cmd:  "sudo",
+		Args: []string{"apt-get", "install", "-y", "./snclient.deb"},
+		Env: map[string]string{
+			"DEBIAN_FRONTEND":     "noninteractive",
+			"NEEDRESTART_SUSPEND": "1",
+		},
 		ErrLike: []string{`.*`},
 		Timeout: DefaultCommandTimeout * 2,
 	})
@@ -114,6 +118,10 @@ func TestDEBinstaller(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  "sudo",
 		Args: []string{"apt-get", "remove", "-y", "--purge", "snclient"},
+		Env: map[string]string{
+			"DEBIAN_FRONTEND":     "noninteractive",
+			"NEEDRESTART_SUSPEND": "1",
+		},
 	})
 
 	for _, file := range requiredFiles {
