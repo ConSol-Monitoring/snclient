@@ -257,10 +257,12 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  "make",
 		Args: []string{"testca"},
+		Like: []string{"signatur ok"},
 	})
 	defer runCmd(t, &cmd{
 		Cmd:  "make",
 		Args: []string{"clean-testca"},
+		Like: []string{"dist"},
 	})
 
 	commandResult := runCmd(t, &cmd{
