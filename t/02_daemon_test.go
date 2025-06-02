@@ -255,9 +255,9 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 
 	// Create  Temp Server Certs
 	runCmd(t, &cmd{
-		Cmd:  "make",
-		Args: []string{"testca"},
-		Like: []string{"signature ok"},
+		Cmd:     "make",
+		Args:    []string{"testca"},
+		ErrLike: []string{"Certificate request self-signature ok"},
 	})
 	defer runCmd(t, &cmd{
 		Cmd:  "make",
@@ -279,7 +279,7 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:     "openssl",
 		Args:    []string{"x509", "-req", "-in=test.csr", "-CA=dist/cacert.pem", "-CAkey=dist/ca.key", "-out=server.crt", "-days=365"},
-		ErrLike: []string{"Signature ok"},
+		ErrLike: []string{"Certificate request self-signature ok"},
 	})
 	defer os.Remove("server.crt")
 
