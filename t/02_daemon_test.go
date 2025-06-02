@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -215,7 +216,7 @@ func TestDaemonAdminCSR(t *testing.T) {
 	_, baseURL, _, cleanUp := daemonInit(t, "")
 	defer cleanUp()
 
-	postData, err := json.Marshal(map[string]interface{}{
+	postData, err := json.Marshal(map[string]any{
 		"Country":            "DE",
 		"State":              "Bavaria",
 		"Locality":           "Earth",
@@ -232,4 +233,71 @@ func TestDaemonAdminCSR(t *testing.T) {
 		Args: []string{"-s", "-u", "user:" + localDaemonAdminPassword, "-k", "-s", "-d", string(postData), baseURL + "/api/v1/admin/csr"},
 		Like: []string{"CERTIFICATE REQUEST"},
 	})
+}
+
+func TestErrorBetweenSavingAndSigning(t *testing.T) {
+	_, baseURL, _, cleanUp := daemonInit(t, "")
+	defer os.Remove("test.crt")
+	defer os.Remove("test.key")
+	defer os.Remove("test.csr")
+
+	postData, err := json.Marshal(map[string]any{
+		"Country":            "DE",
+		"State":              "Bavaria",
+		"Locality":           "Earth",
+		"Organization":       "snclient",
+		"OrganizationalUnit": "IT",
+		"HostName":           "Root CA SNClient",
+		"NewKey":             true,
+		"KeyLength":          1024,
+	})
+	require.NoErrorf(t, err, "post data json encoded")
+
+	commandResult := runCmd(t, &cmd{
+		Cmd:  "curl",
+		Args: []string{"-s", "-u", "user:" + localDaemonAdminPassword, "-k", "-s", "-d", string(postData), baseURL + "/api/v1/admin/csr"},
+		Dir:  ".",
+		Like: []string{"CERTIFICATE REQUEST"},
+	})
+	err = os.WriteFile("test.csr", []byte(commandResult.Stdout), 0o600)
+	if err != nil {
+		t.Fatalf("could not save certificate signing requests")
+	}
+
+	runCmd(t, &cmd{
+		Cmd:     "openssl",
+		Args:    []string{"x509", "-req", "-in=test.csr", "-CA=../dist/cacert.pem", "-CAkey=../dist/ca.key", "-out=server.crt", "-days=365"},
+		ErrLike: []string{"Signature ok"},
+	})
+	defer os.Remove("server.crt")
+
+	keyBak, _ := os.ReadFile("test.key.tmp")
+	newCert, _ := os.ReadFile("server.crt")
+
+	// restart client
+	cleanUp()
+	_, baseURL, _, cleanUp = daemonInit(t, "")
+	defer cleanUp()
+
+	postData, err = json.Marshal(map[string]interface{}{
+		"Reload":   true,
+		"CertData": base64.StdEncoding.EncodeToString(newCert),
+		"KeyData":  "",
+	})
+	require.NoErrorf(t, err, "post data json encoded")
+
+	runCmd(t, &cmd{
+		Cmd:  "curl",
+		Args: []string{"-s", "-u", "user:" + localDaemonAdminPassword, "-k", "-s", "-d", string(postData), baseURL + "/api/v1/admin/certs/replace"},
+		Like: []string{`{"success":true}`},
+	})
+
+	// Check if new private Key matches the on we got from the csr Endpoint
+	key, _ := os.ReadFile("test.key")
+	assert.Equalf(t, string(keyBak), string(key), "private keys do not match")
+
+	_, err = os.ReadFile("test.key.tmp")
+	if err == nil {
+		t.Fatalf("tempory key file was not removed")
+	}
 }

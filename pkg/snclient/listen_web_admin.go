@@ -54,6 +54,12 @@ type csrRequestJSON struct {
 	KeyLength          int    `json:"KeyLength"`
 }
 
+type replaceCertData struct {
+	CertData string `json:"CertData"`
+	KeyData  string `json:"KeyData"`
+	Reload   bool   `json:"Reload"`
+}
+
 // ensure we fully implement the RequestHandlerHTTP type
 var _ RequestHandlerHTTP = &HandlerAdmin{}
 
@@ -148,11 +154,9 @@ func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Reque
 	if !l.requirePostMethod(res, req) {
 		return
 	}
-
 	// extract json payload
 	decoder := json.NewDecoder(req.Body)
 	decoder.DisallowUnknownFields()
-
 	data := csrRequestJSON{}
 	err := decoder.Decode(&data)
 	if err != nil {
@@ -165,7 +169,6 @@ func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Reque
 
 		return
 	}
-
 	if data.HostName == "" {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusBadRequest)
@@ -184,7 +187,12 @@ func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Reque
 		}
 		privateKey, err = rsa.GenerateKey(rand.Reader, data.KeyLength)
 	} else {
-		privateKey, err = l.readPrivateKey()
+		defaultSection := l.Handler.snc.config.Section("/settings/default")
+		keyFile, ok := defaultSection.GetString("certificate key")
+		if !ok {
+			l.sendError(res, fmt.Errorf("could not read certificate location from config"))
+		}
+		privateKey, err = l.readPrivateKey(keyFile)
 	}
 	if err != nil {
 		l.sendError(res, err)
@@ -203,8 +211,10 @@ func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Reque
 		defSection := l.Handler.snc.config.Section("/settings/default")
 
 		keyFile, _ := defSection.GetString("certificate key")
+		keyFileTemp := keyFile + ".tmp"
+
 		privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-		if err = os.WriteFile(keyFile, pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), 0o600); err != nil {
+		if err = os.WriteFile(keyFileTemp, pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), 0o600); err != nil {
 			l.sendError(res, fmt.Errorf("failed to write certificate key file %s: %s", keyFile, err.Error()))
 
 			return
@@ -247,13 +257,8 @@ func (l *HandlerWebAdmin) createCSR(data *csrRequestJSON, privateKey *rsa.Privat
 	return csrPEM, nil
 }
 
-func (l *HandlerWebAdmin) readPrivateKey() (*rsa.PrivateKey, error) {
+func (l *HandlerWebAdmin) readPrivateKey(keyFile string) (*rsa.PrivateKey, error) {
 	// read private key
-	defSection := l.Handler.snc.config.Section("/settings/default")
-	keyFile, ok := defSection.GetString("certificate key")
-	if !ok {
-		return nil, fmt.Errorf("could not read certificate location from config")
-	}
 	pemData, err := os.ReadFile(keyFile)
 	if err != nil {
 		return nil, fmt.Errorf("could not read file: %s", err.Error())
@@ -288,12 +293,7 @@ func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.R
 	// extract json payload
 	decoder := json.NewDecoder(req.Body)
 	decoder.DisallowUnknownFields()
-	type postData struct {
-		CertData string `json:"CertData"`
-		KeyData  string `json:"KeyData"`
-		Reload   bool   `json:"Reload"`
-	}
-	data := postData{}
+	data := replaceCertData{}
 	err := decoder.Decode(&data)
 	if err != nil {
 		res.Header().Set("Content-Type", "application/json")
@@ -306,29 +306,31 @@ func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.R
 		return
 	}
 
-	certBytes := []byte{}
-	keyBytes := []byte{}
-	if data.CertData != "" {
-		certBytes, err = base64.StdEncoding.DecodeString(data.CertData)
-		if err != nil {
-			l.sendError(res, fmt.Errorf("failed to base64 decode certdata: %s", err.Error()))
-
-			return
-		}
-	}
-
-	if data.KeyData != "" {
-		keyBytes, err = base64.StdEncoding.DecodeString(data.KeyData)
-		if err != nil {
-			l.sendError(res, fmt.Errorf("failed to base64 decode keydata: %s", err.Error()))
-
-			return
-		}
+	certBytes, keyBytes, err := l.getBytesFromRaplacementStructData(res, data)
+	if err != nil {
+		return
 	}
 
 	defSection := l.Handler.snc.config.Section("/settings/default")
 	certFile, _ := defSection.GetString("certificate")
 	keyFile, _ := defSection.GetString("certificate key")
+	keyFileBak := keyFile + ".tmp"
+	if data.KeyData == "" && data.CertData != "" {
+		pubKey, certPublicKey := l.getRelevantPublicKeys(res, keyFileBak, certBytes)
+		newPrivateKey, err := l.readPrivateKey(keyFileBak)
+		if err != nil {
+			l.sendError(res, err)
+		}
+		if pubKey.Equal(certPublicKey) {
+			privateKeyBytes := x509.MarshalPKCS1PrivateKey(newPrivateKey)
+			if err = os.WriteFile(keyFile, pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), 0o600); err != nil {
+				l.sendError(res, fmt.Errorf("failed to write certificate key file %s: %s", keyFile, err.Error()))
+
+				return
+			}
+			os.Remove(keyFileBak)
+		}
+	}
 
 	if data.CertData != "" {
 		if err := os.WriteFile(certFile, certBytes, 0o600); err != nil {
@@ -355,6 +357,52 @@ func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.R
 	if data.Reload {
 		l.Handler.snc.osSignalChannel <- syscall.SIGHUP
 	}
+}
+
+func (l *HandlerWebAdmin) getBytesFromRaplacementStructData(res http.ResponseWriter, data replaceCertData) (certBytes, keyBytes []byte, err error) {
+	if data.CertData != "" {
+		certBytes, err = base64.StdEncoding.DecodeString(data.CertData)
+		if err != nil {
+			l.sendError(res, fmt.Errorf("failed to base64 decode certdata: %s", err.Error()))
+
+			return
+		}
+	}
+
+	if data.KeyData != "" {
+		keyBytes, err = base64.StdEncoding.DecodeString(data.KeyData)
+		if err != nil {
+			l.sendError(res, fmt.Errorf("failed to base64 decode keydata: %s", err.Error()))
+
+			return
+		}
+	}
+
+	return
+}
+
+func (l *HandlerWebAdmin) getRelevantPublicKeys(res http.ResponseWriter, tempKeyFile string, certBytes []byte) (privateKeyPubclicPart, certPublicKey *rsa.PublicKey) {
+	newPrivateKey, err := l.readPrivateKey(tempKeyFile)
+
+	if err != nil {
+		l.sendError(res, err)
+	}
+	newPubKey := newPrivateKey.Public()
+	rsaNewPublicKey, ok := newPubKey.(*rsa.PublicKey)
+	if !ok {
+		l.sendError(res, fmt.Errorf("rsa public key in wrong format"))
+	}
+	block, _ := pem.Decode(certBytes)
+	newCert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		l.sendError(res, err)
+	}
+	newCertPublicKey, ok := newCert.PublicKey.(*rsa.PublicKey)
+	if !ok {
+		l.sendError(res, fmt.Errorf("rsa public key from csr in wrong format"))
+	}
+
+	return rsaNewPublicKey, newCertPublicKey
 }
 
 func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request) {
