@@ -200,7 +200,6 @@ func TestDaemonAdminCertReplace(t *testing.T) {
 		"KeyData":  "dGVzdGtleQ==",
 	})
 	require.NoErrorf(t, err, "post data json encoded")
-	fmt.Println(os.Getwd())
 	runCmd(t, &cmd{
 		Cmd:  "curl",
 		Args: []string{"-s", "-u", "user:" + localDaemonAdminPassword, "-k", "-s", "-d", string(postData), baseURL + "/api/v1/admin/certs/replace"},
