@@ -306,7 +306,7 @@ func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.R
 		return
 	}
 
-	certBytes, keyBytes, err := l.getBytesFromRaplacementStructData(res, data)
+	certBytes, keyBytes, err := l.getBytesFromReplacementStructData(res, data)
 	if err != nil {
 		return
 	}
@@ -359,7 +359,7 @@ func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.R
 	}
 }
 
-func (l *HandlerWebAdmin) getBytesFromRaplacementStructData(res http.ResponseWriter, data replaceCertData) (certBytes, keyBytes []byte, err error) {
+func (l *HandlerWebAdmin) getBytesFromReplacementStructData(res http.ResponseWriter, data replaceCertData) (certBytes, keyBytes []byte, err error) {
 	if data.CertData != "" {
 		certBytes, err = base64.StdEncoding.DecodeString(data.CertData)
 		if err != nil {
@@ -383,7 +383,6 @@ func (l *HandlerWebAdmin) getBytesFromRaplacementStructData(res http.ResponseWri
 
 func (l *HandlerWebAdmin) getRelevantPublicKeys(res http.ResponseWriter, tempKeyFile string, certBytes []byte) (privateKeyPubclicPart, certPublicKey *rsa.PublicKey) {
 	newPrivateKey, err := l.readPrivateKey(tempKeyFile)
-
 	if err != nil {
 		l.sendError(res, err)
 	}
