@@ -215,7 +215,7 @@ func TestDaemonAdminCSR(t *testing.T) {
 	_, baseURL, _, cleanUp := daemonInit(t, "")
 	defer cleanUp()
 
-	postData, err := json.Marshal(map[string]interface{}{
+	postData, err := json.Marshal(map[string]any{
 		"Country":            "DE",
 		"State":              "Bavaria",
 		"Locality":           "Earth",
