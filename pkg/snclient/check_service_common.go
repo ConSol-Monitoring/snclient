@@ -68,70 +68,81 @@ func (l *CheckService) addProcMetrics(ctx context.Context, pidStr string, listEn
 	return nil
 }
 
-func (l *CheckService) addServiceMetrics(service string, serviceState float64, check *CheckData, listEntry map[string]string) {
-	check.result.Metrics = append(check.result.Metrics,
-		&CheckMetric{
-			Name:  service,
-			Value: serviceState,
-		},
-	)
-
-	if _, ok := listEntry["rss"]; ok {
+func (l *CheckService) addServiceMetrics(service string, serviceState float64, check *CheckData, listEntry map[string]string) { //nolint:funlen //makes no sense splitting
+	if check.HasThreshold("state") {
 		check.result.Metrics = append(check.result.Metrics,
 			&CheckMetric{
-				ThresholdName: "rss",
-				Name:          fmt.Sprintf("%s rss", service),
-				Value:         convert.Int64(listEntry["rss"]),
-				Unit:          "B",
-				Warning:       check.warnThreshold,
-				Critical:      check.critThreshold,
-				Min:           &Zero,
-			},
-			&CheckMetric{
-				ThresholdName: "vms",
-				Name:          fmt.Sprintf("%s vms", service),
-				Value:         convert.Int64(listEntry["vms"]),
-				Unit:          "B",
-				Warning:       check.warnThreshold,
-				Critical:      check.critThreshold,
-				Min:           &Zero,
-			},
-		)
-	} else {
-		check.result.Metrics = append(check.result.Metrics,
-			&CheckMetric{
-				Name:  fmt.Sprintf("%s rss", service),
-				Value: "U",
-			},
-			&CheckMetric{
-				Name:  fmt.Sprintf("%s vms", service),
-				Value: "U",
+				Name:  service,
+				Value: serviceState,
 			},
 		)
 	}
 
-	if _, ok := listEntry["cpu"]; ok {
-		check.result.Metrics = append(check.result.Metrics,
-			&CheckMetric{
-				ThresholdName: "cpu",
-				Name:          fmt.Sprintf("%s cpu", service),
-				Value:         convert.Float64(listEntry["cpu"]),
-				Unit:          "%",
-				Warning:       check.warnThreshold,
-				Critical:      check.critThreshold,
-				Min:           &Zero,
-			},
-		)
-	} else {
-		check.result.Metrics = append(check.result.Metrics,
-			&CheckMetric{
-				Name:  fmt.Sprintf("%s cpu", service),
-				Value: "U",
-			},
-		)
+	rssNeeded := check.HasThreshold("rss") || check.showAll || len(l.services) > 0
+	vmsNeeded := check.HasThreshold("vms") || check.showAll || len(l.services) > 0
+	cpuNeeded := check.HasThreshold("cpu") || check.showAll || len(l.services) > 0
+	tasksNeeded := check.HasThreshold("tasks") || check.showAll || len(l.services) > 0
+
+	if rssNeeded || vmsNeeded {
+		if _, ok := listEntry["rss"]; ok {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					ThresholdName: "rss",
+					Name:          fmt.Sprintf("%s rss", service),
+					Value:         convert.Int64(listEntry["rss"]),
+					Unit:          "B",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				},
+				&CheckMetric{
+					ThresholdName: "vms",
+					Name:          fmt.Sprintf("%s vms", service),
+					Value:         convert.Int64(listEntry["vms"]),
+					Unit:          "B",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				},
+			)
+		} else {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					Name:  fmt.Sprintf("%s rss", service),
+					Value: "U",
+				},
+				&CheckMetric{
+					Name:  fmt.Sprintf("%s vms", service),
+					Value: "U",
+				},
+			)
+		}
 	}
 
-	if _, ok := listEntry["tasks"]; ok {
+	if cpuNeeded {
+		if _, ok := listEntry["cpu"]; ok {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					ThresholdName: "cpu",
+					Name:          fmt.Sprintf("%s cpu", service),
+					Value:         convert.Float64(listEntry["cpu"]),
+					Unit:          "%",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				},
+			)
+		} else {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					Name:  fmt.Sprintf("%s cpu", service),
+					Value: "U",
+				},
+			)
+		}
+	}
+
+	if _, ok := listEntry["tasks"]; ok && tasksNeeded {
 		check.result.Metrics = append(check.result.Metrics,
 			&CheckMetric{
 				ThresholdName: "tasks",

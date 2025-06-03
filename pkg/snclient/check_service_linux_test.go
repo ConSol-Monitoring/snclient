@@ -228,3 +228,31 @@ TriggeredBy: ● dnf-makecache.timer
 	}
 	assert.Equalf(t, expect, entry, "parsed systemctl output")
 }
+
+func TestCheckServiceLinuxOutput(t *testing.T) {
+	flags := &AgentFlags{
+		Quiet: true,
+	}
+	snc := NewAgent(flags)
+
+	initSet, _ := snc.Init()
+	snc.runSet = initSet
+	snc.Tasks = initSet.tasks
+	snc.config = initSet.config
+
+	res := snc.RunCheck("check_service", []string{"filter= name like docker", "crit=rss<5"})
+	assert.Contains(t, string(res.BuildPluginOutput()), "rss")
+	assert.Contains(t, string(res.BuildPluginOutput()), "vms")
+
+	res = snc.RunCheck("check_service", []string{"filter= name like docker", "show-all"})
+	assert.Contains(t, string(res.BuildPluginOutput()), "rss")
+	assert.Contains(t, string(res.BuildPluginOutput()), "vms")
+	assert.Contains(t, string(res.BuildPluginOutput()), "cpu")
+	assert.Contains(t, string(res.BuildPluginOutput()), "tasks")
+
+	res = snc.RunCheck("check_service", []string{"service=docker"})
+	assert.Contains(t, string(res.BuildPluginOutput()), "rss")
+	assert.Contains(t, string(res.BuildPluginOutput()), "vms")
+	assert.Contains(t, string(res.BuildPluginOutput()), "cpu")
+	assert.Contains(t, string(res.BuildPluginOutput()), "tasks")
+}
