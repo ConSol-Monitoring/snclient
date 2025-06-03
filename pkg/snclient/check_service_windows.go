@@ -253,11 +253,6 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, ctrlMgr
 
 	check.listData = append(check.listData, listEntry)
 
-	// do not add metrics for all services unless requested
-	if len(services) == 0 && !check.showAll {
-		return nil
-	}
-
 	l.addServiceMetrics(service, float64(details.Status.State), check, listEntry)
 
 	return nil
