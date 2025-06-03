@@ -154,10 +154,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 			})
 	}
 
-	// skip file metrics unless show-all is set
-	if check.showAll {
-		l.addFileMetrics(check)
-	}
+	l.addFileMetrics(check)
 
 	return check.Finalize()
 }
