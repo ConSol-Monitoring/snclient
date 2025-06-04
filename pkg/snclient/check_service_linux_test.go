@@ -1,9 +1,11 @@
 package snclient
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckServiceLinux(t *testing.T) {
@@ -240,17 +242,31 @@ func TestCheckServiceLinuxOutput(t *testing.T) {
 	snc.Tasks = initSet.tasks
 	snc.config = initSet.config
 
-	res := snc.RunCheck("check_service", []string{"filter= name like docker", "crit=rss<5"})
+	// find test service
+	inv, err := snc.getInventoryEntry(context.TODO(), "check_service")
+	require.NoError(t, err)
+	require.NotEmptyf(t, inv, "expected services list to be non-empty")
+	var serviceName string
+	for _, entry := range inv {
+		if entry["state"] != "running" {
+			continue
+		}
+		serviceName = entry["name"]
+	}
+
+	require.NotEmptyf(t, serviceName, "check requires a service to test against")
+
+	res := snc.RunCheck("check_service", []string{"filter= name like " + serviceName, "crit=rss<5"})
 	assert.Contains(t, string(res.BuildPluginOutput()), "rss")
 	assert.Contains(t, string(res.BuildPluginOutput()), "vms")
 
-	res = snc.RunCheck("check_service", []string{"filter= name like docker", "show-all"})
+	res = snc.RunCheck("check_service", []string{"filter= name like " + serviceName, "show-all"})
 	assert.Contains(t, string(res.BuildPluginOutput()), "rss")
 	assert.Contains(t, string(res.BuildPluginOutput()), "vms")
 	assert.Contains(t, string(res.BuildPluginOutput()), "cpu")
 	assert.Contains(t, string(res.BuildPluginOutput()), "tasks")
 
-	res = snc.RunCheck("check_service", []string{"service=docker"})
+	res = snc.RunCheck("check_service", []string{"service=" + serviceName})
 	assert.Contains(t, string(res.BuildPluginOutput()), "rss")
 	assert.Contains(t, string(res.BuildPluginOutput()), "vms")
 	assert.Contains(t, string(res.BuildPluginOutput()), "cpu")
