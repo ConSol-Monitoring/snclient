@@ -254,6 +254,11 @@ func TestCheckServiceLinuxOutput(t *testing.T) {
 		serviceName = entry["name"]
 	}
 
+	if serviceName == "" {
+		t.Skipf("no running service found, skipping test")
+		return
+	}
+
 	require.NotEmptyf(t, serviceName, "check requires a service to test against")
 
 	res := snc.RunCheck("check_service", []string{"filter= name like " + serviceName, "crit=rss<5"})
