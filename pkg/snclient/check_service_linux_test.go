@@ -256,6 +256,7 @@ func TestCheckServiceLinuxOutput(t *testing.T) {
 
 	if serviceName == "" {
 		t.Skipf("no running service found, skipping test")
+
 		return
 	}
 
