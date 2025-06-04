@@ -12,6 +12,7 @@ testf: vendor
 clean:
 	rm -f snclient
 	rm -f snclient.exe
+	rm -rf dist
 
 # just skip unknown make targets
 .DEFAULT:
@@ -30,6 +31,7 @@ testca:
 	openssl req -newkey rsa:2048 -nodes -keyout dist/server.key -out dist/server.csr -subj "/CN=snclient" -reqexts SAN -extensions SAN -config <(echo -e "[req]\ndistinguished_name=req\n[SAN]\nsubjectAltName=DNS:snclient")
 	openssl x509 -req -CAcreateserial -CA dist/cacert.pem -CAkey dist/ca.key -days 20000 -in dist/server.csr -out dist/server.crt
 	rm -f dist/server.csr dist/cacert.srl
+	@echo "certificate request ok"
 
 clean-testca:
 	rm -rf dist
