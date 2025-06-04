@@ -245,7 +245,6 @@ func TestCheckServiceLinuxOutput(t *testing.T) {
 	// find test service
 	inv, err := snc.getInventoryEntry(context.TODO(), "check_service")
 	require.NoError(t, err)
-	require.NotEmptyf(t, inv, "expected services list to be non-empty")
 	var serviceName string
 	for _, entry := range inv {
 		if entry["state"] != "running" {
@@ -254,6 +253,7 @@ func TestCheckServiceLinuxOutput(t *testing.T) {
 		serviceName = entry["name"]
 	}
 
+	require.NotEmptyf(t, inv, "expected services list to be non-empty")
 	if serviceName == "" {
 		t.Skipf("no running service found, skipping test")
 
