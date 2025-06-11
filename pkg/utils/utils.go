@@ -69,7 +69,7 @@ func ExpandDuration(val string) (res float64, err error) {
 			return factor * res, nil
 		}
 	}
-	if IsDigitsOnly(val) {
+	if IsNumeric(val) {
 		res, err = strconv.ParseFloat(val, 64)
 		if err != nil {
 			return 0, fmt.Errorf("expandDuration: %s", err.Error())
@@ -96,6 +96,32 @@ func TimeUnitF(num uint64, targetUnit string, precision int) float64 {
 func IsDigitsOnly(s string) bool {
 	for _, c := range s {
 		if !unicode.IsDigit(c) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// IsNumeric returns true if string only contains numbers or a dot
+func IsNumeric(s string) bool {
+	dots := 0
+	for num, chr := range s {
+		// allow negative numbers
+		if num == 0 && chr == '-' {
+			continue
+		}
+
+		if chr == '.' {
+			dots++
+			if dots > 1 {
+				return false
+			}
+
+			continue
+		}
+
+		if !unicode.IsDigit(chr) {
 			return false
 		}
 	}
