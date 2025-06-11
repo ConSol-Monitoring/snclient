@@ -381,6 +381,8 @@ func (snc *Agent) StopWait(maxWait time.Duration) bool {
 }
 
 func (snc *Agent) stop() {
+	snc.running.Store(Stopped)
+
 	if snc.Tasks != nil {
 		snc.Tasks.StopRemove()
 	}

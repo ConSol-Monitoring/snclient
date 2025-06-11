@@ -204,7 +204,7 @@ func (l *HandlerManagedExporter) JSON() []map[string]string {
 }
 
 func (l *HandlerManagedExporter) keepRunning() bool {
-	return l.keepRunningA.Load()
+	return l.snc.IsRunning() && l.keepRunningA.Load()
 }
 
 func (l *HandlerManagedExporter) procMainLoop() {
