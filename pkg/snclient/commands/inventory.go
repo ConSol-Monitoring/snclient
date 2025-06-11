@@ -2,10 +2,10 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/consol-monitoring/snclient/pkg/snclient"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 )
 

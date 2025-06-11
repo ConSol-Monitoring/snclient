@@ -238,7 +238,7 @@ func (l *HandlerExporterExporter) listModules(res http.ResponseWriter, req *http
 	switch req.Header.Get("Accept") {
 	case "application/json":
 		log.Debugf("Listing modules in json")
-		moduleJSON, err := json.Marshal(l.modules) //nolint:musttag // no idea what this linter wants to have tagged
+		moduleJSON, err := json.Marshal(l.modules)
 		if err != nil {
 			log.Error(err)
 			http.Error(res, "Failed to produce JSON", http.StatusInternalServerError)

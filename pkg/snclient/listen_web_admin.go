@@ -6,13 +6,14 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
 	"syscall"
+
+	"github.com/goccy/go-json"
 )
 
 func init() {

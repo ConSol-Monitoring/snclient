@@ -5,7 +5,6 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -22,6 +21,7 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
+	"github.com/goccy/go-json"
 	"github.com/sassoftware/go-rpmutils"
 )
 

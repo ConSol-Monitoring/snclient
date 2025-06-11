@@ -5,11 +5,12 @@ package snclient
 import (
 	"context"
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 //go:embed embed/scripts/windows/scheduled_tasks.ps1

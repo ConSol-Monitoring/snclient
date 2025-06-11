@@ -7,10 +7,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/consol-monitoring/snclient/pkg/pdh"
 	"golang.org/x/sys/windows"
 )
+
+const querySleepDuration = 500 * time.Millisecond
 
 type PdhValue struct {
 	CounterInstance string
@@ -29,12 +32,11 @@ func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, args []A
 	var possiblePaths []string
 	var hQuery pdh.PDH_HQUERY
 	// Open Query  - Data Source = 0 => Real Time Datasource
-	ret := pdh.PdhOpenQuery(uintptr(0), uintptr(0), &hQuery)
-	defer pdh.PdhCloseQuery(hQuery)
-
+	ret := pdh.PdhOpenQuery(0, 0, &hQuery)
 	if ret != pdh.ERROR_SUCCESS {
 		return nil, fmt.Errorf("could not open query, something is wrong with the countername")
 	}
+	defer pdh.PdhCloseQuery(hQuery)
 
 	tmpPath := c.CounterPath
 	if c.EnglishFallBackNames {
@@ -168,7 +170,7 @@ func collectQueryData(hQuery *pdh.PDH_HQUERY) uint32 {
 		return ret
 	}
 	// PDH requires a double collection with a second wait between the calls See MSDN
-	time.Sleep(time.Duration(1))
+	time.Sleep(querySleepDuration)
 	ret = pdh.PdhCollectQueryData(*hQuery)
 
 	return ret
@@ -180,26 +182,24 @@ func collectQueryData(hQuery *pdh.PDH_HQUERY) uint32 {
 - if More Data -> Create Actual Array and fill
 */
 func collectLargeValuesArray(hCounter pdh.PDH_HCOUNTER, hQuery pdh.PDH_HQUERY) (values []PdhValue, apiResponseCode uint32) {
-	var resArr [1]pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE // Need at least one nil pointer
-	var ret uint32
-	var filledBuf []pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE
-	size := uint32(0)
-	bufferCount := uint32(0)
+	var bufCount uint32
+	var bufSize uint32
+	size := uint32(unsafe.Sizeof(pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE{}))
+	var emptyBuf [1]pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE // need at least 1 addressable null ptr.
 	if res := collectQueryData(&hQuery); res != pdh.ERROR_SUCCESS {
 		return nil, res
 	}
-	if ret = pdh.PdhGetFormattedCounterArrayLarge(hCounter, &size, &bufferCount, &resArr[0]); ret == pdh.PDH_MORE_DATA {
-		// create array of size = bufferCount * sizeOf(pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE)
-		filledBuf = make([]pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE, bufferCount)
-		ret = pdh.PdhGetFormattedCounterArrayLarge(hCounter, &size, &bufferCount, &filledBuf[0])
-	}
-	returnArray := make([]PdhValue, 0, bufferCount)
-	for _, pdhVal := range filledBuf {
-		returnArray = append(returnArray, PdhValue{
-			CounterInstance: windows.UTF16PtrToString(pdhVal.SzName),
-			Value:           pdhVal.FmtValue.LargeValue,
-		})
+	returnArray := []PdhValue{}
+	if ret := pdh.PdhGetFormattedCounterArrayLarge(hCounter, &bufSize, &bufCount, &emptyBuf[0]); ret == pdh.PDH_MORE_DATA {
+		filledBuf := make([]pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE, bufCount*size)
+		pdh.PdhGetFormattedCounterArrayLarge(hCounter, &bufSize, &bufCount, &filledBuf[0])
+		for i := range int(bufCount) {
+			returnArray = append(returnArray, PdhValue{
+				CounterInstance: windows.UTF16PtrToString(filledBuf[i].SzName),
+				Value:           filledBuf[i].FmtValue.LargeValue,
+			})
+		}
 	}
 
-	return returnArray, ret
+	return returnArray, pdh.ERROR_SUCCESS
 }

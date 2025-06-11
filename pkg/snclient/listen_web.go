@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/go-chi/chi/v5"
+	"github.com/goccy/go-json"
 )
 
 func init() {
@@ -369,7 +369,7 @@ type HandlerWebLegacy struct {
 func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	command := chi.URLParam(req, "command")
 	result := l.Handler.runCheck(req, command)
-	data, err := json.Marshal(map[string]interface{}{
+	jsonData := map[string]interface{}{
 		"payload": []interface{}{
 			map[string]interface{}{
 				"command": command,
@@ -382,7 +382,8 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 				},
 			},
 		},
-	})
+	}
+	data, err := json.Marshal(jsonData)
 	if err != nil {
 		msg := fmt.Sprintf("json error: %s", err.Error())
 		log.Errorf("%s", msg)
@@ -440,11 +441,12 @@ func (l *HandlerWebV1) serveCommand(res http.ResponseWriter, req *http.Request) 
 	command := chi.URLParam(req, "command")
 	result := l.Handler.runCheck(req, command)
 	res.Header().Set("Content-Type", "application/json")
-	data, err := json.Marshal(map[string]interface{}{
+	jsonData := map[string]interface{}{
 		"command": command,
 		"result":  result.State,
 		"lines":   l.Handler.result2V1(result),
-	})
+	}
+	data, err := json.Marshal(jsonData)
 	if err != nil {
 		msg := fmt.Sprintf("json error: %s", err.Error())
 		log.Errorf("%s", msg)

@@ -3,7 +3,6 @@ package snclient
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/goccy/go-json"
 )
 
 func init() {
