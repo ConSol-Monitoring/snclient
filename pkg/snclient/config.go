@@ -671,6 +671,29 @@ func (config *Config) ResetDefaultMacros() {
 	config.DefaultMacros()
 }
 
+func (config *Config) ApplyMergeDefaultsAll(initConf map[string]ConfigInit) {
+	for key := range initConf {
+		config.ApplyMergeDefaultsKey(key, initConf)
+	}
+}
+
+func (config *Config) ApplyMergeDefaultsKey(key string, initConf map[string]ConfigInit) {
+	log.Tracef("applying module defaults: %s", key)
+	section := config.Section(key)
+	modConf := initConf[key]
+	for _, modInit := range modConf {
+		switch val := modInit.(type) {
+		case string:
+			s := config.Section(val)
+			section.MergeData(s.data)
+		case ConfigData:
+			section.MergeData(val)
+		default:
+			log.Panicf("unsupported config init type: %#v", val)
+		}
+	}
+}
+
 // ConfigSection contains a single config section.
 type ConfigSection struct {
 	cfg      *Config             // reference to parent config collection
