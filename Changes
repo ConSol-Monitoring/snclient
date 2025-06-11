@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - change showing performance data in check_files and check_services (#243)
+         - kill orphanded managed exporters which might block listen ports
 
 0.34     Wed May 28 13:56:57 CEST 2025
          - add /api/v1/admin/csr endpoint to create csr

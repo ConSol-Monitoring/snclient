@@ -13,6 +13,7 @@ var defaultManagedExporterConfig = ConfigData{
 	"port":             "${/settings/WEB/server/port}",
 	"use ssl":          "${/settings/WEB/server/use ssl}",
 	"url prefix":       "",
+	"kill orphaned":    "enabled",
 }
 
 func init() {

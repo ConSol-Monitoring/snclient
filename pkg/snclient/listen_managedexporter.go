@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -40,6 +41,7 @@ type HandlerManagedExporter struct {
 	listener       *Listener
 	proxy          *httputil.ReverseProxy
 	allowedHosts   *AllowedHostConfig
+	killOrphaned   bool
 	initCallback   func()
 }
 
@@ -91,6 +93,7 @@ func (l *HandlerManagedExporter) StopProc() {
 		LogDebug(l.cmd.Process.Kill())
 		LogDebug(l.cmd.Wait())
 	}
+
 	l.cmd = nil
 	l.pid = 0
 }
@@ -158,6 +161,12 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 	}
 	l.allowedHosts = allowedHosts
 
+	killOrphaned, _, err := conf.GetBool("kill orphaned")
+	if err != nil {
+		return err
+	}
+	l.killOrphaned = killOrphaned
+
 	if l.initCallback != nil {
 		l.initCallback()
 	}
@@ -224,6 +233,11 @@ func (l *HandlerManagedExporter) procMainLoop() {
 
 				return
 			}
+		}
+
+		// make sure no previous exporter are running
+		if l.killOrphaned {
+			l.killOrphanedExporters(l.agentPath, args)
 		}
 
 		log.Debugf("starting %s agent: %s", l.Type(), cmd.Path)
@@ -324,5 +338,56 @@ func (l *HandlerManagedExporter) logPass(f string, v ...interface{}) {
 		log.Trace(entry)
 	default:
 		log.Error(entry)
+	}
+}
+
+// kill process based on path and arguments
+func (l *HandlerManagedExporter) killOrphanedExporters(agentPath string, args []string) {
+	if len(args) == 0 {
+		log.Debugf("no arguments provided for %s exporter, skipping orphaned process check", l.name)
+
+		return
+	}
+	procs, err := process.Processes()
+	if err != nil {
+		log.Errorf("failed to get processes: %s", err.Error())
+
+		return
+	}
+
+	agentBaseName := filepath.Base(agentPath)
+	agentArgs := strings.Join(args, "")
+	for _, proc := range procs {
+		if proc == nil {
+			continue
+		}
+		name, err := proc.Name()
+		if err != nil {
+			log.Debugf("failed to get process name: %s", err.Error())
+
+			continue
+		}
+
+		if name != agentBaseName {
+			continue
+		}
+
+		cmdline, err := proc.CmdlineSlice()
+		if err != nil {
+			log.Debugf("failed to get process command line: %s", err.Error())
+
+			continue
+		}
+
+		if len(cmdline) < 1 {
+			continue
+		}
+
+		if agentArgs != strings.Join(cmdline[1:], "") {
+			continue
+		}
+
+		log.Warnf("killing orphaned %s exporter process %d (%s)", l.name, proc.Pid, strings.Join(cmdline, " "))
+		LogDebug(proc.Kill())
 	}
 }
