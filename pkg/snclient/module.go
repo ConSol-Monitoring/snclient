@@ -117,8 +117,6 @@ func RegisterModule(list *[]*LoadableModule, moduleKey, confKey string, creator 
 	}
 	moduleConfigDefaults[confKey] = confInit
 
-	log.Tracef("module %s registered with config key %s", moduleKey, confKey)
-
 	return &module
 }
 
