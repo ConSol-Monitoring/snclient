@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goccy/go-json"
 	"gopkg.in/yaml.v3"
 )
 

@@ -8,15 +8,13 @@ func init() {
 		NewHandlerNodeExporter,
 		ConfigInit{
 			ConfigData{
-				"agent path":       "/usr/lib/snclient/node_exporter",
-				"agent args":       "",
-				"agent address":    "127.0.0.1:9990",
-				"agent max memory": "256M",
-				"agent user":       "nobody",
-				"port":             "${/settings/WEB/server/port}",
-				"use ssl":          "${/settings/WEB/server/use ssl}",
-				"url prefix":       "/node",
+				"agent path":    "/usr/lib/snclient/node_exporter",
+				"agent args":    "",
+				"agent address": "127.0.0.1:9990",
+				"agent user":    "nobody",
+				"url prefix":    "/node",
 			},
+			defaultManagedExporterConfig,
 			"/settings/default",
 			DefaultListenHTTPConfig,
 		})

@@ -356,7 +356,7 @@ func (l *HandlerManagedExporter) killOrphanedExporters(agentPath string, args []
 	}
 
 	agentBaseName := filepath.Base(agentPath)
-	agentArgs := strings.Join(args, "")
+	agentArgs := strings.Join(args, ";")
 	for _, proc := range procs {
 		if proc == nil {
 			continue
@@ -383,7 +383,7 @@ func (l *HandlerManagedExporter) killOrphanedExporters(agentPath string, args []
 			continue
 		}
 
-		if agentArgs != strings.Join(cmdline[1:], "") {
+		if agentArgs != strings.Join(cmdline[1:], ";") {
 			continue
 		}
 
