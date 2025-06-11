@@ -333,6 +333,8 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 	// Add generic logger and connection checker
 	mux.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer l.snc.logPanicExit()
+
 			l.LogWrapHTTPHandler(next, w, r)
 		})
 	})
@@ -349,6 +351,8 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 				}
 				mappingsInUse[mapping.URL] = webHandler.Type()
 				mux.HandleFunc(mapping.URL, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					defer l.snc.logPanicExit()
+
 					l.WrappedCheckHTTPHandler(webHandler, &mapping, w, r)
 				}))
 			}

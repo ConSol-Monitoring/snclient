@@ -381,8 +381,12 @@ func (snc *Agent) StopWait(maxWait time.Duration) bool {
 }
 
 func (snc *Agent) stop() {
-	snc.Tasks.StopRemove()
-	snc.Listeners.StopRemove()
+	if snc.Tasks != nil {
+		snc.Tasks.StopRemove()
+	}
+	if snc.Listeners != nil {
+		snc.Listeners.StopRemove()
+	}
 }
 
 func (snc *Agent) startModules(initSet *AgentRunSet) {
