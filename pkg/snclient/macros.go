@@ -283,12 +283,16 @@ func getMacrosetsValue(macro, orig string, timezone *time.Location, macroSets ..
 	value := orig
 
 	found := false
-	for _, ms := range macroSets {
-		if repl, ok := ms[macro]; ok {
-			value = repl
-			found = true
+	// strip off common suffixes from marco name
+	for _, suffix := range []string{"", "_unix"} {
+		macroName := strings.TrimSuffix(macro, suffix)
+		for _, ms := range macroSets {
+			if repl, ok := ms[macroName]; ok {
+				value = repl
+				found = true
 
-			break
+				break
+			}
 		}
 	}
 
