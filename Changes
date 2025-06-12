@@ -4,6 +4,8 @@ next:
          - change showing performance data in check_files and check_services (#243)
          - kill orphanded managed exporters which might block listen ports
          - remove pipes from unknown macros in final output
+         - only proxy /metrics instead of * for managed exporter
+         - add option `url match` for managed exporter to configure which urls should be proxied
          - fix crash in check_pdh
 
 0.34     Wed May 28 13:56:57 CEST 2025

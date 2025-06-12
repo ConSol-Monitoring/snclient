@@ -179,11 +179,12 @@ func (l *HandlerExporterExporter) JSON() []map[string]string {
 	}
 	for _, mod := range l.modules {
 		list = append(list, map[string]string{
-			"bind": l.BindString(),
-			"ssl":  ssl,
-			"type": l.Type(),
-			"name": mod.name,
-			"url":  l.urlPrefix + "/proxy?module=" + mod.name,
+			"bind":    l.BindString(),
+			"ssl":     ssl,
+			"type":    l.Type(),
+			"name":    mod.name,
+			"url":     l.urlPrefix + "/proxy?module=" + mod.name,
+			"managed": "0",
 		})
 	}
 

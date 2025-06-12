@@ -1376,6 +1376,12 @@ func (snc *Agent) getCachedInventory(ctx context.Context, modules []string) *Inv
 
 func (snc *Agent) listExporter() (listData []map[string]string) {
 	listData = make([]map[string]string, 0)
+
+	if snc.flags.Mode != ModeServer && snc.Listeners == nil || len(snc.Listeners.modules) == 0 {
+		LogDebug(snc.initModules("listener", AvailableListeners, snc.runSet, snc.runSet.listeners))
+		snc.Listeners = snc.runSet.listeners
+	}
+
 	for _, l := range snc.Listeners.modules {
 		if j, ok := l.(ExporterListenerExposed); ok {
 			listData = append(listData, j.JSON()...)

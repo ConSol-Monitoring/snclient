@@ -38,6 +38,7 @@ type HandlerManagedExporter struct {
 	keepRunningA   atomic.Bool
 	password       string
 	urlPrefix      string
+	urlMatch       string
 	listener       *Listener
 	proxy          *httputil.ReverseProxy
 	allowedHosts   *AllowedHostConfig
@@ -115,6 +116,9 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 	urlPrefix, _ := conf.GetString("url prefix")
 	l.urlPrefix = strings.TrimSuffix(urlPrefix, "/")
 
+	urlMatch, _ := conf.GetString("url match")
+	l.urlMatch = strings.TrimSuffix(urlMatch, "/")
+
 	if agentPath, ok := conf.GetString("agent path"); ok {
 		l.agentPath = agentPath
 	}
@@ -184,7 +188,7 @@ func (l *HandlerManagedExporter) CheckPassword(req *http.Request, _ URLMapping) 
 
 func (l *HandlerManagedExporter) GetMappings(*Agent) []URLMapping {
 	return []URLMapping{
-		{URL: strings.TrimSuffix(l.urlPrefix, "/") + "/*", Handler: l.proxy},
+		{URL: strings.TrimSuffix(l.urlPrefix, "/") + "/" + strings.TrimPrefix(l.urlMatch, "/"), Handler: l.proxy},
 	}
 }
 
@@ -195,11 +199,12 @@ func (l *HandlerManagedExporter) JSON() []map[string]string {
 	}
 
 	return ([]map[string]string{{
-		"bind": l.BindString(),
-		"ssl":  ssl,
-		"type": l.Type(),
-		"name": l.name,
-		"url":  l.GetMappings(nil)[0].URL,
+		"bind":    l.BindString(),
+		"ssl":     ssl,
+		"type":    l.Type(),
+		"name":    l.name,
+		"url":     l.GetMappings(nil)[0].URL,
+		"managed": "1",
 	}})
 }
 

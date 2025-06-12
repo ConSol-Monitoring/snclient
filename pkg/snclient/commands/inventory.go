@@ -13,7 +13,7 @@ func init() {
 	invCmd := &cobra.Command{
 		Use:     "inventory [<module>]",
 		Aliases: []string{"inv"},
-		Short:   "Gather inventory and print as json strucure",
+		Short:   "Gather inventory and print as json structure",
 		Long: `Inventory returns the same output as the rest path /api/v1/inventory
 
 # print inventory

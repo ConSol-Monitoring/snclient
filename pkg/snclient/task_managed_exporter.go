@@ -12,7 +12,8 @@ var defaultManagedExporterConfig = ConfigData{
 	"agent user":       "",
 	"port":             "${/settings/WEB/server/port}",
 	"use ssl":          "${/settings/WEB/server/use ssl}",
-	"url prefix":       "",
+	"url prefix":       "/",
+	"url match":        "/metrics",
 	"kill orphaned":    "enabled",
 }
 
