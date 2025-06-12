@@ -64,13 +64,13 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			state = append(state, convertStatusChar(s))
 		}
 
-		ctime, err := proc.CreateTimeWithContext(ctx)
+		ctimeMilli, err := proc.CreateTimeWithContext(ctx)
 		if err != nil {
 			log.Debugf("check_process: CreateTime error: %s", err.Error())
 		}
 
 		// skip very young ( < 3000ms ) check_nsc_web processes, they might be checking us and screwing process counts
-		if strings.Contains(cmdLine, "check_nsc_web") && time.Now().UnixMilli()-ctime < 3000 {
+		if strings.Contains(cmdLine, "check_nsc_web") && time.Now().UnixMilli()-ctimeMilli < 3000 {
 			continue
 		}
 
@@ -114,7 +114,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			"process":      exe,
 			"state":        strings.Join(state, ","),
 			"command_line": cmdLine,
-			"creation":     fmt.Sprintf("%d", ctime),
+			"creation":     fmt.Sprintf("%d", ctimeMilli/1000),
 			"exe":          exe,
 			"filename":     filename,
 			"pid":          fmt.Sprintf("%d", proc.Pid),

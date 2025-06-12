@@ -140,7 +140,7 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 		totalCPU += convert.Float64(p["cpu"])
 		totalRss += convert.Int64(p["rss"])
 		totalVirtual += convert.Int64(p["virtual"])
-		create := convert.Int64(p["creation_unix"])
+		create := convert.Int64(p["creation"])
 		if create < youngest {
 			youngest = create
 		}
