@@ -28,6 +28,13 @@ var (
 	reFloatFormat = regexp.MustCompile(`^%[.\d]*f$`)
 
 	reASCIIonly = regexp.MustCompile(`\W`)
+
+	macroSplitBy = map[string]string{
+		"$(": ")",
+		"${": "}",
+		"%(": ")",
+		"%{": "}",
+	}
 )
 
 // ReplaceTemplate combines ReplaceConditionals and ReplaceMacros
@@ -144,19 +151,13 @@ func MacroNames(text string) []string {
 	list := []string{}
 	uniq := map[string]bool{}
 
-	splitBy := map[string]string{
-		"$(": ")",
-		"${": "}",
-		"%(": ")",
-		"%{": "}",
-	}
-	token, err := splitToken(text, splitBy)
+	token, err := splitToken(text, macroSplitBy)
 	if err != nil {
 		return list
 	}
 
 	for _, piece := range token {
-		for startPattern, endPattern := range splitBy {
+		for startPattern, endPattern := range macroSplitBy {
 			if !strings.HasPrefix(piece, startPattern) || !strings.HasSuffix(piece, endPattern) {
 				continue
 			}
@@ -182,13 +183,7 @@ func MacroNames(text string) []string {
  *   %(macro) / %{macro}
  */
 func ReplaceMacros(value string, timezone *time.Location, macroSets ...map[string]string) string {
-	splitBy := map[string]string{
-		"$(": ")",
-		"${": "}",
-		"%(": ")",
-		"%{": "}",
-	}
-	token, err := splitToken(value, splitBy)
+	token, err := splitToken(value, macroSplitBy)
 	if err != nil {
 		log.Errorf("replacing macros in %s failed: %s", value, err.Error())
 
@@ -198,7 +193,7 @@ func ReplaceMacros(value string, timezone *time.Location, macroSets ...map[strin
 	var result strings.Builder
 	for _, piece := range token {
 		inMacro := false
-		for startPattern, endPattern := range splitBy {
+		for startPattern, endPattern := range macroSplitBy {
 			if !strings.HasPrefix(piece, startPattern) || !strings.HasSuffix(piece, endPattern) {
 				continue
 			}
@@ -487,4 +482,48 @@ func fillEmptyArgMacros(macros map[string]string) {
 			macros[key] = ""
 		}
 	}
+}
+
+// replace unused macros functions so that pipes do not break naemon performance data
+// ex.: %( unknownMacro | age | duration ) should not stay in the final output with pipes
+func removeUnusedMacroFunctions(value string) string {
+	token, err := splitToken(value, macroSplitBy)
+	if err != nil {
+		log.Debugf("replacing macros in %s failed: %s", value, err.Error())
+
+		return value
+	}
+
+	var result strings.Builder
+	for _, piece := range token {
+		inMacro := false
+		for startPattern, endPattern := range macroSplitBy {
+			if !strings.HasPrefix(piece, startPattern) || !strings.HasSuffix(piece, endPattern) {
+				continue
+			}
+			orig := piece
+			piece = strings.TrimPrefix(piece, startPattern)
+			piece = strings.TrimSuffix(piece, endPattern)
+			piece = strings.TrimSpace(piece)
+
+			inMacro = true
+			if !strings.Contains(orig, "|") {
+				result.WriteString(orig)
+
+				break
+			}
+			result.WriteString(startPattern)
+			result.WriteString(strings.Split(piece, "|")[0])
+			result.WriteString("...")
+			result.WriteString(endPattern)
+
+			break
+		}
+
+		if !inMacro {
+			result.WriteString(piece)
+		}
+	}
+
+	return result.String()
 }

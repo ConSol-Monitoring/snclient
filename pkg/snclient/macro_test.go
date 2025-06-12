@@ -2,9 +2,13 @@ package snclient
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/shirou/gopsutil/v4/process"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -132,4 +136,29 @@ func TestMacroConditionalsMulti(t *testing.T) {
 		res = ReplaceMacros(res, nil, macros...)
 		assert.Equalf(t, tst.Expect, res, "replacing: %s", tst.In)
 	}
+}
+
+func TestMacroSpecials(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// get name of current process
+	pid, err := convert.Int32E(os.Getpid())
+	require.NoErrorf(t, err, "got own pid")
+	me, err := process.NewProcess(pid)
+	require.NoErrorf(t, err, "got own process")
+	myExe, err := me.Exe()
+	require.NoErrorf(t, err, "got own exe")
+
+	// check %(creation_unix) macro, suffix is optional
+	res := snc.RunCheck("check_process", []string{"process=" + filepath.Base(myExe), "detail-syntax='%(process): %(creation_unix)'", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `OK - .*: \d+ \|`, string(res.BuildPluginOutput()), "output ok")
+
+	// check %(unknown | ...) macro, output should not contain pipes in case the macro does not exists
+	res = snc.RunCheck("check_process", []string{"process=" + filepath.Base(myExe), "detail-syntax='%(process): %(unknown | age)'", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `OK - .*: %\(unknown \.\.\.\) \|`, string(res.BuildPluginOutput()), "output ok")
+	assert.NotRegexpf(t, `%\(.*\|.*\)`, string(res.BuildPluginOutput()), "output must not contain pipes")
+
+	StopTestAgent(t, snc)
 }

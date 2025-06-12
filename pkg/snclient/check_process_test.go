@@ -53,11 +53,6 @@ func TestCheckProcess(t *testing.T) {
 	assert.Regexpf(t, `OK - all \d+ processes are ok.`, string(res.BuildPluginOutput()), "output ok")
 	assert.Regexpf(t, `rss'=\d{1,15}B;;;0`, string(res.BuildPluginOutput()), "rss ok")
 
-	// check %(creation_unix) macro
-	res = snc.RunCheck("check_process", []string{"process=" + filepath.Base(myExe), "detail-syntax='%(process): %(creation_unix)'", "show-all"})
-	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	assert.Regexpf(t, `OK - .*: \d+ \|`, string(res.BuildPluginOutput()), "output ok")
-
 	// should work case insensitive
 	res = snc.RunCheck("check_process", []string{"process=" + strings.ToUpper(filepath.Base(myExe))})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")

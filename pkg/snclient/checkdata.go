@@ -231,6 +231,8 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 
 	cd.result.Finalize(cd.timezone, cd.details, finalMacros)
 
+	cd.result.Output = removeUnusedMacroFunctions(cd.result.Output)
+
 	return cd.result, nil
 }
 
