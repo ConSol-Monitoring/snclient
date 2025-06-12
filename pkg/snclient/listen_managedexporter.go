@@ -208,6 +208,7 @@ func (l *HandlerManagedExporter) keepRunning() bool {
 }
 
 func (l *HandlerManagedExporter) procMainLoop() {
+	log.Tracef("starting watcher for %s agent", l.Type())
 	for l.keepRunning() {
 		args := utils.Tokenize(l.agentArgs)
 		if len(args) == 1 && args[0] == "" {
@@ -273,6 +274,7 @@ func (l *HandlerManagedExporter) procMainLoop() {
 			time.Sleep(managedExporterRestartDelay)
 		}
 	}
+	log.Tracef("watcher for %s agent finished", l.Type())
 }
 
 func (l *HandlerManagedExporter) procMemWatcher() {
