@@ -110,7 +110,7 @@ func TestDaemonRequests(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: append(baseArgs, "check_network", "warn=total > 100000000", "crit=total > 100000000"),
-		Like: []string{`OK - [\w ]+ >\d+ \w*B/s <\d+ [\w ]+B\/s`},
+		Like: []string{`OK - [\w ]+>\d+ \w*B/s <\d+ \w*B\/s`},
 	})
 
 	if runtime.GOOS == "linux" || runtime.GOOS == "windows" {
