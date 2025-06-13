@@ -266,11 +266,28 @@ func (l *HandlerWebAdmin) readPrivateKey(keyFile string) (*rsa.PrivateKey, error
 	}
 
 	block, _ := pem.Decode(pemData)
-	if block.Type == "RSA PRIVATE KEY" {
-		return x509.ParsePKCS1PrivateKey(block.Bytes) //nolint:wrapcheck // Error is checked in calling method to avoid double checking
-	}
+	switch block.Type {
+	case "RSA PRIVATE KEY":
+		key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse private key: %s", err.Error())
+		}
 
-	return nil, fmt.Errorf("private key in wrong format, got '%s' but expected 'RSA PRIVATE KEY'", block.Type)
+		return key, nil
+	case "PRIVATE KEY":
+		key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse private key: %s", err.Error())
+		}
+		rsaKey, ok := key.(*rsa.PrivateKey)
+		if ok {
+			return rsaKey, nil
+		}
+
+		return nil, fmt.Errorf("private key in wrong format, expected rsa private key but got '%T'", key)
+	default:
+		return nil, fmt.Errorf("private key in wrong format, got '%s' but expected 'RSA PRIVATE KEY'", block.Type)
+	}
 }
 
 func (l *HandlerWebAdmin) serveReload(res http.ResponseWriter, req *http.Request) {
