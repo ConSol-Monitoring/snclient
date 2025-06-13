@@ -270,7 +270,7 @@ func (l *HandlerWebAdmin) readPrivateKey(keyFile string) (*rsa.PrivateKey, error
 		return x509.ParsePKCS1PrivateKey(block.Bytes) //nolint:wrapcheck // Error is checked in calling method to avoid double checking
 	}
 
-	return nil, fmt.Errorf("private key in wrong format")
+	return nil, fmt.Errorf("private key in wrong format, got '%s' but expected 'RSA PRIVATE KEY'", block.Type)
 }
 
 func (l *HandlerWebAdmin) serveReload(res http.ResponseWriter, req *http.Request) {
