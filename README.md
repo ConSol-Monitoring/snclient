@@ -92,56 +92,14 @@ Further details are covered in the [documentation](https://omd.consol.de/docs/sn
 
 ## Roadmap
 
-Find a brief overview of what is planned and what is done already:
+Find a brief overview of what is planned:
 
-### Stage 1
-
-* [X] support NRPE clients
-* [X] support NSCP rest api clients
-* [X] support basic Prometheus metrics
-* [X] implement reading nsclient.ini files
-* [X] implement ssl/tls support
-* [X] implement authenticaton / authorization
-  * [X] basic auth
-  * [X] client certificates
-  * [X] allowed hosts
-  * [X] allow arguments
-  * [X] allow nasty characters
-* [X] add build pipeline
-  * [X] build windows msi packages
-  * [X] build debian/ubuntu .deb packages
-  * [X] build rhel/sles .rpm packages
-  * [X] build osx .pkg packages
-* [X] implement log rotation for file logger
-* [X] self update (from configurable url)
-* [X] implement perf-config
-* [X] implement help with examples and filters
-* [X] review check plugin status
-
-### Stage 2
-
-* [X] add basic prometheus exporters
-  * [X] exporter_exporter
-  * [X] windows_exporter
-  * [X] node_exporter
-  * [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
-* [X] add config include folder
-* [X] add check_ping plugin
-* [X] add ntp check
-* [X] check usr signal handler
-* [X] manage certificate via rest api
-* [X] add https config includes
-
-### Stage 3
-
-* [X] self update from github
+* [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
 * [ ] open telemetry
 * [ ] improve configuration
   * [ ] add config validator
   * [ ] use strong typed config items
-* [X] osx
-  * [X] check pkg uninstall
-* [X] rename packages to avoid confusion: amd64 -> x86-64, 386 -> i386, arm64 -> aarch64
+  * [ ] add module enable/disable option directly in the module section
 
 ## Not gonna happen
 
