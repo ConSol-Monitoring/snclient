@@ -59,7 +59,15 @@ func TestCheckFiles(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), ";600;")
 
 	res = snc.RunCheck("check_files", []string{"paths=t", "crit=written lt -10m", "show-all"})
-	assert.Contains(t, string(res.BuildPluginOutput()), fmt.Sprintf(";%d:;", time.Now().Unix()-600))
+	output := string(res.BuildPluginOutput())
+	minus10Min := time.Now().Unix() - 600
+	// allow 3seconds time gap to avoid false negatives
+	for range 3 {
+		if !strings.Contains(output, fmt.Sprintf(";%d:;", minus10Min)) {
+			minus10Min--
+		}
+	}
+	assert.Contains(t, output, fmt.Sprintf(";%d:;", minus10Min))
 
 	res = snc.RunCheck("check_files", []string{"path=./t/checksum.txt", "crit=md5_checksum == 3687C5D7106484CD61CDE867A2A999FA"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
