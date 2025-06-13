@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -10,6 +11,7 @@ import (
 
 const (
 	localDEBINIPath = `/etc/snclient/snclient_local.ini`
+	aptGetTimeout   = 3 * time.Minute
 )
 
 // this test requires:
@@ -35,7 +37,7 @@ func TestDEBinstaller(t *testing.T) {
 			"NEEDRESTART_SUSPEND": "1",
 		},
 		ErrLike: []string{`.*`},
-		Timeout: DefaultCommandTimeout * 2,
+		Timeout: aptGetTimeout,
 	})
 
 	requiredFiles := []string{
@@ -122,6 +124,7 @@ func TestDEBinstaller(t *testing.T) {
 			"DEBIAN_FRONTEND":     "noninteractive",
 			"NEEDRESTART_SUSPEND": "1",
 		},
+		Timeout: aptGetTimeout,
 	})
 
 	for _, file := range requiredFiles {
