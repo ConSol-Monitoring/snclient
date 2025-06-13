@@ -317,10 +317,11 @@ func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.R
 	keyFile, _ := defSection.GetString("certificate key")
 	keyFileBak := keyFile + ".tmp"
 	if data.KeyData == "" && data.CertData != "" {
-		pubKey, certPublicKey := l.getRelevantPublicKeys(res, keyFileBak, certBytes)
-		newPrivateKey, err := l.readPrivateKey(keyFileBak)
+		newPrivateKey, pubKey, certPublicKey, err := l.getRelevantRSAKeys(keyFileBak, certBytes)
 		if err != nil {
 			l.sendError(res, err)
+
+			return
 		}
 		if pubKey.Equal(certPublicKey) {
 			privateKeyBytes := x509.MarshalPKCS1PrivateKey(newPrivateKey)
@@ -382,27 +383,27 @@ func (l *HandlerWebAdmin) getBytesFromReplacementStructData(res http.ResponseWri
 	return
 }
 
-func (l *HandlerWebAdmin) getRelevantPublicKeys(res http.ResponseWriter, tempKeyFile string, certBytes []byte) (privateKeyPubclicPart, certPublicKey *rsa.PublicKey) {
-	newPrivateKey, err := l.readPrivateKey(tempKeyFile)
+func (l *HandlerWebAdmin) getRelevantRSAKeys(tempKeyFile string, certBytes []byte) (newPrivateKey *rsa.PrivateKey, privateKeyPublicPart, certPublicKey *rsa.PublicKey, err error) {
+	newPrivateKey, err = l.readPrivateKey(tempKeyFile)
 	if err != nil {
-		l.sendError(res, err)
+		return nil, nil, nil, fmt.Errorf("failed to read private key: %s", err.Error())
 	}
 	newPubKey := newPrivateKey.Public()
 	rsaNewPublicKey, ok := newPubKey.(*rsa.PublicKey)
 	if !ok {
-		l.sendError(res, fmt.Errorf("rsa public key in wrong format"))
+		return nil, nil, nil, fmt.Errorf("rsa public key in wrong format")
 	}
 	block, _ := pem.Decode(certBytes)
 	newCert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		l.sendError(res, err)
+		return nil, nil, nil, fmt.Errorf("failed to parse certificate: %s", err.Error())
 	}
 	newCertPublicKey, ok := newCert.PublicKey.(*rsa.PublicKey)
 	if !ok {
-		l.sendError(res, fmt.Errorf("rsa public key from csr in wrong format"))
+		return nil, nil, nil, fmt.Errorf("rsa public key from csr in wrong format")
 	}
 
-	return rsaNewPublicKey, newCertPublicKey
+	return newPrivateKey, rsaNewPublicKey, newCertPublicKey, nil
 }
 
 func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request) {
