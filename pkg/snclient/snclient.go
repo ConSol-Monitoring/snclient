@@ -564,12 +564,11 @@ func (snc *Agent) ReadConfiguration(files []string) (initSet *AgentRunSet, err e
 func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *AgentRunSet, modules *ModuleSet) error {
 	conf := runSet.config
 
-	modulesConf := conf.Section("/modules")
 	for _, entry := range loadable {
-		enabled, ok, err := modulesConf.GetBool(entry.ModuleKey)
+		enabled, ok, err := entry.IsEnabled(conf)
 		switch {
 		case err != nil:
-			return fmt.Errorf("error in %s /modules configuration: %s", entry.Name(), err.Error())
+			return err
 		case !ok:
 			log.Tracef("%s %s is disabled by default config. skipping...", name, entry.Name())
 

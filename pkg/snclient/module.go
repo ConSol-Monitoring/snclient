@@ -125,6 +125,44 @@ func (lm *LoadableModule) Name() string {
 	return lm.ModuleKey
 }
 
+// IsEnabled checks if this module is enabled in the config
+func (lm *LoadableModule) IsEnabled(conf *Config) (enabled, ok bool, err error) {
+	// enabled/disabled directly from the section configuration using the same config attribute
+	sectionConf := conf.Section(lm.ConfigKey)
+	enabled, ok, err = sectionConf.GetBool(lm.ModuleKey)
+	if err != nil {
+		return false, true, fmt.Errorf("error in %s %s configuration: %s", lm.Name(), lm.ConfigKey, err.Error())
+	}
+
+	if ok {
+		return enabled, ok, nil
+	}
+
+	// search sub section as well, ex.: from /settings/ManagedExporter/example
+	subSections := conf.SectionsByPrefix(lm.ConfigKey + "/")
+	for _, subSection := range subSections {
+		enabled, ok, err = subSection.GetBool(lm.ModuleKey)
+		if err != nil {
+			return false, true, fmt.Errorf("error in %s %s configuration: %s", lm.Name(), lm.ConfigKey, err.Error())
+		}
+		if ok {
+			return enabled, ok, nil
+		}
+	}
+
+	modulesConf := conf.Section("/modules")
+	enabled, ok, err = modulesConf.GetBool(lm.ModuleKey)
+	if err != nil {
+		return false, false, fmt.Errorf("error in %s /modules configuration: %s", lm.Name(), err.Error())
+	}
+	// enabled from the global /modules section
+	if enabled {
+		return enabled, ok, nil
+	}
+
+	return enabled, ok, nil
+}
+
 // Init creates the actual TaskHandler for this task
 func (lm *LoadableModule) Init(snc *Agent, conf *Config, runSet *AgentRunSet) (Module, error) {
 	handler := lm.Creator()
