@@ -7,7 +7,7 @@ require (
 	github.com/bi-zone/go-fileversion v1.0.0
 	github.com/consol-monitoring/check_nsc_web v0.7.3
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-ole/go-ole v1.3.0
 	github.com/goccy/go-json v0.10.5
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
