@@ -215,7 +215,7 @@ jobs:
       - name: "install Azure Sign Tool"
         if: ${{ env.CERTURL != '' }}
         run: |
-          dotnet tool install --global --version 6.0.0 AzureSignTool
+          dotnet tool install --global --version 6.0.1 AzureSignTool
 
       - name: "Sign snclient.exe"
         if: ${{ env.CERTURL != '' }}
@@ -325,7 +325,7 @@ jobs:
       - name: "install Azure Sign Tool"
         if: ${{ env.CERTURL != '' }}
         run: |
-          dotnet tool install --global --version 6.0.0 AzureSignTool
+          dotnet tool install --global --version 6.0.1 AzureSignTool
 
       - name: "Sign snclient.msi"
         if: ${{ env.CERTURL != '' }}
