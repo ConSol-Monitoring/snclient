@@ -1,5 +1,7 @@
 param ($out="snclient.msi", $arch="amd64", $major="0", $minor="0", $rev="1", $sha="unknown")
 
+$WIX = "C:\Program Files (x86)\WiX Toolset v3.14"
+
 $ProgressPreference = 'SilentlyContinue'
 
 If (-Not (Test-Path -Path "windist" )) {
@@ -7,7 +9,7 @@ If (-Not (Test-Path -Path "windist" )) {
   Exit 1
 }
 
-If (-Not (Test-Path -Path "C:\Program Files (x86)\WiX Toolset v3.14\bin\candle.exe" )) {
+If (-Not (Test-Path -Path "$WIX\bin\candle.exe" )) {
   If (-Not (Test-Path -Path ".\wix314.exe" )) {
     Invoke-WebRequest -UseBasicParsing `
       -Uri https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe `
@@ -29,7 +31,7 @@ if ("$arch" -eq "aarch64") { $win_arch = "arm64"; $go_arch = "arm64" }
 Copy-Item .\windist\windows_exporter-$go_arch.exe .\windist\windows_exporter.exe
 
 Write-Output "using: arch / platform: $win_arch"
-& 'C:\Program Files (x86)\WiX Toolset v3.14\bin\candle.exe' .\packaging\windows\snclient.wxs `
+& "$WIX\bin\candle.exe" .\packaging\windows\snclient.wxs `
   -arch $win_arch `
   -dPlatform="$win_arch" `
   -dMajorVersion="$major" `
@@ -40,7 +42,11 @@ If (-Not $?) {
   Exit 1
 }
 
-& "C:\Program Files (x86)\WiX Toolset v3.14\bin\light.exe" ".\snclient.wixobj" -ext WixUtilExtension.dll -ext WixUIExtension.dll
+& "$WIX\bin\light.exe" `
+  ".\snclient.wixobj" `
+  -sice:ICE61 `
+  -ext WixUtilExtension.dll `
+  -ext WixUIExtension.dll
 If (-Not $?) {
   Exit 1
 }
