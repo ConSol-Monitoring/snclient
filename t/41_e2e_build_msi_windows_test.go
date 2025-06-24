@@ -99,7 +99,7 @@ func TestMSIinstaller(t *testing.T) {
 		Args: []string{
 			`.\packaging\windows\build_msi.ps1`,
 			"-out", `.\t\snclient_update.msi`,
-			"-major", "0",
+			"-major", "99",
 			"-minor", "1",
 			"-rev", "101",
 			"-sha", "deadbeef",
