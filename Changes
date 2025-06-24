@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - update windows exporter to 0.30.8
+         - msi: disable downgrades in windows installer
 
 0.35     Fri Jun 13 16:30:25 CEST 2025
          - change showing performance data in check_files and check_services (#243)
