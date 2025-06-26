@@ -61,22 +61,25 @@ func setLogLevel(level string) {
 	restoreLevel = level
 	switch strings.ToLower(level) {
 	case "off":
-		log.SetMinMaxSeverity(factorlog.StringToSeverity("PANIC"), factorlog.StringToSeverity("PANIC"))
+		log.SetMinMaxSeverity(factorlog.PANIC, factorlog.PANIC)
 		log.SetVerbosity(LogVerbosityNone)
 	case "error":
-		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
+		log.SetMinMaxSeverity(factorlog.ERROR, factorlog.PANIC)
+		log.SetVerbosity(LogVerbosityDefault)
+	case "warning", "warn":
+		log.SetMinMaxSeverity(factorlog.WARN, factorlog.PANIC)
 		log.SetVerbosity(LogVerbosityDefault)
 	case "info":
-		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
+		log.SetMinMaxSeverity(factorlog.INFO, factorlog.PANIC)
 		log.SetVerbosity(LogVerbosityDefault)
 	case "debug":
-		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
+		log.SetMinMaxSeverity(factorlog.DEBUG, factorlog.PANIC)
 		log.SetVerbosity(LogVerbosityDebug)
 	case "trace":
-		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
+		log.SetMinMaxSeverity(factorlog.TRACE, factorlog.PANIC)
 		log.SetVerbosity(LogVerbosityTrace)
 	case "trace2":
-		log.SetMinMaxSeverity(factorlog.StringToSeverity(strings.ToUpper(level)), factorlog.StringToSeverity("PANIC"))
+		log.SetMinMaxSeverity(factorlog.TRACE, factorlog.PANIC)
 		log.SetVerbosity(LogVerbosityTrace2)
 	case "":
 	default:
