@@ -15,6 +15,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestConfigPkgDefaults(t *testing.T) {
+	cfg := NewConfig(true)
+	err := cfg.ParseINIFile("../../packaging/snclient.ini", nil)
+
+	// verify default nasty characters
+	nastyChars, _ := cfg.Section("/settings/WEB/server").GetString("nasty characters")
+	assert.Equalf(t, DefaultNastyCharacters, nastyChars, "default nasty characters")
+	assert.Containsf(t, nastyChars, "\\", "nasty characters contains backslash")
+
+	require.NoErrorf(t, err, "config parsed")
+}
+
 func TestConfigBasic(t *testing.T) {
 	configText := `
 [/test]

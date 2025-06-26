@@ -133,14 +133,14 @@ In addition to the existing characters, SNClient does not allow the `$` characte
 The list of not allowed nasty characters is therefore:
 
 ```txt
-$|`&><'\"\\[]{}
+$|`&><'"\[]{}
 ```
 
 Change the list of nasty chars with the `nasty characters` configuration option.
 
 ```ini
 [/settings/default]
-nasty characters = $|`&><'\"\\[]{}
+nasty characters = $|`&><'"\[]{}
 ```
 
 ## Allowed Hosts Handling
