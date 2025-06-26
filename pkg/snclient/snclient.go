@@ -1219,9 +1219,10 @@ func procTimeoutGuard(ctx context.Context, snc *Agent, proc *os.Process) {
 }
 
 func (snc *Agent) verifyPassword(confPassword, userPassword string) bool {
-	// password checks are disabled
 	if confPassword == "" {
-		return true
+		log.Warnf("configured password in ini file is empty, deny all access -> 403")
+
+		return false
 	}
 
 	// no login with default password

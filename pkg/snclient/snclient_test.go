@@ -26,8 +26,8 @@ password3 = SHA256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00
 	defer restoreLogLevel()
 
 	p0, _ := conf.GetString("password0")
-	assert.Truef(t, snc.verifyPassword(p0, "test"), "password check disabled -> ok")
-	assert.Truef(t, snc.verifyPassword(p0, ""), "password check disabled -> ok")
+	assert.Falsef(t, snc.verifyPassword(p0, "test"), "password check disabled for empty passwords -> not ok")
+	assert.Falsef(t, snc.verifyPassword(p0, ""), "password check disabled -> not ok")
 
 	p1, _ := conf.GetString("password1")
 	assert.Falsef(t, snc.verifyPassword(p1, "test"), "default password still set -> not ok")

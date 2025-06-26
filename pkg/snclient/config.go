@@ -91,7 +91,8 @@ var DefaultListenTCPConfig = ConfigData{
 }
 
 var DefaultListenHTTPConfig = ConfigData{
-	"password": DefaultPassword,
+	"password":         DefaultPassword,
+	"require password": "true",
 }
 
 var DefaultHTTPClientConfig = ConfigData{

@@ -24,26 +24,27 @@ const (
 )
 
 type HandlerManagedExporter struct {
-	name           string
-	agentPath      string
-	agentArgs      string
-	agentAddress   string
-	agentMaxMem    uint64
-	agentExtraArgs string
-	agentUser      string
-	cmd            *exec.Cmd
-	pid            int
-	snc            *Agent
-	conf           *ConfigSection
-	keepRunningA   atomic.Bool
-	password       string
-	urlPrefix      string
-	urlMatch       string
-	listener       *Listener
-	proxy          *httputil.ReverseProxy
-	allowedHosts   *AllowedHostConfig
-	killOrphaned   bool
-	initCallback   func()
+	name            string
+	agentPath       string
+	agentArgs       string
+	agentAddress    string
+	agentMaxMem     uint64
+	agentExtraArgs  string
+	agentUser       string
+	cmd             *exec.Cmd
+	pid             int
+	snc             *Agent
+	conf            *ConfigSection
+	keepRunningA    atomic.Bool
+	password        string
+	requirePassword bool
+	urlPrefix       string
+	urlMatch        string
+	listener        *Listener
+	proxy           *httputil.ReverseProxy
+	allowedHosts    *AllowedHostConfig
+	killOrphaned    bool
+	initCallback    func()
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -103,9 +104,9 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 	l.snc = snc
 	l.conf = conf
 
-	l.password = DefaultPassword
-	if password, ok := conf.GetString("password"); ok {
-		l.password = password
+	err := setListenerAuthInit(&l.password, &l.requirePassword, conf)
+	if err != nil {
+		return err
 	}
 
 	listener, err := SharedWebListener(snc, conf, l, runSet)
@@ -183,7 +184,7 @@ func (l *HandlerManagedExporter) GetAllowedHosts() *AllowedHostConfig {
 }
 
 func (l *HandlerManagedExporter) CheckPassword(req *http.Request, _ URLMapping) bool {
-	return verifyRequestPassword(l.snc, req, l.password)
+	return verifyRequestPassword(l.snc, req, l.password, l.requirePassword)
 }
 
 func (l *HandlerManagedExporter) GetMappings(*Agent) []URLMapping {

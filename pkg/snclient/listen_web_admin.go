@@ -36,12 +36,13 @@ func init() {
 const DefaultPrivateKeySize = 4096
 
 type HandlerAdmin struct {
-	noCopy       noCopy
-	handler      http.Handler
-	password     string
-	snc          *Agent
-	listener     *Listener
-	allowedHosts *AllowedHostConfig
+	noCopy          noCopy
+	handler         http.Handler
+	password        string
+	requirePassword bool
+	snc             *Agent
+	listener        *Listener
+	allowedHosts    *AllowedHostConfig
 }
 
 type csrRequestJSON struct {
@@ -95,9 +96,10 @@ func (l *HandlerAdmin) Stop() {
 
 func (l *HandlerAdmin) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
-	l.password = DefaultPassword
-	if password, ok := conf.GetString("password"); ok {
-		l.password = password
+
+	err := setListenerAuthInit(&l.password, &l.requirePassword, conf)
+	if err != nil {
+		return err
 	}
 
 	listener, err := SharedWebListener(snc, conf, l, runSet)
@@ -120,7 +122,7 @@ func (l *HandlerAdmin) GetAllowedHosts() *AllowedHostConfig {
 }
 
 func (l *HandlerAdmin) CheckPassword(req *http.Request, _ URLMapping) bool {
-	return verifyRequestPassword(l.snc, req, l.password)
+	return verifyRequestPassword(l.snc, req, l.password, l.requirePassword)
 }
 
 func (l *HandlerAdmin) GetMappings(*Agent) []URLMapping {

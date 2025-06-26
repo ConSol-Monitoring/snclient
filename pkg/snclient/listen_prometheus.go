@@ -69,12 +69,13 @@ var (
 )
 
 type HandlerPrometheus struct {
-	noCopy       noCopy
-	handler      http.Handler
-	listener     *Listener
-	password     string
-	snc          *Agent
-	allowedHosts *AllowedHostConfig
+	noCopy          noCopy
+	handler         http.Handler
+	listener        *Listener
+	password        string
+	requirePassword bool
+	snc             *Agent
+	allowedHosts    *AllowedHostConfig
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -94,7 +95,7 @@ func NewHandlerPrometheus() Module {
 
 	listen := &HandlerPrometheus{}
 	listen.handler = http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		if !verifyRequestPassword(listen.snc, req, listen.password) {
+		if !verifyRequestPassword(listen.snc, req, listen.password, listen.requirePassword) {
 			http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 
 			return
@@ -128,10 +129,12 @@ func (l *HandlerPrometheus) Stop() {
 
 func (l *HandlerPrometheus) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
-	l.password = DefaultPassword
-	if password, ok := conf.GetString("password"); ok {
-		l.password = password
+
+	err := setListenerAuthInit(&l.password, &l.requirePassword, conf)
+	if err != nil {
+		return err
 	}
+
 	registerMetrics()
 	if Revision != "" {
 		promInfoCount.WithLabelValues(VERSION+"."+Revision, Build, runtime.GOOS).Set(1)
@@ -159,7 +162,7 @@ func (l *HandlerPrometheus) GetAllowedHosts() *AllowedHostConfig {
 }
 
 func (l *HandlerPrometheus) CheckPassword(req *http.Request, _ URLMapping) bool {
-	return verifyRequestPassword(l.snc, req, l.password)
+	return verifyRequestPassword(l.snc, req, l.password, l.requirePassword)
 }
 
 func (l *HandlerPrometheus) GetMappings(*Agent) []URLMapping {

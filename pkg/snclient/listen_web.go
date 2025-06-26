@@ -69,15 +69,16 @@ func (n CheckWebPerfNumber) MarshalJSON() ([]byte, error) {
 }
 
 type HandlerWeb struct {
-	noCopy         noCopy
-	handlerGeneric http.Handler
-	handlerLegacy  http.Handler
-	handlerV1      http.Handler
-	conf           *ConfigSection
-	password       string
-	snc            *Agent
-	listener       *Listener
-	allowedHosts   *AllowedHostConfig
+	noCopy          noCopy
+	handlerGeneric  http.Handler
+	handlerLegacy   http.Handler
+	handlerV1       http.Handler
+	conf            *ConfigSection
+	password        string
+	requirePassword bool
+	snc             *Agent
+	listener        *Listener
+	allowedHosts    *AllowedHostConfig
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -121,9 +122,10 @@ func (l *HandlerWeb) Stop() {
 func (l *HandlerWeb) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
 	l.conf = conf
-	l.password = DefaultPassword
-	if password, ok := conf.GetString("password"); ok {
-		l.password = password
+
+	err := setListenerAuthInit(&l.password, &l.requirePassword, conf)
+	if err != nil {
+		return err
 	}
 
 	listener, err := SharedWebListener(snc, conf, l, runSet)
@@ -150,7 +152,7 @@ func (l *HandlerWeb) CheckPassword(req *http.Request, _ URLMapping) bool {
 	case "/", "/index.html":
 		return true
 	default:
-		return verifyRequestPassword(l.snc, req, l.password)
+		return verifyRequestPassword(l.snc, req, l.password, l.requirePassword)
 	}
 }
 
@@ -328,7 +330,10 @@ func (l *HandlerWeb) result2V1(result *CheckResult) (v1Res []CheckWebLineV1) {
 	return v1Res
 }
 
-func verifyRequestPassword(snc *Agent, req *http.Request, requiredPassword string) bool {
+func verifyRequestPassword(snc *Agent, req *http.Request, requiredPassword string, requirePassword bool) bool {
+	if !requirePassword {
+		return true
+	}
 	// check basic auth password
 	_, password, _ := req.BasicAuth()
 	if password == "" {

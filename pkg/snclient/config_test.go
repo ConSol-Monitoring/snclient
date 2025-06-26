@@ -466,7 +466,7 @@ allowed hosts  += 192.168.3.3`
 			res.WriteHeader(http.StatusOK)
 			LogError2(res.Write([]byte(httpConfig2)))
 		case "/tmp/test3.ini":
-			if verifyRequestPassword(snc, req, "pass") {
+			if verifyRequestPassword(snc, req, "pass", true) {
 				res.WriteHeader(http.StatusOK)
 				LogError2(res.Write([]byte(httpConfig3)))
 			} else {

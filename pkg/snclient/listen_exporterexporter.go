@@ -42,15 +42,16 @@ func init() {
 }
 
 type HandlerExporterExporter struct {
-	noCopy        noCopy
-	handler       http.Handler
-	listener      *Listener
-	urlPrefix     string
-	password      string
-	defaultModule string
-	snc           *Agent
-	modules       map[string]*exporterModuleConfig
-	allowedHosts  *AllowedHostConfig
+	noCopy          noCopy
+	handler         http.Handler
+	listener        *Listener
+	urlPrefix       string
+	password        string
+	requirePassword bool
+	defaultModule   string
+	snc             *Agent
+	modules         map[string]*exporterModuleConfig
+	allowedHosts    *AllowedHostConfig
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -88,9 +89,10 @@ func (l *HandlerExporterExporter) Stop() {
 
 func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
-	l.password = DefaultPassword
-	if password, ok := conf.GetString("password"); ok {
-		l.password = password
+
+	err := setListenerAuthInit(&l.password, &l.requirePassword, conf)
+	if err != nil {
+		return err
 	}
 
 	listener, err := SharedWebListener(snc, conf, l, runSet)
@@ -128,7 +130,7 @@ func (l *HandlerExporterExporter) GetAllowedHosts() *AllowedHostConfig {
 }
 
 func (l *HandlerExporterExporter) CheckPassword(req *http.Request, _ URLMapping) bool {
-	return verifyRequestPassword(l.snc, req, l.password)
+	return verifyRequestPassword(l.snc, req, l.password, l.requirePassword)
 }
 
 func (l *HandlerExporterExporter) GetMappings(*Agent) []URLMapping {

@@ -76,6 +76,24 @@ func SharedWebListener(snc *Agent, conf *ConfigSection, webHandler RequestHandle
 	return listener, err
 }
 
+func setListenerAuthInit(password *string, requirePassword *bool, conf *ConfigSection) error {
+	*password = DefaultPassword
+	if pw, ok := conf.GetString("password"); ok {
+		*password = pw
+	}
+
+	*requirePassword = true
+	reqPw, ok, err := conf.GetBool("require password")
+	if err != nil {
+		return err
+	}
+	if ok {
+		*requirePassword = reqPw
+	}
+
+	return nil
+}
+
 func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	// parse/set port.
 	port, ok := conf.GetString("port")

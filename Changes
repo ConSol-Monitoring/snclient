@@ -1,6 +1,8 @@
 This file documents the revision history for the SNClient agent.
 
 next:
+         - add new attribute "require password" which must be disabled to allow requests without password
+         - disallow empty passwords and empty passwords no longer disable password authentication
          - update windows exporter to 0.30.8
          - msi: disable downgrades in windows installer
 
