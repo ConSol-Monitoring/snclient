@@ -277,7 +277,14 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 		}
 
 		// start of a new section
-		if line[0] == '[' {
+		if line[0] == '[' { //nolint:nestif // it is what it is...
+			// new section started, check if previous was a include section. If so, do the include
+			if config.recursive && currentSection != nil {
+				err := config.parseIncludeSection(currentSection, iniPath, snc)
+				if err != nil {
+					parseErrors = append(parseErrors, fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, err.Error()))
+				}
+			}
 			// append comments to previous section unless they cuddle next section without newlines
 			if currentSection != nil && len(currentComments) > 0 {
 				// search comments (in reverse) for the first empty line and split those onto the next section
@@ -331,8 +338,8 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 			currentComments = make([]string, 0)
 		}
 
-		// recurse directly when in an includes section to maintain order of settings
-		if config.recursive && strings.HasPrefix(currentSection.name, "/includes") {
+		// recurse directly when in the /includes section to maintain order of settings
+		if config.recursive && currentSection.name == "/includes" {
 			value, err := configParseString(val[1])
 			if err != nil {
 				parseErrors = append(parseErrors, fmt.Errorf("%s (included in %s:%d)", err.Error(), iniPath, lineNr))
@@ -355,11 +362,32 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 		currentSection.comments["_END"] = currentComments
 	}
 
+	// new section started, check if previous was a include section. If so, do the include
+	if config.recursive && currentSection != nil {
+		err := config.parseIncludeSection(currentSection, iniPath, snc)
+		if err != nil {
+			parseErrors = append(parseErrors, fmt.Errorf("config error in %s: %s", iniPath, err.Error()))
+		}
+	}
+
 	if len(parseErrors) > 0 {
 		return parseErrors[0]
 	}
 
 	return nil
+}
+
+func (config *Config) parseIncludeSection(section *ConfigSection, srcPath string, snc *Agent) error {
+	if !strings.HasPrefix(section.name, "/includes/") {
+		return nil
+	}
+
+	url, ok := section.GetString("url")
+	if !ok || url == "" {
+		return fmt.Errorf("include section %s has no url set", section.name)
+	}
+
+	return config.parseInclude(url, srcPath, section, snc)
 }
 
 func (config *Config) parseInclude(inclPath, srcPath string, section *ConfigSection, snc *Agent) error {

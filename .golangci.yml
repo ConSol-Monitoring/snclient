@@ -129,6 +129,7 @@ issues:
     - "Function 'finalizeOutput' has too many statements"
     - "Function 'addFile' has too many statements"
     - "cognitive complexity .* of func .*ParseINI`"
+    - "cyclomatic complexity .* of func .*ParseINI`"
     - "cognitive complexity .* of func .*ThresholdString"
     - "appendAssign: append result not assigned to the same slice"
     - "parameter name 'a' is too short for the scope of its usage"

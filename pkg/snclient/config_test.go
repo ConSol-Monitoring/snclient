@@ -455,6 +455,10 @@ allowed hosts  += 192.168.2.2`
 	httpConfig3 := `
 [/settings/default]
 allowed hosts  += 192.168.3.3`
+	httpConfig4 := `
+[/settings/default]
+allowed hosts  += 192.168.3.4
+`
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "text/plain")
@@ -470,8 +474,16 @@ allowed hosts  += 192.168.3.3`
 				res.WriteHeader(http.StatusOK)
 				LogError2(res.Write([]byte(httpConfig3)))
 			} else {
-				LogError2(res.Write([]byte("not allowed")))
 				http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+				LogError2(res.Write([]byte("not allowed")))
+			}
+		case "/tmp/test4.ini":
+			if verifyRequestPassword(snc, req, "pass4", true) {
+				res.WriteHeader(http.StatusOK)
+				LogError2(res.Write([]byte(httpConfig4)))
+			} else {
+				http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+				LogError2(res.Write([]byte("not allowed")))
 			}
 		}
 	})
@@ -511,7 +523,12 @@ url = http://localhost:%d/tmp/test2.ini
 
 [/includes]
 auth = http://user:pass@localhost:%d/tmp/test3.ini
-`, testPort, testPort, testPort)
+
+[/includes/test4]
+user = user
+password = pass4
+url = http://localhost:%d/tmp/test4.ini
+`, testPort, testPort, testPort, testPort)
 
 	iniFile, _ := os.CreateTemp(t.TempDir(), "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
@@ -528,6 +545,7 @@ auth = http://user:pass@localhost:%d/tmp/test3.ini
 	assert.Containsf(t, allowed, "192.168.1.1", "reading http config")
 	assert.Containsf(t, allowed, "192.168.2.2", "reading http config")
 	assert.Containsf(t, allowed, "192.168.3.3", "reading http config")
+	assert.Containsf(t, allowed, "192.168.3.4", "reading http config")
 
 	StopTestAgent(t, snc)
 }
