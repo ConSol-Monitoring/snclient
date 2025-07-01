@@ -63,6 +63,8 @@ custom = local_*.ini
 confd  = conf.d/
 ```
 
+Read more about includes on the [configuration page](../configuration/#includes).
+
 ## Performance Data
 
 ### Threshold Ranges
