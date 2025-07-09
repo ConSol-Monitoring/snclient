@@ -46,13 +46,14 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument     | Description                                                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| column-split | Tab split default: \t                                                                           |
-| file         | The file that should be checked                                                                 |
-| files        | Comma separated list of files                                                                   |
-| label        | label:pattern => If the pattern is matched in a line the line will have the label set as detail |
-| line-split   | Character string used to split a file into several lines (default \n)                           |
+| Argument     | Description                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------ |
+| column-split | Tab split default: \t                                                                                  |
+| file         | The file that should be checked                                                                        |
+| files        | Comma separated list of files                                                                          |
+| label        | label:pattern => If the pattern is matched in a line the line will have the label set as detail        |
+| line-split   | Character string used to split a file into several lines (default \n)                                  |
+| offset       | offset=<int> => Starting position for scanning the file (0 for beginning). This overrides any saved offset |
 
 ## Attributes
 
