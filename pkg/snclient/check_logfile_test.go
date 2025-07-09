@@ -39,6 +39,26 @@ func TestCheckLogFilePathWildCards(t *testing.T) {
 	StopTestAgent(t, snc)
 }
 
+func TestCheckLogFilePathWildCardsAndOffset0(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK")
+
+	snc.alreadyParsedLogfiles.Clear()
+
+	res = snc.RunCheck("check_logfile", []string{"files=./t/test*", "offset=0", "warn=line LIKE WARNING"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
+	assert.Contains(t, string(res.BuildPluginOutput()), "WARNING - 2/16")
+
+	res = snc.RunCheck("check_logfile", []string{"files=./t/test*", "offset=0", "warn=line LIKE WARNING"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
+	assert.Contains(t, string(res.BuildPluginOutput()), "WARNING - 2/16")
+
+	StopTestAgent(t, snc)
+}
+
 func TestCheckLogFileOKPatternResetsErrors(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
