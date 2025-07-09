@@ -25,6 +25,7 @@ type CheckLogFile struct {
 	TimestampPattern string
 	ColumnDelimter   string
 	LabelPattern     []string
+	Offset           string // Changed to string to detect if user provided it
 }
 
 type LogLine struct {
@@ -49,6 +50,7 @@ func (c *CheckLogFile) Build() *CheckData {
 		args: map[string]CheckArgument{
 			"file":         {value: &c.FilePath, description: "The file that should be checked"},
 			"files":        {value: &c.Paths, description: "Comma separated list of files"},
+			"offset":       {value: &c.Offset, description: "offset=<int> => Starting position for scanning the file (0 for beginning). This overrides any saved offset"},
 			"line-split":   {value: &c.LineDelimeter, description: "Character string used to split a file into several lines (default \\n)"},
 			"column-split": {value: &c.ColumnDelimter, description: "Tab split default: \\t"},
 			"label":        {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
@@ -114,6 +116,7 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	return check.Finalize()
 }
 
+//nolint:gocyclo // A bit nested but at least well documented
 func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, labels map[string]*regexp.Regexp) (int, error) {
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -123,30 +126,77 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 
 	// If file was already parsed return immediately with 0 Bytes read and nil error
 	unCastedFile, ok := snc.alreadyParsedLogfiles.Load(fileName)
-	if ok { //nolint:nestif //errors needs to be checked
-		parsedFile, ok := unCastedFile.(ParsedFile)
-		if !ok {
-			return 0, fmt.Errorf("could not load already parsed files")
-		}
-		var info os.FileInfo
-		info, err = file.Stat()
-		if err != nil {
-			return 0, fmt.Errorf("could not read file stats: %s", err.Error())
-		}
-		if info.Size() <= int64(parsedFile.offset) {
-			return 0, nil
-		}
-		inode := getInode(fileName)
-		if inode != parsedFile.inode {
-			parsedFile.offset = 0
+	var startOffset int64 // This will hold the final offset to use.
+	var parseErr error
+
+	if c.Offset != "" { //nolint:nestif // Trust me ....
+		// User provided an offset string, attempt to parse it.
+		var parsedInt int64
+		parsedInt, parseErr = strconv.ParseInt(c.Offset, 10, 64)
+		if parseErr != nil {
+			return 0, fmt.Errorf("invalid offset value '%s' provided: %w", c.Offset, parseErr)
 		}
 
-		// Jump to last read bytes
-		_, err = file.Seek(int64(parsedFile.offset), 0)
-		if err != nil {
-			return 0, fmt.Errorf("while skipping already read file an error occurred: %s", err.Error())
+		if parsedInt < 0 {
+			return 0, fmt.Errorf("negative offset value '%d' not allowed", parsedInt)
+		}
+		startOffset = parsedInt
+	} else {
+		// No user-defined offset string (c.Offset is empty), try to load saved offset.
+		if ok { // This 'ok' is from the Load operation.
+			parsedFile, ok := unCastedFile.(ParsedFile)
+			if !ok {
+				return 0, fmt.Errorf("could not load already parsed files")
+			}
+			startOffset = int64(parsedFile.offset) // Use the saved offset.
+
+			info, err := file.Stat() //nolint:govet // err is only used for the next if
+			if err != nil {
+				return 0, fmt.Errorf("could not read file stats for inode check %s: %s", fileName, err.Error())
+			}
+
+			currentInode := getInode(fileName)
+			if currentInode != 0 && parsedFile.inode != 0 && currentInode != parsedFile.inode {
+				startOffset = 0 // Inode changed, reset offset.
+			} else {
+				// Inode same (or not checkable). Check if offset is beyond file size or file truncated.
+				if startOffset > info.Size() {
+					startOffset = 0 // File truncated or saved offset invalid, reset.
+				} else if startOffset == info.Size() && startOffset > 0 {
+					// No new content, and not starting from 0.
+					// Update inode if it was missing before and we have a current one.
+					if parsedFile.inode == 0 && currentInode != 0 {
+						parsedFile.inode = currentInode
+						snc.alreadyParsedLogfiles.Store(fileName, parsedFile)
+					}
+
+					return 0, nil // No new lines to read.
+				}
+			}
+		} else {
+			// No user offset string and no saved offset (file not found in alreadyParsedLogfiles),
+			// so start from the beginning.
+			startOffset = 0
 		}
 	}
+
+	// At this point, startOffset (int64) is determined. Seek to it if necessary.
+	if startOffset > 0 {
+		info, err := file.Stat() //nolint:govet // err is only used for the next if
+		if err != nil {
+			return 0, fmt.Errorf("could not stat file %s before seek: %s", fileName, err.Error())
+		}
+		if startOffset > info.Size() {
+			// If desired offset is past EOF, seeking to EOF is correct.
+			startOffset = info.Size()
+		}
+		// Perform the seek operation.
+		_, err = file.Seek(startOffset, 0)
+		if err != nil {
+			return 0, fmt.Errorf("failed to seek to offset %d in %s: %w", startOffset, fileName, err)
+		}
+	}
+	// If startOffset is 0, no explicit seek is needed as file is already at the beginning.
 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(c.getCustomSplitFunction())
