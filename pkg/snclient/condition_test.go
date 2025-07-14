@@ -72,6 +72,25 @@ func TestConditionParse(t *testing.T) {
 	}
 }
 
+func TestConditionStrings(t *testing.T) {
+	for _, check := range []struct {
+		input  ConditionList
+		expect string
+	}{
+		{
+			[]*Condition{{keyword: "state", operator: Equal, value: "ok"}},
+			"state = ok",
+		},
+		{
+			[]*Condition{{keyword: "drive", operator: Equal, value: "c:"}, {keyword: "drive", operator: Equal, value: "d:"}},
+			"drive = c: or drive = d:",
+		},
+	} {
+		str := check.input.String()
+		assert.Equal(t, check.expect, str, "%v -> %s", check.input, check.expect)
+	}
+}
+
 func TestConditionParseErrors(t *testing.T) {
 	for _, check := range []struct {
 		threshold string
@@ -205,12 +224,20 @@ func TestConditionPreCheck(t *testing.T) {
 	} {
 		cond, err := NewCondition(check.filter, nil)
 		require.NoError(t, err)
-		cd := CheckData{}
-		ok := cd.MatchMapCondition(ConditionList{cond}, check.entry, true)
-		assert.Equalf(t, check.expectPre, ok, "precheck returned: %v", ok)
+		chk := CheckData{}
+		ok := chk.MatchMapCondition(ConditionList{cond}, check.entry, true)
+		assert.Equalf(t, check.expectPre, ok, "pre check on %v returned: %v", check.entry, ok)
 
-		ok = cd.MatchMapCondition(ConditionList{cond}, check.entry, false)
-		assert.Equalf(t, check.expectPre, ok, "final check returned: %v", ok)
+		ok = chk.MatchMapCondition(ConditionList{cond}, check.entry, false)
+		assert.Equalf(t, check.expectPre, ok, "final check on %v returned: %v", check.entry, ok)
+
+		// none filter
+		cond, _ = NewCondition("none", nil)
+		ok = chk.MatchMapCondition(ConditionList{cond}, check.entry, true)
+		assert.Truef(t, ok, "none pre check on %v returned: %v", check.entry, ok)
+
+		ok = chk.MatchMapCondition(ConditionList{cond}, check.entry, false)
+		assert.Truef(t, ok, "none final check on %v returned: %v", check.entry, ok)
 	}
 }
 

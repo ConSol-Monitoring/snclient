@@ -52,7 +52,7 @@ ex.:
 
     'warn=load > 90%'
 
-Syntax is explained in details on the [expresions page](../expressions).
+Syntax is explained in details on the [expressions page](../expressions).
 
 ### Warning+
 
@@ -74,7 +74,7 @@ ex.:
 
     'crit=load > 98%'
 
-Syntax is explained in details on the [expresions page](../expressions).
+Syntax is explained in details on the [expressions page](../expressions).
 
 ### Critical+
 
@@ -96,7 +96,7 @@ ex.:
 
     'ok=enabled = 0'
 
-Syntax is explained in details on the [expresions page](../expressions).
+Syntax is explained in details on the [expressions page](../expressions).
 
 ### Empty-State
 

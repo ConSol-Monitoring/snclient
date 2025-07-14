@@ -237,7 +237,7 @@ func (c *Condition) String() string {
 			groups = append(groups, g.String())
 		}
 
-		return " (" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ") "
+		return "(" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ")"
 	}
 
 	return fmt.Sprintf("%s %s %v%s", c.keyword, c.operator.String(), c.value, c.unit)
@@ -846,7 +846,7 @@ func (c *Condition) expandUnitByName(str string) error {
 	return nil
 }
 
-// fix some cornercases in token lists, ex.:
+// fix some corner cases in token lists, ex.:
 func conditionFixTokenOperator(token []string) []string {
 	if len(token) >= 2 {
 		switch {

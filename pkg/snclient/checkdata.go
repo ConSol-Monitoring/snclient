@@ -478,7 +478,7 @@ func (cd *CheckData) MatchFilter(name, value string) bool {
 }
 
 // MatchFilterMap returns true if given map matches any filter
-// returns either the result or not ok if the result cannt be determined
+// returns either the result or not ok if the result cannot be determined
 func (cd *CheckData) MatchFilterMap(data map[string]string) (res, ok bool) {
 	finalOK := true
 	for _, cond := range cd.filter {
@@ -496,24 +496,41 @@ func (cd *CheckData) MatchFilterMap(data map[string]string) (res, ok bool) {
 	return false, finalOK
 }
 
-// MatchMapCondition returns true if listEntry matches filter
+// MatchMapCondition returns true if listEntry matches any filter
 // preCheck defines behavior in case an attribute does not exist (set true for pre checks and false for final filter)
 func (cd *CheckData) MatchMapCondition(conditions ConditionList, entry map[string]string, preCheck bool) bool {
+	allOK := true
+	allNone := true
 	for _, cond := range conditions {
 		if cond.isNone {
 			continue
 		}
+		allNone = false
 		res, ok := cond.Match(entry)
 		if !ok && !preCheck {
 			res = cond.compareEmpty()
 			ok = true
 		}
-		if !res && ok {
-			return false
+		if res {
+			return true
+		}
+		if !ok {
+			allOK = false
 		}
 	}
 
-	return true
+	if allNone {
+		// if all conditions are none, we can safely return true
+		return true
+	}
+
+	// nothing matched but all conditions were found can be safely filtered
+	if allOK && preCheck {
+		return false
+	}
+
+	// nothing matched, this ok on pre checks but a failure otherwise
+	return preCheck
 }
 
 // Filter data map by conditions and return filtered list.
@@ -582,9 +599,11 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			}
 			cd.okThreshold = append(cd.okThreshold, cond)
 		case "warn+", "warning+":
-			cd.warnThreshold = cd.fillDefaultThreshold(defaultWarning, cd.warnThreshold)
-
-			fallthrough
+			warn, err2 := cd.appendDefaultThreshold(keyword, argValue, defaultWarning, cd.warnThreshold)
+			if err2 != nil {
+				return nil, err2
+			}
+			cd.warnThreshold = warn
 		case "warn", "warning":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
@@ -592,9 +611,11 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			}
 			cd.warnThreshold = append(cd.warnThreshold, cond)
 		case "crit+", "critical+":
-			cd.critThreshold = cd.fillDefaultThreshold(defaultCritical, cd.critThreshold)
-
-			fallthrough
+			crit, err2 := cd.appendDefaultThreshold(keyword, argValue, defaultCritical, cd.critThreshold)
+			if err2 != nil {
+				return nil, err2
+			}
+			cd.critThreshold = crit
 		case "crit", "critical":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
@@ -602,9 +623,11 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
 		case "filter+":
-			cd.filter = cd.fillDefaultThreshold(cd.defaultFilter, cd.filter)
-
-			fallthrough
+			filter, err2 := cd.appendDefaultThreshold(keyword, argValue, cd.defaultFilter, cd.filter)
+			if err2 != nil {
+				return nil, err2
+			}
+			cd.filter = filter
 		case "filter":
 			applyDefaultFilter = false
 			cond, err2 := NewCondition(argValue, &cd.attributes)
@@ -860,8 +883,8 @@ func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defau
 		cd.defaultCritical = defaultCritical
 	}
 
-	cd.warnThreshold = cd.fillDefaultThreshold(cd.defaultWarning, cd.warnThreshold)
-	cd.critThreshold = cd.fillDefaultThreshold(cd.defaultCritical, cd.critThreshold)
+	cd.warnThreshold = cd.applyDefaultThreshold(cd.defaultWarning, cd.warnThreshold)
+	cd.critThreshold = cd.applyDefaultThreshold(cd.defaultCritical, cd.critThreshold)
 
 	if cd.timeout == 0 {
 		cd.timeout = DefaultCheckTimeout.Seconds()
@@ -1425,13 +1448,17 @@ func (cd *CheckData) helpAttributes(format ShowHelp) string {
 }
 
 // set default threshold unless already set
-func (cd *CheckData) fillDefaultThreshold(defaultThreshold string, list ConditionList) ConditionList {
+func (cd *CheckData) applyDefaultThreshold(defaultThreshold string, list ConditionList) ConditionList {
+	// does not have a default
 	if defaultThreshold == "" {
 		return list
 	}
+
+	// already has a threshold
 	if len(list) > 0 {
 		return list
 	}
+
 	condDef, err := NewCondition(defaultThreshold, &cd.attributes)
 	if err != nil {
 		log.Errorf("default threshold: %s", defaultThreshold)
@@ -1440,4 +1467,34 @@ func (cd *CheckData) fillDefaultThreshold(defaultThreshold string, list Conditio
 	list = append(list, condDef)
 
 	return list
+}
+
+// set default threshold unless already set
+func (cd *CheckData) appendDefaultThreshold(keyword, condStr, defaultThreshold string, list ConditionList) (ConditionList, error) {
+	if len(list) > 0 {
+		return nil, fmt.Errorf("keyword %s= cannot be used multiple times", keyword)
+	}
+
+	cond, err := NewCondition(condStr, &cd.attributes)
+	if err != nil {
+		return nil, err
+	}
+
+	if defaultThreshold == "" {
+		list = append(list, cond)
+
+		return list, nil
+	}
+
+	condDef, err := NewCondition(defaultThreshold, &cd.attributes)
+	if err != nil {
+		log.Errorf("default threshold: %s", defaultThreshold)
+		log.Panicf("default threshold failed: %s", err.Error())
+	}
+	list = ConditionList{&Condition{
+		group:         ConditionList{condDef, cond},
+		groupOperator: GroupAnd,
+	}}
+
+	return list, nil
 }

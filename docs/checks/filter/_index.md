@@ -22,7 +22,22 @@ ex.:
 
     filter="status = 'started'"
 
-Syntax is explained in details on the [expresions page](../expressions).
+Syntax is explained in details on the [expressions page](../expressions).
+
+Multiple filter can be used and will be combined with an logical `OR`.
+
+ex.:
+
+    filter="drive = 'C:'" filter="drive = 'D:'"
+
+## Filter As Excludes
+
+By default filters are a positive include list. But with the right operator
+they can be used as exclude as well.
+
+ex.:
+
+    filter="fstype not in ('tmpfs', 'debugfs')"
 
 ## Default Filter
 
@@ -43,9 +58,20 @@ Existing default filter can be extended by using a `filter+="..."` syntax, ex.:
 
     filter+="status = 'started'"
 
+In case of extending the default filter, all filter will be combined with an logical `AND`.
+
+ex.:
+    default filter="fstype is not tmpfs"
+
+    filter += "fstype is not debugfs"
+
+results in:
+
+    fstype is not tmpfs AND fstype is not debugfs
+
 ## Expressions
 
-Expressions are explained on the [expresions page](../expressions).
+Expressions are explained on the [expressions page](../expressions).
 
 ## Common Filter Attributes
 
