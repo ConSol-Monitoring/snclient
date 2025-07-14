@@ -76,8 +76,6 @@ func (m *winService) Execute(_ []string, changeReq <-chan svc.ChangeRequest, cha
 			if !m.snc.IsRunning() {
 				log.Debugf("main loop exited, stopping windows service")
 				keepListening = false
-
-				break
 			}
 		}
 	}
