@@ -66,7 +66,7 @@ Naemon Config
 | Argument | Description                                                                                           |
 | -------- | ----------------------------------------------------------------------------------------------------- |
 | exclude  | List of services to exclude from the check (mainly used when service is set to \*) (case insensitive) |
-| service  | Name of the service to check (set to \* to check all services). (case insensitive) Default: \*        |
+| service  | List of services to check (set to \* to check all services). (case insensitive) Default: \*           |
 
 ## Attributes
 

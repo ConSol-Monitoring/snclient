@@ -29,8 +29,8 @@ type WindowsServiceDetails struct {
 
 type CheckService struct {
 	AllServices []WindowsService
-	services    []string
-	excludes    []string
+	services    CommaStringList
+	excludes    CommaStringList
 }
 
 func NewCheckService() CheckHandler {
@@ -58,7 +58,7 @@ There is a specific [check_service for linux](../check_service_linux) as well.`,
 			"service": {
 				value:           &l.services,
 				isFilter:        true,
-				description:     "Name of the service to check (set to * to check all services). (case insensitive) Default: *",
+				description:     "List of services to check (set to * to check all services). (case insensitive) Default: *",
 				defaultWarning:  "state != 'running'",
 				defaultCritical: "state != 'running'",
 			},

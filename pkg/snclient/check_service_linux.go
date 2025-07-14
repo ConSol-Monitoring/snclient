@@ -32,8 +32,8 @@ const (
 
 type CheckService struct {
 	snc      *Agent
-	services []string
-	excludes []string
+	services CommaStringList
+	excludes CommaStringList
 }
 
 func NewCheckService() CheckHandler {
@@ -63,7 +63,7 @@ There is a specific [check_service for windows](../check_service_windows) as wel
 			"service": {
 				value:           &l.services,
 				isFilter:        true,
-				description:     "Name of the service to check (set to * to check all services). (case insensitive) Default: *",
+				description:     "List of services to check (set to * to check all services). (case insensitive) Default: *",
 				defaultCritical: stateCondition,
 			},
 			"exclude": {value: &l.excludes, description: "List of services to exclude from the check (mainly used when service is set to *) (case insensitive)"},
