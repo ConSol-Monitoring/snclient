@@ -321,7 +321,7 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 		return fmt.Errorf("disk partitions failed: %s", err.Error())
 	}
 	for _, partition := range partitions {
-		drive := partition.Device + "\\"
+		drive := strings.TrimSuffix(partition.Device, "\\") + "\\"
 		entry, ok := requiredDisks[drive]
 		if !ok {
 			entry = make(map[string]string)
