@@ -21,9 +21,9 @@ func init() {
 type CheckLogFile struct {
 	FilePath         []string
 	Paths            string
-	LineDelimeter    string
+	LineDelimiter    string
 	TimestampPattern string
-	ColumnDelimter   string
+	ColumnDelimiter  string
 	LabelPattern     []string
 	Offset           string // Changed to string to detect if user provided it
 }
@@ -50,9 +50,9 @@ func (c *CheckLogFile) Build() *CheckData {
 		args: map[string]CheckArgument{
 			"file":         {value: &c.FilePath, description: "The file that should be checked"},
 			"files":        {value: &c.Paths, description: "Comma separated list of files"},
-			"offset":       {value: &c.Offset, description: "offset=<int> => Starting position for scanning the file (0 for beginning). This overrides any saved offset"},
-			"line-split":   {value: &c.LineDelimeter, description: "Character string used to split a file into several lines (default \\n)"},
-			"column-split": {value: &c.ColumnDelimter, description: "Tab split default: \\t"},
+			"offset":       {value: &c.Offset, description: "Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset"},
+			"line-split":   {value: &c.LineDelimiter, description: "Character string used to split a file into several lines (default \\n)"},
+			"column-split": {value: &c.ColumnDelimiter, description: "Tab split default: \\t"},
 			"label":        {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
 		},
 		result: &CheckResult{
@@ -91,19 +91,19 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	}
 
 	totalLineCount := 0
-	for _, fileNamme := range c.FilePath {
-		if fileNamme == "" {
+	for _, fileName := range c.FilePath {
+		if fileName == "" {
 			continue
 		}
 		count := 0
-		files, err := filepath.Glob(fileNamme)
+		files, err := filepath.Glob(fileName)
 		if err != nil {
-			return nil, fmt.Errorf("could not get files for pattern %s, error was: %s", fileNamme, err.Error())
+			return nil, fmt.Errorf("could not get files for pattern %s, error was: %s", fileName, err.Error())
 		}
 		for _, fileName := range files {
 			tmpCount, err := c.addFile(fileName, check, snc, patterns)
 			if err != nil {
-				return nil, fmt.Errorf("error for file %s, error was: %s", fileNamme, err.Error())
+				return nil, fmt.Errorf("error for file %s, error was: %s", fileName, err.Error())
 			}
 			count += tmpCount
 		}
@@ -217,7 +217,7 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 			entry[label] = pattern.FindString(line)
 		}
 
-		// get all Thresholds with prefix coulumn
+		// get all Thresholds with prefix column
 		// if len(thres) > 0
 		allThresh := append(check.warnThreshold, check.critThreshold...)
 		var columnNumbers []int
@@ -241,7 +241,7 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 		}
 
 		if len(columnNumbers) > 0 {
-			cols := strings.Split(line, c.ColumnDelimter)
+			cols := strings.Split(line, c.ColumnDelimiter)
 			var maxColoumns int
 			if len(columnNumbers) == 0 {
 				maxColoumns = 0
@@ -253,17 +253,17 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 				return 0, fmt.Errorf("not enough columns in log for separator and index")
 			}
 
-			// in range of number of coulumns
-			// Fill entryp map
+			// in range of number of columns
+			// Fill entry map
 			for _, columnIndex := range columnNumbers {
 				entry[fmt.Sprintf("column%d", columnIndex)] = cols[columnIndex]
 			}
 		}
 
 		lineStorage = append(lineStorage, entry)
-		// Do not check for OK with empty conditionlist, it would match all
+		// Do not check for OK with empty condition list, it would match all
 		if okReset && check.MatchMapCondition(check.okThreshold, entry, true) {
-			// Add and empty entry with the current line count to the listdata to keep track of linecount
+			// Add and empty entry with the current line count to the list data to keep track of line count
 			entry := map[string]string{
 				"_count": fmt.Sprintf("%d", len(lineStorage)),
 			}
@@ -272,7 +272,7 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 		}
 	}
 	check.listData = append(check.listData, lineStorage...)
-	// Save File Size to check if lines were added
+	// Save file size to check if lines were added
 	info, err := file.Stat()
 	if err != nil {
 		return 0, fmt.Errorf("could not get file information %s", err.Error())
@@ -288,13 +288,13 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 
 func (c *CheckLogFile) getCustomSplitFunction() bufio.SplitFunc {
 	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		if c.LineDelimeter == "\n" || c.LineDelimeter == "" {
+		if c.LineDelimiter == "\n" || c.LineDelimiter == "" {
 			return bufio.ScanLines(data, atEOF)
 		}
 		if atEOF && len(data) == 0 {
 			return 0, nil, nil
 		}
-		if i := bytes.IndexAny(data, c.LineDelimeter); i >= 0 {
+		if i := bytes.IndexAny(data, c.LineDelimiter); i >= 0 {
 			return i, data[0:i], nil
 		}
 		if atEOF {
