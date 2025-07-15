@@ -8,10 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/consol-monitoring/snclient/pkg/convert"
 )
 
 func init() {
@@ -19,6 +20,7 @@ func init() {
 }
 
 type CheckLogFile struct {
+	snc              *Agent
 	FilePath         []string
 	Paths            string
 	LineDelimiter    string
@@ -72,6 +74,7 @@ func (c *CheckLogFile) Build() *CheckData {
 
 // Check implements CheckHandler.
 func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	c.snc = snc
 	c.FilePath = append(c.FilePath, strings.Split(c.Paths, ",")...)
 	if len(c.FilePath) == 0 {
 		return nil, fmt.Errorf("no file defined")
@@ -101,7 +104,7 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 			return nil, fmt.Errorf("could not get files for pattern %s, error was: %s", fileName, err.Error())
 		}
 		for _, fileName := range files {
-			tmpCount, err := c.addFile(fileName, check, snc, patterns)
+			tmpCount, err := c.addFile(fileName, check, patterns)
 			if err != nil {
 				return nil, fmt.Errorf("error for file %s, error was: %s", fileName, err.Error())
 			}
@@ -116,87 +119,50 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	return check.Finalize()
 }
 
-//nolint:gocyclo // A bit nested but at least well documented
-func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, labels map[string]*regexp.Regexp) (int, error) {
+func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[string]*regexp.Regexp) (int, error) {
 	file, err := os.Open(fileName)
 	if err != nil {
 		return 0, fmt.Errorf("could not open file: %s error was: %s", fileName, err.Error())
 	}
 	defer file.Close()
 
-	// If file was already parsed return immediately with 0 Bytes read and nil error
-	unCastedFile, ok := snc.alreadyParsedLogfiles.Load(fileName)
-	var startOffset int64 // This will hold the final offset to use.
-	var parseErr error
-
-	if c.Offset != "" { //nolint:nestif // Trust me ....
-		// User provided an offset string, attempt to parse it.
-		var parsedInt int64
-		parsedInt, parseErr = strconv.ParseInt(c.Offset, 10, 64)
-		if parseErr != nil {
-			return 0, fmt.Errorf("invalid offset value '%s' provided: %w", c.Offset, parseErr)
-		}
-
-		if parsedInt < 0 {
-			return 0, fmt.Errorf("negative offset value '%d' not allowed", parsedInt)
-		}
-		startOffset = parsedInt
-	} else {
-		// No user-defined offset string (c.Offset is empty), try to load saved offset.
-		if ok { // This 'ok' is from the Load operation.
-			parsedFile, ok := unCastedFile.(ParsedFile)
-			if !ok {
-				return 0, fmt.Errorf("could not load already parsed files")
-			}
-			startOffset = int64(parsedFile.offset) // Use the saved offset.
-
-			info, err := file.Stat() //nolint:govet // err is only used for the next if
-			if err != nil {
-				return 0, fmt.Errorf("could not read file stats for inode check %s: %s", fileName, err.Error())
-			}
-
-			currentInode := getInode(fileName)
-			if currentInode != 0 && parsedFile.inode != 0 && currentInode != parsedFile.inode {
-				startOffset = 0 // Inode changed, reset offset.
-			} else {
-				// Inode same (or not checkable). Check if offset is beyond file size or file truncated.
-				if startOffset > info.Size() {
-					startOffset = 0 // File truncated or saved offset invalid, reset.
-				} else if startOffset == info.Size() && startOffset > 0 {
-					// No new content, and not starting from 0.
-					// Update inode if it was missing before and we have a current one.
-					if parsedFile.inode == 0 && currentInode != 0 {
-						parsedFile.inode = currentInode
-						snc.alreadyParsedLogfiles.Store(fileName, parsedFile)
-					}
-
-					return 0, nil // No new lines to read.
-				}
-			}
-		} else {
-			// No user offset string and no saved offset (file not found in alreadyParsedLogfiles),
-			// so start from the beginning.
-			startOffset = 0
-		}
+	info, err := file.Stat()
+	if err != nil {
+		return 0, fmt.Errorf("could not stat file %s: %s", fileName, err.Error())
 	}
 
-	// At this point, startOffset (int64) is determined. Seek to it if necessary.
+	currentInode := getInode(fileName)
+	currentSize := info.Size()
+
+	startOffset, err := c.getStartOffset(fileName, currentSize, currentInode)
+	if err != nil {
+		return 0, err
+	}
+
+	saveState := true
+	defer func() {
+		// save current position and inode
+		if saveState {
+			c.snc.alreadyParsedLogfiles.Store(fileName, ParsedFile{
+				path:   fileName,
+				offset: currentSize,
+				inode:  currentInode,
+			})
+		}
+	}()
+
+	// seek to start offset
 	if startOffset > 0 {
-		info, err := file.Stat() //nolint:govet // err is only used for the next if
-		if err != nil {
-			return 0, fmt.Errorf("could not stat file %s before seek: %s", fileName, err.Error())
+		if startOffset > currentSize {
+			return 0, nil
 		}
-		if startOffset > info.Size() {
-			// If desired offset is past EOF, seeking to EOF is correct.
-			startOffset = info.Size()
-		}
-		// Perform the seek operation.
 		_, err = file.Seek(startOffset, 0)
 		if err != nil {
+			saveState = false
+
 			return 0, fmt.Errorf("failed to seek to offset %d in %s: %w", startOffset, fileName, err)
 		}
 	}
-	// If startOffset is 0, no explicit seek is needed as file is already at the beginning.
 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(c.getCustomSplitFunction())
@@ -211,17 +177,17 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 			"filename": fileName,
 			"line":     line,
 		}
-		// We have n Labels that all somehow need to be accessed
-		// We have n Labels that all need to check on each line
+
+		// we have n labels that all need to check on each line
 		for label, pattern := range labels {
 			entry[label] = pattern.FindString(line)
 		}
 
-		// get all Thresholds with prefix column
-		// if len(thres) > 0
+		// get all thresholds with prefix column
 		allThresh := append(check.warnThreshold, check.critThreshold...)
 		var columnNumbers []int
-		// Extract all needed threshold number
+
+		// extract all needed threshold number
 		numReg := regexp.MustCompile(`\d+`)
 
 		for _, thresh := range allThresh {
@@ -235,26 +201,29 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 			var index int
 			index, err = strconv.Atoi(match)
 			if err != nil {
-				return 0, fmt.Errorf("could not extract coulumn number from argument err: %s", err.Error())
+				saveState = false
+
+				return 0, fmt.Errorf("could not extract column number from argument err: %s", err.Error())
 			}
 			columnNumbers = append(columnNumbers, index)
 		}
 
 		if len(columnNumbers) > 0 {
 			cols := strings.Split(line, c.ColumnDelimiter)
-			var maxColoumns int
+			var maxColumns int
 			if len(columnNumbers) == 0 {
-				maxColoumns = 0
+				maxColumns = 0
 			} else {
-				maxColoumns = slices.Max(columnNumbers)
+				maxColumns = slices.Max(columnNumbers)
 			}
 
-			if len(cols) <= maxColoumns {
+			if len(cols) <= maxColumns {
+				saveState = false
+
 				return 0, fmt.Errorf("not enough columns in log for separator and index")
 			}
 
 			// in range of number of columns
-			// Fill entry map
 			for _, columnIndex := range columnNumbers {
 				entry[fmt.Sprintf("column%d", columnIndex)] = cols[columnIndex]
 			}
@@ -263,7 +232,7 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 		lineStorage = append(lineStorage, entry)
 		// Do not check for OK with empty condition list, it would match all
 		if okReset && check.MatchMapCondition(check.okThreshold, entry, true) {
-			// Add and empty entry with the current line count to the list data to keep track of line count
+			// add and empty entry with the current line count to the list data to keep track of line count
 			entry := map[string]string{
 				"_count": fmt.Sprintf("%d", len(lineStorage)),
 			}
@@ -272,18 +241,51 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, snc *Agent, la
 		}
 	}
 	check.listData = append(check.listData, lineStorage...)
-	// Save file size to check if lines were added
-	info, err := file.Stat()
-	if err != nil {
-		return 0, fmt.Errorf("could not get file information %s", err.Error())
-	}
-	pf := ParsedFile{path: fileName, offset: int(info.Size())}
-	if runtime.GOOS == "linux" {
-		pf.inode = getInode(fileName)
-	}
-	snc.alreadyParsedLogfiles.Store(fileName, pf)
 
 	return lineIndex, nil
+}
+
+func (c *CheckLogFile) getStartOffset(fileName string, currentSize int64, currentInode uint64) (int64, error) {
+	if c.Offset != "" {
+		// user provided an offset string, attempt to parse it.
+		startOffset, err := convert.Int64E(c.Offset)
+		if err != nil {
+			return 0, fmt.Errorf("invalid offset value '%s' provided: %s", c.Offset, err.Error())
+		}
+		if startOffset < 0 {
+			return 0, fmt.Errorf("offset cannot be negative: %d", startOffset)
+		}
+
+		return startOffset, nil
+	}
+
+	// if file was already parsed return immediately with 0 Bytes read and nil error
+	unCastedFile, alreadyParsed := c.snc.alreadyParsedLogfiles.Load(fileName)
+
+	// new file, start over
+	if !alreadyParsed {
+		return 0, nil
+	}
+
+	// no user-defined offset string (c.Offset is empty), try to load saved offset.
+	parsedFile, ok := unCastedFile.(ParsedFile)
+	if !ok {
+		return 0, fmt.Errorf("could not load already parsed files")
+	}
+
+	startOffset := parsedFile.offset
+
+	// inode changed, reset offset.
+	if currentInode != 0 && parsedFile.inode != 0 && currentInode != parsedFile.inode {
+		return 0, nil
+	}
+
+	// check if offset is beyond file size or file truncated.
+	if startOffset > currentSize {
+		return 0, nil
+	}
+
+	return startOffset, nil
 }
 
 func (c *CheckLogFile) getCustomSplitFunction() bufio.SplitFunc {

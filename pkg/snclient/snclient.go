@@ -169,7 +169,7 @@ type Agent struct {
 
 type ParsedFile struct {
 	path   string
-	offset int
+	offset int64
 	inode  uint64
 }
 
