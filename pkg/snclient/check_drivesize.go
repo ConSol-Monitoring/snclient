@@ -139,7 +139,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "inodes_used_pct", description: "Number of used inodes in percent", unit: UPercent},
 
 			{name: "media_type", description: "Windows only: numeric media type of drive"},
-			{name: "type", description: "Windows only: type of drive, ex.: fixed, cdrom, ramdisk,..."},
+			{name: "type", description: "Windows only: type of drive, ex.: fixed, cdrom, ramdisk, remote, removable, unknown"},
 			{name: "readable", description: "Windows only: flag drive is readable (0/1)"},
 			{name: "writable", description: "Windows only: flag drive is writable (0/1)"},
 			{name: "removable", description: "Windows only: flag drive is removable (0/1)"},
