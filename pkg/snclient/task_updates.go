@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"context"
+	"debug/buildinfo"
 	"errors"
 	"fmt"
 	"io"
@@ -734,6 +735,8 @@ func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
 		err = u.extractMsi(updateFile)
 	case "application/xar":
 		err = u.extractXar(updateFile)
+	case "application/deb":
+		err = u.extractDeb(updateFile)
 	default:
 		startOver = false
 	}
@@ -745,6 +748,16 @@ func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
 		LogError(utils.CopyFileMode(executable, updateFile))
 
 		return u.extractUpdate(updateFile)
+	}
+
+	info, err := buildinfo.ReadFile(updateFile)
+	if err != nil {
+		return fmt.Errorf("failed to verify snclient update file (%s: %s): %s", updateFile, mime, err.Error())
+	}
+
+	// simple sanity check
+	if !strings.HasSuffix(info.Main.Path, "/snclient") {
+		return fmt.Errorf("failed to verify snclient update file, invalid source: %s", info.Main.Path)
 	}
 
 	err = utils.CopyFileMode(executable, updateFile)
@@ -1048,6 +1061,28 @@ func (u *UpdateHandler) extractRpm(fileName string) error {
 	// Extracting payload
 	if err = rpm.ExpandPayload(tempDir); err != nil {
 		return fmt.Errorf("rpm unpack: %s", err.Error())
+	}
+
+	log.Tracef("cp %s %s", path.Join(tempDir, "/usr/bin/snclient"), fileName)
+	err = utils.CopyFile(path.Join(tempDir, "/usr/bin/snclient"), fileName)
+	if err != nil {
+		return fmt.Errorf("mv: %s", err.Error())
+	}
+
+	return nil
+}
+
+func (u *UpdateHandler) extractDeb(fileName string) error {
+	tempDir, err := os.MkdirTemp("", "snclient-tmpdeb")
+	if err != nil {
+		return fmt.Errorf("MkdirTemp: %s", err.Error())
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Use the "dpkg-deb" command to extract the file from the .deb
+	cmd := exec.Command("dpkg-deb", "-x", fileName, tempDir)
+	if err = cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run dpkg-deb %s: %s", strings.Join(cmd.Args, " "), err.Error())
 	}
 
 	log.Tracef("cp %s %s", path.Join(tempDir, "/usr/bin/snclient"), fileName)

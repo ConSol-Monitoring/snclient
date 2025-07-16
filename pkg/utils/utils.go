@@ -503,6 +503,7 @@ func MimeType(fileName string) (mime string, err error) {
 		// see https://en.wikipedia.org/wiki/List_of_file_signatures
 		signatures := map[string]string{
 			"0:EDABEEDB":           "application/rpm",
+			"0:213C617263683E0A":   "application/deb",
 			"0:D0CF11E0A1B11AE1":   "application/msi",
 			"257:7573746172003030": "application/x-tar",
 			"257:7573746172202000": "application/x-tar",
