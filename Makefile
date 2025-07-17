@@ -116,7 +116,7 @@ updatedeps: versioncheck
 	$(MAKE) clean
 	$(MAKE) tools
 	$(GO) mod download
-	GOPROXY=direct $(GO) get -t -u ./pkg/* ./pkg/snclient/commands ./cmd/* ./t
+	GOPROXY=direct $(GO) get -t -u ./pkg/* ./pkg/snclient/commands ./cmd/*
 	$(GO) mod download
 	$(MAKE) cleandeps
 

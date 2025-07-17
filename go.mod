@@ -5,7 +5,7 @@ go 1.23.10
 require (
 	github.com/beevik/ntp v1.4.3
 	github.com/bi-zone/go-fileversion v1.0.0
-	github.com/consol-monitoring/check_nsc_web v0.7.3
+	github.com/consol-monitoring/check_nsc_web v0.7.4
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-ole/go-ole v1.3.0
@@ -24,7 +24,7 @@ require (
 	github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9
 	github.com/sni/shelltoken v0.0.0-20250628072637-af65945664d1
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.7
 	github.com/stretchr/testify v1.10.0
 	github.com/yusufpapurcu/wmi v1.2.4
 	golang.org/x/sys v0.34.0
