@@ -8,6 +8,7 @@ next:
          - update windows exporter to 0.30.8
          - msi: disable downgrades in windows installer
          - update: add support to extract .deb files
+         - update windows exporter to 0.31.1
          - fix https includes from subsection (#246)
          - fix multiple filter not being combined by logical OR
 
