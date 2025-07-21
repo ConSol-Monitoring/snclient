@@ -19,8 +19,8 @@ func TestLinuxChecks(t *testing.T) {
 	// default filter is extended with an AND
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_drivesize", "filter+='drive = /'", "filter='drive = c:'", "warn=used>100%", "crit=used>100%", "-vvv"},
-		Like: []string{"OK - All 1 drive", `\(fstype not in.* and drive = /\) or drive = c:`},
+		Args: []string{"run", "check_drivesize", "filter+='drive = /'", "filter='drive = / and fstype = overlay'", "warn=used>100%", "crit=used>100%", "-vvv"},
+		Like: []string{"OK - All 1 drive", `\(fstype not in.* and drive = /\) or drive = / and fstype = overlay`},
 		Exit: 0,
 	})
 }
