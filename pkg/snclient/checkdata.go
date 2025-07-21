@@ -623,6 +623,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
 		case "filter+":
+			applyDefaultFilter = false
 			filter, err2 := cd.appendDefaultThreshold(keyword, argValue, cd.defaultFilter, cd.filter)
 			if err2 != nil {
 				return nil, err2
@@ -722,6 +723,9 @@ func (cd *CheckData) preParseArgs(args []string) (sanitized []Argument, defaultW
 	sanitized = make([]Argument, 0)
 	numArgs := len(args)
 	applyDefaultFilter := true
+	defaultWarning = cd.defaultWarning
+	defaultCritical = cd.defaultCritical
+
 	for idx := 0; idx < numArgs; idx++ {
 		argExpr := cd.removeQuotes(args[idx])
 		split := strings.SplitN(argExpr, "=", 2)
