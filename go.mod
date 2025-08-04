@@ -14,7 +14,7 @@ require (
 	github.com/mackerelio/checkers v0.2.0
 	github.com/miekg/dns v1.1.67
 	github.com/otiai10/copy v1.14.1
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/client_golang v1.23.0
 	github.com/reeflective/readline v1.1.3
 	github.com/sasha-s/go-deadlock v0.3.5
 	github.com/sassoftware/go-rpmutils v0.4.0
