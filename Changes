@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient agent.
 
 next:
+         - update windows exporter to 0.31.2
          - chore: update dependencies
 
 0.36     Tue Jul 29 14:24:04 CEST 2025
@@ -8,7 +9,6 @@ next:
          - disallow empty passwords and empty passwords no longer disable password authentication
          - check_service: add support for comma separated service list
          - check_drivesize: fix case insensitive windows paths
-         - update windows exporter to 0.30.8
          - msi: disable downgrades in windows installer
          - update: add support to extract .deb files
          - update windows exporter to 0.31.1
