@@ -97,6 +97,7 @@ jobs:
           pkg install -y git
 
         run: |
+          git config --global --add safe.directory /home/runner/work/snclient/snclient
           # install go version from go.mod
           GOVERSION=$(awk '/^go / { print $2 }' go.mod)
           GO_TARBALL="go${GOVERSION}.freebsd-amd64.tar.gz"
