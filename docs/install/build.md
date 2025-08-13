@@ -6,7 +6,7 @@ linkTitle: From Source
 
 ## Requirements
 
-- go >= 1.23
+- golang >= 1.24
 - openssl
 - make
 - help2man
@@ -71,7 +71,7 @@ linux machine by running `make windist`.
 
 This are the requirements on your linux host:
 
-- go >= 1.20
+- golang
 - openssl
 - make
 

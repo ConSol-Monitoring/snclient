@@ -3,6 +3,7 @@ This file documents the revision history for the SNClient agent.
 next:
          - update windows exporter to 0.31.2
          - chore: update dependencies
+         - change minimum golang requirement to 1.24.6
 
 0.36     Tue Jul 29 14:24:04 CEST 2025
          - add new attribute "require password" which must be disabled to allow requests without password
