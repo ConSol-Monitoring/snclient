@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -493,11 +492,11 @@ allowed hosts  += 192.168.3.4
 		}
 	}()
 	defer func() {
-		LogError(server.Shutdown(context.TODO()))
+		LogError(server.Shutdown(t.Context()))
 	}()
 
 	// wait up to 30 seconds for mock server to start
-	testReq, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("http://localhost:%d", testPort), http.NoBody)
+	testReq, err := http.NewRequestWithContext(t.Context(), http.MethodGet, fmt.Sprintf("http://localhost:%d", testPort), http.NoBody)
 	require.NoErrorf(t, err, "request created")
 	httpClient := snc.httpClient(&HTTPClientOptions{reqTimeout: DefaultSocketTimeout})
 	for range 300 {

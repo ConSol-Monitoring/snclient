@@ -74,7 +74,7 @@ func runCmd(t *testing.T, opt *cmd) *cmdResult {
 	if opt.Timeout <= 0 {
 		opt.Timeout = DefaultCommandTimeout
 	}
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(opt.Timeout))
+	ctx, cancel := context.WithDeadline(t.Context(), time.Now().Add(opt.Timeout))
 	defer cancel()
 
 	check, outbuf, errbuf := prepareCmd(ctx, opt)

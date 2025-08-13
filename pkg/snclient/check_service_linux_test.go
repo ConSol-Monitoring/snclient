@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -243,7 +242,7 @@ func TestCheckServiceLinuxOutput(t *testing.T) {
 	snc.config = initSet.config
 
 	// find test service
-	inv, err := snc.getInventoryEntry(context.TODO(), "check_service")
+	inv, err := snc.getInventoryEntry(t.Context(), "check_service")
 	require.NoError(t, err)
 	var serviceName string
 	for _, entry := range inv {
