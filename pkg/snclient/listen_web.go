@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -397,6 +398,9 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 
 		return
 	}
+
+	data = fixCorruptJSONData(data)
+
 	res.WriteHeader(http.StatusOK)
 	res.Header().Set("Content-Type", "application/json")
 	LogError2(res.Write(data))
@@ -460,6 +464,9 @@ func (l *HandlerWebV1) serveCommand(res http.ResponseWriter, req *http.Request) 
 
 		return
 	}
+
+	data = fixCorruptJSONData(data)
+
 	res.WriteHeader(http.StatusOK)
 	LogError2(res.Write(data))
 
@@ -483,4 +490,13 @@ func (l *HandlerWebV1) serveInventory(res http.ResponseWriter, req *http.Request
 	inventory := l.Handler.snc.GetInventory(req.Context(), modules)
 
 	LogError(json.NewEncoder(res).Encode(inventory))
+}
+
+// on darwin sometimes the quote around the "minimum" attribute gets replaced by a null
+// byte for whatever reason
+func fixCorruptJSONData(data []byte) []byte {
+	// replace ,NULLBYTEmin with actual ,"min
+	data = bytes.ReplaceAll(data, []byte{',', 0, 'm', 'i', 'n'}, []byte(`,"min`))
+
+	return data
 }
