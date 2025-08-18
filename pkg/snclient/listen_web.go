@@ -495,15 +495,15 @@ func (l *HandlerWebV1) serveInventory(res http.ResponseWriter, req *http.Request
 // byte for whatever reason
 func fixCorruptJSONData(data []byte) []byte {
 	var previous byte
-	for i, b := range data {
-		if b == 0x00 {
+	for i, chr := range data {
+		if chr == 0 {
 			// only replace if there is a { or , right before the null byte
 			switch previous {
 			case '[', '{', ',':
 				data[i] = '"'
 			}
 		}
-		previous = b
+		previous = chr
 	}
 
 	return data
