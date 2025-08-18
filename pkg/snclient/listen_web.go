@@ -1,7 +1,6 @@
 package snclient
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -492,11 +491,20 @@ func (l *HandlerWebV1) serveInventory(res http.ResponseWriter, req *http.Request
 	LogError(json.NewEncoder(res).Encode(inventory))
 }
 
-// on darwin sometimes the quote around the "minimum" attribute gets replaced by a null
+// on darwin sometimes the quote around the "minimum" (and similar) attributes gets replaced by a null
 // byte for whatever reason
 func fixCorruptJSONData(data []byte) []byte {
-	// replace ,NULLBYTEmin with actual ,"min
-	data = bytes.ReplaceAll(data, []byte{',', 0, 'm', 'i', 'n'}, []byte(`,"min`))
+	var previous byte
+	for i, b := range data {
+		if b == 0x00 {
+			// only replace if there is a { or , right before the null byte
+			switch previous {
+			case '[', '{', ',':
+				data[i] = '"'
+			}
+		}
+		previous = b
+	}
 
 	return data
 }

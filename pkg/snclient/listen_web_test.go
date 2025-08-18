@@ -68,3 +68,18 @@ func TestListenWebPerfUnknown(t *testing.T) {
 	assert.Nilf(t, perf.FloatVal, "float value is empty")
 	assert.Equalf(t, perf.IntVal, expect, "int value")
 }
+
+func TestFixCorruptJSONData(t *testing.T) {
+	tests := []struct {
+		in  []byte
+		exp []byte
+	}{
+		{in: []byte(`,"minimum":`), exp: []byte(`,"minimum":`)},
+		{in: []byte(`,` + "\x00" + `minimum":`), exp: []byte(`,"minimum":`)},
+	}
+
+	for i, test := range tests {
+		result := fixCorruptJSONData(test.in)
+		assert.Equal(t, test.exp, result, "test [%d]", i)
+	}
+}
