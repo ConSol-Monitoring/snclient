@@ -78,7 +78,7 @@ jobs:
 
   test-bsd:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
     - uses: actions/checkout@v5
     - name: Test in FreeBSD
