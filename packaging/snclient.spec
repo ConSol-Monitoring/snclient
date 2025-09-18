@@ -70,7 +70,6 @@ case "$*" in
 esac
 
 %{__mkdir_p} /var/log/snclient
-touch /var/log/snclient/snclient.log
 
 %preun
 case "$*" in
