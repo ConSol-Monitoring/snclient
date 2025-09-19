@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient agent.
 
 next:
+         - fix plugin output ending in chinese characters (#261)
          - chore: update dependencies
          - improve logging of invalid http requests
 

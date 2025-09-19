@@ -41,6 +41,7 @@ check_spaceargs_win = cmd /c echo '%%ARG1%%'
 check_cwd_rel_unix = cat pluginoutput
 check_cwd_abs_unix = cat ${scripts}/pluginoutput
 check_spaceargs_unix = echo '%%ARG1%%'
+check_chinese = chinese.sh
 
 check_dummy = check_dummy.EXTENSION
 check_dummy_ok = check_dummy.EXTENSION 0 "i am ok"

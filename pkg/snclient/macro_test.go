@@ -65,6 +65,7 @@ func TestMacroToken(t *testing.T) {
 		{In: "... $(seconds | 's/a/b/' ) ...", Expect: []string{"... ", "$(seconds | 's/a/b/' )", " ..."}},
 		{In: "... $(var | 's/\\)//' ) ...", Expect: []string{"... ", "$(var | 's/\\)//' )", " ..."}},
 		{In: "{{ IF condition }}yes$(macro){{ ELSE }}$(other)no{{ END }}", Expect: []string{"{{ IF condition }}", "yes", "$(macro)", "{{ ELSE }}", "$(other)", "no", "{{ END }}"}},
+		{In: "ok - 測試", Expect: []string{"ok - 測試"}},
 	}
 
 	splitBy := map[string]string{

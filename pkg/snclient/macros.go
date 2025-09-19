@@ -458,17 +458,15 @@ func splitToken(input string, token map[string]string) (splitted []string, err e
 				}
 			}
 		}
+	}
 
-		// end of string
-		if pos+1 == len(input) {
-			if inToken != "" {
-				return splitted, fmt.Errorf("unexpected end of text, missing end token: %s", inToken)
-			}
-			remain := input[tokenStart:]
-			if remain != "" {
-				splitted = append(splitted, remain)
-			}
-		}
+	// end of string
+	if inToken != "" {
+		return splitted, fmt.Errorf("unexpected end of text, missing end token: %s", inToken)
+	}
+	remain := input[tokenStart:]
+	if remain != "" {
+		splitted = append(splitted, remain)
 	}
 
 	return splitted, nil

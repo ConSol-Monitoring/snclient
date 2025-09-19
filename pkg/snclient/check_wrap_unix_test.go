@@ -83,3 +83,17 @@ func TestCheckExternalWrappedUnixShellPathWithSpaces(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckExternalUnixExtra(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+
+	config := setupConfig(t, scriptsDir, "sh")
+	snc := StartTestAgent(t, config)
+
+	res := snc.RunCheck("check_chinese", []string{})
+	assert.Equalf(t, CheckExitOK, res.State, "state matches")
+	assert.Equalf(t, "ok - 測試", string(res.BuildPluginOutput()), "output matches")
+
+	StopTestAgent(t, snc)
+}
