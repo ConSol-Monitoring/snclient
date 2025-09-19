@@ -204,5 +204,5 @@ func (l *CheckMailq) folderStats(folder string) (count, size int64, err error) {
 		return 0, 0, fmt.Errorf("error walking directory %s: %s", folder, err.Error())
 	}
 
-	return count, size, err
+	return count, size, nil
 }

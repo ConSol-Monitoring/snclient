@@ -77,7 +77,7 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 		requiredDisks[drive] = entry
 	}
 
-	return err
+	return nil
 }
 
 func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
