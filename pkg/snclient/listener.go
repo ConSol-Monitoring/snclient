@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/go-chi/chi/v5"
@@ -412,6 +413,13 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 	defer l.snc.logPanicRecover()
 
 	logHTTPRequest(req)
+
+	if !utf8.ValidString(req.URL.Path) {
+		http.Error(res, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		log.Warnf("http(s) request contains invald path from: %-20s | %s %s", req.RemoteAddr, req.Method, req.URL.Path)
+
+		return
+	}
 
 	resCapture := &ResponseWriterCapture{
 		w:           res,
