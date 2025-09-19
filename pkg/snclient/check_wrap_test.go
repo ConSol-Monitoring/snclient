@@ -41,7 +41,6 @@ check_spaceargs_win = cmd /c echo '%%ARG1%%'
 check_cwd_rel_unix = cat pluginoutput
 check_cwd_abs_unix = cat ${scripts}/pluginoutput
 check_spaceargs_unix = echo '%%ARG1%%'
-check_chinese = chinese.sh
 
 check_dummy = check_dummy.EXTENSION
 check_dummy_ok = check_dummy.EXTENSION 0 "i am ok"
@@ -68,6 +67,7 @@ check_dummy_wrapped = check_dummy.EXTENSION $ARG1$ "$ARG2$"
 check_dummy_wrapped_args = check_dummy.EXTENSION $ARGS"$
 check_dummy_wrapped_ok = check_dummy.EXTENSION 0 "i am ok wrapped"
 check_dummy_wrapped_critical = check_dummy.EXTENSION 2 "i am critical wrapped"
+check_chinese = chinese.sh
 
 [/settings/external scripts/scripts/timeoutscript_win]
 timeout = 1
