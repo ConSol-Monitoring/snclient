@@ -59,7 +59,7 @@ func Query(query string, dst interface{}, namespace string) (err error) {
 		err = ywmi.Query(query, dst, nil, nil, nil, nil, "MS_409")
 	}
 
-	return
+	return err
 }
 
 // RawQuery sends a query and returns a 2dimensional data array or any error encountered

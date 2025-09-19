@@ -146,7 +146,7 @@ func installFirewall(_ *cobra.Command, _ []string) {
 func parseInstallerArgs(args []string) (parsed map[string]string) {
 	parsed = make(map[string]string, 0)
 	if len(args) == 0 {
-		return
+		return parsed
 	}
 
 	for _, a := range strings.Split(args[0], "; ") {

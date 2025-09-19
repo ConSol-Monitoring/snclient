@@ -334,7 +334,7 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 		requiredDisks[drive] = entry
 	}
 
-	return
+	return err
 }
 
 func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) {

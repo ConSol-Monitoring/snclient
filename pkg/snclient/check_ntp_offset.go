@@ -538,7 +538,7 @@ func (l *CheckNTPOffset) addNTPServer(_ context.Context, check *CheckData) (err 
 		return nil
 	}
 
-	return
+	return err
 }
 
 func (l *CheckNTPOffset) defaultEntry(source string) map[string]string {

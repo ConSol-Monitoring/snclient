@@ -332,7 +332,7 @@ func (snc *Agent) shellParse(command string) (cmdName string, args []string, has
 	cmdName = args[0]
 	args = args[1:]
 
-	return
+	return cmdName, args, hasShellCode, err
 }
 
 func execCommandContext(ctx context.Context, cmdName string, env []string, args ...string) *exec.Cmd {

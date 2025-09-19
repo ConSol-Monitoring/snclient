@@ -141,7 +141,7 @@ func (l *CheckKernelStats) getRate(name string) (rate, last float64) {
 		rate = 0
 	}
 
-	return
+	return rate, last
 }
 
 func (l *CheckKernelStats) getNumThreads() (num int64) {
@@ -150,13 +150,13 @@ func (l *CheckKernelStats) getNumThreads() (num int64) {
 		num += l.getNumThreadsFile(file)
 	}
 
-	return
+	return num
 }
 
 func (l *CheckKernelStats) getNumThreadsFile(file string) (num int64) {
 	statFile, err := os.Open(file)
 	if err != nil {
-		return
+		return num
 	}
 	defer statFile.Close()
 	fileScanner := bufio.NewScanner(statFile)

@@ -301,7 +301,7 @@ func (c *Condition) MatchAnyOrEmpty(data []map[string]string) (res bool) {
 		res = c.compareEmpty()
 	}
 
-	return
+	return res
 }
 
 // matchSingle checks a single condition and does not recurse into logical groups

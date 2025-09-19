@@ -551,7 +551,7 @@ func GetSecureCiphers() (ciphers []uint16) {
 		ciphers = append(ciphers, cipher.ID)
 	}
 
-	return
+	return ciphers
 }
 
 // WordRank is used to sort []string lists by ranked prefixes

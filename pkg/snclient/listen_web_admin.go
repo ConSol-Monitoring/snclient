@@ -386,7 +386,7 @@ func (l *HandlerWebAdmin) getBytesFromReplacementStructData(res http.ResponseWri
 		if err != nil {
 			l.sendError(res, fmt.Errorf("failed to base64 decode certdata: %s", err.Error()))
 
-			return
+			return certBytes, keyBytes, err
 		}
 	}
 
@@ -395,11 +395,11 @@ func (l *HandlerWebAdmin) getBytesFromReplacementStructData(res http.ResponseWri
 		if err != nil {
 			l.sendError(res, fmt.Errorf("failed to base64 decode keydata: %s", err.Error()))
 
-			return
+			return certBytes, keyBytes, err
 		}
 	}
 
-	return
+	return certBytes, keyBytes, err
 }
 
 func (l *HandlerWebAdmin) getRelevantRSAKeys(tempKeyFile string, certBytes []byte) (newPrivateKey *rsa.PrivateKey, privateKeyPublicPart, certPublicKey *rsa.PublicKey, err error) {

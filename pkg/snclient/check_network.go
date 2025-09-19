@@ -194,5 +194,5 @@ func (l *CheckNetwork) getTrafficRates(name string) (received, sent float64) {
 		sent = 0
 	}
 
-	return
+	return received, sent
 }
