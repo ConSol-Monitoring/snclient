@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - chore: update dependencies
+         - improve logging of invalid http requests
 
 0.37     Sun Sep  7 11:41:00 CEST 2025
          - update windows exporter to 0.31.3
