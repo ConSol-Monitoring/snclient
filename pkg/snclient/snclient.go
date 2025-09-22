@@ -1046,7 +1046,7 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 	}
 }
 
-func fixReturnCodes(output, stderr *string, exitCode *int64, timeout int64, procState *os.ProcessState, err error) {
+func fixReturnCodes(output, stderr *string, exitCode *int64, timeout int64, cmd *exec.Cmd, procState *os.ProcessState, err error) {
 	log.Tracef("stdout: %s", *output)
 	log.Tracef("stderr: %s", *stderr)
 	log.Tracef("exitCode: %d", *exitCode)
@@ -1083,6 +1083,9 @@ func fixReturnCodes(output, stderr *string, exitCode *int64, timeout int64, proc
 	}
 	if *exitCode == 127 {
 		cwd, _ := os.Getwd()
+		if cmd.Dir != "" {
+			cwd = cmd.Dir
+		}
 		*output = fmt.Sprintf("UNKNOWN - Return code of %d is out of bounds. Make sure the plugin you're trying to run actually exists (current working directory: %s).\n%s", *exitCode, cwd, *output)
 		*exitCode = CheckExitUnknown
 
@@ -1126,7 +1129,7 @@ func (snc *Agent) runExternalCheckString(ctx context.Context, command string, ti
 	if err == nil {
 		stdout, stderr, exitCode, procState, err = snc.runExternalCommand(ctx, cmd, timeout)
 	}
-	fixReturnCodes(&stdout, &stderr, &exitCode, timeout, procState, err)
+	fixReturnCodes(&stdout, &stderr, &exitCode, timeout, cmd, procState, err)
 
 	return stdout, stderr, exitCode, err
 }
