@@ -128,7 +128,7 @@ jobs:
         go-os: [windows]
         go-arch: [i386, x86_64, aarch64]
     needs: [get-version, build-win]
-    runs-on: windows-latest
+    runs-on: windows-2022
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
@@ -142,7 +142,7 @@ jobs:
       - name: "install Azure Sign Tool"
         if: ${{ env.CERTURL != '' }}
         run: |
-          dotnet tool install --global --version 6.0.0 AzureSignTool
+          dotnet tool install --global --version 6.0.1 AzureSignTool
 
       - name: "Sign snclient.exe"
         if: ${{ env.CERTURL != '' }}
