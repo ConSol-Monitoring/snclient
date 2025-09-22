@@ -203,7 +203,7 @@ jobs:
         go-os: [windows]
         go-arch: [i386, x86_64, aarch64]
     needs: [get-version, build-win]
-    runs-on: windows-2022
+    runs-on: windows-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
@@ -240,7 +240,7 @@ jobs:
         if: ${{ env.CERTURL != '' }}
         run: |
           Write-Host "Verify snclient.exe"
-          & "C:/Program Files (x86)/Windows Kits/*/bin/*/x86/signtool.exe" verify /pa snclient.exe
+          & "C:/Program Files*/Windows Kits/*/bin/*/*/signtool.exe" verify /pa snclient.exe
 
       - uses: actions/upload-artifact@v4.6.2
         with:
@@ -298,7 +298,7 @@ jobs:
         go-os: [windows]
         go-arch: [i386, x86_64, aarch64]
     needs: [get-version, build-win, dist-win, sign-win]
-    runs-on: windows-2022
+    runs-on: windows-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
@@ -350,7 +350,7 @@ jobs:
         if: ${{ env.CERTURL != '' }}
         run: |
           Write-Host "Verify snclient.msi"
-          & "C:/Program Files (x86)/Windows Kits/*/bin/*/x86/signtool.exe" verify /pa ${{ env.BIN }}.msi
+          & "C:/Program Files*/Windows Kits/*/bin/*/*/signtool.exe" verify /pa ${{ env.BIN }}.msi
 
       - uses: actions/upload-artifact@v4.6.2
         with:
