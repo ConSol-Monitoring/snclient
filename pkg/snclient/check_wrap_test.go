@@ -56,7 +56,7 @@ check_dummy_args%% = check_dummy.EXTENSION %%ARGS%%
 # put variable arguments in quotes
 check_dummy_argsq = check_dummy.EXTENSION $ARGS"$
 check_dummy_subdir = subdir/check_dummy.EXTENSION 0 "i am ok in my subdir"
-check_chinese = ./t/scripts/chinese.sh
+check_chinese = ./chinese.sh
 
 # test some issues
 check_win_none_ex = cmd /c echo scripts\custom\wrapper\timeout.ps1 $ARG1$; exit($lastexitcode) | powershell.exe -ExecutionPolicy ByPass -command -
