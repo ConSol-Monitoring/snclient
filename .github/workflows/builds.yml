@@ -294,6 +294,7 @@ jobs:
 
   pkg-msi:
     strategy:
+      fail-fast: false
       matrix:
         go-os: [windows]
         go-arch: [i386, x86_64, aarch64]
