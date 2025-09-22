@@ -53,7 +53,7 @@ jobs:
 
 
   test-win:
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -203,7 +203,7 @@ jobs:
         go-os: [windows]
         go-arch: [i386, x86_64, aarch64]
     needs: [get-version, build-win]
-    runs-on: windows-latest
+    runs-on: windows-2025
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
@@ -221,20 +221,24 @@ jobs:
 
       - name: "Sign snclient.exe"
         if: ${{ env.CERTURL != '' }}
-        run: |
-          AzureSignTool.exe sign `
-            --description="SNClient Agent (https://omd.consol.de/docs/snclient/)" `
-            --description-url="https://omd.consol.de/docs/snclient/" `
-            --file-digest=sha384 `
-            --azure-key-vault-url="${{ secrets.AZURE_VAULT_CERT_URL }}" `
-            --azure-key-vault-client-id="${{ secrets.AZURE_VAULT_APPLICATION_ID }}" `
-            --azure-key-vault-tenant-id="${{ secrets.AZURE_VAULT_TENANT_ID }}" `
-            --azure-key-vault-client-secret="${{ secrets.AZURE_VAULT_SECRET_VALUE }}" `
-            --azure-key-vault-certificate="ConSol-Codesign" `
-            -tr http://timestamp.digicert.com `
-            -td sha384 `
-            -v `
-            "snclient.exe"
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 5
+          timeout_minutes: 5
+          command: |
+            AzureSignTool.exe sign `
+              --description="SNClient Agent (https://omd.consol.de/docs/snclient/)" `
+              --description-url="https://omd.consol.de/docs/snclient/" `
+              --file-digest=sha384 `
+              --azure-key-vault-url="${{ secrets.AZURE_VAULT_CERT_URL }}" `
+              --azure-key-vault-client-id="${{ secrets.AZURE_VAULT_APPLICATION_ID }}" `
+              --azure-key-vault-tenant-id="${{ secrets.AZURE_VAULT_TENANT_ID }}" `
+              --azure-key-vault-client-secret="${{ secrets.AZURE_VAULT_SECRET_VALUE }}" `
+              --azure-key-vault-certificate="ConSol-Codesign" `
+              -tr http://timestamp.digicert.com `
+              -td sha384 `
+              -v `
+              "snclient.exe"
 
       - name: "Verify snclient.exe"
         if: ${{ env.CERTURL != '' }}
@@ -299,7 +303,7 @@ jobs:
         go-os: [windows]
         go-arch: [i386, x86_64, aarch64]
     needs: [get-version, build-win, dist-win, sign-win]
-    runs-on: windows-latest
+    runs-on: windows-2025
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
@@ -332,20 +336,24 @@ jobs:
 
       - name: "Sign snclient.msi"
         if: ${{ env.CERTURL != '' }}
-        run: |
-          AzureSignTool.exe sign `
-            --description="SNClient Agent (https://omd.consol.de/docs/snclient/)" `
-            --description-url="https://omd.consol.de/docs/snclient/" `
-            --file-digest=sha384 `
-            --azure-key-vault-url="${{ secrets.AZURE_VAULT_CERT_URL }}" `
-            --azure-key-vault-client-id="${{ secrets.AZURE_VAULT_APPLICATION_ID }}" `
-            --azure-key-vault-tenant-id="${{ secrets.AZURE_VAULT_TENANT_ID }}" `
-            --azure-key-vault-client-secret="${{ secrets.AZURE_VAULT_SECRET_VALUE }}" `
-            --azure-key-vault-certificate="ConSol-Codesign" `
-            -tr http://timestamp.digicert.com `
-            -td sha384 `
-            -v `
-            "${{ env.BIN }}.msi"
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 5
+          timeout_minutes: 5
+          command: |
+            AzureSignTool.exe sign `
+              --description="SNClient Agent (https://omd.consol.de/docs/snclient/)" `
+              --description-url="https://omd.consol.de/docs/snclient/" `
+              --file-digest=sha384 `
+              --azure-key-vault-url="${{ secrets.AZURE_VAULT_CERT_URL }}" `
+              --azure-key-vault-client-id="${{ secrets.AZURE_VAULT_APPLICATION_ID }}" `
+              --azure-key-vault-tenant-id="${{ secrets.AZURE_VAULT_TENANT_ID }}" `
+              --azure-key-vault-client-secret="${{ secrets.AZURE_VAULT_SECRET_VALUE }}" `
+              --azure-key-vault-certificate="ConSol-Codesign" `
+              -tr http://timestamp.digicert.com `
+              -td sha384 `
+              -v `
+              "${{ env.BIN }}.msi"
 
       - name: "Verify snclient.msi"
         if: ${{ env.CERTURL != '' }}
@@ -592,7 +600,7 @@ jobs:
       matrix:
         go-os: [windows]
         go-arch: [x86_64]
-    runs-on: windows-latest
+    runs-on: windows-2025
     needs: [get-version,pkg-msi]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -639,7 +647,7 @@ jobs:
         go-os: [windows]
         go-arch: [i386, x86_64, aarch64]
     needs: [get-version, integration-test-windows]
-    runs-on: windows-latest
+    runs-on: windows-2025
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
