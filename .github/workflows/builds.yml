@@ -240,6 +240,7 @@ jobs:
         if: ${{ env.CERTURL != '' }}
         run: |
           Write-Host "Verify snclient.exe"
+          ls "C:/Program Files*/Windows Kits/*/bin/*/*/signtool.exe"
           & "C:/Program Files*/Windows Kits/*/bin/*/*/signtool.exe" verify /pa snclient.exe
 
       - uses: actions/upload-artifact@v4.6.2
@@ -350,6 +351,7 @@ jobs:
         if: ${{ env.CERTURL != '' }}
         run: |
           Write-Host "Verify snclient.msi"
+          ls "C:/Program Files*/Windows Kits/*/bin/*/*/signtool.exe"
           & "C:/Program Files*/Windows Kits/*/bin/*/*/signtool.exe" verify /pa ${{ env.BIN }}.msi
 
       - uses: actions/upload-artifact@v4.6.2
