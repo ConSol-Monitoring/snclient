@@ -81,22 +81,31 @@ func (l *CheckTemperature) Check(ctx context.Context, _ *Agent, check *CheckData
 		log.Debugf("os specific sensors error: %s: %w", err.Error(), err)
 	}
 
+	duplicates := map[string]int{}
 	for i := range merged {
-		l.addSensor(check, &merged[i])
+		l.addSensor(check, &merged[i], duplicates)
 	}
 
 	return check.Finalize()
 }
 
-func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat) {
+func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat, duplicates map[string]int) {
 	fields := utils.FieldsN(strings.ReplaceAll(sensor.SensorKey, "_", " "), 2)
 	name := fields[0]
 	label := fields[0]
 	if len(fields) >= 2 {
 		label = fields[1]
 	}
+	sensorKey := sensor.SensorKey
+	if num, ok := duplicates[label]; ok {
+		duplicates[label] = num + 1
+		label = fmt.Sprintf("%s.%d", label, num)
+		sensorKey = fmt.Sprintf("%s.%d", sensorKey, num)
+	} else {
+		duplicates[label] = 1
+	}
 	entry := map[string]string{
-		"sensor":      sensor.SensorKey,
+		"sensor":      sensorKey,
 		"name":        name,
 		"label":       label,
 		"temperature": fmt.Sprintf("%f", sensor.Temperature),
@@ -114,13 +123,13 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat) 
 	}
 
 	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-		ThresholdName: sensor.SensorKey,
-		Name:          sensor.SensorKey,
+		ThresholdName: sensorKey,
+		Name:          sensorKey,
 		Value:         sensor.Temperature,
 		Min:           &sensor.Min,
 		Max:           &sensor.High,
-		Warning:       check.ExpandMetricMacros(check.TransformMultipleKeywords([]string{"temp", "temperature"}, sensor.SensorKey, check.warnThreshold), entry),
-		Critical:      check.ExpandMetricMacros(check.TransformMultipleKeywords([]string{"temp", "temperature"}, sensor.SensorKey, check.critThreshold), entry),
+		Warning:       check.ExpandMetricMacros(check.TransformMultipleKeywords([]string{"temp", "temperature"}, sensorKey, check.warnThreshold), entry),
+		Critical:      check.ExpandMetricMacros(check.TransformMultipleKeywords([]string{"temp", "temperature"}, sensorKey, check.critThreshold), entry),
 	})
 
 	check.listData = append(check.listData, entry)
