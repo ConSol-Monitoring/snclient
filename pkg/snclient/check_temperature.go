@@ -58,6 +58,7 @@ func (l *CheckTemperature) Build() *CheckData {
 			{name: "max", description: "max value supplied from sensor"},
 			{name: "min", description: "min value supplied from sensor"},
 		},
+		listSorted: []string{"label"},
 		exampleDefault: `
     check_temperature
     OK - Package id 0: 65.0 °C, Core 0: 62.0 °C, Core 1: 61.0 °C, Core 2: 65.0 °C |...

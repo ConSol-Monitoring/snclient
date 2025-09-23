@@ -664,3 +664,14 @@ func ReplaceCommonPasswordPattern(str string) string {
 
 	return str
 }
+
+func ReplaceNumbersWithZeroPadded(s string, padding int) string {
+	format := fmt.Sprintf("%%0%dd", padding)
+	re := regexp.MustCompile(`\d+`)
+
+	return re.ReplaceAllStringFunc(s, func(numStr string) string {
+		num, _ := strconv.Atoi(numStr)
+
+		return fmt.Sprintf(format, num)
+	})
+}

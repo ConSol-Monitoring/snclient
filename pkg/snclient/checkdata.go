@@ -124,6 +124,7 @@ type CheckData struct {
 	output                 string
 	implemented            Implemented
 	attributes             []CheckAttribute
+	listSorted             []string // sort result list by this keys
 	exampleDefault         string
 	exampleArgs            string
 	timezone               *time.Location // timezone used for date output set by --timezone
@@ -148,6 +149,7 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 
 	// apply final filter
 	cd.listData = cd.Filter(cd.filter, cd.listData)
+	cd.listData = cd.sortList(cd.listData, cd.listSorted)
 
 	if cd.result == nil {
 		cd.result = &CheckResult{}
@@ -548,6 +550,35 @@ func (cd *CheckData) Filter(conditions ConditionList, data []map[string]string) 
 	}
 
 	return result
+}
+
+func (cd *CheckData) sortList(listData []map[string]string, keys []string) []map[string]string {
+	if len(keys) == 0 {
+		return listData
+	}
+
+	slices.SortStableFunc(listData, func(a, b map[string]string) int {
+		sortA := []string{}
+		sortB := []string{}
+		for _, k := range keys {
+			sortA = append(sortA, a[k])
+			sortB = append(sortB, b[k])
+		}
+
+		strA := utils.ReplaceNumbersWithZeroPadded(strings.Join(sortA, ";"), 10)
+		strB := utils.ReplaceNumbersWithZeroPadded(strings.Join(sortB, ";"), 10)
+
+		switch {
+		case strA == strB:
+			return 0
+		case strA > strB:
+			return 1
+		default:
+			return -1
+		}
+	})
+
+	return listData
 }
 
 // parseStateString translates string naemon state to int64
