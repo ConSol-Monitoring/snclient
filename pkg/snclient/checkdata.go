@@ -112,6 +112,7 @@ type CheckData struct {
 	details                map[string]string
 	listData               []map[string]string
 	listCombine            string // join string for detail list
+	listCombineSet         bool   // has the listCombine been set by user
 	showAll                bool   // flag if check called with show-all
 	addCountMetrics        bool
 	addProblemCountMetrics bool
@@ -274,7 +275,7 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		}
 	}
 
-	if cd.listCombine == "" {
+	if cd.listCombine == "" && !cd.listCombineSet {
 		cd.listCombine = ", "
 	}
 	result := map[string]string{
@@ -671,6 +672,9 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			// not in use
 		case "detail-syntax":
 			cd.detailSyntax = argValue
+		case "list-combine":
+			cd.listCombine = argValue
+			cd.listCombineSet = true
 		case "top-syntax":
 			cd.topSyntax = argValue
 			topSupplied = true
