@@ -4,6 +4,7 @@ next:
          - fix plugin output ending in chinese characters (#261)
          - chore: update dependencies
          - improve logging of invalid http requests
+         - check_logfile: improve detection of required macros
          - add list-combine option
 
 0.37     Sun Sep  7 11:41:00 CEST 2025

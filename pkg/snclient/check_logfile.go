@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
@@ -278,22 +279,22 @@ func (c *CheckLogFile) getCustomSplitFunction() bufio.SplitFunc {
 }
 
 func (c *CheckLogFile) getRequiredColumnNumbers(check *CheckData) []int {
-	// get all thresholds with prefix column
-	allThresh := append(check.warnThreshold, check.critThreshold...)
-
 	// extract all required threshold numbers
 	columnNumbers := []int{}
-	for _, thresh := range allThresh {
-		if !strings.HasPrefix(thresh.keyword, "column") {
+	for _, macro := range check.AllRequiredMacros() {
+		if !strings.HasPrefix(macro, "column") {
 			continue
 		}
-		match := numReg.FindString(thresh.keyword)
+		match := numReg.FindString(macro)
 		if match == "" {
 			continue
 		}
 		index := convert.Int(match)
 		columnNumbers = append(columnNumbers, index)
 	}
+
+	slices.Sort(columnNumbers)
+	columnNumbers = slices.Compact(columnNumbers)
 
 	return columnNumbers
 }

@@ -944,6 +944,26 @@ func (cd *CheckData) HasMacro(name string) bool {
 	return false
 }
 
+// AllRequiredMacros returns a list of all required macros in the syntax attributes and thresholds.
+func (cd *CheckData) AllRequiredMacros() []string {
+	var allMacros []string
+
+	// extract macros from syntax templates
+	for _, syntax := range []string{cd.detailSyntax, cd.topSyntax, cd.okSyntax, cd.emptySyntax, cd.perfSyntax} {
+		macros := MacroNames(syntax)
+		allMacros = append(allMacros, macros...)
+	}
+
+	// append macros from all conditions
+	allMacros = append(allMacros, cd.GetAllThresholdKeywords()...)
+
+	// make list unique
+	slices.Sort(allMacros)
+	allMacros = slices.Compact(allMacros)
+
+	return allMacros
+}
+
 // apply condition aliases to all filter/warn/crit/ok conditions.
 // this is useful for example in service checks, when people match for state running / started
 func (cd *CheckData) applyConditionAlias() {
@@ -984,8 +1004,26 @@ func (cd *CheckData) HasThreshold(name string) bool {
 	if cd.hasThresholdCond(cd.critThreshold, name) {
 		return true
 	}
+	if cd.hasThresholdCond(cd.okThreshold, name) {
+		return true
+	}
 
 	return false
+}
+
+// GetAllThresholdKeywords returns a list of all keywords used in warn/crit/ok thresholds.
+func (cd *CheckData) GetAllThresholdKeywords() []string {
+	keywords := []string{}
+
+	keywords = append(keywords, cd.getAllThresholdKeywords(cd.warnThreshold)...)
+	keywords = append(keywords, cd.getAllThresholdKeywords(cd.critThreshold)...)
+	keywords = append(keywords, cd.getAllThresholdKeywords(cd.okThreshold)...)
+
+	// make list unique
+	slices.Sort(keywords)
+	keywords = slices.Compact(keywords)
+
+	return keywords
 }
 
 // hasThresholdCond returns true is the given list of conditions uses the given name at least once.
@@ -1001,6 +1039,21 @@ func (cd *CheckData) hasThresholdCond(condList ConditionList, name string) bool 
 	}
 
 	return false
+}
+
+// hasThresholdCond returns true is the given list of conditions uses the given name at least once.
+func (cd *CheckData) getAllThresholdKeywords(condList ConditionList) []string {
+	keywords := []string{}
+
+	for _, cond := range condList {
+		if len(cond.group) > 0 {
+			keywords = append(keywords, cd.getAllThresholdKeywords(cond.group)...)
+		}
+
+		keywords = append(keywords, cond.keyword)
+	}
+
+	return keywords
 }
 
 // SetDefaultThresholdUnit sets default unit for all threshold conditions matching
