@@ -8,8 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
@@ -18,6 +16,8 @@ import (
 func init() {
 	AvailableChecks["check_logfile"] = CheckEntry{"check_logfile", NewCheckLogFile}
 }
+
+var numReg = regexp.MustCompile(`\d+`)
 
 type CheckLogFile struct {
 	snc              *Agent
@@ -36,7 +36,10 @@ type LogLine struct {
 }
 
 func NewCheckLogFile() CheckHandler {
-	return &CheckLogFile{}
+	return &CheckLogFile{
+		LineDelimiter:   "\n",
+		ColumnDelimiter: "\t",
+	}
 }
 
 func (c *CheckLogFile) Build() *CheckData {
@@ -168,9 +171,11 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 	scanner.Split(c.getCustomSplitFunction())
 	okReset := len(check.okThreshold) > 0
 	lineStorage := make([]map[string]string, 0)
-	var lineIndex int
+
+	columnNumbers := c.getRequiredColumnNumbers(check)
 
 	// filter each line
+	var lineIndex int
 	for lineIndex = 0; scanner.Scan(); lineIndex++ {
 		line := scanner.Text()
 		entry := map[string]string{
@@ -183,49 +188,14 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 			entry[label] = pattern.FindString(line)
 		}
 
-		// get all thresholds with prefix column
-		allThresh := append(check.warnThreshold, check.critThreshold...)
-		var columnNumbers []int
-
-		// extract all needed threshold number
-		numReg := regexp.MustCompile(`\d+`)
-
-		for _, thresh := range allThresh {
-			if !strings.HasPrefix(thresh.keyword, "column") {
-				continue
-			}
-			match := numReg.FindString(thresh.keyword)
-			if match == "" {
-				continue
-			}
-			var index int
-			index, err = strconv.Atoi(match)
-			if err != nil {
-				saveState = false
-
-				return 0, fmt.Errorf("could not extract column number from argument err: %s", err.Error())
-			}
-			columnNumbers = append(columnNumbers, index)
-		}
-
 		if len(columnNumbers) > 0 {
 			cols := strings.Split(line, c.ColumnDelimiter)
-			var maxColumns int
-			if len(columnNumbers) == 0 {
-				maxColumns = 0
-			} else {
-				maxColumns = slices.Max(columnNumbers)
-			}
-
-			if len(cols) <= maxColumns {
-				saveState = false
-
-				return 0, fmt.Errorf("not enough columns in log for separator and index")
-			}
-
-			// in range of number of columns
-			for _, columnIndex := range columnNumbers {
-				entry[fmt.Sprintf("column%d", columnIndex)] = cols[columnIndex]
+			for _, idx := range columnNumbers {
+				if len(cols) > idx {
+					entry[fmt.Sprintf("column%d", idx)] = cols[idx]
+				} else {
+					entry[fmt.Sprintf("column%d", idx)] = ""
+				}
 			}
 		}
 
@@ -305,4 +275,25 @@ func (c *CheckLogFile) getCustomSplitFunction() bufio.SplitFunc {
 
 		return 0, nil, nil
 	}
+}
+
+func (c *CheckLogFile) getRequiredColumnNumbers(check *CheckData) []int {
+	// get all thresholds with prefix column
+	allThresh := append(check.warnThreshold, check.critThreshold...)
+
+	// extract all required threshold numbers
+	columnNumbers := []int{}
+	for _, thresh := range allThresh {
+		if !strings.HasPrefix(thresh.keyword, "column") {
+			continue
+		}
+		match := numReg.FindString(thresh.keyword)
+		if match == "" {
+			continue
+		}
+		index := convert.Int(match)
+		columnNumbers = append(columnNumbers, index)
+	}
+
+	return columnNumbers
 }
