@@ -3,7 +3,7 @@ module github.com/consol-monitoring/snclient
 go 1.24.6
 
 require (
-	github.com/beevik/ntp v1.4.3
+	github.com/beevik/ntp v1.5.0
 	github.com/bi-zone/go-fileversion v1.0.0
 	github.com/consol-monitoring/check_nsc_web v0.7.4
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
