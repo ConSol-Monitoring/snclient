@@ -223,6 +223,8 @@ Returns
 Request a new csr, creates new private key if requested by the user or uses the already existing one.
 The only field that needs to be set is `CommonName` the rest of the fields is optional.
 
+Optionally you can also set a `ChallengePassword` in the csr request.
+
 Example:
 
 ```bash
