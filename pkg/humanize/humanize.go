@@ -73,6 +73,7 @@ var bytesSizeTable = map[string]uint64{
 	"E":  EByte,
 }
 
+// ParseBytes("83 M") -> 82854982
 func ParseBytes(raw string) (uint64, error) {
 	lastDigit := 0
 	hasComma := false

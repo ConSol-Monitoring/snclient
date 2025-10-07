@@ -65,6 +65,9 @@ const (
 
 	// DefaultProfilerTimeout sets the default timeout for pprof handler.
 	DefaultProfilerTimeout = 180
+
+	// DefaultGCPercentage sets gc level like GOGC environment.
+	DefaultGCPercentage = 30
 )
 
 var (
@@ -265,6 +268,8 @@ func (snc *Agent) Run() {
 			snc.CleanExit(ExitCodeError)
 		}
 	})
+
+	snc.adjustMemoryAndGCLimits()
 
 	snc.startModules(snc.runSet)
 	snc.running.Store(Started)
@@ -1540,4 +1545,14 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	}
 
 	return true
+}
+
+func (snc *Agent) adjustMemoryAndGCLimits() {
+	// make garbage collector more aggressive
+	if os.Getenv("GOGC") == "" {
+		debug.SetGCPercent(DefaultGCPercentage)
+		log.Debugf("limits: GOGC=%d%%", DefaultGCPercentage)
+	} else {
+		log.Debugf("limits: GOGC=%s%%", os.Getenv("GOGC"))
+	}
 }
