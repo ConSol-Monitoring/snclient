@@ -40,7 +40,7 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 	defer os.Remove("test.key")
 	defer os.Remove("test.csr")
 
-	postData, err := json.Marshal(map[string]any{
+	rawPostData := map[string]any{
 		"Country":            "DE",
 		"State":              "Bavaria",
 		"Locality":           "Earth",
@@ -49,7 +49,9 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 		"HostName":           "Root CA SNClient",
 		"NewKey":             true,
 		"KeyLength":          1024,
-	})
+	}
+
+	postData, err := json.Marshal(rawPostData)
 	require.NoErrorf(t, err, "post data json encoded")
 
 	// Create  Temp Server Certs
@@ -115,6 +117,28 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 
 	_, err = os.ReadFile("test.key.tmp")
 	if err == nil {
-		t.Fatalf("tempory key file was not removed")
+		t.Fatalf("temporary key file was not removed")
 	}
+
+	// request csr with challenge password
+	rawPostData["ChallengePassword"] = "test123"
+	postData, err = json.Marshal(rawPostData)
+	require.NoErrorf(t, err, "post data json encoded")
+	commandResult = runCmd(t, &cmd{
+		Cmd:  "curl",
+		Args: []string{"-s", "-u", "user:" + localDaemonAdminPassword, "-k", "-s", "-d", string(postData), baseURL + "/api/v1/admin/csr"},
+		Dir:  ".",
+		Like: []string{"CERTIFICATE REQUEST"},
+	})
+
+	err = os.WriteFile("test.csr", []byte(commandResult.Stdout), 0o600)
+	if err != nil {
+		t.Fatalf("could not save certificate signing requests")
+	}
+
+	runCmd(t, &cmd{
+		Cmd:  "openssl",
+		Args: []string{"req", "-in", "test.csr", "-noout", "-text"},
+		Like: []string{"challengePassword", "test123", "sha256WithRSAEncryption"},
+	})
 }

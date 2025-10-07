@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/goccy/go-json"
+	"github.com/subuk/csrtool/pkg/csrtool"
 )
 
 func init() {
@@ -54,6 +55,7 @@ type csrRequestJSON struct {
 	Organization       string `json:"Organization"`
 	OrganizationalUnit string `json:"OrganizationalUnit"`
 	KeyLength          int    `json:"KeyLength"`
+	ChallengePassword  string `json:"ChallengePassword"`
 }
 
 type replaceCertData struct {
@@ -226,7 +228,7 @@ func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Reque
 
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
-	err = pem.Encode(res, csrPEM)
+	_, err = res.Write(csrPEM)
 	if err != nil {
 		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
 			"success": false,
@@ -237,25 +239,19 @@ func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Reque
 	}
 }
 
-func (l *HandlerWebAdmin) createCSR(data *csrRequestJSON, privateKey *rsa.PrivateKey) (*pem.Block, error) {
-	csrTemplate := x509.CertificateRequest{
-		Subject: pkix.Name{
-			Country:            []string{data.Country},
-			Province:           []string{data.State},
-			Locality:           []string{data.Locality},
-			Organization:       []string{data.Organization},
-			OrganizationalUnit: []string{data.OrganizationalUnit},
-			CommonName:         data.HostName,
-		},
+func (l *HandlerWebAdmin) createCSR(data *csrRequestJSON, privateKey *rsa.PrivateKey) ([]byte, error) {
+	subject := pkix.Name{
+		Country:            []string{data.Country},
+		Province:           []string{data.State},
+		Locality:           []string{data.Locality},
+		Organization:       []string{data.Organization},
+		OrganizationalUnit: []string{data.OrganizationalUnit},
+		CommonName:         data.HostName,
 	}
-
-	// create certificate signing request
-	csrDER, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, privateKey)
+	csrPEM, err := csrtool.GenerateCSR(privateKey, subject, []string{}, data.ChallengePassword)
 	if err != nil {
-		return nil, fmt.Errorf("could not create x509 certificate error was: %s", err.Error())
+		return nil, fmt.Errorf("generate csr: %s", err.Error())
 	}
-	// Marshall to pem format
-	csrPEM := &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrDER}
 
 	return csrPEM, nil
 }
