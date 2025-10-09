@@ -48,7 +48,8 @@ func (c *CheckLogFile) Build() *CheckData {
 		implemented:  ALL,
 		name:         "check_logfile",
 		description:  "Checks logfiles or any other text format file for errors or other general patterns",
-		detailSyntax: "%(line)", // cut to 200 chars
+		detailSyntax: "%(line | chomp | cut=200)", // cut after 200 chars
+		listCombine:  "\n",
 		okSyntax:     "%(status) - All %(count) / %(total) Lines OK",
 		topSyntax:    "%(status) - %(problem_count)/%(count) lines (%(count)) %(problem_list)",
 		emptySyntax:  "%(status) - No files found",

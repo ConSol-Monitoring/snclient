@@ -42,7 +42,7 @@ Naemon Config
 | empty-syntax  | %(status) - No files found                                             |
 | top-syntax    | %(status) - %(problem_count)/%(count) lines (%(count)) %(problem_list) |
 | ok-syntax     | %(status) - All %(count) / %(total) Lines OK                           |
-| detail-syntax | %(line)                                                                |
+| detail-syntax | %(line \| chomp \| cut=200)                                            |
 
 ## Check Specific Arguments
 

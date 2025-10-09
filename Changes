@@ -8,6 +8,7 @@ next:
          - add list-combine option
          - add challenge password support for csr
          - add CheckLogFile option to /modules configuration
+         - add new macro operator trim and chomp
 
 0.37     Sun Sep  7 11:41:00 CEST 2025
          - update windows exporter to 0.31.3

@@ -331,6 +331,10 @@ func replaceMacroOperators(value string, flags []string, timezone *time.Location
 			value = fmt.Sprintf("%d", time.Now().Unix()-convert.Int64(value))
 		case "ascii":
 			value = reASCIIonly.ReplaceAllString(value, "")
+		case "trim":
+			value = strings.TrimSpace(value)
+		case "chomp":
+			value = strings.TrimRight(value, " \t\n\r")
 		default:
 			value = replaceMacroOpString(value, flag)
 		}
@@ -359,7 +363,7 @@ func replaceMacroOpString(value, flag string) string {
 		cut, err := strconv.Atoi(strings.TrimPrefix(flag, "cut="))
 		runes := []rune(value)
 		if err != nil {
-			log.Warn("could not extract cut macro exspected format cut=%d+")
+			log.Warn("could not extract cut macro expected format cut=%d+")
 
 			return ""
 		}

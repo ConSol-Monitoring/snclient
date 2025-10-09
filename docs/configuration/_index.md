@@ -257,6 +257,8 @@ Support operators are:
 | `:fmt=<fmt>`          | 123.45 -> 123.4                       | apply format, ex.: $(total \| fmt=%.1f) (using GOs fmt.Sprintf) |
 | `:s/regexp/replace/`  | C:\ % -> C                            | apply regexp replacement, ex.: $(name \| 's/\\W//' ) (using GOs regexp.Compile) |
 | `:ascii`              | C:\ % -> C                            | remove any none-ascii characters |
+| `:trim`               | " test " -> "test"                    | remove leading and trailing whitespace |
+| `:chomp`              | " test " -> " test"                   | remove trailing whitespace only |
 
 for example, define a dummy command which prints the hostname in lower case letters:
 
