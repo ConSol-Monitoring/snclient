@@ -18,6 +18,13 @@ Checks logfiles or any other text format file for errors or other general patter
 
 ## Examples
 
+### Default Check
+
+Alert if there are errors in the snclient log file:
+
+    check_files files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'"
+    OK - All 1787 / 1787 Lines OK
+
 ### Example using NRPE and Naemon
 
 Naemon Config
@@ -31,7 +38,7 @@ Naemon Config
         host_name            testhost
         service_description  check_logfile
         use                  generic-service
-        check_command        check_nrpe!check_logfile!
+        check_command        check_nrpe!check_logfile!'files=/var/log/snclient/snclient.log' 'warn=line like Warn'
     }
 
 ## Argument Defaults

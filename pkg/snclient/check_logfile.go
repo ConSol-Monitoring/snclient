@@ -72,8 +72,12 @@ func (c *CheckLogFile) Build() *CheckData {
 			{name: "columnN", description: "Match the content of the N-th column only if enough columns exists"},
 		},
 		exampleDefault: `
-		`,
-		exampleArgs: ``,
+Alert if there are errors in the snclient log file:
+
+    check_files files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'"
+    OK - All 1787 / 1787 Lines OK
+	`,
+		exampleArgs: `'files=/var/log/snclient/snclient.log' 'warn=line like Warn'`,
 	}
 }
 

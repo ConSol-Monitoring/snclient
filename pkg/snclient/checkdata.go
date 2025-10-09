@@ -297,17 +297,17 @@ func (cd *CheckData) buildListMacros() map[string]string {
 
 	// if there is only one problem, there is no need to add brackets
 	if len(critList) > 0 {
-		result["crit_list"] = "critical(" + strings.Join(critList, ", ") + ")"
+		result["crit_list"] = "critical(" + strings.Join(critList, cd.listCombine) + ")"
 		problemList = append(problemList, result["crit_list"])
 		detailList = append(detailList, result["crit_list"])
 	}
 	if len(warnList) > 0 {
-		result["warn_list"] = "warning(" + strings.Join(warnList, ", ") + ")"
+		result["warn_list"] = "warning(" + strings.Join(warnList, cd.listCombine) + ")"
 		problemList = append(problemList, result["warn_list"])
 		detailList = append(detailList, result["warn_list"])
 	}
 	if len(okList) > 0 {
-		result["ok_list"] = strings.Join(okList, ", ")
+		result["ok_list"] = strings.Join(okList, cd.listCombine)
 		detailList = append(detailList, result["ok_list"])
 	}
 
