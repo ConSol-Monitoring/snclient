@@ -6,8 +6,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckLogFile(t *testing.T) {
+const testLogfileConfig = `
+[/modules]
+CheckLogFile = enabled
+`
+
+func TestCheckLogFileDisabled(t *testing.T) {
 	snc := StartTestAgent(t, "")
+
+	res := snc.RunCheck("check_logfile", []string{"files=./t/test*"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - module CheckLogFile is not enabled")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckLogFile(t *testing.T) {
+	snc := StartTestAgent(t, testLogfileConfig)
 	res := snc.RunCheck("check_logfile", []string{"file=./t/test.log"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK")
@@ -20,7 +35,7 @@ func TestCheckLogFile(t *testing.T) {
 }
 
 func TestCheckLogFilePathWildCards(t *testing.T) {
-	snc := StartTestAgent(t, "")
+	snc := StartTestAgent(t, testLogfileConfig)
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "show-all"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
@@ -40,7 +55,7 @@ func TestCheckLogFilePathWildCards(t *testing.T) {
 }
 
 func TestCheckLogFilePathWildCardsAndOffset0(t *testing.T) {
-	snc := StartTestAgent(t, "")
+	snc := StartTestAgent(t, testLogfileConfig)
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "show-all"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
@@ -60,7 +75,7 @@ func TestCheckLogFilePathWildCardsAndOffset0(t *testing.T) {
 }
 
 func TestCheckLogFileOKPatternResetsErrors(t *testing.T) {
-	snc := StartTestAgent(t, "")
+	snc := StartTestAgent(t, testLogfileConfig)
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "warn=line LIKE ERROR", "ok=line LIKE 'System check completed successfully'"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
@@ -70,7 +85,7 @@ func TestCheckLogFileOKPatternResetsErrors(t *testing.T) {
 }
 
 func TestCheckLogFileFilter(t *testing.T) {
-	snc := StartTestAgent(t, "")
+	snc := StartTestAgent(t, testLogfileConfig)
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "filter=line LIKE 'WARNING'", "warn=count>1"})
 	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
@@ -80,7 +95,7 @@ func TestCheckLogFileFilter(t *testing.T) {
 }
 
 func TestCheckLogfileLabel(t *testing.T) {
-	snc := StartTestAgent(t, "")
+	snc := StartTestAgent(t, testLogfileConfig)
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "label='YEAR:^\\d{4}'", "label='ERWAR:(ERROR|WARN)'", "show-all", "detail-syntax=$(ERWAR)$(YEAR)- $(line:cut=50)"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
@@ -90,10 +105,10 @@ func TestCheckLogfileLabel(t *testing.T) {
 }
 
 func TestCheckLogFileColumnN(t *testing.T) {
-	snc := StartTestAgent(t, "")
+	snc := StartTestAgent(t, testLogfileConfig)
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "crit=column1 LIKE DEBUG", "column-split=;", "show-all"})
-	assert.Equalf(t, CheckExitCritical, res.State, "state OK")
+	assert.Equalf(t, CheckExitCritical, res.State, "state CRITICAL")
 	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL - ")
 
 	StopTestAgent(t, snc)

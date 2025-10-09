@@ -79,6 +79,12 @@ func (c *CheckLogFile) Build() *CheckData {
 // Check implements CheckHandler.
 func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	c.snc = snc
+
+	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckLogFile")
+	if !enabled {
+		return nil, fmt.Errorf("module CheckLogFile is not enabled in /modules section")
+	}
+
 	c.FilePath = append(c.FilePath, strings.Split(c.Paths, ",")...)
 	if len(c.FilePath) == 0 {
 		return nil, fmt.Errorf("no file defined")

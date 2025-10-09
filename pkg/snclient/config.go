@@ -46,6 +46,7 @@ var DefaultConfig = map[string]ConfigData{
 		"CheckExternalScripts": "enabled",
 		"CheckDisk":            "enabled",
 		"CheckWMI":             "disabled",
+		"CheckLogFile":         "disabled",
 		"NRPEServer":           "disabled",
 		"WEBServer":            "enabled",
 		"PrometheusServer":     "disabled",
