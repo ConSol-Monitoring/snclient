@@ -6,6 +6,9 @@ title: wmi
 
 Check status and metrics by running wmi queries.
 
+    In order to use this plugin, you need to enable 'CheckWMI' in the '[/modules]' section of the snclient_local.ini.
+
+
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 
