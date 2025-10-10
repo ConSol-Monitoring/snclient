@@ -113,7 +113,7 @@ allowed hosts += , 192.168.0.2,192.168.0.3
 ```
 
 Values will simply be joined as text, so in case you want to create lists, make sure you
-add a comma.
+add a comma. (Starting with v0.38 this will be done automatically)
 
 ## Inheritance
 

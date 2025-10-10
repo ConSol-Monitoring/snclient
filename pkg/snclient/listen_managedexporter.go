@@ -128,7 +128,7 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 	}
 
 	if agentArgs, _, ok := conf.GetStringRaw("agent args"); ok {
-		l.agentArgs = agentArgs
+		l.agentArgs = strings.Join(agentArgs, " ")
 	}
 
 	if agentMaxMem, ok := conf.GetString("agent max memory"); ok {

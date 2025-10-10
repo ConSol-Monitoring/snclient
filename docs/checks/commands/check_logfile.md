@@ -6,6 +6,19 @@ title: logfile
 
 Checks logfiles or any other text format file for errors or other general patterns
 
+    In order to use this plugin, you need to enable 'CheckLogFile' in the '[/modules]' section of the snclient_local.ini.
+
+    Also, to avoid security issues, you need to set 'allowed pattern' in the '[/settings/check/logfile]'
+    section of the snclient_local.ini to a comma separated list of allowed glob patterns.
+
+    Example:
+    [/settings/check/logfile]
+    allowed pattern  = /var/log/**      # This allows all files recursively in /var/log/
+    allowed pattern += /opt/logs/*.log  # This allows all files with .log extension in /opt/logs/
+
+    See https://github.com/bmatcuk/doublestar#patterns for details on the pattern syntax.
+
+
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
 - [Attributes](#attributes)

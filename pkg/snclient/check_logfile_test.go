@@ -9,6 +9,9 @@ import (
 const testLogfileConfig = `
 [/modules]
 CheckLogFile = enabled
+
+[/settings/check/logfile]
+allowed pattern  = **
 `
 
 func TestCheckLogFileDisabled(t *testing.T) {

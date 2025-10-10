@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/consol-monitoring/snclient/pkg/convert"
 )
 
@@ -45,9 +46,22 @@ func NewCheckLogFile() CheckHandler {
 
 func (c *CheckLogFile) Build() *CheckData {
 	return &CheckData{
-		implemented:  ALL,
-		name:         "check_logfile",
-		description:  "Checks logfiles or any other text format file for errors or other general patterns",
+		implemented: ALL,
+		name:        "check_logfile",
+		description: `Checks logfiles or any other text format file for errors or other general patterns
+
+    In order to use this plugin, you need to enable 'CheckLogFile' in the '[/modules]' section of the snclient_local.ini.
+
+    Also, to avoid security issues, you need to set 'allowed pattern' in the '[/settings/check/logfile]'
+    section of the snclient_local.ini to a comma separated list of allowed glob patterns.
+
+    Example:
+    [/settings/check/logfile]
+    allowed pattern  = /var/log/**      # This allows all files recursively in /var/log/
+    allowed pattern += /opt/logs/*.log  # This allows all files with .log extension in /opt/logs/
+
+    See https://github.com/bmatcuk/doublestar#patterns for details on the pattern syntax.
+`,
 		detailSyntax: "%(line | chomp | cut=200)", // cut after 200 chars
 		listCombine:  "\n",
 		okSyntax:     "%(status) - All %(count) / %(total) Lines OK",
@@ -104,9 +118,11 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		var err error
 		patterns[parts[0]], err = regexp.Compile(parts[1])
 		if err != nil {
-			return nil, fmt.Errorf("could not compile regex from patter: %s", err.Error())
+			return nil, fmt.Errorf("could not compile regex from pattern: %s", err.Error())
 		}
 	}
+
+	allowedPattern := c.getAllowedPattern()
 
 	totalLineCount := 0
 	for _, fileName := range c.FilePath {
@@ -119,6 +135,9 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 			return nil, fmt.Errorf("could not get files for pattern %s, error was: %s", fileName, err.Error())
 		}
 		for _, fileName := range files {
+			if !c.matchPattern(fileName, allowedPattern) {
+				return nil, fmt.Errorf("file %s does not match any allowed pattern", fileName)
+			}
 			tmpCount, err := c.addFile(fileName, check, patterns)
 			if err != nil {
 				return nil, fmt.Errorf("error for file %s, error was: %s", fileName, err.Error())
@@ -289,6 +308,7 @@ func (c *CheckLogFile) getCustomSplitFunction() bufio.SplitFunc {
 	}
 }
 
+// getRequiredColumnNumbers extracts all required column numbers from the check conditions
 func (c *CheckLogFile) getRequiredColumnNumbers(check *CheckData) []int {
 	// extract all required threshold numbers
 	columnNumbers := []int{}
@@ -308,4 +328,31 @@ func (c *CheckLogFile) getRequiredColumnNumbers(check *CheckData) []int {
 	columnNumbers = slices.Compact(columnNumbers)
 
 	return columnNumbers
+}
+
+// getAllowedPattern returns the list of allowed patterns from the config
+func (c *CheckLogFile) getAllowedPattern() []string {
+	allowedPatternRaw, _ := c.snc.config.Section("/settings/check/logfile").GetString("allowed pattern")
+	allowedPattern := strings.Split(allowedPatternRaw, ",")
+
+	for i := range allowedPattern {
+		allowedPattern[i] = strings.TrimSpace(allowedPattern[i])
+	}
+
+	return allowedPattern
+}
+
+// matchPattern checks if the given fileName matches any of the allowed patterns
+func (c *CheckLogFile) matchPattern(fileName string, allowedPattern []string) bool {
+	for _, pattern := range allowedPattern {
+		matched, err := doublestar.PathMatch(pattern, fileName)
+		if err != nil {
+			continue
+		}
+		if matched {
+			return true
+		}
+	}
+
+	return false
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
 func init() {
@@ -52,7 +53,7 @@ func (e *ExternalScriptsHandler) registerScripts(conf *Config, runSet *AgentRunS
 		cmdConf := conf.Section("/settings/external scripts/scripts/" + name)
 		if !cmdConf.HasKey("command") {
 			raw, _, _ := scripts.GetStringRaw(name)
-			cmdConf.Set("command", raw)
+			cmdConf.Set("command", strings.Join(raw, " "))
 		}
 	}
 
@@ -65,7 +66,9 @@ func (e *ExternalScriptsHandler) registerScripts(conf *Config, runSet *AgentRunS
 		cmdConf := conf.Section(sectionName)
 		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
 			log.Tracef("registered script: %s -> %s", name, command)
-			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler { return &CheckWrap{name: name, commandString: command, config: cmdConf} }}
+			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler {
+				return &CheckWrap{name: name, commandString: strings.Join(command, " "), config: cmdConf}
+			}}
 		} else {
 			return fmt.Errorf("missing command in external script %s", name)
 		}
@@ -94,7 +97,7 @@ func (e *ExternalScriptsHandler) registerWrapped(conf *Config, runSet *AgentRunS
 		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
 			log.Tracef("registered wrapped script: %s -> %s", name, command)
 			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler {
-				return &CheckWrap{name: name, commandString: command, wrapped: true, config: cmdConf}
+				return &CheckWrap{name: name, commandString: strings.Join(command, " "), wrapped: true, config: cmdConf}
 			}}
 		} else {
 			return fmt.Errorf("missing command in wrapped external script %s", name)

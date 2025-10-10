@@ -3,6 +3,7 @@ package snclient
 import (
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
 )
@@ -25,7 +26,7 @@ func (a *AliasHandler) Init(_ *Agent, section *ConfigSection, conf *Config, runS
 		cmdConf := conf.Section("/settings/external scripts/alias/" + name)
 		if !cmdConf.HasKey("command") {
 			raw, _, _ := section.GetStringRaw(name)
-			cmdConf.Set("command", raw)
+			cmdConf.Set("command", strings.Join(raw, " "))
 		}
 	}
 
@@ -37,7 +38,7 @@ func (a *AliasHandler) Init(_ *Agent, section *ConfigSection, conf *Config, runS
 		}
 		cmdConf := conf.Section(sectionName)
 		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
-			args := utils.Tokenize(command)
+			args := utils.Tokenize(strings.Join(command, " "))
 			args, err := utils.TrimQuotesList(args)
 			if err != nil {
 				return fmt.Errorf("failed to register alias %s: %s", name, err.Error())

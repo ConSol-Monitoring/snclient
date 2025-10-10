@@ -381,8 +381,14 @@ func TestConfigAppend(t *testing.T) {
 	section := cfg.Section("/settings/default")
 	allowed, _ := section.GetString("allowed hosts")
 
-	expected := "127.0.0.1, ::1, 192.168.0.1, 192.168.0.2,192.168.0.3"
-	assert.Equalf(t, expected, allowed, "reading appended config")
+	assert.Equalf(t, "127.0.0.1, ::1 , 192.168.0.1 , 192.168.0.2,192.168.0.3", allowed, "reading appended allowed hosts")
+
+	nasty, _ := section.GetString("nasty characters")
+	assert.Equalf(t, "123456", nasty, "reading appended string config")
+
+	section = cfg.Section("/settings/check/logfile")
+	allowed, _ = section.GetString("allowed pattern")
+	assert.Equalf(t, "/var/log/** , **/*.log", allowed, "reading appended allowed pattern")
 }
 
 func TestConfigLongLines(t *testing.T) {

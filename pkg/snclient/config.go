@@ -553,6 +553,21 @@ func (config *Config) SectionsByPrefix(prefix string) map[string]*ConfigSection 
 	return list
 }
 
+func (config *Config) getCombine(section, key string) (combine, trim string) {
+	switch section {
+	case "/settings/check/logfile":
+		if key == "allowed pattern" {
+			return " , ", ", "
+		}
+	default:
+		if key == "allowed hosts" {
+			return " , ", ", "
+		}
+	}
+
+	return "", ""
+}
+
 // parseString parses string from config section.
 func configParseString(val string) (string, error) {
 	val = strings.TrimSpace(val)
@@ -661,7 +676,9 @@ func (config *Config) ReplaceMacrosDefault(section *ConfigSection, timezone *tim
 		section.data[key] = val
 
 		raw := section.raw[key]
-		raw = ReplaceMacros(raw, timezone, defaultMacros)
+		for i, r := range raw {
+			raw[i] = ReplaceMacros(r, timezone, defaultMacros)
+		}
 		section.raw[key] = raw
 	}
 }
@@ -729,7 +746,7 @@ type ConfigSection struct {
 	cfg      *Config             // reference to parent config collection
 	name     string              // section name
 	data     ConfigData          // actual config data
-	raw      ConfigData          // raw config data (including quotes and such)
+	raw      map[string][]string // raw config data (including quotes and such)
 	keys     []string            // keys from config data
 	comments map[string][]string // comments sorted by config keys
 }
@@ -740,7 +757,7 @@ func NewConfigSection(cfg *Config, name string) *ConfigSection {
 		cfg:      cfg,
 		name:     name,
 		data:     make(map[string]string, 0),
-		raw:      make(map[string]string, 0),
+		raw:      make(map[string][]string, 0),
 		keys:     make([]string, 0),
 		comments: make(map[string][]string, 0),
 	}
@@ -758,13 +775,21 @@ func (cs *ConfigSection) String() string {
 		data = append(data, cs.comments[key]...)
 		val := cs.data[key]
 		raw := cs.raw[key]
-		if raw != "" {
-			val = raw
-		}
-		if val == "" {
-			data = append(data, fmt.Sprintf("%s =", key))
-		} else {
-			data = append(data, fmt.Sprintf("%s = %s", key, cs.data[key]))
+		switch len(raw) {
+		case 0, 1:
+			if val == "" {
+				data = append(data, fmt.Sprintf("%s =", key))
+			} else {
+				data = append(data, fmt.Sprintf("%s = %s", key, cs.data[key]))
+			}
+		default:
+			for i, line := range raw {
+				if i == 0 {
+					data = append(data, fmt.Sprintf("%s  = %s", key, line))
+				} else {
+					data = append(data, fmt.Sprintf("%s += %s", key, line))
+				}
+			}
 		}
 	}
 
@@ -778,6 +803,7 @@ func (cs *ConfigSection) String() string {
 // be stored as is, including quotes.
 func (cs *ConfigSection) SetRaw(key, value string) error {
 	rawValue := value
+	newRawValue := []string{rawValue}
 
 	useAppend := false
 	if strings.HasSuffix(key, "+") {
@@ -793,8 +819,13 @@ func (cs *ConfigSection) SetRaw(key, value string) error {
 	if useAppend {
 		curRaw, cur, ok := cs.GetStringRaw(key)
 		if ok {
-			value = cur + value
-			rawValue = curRaw + rawValue
+			newRawValue = append(curRaw, rawValue)
+			combine, trim := cs.cfg.getCombine(cs.name, key)
+			if combine == "" {
+				value = cur + value
+			} else {
+				value = strings.TrimRight(cur, trim) + combine + strings.TrimLeft(value, trim)
+			}
 		}
 	}
 
@@ -803,7 +834,7 @@ func (cs *ConfigSection) SetRaw(key, value string) error {
 	}
 
 	cs.data[key] = value
-	cs.raw[key] = rawValue
+	cs.raw[key] = newRawValue
 
 	return nil
 }
@@ -815,10 +846,10 @@ func (cs *ConfigSection) Set(key, value string) {
 	}
 
 	cs.data[key] = value
-	cs.raw[key] = ""
+	cs.raw[key] = []string{value}
 }
 
-// Insert is just like Set but trys to find the key in comments first and will uncomment that one
+// Insert is just like Set but tries to find the key in comments first and will uncomment that one
 func (cs *ConfigSection) Insert(key, value string) {
 	if cs.HasKey(key) {
 		cs.data[key] = value
@@ -939,11 +970,11 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 // GetStringRaw returns the raw string (including quotes)
 // along the clean string from config section.
 // it returns the value if found and sets ok to true.
-func (cs *ConfigSection) GetStringRaw(key string) (raw, val string, ok bool) {
+func (cs *ConfigSection) GetStringRaw(key string) (raw []string, val string, ok bool) {
 	raw = cs.raw[key]
 	val, ok = cs.data[key]
-	if raw == "" {
-		raw = val
+	if len(raw) == 0 {
+		raw = []string{val}
 	}
 	if ok && cs.isUsable(key, val) {
 		macros := make([]map[string]string, 0)
