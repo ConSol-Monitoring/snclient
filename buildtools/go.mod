@@ -1,6 +1,6 @@
 module tools
 
-go 1.24
+go 1.24.9
 
 require (
 	github.com/daixiang0/gci v0.13.6
