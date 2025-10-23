@@ -473,7 +473,7 @@ func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigS
 }
 
 func (config *Config) fetchHTTPInclude(inclURL, cacheFile string, section *ConfigSection, snc *Agent) error {
-	if snc == nil {
+	if snc == nil || snc.config == nil {
 		log.Fatalf("cannot retrieve http include, got no agent")
 	}
 	log.Debugf("fetching config include from url: %s", inclURL)
