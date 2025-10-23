@@ -94,6 +94,7 @@ var DefaultListenTCPConfig = ConfigData{
 var DefaultListenHTTPConfig = ConfigData{
 	"password":         DefaultPassword,
 	"require password": "true",
+	"use hsts header":  "true",
 }
 
 var DefaultHTTPClientConfig = ConfigData{

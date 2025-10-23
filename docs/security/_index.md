@@ -50,6 +50,34 @@ Use ssl/tls whenever possible.
 use ssl = true
 ```
 
+### HSTS Header
+
+SNClient supports sending HTTP Strict Transport Security (HSTS) headers.
+This is enabled by default for all ssl/tls web server modules.
+
+The HSTS header tells browsers to automatically use HTTPS for all future connections
+to the server, which is totally useless in SNClient context because it usually
+won't be directly accessed from a browser. But this makes super smart penetration tests
+happy.
+
+The header is set to:
+
+- `max-age=31536000` (1 year)
+
+To disable HSTS headers in case this creates issues somehow:
+
+```ini
+[/settings/WEB/server]
+use hsts header = false
+```
+
+Or to disable it for all HTTP servers:
+
+```ini
+[/settings/default]
+use hsts header = false
+```
+
 ### TLS 1.3
 
 If possible, set minimum required TLS version to 1.3. Since the number of

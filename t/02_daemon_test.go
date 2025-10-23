@@ -209,6 +209,10 @@ func TestDaemonAdminCertReplace(t *testing.T) {
 
 	assert.Equalf(t, "testcert", string(crt), "test certificate written")
 	assert.Equalf(t, "testkey", string(key), "test certificate key written")
+
+	os.Remove("test.crt")
+	os.Remove("test.key")
+	os.Remove("test.key.tmp")
 }
 
 func TestDaemonAdminCSR(t *testing.T) {

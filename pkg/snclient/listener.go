@@ -28,6 +28,7 @@ type Listener struct {
 	bindAddress   string
 	tlsConfig     *tls.Config
 	socketTimeout time.Duration
+	useHSTSHeader bool
 }
 
 // NewListener creates a new Listener object.
@@ -136,6 +137,18 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 		if err2 := l.setListenTLSConfig((conf)); err2 != nil {
 			return err2
 		}
+	}
+
+	// parse / set use hsts header option
+	useHSTS, ok, err := conf.GetBool("use hsts header")
+	switch {
+	case err != nil:
+		return fmt.Errorf("invalid use hsts header specification: %s", err.Error())
+	case ok:
+		l.useHSTSHeader = useHSTS
+	default:
+		// default to true if not specified
+		l.useHSTSHeader = true
 	}
 
 	return nil
@@ -348,6 +361,16 @@ func (l *Listener) handleTCPCon(con net.Conn, handler RequestHandlerTCP) {
 
 func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 	mux := chi.NewRouter()
+
+	// Add HSTS header middleware if enabled
+	if l.useHSTSHeader && l.tlsConfig != nil {
+		mux.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Strict-Transport-Security", "max-age=31536000")
+				next.ServeHTTP(w, r)
+			})
+		})
+	}
 
 	// Add generic logger and connection checker
 	mux.Use(func(next http.Handler) http.Handler {

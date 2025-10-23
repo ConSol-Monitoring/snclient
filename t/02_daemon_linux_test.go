@@ -142,3 +142,40 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 		Like: []string{"challengePassword", "test123", "sha256WithRSAEncryption"},
 	})
 }
+
+func TestHSTSHeaderEnabled(t *testing.T) {
+	runCmd(t, &cmd{
+		Cmd:     "make",
+		Args:    []string{"testca"},
+		Like:    []string{"certificate request ok"},
+		ErrLike: []string{".*"},
+	})
+	defer runCmd(t, &cmd{
+		Cmd:  "make",
+		Args: []string{"clean-testca"},
+		Like: []string{"dist"},
+	})
+
+	_, baseURL, _, cleanUp := daemonInit(t, localDaemonINI+`
+[/settings/default]
+certificate = dist/server.crt
+certificate key = dist/server.key
+
+[/settings/WEB/server]
+use ssl = enabled
+
+[/settings/WEBAdmin/server]
+use ssl = enabled
+`)
+	defer cleanUp()
+
+	assert.NotEmpty(t, baseURL)
+	baseURL = fmt.Sprintf("https://127.0.0.1:%d", localDaemonPort)
+
+	runCmd(t, &cmd{
+		Cmd:     "curl",
+		Args:    []string{"-s", "-v", "-k", "-u", "user:" + localDaemonAdminPassword, "-k", baseURL + "/index.html"},
+		Like:    []string{`snclient working`},
+		ErrLike: []string{`Strict-Transport-Security`},
+	})
+}
