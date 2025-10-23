@@ -147,8 +147,8 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	case ok:
 		l.useHSTSHeader = useHSTS
 	default:
-		// default to true if not specified
-		l.useHSTSHeader = true
+		// default to false if not specified
+		l.useHSTSHeader = false
 	}
 
 	return nil

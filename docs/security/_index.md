@@ -53,12 +53,16 @@ use ssl = true
 ### HSTS Header
 
 SNClient supports sending HTTP Strict Transport Security (HSTS) headers.
-This is enabled by default for all ssl/tls web server modules.
+This is disabled by default, since this addresses browser und human interaction
+issues which usually do not apply to the SNClient scenarios.
 
 The HSTS header tells browsers to automatically use HTTPS for all future connections
 to the server, which is totally useless in SNClient context because it usually
 won't be directly accessed from a browser. But this makes super smart penetration tests
 happy.
+
+So this can be enabled if it pops up during security auditions. Make sure you
+use valid certificates before enabling it.
 
 The header is set to:
 

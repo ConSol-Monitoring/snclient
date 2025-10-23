@@ -160,6 +160,7 @@ func TestHSTSHeaderEnabled(t *testing.T) {
 [/settings/default]
 certificate = dist/server.crt
 certificate key = dist/server.key
+use hsts header = enabled
 
 [/settings/WEB/server]
 use ssl = enabled
