@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - optionally send HSTS header in HTTP response
+         - chore: update dependencies
 
 0.38     Fri Oct 10 14:41:11 CEST 2025
          - fix plugin output ending in chinese characters (#261)
