@@ -21,13 +21,13 @@ There are several prometheus integrations in SNClient.
 
 When running SNClient on windows there is a builtin windows exporter.
 
-[Read more about the windows exporter](windows).
+[Read more about the windows_exporter](windows).
 
 ## Node Exporter
 
 When running SNClient on linux or osx there is a builtin node exporter.
 
-[Read more about the windows exporter](node).
+[Read more about the node_exporter](node).
 
 ## Managed Exporters
 
