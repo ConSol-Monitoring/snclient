@@ -209,7 +209,7 @@ jobs:
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}"
           path: "."
@@ -309,11 +309,11 @@ jobs:
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}"
           path: "windist"
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "windist"
           path: "windist"
@@ -382,11 +382,11 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}"
           path: "dist"
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "dist"
           path: "dist"
@@ -419,11 +419,11 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}"
           path: "dist"
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "dist"
           path: "dist"
@@ -455,11 +455,11 @@ jobs:
         with:
           go-version-file: './go.mod'
           cache: false
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}"
           path: "dist"
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "dist"
           path: "dist"
@@ -508,11 +508,11 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}"
           path: "dist"
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "dist"
           path: "dist"
@@ -561,7 +561,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}.deb"
       - name: "Linux Integration Tests"
@@ -585,7 +585,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}.pkg"
       - name: "OSX Integration Tests"
@@ -609,15 +609,15 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "windist"
           path: "windist"
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}"
           path: "windist"
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}.msi"
       - name: "Windows Integration Tests"
@@ -690,7 +690,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}.msi"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.msi
@@ -711,7 +711,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}.deb"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.deb
@@ -732,7 +732,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}.rpm"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.rpm
@@ -753,7 +753,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}.apk"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.apk
@@ -774,7 +774,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}.pkg"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.pkg
@@ -795,7 +795,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: "${{ env.BIN }}"
       - run: tar cvzf ./${{ env.BIN }}.tar.gz ./*
