@@ -24,7 +24,11 @@ var (
 type Condition struct {
 	noCopy noCopy
 
-	keyword  string
+	// keyword is the original operand given in the condition
+	keyword string
+	// some keywords can be transformed to another values during runtime. For example "today" can be transformed into todays UNIX timestamp. This directly influences the value attribute, so this is just a flag for debugging
+	keywordTransformed bool
+
 	operator Operator
 	value    interface{}
 	unit     string
@@ -314,26 +318,70 @@ func (c *Condition) matchSingle(data map[string]string) (res, ok bool) {
 	if !ok {
 		return false, false
 	}
+	// value of the condition, i.e
 	condStr := fmt.Sprintf("%v", c.value)
 	varNum, err1 := strconv.ParseFloat(varStr, 64)
 	condNum, err2 := strconv.ParseFloat(condStr, 64)
+	if err1 != nil {
+		log.Debugf("Parsing varStr: %s into a float was unsuccessful, number comparison based conditionals might give wrong results", varStr)
+	}
+	if err2 != nil {
+		log.Debugf("Parsing condNum: %s into a float was unsuccessful, number comparison based conditionals might give wrong results", condStr)
+	}
+	// Use a different kind of parsing if one side of the conditional is given as "version".
 	if c.keyword == "version" {
 		varNum, err1 = convert.VersionF64E(varStr)
 		condNum, err2 = convert.VersionF64E(condStr)
 	}
 	switch c.operator {
 	case Equal:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
 		if err1 == nil && err2 == nil {
 			return varNum == condNum, true
 		}
-		// fallback to string compare
+		// could not parse both operands to numbers,  but this comparison can be done on strings
 		return condStr == varStr, true
 	case Unequal:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
 		if err1 == nil && err2 == nil {
 			return varNum != condNum, true
 		}
-		// fallback to string compare
+		// could not parse both operands to numbers,  but this comparison can be done on strings
 		return condStr != varStr, true
+	case GreaterEqual:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
+		if err1 == nil && err2 == nil {
+			return varNum >= condNum, true
+		}
+		// could not parse both operands to numbers, and this comparison type is strictly for numbers
+		return false, true
+	case Greater:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
+		if err1 == nil && err2 == nil {
+			return varNum > condNum, true
+		}
+		// could not parse both operands to numbers, and this comparison type is strictly for numbers
+		return false, true
+	case LowerEqual:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
+		if err1 == nil && err2 == nil {
+			return varNum <= condNum, true
+		}
+		// could not parse both operands to numbers, and this comparison type is strictly for numbers
+		return false, true
+	case Lower:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
+		if err1 == nil && err2 == nil {
+			return varNum < condNum, true
+		}
+		// could not parse both operands to numbers, and this comparison type is strictly for numbers
+		return false, true
 	case Contains:
 		return strings.Contains(strings.ToLower(varStr), strings.ToLower(condStr)), true
 	case ContainsNot:
@@ -342,30 +390,6 @@ func (c *Condition) matchSingle(data map[string]string) (res, ok bool) {
 		return strings.Contains(varStr, condStr), true
 	case ContainsNotCase:
 		return !strings.Contains(varStr, condStr), true
-	case GreaterEqual:
-		if err1 == nil && err2 == nil {
-			return varNum >= condNum, true
-		}
-
-		return false, true
-	case Greater:
-		if err1 == nil && err2 == nil {
-			return varNum > condNum, true
-		}
-
-		return false, true
-	case LowerEqual:
-		if err1 == nil && err2 == nil {
-			return varNum <= condNum, true
-		}
-
-		return false, true
-	case Lower:
-		if err1 == nil && err2 == nil {
-			return varNum < condNum, true
-		}
-
-		return false, true
 	case RegexMatch:
 		regex, err := regexp.Compile(condStr)
 		if err != nil {
