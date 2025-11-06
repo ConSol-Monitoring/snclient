@@ -751,8 +751,6 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 
 	cd.applyConditionAlias()
 
-	cd.TransofrmFilterKeywords()
-
 	return argList, nil
 }
 
@@ -904,53 +902,6 @@ func (cd *CheckData) removeQuotes(str string) string {
 	}
 
 	return str
-}
-
-func (cd *CheckData) TransofrmFilterKeywords() error {
-
-	// Maybe this should be a flag in Check struct
-	checks_with_time_keywords := []string{
-		"check_files",
-		// possibly more?
-	}
-
-	now := time.Now().In(cd.timezone)
-	// These timestamps are generated for the first nanosecond of a day, e.g 2025-11-05T00:00:00Z
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, cd.timezone)
-	one_year_ago := today.AddDate(-1, 0, 0)
-	one_month_ago := today.AddDate(0, -1, 0)
-	one_week_ago := today.AddDate(0, 0, -1)
-	yesterday := today.AddDate(0, 0, -1)
-	tomorrow := today.AddDate(0, 0, 1)
-
-	time_associations := map[string]time.Time{
-		"today":         today,
-		"one_year_ago":  one_year_ago,
-		"a_year_ago":    one_year_ago,
-		"one_month_ago": one_month_ago,
-		"a_month_ago":   one_month_ago,
-		"a_week_ago":    one_week_ago,
-		"one_week_ago":  one_week_ago,
-		"yesterday":     yesterday,
-		"tomorrow":      tomorrow,
-	}
-
-	for _, condition := range cd.filter {
-		operand, ok1 := condition.value.(string)
-		if !ok1 {
-			continue
-		}
-		if associated_time, ok := time_associations[operand]; ok {
-			if slices.Contains(checks_with_time_keywords, cd.name) {
-				condition.keywordTransformed = true
-				condition.value = strconv.FormatInt(associated_time.Unix(), 10)
-			} else {
-				log.Warnf("There seems to be a time based operand in the condition with the original string: '%s' . But the task %s is not marked for transforming time based operands", condition.original, cd.name)
-			}
-		}
-	}
-
-	return nil
 }
 
 // setFallbacks sets default filter/warn/crit thresholds unless already set.

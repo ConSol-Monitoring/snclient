@@ -820,7 +820,23 @@ func (c *Condition) expandUnitByType(str string) error {
 		c.unit = "B"
 
 		return nil
-	case UDate, UTimestamp:
+	case UDate:
+		value, err := utils.ExpandDuration(str)
+		if err != nil {
+			parsed_time, err := utils.ParseTimeKeyword(str)
+			if err != nil {
+				return fmt.Errorf("invalid duration value: %s", err.Error())
+			} else {
+				c.value = float64(parsed_time.Unix())
+				c.unit = ""
+			}
+
+		} else {
+			c.value = strconv.FormatFloat(float64(time.Now().Unix())+value, 'f', 0, 64)
+			c.unit = ""
+		}
+		return nil
+	case UTimestamp:
 		value, err := utils.ExpandDuration(str)
 		if err != nil {
 			return fmt.Errorf("invalid duration value: %s", err.Error())
