@@ -33,6 +33,7 @@ import (
 
 var reMountPassword = regexp.MustCompile(`//.*:.*@`)
 
+// Different time measurements and their value measured in seconds
 var TimeFactors = []struct {
 	suffix string
 	factor float64
@@ -47,7 +48,8 @@ var TimeFactors = []struct {
 }
 
 // The user can give a filter like 2_weeks_ago, 3_months_ago , 5_years_from_now_on etc.
-func ParseTimeKeyword(time_keyword string) (time.Time, error) {
+// The return values from this function refer to a specific time, e.g beginning of the week. It does not give the duration difference with current time
+func ParseDateKeyword(time_keyword string) (time.Time, error) {
 	var time_keyword_being_processed string
 	var natural_language_conversion_ok bool
 	// convert words into the forms where the temporal direction, base and the numerical value can be parsed
@@ -56,12 +58,18 @@ func ParseTimeKeyword(time_keyword string) (time.Time, error) {
 		"tomorrow":            "1_days_from_now_on",
 		"yesterday":           "1_days_ago",
 		"this_week":           "0_weeks_ago",
-		"1_week_ago":          "1_weeks_ago",
+		"next_week":           "1_weeks_from_now_on",
+		"last_week":           "1_weeks_ago",
 		"1_week_from_now_on":  "1_weeks_from_now_on",
+		"1_week_ago":          "1_weeks_ago",
 		"this_month":          "0_months_ago",
-		"1_month_ago":         "1_months_ago",
+		"next_month":          "1_months_from_now_on",
+		"last_month":          "1_months_ago",
 		"1_month_from_now_on": "1_months_from_now_on",
+		"1_month_ago":         "1_months_ago",
 		"this_year":           "0_years_ago",
+		"next_year":           "1_years_from_now_on",
+		"last_year":           "1_years_ago",
 		"1_year_ago":          "1_years_ago",
 		"1_year_from_now_on":  "1_years_from_now_on",
 	}
@@ -139,7 +147,7 @@ func ParseTimeKeyword(time_keyword string) (time.Time, error) {
 
 }
 
-// ExpandDuration expand duration string into seconds
+// ExpandDuration expand duration string into seconds , e.g '2h' -> 7200
 func ExpandDuration(val string) (res float64, err error) {
 	var num float64
 

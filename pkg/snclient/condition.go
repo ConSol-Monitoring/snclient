@@ -795,17 +795,26 @@ func (c *Condition) getUnit(keyword string) Unit {
 
 func (c *Condition) expandUnitByType(str string) error {
 	match := reConditionValueUnit.FindStringSubmatch(str)
-	if len(match) < 3 {
-		c.value = str
 
-		return nil
+	if len(match) >= 3 {
+		c.value = match[1]
+		c.unit = match[2]
+	} else {
+		c.value = str
+		// before returning null, check if it can be parsed as date
+		_, date_parsing_err := utils.ParseDateKeyword(str)
+		if date_parsing_err == nil {
+			// it can be parsed as a
+			c.value = str
+		} else {
+			// it cant be parsed as date as well
+			return fmt.Errorf("could not parse the condition operand: %s with regex, or as a date keyword with this error: %s", str, date_parsing_err.Error())
+		}
 	}
-	c.value = match[1]
-	c.unit = match[2]
 
 	// bytes value support % thresholds as well but we cannot expand them yet
 	if c.unit == "%" {
-		return nil
+		return fmt.Errorf("parsed the condition operand: %s with regex, but the unit was determined as '%'. Expanding them is not implemented yet", str)
 	}
 
 	// expand known units
@@ -814,32 +823,32 @@ func (c *Condition) expandUnitByType(str string) error {
 	case UByte:
 		value, err := humanize.ParseBytes(str)
 		if err != nil {
-			return fmt.Errorf("invalid bytes value: %s", err.Error())
+			return fmt.Errorf("Type of this conditional operand: %s was determined to be an UByte. It was however not parsed as bytes, getting this error: %s", str, err.Error())
 		}
 		c.value = strconv.FormatUint(value, 10)
 		c.unit = "B"
 
 		return nil
 	case UDate:
-		value, err := utils.ExpandDuration(str)
-		if err != nil {
-			parsed_time, err := utils.ParseTimeKeyword(str)
-			if err != nil {
-				return fmt.Errorf("invalid duration value: %s", err.Error())
-			} else {
-				c.value = float64(parsed_time.Unix())
-				c.unit = ""
-			}
-
-		} else {
+		value, duration_parse_error := utils.ExpandDuration(str)
+		if duration_parse_error == nil {
+			// The expandDuration parses the duration, not a specific date. If the user gives '10d', try to get the date from now on plus 10 days
 			c.value = strconv.FormatFloat(float64(time.Now().Unix())+value, 'f', 0, 64)
 			c.unit = ""
+			return nil
 		}
-		return nil
+		parsed_time, date_parse_error := utils.ParseDateKeyword(str)
+		if date_parse_error == nil {
+			// Parse time keyword returns the specific time and not a difference. No need to add it to current date
+			c.value = float64(parsed_time.Unix())
+			c.unit = ""
+			return nil
+		}
+		return fmt.Errorf("Type of this conditional operand: %s was determined to be an UDate. It was not parsed as a duration, getting the error: %s . It was also not parsed as a specific date keyword, getting the error: %s", str, duration_parse_error.Error(), date_parse_error.Error())
 	case UTimestamp:
 		value, err := utils.ExpandDuration(str)
 		if err != nil {
-			return fmt.Errorf("invalid duration value: %s", err.Error())
+			return fmt.Errorf("Type of this conditional operand: %s was determined to be an UTimestamp. It was not parsed as a duration, getting this error: %s", str, err.Error())
 		}
 		c.value = strconv.FormatFloat(float64(time.Now().Unix())+value, 'f', 0, 64)
 		c.unit = ""
@@ -848,7 +857,7 @@ func (c *Condition) expandUnitByType(str string) error {
 	case UDuration:
 		value, err := utils.ExpandDuration(str)
 		if err != nil {
-			return fmt.Errorf("invalid duration value: %s", err.Error())
+			return fmt.Errorf("Type of this conditional operand: %s was determined to be an UDuration. It was not parsed as a duration, getting this error: %s", str, err.Error())
 		}
 		c.value = strconv.FormatFloat(value, 'f', 0, 64)
 		c.unit = "s"
