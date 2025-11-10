@@ -168,6 +168,7 @@ func TestReadAndParseProcInterrupts(t *testing.T) {
 	line, err = pid.FindInterruptById(200)
 	assert.NoError(t, err)
 	assert.Equal(t, "00:14.3", line.interrupt_pci_bdf)
+	assert.Equal(t, "6-edge", line.interrupt_pin_name_vector)
 	assert.Equal(t, "iwlwifi:queue_6", line.interrupt_device_and_driver_name)
 
 	// IWI:      19994      15072      46941      12826     402059     382798     403930     375522     724263    9619323     527009     520522        332        213   IRQ work interrupts
