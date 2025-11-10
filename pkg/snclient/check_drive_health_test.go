@@ -1,0 +1,292 @@
+package snclient
+
+import (
+	"testing"
+
+	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/assert"
+)
+
+var smartctl_scan_open_output string = `{
+  "json_format_version": [
+    1,
+    0
+  ],
+  "smartctl": {
+    "version": [
+      7,
+      4
+    ],
+    "pre_release": false,
+    "svn_revision": "5530",
+    "platform_info": "x86_64-linux-6.12.48+deb13-amd64",
+    "build_info": "(local build)",
+    "argv": [
+      "smartctl",
+      "--scan-open",
+      "--json"
+    ],
+    "exit_status": 0
+  },
+  "devices": [
+    {
+      "name": "/dev/nvme0",
+      "info_name": "/dev/nvme0",
+      "type": "nvme",
+      "protocol": "NVMe"
+    }
+  ]
+}`
+
+func TestParsingSmartctlOpen(t *testing.T) {
+	var output SmartctlJsonOutputScanOpen
+	err := json.Unmarshal([]byte(smartctl_scan_open_output), &output)
+	assert.NoError(t, err)
+}
+
+func TestSmartctlScanOpen(t *testing.T) {
+
+	_, err := SmartctlScanOpen()
+	assert.NoError(t, err)
+
+}
+
+var smartctl_start_test_output string = `{
+  "json_format_version": [
+    1,
+    0
+  ],
+  "smartctl": {
+    "version": [
+      7,
+      4
+    ],
+    "pre_release": false,
+    "svn_revision": "5530",
+    "platform_info": "x86_64-linux-6.12.48+deb13-amd64",
+    "build_info": "(local build)",
+    "argv": [
+      "smartctl",
+      "--json",
+      "--test",
+      "short",
+      "/dev/nvme0"
+    ],
+    "exit_status": 0
+  },
+  "local_time": {
+    "time_t": 1762790307,
+    "asctime": "Mon Nov 10 16:58:27 2025 CET"
+  },
+  "device": {
+    "name": "/dev/nvme0",
+    "info_name": "/dev/nvme0",
+    "type": "nvme",
+    "protocol": "NVMe"
+  }
+}`
+
+func TestParsingSmartctlStartTest(t *testing.T) {
+	var output SmartctlJsonOutputStartScan
+	err := json.Unmarshal([]byte(smartctl_start_test_output), &output)
+	assert.NoError(t, err)
+}
+
+var smartctl_xall_output string = `{
+  "json_format_version": [
+    1,
+    0
+  ],
+  "smartctl": {
+    "version": [
+      7,
+      4
+    ],
+    "pre_release": false,
+    "svn_revision": "5530",
+    "platform_info": "x86_64-linux-6.12.48+deb13-amd64",
+    "build_info": "(local build)",
+    "argv": [
+      "smartctl",
+      "--json",
+      "--xall",
+      "/dev/nvme0"
+    ],
+    "exit_status": 0
+  },
+  "local_time": {
+    "time_t": 1762792492,
+    "asctime": "Mon Nov 10 17:34:52 2025 CET"
+  },
+  "device": {
+    "name": "/dev/nvme0",
+    "info_name": "/dev/nvme0",
+    "type": "nvme",
+    "protocol": "NVMe"
+  },
+  "model_name": "KBG6AZNV1T02 LA KIOXIA",
+  "serial_number": "6FCPSEXQZ2B9",
+  "firmware_version": "1112ASLA",
+  "nvme_pci_vendor": {
+    "id": 7695,
+    "subsystem_id": 7695
+  },
+  "nvme_ieee_oui_identifier": 9233294,
+  "nvme_controller_id": 1,
+  "nvme_version": {
+    "string": "1.4",
+    "value": 66560
+  },
+  "nvme_number_of_namespaces": 1,
+  "nvme_namespaces": [
+    {
+      "id": 1,
+      "size": {
+        "blocks": 2000409264,
+        "bytes": 1024209543168
+      },
+      "capacity": {
+        "blocks": 2000409264,
+        "bytes": 1024209543168
+      },
+      "utilization": {
+        "blocks": 2000409264,
+        "bytes": 1024209543168
+      },
+      "formatted_lba_size": 512,
+      "eui64": {
+        "oui": 9233294,
+        "ext_id": 17274950239
+      }
+    }
+  ],
+  "user_capacity": {
+    "blocks": 2000409264,
+    "bytes": 1024209543168
+  },
+  "logical_block_size": 512,
+  "smart_support": {
+    "available": true,
+    "enabled": true
+  },
+  "smart_status": {
+    "passed": true,
+    "nvme": {
+      "value": 0
+    }
+  },
+  "nvme_smart_health_information_log": {
+    "critical_warning": 0,
+    "temperature": 30,
+    "available_spare": 100,
+    "available_spare_threshold": 10,
+    "percentage_used": 0,
+    "data_units_read": 968026,
+    "data_units_written": 3675672,
+    "host_reads": 6975340,
+    "host_writes": 41557869,
+    "controller_busy_time": 219,
+    "power_cycles": 79,
+    "power_on_hours": 395,
+    "unsafe_shutdowns": 10,
+    "media_errors": 0,
+    "num_err_log_entries": 1,
+    "warning_temp_time": 0,
+    "critical_comp_time": 0,
+    "temperature_sensors": [
+      30
+    ]
+  },
+  "temperature": {
+    "current": 30
+  },
+  "power_cycle_count": 79,
+  "power_on_time": {
+    "hours": 395
+  },
+  "nvme_error_information_log": {
+    "size": 256,
+    "read": 16,
+    "unread": 0
+  },
+  "nvme_self_test_log": {
+    "current_self_test_operation": {
+      "value": 0,
+      "string": "No self-test in progress"
+    },
+    "table": [
+      {
+        "self_test_code": {
+          "value": 1,
+          "string": "Short"
+        },
+        "self_test_result": {
+          "value": 0,
+          "string": "Completed without error"
+        },
+        "power_on_hours": 394
+      },
+      {
+        "self_test_code": {
+          "value": 1,
+          "string": "Short"
+        },
+        "self_test_result": {
+          "value": 0,
+          "string": "Completed without error"
+        },
+        "power_on_hours": 392
+      },
+      {
+        "self_test_code": {
+          "value": 1,
+          "string": "Short"
+        },
+        "self_test_result": {
+          "value": 0,
+          "string": "Completed without error"
+        },
+        "power_on_hours": 392
+      },
+      {
+        "self_test_code": {
+          "value": 1,
+          "string": "Short"
+        },
+        "self_test_result": {
+          "value": 0,
+          "string": "Completed without error"
+        },
+        "power_on_hours": 392
+      },
+      {
+        "self_test_code": {
+          "value": 1,
+          "string": "Short"
+        },
+        "self_test_result": {
+          "value": 0,
+          "string": "Completed without error"
+        },
+        "power_on_hours": 392
+      },
+      {
+        "self_test_code": {
+          "value": 1,
+          "string": "Short"
+        },
+        "self_test_result": {
+          "value": 0,
+          "string": "Completed without error"
+        },
+        "power_on_hours": 392
+      }
+    ]
+  }
+}`
+
+func TestParsingSmartctlXall(t *testing.T) {
+	var output SmartctlJsonOutputXall
+	err := json.Unmarshal([]byte(smartctl_xall_output), &output)
+	assert.NoError(t, err)
+}
