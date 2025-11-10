@@ -8,6 +8,8 @@ Check interrupt counts on Linux. This reads and parses the /proc/interrupts file
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
+- [Check Specific Arguments](#check-specific-arguments)
+- [Attributes](#attributes)
 
 ## Implementation
 
