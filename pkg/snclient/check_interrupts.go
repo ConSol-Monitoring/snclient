@@ -49,7 +49,11 @@ func (checkInterrupt *CheckInterrupt) Build() *CheckData {
 				description: "Interrupt acronyms to check filter for. Give it as a comma seperated list of integers corresponding to interrupt ids, or three letter acronymts for named interrupts. E.g 'NMI,154,14,LOC' ",
 			},
 		},
-		emptySyntax: "Failed to find any interrupts matching this filter",
+		detailSyntax: "%(interrupt_number)|(%interrupt_name)",
+		okSyntax:     "%(status) - All %(count) interrupts are ok",
+		topSyntax:    "%(status) - %(problem_count)/%(count) interrupts , %(problem_list)",
+		emptySyntax:  "Failed to find any interrupts matching this filter",
+		emptyState:   CheckExitUnknown,
 		attributes: []CheckAttribute{
 			{name: "interrupt_number", description: "Hardware interrupt lines of the CPU. These are assigned between CPU and other devices by the system firmware, and get an number."},
 			{name: "cpu", description: "Interrupt the cpu is on. If the interrupt has a single counter, it is assigned to cpu 0."},
@@ -62,7 +66,7 @@ func (checkInterrupt *CheckInterrupt) Build() *CheckData {
 		},
 		exampleDefault: `
 Alter if there is a MCE in core numbers 0,3,7,8
-		check_interrupts cpu_list="0,3,7,8" interrupt_filter="MCE,197" crit="interrupt_count > 0"
+		check_interrupts cpu_list="0,3,7,8" interrupt_filter="MCE" crit="interrupt_count > 0"
 		`,
 	}
 }
@@ -80,14 +84,22 @@ func (checkInterrupt *CheckInterrupt) Check(ctx context.Context, snc *Agent, che
 
 	var cpu_filter []string
 	if cpu_filter_argument, ok := check.args["cpu_filter"]; ok {
-		cpu_filter_csl := cpu_filter_argument.value.(CommaStringList)
-		cpu_filter = cpu_filter_csl
+		if cpu_filter_csl_ptr, ok := cpu_filter_argument.value.(*CommaStringList); ok {
+			csl_value := *cpu_filter_csl_ptr
+			cpu_filter = []string(csl_value)
+		} else {
+			return nil, fmt.Errorf("unexpected type for cpu_filter_argument.value , expected *CommaStringList")
+		}
 	}
 
 	var interrupt_filter []string
 	if interrupt_filter_argument, ok := check.args["interrupt_filter"]; ok {
-		interrupt_filter_csl := interrupt_filter_argument.value.(CommaStringList)
-		interrupt_filter = interrupt_filter_csl
+		if interrupt_filter_csl_ptr, ok := interrupt_filter_argument.value.(*CommaStringList); ok {
+			csl_value := *interrupt_filter_csl_ptr
+			interrupt_filter = []string(csl_value)
+		} else {
+			return nil, fmt.Errorf("unexpected type for interrupt_filter_argument.value , expected *CommaStringList")
+		}
 	}
 
 	for _, interrupt := range pid.interrupts {
@@ -138,7 +150,7 @@ func (checkInterrupt *CheckInterrupt) Check(ctx context.Context, snc *Agent, che
 			check.result.Metrics = append(check.result.Metrics,
 				&CheckMetric{
 					ThresholdName: "interrupt_count",
-					Name:          fmt.Sprintf("id: %s name: %s cpu: %s interrupt_count metric", data["interrupt_number"], data["interrupt_name"], data["cpu"]),
+					Name:          fmt.Sprintf("id: %s ; name: %s ; cpu: %s ; interrupt_count: %s", data["interrupt_number"], data["interrupt_name"], data["cpu"], data["interrupt_count"]),
 					Value:         convert.UInt64(data["interrupt_count"]),
 					Unit:          "",
 					Warning:       check.warnThreshold,
