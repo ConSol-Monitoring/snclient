@@ -112,7 +112,7 @@ func (checkInterrupt *CheckInterrupt) Check(ctx context.Context, snc *Agent, che
 		entry["interrupt_pin_name_vector"] = interrupt.interrupt_pin_name_vector
 		entry["interrupt_device_and_driver_name"] = interrupt.interrupt_device_and_driver_name
 
-		if !slices.Contains(interrupt_filter, entry["interrupt_name"]) && !slices.Contains(interrupt_filter, entry["interrupt_number"]) {
+		if len(interrupt_filter) > 0 && !slices.Contains(interrupt_filter, entry["interrupt_name"]) && !slices.Contains(interrupt_filter, entry["interrupt_number"]) {
 			// neither the interrupt_name or the interrupt_number of the filter match this interrupt line
 			continue
 		}
@@ -122,7 +122,7 @@ func (checkInterrupt *CheckInterrupt) Check(ctx context.Context, snc *Agent, che
 			entry["cpu"] = "0"
 			entry["interrupt_count"] = strconv.FormatUint(uint64(interrupt.interrupt_count_single), 10)
 
-			if !slices.Contains(cpu_filter, "0") {
+			if len(cpu_filter) > 0 && !slices.Contains(cpu_filter, "0") {
 				continue
 			}
 
@@ -135,7 +135,7 @@ func (checkInterrupt *CheckInterrupt) Check(ctx context.Context, snc *Agent, che
 			entry["cpu"] = strconv.FormatUint(uint64(cpu), 10)
 			entry["interrupt_count"] = strconv.FormatUint(uint64(interrupt_count), 10)
 
-			if !slices.Contains(cpu_filter, entry["cpu"]) {
+			if len(cpu_filter) > 0 && !slices.Contains(cpu_filter, entry["cpu"]) {
 				continue
 			}
 
