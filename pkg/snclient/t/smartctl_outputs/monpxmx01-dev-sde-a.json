@@ -1,0 +1,59 @@
+{
+  "json_format_version": [
+    1,
+    0
+  ],
+  "smartctl": {
+    "version": [
+      7,
+      3
+    ],
+    "svn_revision": "5338",
+    "platform_info": "x86_64-linux-6.8.12-15-pve",
+    "build_info": "(local build)",
+    "argv": [
+      "smartctl",
+      "--json",
+      "-a",
+      "/dev/sde"
+    ],
+    "exit_status": 4
+  },
+  "local_time": {
+    "time_t": 1762852690,
+    "asctime": "Tue Nov 11 10:18:10 2025 CET"
+  },
+  "device": {
+    "name": "/dev/sde",
+    "info_name": "/dev/sde",
+    "type": "scsi",
+    "protocol": "SCSI"
+  },
+  "scsi_vendor": "AVAGO",
+  "scsi_product": "MR9361-8i",
+  "scsi_model_name": "AVAGO MR9361-8i",
+  "scsi_revision": "4.68",
+  "scsi_version": "SPC-3",
+  "user_capacity": {
+    "blocks": 3749642240,
+    "bytes": 1919816826880
+  },
+  "logical_block_size": 512,
+  "physical_block_size": 4096,
+  "logical_unit_id": "0x600605b00e5d9c802e1ec3a00cfe35a2",
+  "serial_number": "00a235fe0ca0c31e2e809c5d0eb00506",
+  "device_type": {
+    "scsi_terminology": "Peripheral Device Type [PDT]",
+    "scsi_value": 0,
+    "name": "disk"
+  },
+  "smart_support": {
+    "available": false
+  },
+  "temperature": {
+    "current": 0
+  },
+  "scsi_temperature": {
+    "drive_trip": 0
+  }
+}
