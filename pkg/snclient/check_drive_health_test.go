@@ -89,7 +89,7 @@ var smartctl_start_test_output string = `{
 }`
 
 func TestParsingSmartctlStartTest(t *testing.T) {
-	var output SmartctlJsonOutputStartScan
+	var output SmartctlJsonOutputStartTest
 	err := json.Unmarshal([]byte(smartctl_start_test_output), &output)
 	assert.NoError(t, err)
 }
