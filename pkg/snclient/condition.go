@@ -26,8 +26,6 @@ type Condition struct {
 
 	// keyword is the original operand given in the condition
 	keyword string
-	// some keywords can be transformed to another values during runtime. For example "today" can be transformed into todays UNIX timestamp. This directly influences the value attribute, so this is just a flag for debugging
-	keywordTransformed bool
 
 	operator Operator
 	value    interface{}
@@ -796,29 +794,36 @@ func (c *Condition) getUnit(keyword string) Unit {
 func (c *Condition) expandUnitByType(str string) error {
 	match := reConditionValueUnit.FindStringSubmatch(str)
 
-	if len(match) >= 3 {
-		c.value = match[1]
-		c.unit = match[2]
-	} else {
+	// before doing the regex matching, try to parse it as a date keyword
+	var unit Unit
+	_, dateParsingError := utils.ParseDateKeyword(str)
+	if dateParsingError == nil {
+		// it can be parsed as a date
 		c.value = str
-		// before returning null, check if it can be parsed as date
-		_, date_parsing_err := utils.ParseDateKeyword(str)
-		if date_parsing_err == nil {
-			// it can be parsed as a
-			c.value = str
-		} else {
-			// it cant be parsed as date as well
-			return fmt.Errorf("could not parse the condition operand: %s with regex, or as a date keyword with this error: %s", str, date_parsing_err.Error())
-		}
+		unit = UDate
+
+		goto parse_unit
 	}
+
+	if len(match) < 3 {
+		c.value = str
+
+		return nil
+	}
+	c.value = match[1]
+	c.unit = match[2]
 
 	// bytes value support % thresholds as well but we cannot expand them yet
 	if c.unit == "%" {
-		return fmt.Errorf("parsed the condition operand: %s with regex, but the unit was determined as '%'. Expanding them is not implemented yet", str)
+		return nil
+		// might want to return an error?
+		// return fmt.Errorf("parsed the condition operand: %s with regex, but the unit was determined as '%s'. Expanding them is not implemented yet", str, c.unit)
 	}
 
 	// expand known units
-	unit := c.getUnit(c.keyword)
+	unit = c.getUnit(c.keyword)
+
+parse_unit:
 	switch unit {
 	case UByte:
 		value, err := humanize.ParseBytes(str)
@@ -830,21 +835,26 @@ func (c *Condition) expandUnitByType(str string) error {
 
 		return nil
 	case UDate:
-		value, duration_parse_error := utils.ExpandDuration(str)
-		if duration_parse_error == nil {
+		value, durationParseError := utils.ExpandDuration(str)
+		if durationParseError == nil {
 			// The expandDuration parses the duration, not a specific date. If the user gives '10d', try to get the date from now on plus 10 days
 			c.value = strconv.FormatFloat(float64(time.Now().Unix())+value, 'f', 0, 64)
 			c.unit = ""
+
 			return nil
 		}
-		parsed_time, date_parse_error := utils.ParseDateKeyword(str)
-		if date_parse_error == nil {
+		parsedTime, dateParseError := utils.ParseDateKeyword(str)
+		if dateParseError == nil {
 			// Parse time keyword returns the specific time and not a difference. No need to add it to current date
-			c.value = float64(parsed_time.Unix())
+			c.value = float64(parsedTime.Unix())
 			c.unit = ""
+
 			return nil
 		}
-		return fmt.Errorf("Type of this conditional operand: %s was determined to be an UDate. It was not parsed as a duration, getting the error: %s . It was also not parsed as a specific date keyword, getting the error: %s", str, duration_parse_error.Error(), date_parse_error.Error())
+
+		return fmt.Errorf(`Type of this conditional operand: %s was determined to be an UDate.
+		It was not parsed as a duration, getting the error: %s .
+		It was also not parsed as a specific date keyword, getting the error: %s`, str, durationParseError.Error(), dateParseError.Error())
 	case UTimestamp:
 		value, err := utils.ExpandDuration(str)
 		if err != nil {

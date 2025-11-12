@@ -30,10 +30,9 @@ func TestUtilsExpandDuration(t *testing.T) {
 }
 
 func TestUtilsParseDateKeyword(t *testing.T) {
-
 	tests := []struct {
-		keyword      string
-		error_reason string
+		keyword     string
+		errorReason string
 	}{
 		{"today", ""},
 		{"tomorrow", ""},
@@ -62,27 +61,27 @@ func TestUtilsParseDateKeyword(t *testing.T) {
 	for _, test := range tests {
 		// Cant really test the results, as they are dynamic and depend on the time of the execution.
 		_, err := ParseDateKeyword(test.keyword)
-		if test.error_reason == "" {
+		if test.errorReason == "" {
 			if err != nil {
 				t.Errorf("input '%s' should have produced no errors, but it produced this error: %s", test.keyword, err)
 			}
 		} else {
 			if err == nil {
-				t.Errorf("input '%s' should have an error like this, but it did not produce any errors: %s", test.keyword, test.error_reason)
+				t.Errorf("input '%s' should have an error like this, but it did not produce any errors: %s", test.keyword, test.errorReason)
 			}
 		}
 	}
 
-	today_keywords := []string{"today", "0_days_ago", "-0_days_ago", "0_days_from_now_on", "-0_days_from_now_on"}
-	todays_parsed := make([]time.Time, 0)
-	for _, keyword := range today_keywords {
+	keywordsMeaningToday := []string{"today", "0_days_ago", "-0_days_ago", "0_days_from_now_on", "-0_days_from_now_on"}
+	parsedKeywordsMeaningToday := make([]time.Time, 0)
+	for _, keyword := range keywordsMeaningToday {
 		parsed, err := ParseDateKeyword(keyword)
 		if err != nil {
 			t.Error(err)
 		}
-		todays_parsed = append(todays_parsed, parsed)
-		if len(todays_parsed) > 1 {
-			assert.Equal(t, todays_parsed[0], todays_parsed[len(todays_parsed)-1], "These parsed dates for 'today' should all match with each other.")
+		parsedKeywordsMeaningToday = append(parsedKeywordsMeaningToday, parsed)
+		if len(parsedKeywordsMeaningToday) > 1 {
+			assert.Equal(t, parsedKeywordsMeaningToday[0], parsedKeywordsMeaningToday[len(parsedKeywordsMeaningToday)-1], "These parsed dates for 'today' should all match with each other.")
 		}
 	}
 }

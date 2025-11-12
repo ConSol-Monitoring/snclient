@@ -13,7 +13,7 @@ mkdir -p ${TESTING_DIR}
 
 TODAY=$(date -d 'today 00:00:00' +%F)
 
-echo "${TODAY} ${TESTING_DIR}" > /tmp/asdasdasd
+echo "${TODAY} ${TESTING_DIR}" > /tmp/check_files_generate_files
 
 (
     cd ${TESTING_DIR}

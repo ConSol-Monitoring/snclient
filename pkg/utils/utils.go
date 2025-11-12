@@ -49,11 +49,11 @@ var TimeFactors = []struct {
 
 // The user can give a filter like 2_weeks_ago, 3_months_ago , 5_years_from_now_on etc.
 // The return values from this function refer to a specific time, e.g beginning of the week. It does not give the duration difference with current time
-func ParseDateKeyword(time_keyword string) (time.Time, error) {
-	var time_keyword_being_processed string
-	var natural_language_conversion_ok bool
-	// convert words into the forms where the temporal direction, base and the numerical value can be parsed
-	natural_language_keywords := map[string]string{
+func ParseDateKeyword(timeKeyword string) (time.Time, error) {
+	var timeKeywordBeingProcessed string
+	var isAKnownTimeKeyword bool
+	// convert words into the forms that show the temporal direction, base and the numerical value to move
+	knownTimeKeywords := map[string]string{
 		"today":               "0_days_ago",
 		"tomorrow":            "1_days_from_now_on",
 		"yesterday":           "1_days_ago",
@@ -74,77 +74,77 @@ func ParseDateKeyword(time_keyword string) (time.Time, error) {
 		"1_year_from_now_on":  "1_years_from_now_on",
 	}
 	// this conversion may fail, but that is ok
-	if time_keyword_being_processed, natural_language_conversion_ok = natural_language_keywords[time_keyword]; !natural_language_conversion_ok {
+	if timeKeywordBeingProcessed, isAKnownTimeKeyword = knownTimeKeywords[timeKeyword]; !isAKnownTimeKeyword {
 		// reset if assignment failed
-		time_keyword_being_processed = time_keyword
+		timeKeywordBeingProcessed = timeKeyword
 	}
 
-	var temporal_backward, temporal_forward bool
-	time_keyword_being_processed, temporal_backward = strings.CutSuffix(time_keyword_being_processed, "_ago")
-	time_keyword_being_processed, temporal_forward = strings.CutSuffix(time_keyword_being_processed, "_from_now_on")
-	if temporal_backward == temporal_forward {
-		return time.Now(), fmt.Errorf("keyword: '%s' has to have survive exactly one suffix cuts of 'ago' and 'from_now_on'. Cannot ascertain temporal direction", time_keyword)
+	var temporalBackwardDirection, temporalForwardDirection bool
+	timeKeywordBeingProcessed, temporalBackwardDirection = strings.CutSuffix(timeKeywordBeingProcessed, "_ago")
+	timeKeywordBeingProcessed, temporalForwardDirection = strings.CutSuffix(timeKeywordBeingProcessed, "_from_now_on")
+	if temporalBackwardDirection == temporalForwardDirection {
+		return time.Now(), fmt.Errorf("keyword: '%s' has to have survive exactly one suffix cuts of 'ago' and 'from_now_on'. Cannot ascertain temporal direction", timeKeyword)
 	}
 
-	// TODO: handle the timezone question?
+	// Set the timezone to UTC and get todays midnight according to UTC
 	timezone := time.UTC
 
 	now := time.Now().In(time.UTC)
-	today_midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, timezone)
+	todayMidnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, timezone)
 
-	var suffix_days_cut, suffix_weeks_cut, suffix_months_cut, suffix_years_cut bool
+	var suffixDaysCut, suffixWeeksCut, suffixMonthsCut, suffixYearsCut bool
 	durationCutCount := 0 // Cant just convert the bool variables to int, golang does not allow it
 	// Day based keywords use today as a basis, Week based keywords use this week as a basis.
 	// We have to determine the beginning of that point, then move forward/backward
-	var t0 time.Time
-	if time_keyword_being_processed, suffix_days_cut = strings.CutSuffix(time_keyword_being_processed, "_days"); suffix_days_cut {
+	var time0 time.Time
+	if timeKeywordBeingProcessed, suffixDaysCut = strings.CutSuffix(timeKeywordBeingProcessed, "_days"); suffixDaysCut {
 		durationCutCount++
-		t0 = today_midnight
+		time0 = todayMidnight
 	}
-	if time_keyword_being_processed, suffix_weeks_cut = strings.CutSuffix(time_keyword_being_processed, "_weeks"); suffix_weeks_cut {
+	if timeKeywordBeingProcessed, suffixWeeksCut = strings.CutSuffix(timeKeywordBeingProcessed, "_weeks"); suffixWeeksCut {
 		durationCutCount++
 		// this should take values between 0 for Monday, and 6 for Sunday.
 		// But the golang started Sunday at 0 and Monday at 1
-		weekday := today_midnight.Weekday()
-		days_to_subtract := int(weekday) - int(time.Monday)
-		if days_to_subtract < 0 {
-			days_to_subtract += 7 // If today is Sunday (0), go back 6 days to Monday
+		weekday := todayMidnight.Weekday()
+		daysSinceWeekBeginning := int(weekday) - int(time.Monday)
+		if daysSinceWeekBeginning < 0 {
+			daysSinceWeekBeginning += 7 // If today is Sunday (0), subtraction gives -1 , add +7 to bring it back up to 6
 		}
-		t0 = today_midnight.AddDate(0, 0, -days_to_subtract)
+		time0 = todayMidnight.AddDate(0, 0, -daysSinceWeekBeginning)
 	}
-	if time_keyword_being_processed, suffix_months_cut = strings.CutSuffix(time_keyword_being_processed, "_months"); suffix_months_cut {
+	if timeKeywordBeingProcessed, suffixMonthsCut = strings.CutSuffix(timeKeywordBeingProcessed, "_months"); suffixMonthsCut {
 		durationCutCount++
-		t0 = time.Date(today_midnight.Year(), today_midnight.Month(), 1, 0, 0, 0, 0, timezone)
+		time0 = time.Date(todayMidnight.Year(), todayMidnight.Month(), 1, 0, 0, 0, 0, timezone)
 	}
-	if time_keyword_being_processed, suffix_years_cut = strings.CutSuffix(time_keyword_being_processed, "_years"); suffix_years_cut {
+	if timeKeywordBeingProcessed, suffixYearsCut = strings.CutSuffix(timeKeywordBeingProcessed, "_years"); suffixYearsCut {
 		durationCutCount++
-		t0 = time.Date(today_midnight.Year(), time.January, 1, 0, 0, 0, 0, timezone)
+		time0 = time.Date(todayMidnight.Year(), time.January, 1, 0, 0, 0, 0, timezone)
 	}
 	if durationCutCount != 1 {
-		return time.Now(), fmt.Errorf("keyword: '%s' has to have survive exactly one suffix cuts of 'days', 'weeks', 'months', 'years' ", time_keyword)
+		return time.Now(), fmt.Errorf("keyword: '%s' has to have survive exactly one suffix cuts of 'days', 'weeks', 'months', 'years' ", timeKeyword)
 	}
 
-	move_count, move_count_ok := strconv.ParseInt(time_keyword_being_processed, 10, 32)
-	if move_count_ok != nil {
-		return time.Now(), fmt.Errorf("keyword: '%s' could not parse of the time basis to move front/backwards in time", time_keyword)
+	temporalMoveCount, temporalMoveCountParseOk := strconv.ParseInt(timeKeywordBeingProcessed, 10, 32)
+	if temporalMoveCountParseOk != nil {
+		return time.Now(), fmt.Errorf("keyword: '%s' could not parse of the time basis to move front/backwards in time", timeKeyword)
 	}
-	if temporal_backward {
-		move_count *= -1
+	if temporalBackwardDirection {
+		temporalMoveCount *= -1
 	}
 
 	var result time.Time
-	if suffix_days_cut {
-		result = t0.AddDate(0, 0, int(move_count))
-	} else if suffix_weeks_cut {
-		result = t0.AddDate(0, 0, 7*int(move_count))
-	} else if suffix_months_cut {
-		result = t0.AddDate(0, int(move_count), 0)
-	} else if suffix_years_cut {
-		result = t0.AddDate(int(move_count), 0, 0)
+	switch {
+	case suffixDaysCut:
+		result = time0.AddDate(0, 0, int(temporalMoveCount))
+	case suffixWeeksCut:
+		result = time0.AddDate(0, 0, 7*int(temporalMoveCount))
+	case suffixMonthsCut:
+		result = time0.AddDate(0, int(temporalMoveCount), 0)
+	case suffixYearsCut:
+		result = time0.AddDate(int(temporalMoveCount), 0, 0)
 	}
 
 	return result, nil
-
 }
 
 // ExpandDuration expand duration string into seconds , e.g '2h' -> 7200
