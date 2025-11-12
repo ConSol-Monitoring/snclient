@@ -117,3 +117,12 @@ func TestParsingSmartctlXall(t *testing.T) {
 		})
 	}
 }
+
+func TestNvme(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	res := snc.RunCheck("check_drive_health", []string{"test_type='short'", "drive_filter='/dev/nvme0'"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+
+	StopTestAgent(t, snc)
+}
