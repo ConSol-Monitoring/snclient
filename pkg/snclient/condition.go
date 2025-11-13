@@ -41,6 +41,9 @@ type Condition struct {
 	// store initial string
 	original string
 
+	// timezone for the conditionm used when discerning date values
+	timezone *time.Location
+
 	// reference to check attributes (used to expand by unit)
 	attr *[]CheckAttribute
 }
@@ -188,10 +191,10 @@ func GroupOperatorParse(str string) (GroupOperator, error) {
 }
 
 // NewCondition parse filter= from check args
-func NewCondition(input string, attr *[]CheckAttribute) (*Condition, error) {
+func NewCondition(input string, attr *[]CheckAttribute, timezone *time.Location) (*Condition, error) {
 	input = strings.TrimSpace(input)
 	if input == "none" {
-		return &Condition{isNone: true, original: input, attr: attr}, nil
+		return &Condition{isNone: true, original: input, attr: attr, timezone: timezone}, nil
 	}
 
 	token := utils.Tokenize(replaceStrOp(input))
@@ -515,6 +518,7 @@ func (c *Condition) Clone() *Condition {
 		groupOperator: c.groupOperator,
 		group:         make(ConditionList, 0),
 		attr:          c.attr,
+		timezone:      c.timezone,
 	}
 
 	for i := range c.group {
@@ -796,7 +800,7 @@ func (c *Condition) expandUnitByType(str string) error {
 
 	// before doing the regex matching, try to parse it as a date keyword
 	var unit Unit
-	_, dateParsingError := utils.ParseDateKeyword(str)
+	_, dateParsingError := utils.ParseDateKeyword(str, c.timezone)
 	if dateParsingError == nil {
 		// it can be parsed as a date
 		c.value = str
@@ -843,7 +847,7 @@ parse_unit:
 
 			return nil
 		}
-		parsedTime, dateParseError := utils.ParseDateKeyword(str)
+		parsedTime, dateParseError := utils.ParseDateKeyword(str, c.timezone)
 		if dateParseError == nil {
 			// Parse time keyword returns the specific time and not a difference. No need to add it to current date
 			c.value = float64(parsedTime.Unix())

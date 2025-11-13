@@ -47,7 +47,8 @@ func (cr *CheckResult) Finalize(timezone *time.Location, macros ...map[string]st
 		log.Debugf("replacing template failed: %s: %s", cr.Output, err.Error())
 	}
 	cr.Output = output
-	details, err := ReplaceConditionals(cr.Details, macroSet...)
+	// cannot get timezone of the conditionals here
+	details, err := ReplaceConditionals(cr.Details, nil, macroSet...)
 	if err != nil {
 		log.Debugf("replacing details template failed: %s: %s", cr.Details, err.Error())
 	}

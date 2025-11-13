@@ -625,7 +625,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 
 			return nil, nil
 		case "ok":
-			cond, err2 := NewCondition(argValue, &cd.attributes)
+			cond, err2 := NewCondition(argValue, &cd.attributes, cd.timezone)
 			if err2 != nil {
 				return nil, err2
 			}
@@ -637,7 +637,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			}
 			cd.warnThreshold = warn
 		case "warn", "warning":
-			cond, err2 := NewCondition(argValue, &cd.attributes)
+			cond, err2 := NewCondition(argValue, &cd.attributes, cd.timezone)
 			if err2 != nil {
 				return nil, err2
 			}
@@ -649,7 +649,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			}
 			cd.critThreshold = crit
 		case "crit", "critical":
-			cond, err2 := NewCondition(argValue, &cd.attributes)
+			cond, err2 := NewCondition(argValue, &cd.attributes, cd.timezone)
 			if err2 != nil {
 				return nil, err2
 			}
@@ -663,7 +663,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			cd.filter = filter
 		case "filter":
 			applyDefaultFilter = false
-			cond, err2 := NewCondition(argValue, &cd.attributes)
+			cond, err2 := NewCondition(argValue, &cd.attributes, cd.timezone)
 			if err2 != nil {
 				return nil, err2
 			}
@@ -907,7 +907,7 @@ func (cd *CheckData) removeQuotes(str string) string {
 // setFallbacks sets default filter/warn/crit thresholds unless already set.
 func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defaultCritical string) error {
 	if applyDefaultFilter && cd.defaultFilter != "" {
-		cond, err := NewCondition(cd.defaultFilter, &cd.attributes)
+		cond, err := NewCondition(cd.defaultFilter, &cd.attributes, cd.timezone)
 		if err != nil {
 			return err
 		}
@@ -1551,7 +1551,7 @@ func (cd *CheckData) applyDefaultThreshold(defaultThreshold string, list Conditi
 		return list
 	}
 
-	condDef, err := NewCondition(defaultThreshold, &cd.attributes)
+	condDef, err := NewCondition(defaultThreshold, &cd.attributes, cd.timezone)
 	if err != nil {
 		log.Errorf("default threshold: %s", defaultThreshold)
 		log.Panicf("default threshold failed: %s", err.Error())
@@ -1567,7 +1567,7 @@ func (cd *CheckData) appendDefaultThreshold(keyword, condStr, defaultThreshold s
 		return nil, fmt.Errorf("keyword %s= cannot be used multiple times", keyword)
 	}
 
-	cond, err := NewCondition(condStr, &cd.attributes)
+	cond, err := NewCondition(condStr, &cd.attributes, cd.timezone)
 	if err != nil {
 		return nil, err
 	}
@@ -1578,7 +1578,7 @@ func (cd *CheckData) appendDefaultThreshold(keyword, condStr, defaultThreshold s
 		return list, nil
 	}
 
-	condDef, err := NewCondition(defaultThreshold, &cd.attributes)
+	condDef, err := NewCondition(defaultThreshold, &cd.attributes, cd.timezone)
 	if err != nil {
 		log.Errorf("default threshold: %s", defaultThreshold)
 		log.Panicf("default threshold failed: %s", err.Error())

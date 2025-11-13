@@ -202,8 +202,8 @@ func TestTimeKeywordFilters(t *testing.T) {
 	// res = snc.RunCheck("check_files", []string{fmt.Sprintf("path=%s", tempDir), "filter=\"written>=today\"", "filter=\"written<tomorrow\""})
 	// Such a test got every file
 
-	// combine the two conditions, filters only to the single 'today' file that is written after today midnight and not later than tomorrow midnight
-	res = snc.RunCheck("check_files", []string{fmt.Sprintf("path=%s", tempDir), "filter=\"written>=today && written<=tomorrow\""})
+	// combine the two conditions, filters only to the single 'today' file that is written after today midnight and earlier then tomorrow midnight
+	res = snc.RunCheck("check_files", []string{fmt.Sprintf("path=%s", tempDir), "filter=\"written>=today && written<tomorrow\""})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
 

@@ -60,7 +60,7 @@ func TestUtilsParseDateKeyword(t *testing.T) {
 
 	for _, test := range tests {
 		// Cant really test the results, as they are dynamic and depend on the time of the execution.
-		_, err := ParseDateKeyword(test.keyword)
+		_, err := ParseDateKeyword(test.keyword, time.UTC)
 		if test.errorReason == "" {
 			if err != nil {
 				t.Errorf("input '%s' should have produced no errors, but it produced this error: %s", test.keyword, err)
@@ -75,7 +75,7 @@ func TestUtilsParseDateKeyword(t *testing.T) {
 	keywordsMeaningToday := []string{"today", "0_days_ago", "-0_days_ago", "0_days_from_now_on", "-0_days_from_now_on"}
 	parsedKeywordsMeaningToday := make([]time.Time, 0)
 	for _, keyword := range keywordsMeaningToday {
-		parsed, err := ParseDateKeyword(keyword)
+		parsed, err := ParseDateKeyword(keyword, time.UTC)
 		if err != nil {
 			t.Error(err)
 		}

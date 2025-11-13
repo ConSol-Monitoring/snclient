@@ -39,7 +39,7 @@ var (
 
 // ReplaceTemplate combines ReplaceConditionals and ReplaceMacros
 func ReplaceTemplate(value string, timezone *time.Location, macroSets ...map[string]string) (string, error) {
-	expanded, err := ReplaceConditionals(value, macroSets...)
+	expanded, err := ReplaceConditionals(value, timezone, macroSets...)
 	if err != nil {
 		return expanded, err
 	}
@@ -51,7 +51,7 @@ func ReplaceTemplate(value string, timezone *time.Location, macroSets ...map[str
 /* ReplaceConditionals replaces conditionals of the form
  * {{ IF condition }}...{{ ELSIF condition }}...{{ ELSE }}...{{ END }}"
  */
-func ReplaceConditionals(value string, macroSets ...map[string]string) (string, error) {
+func ReplaceConditionals(value string, timezone *time.Location, macroSets ...map[string]string) (string, error) {
 	splitBy := map[string]string{
 		"{{": "}}",
 	}
@@ -85,7 +85,7 @@ func ReplaceConditionals(value string, macroSets ...map[string]string) (string, 
 				if len(fields) < 2 {
 					return value, fmt.Errorf("missing condition in %s clause :%s", strings.ToUpper(fields[0]), piece)
 				}
-				condition, err := NewCondition(fields[1], nil)
+				condition, err := NewCondition(fields[1], nil, timezone)
 				if err != nil {
 					return value, fmt.Errorf("parsing condition in %s failed: %s", fields[1], err.Error())
 				}
@@ -105,7 +105,7 @@ func ReplaceConditionals(value string, macroSets ...map[string]string) (string, 
 
 					break
 				}
-				condition, err := NewCondition(fields[1], nil)
+				condition, err := NewCondition(fields[1], nil, timezone)
 				if err != nil {
 					return value, fmt.Errorf("parsing condition in %s failed: %s", fields[1], err.Error())
 				}

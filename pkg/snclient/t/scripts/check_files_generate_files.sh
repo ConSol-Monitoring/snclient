@@ -11,6 +11,7 @@ TESTING_DIR="$1"
 
 mkdir -p ${TESTING_DIR}
 
+# Generate it with local timezone
 TODAY=$(date -d 'today 00:00:00' +%F)
 
 echo "${TODAY} ${TESTING_DIR}" > /tmp/check_files_generate_files

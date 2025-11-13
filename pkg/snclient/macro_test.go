@@ -103,7 +103,7 @@ func TestMacroConditionals(t *testing.T) {
 	}
 
 	for _, tst := range tests {
-		res, err := ReplaceConditionals(tst.In, macros)
+		res, err := ReplaceConditionals(tst.In, time.UTC, macros)
 		require.NoError(t, err)
 		res = ReplaceMacros(res, nil, macros)
 		assert.Equalf(t, tst.Expect, res, "replacing: %s", tst.In)
@@ -135,7 +135,7 @@ func TestMacroConditionalsMulti(t *testing.T) {
 	}
 
 	for _, tst := range tests {
-		res, err := ReplaceConditionals(tst.In, macros...)
+		res, err := ReplaceConditionals(tst.In, time.UTC, macros...)
 		require.NoError(t, err)
 		res = ReplaceMacros(res, nil, macros...)
 		assert.Equalf(t, tst.Expect, res, "replacing: %s", tst.In)

@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"testing"
+	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/stretchr/testify/assert"
@@ -65,7 +66,7 @@ func TestConditionParse(t *testing.T) {
 			},
 		},
 	} {
-		cond, err := NewCondition(check.input, nil)
+		cond, err := NewCondition(check.input, nil, nil)
 		check.expect.original = check.input
 		require.NoErrorf(t, err, "ConditionParse should throw no error")
 		assert.Equal(t, check.expect, cond, "ConditionParse(%s) -> %v", check.input, check.expect)
@@ -113,7 +114,7 @@ func TestConditionParseErrors(t *testing.T) {
 		{"state in ("},
 		{"a > 0 && b < 0 || x > 3"},
 	} {
-		cond, err := NewCondition(check.threshold, nil)
+		cond, err := NewCondition(check.threshold, nil, time.UTC)
 		require.Errorf(t, err, "ConditionParse should error")
 		assert.Nilf(t, cond, "ConditionParse(%s) errors should not return condition", check.threshold)
 	}
@@ -179,7 +180,7 @@ func TestConditionCompare(t *testing.T) {
 		{"test slike 'Blah'", "test", "blah", false, true},
 		{"test like str(blah)", "test", "blah", true, true},
 	} {
-		threshold, err := NewCondition(check.threshold, nil)
+		threshold, err := NewCondition(check.threshold, nil, time.UTC)
 		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
 		compare := map[string]string{check.key: check.value}
@@ -201,7 +202,7 @@ func TestConditionThresholdString(t *testing.T) {
 		{"test > 10 and test < 20", "test", "@10:20"},
 		{"test < 20 and test > 10", "test", "@10:20"},
 	} {
-		threshold, err := NewCondition(check.threshold, nil)
+		threshold, err := NewCondition(check.threshold, nil, time.UTC)
 		require.NoErrorf(t, err, "parsed threshold")
 		assert.NotNilf(t, threshold, "parsed threshold")
 		perfRange := ThresholdString([]string{check.name}, ConditionList{threshold}, convert.Num2String)
@@ -222,7 +223,7 @@ func TestConditionPreCheck(t *testing.T) {
 		{filterStr, map[string]string{"name": "none", "state": "running"}, false, false},
 		{filterStr, map[string]string{"test": "", "xyz": ""}, true, false},
 	} {
-		cond, err := NewCondition(check.filter, nil)
+		cond, err := NewCondition(check.filter, nil, time.UTC)
 		require.NoError(t, err)
 		chk := CheckData{}
 		ok := chk.MatchMapCondition(ConditionList{cond}, check.entry, true)
@@ -232,7 +233,7 @@ func TestConditionPreCheck(t *testing.T) {
 		assert.Equalf(t, check.expectPre, ok, "final check on %v returned: %v", check.entry, ok)
 
 		// none filter
-		cond, _ = NewCondition("none", nil)
+		cond, _ = NewCondition("none", nil, time.UTC)
 		ok = chk.MatchMapCondition(ConditionList{cond}, check.entry, true)
 		assert.Truef(t, ok, "none pre check on %v returned: %v", check.entry, ok)
 
@@ -243,7 +244,7 @@ func TestConditionPreCheck(t *testing.T) {
 
 func TestConditionAlias(t *testing.T) {
 	filterStr := `( name = 'xinetd' or name like 'other' ) and state = 'started'`
-	cond, err := NewCondition(filterStr, nil)
+	cond, err := NewCondition(filterStr, nil, time.UTC)
 	require.NoError(t, err)
 
 	check := &CheckData{

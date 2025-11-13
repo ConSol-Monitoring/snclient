@@ -49,7 +49,7 @@ var TimeFactors = []struct {
 
 // The user can give a filter like 2_weeks_ago, 3_months_ago , 5_years_from_now_on etc.
 // The return values from this function refer to a specific time, e.g beginning of the week. It does not give the duration difference with current time
-func ParseDateKeyword(timeKeyword string) (time.Time, error) {
+func ParseDateKeyword(timeKeyword string, timezone *time.Location) (time.Time, error) {
 	var timeKeywordBeingProcessed string
 	var isAKnownTimeKeyword bool
 	// convert words into the forms that show the temporal direction, base and the numerical value to move
@@ -86,11 +86,15 @@ func ParseDateKeyword(timeKeyword string) (time.Time, error) {
 		return time.Now(), fmt.Errorf("keyword: '%s' has to have survive exactly one suffix cuts of 'ago' and 'from_now_on'. Cannot ascertain temporal direction", timeKeyword)
 	}
 
-	// Set the timezone to UTC and get todays midnight according to UTC
-	timezone := time.UTC
-
-	now := time.Now().In(time.UTC)
-	todayMidnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, timezone)
+	// Need to specify a timezone. This usually comes from the Condition object, which is set by the Check
+	var timezoneToUse time.Location
+	if timezone != nil {
+		timezoneToUse = *timezone
+	} else {
+		timezoneToUse = *time.UTC
+	}
+	now := time.Now().In(&timezoneToUse)
+	todayMidnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, &timezoneToUse)
 
 	var suffixDaysCut, suffixWeeksCut, suffixMonthsCut, suffixYearsCut bool
 	durationCutCount := 0 // Cant just convert the bool variables to int, golang does not allow it
@@ -114,11 +118,11 @@ func ParseDateKeyword(timeKeyword string) (time.Time, error) {
 	}
 	if timeKeywordBeingProcessed, suffixMonthsCut = strings.CutSuffix(timeKeywordBeingProcessed, "_months"); suffixMonthsCut {
 		durationCutCount++
-		time0 = time.Date(todayMidnight.Year(), todayMidnight.Month(), 1, 0, 0, 0, 0, timezone)
+		time0 = time.Date(todayMidnight.Year(), todayMidnight.Month(), 1, 0, 0, 0, 0, &timezoneToUse)
 	}
 	if timeKeywordBeingProcessed, suffixYearsCut = strings.CutSuffix(timeKeywordBeingProcessed, "_years"); suffixYearsCut {
 		durationCutCount++
-		time0 = time.Date(todayMidnight.Year(), time.January, 1, 0, 0, 0, 0, timezone)
+		time0 = time.Date(todayMidnight.Year(), time.January, 1, 0, 0, 0, 0, &timezoneToUse)
 	}
 	if durationCutCount != 1 {
 		return time.Now(), fmt.Errorf("keyword: '%s' has to have survive exactly one suffix cuts of 'days', 'weeks', 'months', 'years' ", timeKeyword)
