@@ -190,6 +190,14 @@ func TestTimeKeywordFilters(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "Generating test files successful")
 	assert.Equalf(t, "ok - Generated 11 files for testing", string(res.BuildPluginOutput()), "output matches")
 
+	// This will be printed if the test fails.
+	t.Logf("Contents of test directory %s:", tempDir)
+	files, _ := os.ReadDir(tempDir)
+	for _, file := range files {
+		info, _ := file.Info()
+		t.Logf("- File: %s, ModTime: %s", file.Name(), info.ModTime().Format(time.RFC3339))
+	}
+
 	// Note on 2025-11-06 : Multiple filter="<condition>"s are combined with a logical OR.
 	// res = snc.RunCheck("check_files", []string{fmt.Sprintf("path=%s", tempDir), "filter=\"written>=today\"", "filter=\"written<tomorrow\""})
 	// Such a test got every file
