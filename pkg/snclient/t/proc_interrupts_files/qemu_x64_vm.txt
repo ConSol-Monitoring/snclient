@@ -1,0 +1,60 @@
+           CPU0       CPU1       CPU2       CPU3       
+  1:          0          0        216          0   IO-APIC   1-edge      i8042
+  8:          0          0          0          0   IO-APIC   8-edge      rtc0
+  9:          0          0          0          0   IO-APIC   9-fasteoi   acpi
+ 12:          0        144          0          0   IO-APIC  12-edge      i8042
+ 16:          0          0          0          0   IO-APIC  16-fasteoi   i801_smbus
+ 24:          0          0          0          0  PCI-MSIX-0000:00:02.0   0-edge      PCIe PME, aerdrv
+ 25:          0          0          0          0  PCI-MSIX-0000:00:02.1   0-edge      PCIe PME, aerdrv
+ 26:          0          0          0          0  PCI-MSIX-0000:00:02.2   0-edge      PCIe PME, aerdrv
+ 27:          0          0          0          0  PCI-MSIX-0000:00:02.3   0-edge      PCIe PME, aerdrv
+ 28:          0          0          0          0  PCI-MSIX-0000:00:02.4   0-edge      PCIe PME, aerdrv
+ 29:          0          0          0          0  PCI-MSIX-0000:00:02.5   0-edge      PCIe PME, aerdrv
+ 30:          0          0          0          0  PCI-MSIX-0000:00:02.6   0-edge      PCIe PME, aerdrv
+ 31:          0          0          0          0  PCI-MSIX-0000:00:02.7   0-edge      PCIe PME, aerdrv
+ 32:          0          0          0          0  PCI-MSIX-0000:00:03.0   0-edge      PCIe PME, aerdrv
+ 33:          0          0          0          0  PCI-MSIX-0000:00:03.1   0-edge      PCIe PME, aerdrv
+ 34:          0          0          0          0  PCI-MSIX-0000:00:03.2   0-edge      PCIe PME, aerdrv
+ 35:          0          0          0          0  PCI-MSIX-0000:00:03.3   0-edge      PCIe PME, aerdrv
+ 36:          0          0          0          0  PCI-MSIX-0000:00:03.4   0-edge      PCIe PME, aerdrv
+ 37:          0          0          0          0  PCI-MSIX-0000:00:03.5   0-edge      PCIe PME, aerdrv
+ 38:          0          0          0          0  PCI-MSIX-0000:03:00.0   0-edge      virtio2-config
+ 39:       1914          0          0          0  PCI-MSIX-0000:03:00.0   1-edge      virtio2-virtqueues
+ 40:          0          0          0          0  PCI-MSIX-0000:01:00.0   0-edge      virtio1-config
+ 41:          0     296446          0          0  PCI-MSIX-0000:01:00.0   1-edge      virtio1-input.0
+ 42:          0          0     232633          0  PCI-MSIX-0000:01:00.0   2-edge      virtio1-output.0
+ 43:          0          0          0          0  PCI-MSIX-0000:04:00.0   0-edge      virtio3-config
+ 44:     340662          0          0          0  PCI-MSIX-0000:04:00.0   1-edge      virtio3-req.0
+ 45:          0     563738          0          0  PCI-MSIX-0000:04:00.0   2-edge      virtio3-req.1
+ 46:          0          0     663679          0  PCI-MSIX-0000:04:00.0   3-edge      virtio3-req.2
+ 47:          0          0          0     677646  PCI-MSIX-0000:04:00.0   4-edge      virtio3-req.3
+ 48:          0         85          0          0  PCI-MSIX-0000:02:00.0   0-edge      xhci_hcd
+ 53:          0          0          1          0  PCI-MSIX-0000:00:01.0   0-edge      virtio0-config
+ 54:          0          0          0       4161  PCI-MSIX-0000:00:01.0   1-edge      virtio0-control
+ 55:       1260          0          0          0  PCI-MSIX-0000:00:01.0   2-edge      virtio0-cursor
+ 56:          0      60793          0          0  PCI-MSI-0000:00:1f.2   0-edge      ahci[0000:00:1f.2]
+ 57:          0          0          0          0  PCI-MSIX-0000:06:00.0   0-edge      virtio5-config
+ 58:          0          0          0       1936  PCI-MSIX-0000:06:00.0   1-edge      virtio5-input
+ 59:          0          0          0          0  PCI-MSIX-0000:05:00.0   0-edge      virtio4-config
+ 60:          0          0          0          0  PCI-MSIX-0000:05:00.0   1-edge      virtio4-virtqueues
+ 61:          0          0        201          0  PCI-MSI-0000:00:1b.0   0-edge      snd_hda_intel:card0
+NMI:          0          0          0          0   Non-maskable interrupts
+LOC:   11867954   13426126   13738914   13064398   Local timer interrupts
+SPU:          0          0          0          0   Spurious interrupts
+PMI:          0          0          0          0   Performance monitoring interrupts
+IWI:        145         59         24        116   IRQ work interrupts
+RTR:          0          0          0          0   APIC ICR read retries
+RES:     244200     271609     273101     254866   Rescheduling interrupts
+CAL:    3093475    2873071    2855021    2675922   Function call interrupts
+TLB:     121788     219623     250939     235661   TLB shootdowns
+TRM:          0          0          0          0   Thermal event interrupts
+THR:          0          0          0          0   Threshold APIC interrupts
+DFR:          0          0          0          0   Deferred Error APIC interrupts
+MCE:          0          0          0          0   Machine check exceptions
+MCP:        382        384        383        381   Machine check polls
+HYP:          1          1          1          1   Hypervisor callback interrupts
+ERR:          0
+MIS:          0
+PIN:          0          0          0          0   Posted-interrupt notification event
+NPI:          0          0          0          0   Nested posted-interrupt event
+PIW:          0          0          0          0   Posted-interrupt wakeup event
