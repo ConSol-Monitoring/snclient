@@ -20,7 +20,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.6
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.6
-	github.com/shirou/gopsutil/v4 v4.25.9
+	github.com/shirou/gopsutil/v4 v4.25.10
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20250317143157-caa67455f3bb
 	github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9
 	github.com/sni/shelltoken v0.0.0-20250912120847-52cbb850f3ae
@@ -29,7 +29,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/subuk/csrtool v0.0.0-20250413213651-887255723652
 	github.com/yusufpapurcu/wmi v1.2.4
-	golang.org/x/sys v0.37.0
+	golang.org/x/sys v0.38.0
 	golang.org/x/term v0.36.0
 	gopkg.in/yaml.v3 v3.0.1
 )
