@@ -681,25 +681,25 @@ DOC_COMMANDS=\
 	check_connections \
 	check_cpu \
 	check_cpu_utilization \
-	check_dummy \
 	check_drivesize \
+	check_dummy \
 	check_eventlog \
 	check_files \
 	check_index \
 	check_kernel_stats \
 	check_load \
+	check_logfile \
 	check_mailq \
 	check_memory \
 	check_mount \
 	check_network \
 	check_ntp_offset \
 	check_omd \
-	check_os_version \
 	check_os_updates \
+	check_os_version \
 	check_pagefile \
-	check_ping \
 	check_pdh \
-	check_logfile \
+	check_ping \
 	check_process \
 	check_snclient_version \
 	check_tasksched \
