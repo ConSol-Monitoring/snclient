@@ -89,6 +89,7 @@ Further details are covered in the [documentation](https://omd.consol.de/docs/sn
 | **check_uptime**                  |    X    |    X    |    X    |    X    |
 | **check_wmi**                     |    X    |         |         |         |
 | **check_wrap / external scripts** |    X    |    X    |    X    |    X    |
+| **check_drive_health**            |         |    X    |    X    |    X    |
 
 ## Roadmap
 
