@@ -24,7 +24,9 @@ var (
 type Condition struct {
 	noCopy noCopy
 
-	keyword  string
+	// keyword is the original operand given in the condition
+	keyword string
+
 	operator Operator
 	value    interface{}
 	unit     string
@@ -38,6 +40,9 @@ type Condition struct {
 
 	// store initial string
 	original string
+
+	// timezone for the conditionm used when discerning date values
+	timezone *time.Location
 
 	// reference to check attributes (used to expand by unit)
 	attr *[]CheckAttribute
@@ -186,10 +191,10 @@ func GroupOperatorParse(str string) (GroupOperator, error) {
 }
 
 // NewCondition parse filter= from check args
-func NewCondition(input string, attr *[]CheckAttribute) (*Condition, error) {
+func NewCondition(input string, attr *[]CheckAttribute, timezone *time.Location) (*Condition, error) {
 	input = strings.TrimSpace(input)
 	if input == "none" {
-		return &Condition{isNone: true, original: input, attr: attr}, nil
+		return &Condition{isNone: true, original: input, attr: attr, timezone: timezone}, nil
 	}
 
 	token := utils.Tokenize(replaceStrOp(input))
@@ -314,26 +319,70 @@ func (c *Condition) matchSingle(data map[string]string) (res, ok bool) {
 	if !ok {
 		return false, false
 	}
+	// value of the condition, i.e
 	condStr := fmt.Sprintf("%v", c.value)
 	varNum, err1 := strconv.ParseFloat(varStr, 64)
 	condNum, err2 := strconv.ParseFloat(condStr, 64)
+	if err1 != nil {
+		log.Debugf("Parsing varStr: %s into a float was unsuccessful, number comparison based conditionals might give wrong results", varStr)
+	}
+	if err2 != nil {
+		log.Debugf("Parsing condNum: %s into a float was unsuccessful, number comparison based conditionals might give wrong results", condStr)
+	}
+	// Use a different kind of parsing if one side of the conditional is given as "version".
 	if c.keyword == "version" {
 		varNum, err1 = convert.VersionF64E(varStr)
 		condNum, err2 = convert.VersionF64E(condStr)
 	}
 	switch c.operator {
 	case Equal:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
 		if err1 == nil && err2 == nil {
 			return varNum == condNum, true
 		}
-		// fallback to string compare
+		// could not parse both operands to numbers,  but this comparison can be done on strings
 		return condStr == varStr, true
 	case Unequal:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
 		if err1 == nil && err2 == nil {
 			return varNum != condNum, true
 		}
-		// fallback to string compare
+		// could not parse both operands to numbers,  but this comparison can be done on strings
 		return condStr != varStr, true
+	case GreaterEqual:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
+		if err1 == nil && err2 == nil {
+			return varNum >= condNum, true
+		}
+		// could not parse both operands to numbers, and this comparison type is strictly for numbers
+		return false, true
+	case Greater:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
+		if err1 == nil && err2 == nil {
+			return varNum > condNum, true
+		}
+		// could not parse both operands to numbers, and this comparison type is strictly for numbers
+		return false, true
+	case LowerEqual:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
+		if err1 == nil && err2 == nil {
+			return varNum <= condNum, true
+		}
+		// could not parse both operands to numbers, and this comparison type is strictly for numbers
+		return false, true
+	case Lower:
+		// parsing to a numbers worked, both the discovered data and the operand of the comparison were presumably numbers.
+		// safe to compare them numerically
+		if err1 == nil && err2 == nil {
+			return varNum < condNum, true
+		}
+		// could not parse both operands to numbers, and this comparison type is strictly for numbers
+		return false, true
 	case Contains:
 		return strings.Contains(strings.ToLower(varStr), strings.ToLower(condStr)), true
 	case ContainsNot:
@@ -342,30 +391,6 @@ func (c *Condition) matchSingle(data map[string]string) (res, ok bool) {
 		return strings.Contains(varStr, condStr), true
 	case ContainsNotCase:
 		return !strings.Contains(varStr, condStr), true
-	case GreaterEqual:
-		if err1 == nil && err2 == nil {
-			return varNum >= condNum, true
-		}
-
-		return false, true
-	case Greater:
-		if err1 == nil && err2 == nil {
-			return varNum > condNum, true
-		}
-
-		return false, true
-	case LowerEqual:
-		if err1 == nil && err2 == nil {
-			return varNum <= condNum, true
-		}
-
-		return false, true
-	case Lower:
-		if err1 == nil && err2 == nil {
-			return varNum < condNum, true
-		}
-
-		return false, true
 	case RegexMatch:
 		regex, err := regexp.Compile(condStr)
 		if err != nil {
@@ -493,6 +518,7 @@ func (c *Condition) Clone() *Condition {
 		groupOperator: c.groupOperator,
 		group:         make(ConditionList, 0),
 		attr:          c.attr,
+		timezone:      c.timezone,
 	}
 
 	for i := range c.group {
@@ -771,6 +797,18 @@ func (c *Condition) getUnit(keyword string) Unit {
 
 func (c *Condition) expandUnitByType(str string) error {
 	match := reConditionValueUnit.FindStringSubmatch(str)
+
+	// before doing the regex matching, try to parse it as a date keyword
+	var unit Unit
+	_, dateParsingError := utils.ParseDateKeyword(str, c.timezone)
+	if dateParsingError == nil {
+		// it can be parsed as a date
+		c.value = str
+		unit = UDate
+
+		goto parse_unit
+	}
+
 	if len(match) < 3 {
 		c.value = str
 
@@ -782,24 +820,49 @@ func (c *Condition) expandUnitByType(str string) error {
 	// bytes value support % thresholds as well but we cannot expand them yet
 	if c.unit == "%" {
 		return nil
+		// might want to return an error?
+		// return fmt.Errorf("parsed the condition operand: %s with regex, but the unit was determined as '%s'. Expanding them is not implemented yet", str, c.unit)
 	}
 
 	// expand known units
-	unit := c.getUnit(c.keyword)
+	unit = c.getUnit(c.keyword)
+
+parse_unit:
 	switch unit {
 	case UByte:
 		value, err := humanize.ParseBytes(str)
 		if err != nil {
-			return fmt.Errorf("invalid bytes value: %s", err.Error())
+			return fmt.Errorf("Type of this conditional operand: %s was determined to be an UByte. It was however not parsed as bytes, getting this error: %s", str, err.Error())
 		}
 		c.value = strconv.FormatUint(value, 10)
 		c.unit = "B"
 
 		return nil
-	case UDate, UTimestamp:
+	case UDate:
+		value, durationParseError := utils.ExpandDuration(str)
+		if durationParseError == nil {
+			// The expandDuration parses the duration, not a specific date. If the user gives '10d', try to get the date from now on plus 10 days
+			c.value = strconv.FormatFloat(float64(time.Now().Unix())+value, 'f', 0, 64)
+			c.unit = ""
+
+			return nil
+		}
+		parsedTime, dateParseError := utils.ParseDateKeyword(str, c.timezone)
+		if dateParseError == nil {
+			// Parse time keyword returns the specific time and not a difference. No need to add it to current date
+			c.value = float64(parsedTime.Unix())
+			c.unit = ""
+
+			return nil
+		}
+
+		return fmt.Errorf(`Type of this conditional operand: %s was determined to be an UDate.
+		It was not parsed as a duration, getting the error: %s .
+		It was also not parsed as a specific date keyword, getting the error: %s`, str, durationParseError.Error(), dateParseError.Error())
+	case UTimestamp:
 		value, err := utils.ExpandDuration(str)
 		if err != nil {
-			return fmt.Errorf("invalid duration value: %s", err.Error())
+			return fmt.Errorf("Type of this conditional operand: %s was determined to be an UTimestamp. It was not parsed as a duration, getting this error: %s", str, err.Error())
 		}
 		c.value = strconv.FormatFloat(float64(time.Now().Unix())+value, 'f', 0, 64)
 		c.unit = ""
@@ -808,7 +871,7 @@ func (c *Condition) expandUnitByType(str string) error {
 	case UDuration:
 		value, err := utils.ExpandDuration(str)
 		if err != nil {
-			return fmt.Errorf("invalid duration value: %s", err.Error())
+			return fmt.Errorf("Type of this conditional operand: %s was determined to be an UDuration. It was not parsed as a duration, getting this error: %s", str, err.Error())
 		}
 		c.value = strconv.FormatFloat(value, 'f', 0, 64)
 		c.unit = "s"

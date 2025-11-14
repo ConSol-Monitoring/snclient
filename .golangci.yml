@@ -117,6 +117,8 @@ issues:
     - "Function 'buildListMacros' is too long"
     - "Function 'fetchProcs' has too many statements"
     - "Function 'ReplaceConditionals' has too many statements"
+    - "Function 'ParseDateKeyword' has too many statements"
+    - "Function 'expandUnitByType' has too many statements"
     - "cognitive complexity .* of func .*.Check"
     - "cognitive complexity .* of func .*conditionAdd"
     - "cognitive complexity .* of func .*.matchSingle"
