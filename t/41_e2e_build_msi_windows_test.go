@@ -50,13 +50,17 @@ func TestMSIinstaller(t *testing.T) {
 	// install msi file
 	runCmd(t, &cmd{
 		Cmd:     "msiexec",
-		Args:    []string{"/i", "snclient.msi", "/qn"},
+		Args:    []string{"/i", "snclient.msi", "/qn", "ALLOWEDHOSTS=127.0.0.1,::1,192.168.0.1"},
 		Timeout: installMSITimeout,
 	})
 
 	for _, file := range requiredFiles {
 		require.FileExistsf(t, `C:\Program Files\snclient\`+file, file+" has been installed")
 	}
+
+	iniContent, err := os.ReadFile(`C:\Program Files\snclient\snclient.ini`)
+	require.NoErrorf(t, err, "snclient.ini can be read")
+	assert.Containsf(t, string(iniContent), "allowed hosts = 127.0.0.1,::1,192.168.0.1", "snclient.ini contains allowed hosts")
 
 	// make sure snclient.exe has a file version set
 	runCmd(t, &cmd{

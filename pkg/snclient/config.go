@@ -854,6 +854,7 @@ func (cs *ConfigSection) Set(key, value string) {
 func (cs *ConfigSection) Insert(key, value string) {
 	if cs.HasKey(key) {
 		cs.data[key] = value
+		cs.raw[key] = []string{value}
 
 		return
 	}
@@ -1122,3 +1123,74 @@ func (d *ConfigData) Merge(defaults ConfigData) {
 }
 
 type ConfigInit []interface{}
+
+// MergeIniFile merges settings from mergeFile into srcFile and return new config.
+func MergeIniFile(srcFile, mergeFile string, snc *Agent) *Config {
+	tmpConfig := NewConfig(false)
+	err := tmpConfig.ParseINIFile(mergeFile, snc)
+	if err != nil {
+		log.Errorf("failed to parse %s: %s", mergeFile, err.Error())
+	}
+
+	targetConfig := NewConfig(false)
+	err = targetConfig.ParseINIFile(srcFile, snc)
+	if err != nil {
+		log.Errorf("failed to parse %s: %s", srcFile, err.Error())
+	}
+
+	for name, section := range tmpConfig.SectionsByPrefix("/") {
+		targetSection := targetConfig.Section(name)
+		handleMergeSection(section, targetSection)
+	}
+
+	return targetConfig
+}
+
+func handleMergeSection(section, targetSection *ConfigSection) {
+	for _, key := range section.Keys() {
+		switch key {
+		case "password":
+			val, _ := section.GetString(key)
+			if val == DefaultPassword {
+				continue
+			}
+
+			if val != "" {
+				val = toPassword(val)
+			}
+			targetSection.Insert(key, val)
+		case "use ssl", "WEBServer", "NRPEServer", "PrometheusServer":
+			val, _ := section.GetString(key)
+			targetSection.Insert(key, toBool(val))
+		case "port", "allowed hosts":
+			val, _ := section.GetString(key)
+			targetSection.Insert(key, val)
+		case "installer":
+			val, _ := section.GetString(key)
+			if val != "" {
+				targetSection.Insert(key, val)
+			}
+		default:
+			log.Fatalf("unhandled merge ini key: %s", key)
+		}
+	}
+}
+
+func toPassword(val string) string {
+	if strings.HasPrefix(val, "SHA256:") {
+		return val
+	}
+
+	sum, _ := utils.Sha256Sum(val)
+
+	return fmt.Sprintf("%s:%s", "SHA256", sum)
+}
+
+func toBool(val string) string {
+	switch val {
+	case "1":
+		return "enabled"
+	default:
+		return "disabled"
+	}
+}

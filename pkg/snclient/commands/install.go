@@ -332,82 +332,19 @@ func mergeIniFile(snc *snclient.Agent, installConfig map[string]string) {
 		return
 	}
 
-	tmpFile := filepath.Join(installDir, "tmp_installer.ini")
-	tmpConfig := snclient.NewConfig(false)
-	err := tmpConfig.ParseINIFile(tmpFile, snc)
-	if err != nil {
-		snc.Log.Errorf("failed to parse %s: %s", tmpFile, err.Error())
-	}
-
 	targetFile := filepath.Join(installDir, "snclient.ini")
-	targetConfig := snclient.NewConfig(false)
-	err = targetConfig.ParseINIFile(targetFile, snc)
-	if err != nil {
-		snc.Log.Errorf("failed to parse %s: %s", targetFile, err.Error())
-	}
+	mergeFile := filepath.Join(installDir, "tmp_installer.ini")
 
-	for name, section := range tmpConfig.SectionsByPrefix("/") {
-		targetSection := targetConfig.Section(name)
-		handleMergeSection(snc, section, targetSection)
-	}
+	targetConfig := snclient.MergeIniFile(targetFile, mergeFile, snc)
 
-	err = targetConfig.WriteINI(targetFile)
+	err := targetConfig.WriteINI(targetFile)
 	if err != nil {
 		snc.Log.Errorf("failed to write %s: %s", targetFile, err.Error())
 	}
 
-	err = os.Remove(tmpFile)
+	err = os.Remove(mergeFile)
 	if err != nil {
-		snc.Log.Errorf("failed to remove %s: %s", tmpFile, err.Error())
-	}
-}
-
-func handleMergeSection(snc *snclient.Agent, section, targetSection *snclient.ConfigSection) {
-	for _, key := range section.Keys() {
-		switch key {
-		case "password":
-			val, _ := section.GetString(key)
-			if val == snclient.DefaultPassword {
-				continue
-			}
-
-			if val != "" {
-				val = toPassword(val)
-			}
-			targetSection.Insert(key, val)
-		case "use ssl", "WEBServer", "NRPEServer", "PrometheusServer":
-			val, _ := section.GetString(key)
-			targetSection.Insert(key, toBool(val))
-		case "port", "allowed hosts":
-			val, _ := section.GetString(key)
-			targetSection.Insert(key, val)
-		case "installer":
-			val, _ := section.GetString(key)
-			if val != "" {
-				targetSection.Insert(key, val)
-			}
-		default:
-			snc.Log.Errorf("unhandled merge ini key: %s", key)
-		}
-	}
-}
-
-func toPassword(val string) string {
-	if strings.HasPrefix(val, "SHA256:") {
-		return val
-	}
-
-	sum, _ := utils.Sha256Sum(val)
-
-	return fmt.Sprintf("%s:%s", "SHA256", sum)
-}
-
-func toBool(val string) string {
-	switch val {
-	case "1":
-		return "enabled"
-	default:
-		return "disabled"
+		snc.Log.Errorf("failed to remove %s: %s", mergeFile, err.Error())
 	}
 }
 
