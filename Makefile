@@ -686,6 +686,7 @@ DOC_COMMANDS=\
 	check_eventlog \
 	check_files \
 	check_index \
+	check_interrupts \ 
 	check_kernel_stats \
 	check_load \
 	check_mailq \
