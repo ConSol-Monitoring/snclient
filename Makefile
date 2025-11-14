@@ -273,6 +273,7 @@ citest: tools vendor
 	#
 	$(MAKE) docs
 	$(MAKE) gitcleandocs
+	$(MAKE) docs_test_checks_missing
 	@if [ "$(DOCKER)" != "" ]; then \
 		$(MAKE) docs_test; \
 	else \
@@ -677,6 +678,7 @@ sign.pfx:
 sign.pfx_sha1: sign.pfx
 	openssl x509 -fingerprint -in sign.pfx -noout | tr -d ':'
 
+# generate markdown help files for all commands
 DOC_COMMANDS=\
 	check_connections \
 	check_cpu \
@@ -707,11 +709,17 @@ DOC_COMMANDS=\
 	check_uptime \
 	check_wmi \
 
+# generate markdown help files for all plugins
 DOC_PLUGINS=\
 	check_dns \
 	check_http \
 	check_nsc_web \
 	check_tcp \
+
+# skip markdown help files for these commands
+DOC_EXCLUDES=\
+	check_alias \
+	check_wrap \
 
 docs: build docs_checks docs_check_service docs_plugins
 
@@ -752,6 +760,21 @@ docs_check_service:
 		rm -f check_service_windows.go.tmp check_service_linux.go.tmp; \
 		$(MAKE) build ; \
 	fi
+
+docs_test_checks_missing:
+	DOC_FILES=$$(ls -1 pkg/snclient/check_*.go | grep -Pv _windows\|_darwin\|_other\|_linux\|_test\|_common\|check_files_helper | xargs -n 1 basename  | sed 's/.go//'); \
+	MISSING=0; \
+	for FILE in $$DOC_FILES; do \
+	 	FOUND=0; \
+		for COM in $(DOC_EXCLUDES) $(DOC_COMMANDS) $(DOC_PLUGINS); do \
+			if [ "$$COM" = "$$FILE" ]; then  FOUND=1; break; fi; \
+		done; \
+		if [ $$FOUND -eq 0 ]; then \
+			echo "markdown for check pkg/snclient/$$FILE.go not automatically generated and not excluded by DOC_EXCLUDES"; \
+			MISSING=1; \
+		fi; \
+	done; \
+	if [ $$MISSING -eq 1 ]; then exit 1; fi
 
 docs_server:
 	$(MAKE) -C docs server
