@@ -706,6 +706,7 @@ DOC_COMMANDS=\
 	check_temperature \
 	check_uptime \
 	check_wmi \
+	check_drive_health \
 
 DOC_PLUGINS=\
 	check_dns \

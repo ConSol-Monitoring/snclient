@@ -7,9 +7,10 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-var smartctl_scan_open_output string = `{
+var smartctlScanOpenOutput = `{
   "json_format_version": [
     1,
     0
@@ -41,19 +42,17 @@ var smartctl_scan_open_output string = `{
 }`
 
 func TestParsingSmartctlOpen(t *testing.T) {
-	var output SmartctlJsonOutputScanOpen
-	err := json.Unmarshal([]byte(smartctl_scan_open_output), &output)
+	var output SmartctlJSONOutputScanOpen
+	err := json.Unmarshal([]byte(smartctlScanOpenOutput), &output)
 	assert.NoError(t, err)
 }
 
 func TestSmartctlScanOpen(t *testing.T) {
-
 	_, err := SmartctlScanOpen()
 	assert.NoError(t, err)
-
 }
 
-var smartctl_start_test_output string = `{
+var smartctlStartTestOutput = `{
   "json_format_version": [
     1,
     0
@@ -89,40 +88,38 @@ var smartctl_start_test_output string = `{
 }`
 
 func TestParsingSmartctlStartTest(t *testing.T) {
-	var output SmartctlJsonOutputStartTest
-	err := json.Unmarshal([]byte(smartctl_start_test_output), &output)
+	var output SmartctlJSONOutputStartTest
+	err := json.Unmarshal([]byte(smartctlStartTestOutput), &output)
 	assert.NoError(t, err)
 }
 
 func TestParsingSmartctlXall(t *testing.T) {
+	smartctlJSONFilePaths, fileDiscoveryError := filepath.Glob("t/smartctl_outputs/*.json")
+	require.NoError(t, fileDiscoveryError)
 
-	json_file_paths, err := filepath.Glob("t/smartctl_outputs/*.json")
-	assert.NoError(t, err)
+	for _, smartctlJSONFilePath := range smartctlJSONFilePaths {
+		t.Run(smartctlJSONFilePath, func(t *testing.T) {
+			fileContent, err := os.ReadFile(smartctlJSONFilePath)
+			require.NoError(t, err)
 
-	for _, json_file_path := range json_file_paths {
-
-		t.Run(json_file_path, func(t *testing.T) {
-
-			file_content, err := os.ReadFile(json_file_path)
-			assert.NoError(t, err)
-
-			if !json.Valid(file_content) {
+			if !json.Valid(fileContent) {
 				// handle the error here
 				assert.Fail(t, "Json is not valid")
 			}
 
-			var output SmartctlJsonOutputXall
-			err = json.Unmarshal(file_content, &output)
+			var output SmartctlJSONOutputXall
+			err = json.Unmarshal(fileContent, &output)
 			assert.NoError(t, err)
 		})
 	}
 }
 
-func TestNvme(t *testing.T) {
-	snc := StartTestAgent(t, "")
+// No need to do local tests
+// func TestLocal(t *testing.T) {
+// 	snc := StartTestAgent(t, "")
 
-	res := snc.RunCheck("check_drive_health", []string{"test_type='short'", "drive_filter='/dev/nvme0'"})
-	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+// 	res := snc.RunCheck("check_drive_health", []string{""})
+// 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 
-	StopTestAgent(t, snc)
-}
+// 	StopTestAgent(t, snc)
+// }

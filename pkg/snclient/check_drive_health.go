@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -21,23 +22,23 @@ func init() {
 
 type CheckDriveHealth struct {
 	// The logical device name of the drive e.g /dev/sda /dev/nvme0
-	drive_filter CommaStringList
+	driveFilter CommaStringList
 	// Test to run. Should be one of these values: 'offline' , 'short' , 'long' , 'conveyance' , 'select'
-	test_type string
+	testType string
 	// Logical block address to start the test on. Has to be a number. Required if the test type is 'select'
-	test_start_lba uint64
+	testStart uint64
 	// End block of the test. Can also be specified as 'max' or a number. Required if the test type is 'select'
-	test_end_lba string
+	testEndLba string
 }
 
-var valid_test_types []string = []string{"offline", "short", "long", "conveyance", "select"}
+var validTestTypes = []string{"offline", "short", "long", "conveyance", "select"}
 
 func NewCheckDriveHealth() CheckHandler {
 	return &CheckDriveHealth{
-		drive_filter:   make([]string, 1),
-		test_type:      "offline",
-		test_start_lba: 0,
-		test_end_lba:   "0",
+		driveFilter: make([]string, 0),
+		testType:    "offline",
+		testStart:   0,
+		testEndLba:  "0",
 	}
 }
 
@@ -51,388 +52,516 @@ func (checkDriveHealth *CheckDriveHealth) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"drive_filter": {
-				value:       &checkDriveHealth.drive_filter,
-				description: "Drives to check health for. Give it as a comma seperated list of logical device names e.g '/dev/sda,'/dev/nvme0' . Leaving it empty will check all drives which report a SMART status.",
+				value: &checkDriveHealth.driveFilter,
+				description: "Drives to check health for. Give it as a comma separated list of logical device names e.g '/dev/sda,'/dev/nvme0' ." +
+					" Leaving it empty will check all drives which report a SMART status.",
 			},
 			"test_type": {
-				value:       &checkDriveHealth.test_type,
-				description: fmt.Sprintf("SMART test type to perform for checking the health of the drives. Available test types are: '%s' ", strings.Join(valid_test_types, ",")),
+				value:       &checkDriveHealth.testType,
+				description: fmt.Sprintf("SMART test type to perform for checking the health of the drives. Available test types are: '%s' ", strings.Join(validTestTypes, ",")),
 			},
 			"test_start_lba": {
-				value:       &checkDriveHealth.test_start_lba,
+				value:       &checkDriveHealth.testStart,
 				description: "Logical block address to start the test on. Has to be specified as a number. Needed if the test type is 'select'",
 			},
 			"test_end_lba": {
-				value:       &checkDriveHealth.test_end_lba,
+				value:       &checkDriveHealth.testEndLba,
 				description: "Logical block address to end the test on, inclusive. Can be specified as a number or as 'max' to select the last block on the disk. Required if the test type is 'select'",
 			},
 		},
-		// Add a condition that by default reports ok if test_result == "PASSED" && smart_health_status == "PASSED"
-		defaultCritical: " test_result != 'PASSED' && smart_health_status != 'PASSED' ",
-		// // Add a condition that by default reports warning if test_result == "PASSED" && smart_health_status != "PASSED"
-		defaultWarning: " test_result == 'PASSED' && smart_health_status != 'PASSED' ",
-		detailSyntax:   "%(drive_name)|%(test_type) test, $(test_start_lba)-%(test_end_lba)",
-		okSyntax:       "%(status) - All %(count) drives are ok",
-		topSyntax:      "%(status) - %(problem_count)/%(count) drives , %(problem_list)",
-		emptySyntax:    "Failed to find any drives matching this filter",
-		emptyState:     CheckExitUnknown,
+		defaultCritical: " return_code != '0' && test_result != 'PASSED' && smart_health_status != 'PASSED' ",
+		defaultWarning:  " return_code != '0' || test_result != 'PASSED' || smart_health_status != 'PASSED' ",
+		detailSyntax: "drive: %(test_drive) | test: %(test_type) $(test_start_lba)-%(test_end_lba) | test_result: %(test_result) | " +
+			"smart_health_status: %(smart_health_status) | return_code: %(return_code) (%(return_code_explanation))",
+		okSyntax:    "%(status) - All %(count) drives are ok",
+		topSyntax:   "%(status) - %(problem_count)/%(count) drives , %(problem_list)",
+		emptySyntax: "Failed to find any drives that the filter and smartctl could work with",
+		emptyState:  CheckExitUnknown,
 		attributes: []CheckAttribute{
-			{name: "test_type", description: "Hardware interrupt lines of the CPU. These are assigned between CPU and other devices by the system firmware, and get an number"},
+			{name: "test_type", description: "Type of SMART test that was performed."},
 			{name: "test_drive", description: "The drive the test was performed on"},
 			{name: "test_result", description: "The result of the test. Takes possible outputs: \"PASSED\" , \"FAILED\" , \"UNKNOWN\" ."},
 			{name: "test_details", description: "The details of the test given by smartctl."},
 			{name: "test_start_lba", description: "Logical block address the test was started on. Required if test type is 'select' "},
 			{name: "test_end_lba", description: "Logical block address the test was ended on. Required if the test type is 'select' "},
-			{name: "smart_health_status", description: "SMART overall health self-assesment done by the firmware with the current SMART attributes. It is evaluated independently from the test result, but is just as important. Takes possible values: \"PASSED\" , \"FAILED\" , \"UNKNOWN\" ."},
+			{name: "smart_health_status", description: "SMART overall health self-assesment done by the firmware with the current SMART attributes. " +
+				" It is evaluated independently from the test result, but is just as important. Takes possible values: \"OK\" , \"FAIL\" , \"UNKNOWN\" ."},
+			{name: "return_code", description: "The return code status of the smartctl command used to get drive details after the test was done."},
+			{name: "return_code_explanation", description: "Explanation of the return code of the smartctl command used to get drive details after the test was done."},
 		},
 		exampleDefault: `
-Perform a short test on drive with the name nvme0
-		check_interrupts drive_filter="nvme0" test_type="short"
+Perform an offline test on all drives
+		check_drive_health
+
+Perform a short test on a specific NVMe drive
+		check_drive_health test_type='short' drive_filter='/dev/nvme0'
 		`,
 	}
 }
 
-func (checkDriveHealth *CheckDriveHealth) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-
-	scan_output, err := SmartctlScanOpen()
+func (checkDriveHealth *CheckDriveHealth) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	scanOpenOutput, err := SmartctlScanOpen()
 	if err != nil {
 		return nil, fmt.Errorf("error when discovering smartctl devices : %s", err.Error())
 	}
 
-	var drive_filter []string
-	if drive_filter_argument, ok := check.args["drive_filter"]; ok {
-		if drive_filter_csl_ptr, ok := drive_filter_argument.value.(*CommaStringList); ok {
-			csl_value := *drive_filter_csl_ptr
-			drive_filter = []string(csl_value)
+	var driveFilter []string
+	if driveFilterArgument, ok := check.args["drive_filter"]; ok {
+		if driveFilterCslPtr, ok := driveFilterArgument.value.(*CommaStringList); ok {
+			cslValue := *driveFilterCslPtr
+			driveFilter = []string(cslValue)
 		} else {
 			return nil, fmt.Errorf("unexpected type for drive_filter_argument.value , expected *CommaStringList")
 		}
 	}
 
-	entry := map[string]string{}
-	entry["test_type"] = checkDriveHealth.test_type
-	entry["test_start_lba"] = strconv.FormatUint(checkDriveHealth.test_start_lba, 10)
-	entry["test_end_lba"] = checkDriveHealth.test_end_lba
+	entryBase := map[string]string{}
+	entryBase["test_type"] = checkDriveHealth.testType
+	entryBase["test_start_lba"] = strconv.FormatUint(checkDriveHealth.testStart, 10)
+	entryBase["test_end_lba"] = checkDriveHealth.testEndLba
 
-	if !slices.Contains(valid_test_types, entry["test_type"]) {
-		return nil, fmt.Errorf("unexpected test type to perform: %s , valid test types are: %s", entry["test_type"], strings.Join(valid_test_types, ","))
+	if !slices.Contains(validTestTypes, entryBase["test_type"]) {
+		return nil, fmt.Errorf("unexpected test type to perform: %s , valid test types are: %s", entryBase["test_type"], strings.Join(validTestTypes, ","))
 	}
 
-	var test_string string
-	if entry["test_type"] == "select" {
-		if entry["test_start_lba"] == "" || entry["test_end_lba"] == "" {
+	var testString string
+	if entryBase["test_type"] == "select" {
+		if entryBase["test_start_lba"] == "" || entryBase["test_end_lba"] == "" {
 			return nil, fmt.Errorf("if the test type is 'select', the test_start_lba and test_end_lba arguments have to be specified")
-		} else {
-			test_string = entry["test_type"] + "," + entry["test_start_lba"] + "-" + entry["test_end_lba"]
 		}
+
+		testString = entryBase["test_type"] + "," + entryBase["test_start_lba"] + "-" + entryBase["test_end_lba"]
 	} else {
-		test_string = entry["test_type"]
+		testString = entryBase["test_type"]
 	}
 
-	var wg sync.WaitGroup
+	var waitGroup sync.WaitGroup
 	type SmartctlTestResult struct {
-		device    SmartctlJsonOutputDevice
-		xall_json *SmartctlJsonOutputXall
-		err       error
+		device            SmartctlJSONOutputDevice
+		xallJSON          *SmartctlJSONOutputXall
+		err               error
+		xallCmdReturnCode int64
 	}
-	results_channel := make(chan SmartctlTestResult)
+	testResultsChannel := make(chan SmartctlTestResult, len(scanOpenOutput.Devices))
 
-	for _, device := range scan_output.Devices {
-		if len(drive_filter) > 0 && !slices.Contains(drive_filter, device.Name) {
+	for _, device := range scanOpenOutput.Devices {
+		if len(driveFilter) > 0 && !slices.Contains(driveFilter, device.Name) {
 			// skip this device
+			log.Debugf("Skipping the device :%s as it is not in the filter: %s", device.Name, strings.Join(driveFilter, ","))
+
 			continue
 		}
 
-		wg.Add(1)
+		waitGroup.Add(1)
 
 		// Define and call an asynchronus function, returns a channel result
-		go func(device SmartctlJsonOutputDevice) {
+		go func(device SmartctlJSONOutputDevice) {
 			// This will decrement the waitgroup counter before returning
-			defer wg.Done()
+			defer waitGroup.Done()
 
 			result := SmartctlTestResult{device: device}
-			xall_json, xall_json_err := SmartctlXall(device.Name)
+			xallJSON, xallCmdReturnCode, xallJSONError := SmartctlXall(device.Name)
 
-			if xall_json_err != nil {
-				result.err = fmt.Errorf("error when getting details about the drive: %s , error : %s", device.Name, xall_json_err.Error())
-			} else if !xall_json.SmartSupport.Available {
+			switch {
+			case xallJSONError != nil:
+				result.err = fmt.Errorf("error when getting details about the drive: %s , error : %s", device.Name, xallJSONError.Error())
+			case !xallJSON.SmartSupport.Available:
 				result.err = fmt.Errorf("device does not support SMART: %s", device.Name)
-			} else if xall_json.SmartSupport.Enabled != nil && !*xall_json.SmartSupport.Enabled {
+			case xallJSON.SmartSupport.Enabled != nil && !*xallJSON.SmartSupport.Enabled:
 				result.err = fmt.Errorf("device does supports SMART, but does not have it enabled: %s", device.Name)
-			} else {
-				xall_json, xall_json_err = SmartctlTestAndAwaitCompletion(device.Name, test_string)
-				result.xall_json = xall_json
-				result.err = xall_json_err
+			default:
+				xallJSON, xallJSONError = SmartctlTestAndAwaitCompletion(device.Name, testString)
+				result.xallJSON = xallJSON
+				result.err = xallJSONError
+				result.xallCmdReturnCode = xallCmdReturnCode
 			}
 
-			results_channel <- result
-
+			testResultsChannel <- result
 		}(device)
-
 	}
 
 	go func() {
 		// will wait until counter reaches 0
-		wg.Wait()
+		waitGroup.Wait()
 		// close the channel afterwards, no more results can be sent there
-		close(results_channel)
+		close(testResultsChannel)
 	}()
 
-	var collectedResults []SmartctlTestResult
-	for result := range results_channel {
-		collectedResults = append(collectedResults, result)
+	// collect them in a map, since some devices might be skipped due to filtering
+	collectedResultsMap := make(map[string]SmartctlTestResult)
+	for result := range testResultsChannel {
+		collectedResultsMap[result.device.Name] = result
 	}
 
 	// Add results as data points to the check
-	for _, result := range collectedResults {
-		entry := maps.Clone(entry)
-		entry["test_drive"] = result.device.Name
+	for _, result := range collectedResultsMap {
+		entryResult := maps.Clone(entryBase)
+		entryResult["test_drive"] = result.device.Name
+		entryResult["return_code"] = strconv.FormatInt(result.xallCmdReturnCode, 10)
+		entryResult["return_code_explanation"], _ = SmartctlParseReturnCode(result.xallCmdReturnCode)
 
 		if result.err != nil {
-			return nil, fmt.Errorf("encountered an error while performing the test and awaiting results for device: %s , error: %s", entry["test_drive"], result.err.Error())
+			return nil, fmt.Errorf("encountered an error while performing the test and awaiting results for device: %s , error: %w", entryResult["test_drive"], result.err)
 		}
 
-		// There are two types of results we can check
-		// 1. Test result -> offline, short, long etc.
-		// This depends on the disk type, so I am writing a helper function
+		// There are three results we can use to determine the health
 
-		entry["test_result"], entry["test_details"] = GetLatestTestResult(result.xall_json)
+		// 1. Test result -> offline, short, long etc.
+		// This depends on the disk type, so I am writing a helper function to get it
+
+		entryResult["test_result"], entryResult["test_details"] = GetLatestTestResult(result.xallJSON)
 
 		// 2. SmartStatus.Passed if it exists.
 		// That seems to be the SMART overall-health self-assessment test result
 
-		if result.xall_json.SmartStatuts == nil {
-			return nil, fmt.Errorf("smart overall health self-assesment not available on device: %s", entry["test_drive"])
+		if result.xallJSON.SmartStatuts == nil {
+			entryResult["smart_health_status"] = "UNKNOWN"
 		}
-
-		if result.xall_json.SmartStatuts.Passed {
-			entry["smart_health_status"] = "PASSED"
+		if result.xallJSON.SmartStatuts.Passed {
+			entryResult["smart_health_status"] = "OK"
 		} else {
-			entry["smart_health_status"] = "FAILED"
+			entryResult["smart_health_status"] = "FAIL"
 		}
 
-		check.listData = append(check.listData, entry)
+		// 3. Return code of the smartctl information check command.
+		// Smartctl returns 0 if everything looks ok, anything else points to a warning or critical issue
+		// This was added as an attribute already
+
+		check.listData = append(check.listData, entryResult)
 	}
 
-	// for _, data := range check.listData {
-	// 	if check.HasThreshold("test_result") {
-	// 		check.result.Metrics = append(check.result.Metrics,
-	// 			&CheckMetric{
-	// 				ThresholdName: "test_result_passed",
-	// 				Name:          fmt.Sprintf("drive: %s test_result_passed", data["test_drive"]),
-	// 				Value:         (data["test_result"] == "PASSED"),
-	// 				Unit:          "",
-	// 				// TODO: Fix these perf metrics, dont know how to define them
-	// 				Warning:  nil,
-	// 				Critical: nil,
-	// 				Min:      &Zero,
-	// 			},
-	// 		)
-	// 	}
-	// 	if check.HasThreshold("smart_health_status") {
-	// 		check.result.Metrics = append(check.result.Metrics,
-	// 			&CheckMetric{
-	// 				ThresholdName: "smart_health_status_passed",
-	// 				Name:          fmt.Sprintf("drive: %s smart_health_status_passed", data["test_drive"]),
-	// 				Value:         (data["smart_health_status"] == "PASSED"),
-	// 				Unit:          "",
-	// 				// TODO: Fix these perf metrics, dont know how to define them
-	// 				Warning:  nil,
-	// 				Critical: nil,
-	// 				Min:      &Zero,
-	// 			},
-	// 		)
-	// 	}
-	// }
+	for _, data := range check.listData {
+		AddCheckMetrics(check, data)
+	}
 
 	return check.Finalize()
-
 }
 
-func GetLatestTestResult(xall_json *SmartctlJsonOutputXall) (result string, details string) {
-	switch xall_json.Device.Type {
+func AddCheckMetrics(check *CheckData, data map[string]string) {
+	var testResultPassed int32
+	if data["test_result"] == "PASSED" {
+		testResultPassed = 1
+	}
+	if check.HasThreshold("test_result") {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				ThresholdName: "test_result_passed",
+				Name:          fmt.Sprintf("drive: %s test_result_passed: %d", data["test_drive"], testResultPassed),
+				Value:         testResultPassed,
+				Unit:          "",
+				Warning:       nil,
+				Critical:      nil,
+				Min:           &Zero,
+			},
+		)
+	}
+	var smartHealthStatusPassed int32
+	if data["smart_health_status"] == "PASSED" {
+		smartHealthStatusPassed = 1
+	}
+	if check.HasThreshold("smart_health_status") {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				ThresholdName: "smart_health_status_passed",
+				Name:          fmt.Sprintf("drive: %s smart_health_status_passed: %d", data["test_drive"], smartHealthStatusPassed),
+				Value:         smartHealthStatusPassed,
+				Unit:          "",
+				Warning:       nil,
+				Critical:      nil,
+				Min:           &Zero,
+			},
+		)
+	}
+	returnCode, returnCodeParseError := strconv.ParseInt(data["return_code"], 10, 64)
+	if returnCodeParseError != nil {
+		log.Warnf("could not parse return code value into int64 for drive: %s , value: %s", data["test_drive"], data["return_code"])
+	}
+	var returnCodeOk int32
+	if returnCode == 0 {
+		returnCodeOk = 1
+	}
+	if check.HasThreshold("return_code") && returnCodeParseError == nil {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				ThresholdName: "return_code_ok",
+				Name:          fmt.Sprintf("drive: %s return_code_ok: %d", data["test_drive"], returnCodeOk),
+				Value:         returnCodeOk,
+				Unit:          "",
+				Warning:       nil,
+				Critical:      nil,
+				Min:           &Zero,
+			},
+		)
+	}
+}
+
+func GetLatestTestResult(xallJSON *SmartctlJSONOutputXall) (result, details string) {
+	switch xallJSON.Device.Type {
 	case "scsi":
-		return "UNKNOWN", fmt.Sprintf("getting the latest test result for drive type %s is not yet implemented", xall_json.Device.Type)
+		return "UNKNOWN", fmt.Sprintf("getting the latest test result for drive type %s is not yet implemented", xallJSON.Device.Type)
 	case "sat":
 		// Need to access xall_json.AtaSmartData
-		if xall_json.AtaSmartData == nil {
-			return "UNKNOWN", fmt.Sprintf("smartctl drive details does not have ata_smart_data, cant get latest test details: %s", xall_json.Device.Name)
+		if xallJSON.AtaSmartData == nil {
+			return "UNKNOWN", fmt.Sprintf("smartctl drive details does not have ata_smart_data, cant get latest test details: %s", xallJSON.Device.Name)
 		}
-		if xall_json.AtaSmartData.SelfTest.Status.Passed == nil {
-			return "UNKNOWN", fmt.Sprintf("smartctl drive details does not have ata_smart_data.self_test.status.passed , cant get result the latest completed test: %s", xall_json.Device.Name)
+		if xallJSON.AtaSmartData.SelfTest.Status.Passed == nil {
+			return "UNKNOWN", fmt.Sprintf("smartctl drive details does not have ata_smart_data.self_test.status.passed , cant get result the latest completed test: %s", xallJSON.Device.Name)
 		}
-		if *xall_json.AtaSmartData.SelfTest.Status.Passed {
-			return "PASSED", xall_json.AtaSmartData.SelfTest.Status.String
-		} else {
-			return "FAILED", xall_json.AtaSmartData.SelfTest.Status.String
+		if *xallJSON.AtaSmartData.SelfTest.Status.Passed {
+			return "PASSED", xallJSON.AtaSmartData.SelfTest.Status.String
 		}
+
+		return "FAILED", xallJSON.AtaSmartData.SelfTest.Status.String
 	case "nvme":
-		if xall_json.NvmeSelfTestLog == nil {
-			return "UNKNOWN", fmt.Sprintf("smarctl drive details does not have nvme_self_test_log, cant get latest test details: %s", xall_json.Device.Name)
+		if xallJSON.NvmeSelfTestLog == nil {
+			return "UNKNOWN", fmt.Sprintf("smarctl drive details does not have nvme_self_test_log, cant get latest test details: %s", xallJSON.Device.Name)
 		}
-		if len(xall_json.NvmeSelfTestLog.Table) == 0 {
-			return "UNKNOWN", fmt.Sprintf("smarctl drive details nvme_self_test_log.table is empty, cant get latest test details: %s", xall_json.Device.Name)
+		if len(xallJSON.NvmeSelfTestLog.Table) == 0 {
+			return "UNKNOWN", fmt.Sprintf("smarctl drive details nvme_self_test_log.table is empty, cant get latest test details: %s", xallJSON.Device.Name)
 		}
-		if xall_json.NvmeSelfTestLog.Table[0].SelfTestResult.Value == 0 && xall_json.NvmeSelfTestLog.Table[0].SelfTestResult.String == "Completed without error" {
-			return "PASSED", xall_json.NvmeSelfTestLog.Table[0].SelfTestResult.String
-		} else {
-			return "FAILED", xall_json.NvmeSelfTestLog.Table[0].SelfTestResult.String
+		if xallJSON.NvmeSelfTestLog.Table[0].SelfTestResult.Value == 0 && xallJSON.NvmeSelfTestLog.Table[0].SelfTestResult.String == "Completed without error" {
+			return "PASSED", xallJSON.NvmeSelfTestLog.Table[0].SelfTestResult.String
 		}
+
+		return "FAILED", xallJSON.NvmeSelfTestLog.Table[0].SelfTestResult.String
 	default:
-		return "UNKNOWN", fmt.Sprintf("getting the latest test result for drive type %s is not yet implemented", xall_json.Device.Type)
+		return "UNKNOWN", fmt.Sprintf("getting the latest test result for drive type %s is not yet implemented", xallJSON.Device.Type)
 	}
 }
 
-func SmartctlTestAndAwaitCompletion(device string, test_string string) (*SmartctlJsonOutputXall, error) {
-
+// Starts the specified test, then awaits until it is done, and then returns the latest xall output it gets
+func SmartctlTestAndAwaitCompletion(device, testString string) (*SmartctlJSONOutputXall, error) {
 	// Start a test
 
-	var start_test_json *SmartctlJsonOutputStartTest
-	var start_test_err error
-	if start_test_json, start_test_err = SmartctlStartTest(device, test_string); start_test_err != nil {
-		return nil, fmt.Errorf("error when starting a test: %s", start_test_err.Error())
+	var startTestJSON *SmartctlJSONOutputStartTest
+	var startTestError error
+	if startTestJSON, startTestError = SmartctlStartTest(device, testString); startTestError != nil {
+		return nil, fmt.Errorf("error when starting a test: %s", startTestError.Error())
 	}
 
-	device_type := start_test_json.Device.Type
-	fmt.Printf("Started test on device: %s witht the device type: %s", start_test_json.Device.Name, start_test_json.Device.Type)
+	deviceType := startTestJSON.Device.Type
+	log.Debugf("Started test on device: %s with the device type: %s", startTestJSON.Device.Name, startTestJSON.Device.Type)
 
-	var xall_json *SmartctlJsonOutputXall
-	var xall_json_err error
+	var xallJSON *SmartctlJSONOutputXall
+	var xallJSONError error
 
-	// Wait 1 seconds for the test to start
-	time.Sleep(time.Second)
+	// Wait 100 ms after starting the test. Offline tests will finish very quickly, we can check right away
+	time.Sleep(time.Millisecond * 100)
 
 	// Busy loop until the test is complete?
 busyloop_test_completion:
 	for {
-
 		// Get the latest values from device
-		if xall_json, xall_json_err = SmartctlXall(device); xall_json_err != nil {
-			return nil, fmt.Errorf("error when getting device details: %s", xall_json_err.Error())
+		if xallJSON, _, xallJSONError = SmartctlXall(device); xallJSONError != nil {
+			return nil, fmt.Errorf("error when getting device details: %s", xallJSONError.Error())
 		}
 
-		switch device_type {
+		switch deviceType {
 		case "scsi":
-			return nil, fmt.Errorf("testing not yet implemented for type: %s", device_type)
+			return nil, fmt.Errorf("testing not yet implemented for type: %s", deviceType)
 		case "sat":
 
-			if xall_json.AtaSmartData == nil {
+			if xallJSON.AtaSmartData == nil {
 				return nil, fmt.Errorf("ata_smart_data is not present xall output")
 			}
-			if xall_json.AtaSmartData.SelfTest.Status.Value != 0 {
+			if xallJSON.AtaSmartData.SelfTest.Status.Value != 0 {
 				// the test is presumably still running
 				break
 			}
-			if xall_json.AtaSmartData.SelfTest.Status.RemainingPercent != nil {
+			if xallJSON.AtaSmartData.SelfTest.Status.RemainingPercent != nil {
 				// the test is presumably still running
 				break
 			}
 
 			break busyloop_test_completion
 		case "nvme":
-			if xall_json.NvmeSelfTestLog == nil {
+			if xallJSON.NvmeSelfTestLog == nil {
 				return nil, fmt.Errorf("nvme_self_test_log is not present xall output")
 			}
-			if xall_json.NvmeSelfTestLog.CurrentSelfTestOperation.Value == 1 {
+			if xallJSON.NvmeSelfTestLog.CurrentSelfTestOperation.Value == 1 {
 				// the test is still running
 				break
 			}
 
 			break busyloop_test_completion
 		default:
-			return nil, fmt.Errorf("testing not yet implemented for type: %s", device_type)
+			return nil, fmt.Errorf("testing not yet implemented for type: %s", deviceType)
 		}
 
 		// Wait after each check
 		time.Sleep(time.Second * 10)
 	}
 
-	return xall_json, nil
+	return xallJSON, nil
 }
 
 // smartctl --test <test_string> --json <device>
-func SmartctlStartTest(device string, test_string string) (*SmartctlJsonOutputStartTest, error) {
+func SmartctlStartTest(device, testString string) (*SmartctlJSONOutputStartTest, error) {
 	// Find smartctl
-	smartctl_executable, err := exec.LookPath("smartctl")
+	smartctlExecutable, err := exec.LookPath("smartctl")
 	if err != nil {
 		return nil, fmt.Errorf("could not find smartctl executable in $PATH: %s , are you running as a priviledged user: %s", os.Getenv("PATH"), err.Error())
 	}
 
 	// Start the test . A test can always be started without knowing the device details
-	test_start_cmd := exec.Command(smartctl_executable, "--json", "--test", test_string, device)
-	test_start_cmd_stdout, err := test_start_cmd.Output()
+	testStartCmd := exec.Command(smartctlExecutable, "--json", "--test", testString, device)
+	testStartCmdStdout, err := testStartCmd.CombinedOutput()
+	var testStartCmdReturnCode int64
 	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("running command for starting the scan: '%s' failed with exit code: '%d' and stderr: '%s'", strings.Join(test_start_cmd.Args, " "), exitError.ExitCode(), string(exitError.Stderr))
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			testStartCmdReturnCode = int64(exitError.ExitCode())
+
+			// It can happen that the smartctl command gives a return code other than 0, which is expected if there is a problem with the drive
+			// We still have to differentiate if the return code meant no information could be gathered
+			testStartCmdReturnCodeExplanation, testStartCmdReturnCodeIsError := SmartctlParseReturnCode(int64(exitError.ExitCode()))
+
+			if testStartCmdReturnCodeIsError != nil {
+				return nil, fmt.Errorf("running command for starting the test: '%s'."+
+					" Got this return code: '%d'. "+
+					" This is a code that prevents further information gathering: '%s'", strings.Join(testStartCmd.Args, " "), testStartCmdReturnCode, testStartCmdReturnCodeExplanation)
+			}
 		}
-		return nil, fmt.Errorf("running command for starting the scan: '%s' failed with error: '%s' ", strings.Join(test_start_cmd.Args, " "), err.Error())
 	}
 
-	var test_start_json SmartctlJsonOutputStartTest
-	if err := json.Unmarshal(test_start_cmd_stdout, &test_start_json); err != nil {
-		return nil, fmt.Errorf("could not parse command output for starting a scan: '%s' ", strings.Join(test_start_cmd.Args, " "))
-	}
-	if test_start_json.Smartctl.ExitStatus != 0 {
-		return nil, fmt.Errorf("there seems to be an error when getting drive details: '%s' ", strings.Join(test_start_cmd.Args, " "))
+	var testStartJSON SmartctlJSONOutputStartTest
+	if err := json.Unmarshal(testStartCmdStdout, &testStartJSON); err != nil {
+		return nil, fmt.Errorf("could not parse command output for starting a test: '%s' ", strings.Join(testStartCmd.Args, " "))
 	}
 
-	return &test_start_json, nil
+	return &testStartJSON, nil
 }
 
 // smartctl --xall --json <device>
-func SmartctlXall(device string) (*SmartctlJsonOutputXall, error) {
+func SmartctlXall(device string) (xall *SmartctlJSONOutputXall, returnCode int64, err error) {
 	// Find smartctl
-	smartctl_executable, err := exec.LookPath("smartctl")
+	smartctlExecutable, err := exec.LookPath("smartctl")
 	if err != nil {
-		return nil, fmt.Errorf("could not find smartctl executable in $PATH: %s , are you running as a priviledged user: %s", os.Getenv("PATH"), err.Error())
+		return nil, -1, fmt.Errorf("could not find smartctl executable in $PATH: %s , are you running as a priviledged user: %s", os.Getenv("PATH"), err.Error())
 	}
 
 	// Build and execute command
-	xall_cmd := exec.Command(smartctl_executable, "--xall", "--json", device)
-	xall_cmd_stdout, err := xall_cmd.Output()
+	xallCmd := exec.Command(smartctlExecutable, "--xall", "--json", device)
+	xallCmdStdout, err := xallCmd.CombinedOutput()
+	var xallCmdReturnCode int64
 	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("running command for getting drive details: '%s' failed with exit code: '%d' and stderr: '%s'", strings.Join(xall_cmd.Args, " "), exitError.ExitCode(), string(exitError.Stderr))
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			xallCmdReturnCode = int64(exitError.ExitCode())
+
+			// It can happen that the smartctl command gives a return code other than 0, which is expected if there is a problem with the drive
+			// We still have to differentiate if the return code meant no information could be gathered
+			xallCmdReturnCodeExplanation, xallCmdReturnCodeIsError := SmartctlParseReturnCode(int64(exitError.ExitCode()))
+
+			if xallCmdReturnCodeIsError != nil {
+				return nil, -1, fmt.Errorf("running command for information gathering: '%s'."+
+					" Got this return code: '%d'. "+
+					" This is a code that prevents further information gathering: '%s'", strings.Join(xallCmd.Args, " "), xallCmdReturnCode, xallCmdReturnCodeExplanation)
+			}
 		}
-		return nil, fmt.Errorf("running command for getting drive details: '%s' failed with error: '%s' ", strings.Join(xall_cmd.Args, " "), err.Error())
 	}
 
 	// Parse command output
-	var xall_json SmartctlJsonOutputXall
-	if err := json.Unmarshal(xall_cmd_stdout, &xall_json); err != nil {
-		return nil, fmt.Errorf("could not parse command output for getting drive details: '%s' ", strings.Join(xall_cmd.Args, " "))
-	}
-	if xall_json.Smartctl.ExitStatus != 0 {
-		return nil, fmt.Errorf("there seems to be an error when getting drive details: '%s' ", strings.Join(xall_cmd.Args, " "))
+	var xallJSON SmartctlJSONOutputXall
+	if err := json.Unmarshal(xallCmdStdout, &xallJSON); err != nil {
+		return nil, -1, fmt.Errorf("could not parse command output for getting drive details: '%s' ", strings.Join(xallCmd.Args, " "))
 	}
 
-	return &xall_json, nil
+	return &xallJSON, xallCmdReturnCode, nil
 }
 
 // smartctl --scan-open --json
-func SmartctlScanOpen() (*SmartctlJsonOutputScanOpen, error) {
-	smartctl_executable, err := exec.LookPath("smartctl")
+func SmartctlScanOpen() (*SmartctlJSONOutputScanOpen, error) {
+	smartctlExecutable, err := exec.LookPath("smartctl")
 	if err != nil {
 		return nil, fmt.Errorf("could not find smartctl executable in $PATH: %s, are you running as a priviledged user: %s", os.Getenv("PATH"), err.Error())
 	}
 
-	scan_open_cmd := exec.Command(smartctl_executable, "--scan-open", "--json")
+	scanOpenCmd := exec.Command(smartctlExecutable, "--scan-open", "--json")
 
-	scan_open_cmd_stdout, err := scan_open_cmd.Output()
+	scanOpenCmdStdout, err := scanOpenCmd.CombinedOutput()
 	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			// Output runs the command and returns its standard output. Any returned error will usually be of type [*ExitError]. If c.Stderr was nil and the returned error is of type [*ExitError], Output populates the Stderr field of the returned error.
-			return nil, fmt.Errorf("running command: '%s' failed with exit code: '%d' and stderr: '%s'", strings.Join(scan_open_cmd.Args, " "), exitError.ExitCode(), string(exitError.Stderr))
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			return nil, fmt.Errorf("running command for scanning drives: '%s'."+
+				" Failed with exit code: '%d'. "+
+				" Stderr: '%s'", strings.Join(scanOpenCmd.Args, " "), exitError.ExitCode(), string(exitError.Stderr))
 		}
-		return nil, fmt.Errorf("running command: '%s' failed with an error: '%s'", strings.Join(scan_open_cmd.Args, " "), err.Error())
+
+		return nil, fmt.Errorf("running command: '%s' failed with an error: '%s'", strings.Join(scanOpenCmd.Args, " "), err.Error())
 	}
 
-	var scan_open_json SmartctlJsonOutputScanOpen
-	if err := json.Unmarshal(scan_open_cmd_stdout, &scan_open_json); err != nil {
-		return nil, fmt.Errorf("could not parse command output: '%s' ", strings.Join(scan_open_cmd.Args, " "))
+	var scanOpenJSON SmartctlJSONOutputScanOpen
+	if err := json.Unmarshal(scanOpenCmdStdout, &scanOpenJSON); err != nil {
+		return nil, fmt.Errorf("could not parse command output: '%s' ", strings.Join(scanOpenCmd.Args, " "))
 	}
 
-	return &scan_open_json, nil
+	return &scanOpenJSON, nil
+}
+
+// Parse and explain the return code of the smartctl.
+// The first error is set if smartctl could not get information about the device.
+// Return code can be non-zero even if smartctl could read something.
+// The string describe the return code
+func SmartctlParseReturnCode(returnCode int64) (explanations string, err error) {
+	if returnCode == 0 {
+		return "No problem with the error code", nil
+	}
+
+	// Bits are indexed from 0 to 7, even bit 0 being 1 is an error.
+	// https://linux.die.net/man/8/smartctl
+
+	var bitmaskBit0 int64 = 0b00000001
+	commandLineDidNotParse := (returnCode & bitmaskBit0) > 0
+	if commandLineDidNotParse {
+		return "Command line did not parse", fmt.Errorf("command line did not parse")
+	}
+
+	var bitmaskBit1 int64 = 0b00000010
+	deviceOpenFailed := (returnCode & bitmaskBit1) > 0
+	if deviceOpenFailed {
+		return "device open failed, device did not return an IDENTIFY DEVICE structure, or device is in a low-power mode",
+			fmt.Errorf("device open failed, device did not return an IDENTIFY DEVICE structure, or device is in a low-power mode")
+	}
+
+	var errorExplanations []string
+
+	var bitmaskBit2 int64 = 0b00000100
+	smartOrAtaCommandFailed := (returnCode & bitmaskBit2) > 0
+	if smartOrAtaCommandFailed {
+		errorExplanations = append(errorExplanations, "Some SMART or other ATA command to the disk failed, or there was a checksum error in the SMART data structure.")
+	}
+
+	var bitmaskBit3 int64 = 0b00001000
+	smartStatusDiskFailing := (returnCode & bitmaskBit3) > 0
+	if smartStatusDiskFailing {
+		errorExplanations = append(errorExplanations, "SMART status check returned DISK FAILING.")
+	}
+
+	var bitmaskBit4 int64 = 0b00010000
+	someAttributesBellowPrefailThreshold := (returnCode & bitmaskBit4) > 0
+	if someAttributesBellowPrefailThreshold {
+		errorExplanations = append(errorExplanations, "Some Attributes have been <= threshold , which translates into a prefailure.")
+	}
+	var bitmaskBit5 int64 = 0b00100000
+	someAttributesBellowThresholdInPast := (returnCode & bitmaskBit5) > 0
+	if someAttributesBellowThresholdInPast {
+		errorExplanations = append(errorExplanations, "SMART status check returned DISK OK but some (usage or prefail) Attributes have been <= threshold at some time in the past.")
+	}
+
+	var bitmaskBit6 int64 = 0b01000000
+	deviceErrorLogContainsErrors := (returnCode & bitmaskBit6) > 0
+	if deviceErrorLogContainsErrors {
+		errorExplanations = append(errorExplanations, "The device error log contains records of errors.")
+	}
+
+	var bitmaskBit7 int64 = 0b10000000
+	selfTestLogContainsErrors := (returnCode & bitmaskBit7) > 0
+	if selfTestLogContainsErrors {
+		errorExplanations = append(errorExplanations, "The device self-test log contains records of errors, [ATA only] Failed self-tests outdated by a newer successful extended self-test are ignored.")
+	}
+
+	return "The return code of the smartctl indicates problems: " + strings.Join(errorExplanations, " | "), nil
 }
 
 // The types defined bellow are most likely not perfect.
@@ -441,7 +570,7 @@ func SmartctlScanOpen() (*SmartctlJsonOutputScanOpen, error) {
 // If it is directly a type, it will be default initialized. This might be confusing, the user would not know if that value was really parsed from an existing field or simply default initialized
 // I did not find a schema that describes the smartctl output. This classification of mandatory/optional fields are done by looking at example outputs.
 
-type SmartctlJsonOutputSmartctl struct {
+type SmartctlJSONOutputSmartctl struct {
 	Version              []int    `json:"version"`
 	PreRelease           bool     `json:"pre_release"`
 	SvnVersion           string   `json:"svn_version"`
@@ -454,48 +583,48 @@ type SmartctlJsonOutputSmartctl struct {
 	ExitStatus int `json:"exit_status"`
 }
 
-type SmartctlJsonOutputDevice struct {
+type SmartctlJSONOutputDevice struct {
 	Name     string `json:"name"`
 	InfoName string `json:"info_name"`
 	Type     string `json:"type"`
 	Protocol string `json:"protocol"`
 }
 
-type SmartctlJsonOutputLocalTime struct {
+type SmartctlJSONOutputLocalTime struct {
 	TimeT   uint64 `json:"time_t"`
 	Asctime string `json:"asctime"`
 }
 
-type SmartctlJsonOutputNvmeNamespaces struct {
-	Id               uint64                        `json:"id"`
-	Size             SmartctlJsonOutputBlocksBytes `json:"size"`
-	Capacity         SmartctlJsonOutputBlocksBytes `json:"capacity"`
-	Utilization      SmartctlJsonOutputBlocksBytes `json:"utilization"`
+type SmartctlJSONOutputNvmeNamespaces struct {
+	ID               uint64                        `json:"id"`
+	Size             SmartctlJSONOutputBlocksBytes `json:"size"`
+	Capacity         SmartctlJSONOutputBlocksBytes `json:"capacity"`
+	Utilization      SmartctlJSONOutputBlocksBytes `json:"utilization"`
 	FormattedLbaSize uint64                        `json:"formatted_lba_base"`
 	Eui64            struct {
 		Oui   uint64 `json:"oui"`
-		ExtId uint64 `json:"ext_id"`
+		ExtID uint64 `json:"ext_id"`
 	} `json:"eui64"`
 }
 
-type SmartctlJsonOutputBlocksBytes struct {
+type SmartctlJSONOutputBlocksBytes struct {
 	Blocks uint64 `json:"id"`
 	Bytes  uint64 `json:"bytes"`
 }
 
-type SmartctlJsonOutputValueString struct {
+type SmartctlJSONOutputValueString struct {
 	Value  uint64 `json:"value"`
 	String string `json:"string"`
 }
 
-type SmartctlJsonOutputSmartStatus struct {
+type SmartctlJSONOutputSmartStatus struct {
 	Passed bool `json:"passed"`
 	Nvme   *struct {
 		Value uint64 `json:"value"`
 	} `json:"nvme"`
 }
 
-type SmarctlJsonOutputNvmeSmartHealthInformationLog struct {
+type SmarctlJSONOutputNvmeSmartHealthInformationLog struct {
 	CriticalWarning         uint64   `json:"critical_warning"`
 	Temperature             uint64   `json:"temperature"`
 	AvailableSpare          uint64   `json:"available_spare"`
@@ -516,18 +645,18 @@ type SmarctlJsonOutputNvmeSmartHealthInformationLog struct {
 	TemperatureSensors      []uint64 `json:"temperature_sensors"`
 }
 
-type SmartctlJsonOutputNvmeSelfTestLogTableEntry struct {
-	SelfTestCode   SmartctlJsonOutputValueString `json:"self_test_code"`
-	SelfTestResult SmartctlJsonOutputValueString `json:"self_test_result"`
+type SmartctlJSONOutputNvmeSelfTestLogTableEntry struct {
+	SelfTestCode   SmartctlJSONOutputValueString `json:"self_test_code"`
+	SelfTestResult SmartctlJSONOutputValueString `json:"self_test_result"`
 	PowerOnHours   uint64                        `json:"power_on_hours"`
 }
 
-type SmartctlJsonOutputNvmeSelfTestLog struct {
-	CurrentSelfTestOperation SmartctlJsonOutputValueString                 `json:"current_self_test_operation"`
-	Table                    []SmartctlJsonOutputNvmeSelfTestLogTableEntry `json:"table"`
+type SmartctlJSONOutputNvmeSelfTestLog struct {
+	CurrentSelfTestOperation SmartctlJSONOutputValueString                 `json:"current_self_test_operation"`
+	Table                    []SmartctlJSONOutputNvmeSelfTestLogTableEntry `json:"table"`
 }
 
-type SmartctlJsonOutputAtaSmartSelfTestLog struct {
+type SmartctlJSONOutputAtaSmartSelfTestLog struct {
 	// The self test logs are either reported as "extended" or "standard"
 	Extended *struct {
 		Revision uint64 `json:"revision"`
@@ -540,7 +669,7 @@ type SmartctlJsonOutputAtaSmartSelfTestLog struct {
 		ErrorCountOutdated *uint64 `json:"error_count_outdated"`
 		// The table does not exist if the count is 0
 		Table *[]struct {
-			Type   SmartctlJsonOutputValueString `json:"type"`
+			Type   SmartctlJSONOutputValueString `json:"type"`
 			Status struct {
 				Value  uint64 `json:"value"`
 				String string `json:"string"`
@@ -556,12 +685,12 @@ type SmartctlJsonOutputAtaSmartSelfTestLog struct {
 	}
 }
 
-type SmartctlJsonOutputAtaSmartSelectiveSelfTestlog struct {
+type SmartctlJSONOutputAtaSmartSelectiveSelfTestlog struct {
 	Revision uint64 `json:"revision"`
 	Table    []struct {
 		LbaMin uint64 `json:"lba_min"`
 		LbaMax uint64 `json:"lba_max"`
-		Status SmartctlJsonOutputValueString
+		Status SmartctlJSONOutputValueString
 	} `json:"table"`
 	Flags struct {
 		Value               uint64 `json:"value"`
@@ -570,9 +699,9 @@ type SmartctlJsonOutputAtaSmartSelectiveSelfTestlog struct {
 	PowerUPScanResumeMinutes uint64 `json:"power_up_scan_resume_minutes"`
 }
 
-type SmartctlJsonOutputAtaSmartData struct {
+type SmartctlJSONOutputAtaSmartData struct {
 	OfflineDataCollection struct {
-		Status            SmartctlJsonOutputValueString `json:"status"`
+		Status            SmartctlJSONOutputValueString `json:"status"`
 		CompletionSeconds uint64                        `json:"completion_seconds"`
 	} `json:"offline_data_collection"`
 	SelfTest struct {
@@ -606,8 +735,8 @@ type SmartctlJsonOutputAtaSmartData struct {
 	} `json:"capabilities"`
 }
 
-type SmartctlJsonOutputAtaAttribute struct {
-	Id         uint64 `json:"id"`
+type SmartctlJSONOutputAtaAttribute struct {
+	ID         uint64 `json:"id"`
 	Name       string `json:"name"`
 	Value      uint64 `json:"value"`
 	Worst      uint64 `json:"worst"`
@@ -623,34 +752,34 @@ type SmartctlJsonOutputAtaAttribute struct {
 		EventCount    bool   `json:"event_count"`
 		AutoKeep      bool   `json:"auto_keep"`
 	} `json:"flags"`
-	Raw SmartctlJsonOutputValueString `json:"raw"`
+	Raw SmartctlJSONOutputValueString `json:"raw"`
 }
 
 // smartctl --scan-open json
-type SmartctlJsonOutputScanOpen struct {
-	JsonFormatVersion []uint64                   `json:"json_format_version"`
-	Smartctl          SmartctlJsonOutputSmartctl `json:"smartctl"`
-	Devices           []SmartctlJsonOutputDevice `json:"devices"`
+type SmartctlJSONOutputScanOpen struct {
+	JSONFormatVersion []uint64                   `json:"json_format_version"`
+	Smartctl          SmartctlJSONOutputSmartctl `json:"smartctl"`
+	Devices           []SmartctlJSONOutputDevice `json:"devices"`
 }
 
 // smartctl --json --test short /dev/nvme0
-type SmartctlJsonOutputStartTest struct {
-	JsonFormatVersion []uint64                    `json:"json_format_version"`
-	Smartctl          SmartctlJsonOutputSmartctl  `json:"smartctl"`
-	Device            SmartctlJsonOutputDevice    `json:"device"`
-	LocalTime         SmartctlJsonOutputLocalTime `json:"local_time"`
+type SmartctlJSONOutputStartTest struct {
+	JSONFormatVersion []uint64                    `json:"json_format_version"`
+	Smartctl          SmartctlJSONOutputSmartctl  `json:"smartctl"`
+	Device            SmartctlJSONOutputDevice    `json:"device"`
+	LocalTime         SmartctlJSONOutputLocalTime `json:"local_time"`
 }
 
 // smartctl --json --xall /dev/sda
-type SmartctlJsonOutputXall struct {
+type SmartctlJSONOutputXall struct {
 	// Always present
-	JsonFormatVersion []uint64 `json:"json_format_version"`
+	JSONFormatVersion []uint64 `json:"json_format_version"`
 	// Always present
-	Smartctl SmartctlJsonOutputSmartctl `json:"smartctl"`
+	Smartctl SmartctlJSONOutputSmartctl `json:"smartctl"`
 	// Always present
-	LocalTime SmartctlJsonOutputLocalTime `json:"local_time"`
+	LocalTime SmartctlJSONOutputLocalTime `json:"local_time"`
 	// Might be missing if you type the device name wrong
-	Device SmartctlJsonOutputDevice `json:"device"`
+	Device SmartctlJSONOutputDevice `json:"device"`
 	// Not always reported
 	ScsiVendor *string `json:"scsi_vendor"`
 	// Not always reported
@@ -668,26 +797,26 @@ type SmartctlJsonOutputXall struct {
 	Wwn          *struct {
 		Naa uint64 `json:"naa"`
 		Oui uint64 `json:"oui"`
-		Id  uint64 `json:"id"`
+		ID  uint64 `json:"id"`
 	} `json:"wwn"`
 	FirmwareVersion *string `json:"firmware_version"`
 	// Requires NVMe drive
 	NvmePciVendor *struct {
-		Id          uint64 `json:"id"`
-		SubsystemId uint64 `json:"subsystem_id"`
+		ID          uint64 `json:"id"`
+		SubsystemID uint64 `json:"subsystem_id"`
 	} `json:"nvme_pci_vendor"`
 	// Requires NVMe drive
 	NvmeIeeeOuiIdentifier *uint64 `json:"nvme_ieee_oui_identifier"`
 	// Requires NVMe drive
-	NvmeControllerId *uint64 `json:"nvme_controller_id"`
+	NvmeControllerID *uint64 `json:"nvme_controller_id"`
 	// Requires NVMe drive
-	NvmeVersion *SmartctlJsonOutputValueString `json:"nvme_version"`
+	NvmeVersion *SmartctlJSONOutputValueString `json:"nvme_version"`
 	// Requires NVMe drive
 	NvmeNumberOfNamespaces *uint64 `json:"nvme_number_of_namespaces"`
 	// Requires NVMe drive
-	NvmeNamespaces *[]SmartctlJsonOutputNvmeNamespaces `json:"nvme_namespaces"`
+	NvmeNamespaces *[]SmartctlJSONOutputNvmeNamespaces `json:"nvme_namespaces"`
 	// Requires NVMe drive
-	NvmeSmartHealthInformationLog *SmarctlJsonOutputNvmeSmartHealthInformationLog `json:"nvme_smart_health_information_log"`
+	NvmeSmartHealthInformationLog *SmarctlJSONOutputNvmeSmartHealthInformationLog `json:"nvme_smart_health_information_log"`
 	// Requires NVMe drive
 	NvmeErrorInformationLog *struct {
 		Size   uint64 `json:"size"`
@@ -695,9 +824,9 @@ type SmartctlJsonOutputXall struct {
 		Unread uint64 `json:"unread"`
 	} `json:"nvme_error_information_log"`
 	// Requires NVMe drive
-	NvmeSelfTestLog *SmartctlJsonOutputNvmeSelfTestLog `json:"nvme_self_test_log"`
+	NvmeSelfTestLog *SmartctlJSONOutputNvmeSelfTestLog `json:"nvme_self_test_log"`
 	// Seems to be always present?
-	UserCapacity SmartctlJsonOutputBlocksBytes `json:"user_capacity"`
+	UserCapacity SmartctlJSONOutputBlocksBytes `json:"user_capacity"`
 	// Seems to be always present?
 	LogicalBlockSize uint64 `json:"logical_block_size"`
 	// SSDs seem to be missing this attribute
@@ -727,14 +856,14 @@ type SmartctlJsonOutputXall struct {
 		String           string `json:"string"`
 		Enabled          bool   `json:"enabled"`
 		Frozen           bool   `json:"frozen"`
-		MasterPasswordId uint64 `json:"master_password_id"`
+		MasterPasswordID uint64 `json:"master_password_id"`
 	} `json:"ata_security"`
 	// Requires ATA connection
-	AtaSmartSelfTestLog *SmartctlJsonOutputAtaSmartSelfTestLog `json:"ata_smart_self_test_log"`
+	AtaSmartSelfTestLog *SmartctlJSONOutputAtaSmartSelfTestLog `json:"ata_smart_self_test_log"`
 	// Requires ATA connection
-	AtaSmartSelectiveSelfTestLog *SmartctlJsonOutputAtaSmartSelectiveSelfTestlog `json:"ata_smart_selective_self_test_log"`
+	AtaSmartSelectiveSelfTestLog *SmartctlJSONOutputAtaSmartSelectiveSelfTestlog `json:"ata_smart_selective_self_test_log"`
 	// Requires ATA connection
-	AtaSmartData       *SmartctlJsonOutputAtaSmartData `json:"ata_smart_data"`
+	AtaSmartData       *SmartctlJSONOutputAtaSmartData `json:"ata_smart_data"`
 	AtaSctCapabilities *struct {
 		Value                         uint64 `json:"value"`
 		ErrorRecoveryControlSupported bool   `json:"error_recovery_control_supported"`
@@ -750,7 +879,7 @@ type SmartctlJsonOutputXall struct {
 	} `json:"ata_smart_error_log"`
 	AtaSmartAttributes *struct {
 		Revision uint64                           `json:"revision"`
-		Table    []SmartctlJsonOutputAtaAttribute `json:"table"`
+		Table    []SmartctlJSONOutputAtaAttribute `json:"table"`
 	}
 	// Requires SATA connection
 	SataVersion *struct {
@@ -787,7 +916,7 @@ type SmartctlJsonOutputXall struct {
 		Enabled *bool `json:"enabled"`
 	} `json:"smart_support"`
 	// Only present if the smart_support.enabled is true
-	SmartStatuts *SmartctlJsonOutputSmartStatus `json:"smart_status"`
+	SmartStatuts *SmartctlJSONOutputSmartStatus `json:"smart_status"`
 	// Top level "temperature" field seems to be present.
 	Temperature struct {
 		// Only the current value seems to be there. This temperature might be wrongfully reported as 0, as observed with some RAID controller cards.
@@ -810,7 +939,7 @@ type SmartctlJsonOutputXall struct {
 		Minutes uint64 `json:"minutes"`
 	} `json:"power_on_time"`
 
-	// TODO: Implement these fields
+	// I have seen these fields as well, but did not implement them yet
 	// ScsiErrorCounterLog *SmartctlJsonOutputScsiEr
 	// ScsiGrownDefectList
 	// ScsiStartStopCycleCounter
