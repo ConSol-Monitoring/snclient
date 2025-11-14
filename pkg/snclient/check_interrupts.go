@@ -40,18 +40,20 @@ func (checkInterrupt *CheckInterrupt) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"cpu_filter": {
+			"cpus": {
 				value: &checkInterrupt.cpuFilter,
 				description: "CPUs to check interrupts for. Give it as a comma separated list of integers, corresponding to the cpus." +
 					" Cpus are indexed starting from zero. Leaving it empty will check all interrupts",
+				isFilter: true,
 			},
-			"interrupt_filter": {
+			"interrupts": {
 				value: &checkInterrupt.interruptFilter,
 				description: "Interrupt acronyms to check filter for." +
 					" Give it as a comma separated list of integers corresponding to interrupt ids, or three letter acronymts for named interrupts. E.g 'NMI,154,14,LOC' ",
+				isFilter: true,
 			},
 		},
-		detailSyntax: "%(interrupt_number)|(%interrupt_name)",
+		detailSyntax: "number: %(interrupt_number) name: (%interrupt_name) cpu: %(cpu) count: %(interrupt_count)",
 		okSyntax:     "%(status) - All %(count) interrupts are ok",
 		topSyntax:    "%(status) - %(problem_count)/%(count) interrupts , %(problem_list)",
 		emptySyntax:  "Failed to find any interrupts matching this filter",
@@ -83,29 +85,9 @@ func (checkInterrupt *CheckInterrupt) Check(_ context.Context, snc *Agent, check
 		return nil, fmt.Errorf("no cpu counter available, make sure CheckSystem / CheckSystemUnix in /modules config is enabled")
 	}
 
-	pid, err := ReadAndParseProcInterrupts()
+	pid, err := readAndParseProcInterrupts()
 	if err != nil {
 		return nil, fmt.Errorf("error when reading and parsing /proc/interrupts : %s", err.Error())
-	}
-
-	var cpuFilter []string
-	if cpuFilterArgument, ok := check.args["cpu_filter"]; ok {
-		if cpuFilterCslPtr, ok := cpuFilterArgument.value.(*CommaStringList); ok {
-			cslValue := *cpuFilterCslPtr
-			cpuFilter = []string(cslValue)
-		} else {
-			return nil, fmt.Errorf("unexpected type for cpu_filter_argument.value , expected *CommaStringList")
-		}
-	}
-
-	var interruptFilter []string
-	if interruptFilterArgument, ok := check.args["interrupt_filter"]; ok {
-		if interruptFilterCslPtr, ok := interruptFilterArgument.value.(*CommaStringList); ok {
-			cslValue := *interruptFilterCslPtr
-			interruptFilter = []string(cslValue)
-		} else {
-			return nil, fmt.Errorf("unexpected type for interrupt_filter_argument.value , expected *CommaStringList")
-		}
 	}
 
 	for _, interrupt := range pid.interrupts {
@@ -117,7 +99,9 @@ func (checkInterrupt *CheckInterrupt) Check(_ context.Context, snc *Agent, check
 		baseEntry["interrupt_pin_name_vector"] = interrupt.interruptPinNameVector
 		baseEntry["interrupt_device_and_driver_name"] = interrupt.interruptDeviceAndDriverName
 
-		if len(interruptFilter) > 0 && !slices.Contains(interruptFilter, baseEntry["interrupt_name"]) && !slices.Contains(interruptFilter, baseEntry["interrupt_number"]) {
+		if len(checkInterrupt.interruptFilter) > 0 &&
+			!slices.Contains(checkInterrupt.interruptFilter, baseEntry["interrupt_name"]) &&
+			!slices.Contains(checkInterrupt.interruptFilter, baseEntry["interrupt_number"]) {
 			// neither the interrupt_name or the interrupt_number of the filter match this interrupt line
 			continue
 		}
@@ -128,7 +112,7 @@ func (checkInterrupt *CheckInterrupt) Check(_ context.Context, snc *Agent, check
 			entrySingleCount["cpu"] = "0"
 			entrySingleCount["interrupt_count"] = strconv.FormatUint(interrupt.interruptCountSingle, 10)
 
-			if len(cpuFilter) > 0 && !slices.Contains(cpuFilter, "0") {
+			if len(checkInterrupt.cpuFilter) > 0 && !slices.Contains(checkInterrupt.cpuFilter, "0") {
 				continue
 			}
 
@@ -142,7 +126,7 @@ func (checkInterrupt *CheckInterrupt) Check(_ context.Context, snc *Agent, check
 			entryPerCPU["cpu"] = strconv.FormatInt(int64(cpu), 10)
 			entryPerCPU["interrupt_count"] = strconv.FormatUint(interruptCount, 10)
 
-			if len(cpuFilter) > 0 && !slices.Contains(cpuFilter, entryPerCPU["cpu"]) {
+			if len(checkInterrupt.cpuFilter) > 0 && !slices.Contains(checkInterrupt.cpuFilter, entryPerCPU["cpu"]) {
 				continue
 			}
 
@@ -150,44 +134,48 @@ func (checkInterrupt *CheckInterrupt) Check(_ context.Context, snc *Agent, check
 		}
 	}
 
-	needCPU := check.HasThreshold("cpu")
-	needInterruptCount := check.HasThreshold("interrupt_count")
-	for _, data := range check.listData {
-		if needCPU {
-			check.result.Metrics = append(check.result.Metrics,
-				&CheckMetric{
-					ThresholdName: "cpu",
-					Name:          fmt.Sprintf("id: %s | name: %s | interrupt_count: %s", data["interrupt_number"], data["interrupt_name"], data["interrupt_count"]),
-					Value:         convert.UInt32(data["cpu"]),
-					Unit:          "",
-					Warning:       check.warnThreshold,
-					Critical:      check.critThreshold,
-					Min:           &Zero,
-				},
-			)
-		}
-		if needInterruptCount {
-			check.result.Metrics = append(check.result.Metrics,
-				&CheckMetric{
-					ThresholdName: "interrupt_count",
-					Name:          fmt.Sprintf("id: %s | name: %s | cpu: %s", data["interrupt_number"], data["interrupt_name"], data["cpu"]),
-					Value:         convert.UInt64(data["interrupt_count"]),
-					Unit:          "",
-					Warning:       check.warnThreshold,
-					Critical:      check.critThreshold,
-					Min:           &Zero,
-				},
-			)
-		}
-	}
+	// Do not need to add these as metrics
+	// needCPU := check.HasThreshold("cpu")
+	// needInterruptCount := check.HasThreshold("interrupt_count")
+	// needCPU := false
+	// needInterruptCount := false
+	// for _, data := range check.listData {
+	// 	if needCPU {
+	// 		check.result.Metrics = append(check.result.Metrics,
+	// 			&CheckMetric{
+	// 				ThresholdName: "cpu",
+	// 				Name:          fmt.Sprintf("number: %s name: %s interrupt_count: %s", data["interrupt_number"], data["interrupt_name"], data["interrupt_count"]),
+	// 				Value:         convert.UInt32(data["cpu"]),
+	// 				Unit:          "",
+	// 				Warning:       check.warnThreshold,
+	// 				Critical:      check.critThreshold,
+	// 				Min:           &Zero,
+	// 			},
+	// 		)
+	// 	}
+	// 	if needInterruptCount {
+	// 		check.result.Metrics = append(check.result.Metrics,
+	// 			&CheckMetric{
+	// 				ThresholdName: "interrupt_count",
+	// 				Name:          fmt.Sprintf("id: %s name: %s cpu: %s", data["interrupt_number"], data["interrupt_name"], data["cpu"]),
+	// 				Value:         convert.UInt64(data["interrupt_count"]),
+	// 				Unit:          "",
+	// 				Warning:       check.warnThreshold,
+	// 				Critical:      check.critThreshold,
+	// 				Min:           &Zero,
+	// 			},
+	// 		)
+	// 	}
+	// }
 
 	return check.Finalize()
 }
 
-// Alternative create, possibly offfering matching/better functionality. It is marked WIP as of November 2025.
+// There is an alternative create for parsing interrupts from Prometheus
+// It might be offfering matching/better functionality. It is marked WIP as of November 2025.
 // pkg.go.dev/github.com/prometheus/procfs
 
-func ParseProcInterrupts(fileContent string) (*ProcInterruptData, error) {
+func parseProcInterrupts(fileContent string) (*ProcInterruptData, error) {
 	// First row is listed by CPUs.
 	rows := strings.Split(fileContent, "\n")
 
@@ -227,24 +215,24 @@ func ParseProcInterrupts(fileContent string) (*ProcInterruptData, error) {
 			return nil, fmt.Errorf("the interrupt row of the /proc/interrupt has no fields when separated by whitespace, something seems wrong: %s", row)
 		}
 
-		if err := ParseInterruptIdentifier(&rowFields, &line); err != nil {
+		if err := parseInterruptIdentifier(&rowFields, &line); err != nil {
 			return nil, fmt.Errorf("error when parsing interrupt identifier: %w", err)
 		}
 
-		if err := ParseInterruptCounts(&rowFields, &line, data.cpuCount); err != nil {
+		if err := parseInterruptCounts(&rowFields, &line, data.cpuCount); err != nil {
 			return nil, fmt.Errorf("error when parsing interrupt counts: %w", err)
 		}
 
 		// If its an acronym interrupt, the next fields after count are extended name of the acronym
 		if line.interruptName != "" {
-			// Rejoining them back with a single whitespace might not reconstruct it back to the original
+			// Rejoining them back with a single whitespace might not reconstruct it back to the original, but that is okay for now
 			line.interruptAcronymExtended = strings.Join(rowFields, " ")
 			data.interrupts = append(data.interrupts, &line)
 
 			continue
 		}
 
-		// If its not an acronym, it still has three fields
+		// If its not an acronym, it still has at least three fields
 		line.interruptController = rowFields[0]
 		line.interruptPinNameVector = rowFields[1]
 		line.interruptDeviceAndDriverName = strings.Join(rowFields[2:], " ")
@@ -260,14 +248,14 @@ func ParseProcInterrupts(fileContent string) (*ProcInterruptData, error) {
 	return &data, nil
 }
 
-func ParseInterruptIdentifier(fields *[]string, line *ProcInterruptLine) error {
+func parseInterruptIdentifier(fields *[]string, line *ProcInterruptLine) error {
 	// The interrupt identifier is either in form '<number>:' , or 'ABC:' as a three letter acronym
 	interruptIdentifierTrimmed := strings.TrimRight((*fields)[0], ":")
 
 	// Try to parse it as a number first, as this case is more common
-	parsedInterruptNumber, interruptNumberParseErr := strconv.ParseUint(interruptIdentifierTrimmed, 10, 32)
+	parsedInterruptNumber, interruptNumberParseErr := convert.UInt32E(interruptIdentifierTrimmed)
 	if interruptNumberParseErr == nil {
-		line.interruptID = uint32(parsedInterruptNumber)
+		line.interruptID = parsedInterruptNumber
 
 		// increment the fields variable as we parsed the interrupt number
 		*fields = (*fields)[1:]
@@ -275,11 +263,11 @@ func ParseInterruptIdentifier(fields *[]string, line *ProcInterruptLine) error {
 		return nil
 	}
 
-	// Try to parse it as an acronym now. The rule to check if it has 3 characters, all uppercase, and belongs to a known set of acronyms.
+	// Try to parse it as an acronym now. The rule to check if it has at least 3 characters, and belongs to a known set of acronyms.
 
 	// I previously thought the acronyms always had three lettters. Some outputs from raspberry pis seem to have longer named interrupts.
-	if len(interruptIdentifierTrimmed) != 3 {
-		log.Warnf("the interrupt name is thought to be a acronym interrupt: %s , but it does not have three letters", interruptIdentifierTrimmed)
+	if len(interruptIdentifierTrimmed) < 3 {
+		log.Warnf("the interrupt name is thought to be a acronym interrupt: %s , but it has less than three letters", interruptIdentifierTrimmed)
 	}
 
 	for _, character := range interruptIdentifierTrimmed {
@@ -296,7 +284,7 @@ func ParseInterruptIdentifier(fields *[]string, line *ProcInterruptLine) error {
 	}
 
 	if !slices.Contains(KnownInterruptAcronyms, interruptIdentifierTrimmed) {
-		// Make this a warning instead
+		// Make this a warning instead of a failure
 		log.Warnf("the interrupt name is thought to be a acronym interrupt: %s , but it is not in the list of known acronyms", interruptIdentifierTrimmed)
 	}
 
@@ -307,7 +295,7 @@ func ParseInterruptIdentifier(fields *[]string, line *ProcInterruptLine) error {
 	return nil
 }
 
-func ParseInterruptCounts(fields *[]string, line *ProcInterruptLine, cpuCount uint64) error {
+func parseInterruptCounts(fields *[]string, line *ProcInterruptLine, cpuCount uint64) error {
 	// Some interrupts have no counters at all
 	if line.interruptName != "" && slices.Contains(InterruptsWithNoCounters, line.interruptName) {
 		return nil
@@ -315,7 +303,7 @@ func ParseInterruptCounts(fields *[]string, line *ProcInterruptLine, cpuCount ui
 
 	// If the interrupt has a single counter, it does not have any other fields except value
 	if line.interruptName != "" && slices.Contains(InterruptsWithSingleCounters, line.interruptName) {
-		parsedNumber, err := strconv.ParseUint((*fields)[0], 10, 64)
+		parsedNumber, err := convert.UInt64E((*fields)[0])
 		if err != nil {
 			return fmt.Errorf("could not parse the interrupt counter value: %s to an uint64, which would have been added to the single interrupt count", (*fields)[0])
 		}
@@ -327,10 +315,7 @@ func ParseInterruptCounts(fields *[]string, line *ProcInterruptLine, cpuCount ui
 
 	// Any other interrupt has a counter per cpu
 	for _, field := range (*fields)[0:cpuCount] {
-		parsedNumber, err := strconv.ParseUint(field, 10, 64)
-		if err != nil {
-			return fmt.Errorf("could not parse the interrupt counter value: %s to an uint64, which would have been added to the interrupt counters array for CPUs", field)
-		}
+		parsedNumber := convert.UInt64(field)
 		line.interruptCountsPerCPU = append(line.interruptCountsPerCPU, parsedNumber)
 		*fields = (*fields)[1:]
 	}
@@ -338,7 +323,7 @@ func ParseInterruptCounts(fields *[]string, line *ProcInterruptLine, cpuCount ui
 	return nil
 }
 
-func ReadAndParseProcInterrupts() (*ProcInterruptData, error) {
+func readAndParseProcInterrupts() (*ProcInterruptData, error) {
 	file, err := os.Open("/proc/interrupts")
 	if err != nil {
 		return nil, fmt.Errorf("error when trying to open /proc/interrupts: %w", err)
@@ -351,7 +336,7 @@ func ReadAndParseProcInterrupts() (*ProcInterruptData, error) {
 	}
 	fileContent := string(fileBytes)
 
-	return ParseProcInterrupts(fileContent)
+	return parseProcInterrupts(fileContent)
 }
 
 var KnownInterruptAcronyms = []string{
@@ -395,7 +380,7 @@ type ProcInterruptData struct {
 	interrupts []*ProcInterruptLine
 }
 
-func (pid *ProcInterruptData) FindInterruptByID(interruptID uint32) (*ProcInterruptLine, error) {
+func (pid *ProcInterruptData) findInterruptByID(interruptID uint32) (*ProcInterruptLine, error) {
 	for _, line := range pid.interrupts {
 		if line.interruptID == interruptID {
 			return line, nil
@@ -405,7 +390,7 @@ func (pid *ProcInterruptData) FindInterruptByID(interruptID uint32) (*ProcInterr
 	return nil, fmt.Errorf("could not find an interrupt with the interrupt_id: %d", interruptID)
 }
 
-func (pid *ProcInterruptData) FindInterruptByName(interruptName string) (*ProcInterruptLine, error) {
+func (pid *ProcInterruptData) findInterruptByName(interruptName string) (*ProcInterruptLine, error) {
 	for _, line := range pid.interrupts {
 		if line.interruptName == interruptName {
 			return line, nil

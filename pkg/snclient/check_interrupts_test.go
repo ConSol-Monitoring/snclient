@@ -18,7 +18,7 @@ func TestParseProcInterruptsParsing(t *testing.T) {
 			fileContent, fileReadError := os.ReadFile(procInterruptsFile)
 			require.NoError(t, fileReadError)
 
-			_, procInterruptsParseError := ParseProcInterrupts(string(fileContent))
+			_, procInterruptsParseError := parseProcInterrupts(string(fileContent))
 			require.NoError(t, procInterruptsParseError)
 		})
 	}
@@ -30,12 +30,12 @@ func TestParseProcInterrupts1(t *testing.T) {
 	fileContent, fileReadError := os.ReadFile(filepath)
 	require.NoError(t, fileReadError)
 
-	procInterrupts, procInterruptsParseError := ParseProcInterrupts(string(fileContent))
+	procInterrupts, procInterruptsParseError := parseProcInterrupts(string(fileContent))
 	require.NoError(t, procInterruptsParseError)
 
 	// Open the file and check the lines manually
 
-	line, err := procInterrupts.FindInterruptByID(164)
+	line, err := procInterrupts.findInterruptByID(164)
 	require.NoError(t, err)
 	assert.Equal(t, uint64(6710), line.interruptCountsPerCPU[3])
 	assert.Equal(t, uint64(0), line.interruptCountsPerCPU[0])
@@ -44,18 +44,18 @@ func TestParseProcInterrupts1(t *testing.T) {
 	assert.Equal(t, "4-edge", line.interruptPinNameVector)
 	assert.Equal(t, "nvme0q4", line.interruptDeviceAndDriverName)
 
-	line, err = procInterrupts.FindInterruptByID(200)
+	line, err = procInterrupts.findInterruptByID(200)
 	require.NoError(t, err)
 	assert.Equal(t, "00:14.3", line.interrruptPciBdf)
 	assert.Equal(t, "6-edge", line.interruptPinNameVector)
 	assert.Equal(t, "iwlwifi:queue_6", line.interruptDeviceAndDriverName)
 
-	line, err = procInterrupts.FindInterruptByName("IWI")
+	line, err = procInterrupts.findInterruptByName("IWI")
 	require.NoError(t, err)
 	assert.Equal(t, uint64(213), line.interruptCountsPerCPU[13])
 	assert.Equal(t, "IRQ work interrupts", line.interruptAcronymExtended)
 
-	line, err = procInterrupts.FindInterruptByName("ERR")
+	line, err = procInterrupts.findInterruptByName("ERR")
 	require.NoError(t, err)
 	assert.Equal(t, uint64(0), line.interruptCountSingle)
 }
