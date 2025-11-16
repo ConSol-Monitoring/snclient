@@ -1,0 +1,16 @@
+          CPU0       
+17:       3380  ARMCTRL-level   1 Edge      2000b880.mailbox
+18:         36  ARMCTRL-level   2 Edge      VCHIQ doorbell
+27:     120102  ARMCTRL-level  35 Edge      timer
+40:          0  ARMCTRL-level  48 Edge      bcm2708_fb DMA
+42:       9594  ARMCTRL-level  50 Edge      DMA IRQ
+44:          0  ARMCTRL-level  52 Edge      DMA IRQ
+45:          0  ARMCTRL-level  53 Edge      DMA IRQ
+53:          0  ARMCTRL-level  61 Edge      20215080.spi
+56:    3568399  ARMCTRL-level  64 Edge      dwc_otg, dwc_otg_pcd, dwc_otg_hcd:usb1
+77:       3648  ARMCTRL-level  85 Edge      20804000.i2c
+78:          0  ARMCTRL-level  86 Edge      20204000.spi
+80:       3800  ARMCTRL-level  88 Edge      mmc0
+81:          4  ARMCTRL-level  89 Edge      uart-pl011
+FIQ:              usb_fiq
+Err:          0
