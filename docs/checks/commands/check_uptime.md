@@ -21,7 +21,7 @@ Check computer uptime (time since last reboot).
 ### Default Check
 
     check_uptime
-    OK - uptime: 3d 02:30h, boot: 2023-11-17 19:33:46 (UTC) |'uptime'=268241s;172800:;86400:
+    OK - uptime: 3d 02:30h, boot: 2023-11-17 19:33:46 UTC |'uptime'=268241s;172800:;86400:
 
 ### Example using NRPE and Naemon
 
@@ -41,15 +41,15 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                            |
-| ------------- | ---------------------------------------- |
-| warning       | uptime < 2d                              |
-| critical      | uptime < 1d                              |
-| empty-state   | 0 (OK)                                   |
-| empty-syntax  |                                          |
-| top-syntax    | %(status) - \${list}                     |
-| ok-syntax     |                                          |
-| detail-syntax | uptime: \${uptime}, boot: \${boot} (UTC) |
+| Argument      | Default Value                             |
+| ------------- | ----------------------------------------- |
+| warning       | uptime < 2d                               |
+| critical      | uptime < 1d                               |
+| empty-state   | 0 (OK)                                    |
+| empty-syntax  |                                           |
+| top-syntax    | %(status) - \${list}                      |
+| ok-syntax     |                                           |
+| detail-syntax | uptime: \${uptime}, boot: \${boot \| utc} |
 
 ## Check Specific Arguments
 
@@ -65,4 +65,4 @@ these can be used in filters and thresholds (along with the default attributes):
 | ------------ | ----------------------------------- |
 | uptime       | Human readable time since last boot |
 | uptime_value | Uptime in seconds                   |
-| boot         | Human readable date of last boot    |
+| boot         | Unix timestamp of last boot         |

@@ -32,15 +32,15 @@ func (l *CheckUptime) Build() *CheckData {
 		defaultWarning:  "uptime < 2d",
 		defaultCritical: "uptime < 1d",
 		topSyntax:       "%(status) - ${list}",
-		detailSyntax:    "uptime: ${uptime}, boot: ${boot} (UTC)",
+		detailSyntax:    "uptime: ${uptime}, boot: ${boot | utc}",
 		attributes: []CheckAttribute{
 			{name: "uptime", description: "Human readable time since last boot", unit: UDuration},
 			{name: "uptime_value", description: "Uptime in seconds", unit: UDuration},
-			{name: "boot", description: "Human readable date of last boot", unit: UDate},
+			{name: "boot", description: "Unix timestamp of last boot", unit: UDate},
 		},
 		exampleDefault: `
     check_uptime
-    OK - uptime: 3d 02:30h, boot: 2023-11-17 19:33:46 (UTC) |'uptime'=268241s;172800:;86400:
+    OK - uptime: 3d 02:30h, boot: 2023-11-17 19:33:46 UTC |'uptime'=268241s;172800:;86400:
 	`,
 		exampleArgs: `'warn=uptime < 180s' 'crit=uptime < 60s'`,
 	}
@@ -68,7 +68,7 @@ func (l *CheckUptime) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 	check.listData = append(check.listData, map[string]string{
 		"uptime":       utils.DurationString(uptime.Truncate(trunc)),
 		"uptime_value": fmt.Sprintf("%.1f", uptime.Seconds()),
-		"boot":         bootTimeUnix.UTC().Format("2006-01-02 15:04:05"),
+		"boot":         fmt.Sprintf("%d", bootTimeUnix.Unix()),
 	})
 
 	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
