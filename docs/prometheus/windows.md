@@ -23,7 +23,10 @@ WindowsExporterServer = enabled
 port = ${/settings/WEB/server/port}
 
 ; disable password protection
-password =
+require password = false
+
+; extend enabled default collectors
+;agent args = --collectors.enabled=[defaults],time,license
 ```
 
 You can then scrape windows metrics from `http://<ip>:8443/node/metrics`.
