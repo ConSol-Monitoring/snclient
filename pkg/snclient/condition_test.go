@@ -260,6 +260,25 @@ func TestConditionAlias(t *testing.T) {
 	assert.Containsf(t, check.filter[0].String(), `state = running`, "filter condition replaced")
 }
 
+func TestConditionColAlias(t *testing.T) {
+	filterStr := `( name = 'xinetd' and name unlike 'other' ) and state = 'started'`
+	cond, err := NewCondition(filterStr, nil)
+	require.NoError(t, err)
+
+	check := &CheckData{
+		filter: ConditionList{cond},
+		conditionColAlias: map[string][]string{
+			"name": {
+				"name", "display",
+			},
+		},
+	}
+	check.applyConditionColAlias()
+
+	check.filter[0].original = "" // avoid shortcut String builder
+	assert.Equalf(t, `(((name = xinetd or display = xinetd) and (name unlike other and display unlike other)) and state = started)`, check.filter[0].String(), "filter condition replaced")
+}
+
 func TestConditionStrOp(t *testing.T) {
 	input := "'blah' like str(Blah)"
 	output := replaceStrOp(input)

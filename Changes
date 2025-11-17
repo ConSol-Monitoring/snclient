@@ -3,6 +3,7 @@ This file documents the revision history for the SNClient agent.
 next:
          - optionally send HSTS header in HTTP response
          - update node exporter to 1.10.2
+         - check_service: improve filter by name
          - chore: update dependencies
 
 0.38     Fri Oct 10 14:41:11 CEST 2025
