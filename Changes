@@ -4,6 +4,7 @@ next:
          - optionally send HSTS header in HTTP response
          - update node exporter to 1.10.2
          - check_service: improve filter by name
+         - check_process: add cpu_seconds attribute
          - chore: update dependencies
 
 0.38     Fri Oct 10 14:41:11 CEST 2025

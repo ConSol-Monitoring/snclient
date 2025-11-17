@@ -110,6 +110,14 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			log.Debugf("check_process: cpuinfo error: %s", err.Error())
 		}
 
+		cpuSeconds := float64(0)
+		cpuT, err := proc.TimesWithContext(ctx)
+		if err != nil {
+			log.Debugf("check_process: cpuinfo error: %s", err.Error())
+		} else {
+			cpuSeconds = cpuT.User + cpuT.System + cpuT.Idle + cpuT.Nice + cpuT.Iowait + cpuT.Irq + cpuT.Softirq + cpuT.Steal + cpuT.Guest + cpuT.GuestNice
+		}
+
 		check.listData = append(check.listData, map[string]string{
 			"process":      exe,
 			"state":        strings.Join(state, ","),
@@ -124,6 +132,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			"rss":          fmt.Sprintf("%d", mem.RSS),
 			"pagefile":     fmt.Sprintf("%d", mem.Swap),
 			"cpu":          fmt.Sprintf("%f", cpu),
+			"cpu_seconds":  fmt.Sprintf("%f", cpuSeconds),
 		})
 	}
 
