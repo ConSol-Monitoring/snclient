@@ -46,13 +46,13 @@ Naemon Config
 
 | Argument      | Default Value                                                                                         |
 | ------------- | ----------------------------------------------------------------------------------------------------- |
-| warning       |  return_code != '0' \|\| test_result != 'PASSED' \|\| smart_health_status != 'PASSED'                 |
-| critical      |  return_code != '0' && test_result != 'PASSED' && smart_health_status != 'PASSED'                     |
+| warning       |  return_code != '0' \|\| test_result != 'PASSED' \|\| smart_health_test_result != 'PASSED'            |
+| critical      |  return_code != '0' && test_result != 'PASSED' && smart_health_test_result != 'PASSED'                |
 | empty-state   | 3 (UNKNOWN)                                                                                           |
 | empty-syntax  | Failed to find any drives that the filter and smartctl could work with                                |
 | top-syntax    | %(status) - %(problem_count)/%(count) drives , %(problem_list)                                        |
 | ok-syntax     | %(status) - All %(count) drives are ok                                                                |
-| detail-syntax | drive: %(test_drive) \| test: %(test_type) \| test_result: %(test_result) \| smart_health_status: %(smart_health_status) \| return_code: %(return_code) , (%(return_code_explanation)) |
+| detail-syntax | drive: %(test_drive) \| test: %(test_type) \| test_result: %(test_result) \| smart_health_test_result: %(smart_health_test_result) \| return_code: %(return_code) , (%(return_code_explanation)) |
 
 ## Check Specific Arguments
 
@@ -67,12 +67,12 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute               | Description                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------- |
-| test_type               | Type of SMART test that was performed.                                                      |
-| test_drive              | The drive the test was performed on                                                         |
-| test_result             | The result of the test. Takes possible outputs: "PASSED" , "FAILED" , "UNKNOWN" .           |
-| test_details            | The details of the test given by smartctl.                                                  |
-| smart_health_status     | SMART overall health self-assesment done by the firmware with the current SMART attributes.  It is evaluated independently from the test result, but is just as important. Takes possible values: "OK" , "FAIL" , "UNKNOWN" . |
-| return_code             | The return code status of the smartctl command used to get drive details after the test was done. |
-| return_code_explanation | Explanation of the return code of the smartctl command used to get drive details after the test was done. |
+| Attribute                | Description                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------ |
+| test_type                | Type of SMART test that was performed.                                                     |
+| test_drive               | The drive the test was performed on                                                        |
+| test_result              | The result of the test. Takes possible outputs: "PASSED" , "FAILED" , "UNKNOWN" .          |
+| test_details             | The details of the test given by smartctl.                                                 |
+| smart_health_test_result | SMART overall health self-assesment done by the firmware with the current SMART attributes.  It is evaluated independently from the test result, but is just as important. Takes possible values: "PASSED" , "FAILED" , "UNKNOWN" . |
+| return_code              | The return code status of the smartctl command used to get drive details after the test was done. |
+| return_code_explanation  | Explanation of the return code of the smartctl command used to get drive details after the test was done. |

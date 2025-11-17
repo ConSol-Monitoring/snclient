@@ -73,10 +73,10 @@ func (checkDriveHealth *CheckDriveHealth) Build() *CheckData {
 			// 	description: "Logical block address to end the test on, inclusive. Can be specified as a number or as 'max' to select the last block on the disk. Required if the test type is 'select'",
 			// },
 		},
-		defaultCritical: " return_code != '0' && test_result != 'PASSED' && smart_health_status != 'PASSED' ",
-		defaultWarning:  " return_code != '0' || test_result != 'PASSED' || smart_health_status != 'PASSED' ",
+		defaultCritical: " return_code != '0' && test_result != 'PASSED' && smart_health_test_result != 'PASSED' ",
+		defaultWarning:  " return_code != '0' || test_result != 'PASSED' || smart_health_test_result != 'PASSED' ",
 		detailSyntax: "drive: %(test_drive) | test: %(test_type) | test_result: %(test_result) | " +
-			"smart_health_status: %(smart_health_status) | return_code: %(return_code) , (%(return_code_explanation))",
+			"smart_health_test_result: %(smart_health_test_result) | return_code: %(return_code) , (%(return_code_explanation))",
 		okSyntax:    "%(status) - All %(count) drives are ok",
 		topSyntax:   "%(status) - %(problem_count)/%(count) drives , %(problem_list)",
 		emptySyntax: "Failed to find any drives that the filter and smartctl could work with",
@@ -89,8 +89,8 @@ func (checkDriveHealth *CheckDriveHealth) Build() *CheckData {
 			// Disable conveyance and select tests until tested
 			// {name: "test_start_lba", description: "Logical block address the test was started on. Required if test type is 'select' "},
 			// {name: "test_end_lba", description: "Logical block address the test was ended on. Required if the test type is 'select' "},
-			{name: "smart_health_status", description: "SMART overall health self-assesment done by the firmware with the current SMART attributes. " +
-				" It is evaluated independently from the test result, but is just as important. Takes possible values: \"OK\" , \"FAIL\" , \"UNKNOWN\" ."},
+			{name: "smart_health_test_result", description: "SMART overall health self-assesment done by the firmware with the current SMART attributes. " +
+				" It is evaluated independently from the test result, but is just as important. Takes possible values: \"PASSED\" , \"FAILED\" , \"UNKNOWN\" ."},
 			{name: "return_code", description: "The return code status of the smartctl command used to get drive details after the test was done."},
 			{name: "return_code_explanation", description: "Explanation of the return code of the smartctl command used to get drive details after the test was done."},
 		},
@@ -221,12 +221,12 @@ func (checkDriveHealth *CheckDriveHealth) Check(_ context.Context, _ *Agent, che
 		// That seems to be the SMART overall-health self-assessment test result
 
 		if result.xallJSON.SmartStatuts == nil {
-			entryResult["smart_health_status"] = "UNKNOWN"
+			entryResult["smart_health_test_result"] = "UNKNOWN"
 		}
 		if result.xallJSON.SmartStatuts.Passed {
-			entryResult["smart_health_status"] = "OK"
+			entryResult["smart_health_test_result"] = "PASSED"
 		} else {
-			entryResult["smart_health_status"] = "FAIL"
+			entryResult["smart_health_test_result"] = "FAILED"
 		}
 
 		// 3. Return code of the smartctl information check command.
@@ -262,14 +262,14 @@ func AddCheckMetrics(check *CheckData, data map[string]string) {
 		)
 	}
 	var smartHealthStatusPassed int32
-	if data["smart_health_status"] == "PASSED" {
+	if data["smart_health_test_result"] == "PASSED" {
 		smartHealthStatusPassed = 1
 	}
-	if check.HasThreshold("smart_health_status") {
+	if check.HasThreshold("smart_health_test_result") {
 		check.result.Metrics = append(check.result.Metrics,
 			&CheckMetric{
-				ThresholdName: "smart_health_status_passed",
-				Name:          fmt.Sprintf("drive: %s smart_health_status_passed: %d", data["test_drive"], smartHealthStatusPassed),
+				ThresholdName: "smart_health_test_result_passed",
+				Name:          fmt.Sprintf("drive: %s smart_health_test_result_passed: %d", data["test_drive"], smartHealthStatusPassed),
 				Value:         smartHealthStatusPassed,
 				Unit:          "",
 				Warning:       nil,
