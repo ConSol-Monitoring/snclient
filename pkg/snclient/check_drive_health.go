@@ -25,20 +25,23 @@ type CheckDriveHealth struct {
 	driveFilter CommaStringList
 	// Test to run. Should be one of these values: 'offline' , 'short' , 'long' , 'conveyance' , 'select'
 	testType string
+	// Disable conveyance and select tests until tested
 	// Logical block address to start the test on. Has to be a number. Required if the test type is 'select'
-	testStart uint64
+	// testStart uint64
 	// End block of the test. Can also be specified as 'max' or a number. Required if the test type is 'select'
-	testEndLba string
+	// testEndLba string
 }
 
-var validTestTypes = []string{"offline", "short", "long", "conveyance", "select"}
+// Disable conveyance and select tests until tested
+// var validTestTypes = []string{"offline", "short", "long", "conveyance", "select"}
+var validTestTypes = []string{"offline", "short", "long"}
 
 func NewCheckDriveHealth() CheckHandler {
 	return &CheckDriveHealth{
 		driveFilter: make([]string, 0),
 		testType:    "offline",
-		testStart:   0,
-		testEndLba:  "0",
+		// testStart:   0,
+		// testEndLba:  "0",
 	}
 }
 
@@ -60,19 +63,20 @@ func (checkDriveHealth *CheckDriveHealth) Build() *CheckData {
 				value:       &checkDriveHealth.testType,
 				description: fmt.Sprintf("SMART test type to perform for checking the health of the drives. Available test types are: '%s' ", strings.Join(validTestTypes, ",")),
 			},
-			"test_start_lba": {
-				value:       &checkDriveHealth.testStart,
-				description: "Logical block address to start the test on. Has to be specified as a number. Needed if the test type is 'select'",
-			},
-			"test_end_lba": {
-				value:       &checkDriveHealth.testEndLba,
-				description: "Logical block address to end the test on, inclusive. Can be specified as a number or as 'max' to select the last block on the disk. Required if the test type is 'select'",
-			},
+			// Disable conveyance and select tests until tested
+			// "test_start_lba": {
+			// 	value:       &checkDriveHealth.testStart,
+			// 	description: "Logical block address to start the test on. Has to be specified as a number. Needed if the test type is 'select'",
+			// },
+			// "test_end_lba": {
+			// 	value:       &checkDriveHealth.testEndLba,
+			// 	description: "Logical block address to end the test on, inclusive. Can be specified as a number or as 'max' to select the last block on the disk. Required if the test type is 'select'",
+			// },
 		},
 		defaultCritical: " return_code != '0' && test_result != 'PASSED' && smart_health_status != 'PASSED' ",
 		defaultWarning:  " return_code != '0' || test_result != 'PASSED' || smart_health_status != 'PASSED' ",
-		detailSyntax: "drive: %(test_drive) | test: %(test_type) $(test_start_lba)-%(test_end_lba) | test_result: %(test_result) | " +
-			"smart_health_status: %(smart_health_status) | return_code: %(return_code) (%(return_code_explanation))",
+		detailSyntax: "drive: %(test_drive) | test: %(test_type) | test_result: %(test_result) | " +
+			"smart_health_status: %(smart_health_status) | return_code: %(return_code) , (%(return_code_explanation))",
 		okSyntax:    "%(status) - All %(count) drives are ok",
 		topSyntax:   "%(status) - %(problem_count)/%(count) drives , %(problem_list)",
 		emptySyntax: "Failed to find any drives that the filter and smartctl could work with",
@@ -82,8 +86,9 @@ func (checkDriveHealth *CheckDriveHealth) Build() *CheckData {
 			{name: "test_drive", description: "The drive the test was performed on"},
 			{name: "test_result", description: "The result of the test. Takes possible outputs: \"PASSED\" , \"FAILED\" , \"UNKNOWN\" ."},
 			{name: "test_details", description: "The details of the test given by smartctl."},
-			{name: "test_start_lba", description: "Logical block address the test was started on. Required if test type is 'select' "},
-			{name: "test_end_lba", description: "Logical block address the test was ended on. Required if the test type is 'select' "},
+			// Disable conveyance and select tests until tested
+			// {name: "test_start_lba", description: "Logical block address the test was started on. Required if test type is 'select' "},
+			// {name: "test_end_lba", description: "Logical block address the test was ended on. Required if the test type is 'select' "},
 			{name: "smart_health_status", description: "SMART overall health self-assesment done by the firmware with the current SMART attributes. " +
 				" It is evaluated independently from the test result, but is just as important. Takes possible values: \"OK\" , \"FAIL\" , \"UNKNOWN\" ."},
 			{name: "return_code", description: "The return code status of the smartctl command used to get drive details after the test was done."},
@@ -117,8 +122,9 @@ func (checkDriveHealth *CheckDriveHealth) Check(_ context.Context, _ *Agent, che
 
 	entryBase := map[string]string{}
 	entryBase["test_type"] = checkDriveHealth.testType
-	entryBase["test_start_lba"] = strconv.FormatUint(checkDriveHealth.testStart, 10)
-	entryBase["test_end_lba"] = checkDriveHealth.testEndLba
+	// Disable conveyance and select tests until tested
+	// entryBase["test_start_lba"] = strconv.FormatUint(checkDriveHealth.testStart, 10)
+	// entryBase["test_end_lba"] = checkDriveHealth.testEndLba
 
 	if !slices.Contains(validTestTypes, entryBase["test_type"]) {
 		return nil, fmt.Errorf("unexpected test type to perform: %s , valid test types are: %s", entryBase["test_type"], strings.Join(validTestTypes, ","))

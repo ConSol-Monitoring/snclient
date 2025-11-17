@@ -3,6 +3,9 @@ package snclient
 import (
 	"os"
 	"path/filepath"
+	"runtime"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -47,7 +50,19 @@ func TestParsingSmartctlOpen(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// This test requires smartctl to be installed and accessible
+// Perform this only on linux and when its not a CI environment
 func TestSmartctlScanOpen(t *testing.T) {
+	// Skip on non-Linux platforms
+	smartctlAvailable := []string{"linux", "freebsd", "openbsd", "openbsd", "darwin"}
+	if !slices.Contains(smartctlAvailable, runtime.GOOS) {
+		t.Skipf("smartctl test only runs on these platforms: %s , your platform is: %s", strings.Join(smartctlAvailable, ","), runtime.GOOS)
+	}
+
+	if os.Getenv("CI") == "true" {
+		t.Skip("Skipping smartctl test in CI environment")
+	}
+
 	_, err := SmartctlScanOpen()
 	assert.NoError(t, err)
 }
