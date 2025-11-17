@@ -764,6 +764,9 @@ docs_test:
 
 # ensure docs folder is clean
 gitcleandocs:
+	@echo "Checking that docs folder is clean"
+	@echo Current git status of the docs folder
+	git status --porcelain docs
 	@if [ $$(git status -s docs | wc -l) -gt 0 ]; then \
 		git diff docs; \
 		echo "docs folder not clean:"; \

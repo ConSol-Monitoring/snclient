@@ -33,8 +33,8 @@ func NewCheckInterrupt() CheckHandler {
 
 func (checkInterrupt *CheckInterrupt) Build() *CheckData {
 	return &CheckData{
-		name:        "check_interrupt",
-		description: "Checks the interrupts on CPUs",
+		name:        "check_interrupts",
+		description: "Check interrupt counts on Linux. This reads and parses the /proc/interrupts file.",
 		implemented: Linux,
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -74,8 +74,36 @@ func (checkInterrupt *CheckInterrupt) Build() *CheckData {
 			{name: "interrupt_device_and_driver_name", description: "Some interrupts display the logical devices name or the kernel driver that is causing it."},
 		},
 		exampleDefault: `
-Alter if there is a MCE in core numbers 0,3,7,8
-		check_interrupts cpu_list="0,3,7,8" interrupt_filter="MCE" crit="interrupt_count > 0"
+Default check does not filter to anything, or has logic to report a warning / critical condition
+    OK - All 842 interrupts are ok
+    
+Check if there is a MCE in core numbers 0,3,7,8
+    
+    check_interrupts cpus="0,3,7,8" interrupts="MCE" crit="interrupt_count > 0"
+    OK - All 4 interrupts are ok |'id: 0 | name: MCE | cpu: 0'=0;;0;0 'id: 0 | name: MCE | cpu: 3'=0;;0;0 'id: 0 | name: MCE | cpu: 7'=0;;0;0 'id: 0 | name: MCE | cpu: 8'=0;;0;0
+
+Same query, but use a numbered interrupt this time.
+
+    check_interrupts cpus="1,2" interrupts="120,121" crit="interrupt_count > 0"
+    OK - All 4 interrupts are ok |'id: 120 | name:  | cpu: 1'=0;;0;0 'id: 120 | name:  | cpu: 2'=0;;0;0 'id: 121 | name:  | cpu: 1'=0;;0;0 'id: 121 | name:  | cpu: 2'=0;;0;0
+
+Some interrupts will have a single value for all cores
+
+    check_interrupts interrupt_filter="ERR" crit="interrupt_count > 0"
+    OK - All 1 interrupts are ok |'id: 0 | name: ERR | cpu: 0'=0;;0;0
+
+Check interrupts regarding the thunderbolt driver, using the filter on the 'interrrupt_device_and_driver_name' attribute with a string match.
+These interrupts are numbered, but it is unclear what these numbers are. One can only match based on the provided driver information. 
+    // I dont want thunderbolt controller interrupts to go to cpu0
+    check_interrupts cpus="0" filter="interrupt_device_and_driver_name ~ '^thunderbolt' " crit="interrupt_count > 0"
+    OK - All 4 interrupts are ok
+
+
+Check interrupts regarding the NVME device on PCI BDF 00:14.0 , using the filter on the 'interrupt_pci_bdf' attribute. 
+Just like above, this interrupt is numbered, so It can be filter with its attribute only. 
+The first CPU should get the interrupts with the vector '1-edge' for this device, add a critical condition if it is receiving interrupts with other vectors.
+    check_interrupts cpus="0" filter=" interrupt_pci_bdf == '00:14.0' && interrupt_pin_name_and_vector != '1-edge' " crit=" interrupt_count > 0"
+    OK - All 1 interrupts are ok
 		`,
 	}
 }
