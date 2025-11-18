@@ -254,7 +254,7 @@ Support operators are:
 | `:age`                | 1700834034 -> 374                     | subtract value from current unix timestamp to get the age in seconds |
 | `:date`               | 1700834034 -> 2023-11-24 14:53:54 CET | convert unix timestamp into human readable date (local timezone) |
 | `:utc`                | 1700834034 -> 2023-11-24 13:53:54 UTC | convert unix timestamp into human readable date (utc timezone) |
-| `:fmt=<fmt>`          | 123.45 -> 123.4                       | apply format, ex.: $(total \| fmt=%.1f) (using GOs fmt.Sprintf) |
+| `:fmt=<fmt>`          | 123.45 -> 123.5                       | apply format, ex.: $(total \| fmt=%.1f) (using GOs fmt.Sprintf) |
 | `:s/regexp/replace/`  | C:\ % -> C                            | apply regexp replacement, ex.: $(name \| 's/\\W//' ) (using GOs regexp.Compile) |
 | `:ascii`              | C:\ % -> C                            | remove any none-ascii characters |
 | `:trim`               | " test " -> "test"                    | remove leading and trailing whitespace |
