@@ -94,7 +94,8 @@ these can be used in filters and thresholds (along with the default attributes):
 | pid              | Process id                                                                                         |
 | uid              | User if of process owner (linux only)                                                              |
 | username         | User name of process owner (linux only)                                                            |
-| cpu              | CPU usage in percent                                                                               |
+| cpu              | CPU usage in percent (over total lifetime of process)                                              |
+| cpu_seconds      | CPU usage in seconds                                                                               |
 | virtual          | Virtual memory usage in bytes                                                                      |
 | rss              | Resident memory usage in bytes                                                                     |
 | pagefile         | Swap memory usage in bytes                                                                         |
