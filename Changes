@@ -293,7 +293,6 @@ next:
          - check_process: fix showing all processes
          - check_drivesize: do not apply default filter if disk is specified
 
-
 0.08     Thu Sep  7 15:08:07 CEST 2023
          - catch some standard cmd.exe errors
          - skip logrotation if output is not a file
