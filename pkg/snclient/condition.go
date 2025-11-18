@@ -827,11 +827,11 @@ func (c *Condition) expandUnitByType(str string) error {
 
 // Transforms all given source keywords in the condition to the single given target keyword.
 // Loops over its group conditions as well.
-// Currently always returns true, such a funciton signature is needed for range operations.
-func (cond *Condition) TransformMultipleKeywords(srcKeywords []string, targetKeyword string) bool {
+// Currently always returns true, such a function signature is needed for range operations.
+func (c *Condition) TransformMultipleKeywords(srcKeywords []string, targetKeyword string) bool {
 	found := ""
 	for _, keyword := range srcKeywords {
-		if keyword == cond.keyword {
+		if keyword == c.keyword {
 			found = keyword
 
 			break
@@ -840,15 +840,15 @@ func (cond *Condition) TransformMultipleKeywords(srcKeywords []string, targetKey
 	if found == "" {
 		return true
 	}
-	cond.keyword = targetKeyword
+	c.keyword = targetKeyword
 	switch {
 	case strings.HasSuffix(found, "_pct"):
-		cond.unit = "%"
+		c.unit = "%"
 	case strings.HasSuffix(found, "_bytes"):
-		cond.unit = "B"
+		c.unit = "B"
 	}
 
-	for _, conditionInGroup := range cond.group {
+	for _, conditionInGroup := range c.group {
 		conditionInGroup.TransformMultipleKeywords(srcKeywords, targetKeyword)
 	}
 

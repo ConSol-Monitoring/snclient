@@ -74,25 +74,15 @@ func (l *CheckLoad) Build() *CheckData {
 }
 
 func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	loadAvg, err := load.AvgWithContext(ctx)
+	loadStat, err := load.AvgWithContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("load.Avg(): %s", err.Error())
 	}
+	l.addLoadStats(check, "total", loadStat)
 
 	//nolint:nestif // Anything less nested would be more complex to read?
-	if l.perCPU {
-		// In the percpu mode, add thresholds only on the scaled values
-		warningThresholdTransformationError := l.transformPluginThresholds(l.warning, "W", "scaled", &check.warnThreshold)
-		if warningThresholdTransformationError != nil {
-			return nil, warningThresholdTransformationError
-		}
-		criticalThresholdTransformationError := l.transformPluginThresholds(l.critical, "C", "scaled", &check.critThreshold)
-		if criticalThresholdTransformationError != nil {
-			return nil, criticalThresholdTransformationError
-		}
-	} else {
-		// If the percpu mode is off, thresholds are only added for total entries
-		// Scaled values are not added to the list data
+	if !l.perCPU {
+		// If the percpu mode is off, thresholds are only added for total load values
 		warningThresholdTransformationError := l.transformPluginThresholds(l.warning, "W", "total", &check.warnThreshold)
 		if warningThresholdTransformationError != nil {
 			return nil, warningThresholdTransformationError
@@ -101,12 +91,12 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 		if criticalThresholdTransformationError != nil {
 			return nil, criticalThresholdTransformationError
 		}
-	}
 
-	l.addLoad(check, "total", "", loadAvg)
+		// Add total load values as metrics
+		l.addLoadMetrics(check, "", loadStat)
 
-	// if percpu mode is on, listdata will have both the scaled and total load averages in two separate entries
-	if l.perCPU {
+		// Scaled values are not added to the list data, no need to add them as metrics with null values
+	} else {
 		numCPU, err2 := cpuinfo.CountsWithContext(ctx, true)
 		if err2 != nil {
 			return nil, fmt.Errorf("cpuinfo: %s", err2.Error())
@@ -114,12 +104,54 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 		if numCPU == 0 {
 			return nil, fmt.Errorf("cpu count is zero")
 		}
-		scaledLoad := &load.AvgStat{
-			Load1:  loadAvg.Load1 / float64(numCPU),
-			Load5:  loadAvg.Load5 / float64(numCPU),
-			Load15: loadAvg.Load15 / float64(numCPU),
+		scaledLoadStat := &load.AvgStat{
+			Load1:  loadStat.Load1 / float64(numCPU),
+			Load5:  loadStat.Load5 / float64(numCPU),
+			Load15: loadStat.Load15 / float64(numCPU),
 		}
-		l.addLoad(check, "scaled", "scaled_", scaledLoad)
+		// Add scaled load values to the list data
+		l.addLoadStats(check, "scaled", scaledLoadStat)
+
+		// In the percpu mode, thresholds are added only for the scaled load values
+		warningThresholdTransformationError := l.transformPluginThresholds(l.warning, "W", "scaled", &check.warnThreshold)
+		if warningThresholdTransformationError != nil {
+			return nil, warningThresholdTransformationError
+		}
+		criticalThresholdTransformationError := l.transformPluginThresholds(l.critical, "C", "scaled", &check.critThreshold)
+		if criticalThresholdTransformationError != nil {
+			return nil, criticalThresholdTransformationError
+		}
+
+		// Add scaled load values as metrics
+		l.addLoadMetrics(check, "scaled_", scaledLoadStat)
+
+		// IMPORTANT: Add metrics for the total values with null values
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				ThresholdName: "load1",
+				Name:          "load1",
+				Value:         loadStat.Load1,
+				Warning:       nil,
+				Critical:      nil,
+				Min:           &Zero,
+			},
+			&CheckMetric{
+				ThresholdName: "load5",
+				Name:          "load5",
+				Value:         loadStat.Load5,
+				Warning:       nil,
+				Critical:      nil,
+				Min:           &Zero,
+			},
+			&CheckMetric{
+				ThresholdName: "load15",
+				Name:          "load15",
+				Value:         loadStat.Load15,
+				Warning:       nil,
+				Critical:      nil,
+				Min:           &Zero,
+			},
+		)
 	}
 
 	if l.numProcs > 0 {
@@ -140,23 +172,21 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 	return check.Finalize()
 }
 
-// typename is will be added as "type" attribute, is either "total" or "scaled"
-// make sure that the warn and crit thresholds are set before calling this function
-func (l *CheckLoad) addLoad(check *CheckData, typename, perfPrefix string, loadAvg *load.AvgStat) {
-	maxLoad := loadAvg.Load1
-	if loadAvg.Load5 > maxLoad {
-		maxLoad = loadAvg.Load5
-	}
-	if loadAvg.Load15 > maxLoad {
-		maxLoad = loadAvg.Load15
-	}
+func (l *CheckLoad) addLoadStats(check *CheckData, typename string, loadAvg *load.AvgStat) {
 	check.listData = append(check.listData, map[string]string{
 		"type":   typename,
-		"load":   fmt.Sprintf("%.2f", utils.ToPrecision(maxLoad, 2)),
+		"load":   fmt.Sprintf("%.2f", utils.ToPrecision(max(loadAvg.Load1, loadAvg.Load5, loadAvg.Load15), 2)),
 		"load1":  fmt.Sprintf("%.2f", utils.ToPrecision(loadAvg.Load1, 2)),
 		"load5":  fmt.Sprintf("%.2f", utils.ToPrecision(loadAvg.Load5, 2)),
 		"load15": fmt.Sprintf("%.2f", utils.ToPrecision(loadAvg.Load15, 2)),
 	})
+}
+
+// typename is will be added as "type" attribute, is either "total" or "scaled"
+// do not forget to put all conditions for the check before calling this function
+func (l *CheckLoad) addLoadMetrics(check *CheckData, perfPrefix string, loadAvg *load.AvgStat) {
+	// before adding, transform 'load' keyword into 'load1', 'load5' and 'load15'
+	// this behavior is wanted, so that users can use 'load' keyword without caring which condition hits
 	check.result.Metrics = append(check.result.Metrics,
 		&CheckMetric{
 			ThresholdName: "load1",
