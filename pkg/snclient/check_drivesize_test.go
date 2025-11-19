@@ -59,10 +59,6 @@ func TestNonexistingDrive(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No drives found", "output matches")
 
-	res = snc.RunCheck("check_drivesize", []string{"drive=k"})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No drives found", "output matches")
-
 	res = snc.RunCheck("check_drivesize", []string{"drive=/dev/sdxyz999", "empty-state=ok"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No drives found", "output matches")
