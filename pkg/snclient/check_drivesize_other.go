@@ -88,7 +88,7 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	if err != nil && os.IsNotExist(err) {
 		log.Debugf("%s: %s", drive, err.Error())
 
-		return &PartitionNotFoundError{Path: drive}
+		return &PartitionNotFoundError{Path: drive, err: err}
 	}
 
 	// try to find closest matching mount
@@ -123,7 +123,7 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 
 	// add anyway to generate an error later with more default values filled in
 	entry := l.driveEntry(drive)
-	entry["_error"] = (&PartitionNotMountedError{Path: drive}).Error()
+	entry["_error"] = (&PartitionNotMountedError{Path: drive, err: fmt.Errorf("")}).Error()
 	requiredDisks[drive] = entry
 
 	return nil
