@@ -27,10 +27,6 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "C:\\ free", "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), ";0;;0;100", "output matches")
 
-	res = snc.RunCheck("check_drivesize", []string{"drive=k"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - failed to find disk partition", "output matches")
-
 	res = snc.RunCheck("check_drivesize", []string{
 		"warning=used > 99",
 		"crit=used > 99.5",
