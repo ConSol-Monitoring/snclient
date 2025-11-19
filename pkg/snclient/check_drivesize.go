@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"sort"
@@ -104,7 +105,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 		okSyntax:        "%(status) - All %(count) drive(s) are ok",
 		detailSyntax:    "%(drive_or_name) %(used)/%(size) (%(used_pct | fmt=%.1f )%)",
 		topSyntax:       "%(status) - ${problem_list}",
-		emptyState:      CheckExitUnknown,
+		emptyState:      CheckExitOK,
 		emptySyntax:     "%(status) - No drives found",
 		attributes: []CheckAttribute{
 			{name: "drive", description: "Technical name of drive"},
@@ -164,12 +165,24 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	}
 	requiredDisks := map[string]map[string]string{}
 	drives, err := l.getRequiredDisks(l.drives, false)
-	if err != nil {
+	var notFoundErr *PartitionNotFoundError
+	var notMountedErr *PartitionNotMountedError
+	switch {
+	case errors.As(err, &notFoundErr):
+		log.Debugf("check_drivesize, drive is not found : %s, continuing with empty disks", notFoundErr.Error())
+	case errors.As(err, &notMountedErr):
+		// no special handling of mount errors
 		return nil, err
+	case err != nil:
+		return nil, err
+	default:
+		break
 	}
 	maps.Copy(requiredDisks, drives)
 
+	// when checking for folders and their mountpoints, set parentFallback to true
 	folders, err := l.getRequiredDisks(l.folders, true)
+	// handle folder search errors as well?
 	if err != nil {
 		return nil, err
 	}
@@ -416,4 +429,21 @@ func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
 	}
 
 	return flags
+}
+
+// have to define the error variables here, this file builds on all platforms
+type PartitionNotFoundError struct {
+	Path string
+}
+
+func (e *PartitionNotFoundError) Error() string {
+	return fmt.Sprintf("partition not found for path: %s", e.Path)
+}
+
+type PartitionNotMountedError struct {
+	Path string
+}
+
+func (e *PartitionNotMountedError) Error() string {
+	return fmt.Sprintf("partition not mounted for path: %s", e.Path)
 }

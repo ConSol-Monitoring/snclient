@@ -37,10 +37,6 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "/ free", "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), ";0;;0;100", "output matches")
 
-	res = snc.RunCheck("check_drivesize", []string{"drive=k"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - failed to find disk partition", "output matches")
-
 	// must not work, folder is not a mountpoint
 	tmpFolder := t.TempDir()
 	res = snc.RunCheck("check_drivesize", []string{"warn=inodes>100%", "crit=inodes>100%", "drive=" + tmpFolder})
@@ -52,6 +48,40 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), `OK - All 1 drive`, "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), `'`+tmpFolder+` inodes'=`, "output matches")
+
+	StopTestAgent(t, snc)
+}
+
+func TestNonexistingDrive(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	res := snc.RunCheck("check_drivesize", []string{"drive=/dev/sdxyz999"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No drives found", "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=k"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No drives found", "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/dev/sdxyz999", "empty-state=ok"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No drives found", "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/dev/sdxyz999", "empty-state=warn"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "WARNING - No drives found", "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/dev/sdxyz999", "empty-state=warning"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "WARNING - No drives found", "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/dev/sdxyz999", "empty-state=1"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "WARNING - No drives found", "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/dev/sdxyz999", "empty-state=crit"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL - No drives found", "output matches")
 
 	StopTestAgent(t, snc)
 }
