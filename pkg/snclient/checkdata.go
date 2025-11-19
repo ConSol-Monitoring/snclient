@@ -1189,32 +1189,14 @@ func (cd *CheckData) TransformThreshold(srcThreshold ConditionList, srcName, tar
 	return transformed
 }
 
-// replaces source keywords in threshold with new keyword
+// Clones existing thresholds, then replaces source keywords in threshold condition with the new specified keyword.
+// Transforms every condition in its ConditionList.
 func (cd *CheckData) TransformMultipleKeywords(srcKeywords []string, targetKeyword string, srcThreshold ConditionList) (threshold ConditionList) {
 	transformed := cd.CloneThreshold(srcThreshold)
-	applyChange := func(cond *Condition) bool {
-		found := ""
-		for _, keyword := range srcKeywords {
-			if keyword == cond.keyword {
-				found = keyword
 
-				break
-			}
-		}
-		if found == "" {
-			return true
-		}
-		cond.keyword = targetKeyword
-		switch {
-		case strings.HasSuffix(found, "_pct"):
-			cond.unit = "%"
-		case strings.HasSuffix(found, "_bytes"):
-			cond.unit = "B"
-		}
-
-		return true
-	}
-	cd.VisitAll(transformed, applyChange)
+	cd.VisitAll(transformed, func(cond *Condition) bool {
+		return cond.TransformMultipleKeywords(srcKeywords, targetKeyword)
+	})
 
 	return transformed
 }

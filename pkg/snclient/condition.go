@@ -493,6 +493,7 @@ func (c *Condition) Clone() *Condition {
 		groupOperator: c.groupOperator,
 		group:         make(ConditionList, 0),
 		attr:          c.attr,
+		original:      c.original,
 	}
 
 	for i := range c.group {
@@ -822,6 +823,36 @@ func (c *Condition) expandUnitByType(str string) error {
 	}
 
 	return nil
+}
+
+// Transforms all given source keywords in the condition to the single given target keyword.
+// Loops over its group conditions as well.
+// Currently always returns true, such a function signature is needed for range operations.
+func (c *Condition) TransformMultipleKeywords(srcKeywords []string, targetKeyword string) bool {
+	found := ""
+	for _, keyword := range srcKeywords {
+		if keyword == c.keyword {
+			found = keyword
+
+			break
+		}
+	}
+	if found == "" {
+		return true
+	}
+	c.keyword = targetKeyword
+	switch {
+	case strings.HasSuffix(found, "_pct"):
+		c.unit = "%"
+	case strings.HasSuffix(found, "_bytes"):
+		c.unit = "B"
+	}
+
+	for _, conditionInGroup := range c.group {
+		conditionInGroup.TransformMultipleKeywords(srcKeywords, targetKeyword)
+	}
+
+	return true
 }
 
 func (c *Condition) expandUnitByName(str string) error {
