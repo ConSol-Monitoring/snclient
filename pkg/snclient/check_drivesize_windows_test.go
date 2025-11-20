@@ -69,8 +69,8 @@ func TestNonexistingDrive(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	res := snc.RunCheck("check_drivesize", []string{"drive=X"})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No drives found", "output matches")
+	assert.Equalf(t, CheckExitUnknown, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No drives found", "output matches")
 
 	res = snc.RunCheck("check_drivesize", []string{"drive=X:", "empty-state=warn"})
 	assert.Equalf(t, CheckExitWarning, res.State, "state OK")
