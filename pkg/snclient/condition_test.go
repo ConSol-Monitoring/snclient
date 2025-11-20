@@ -263,7 +263,7 @@ func TestConditionAlias(t *testing.T) {
 
 func TestConditionColAlias(t *testing.T) {
 	filterStr := `( name = 'xinetd' and name unlike 'other' ) and state = 'started'`
-	cond, err := NewCondition(filterStr, nil)
+	cond, err := NewCondition(filterStr, nil, time.UTC)
 	require.NoError(t, err)
 
 	check := &CheckData{
