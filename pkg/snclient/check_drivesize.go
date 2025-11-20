@@ -105,7 +105,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 		okSyntax:        "%(status) - All %(count) drive(s) are ok",
 		detailSyntax:    "%(drive_or_name) %(used)/%(size) (%(used_pct | fmt=%.1f )%)",
 		topSyntax:       "%(status) - ${problem_list}",
-		emptyState:      CheckExitOK,
+		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - No drives found",
 		attributes: []CheckAttribute{
 			{name: "drive", description: "Technical name of drive"},
