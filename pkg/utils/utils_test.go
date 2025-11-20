@@ -29,6 +29,63 @@ func TestUtilsExpandDuration(t *testing.T) {
 	}
 }
 
+func TestUtilsParseDateKeyword(t *testing.T) {
+	tests := []struct {
+		keyword     string
+		errorReason string
+	}{
+		{"today", ""},
+		{"tomorrow", ""},
+		{"yesterday", ""},
+		{"0_days_ago", ""},
+		{"0_days_from_now_on", ""},
+		{"32321_days_ago", ""},
+		{"this_week", ""},
+		{"last_week", ""},
+		{"next_week", ""},
+		{"5_weeks_ago", ""},
+		{"3_weeks_from_now_on", ""},
+		{"this_month", ""},
+		{"next_month", ""},
+		{"last_month", ""},
+		{"2222_months_ago", ""},
+		{"this_year", ""},
+		{"last_year", ""},
+		{"99_years_from_now_on", ""},
+		{"toydayyyyy", "should give an error, as it cant transform today into a value like '0_days_ago"},
+		{"0_days_agoooo", "should give an error, as it cant understand the temporal direction suffix, should have been written as 'ago'"},
+		{"5_dayszzzz_ago", "should give an error, as it cant understand the base, should have been written as 'days' "},
+		{"3.14_days_ago", "should give an error, as it cant understand multipler to move, should have been given as an integer "},
+	}
+
+	for _, test := range tests {
+		// Cant really test the results, as they are dynamic and depend on the time of the execution.
+		_, err := ParseDateKeyword(test.keyword, time.UTC)
+		if test.errorReason == "" {
+			if err != nil {
+				t.Errorf("input '%s' should have produced no errors, but it produced this error: %s", test.keyword, err)
+			}
+		} else {
+			if err == nil {
+				t.Errorf("input '%s' should have an error like this, but it did not produce any errors: %s", test.keyword, test.errorReason)
+			}
+		}
+	}
+
+	keywordsMeaningToday := []string{"today", "0_days_ago", "-0_days_ago", "0_days_from_now_on", "-0_days_from_now_on"}
+	parsedKeywordsMeaningToday := make([]time.Time, 0)
+	for _, keyword := range keywordsMeaningToday {
+		parsed, err := ParseDateKeyword(keyword, time.UTC)
+		if err != nil {
+			t.Error(err)
+		}
+		parsedKeywordsMeaningToday = append(parsedKeywordsMeaningToday, parsed)
+		if len(parsedKeywordsMeaningToday) > 1 {
+			assert.Equal(t, parsedKeywordsMeaningToday[0], parsedKeywordsMeaningToday[len(parsedKeywordsMeaningToday)-1], "These parsed dates for 'today' should all match with each other.")
+		}
+	}
+}
+
 func TestUtilsIsFloatVal(t *testing.T) {
 	tests := []struct {
 		in  float64
