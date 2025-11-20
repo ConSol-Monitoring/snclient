@@ -81,10 +81,10 @@ these can be used in filters and thresholds (along with the default attributes):
 | file            | Alias for filename                                |
 | fullname        | Full name of the file including path              |
 | type            | Type of item (file or dir)                        |
-| access          | Last access time                                  |
-| creation        | Date when file was created                        |
+| access          | Unix timestamp of last access time                |
+| creation        | Unix timestamp when file was created              |
 | size            | File size in bytes                                |
-| written         | Date when file was last written to                |
+| written         | Unix timestamp when file was last written to      |
 | write           | Alias for written                                 |
 | age             | Seconds since file was last written               |
 | version         | Windows exe/dll file version (windows only)       |

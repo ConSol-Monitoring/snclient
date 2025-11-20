@@ -54,6 +54,9 @@ There is a specific [check_service for linux](../check_service_linux) as well.`,
 				"started": "running",
 			},
 		},
+		conditionColAlias: map[string][]string{
+			"name": {"name", "display"}, // search display name as well when filtering by name
+		},
 		args: map[string]CheckArgument{
 			"service": {
 				value:           &l.services,
@@ -75,7 +78,9 @@ There is a specific [check_service for linux](../check_service_linux) as well.`,
 		attributes: []CheckAttribute{
 			{name: "name", description: "The name of the service"},
 			{name: "service", description: "Alias for name"},
-			{name: "desc", description: "Description of the service"},
+			{name: "display", description: "Display name of the service"},
+			{name: "desc", description: "Alias for display (not a typo)"},
+			{name: "description", description: "Description of the service"},
 			{name: "state", description: "The state of the service, one of: stopped, starting, stopping, running, continuing, pausing, paused or unknown"},
 			{name: "pid", description: "The pid of the service"},
 			{name: "created", description: "Date when service was started", unit: UDate},
@@ -162,7 +167,7 @@ func (l *CheckService) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 		}
 		found := false
 		for _, e := range check.listData {
-			if strings.EqualFold(e["name"], service) || strings.EqualFold(e["desc"], service) {
+			if strings.EqualFold(e["name"], service) || strings.EqualFold(e["display"], service) {
 				found = true
 
 				break
@@ -232,7 +237,9 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, ctrlMgr
 		"name":           service,
 		"service":        details.Name,
 		"state":          l.svcState(details.Status.State),
+		"display":        details.Config.DisplayName,
 		"desc":           details.Config.DisplayName,
+		"description":    details.Config.Description,
 		"delayed":        delayed,
 		"classification": l.svcClassification(details.Config.ServiceType),
 		"pid":            fmt.Sprintf("%d", details.Status.ProcessId),

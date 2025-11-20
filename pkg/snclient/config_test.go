@@ -567,3 +567,47 @@ alias_foo2=check_service service="Eventlog" show-all "top-syntax=${list}" "detai
 	snc := StartTestAgent(t, configText)
 	StopTestAgent(t, snc)
 }
+
+func TestConfigMergeInstallerIni(t *testing.T) {
+	testDir, _ := os.Getwd()
+	pkgDir := filepath.Join(testDir, "..", "..", "packaging")
+	pkgCfgFile := filepath.Join(pkgDir, "snclient.ini")
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "tmp_installer.ini")
+	tmpFile2 := filepath.Join(tmpDir, "test.ini")
+
+	updateConfig := `[/settings/default]
+allowed hosts = 127.0.0.1,::1,192.168.0.1
+password = test
+`
+	err := os.WriteFile(tmpFile, []byte(updateConfig), 0o600)
+	require.NoErrorf(t, err, "update ini written without error")
+
+	snc := &Agent{}
+	cfg := MergeIniFile(pkgCfgFile, tmpFile, snc)
+
+	section := cfg.Section("/settings/default")
+	hosts, ok := section.GetString("allowed hosts")
+	assert.Truef(t, ok, "section has allowed hosts set")
+	assert.Equalf(t, "127.0.0.1,::1,192.168.0.1", hosts, "allowed hosts as expected")
+
+	pass, ok := section.GetString("password")
+	assert.Truef(t, ok, "section has password set")
+	assert.Containsf(t, pass, "SHA256:", "password as expected")
+
+	err = cfg.WriteINI(tmpFile2)
+	require.NoErrorf(t, err, "config file written without error")
+	cfg = NewConfig(true)
+	err = cfg.ReadINI(tmpFile2, snc)
+	require.NoErrorf(t, err, "config parsed")
+
+	section = cfg.Section("/settings/default")
+	hosts, ok = section.GetString("allowed hosts")
+	assert.Truef(t, ok, "section has allowed hosts set")
+	assert.Equalf(t, "127.0.0.1,::1,192.168.0.1", hosts, "allowed hosts as expected")
+
+	pass, ok = section.GetString("password")
+	assert.Truef(t, ok, "section has password set")
+	assert.Containsf(t, pass, "SHA256:", "password as expected")
+}

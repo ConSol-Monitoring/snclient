@@ -24,7 +24,7 @@ NodeExporterServer = enabled
 port = ${/settings/WEB/server/port}
 
 ; disable password protection
-password =
+require password = false
 ```
 
 You can then scrape linux metrics from `http://<ip>:8443/node/metrics`.

@@ -97,7 +97,6 @@ func testPrompt(cmd *cobra.Command, snc *snclient.Agent) {
 		case "exit":
 			return
 		case "":
-			break
 		case "help":
 			testHelp(cmd)
 		default:

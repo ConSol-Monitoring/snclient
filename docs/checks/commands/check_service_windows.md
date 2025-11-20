@@ -78,7 +78,9 @@ these can be used in filters and thresholds (along with the default attributes):
 | -------------- | ---------------------------------------------------------------------------------------------------- |
 | name           | The name of the service                                                                              |
 | service        | Alias for name                                                                                       |
-| desc           | Description of the service                                                                           |
+| display        | Display name of the service                                                                          |
+| desc           | Alias for display (not a typo)                                                                       |
+| description    | Description of the service                                                                           |
 | state          | The state of the service, one of: stopped, starting, stopping, running, continuing, pausing, paused or unknown |
 | pid            | The pid of the service                                                                               |
 | created        | Date when service was started                                                                        |

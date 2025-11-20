@@ -91,6 +91,7 @@ type CheckData struct {
 	usage                  string
 	defaultFilter          string
 	conditionAlias         map[string]map[string]string // replacement map of equivalent condition values
+	conditionColAlias      map[string][]string          // if there are filter for given column, apply to alias columns too
 	args                   map[string]CheckArgument
 	extraArgs              map[string]CheckArgument // internal, map of expanded args
 	argsPassthrough        bool                     // allow arbitrary arguments without complaining about unknown argument
@@ -749,6 +750,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 		return nil, err
 	}
 
+	cd.applyConditionColAlias()
 	cd.applyConditionAlias()
 
 	return argList, nil
@@ -964,6 +966,51 @@ func (cd *CheckData) AllRequiredMacros() []string {
 	return allMacros
 }
 
+// apply condition column aliases to all filter/warn/crit/ok conditions.
+// this is useful for example in service checks, when people match for service name but actual mean display name
+func (cd *CheckData) applyConditionColAlias() {
+	if len(cd.conditionColAlias) == 0 {
+		return
+	}
+	cd.applyConditionColAliasList(cd.filter)
+	cd.applyConditionColAliasList(cd.warnThreshold)
+	cd.applyConditionColAliasList(cd.critThreshold)
+	cd.applyConditionColAliasList(cd.okThreshold)
+}
+
+// apply column aliases to given conditions.
+func (cd *CheckData) applyConditionColAliasList(condList ConditionList) {
+	for idx, cond := range condList {
+		if len(cond.group) > 0 {
+			cd.applyConditionColAliasList(cond.group)
+
+			continue
+		}
+
+		for replaceKeyword, aliasList := range cd.conditionColAlias {
+			if cond.keyword != replaceKeyword {
+				continue
+			}
+			list := ConditionList{}
+			for _, alias := range aliasList {
+				newCond := cond.Clone()
+				newCond.keyword = alias
+
+				list = append(list, newCond)
+			}
+
+			groupOp := GroupOr
+			if cond.compareEmpty() {
+				groupOp = GroupAnd
+			}
+			condList[idx] = &Condition{
+				group:         list,
+				groupOperator: groupOp,
+			}
+		}
+	}
+}
+
 // apply condition aliases to all filter/warn/crit/ok conditions.
 // this is useful for example in service checks, when people match for state running / started
 func (cd *CheckData) applyConditionAlias() {
@@ -1142,32 +1189,14 @@ func (cd *CheckData) TransformThreshold(srcThreshold ConditionList, srcName, tar
 	return transformed
 }
 
-// replaces source keywords in threshold with new keyword
+// Clones existing thresholds, then replaces source keywords in threshold condition with the new specified keyword.
+// Transforms every condition in its ConditionList.
 func (cd *CheckData) TransformMultipleKeywords(srcKeywords []string, targetKeyword string, srcThreshold ConditionList) (threshold ConditionList) {
 	transformed := cd.CloneThreshold(srcThreshold)
-	applyChange := func(cond *Condition) bool {
-		found := ""
-		for _, keyword := range srcKeywords {
-			if keyword == cond.keyword {
-				found = keyword
 
-				break
-			}
-		}
-		if found == "" {
-			return true
-		}
-		cond.keyword = targetKeyword
-		switch {
-		case strings.HasSuffix(found, "_pct"):
-			cond.unit = "%"
-		case strings.HasSuffix(found, "_bytes"):
-			cond.unit = "B"
-		}
-
-		return true
-	}
-	cd.VisitAll(transformed, applyChange)
+	cd.VisitAll(transformed, func(cond *Condition) bool {
+		return cond.TransformMultipleKeywords(srcKeywords, targetKeyword)
+	})
 
 	return transformed
 }

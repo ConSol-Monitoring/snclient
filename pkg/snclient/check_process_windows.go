@@ -94,6 +94,7 @@ func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
 			"working_set":      fmt.Sprintf("%d", proc.WorkingSetSize),
 			"rss":              fmt.Sprintf("%d", proc.WorkingSetSize),
 			"cpu":              fmt.Sprintf("%f", cpu),
+			"cpu_seconds":      fmt.Sprintf("%f", cpuSec),
 		})
 	}
 
