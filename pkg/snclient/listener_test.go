@@ -36,7 +36,7 @@ func TestListenerConfig(t *testing.T) {
 		{false, "192.168.125.5"},
 		{true, "1.1.1.1"},
 	} {
-		assert.Equalf(t, check.expect, ahc.Check(check.addr), "CheckAllowedHosts(%s) -> %v", check.addr, check.expect)
+		assert.Equalf(t, check.expect, ahc.Check(t.Context(), check.addr), "CheckAllowedHosts(%s) -> %v", check.addr, check.expect)
 	}
 }
 

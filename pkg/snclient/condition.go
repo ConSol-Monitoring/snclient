@@ -26,7 +26,7 @@ type Condition struct {
 
 	keyword  string
 	operator Operator
-	value    interface{}
+	value    any
 	unit     string
 
 	// in case this is a group of conditions
@@ -406,20 +406,16 @@ func (c *Condition) matchSingle(data map[string]string) (res, ok bool) {
 
 	case InList:
 		if list, ok := c.value.([]string); ok {
-			for _, el := range list {
-				if el == varStr {
-					return true, true
-				}
+			if slices.Contains(list, varStr) {
+				return true, true
 			}
 		}
 
 		return false, true
 	case NotInList:
 		if list, ok := c.value.([]string); ok {
-			for _, el := range list {
-				if el == varStr {
-					return false, true
-				}
+			if slices.Contains(list, varStr) {
+				return false, true
 			}
 		}
 
@@ -926,27 +922,28 @@ func conditionFixTokenOperator(token []string) []string {
 }
 
 // ThresholdString returns string used in warn/crit threshold performance data.
-func ThresholdString(name []string, conditions ConditionList, numberFormat func(interface{}) string) string {
+func ThresholdString(name []string, conditions ConditionList, numberFormat func(any) string) string {
 	// fetch warning conditions for name of metric
 	filtered := make(ConditionList, 0)
 	var group GroupOperator
 	for num := range conditions {
-		if slices.Contains(name, conditions[num].keyword) {
-			filtered = append(filtered, conditions[num])
+		cond := conditions[num]
+		if slices.Contains(name, cond.keyword) {
+			filtered = append(filtered, cond)
 		}
-		if conditions[num].groupOperator == GroupOr {
-			group = conditions[num].groupOperator
-			for i := range conditions[num].group {
-				if slices.Contains(name, conditions[num].group[i].keyword) {
-					filtered = append(filtered, conditions[num].group[i])
+		if cond.groupOperator == GroupOr {
+			group = cond.groupOperator
+			for i := range cond.group {
+				if slices.Contains(name, cond.group[i].keyword) {
+					filtered = append(filtered, cond.group[i])
 				}
 			}
 		}
-		if conditions[num].groupOperator == GroupAnd {
-			group = conditions[num].groupOperator
-			for i := range conditions[num].group {
-				if slices.Contains(name, conditions[num].group[i].keyword) {
-					filtered = append(filtered, conditions[num].group[i])
+		if cond.groupOperator == GroupAnd {
+			group = cond.groupOperator
+			for i := range cond.group {
+				if slices.Contains(name, cond.group[i].keyword) {
+					filtered = append(filtered, cond.group[i])
 				}
 			}
 		}

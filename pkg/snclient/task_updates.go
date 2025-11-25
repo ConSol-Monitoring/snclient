@@ -290,7 +290,7 @@ func (u *UpdateHandler) finishUpdateCheck(ctx context.Context, best *updatesAvai
 		}
 	} else {
 		log.Infof("[update] version %s successfully downloaded: %s", newVersion, updateFile)
-		err = u.Apply(updateFile)
+		err = u.Apply(ctx, updateFile)
 		if err != nil {
 			return "", err
 		}
@@ -364,8 +364,7 @@ func (u *UpdateHandler) fetchAvailableUpdates(ctx context.Context, preRelease bo
 	if channel == "all" {
 		channel = strings.Join(channelConfSection.Keys(), ",")
 	}
-	chanList := strings.Split(channel, ",")
-	for _, channel := range chanList {
+	for channel := range strings.SplitSeq(channel, ",") {
 		channel = strings.TrimSpace(channel)
 		if channel == "" {
 			continue
@@ -650,7 +649,7 @@ func (u *UpdateHandler) checkUpdateFile(ctx context.Context, url string) (update
 		return nil, fmt.Errorf("copy update file failed: %s", err.Error())
 	}
 
-	err = u.extractUpdate(tempUpdate)
+	err = u.extractUpdate(ctx, tempUpdate)
 	if err != nil {
 		return nil, fmt.Errorf("extracting update failed: %s", err.Error())
 	}
@@ -668,8 +667,7 @@ func (u *UpdateHandler) checkUpdateFile(ctx context.Context, url string) (update
 func (u *UpdateHandler) downloadUpdate(ctx context.Context, update *updatesAvailable) (binPath string, err error) {
 	url := update.url
 	var src io.ReadCloser
-	if strings.HasPrefix(url, "file://") {
-		localPath := strings.TrimPrefix(url, "file://")
+	if localPath, ok := strings.CutPrefix(url, "file://"); ok {
 		log.Tracef("[update] fetching update from %s", localPath)
 		file, err2 := os.Open(localPath)
 		if err2 != nil {
@@ -703,7 +701,7 @@ func (u *UpdateHandler) downloadUpdate(ctx context.Context, update *updatesAvail
 	}
 	saveFile.Close()
 
-	err = u.extractUpdate(updateFile)
+	err = u.extractUpdate(ctx, updateFile)
 	if err != nil {
 		return "", err
 	}
@@ -711,7 +709,7 @@ func (u *UpdateHandler) downloadUpdate(ctx context.Context, update *updatesAvail
 	return updateFile, nil
 }
 
-func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
+func (u *UpdateHandler) extractUpdate(ctx context.Context, updateFile string) (err error) {
 	executable := GlobalMacros["exe-full"]
 
 	// what file type did we download?
@@ -732,11 +730,11 @@ func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
 	case "application/rpm":
 		err = u.extractRpm(updateFile)
 	case "application/msi":
-		err = u.extractMsi(updateFile)
+		err = u.extractMsi(ctx, updateFile)
 	case "application/xar":
-		err = u.extractXar(updateFile)
+		err = u.extractXar(ctx, updateFile)
 	case "application/deb":
-		err = u.extractDeb(updateFile)
+		err = u.extractDeb(ctx, updateFile)
 	default:
 		startOver = false
 	}
@@ -747,7 +745,7 @@ func (u *UpdateHandler) extractUpdate(updateFile string) (err error) {
 		}
 		LogError(utils.CopyFileMode(executable, updateFile))
 
-		return u.extractUpdate(updateFile)
+		return u.extractUpdate(ctx, updateFile)
 	}
 
 	info, err := buildinfo.ReadFile(updateFile)
@@ -829,8 +827,8 @@ func (u *UpdateHandler) ApplyRestart(bin string) error {
 	return nil
 }
 
-func (u *UpdateHandler) Apply(bin string) error {
-	cmd := exec.Command(bin, "update")
+func (u *UpdateHandler) Apply(ctx context.Context, bin string) error {
+	cmd := exec.CommandContext(ctx, bin, "update")
 	cmd.Env = os.Environ()
 
 	if IsInteractive() || u.snc.flags.Mode == ModeOneShot {
@@ -1072,7 +1070,7 @@ func (u *UpdateHandler) extractRpm(fileName string) error {
 	return nil
 }
 
-func (u *UpdateHandler) extractDeb(fileName string) error {
+func (u *UpdateHandler) extractDeb(ctx context.Context, fileName string) error {
 	tempDir, err := os.MkdirTemp("", "snclient-tmpdeb")
 	if err != nil {
 		return fmt.Errorf("MkdirTemp: %s", err.Error())
@@ -1080,7 +1078,7 @@ func (u *UpdateHandler) extractDeb(fileName string) error {
 	defer os.RemoveAll(tempDir)
 
 	// Use the "dpkg-deb" command to extract the file from the .deb
-	cmd := exec.Command("dpkg-deb", "-x", fileName, tempDir)
+	cmd := exec.CommandContext(ctx, "dpkg-deb", "-x", fileName, tempDir)
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run dpkg-deb %s: %s", strings.Join(cmd.Args, " "), err.Error())
 	}
@@ -1094,7 +1092,7 @@ func (u *UpdateHandler) extractDeb(fileName string) error {
 	return nil
 }
 
-func (u *UpdateHandler) extractMsi(fileName string) error {
+func (u *UpdateHandler) extractMsi(ctx context.Context, fileName string) error {
 	// Create a temporary directory to extract the contents of the .msi file
 	tempDir, err := os.MkdirTemp("", "snclient-tmpmsi")
 	if err != nil {
@@ -1104,7 +1102,7 @@ func (u *UpdateHandler) extractMsi(fileName string) error {
 	log.Tracef("temp dir: %s", tempDir)
 
 	// Use the "msiexec" command to extract the file from the .msi
-	cmd := exec.Command("msiexec", "/a", fileName, "/qn", "TARGETDIR="+tempDir) //nolint:gosec // no user input here
+	cmd := exec.CommandContext(ctx, "msiexec", "/a", fileName, "/qn", "TARGETDIR="+tempDir) //nolint:gosec // no user input here
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run msiexec %s: %s", strings.Join(cmd.Args, " "), err.Error())
 	}
@@ -1134,7 +1132,7 @@ func (u *UpdateHandler) extractMsi(fileName string) error {
 	return nil
 }
 
-func (u *UpdateHandler) extractXar(fileName string) error {
+func (u *UpdateHandler) extractXar(ctx context.Context, fileName string) error {
 	// Create a temporary directory to extract the contents of the .pkg file
 	tempDir, err := os.MkdirTemp("", "snclient-tmpxar")
 	if err != nil {
@@ -1144,14 +1142,14 @@ func (u *UpdateHandler) extractXar(fileName string) error {
 	log.Tracef("temp dir: %s", tempDir)
 
 	// Use the "xar" command to extract the file from the .pkg
-	cmd := exec.Command("xar", "-xf", fileName)
+	cmd := exec.CommandContext(ctx, "xar", "-xf", fileName)
 	cmd.Dir = tempDir
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run xar %s: %s", strings.Join(cmd.Args, " "), err.Error())
 	}
 
 	// Unpack Payload from the .pkg
-	cmd = exec.Command("/bin/sh", "-c", "cat Payload | gunzip -dc |cpio -i")
+	cmd = exec.CommandContext(ctx, "/bin/sh", "-c", "cat Payload | gunzip -dc |cpio -i")
 	cmd.Dir = tempDir
 	if err2 := cmd.Run(); err2 != nil {
 		return fmt.Errorf("failed to unpack %s: %s", strings.Join(cmd.Args, " "), err2.Error())

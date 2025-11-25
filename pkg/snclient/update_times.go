@@ -50,8 +50,8 @@ func NewUpdateHours(updateHours string) (res []UpdateHours, err error) {
 
 func (uh *UpdateHours) InTime(dt time.Time) bool {
 	hourNum := int64(dt.Hour())
-	switch {
-	case uh.max == nil:
+	switch uh.max {
+	case nil:
 		if hourNum == *uh.min {
 			return true
 		}
@@ -110,8 +110,8 @@ func NewUpdateDays(updateDays string) (res []UpdateDays, err error) {
 
 func (ud *UpdateDays) InTime(dt time.Time) bool {
 	weekday := dt.Weekday()
-	switch {
-	case ud.max == nil:
+	switch ud.max {
+	case nil:
 		if weekday == *ud.min {
 			return true
 		}

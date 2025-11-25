@@ -990,7 +990,7 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 
 	if runtime.GOOS == "windows" && mode == "winservice" {
 		// stop service, so we can replace the binary
-		cmd := exec.Command("net", "stop", "snclient")
+		cmd := exec.CommandContext(context.TODO(), "net", "stop", "snclient")
 		output, err2 := cmd.CombinedOutput()
 		log.Tracef("[update] net stop snclient: %s", strings.TrimSpace(string(output)))
 		if err2 != nil {
@@ -1330,7 +1330,7 @@ func (snc *Agent) MakeCmd(ctx context.Context, command string) (*exec.Cmd, error
 }
 
 // redirect log output from 3rd party process to main log file
-func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ...interface{}), pipeFn func() (io.ReadCloser, error)) {
+func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ...any), pipeFn func() (io.ReadCloser, error)) {
 	pipe, err := pipeFn()
 	if err != nil {
 		log.Errorf("failed to connect to %s: %s", name, err.Error())
@@ -1355,16 +1355,16 @@ func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ..
 }
 
 // returns inventory structure
-func (snc *Agent) GetInventory(ctx context.Context, modules []string) map[string]interface{} {
+func (snc *Agent) GetInventory(ctx context.Context, modules []string) map[string]any {
 	hostID, err := os.Hostname()
 	if err != nil {
 		log.Errorf("failed to get host id: %s", err.Error())
 	}
 
-	return (map[string]interface{}{
+	return (map[string]any{
 		"inventory": snc.getCachedInventory(ctx, modules),
 		"localtime": time.Now().Unix(),
-		"snclient": map[string]interface{}{
+		"snclient": map[string]any{
 			"version":  snc.Version(),
 			"build":    Build,
 			"arch":     runtime.GOARCH,

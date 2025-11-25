@@ -139,7 +139,7 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 	}
 	states := map[string]int32{}
 	failed := []string{}
-	for _, stateRaw := range strings.Split(statusRaw, "\n") {
+	for stateRaw := range strings.SplitSeq(statusRaw, "\n") {
 		state := strings.Split(stateRaw, " ")
 		service := state[0]
 		if len(l.serviceFilter) > 0 && slices.Contains(l.serviceFilter, service) {
@@ -199,7 +199,7 @@ func (l *CheckOMD) addLivestatusMetrics(ctx context.Context, check *CheckData, s
 
 		return
 	}
-	row, ok := data[0].([]interface{})
+	row, ok := data[0].([]any)
 	if !ok {
 		log.Warnf("livestatus query for site %s failed", site)
 
@@ -237,7 +237,7 @@ func (l *CheckOMD) addLivestatusMetrics(ctx context.Context, check *CheckData, s
 		})
 }
 
-func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string) ([]interface{}, error) {
+func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string) ([]any, error) {
 	deadline, ok := ctx.Deadline()
 	if !ok {
 		return nil, fmt.Errorf("no deadline set")
@@ -246,7 +246,11 @@ func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string
 	if timeout <= 0 {
 		return nil, fmt.Errorf("deadline exceeded")
 	}
-	conn, err := net.DialTimeout("unix", socketPath, timeout)
+
+	d := net.Dialer{
+		Timeout: timeout,
+	}
+	conn, err := d.DialContext(ctx, "unix", socketPath)
 	if err != nil {
 		return nil, fmt.Errorf("dial: %s", err.Error())
 	}
@@ -286,7 +290,7 @@ func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string
 	}
 
 	res := body.Bytes()
-	data := make([]interface{}, 0)
+	data := make([]any, 0)
 	err = json.Unmarshal(res, &data)
 	if err != nil {
 		return nil, fmt.Errorf("json: %s", err.Error())

@@ -9,15 +9,14 @@ import (
 const maxLineLength = 120
 
 type ASCIITableHeader struct {
-	Name         string // name in table header
-	Field        string // attribute name in data row
-	Centered     bool   // flag whether column is centered
-	RightAligned bool   // flag whether column is aligned to the right
-	size         int    // calculated max size of column
+	Name      string // name in table header
+	Field     string // attribute name in data row
+	Alignment string // flag whether column is aligned to the right
+	size      int    // calculated max size of column
 }
 
 // ASCIITable creates an ascii table from columns and data rows
-func ASCIITable(header []ASCIITableHeader, rows interface{}, escapePipes bool) (string, error) {
+func ASCIITable(header []ASCIITableHeader, rows any, escapePipes bool) (string, error) {
 	dataRows := reflect.ValueOf(rows)
 	if dataRows.Kind() != reflect.Slice {
 		return "", fmt.Errorf("rows is not a slice")
@@ -30,34 +29,49 @@ func ASCIITable(header []ASCIITableHeader, rows interface{}, escapePipes bool) (
 
 	// output header
 	out := ""
+	strBuilder := strings.Builder{}
 	for _, head := range header {
-		out += fmt.Sprintf(fmt.Sprintf("| %%-%ds ", head.size), head.Name)
+		strBuilder.WriteString(fmt.Sprintf(fmt.Sprintf("| %%-%ds ", head.size), head.Name))
 	}
-	out += "|\n"
+	out += strBuilder.String() + "|\n"
 
 	// output separator
+	strBuilder.Reset()
 	for _, head := range header {
-		centered := " "
-		if head.Centered {
-			centered = ":"
+		padding := " "
+		if head.Alignment == "centered" {
+			padding = ":"
 		}
-		out += fmt.Sprintf("|%s%s%s", centered, strings.Repeat("-", head.size), centered)
+		strBuilder.WriteString(fmt.Sprintf("|%s%s%s", padding, strings.Repeat("-", head.size), padding))
 	}
-	out += "|\n"
+	out += strBuilder.String() + "|\n"
+	strBuilder.Reset()
 
 	// output data
 	for i := range dataRows.Len() {
 		rowVal := dataRows.Index(i)
 		for _, head := range header {
 			value, _ := asciiTableRowValue(escapePipes, rowVal, head)
-			if head.RightAligned {
-				out += fmt.Sprintf(fmt.Sprintf("| %%%ds ", head.size), value)
-			} else {
-				out += fmt.Sprintf(fmt.Sprintf("| %%-%ds ", head.size), value)
+
+			switch head.Alignment {
+			case "right":
+				strBuilder.WriteString(fmt.Sprintf(fmt.Sprintf("| %%%ds ", head.size), value))
+			case "left", "":
+				strBuilder.WriteString(fmt.Sprintf(fmt.Sprintf("| %%-%ds ", head.size), value))
+			case "centered":
+				padding := (head.size - len(value)) / 2
+				strBuilder.WriteString(fmt.Sprintf("| %*s%-*s ", padding, "", head.size-padding, value))
+			default:
+				err := fmt.Errorf("unsupported alignment '%s' in table", head.Alignment)
+
+				return "", err
 			}
 		}
-		out += "|\n"
+		strBuilder.WriteString("|\n")
 	}
+
+	out += strBuilder.String()
+	strBuilder.Reset()
 
 	return out, nil
 }
@@ -134,4 +148,8 @@ func calculateHeaderSize(header []ASCIITableHeader, dataRows reflect.Value, esca
 	}
 
 	return nil
+}
+
+func (header ASCIITableHeader) Size() int {
+	return header.size
 }

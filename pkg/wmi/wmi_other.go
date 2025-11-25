@@ -8,7 +8,7 @@ func InitWbem() error {
 	return nil
 }
 
-func QueryDefaultRetry(_ string, _ interface{}) (err error) {
+func QueryDefaultRetry(_ string, _ any) (err error) {
 	return fmt.Errorf("requires windows os")
 }
 

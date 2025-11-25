@@ -176,8 +176,8 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 
 // get packages from apt
 func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, error) {
-	switch {
-	case l.system == "auto":
+	switch l.system {
+	case "auto":
 		if runtime.GOOS != "linux" {
 			return false, nil
 		}
@@ -185,7 +185,7 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 		if os.IsNotExist(err) {
 			return false, nil
 		}
-	case l.system == "apt":
+	case "apt":
 	default:
 		return false, nil
 	}
@@ -214,7 +214,7 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 }
 
 func (l *CheckOSUpdates) parseAPT(output string, check *CheckData) {
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		matches := reAPTEntry.FindStringSubmatch(line)
 		security := "0"
 		if reAPTSecurity.MatchString(line) {
@@ -236,8 +236,8 @@ func (l *CheckOSUpdates) parseAPT(output string, check *CheckData) {
 
 // get packages from yum
 func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, error) {
-	switch {
-	case l.system == "auto":
+	switch l.system {
+	case "auto":
 		if runtime.GOOS != "linux" {
 			return false, nil
 		}
@@ -245,7 +245,7 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 		if os.IsNotExist(err) {
 			return false, nil
 		}
-	case l.system == "yum":
+	case "yum":
 	default:
 		return false, nil
 	}
@@ -278,7 +278,7 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 
 func (l *CheckOSUpdates) parseYUM(output, security string, check *CheckData, skipPackages map[string]bool) map[string]bool {
 	packages := map[string]bool{}
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		if strings.HasPrefix(line, "Obsoleting Packages") {
 			break
 		}
@@ -305,8 +305,8 @@ func (l *CheckOSUpdates) parseYUM(output, security string, check *CheckData, ski
 
 // get packages from osx softwareupdate
 func (l *CheckOSUpdates) addOSX(ctx context.Context, check *CheckData) (bool, error) {
-	switch {
-	case l.system == "auto":
+	switch l.system {
+	case "auto":
 		if runtime.GOOS != "darwin" {
 			return false, nil
 		}
@@ -314,7 +314,7 @@ func (l *CheckOSUpdates) addOSX(ctx context.Context, check *CheckData) (bool, er
 		if os.IsNotExist(err) {
 			return false, nil
 		}
-	case l.system == "osx":
+	case "osx":
 	default:
 		return false, nil
 	}
@@ -339,7 +339,7 @@ func (l *CheckOSUpdates) addOSX(ctx context.Context, check *CheckData) (bool, er
 
 func (l *CheckOSUpdates) parseOSX(output string, check *CheckData) {
 	var lastEntry map[string]string
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		if lastEntry != nil {
 			matches := reOSXDetails.FindStringSubmatch(line)
 			if len(matches) > 1 {
@@ -367,12 +367,12 @@ func (l *CheckOSUpdates) parseOSX(output string, check *CheckData) {
 
 // get packages from windows powershell
 func (l *CheckOSUpdates) addWindows(ctx context.Context, check *CheckData) (bool, error) {
-	switch {
-	case l.system == "auto":
+	switch l.system {
+	case "auto":
 		if runtime.GOOS != "windows" {
 			return false, nil
 		}
-	case l.system == "windows":
+	case "windows":
 	default:
 		return false, nil
 	}
@@ -398,7 +398,7 @@ func (l *CheckOSUpdates) addWindows(ctx context.Context, check *CheckData) (bool
 
 func (l *CheckOSUpdates) parseWindows(output string, check *CheckData) {
 	var lastEntry map[string]string
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		if strings.HasPrefix(line, "Category: ") {
 			if strings.Contains(line, "Security") || strings.Contains(line, "Critical") {
 				lastEntry["security"] = "1"
@@ -406,8 +406,7 @@ func (l *CheckOSUpdates) parseWindows(output string, check *CheckData) {
 
 			continue
 		}
-		if strings.HasPrefix(line, "Title: ") {
-			pkg := strings.TrimPrefix(line, "Title: ")
+		if pkg, ok := strings.CutPrefix(line, "Title: "); ok {
 			entry := map[string]string{
 				"security":    "0",
 				"package":     pkg,

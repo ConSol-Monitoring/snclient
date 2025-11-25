@@ -98,7 +98,7 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 	_, baseURL, _, cleanUp = daemonInit(t, "")
 	defer cleanUp()
 
-	postData, err = json.Marshal(map[string]interface{}{
+	postData, err = json.Marshal(map[string]any{
 		"Reload":   true,
 		"CertData": base64.StdEncoding.EncodeToString(newCert),
 		"KeyData":  "",

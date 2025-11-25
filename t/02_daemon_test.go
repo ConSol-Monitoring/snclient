@@ -193,7 +193,7 @@ func TestDaemonAdminCertReplace(t *testing.T) {
 	require.NoErrorf(t, err, "test.crt truncated")
 	err = os.WriteFile("test.key", []byte{}, 0o600)
 	require.NoErrorf(t, err, "test.key truncated")
-	postData, err = json.Marshal(map[string]interface{}{
+	postData, err = json.Marshal(map[string]any{
 		"Reload":   true,
 		"CertData": "dGVzdGNlcnQ=",
 		"KeyData":  "dGVzdGtleQ==",

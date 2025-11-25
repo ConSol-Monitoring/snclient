@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -230,7 +231,7 @@ func (l *HandlerManagedExporter) procMainLoop() {
 
 			return
 		}
-		cmd := exec.Command(l.agentPath, args...) //nolint:gosec // input source is the config file
+		cmd := exec.CommandContext(context.TODO(), l.agentPath, args...) //nolint:gosec // input source is the config file
 
 		// drop privileges when started as root
 		if l.agentUser != "" && os.Geteuid() == 0 {
@@ -335,7 +336,7 @@ func (l *HandlerManagedExporter) procMemWatcher() {
 	}
 }
 
-func (l *HandlerManagedExporter) logPass(f string, v ...interface{}) {
+func (l *HandlerManagedExporter) logPass(f string, v ...any) {
 	entry := fmt.Sprintf(f, v...)
 	switch {
 	case strings.Contains(strings.ToLower(entry), "level=warn"):

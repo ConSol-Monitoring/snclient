@@ -309,7 +309,7 @@ func (l *CheckPing) defaultEntry() map[string]string {
 }
 
 func (l *CheckPing) addMetrics(check *CheckData, entry map[string]string) {
-	var rta interface{}
+	var rta any
 	rta = "U"
 	if entry["rta"] != "" {
 		rta = convert.Float64(entry["rta"])

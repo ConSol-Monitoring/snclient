@@ -39,8 +39,8 @@ type CheckWebLine struct {
 }
 
 type CheckWebLineV1 struct {
-	Message string                 `json:"message"`
-	Perf    map[string]interface{} `json:"perf,omitempty"`
+	Message string         `json:"message"`
+	Perf    map[string]any `json:"perf,omitempty"`
 }
 
 type CheckWebPerf struct {
@@ -52,8 +52,8 @@ type CheckWebPerf struct {
 type CheckWebPerfVal struct {
 	Value    CheckWebPerfNumber `json:"value"`
 	Unit     string             `json:"unit"`
-	Min      interface{}        `json:"minimum,omitempty"`
-	Max      interface{}        `json:"maximum,omitempty"`
+	Min      any                `json:"minimum,omitempty"`
+	Max      any                `json:"maximum,omitempty"`
 	Warning  *string            `json:"warning,omitempty"`
 	Critical *string            `json:"critical,omitempty"`
 }
@@ -176,7 +176,7 @@ func queryParam2CommandArgs(req *http.Request) []string {
 		return args
 	}
 
-	for _, v := range strings.Split(query, "&") {
+	for v := range strings.SplitSeq(query, "&") {
 		u, _ := url.QueryUnescape(v)
 		args = append(args, u)
 	}
@@ -283,13 +283,13 @@ func (l *HandlerWeb) metrics2PerfInt64MinMax(metric *CheckMetric, val *CheckWebP
 func (l *HandlerWeb) result2V1(result *CheckResult) (v1Res []CheckWebLineV1) {
 	v1Res = []CheckWebLineV1{{
 		Message: result.Output,
-		Perf:    map[string]interface{}{},
+		Perf:    map[string]any{},
 	}}
 	if len(result.Metrics) == 0 {
 		return v1Res
 	}
 	for idx, metric := range result.Metrics {
-		perfRes := make(map[string]interface{}, 0)
+		perfRes := make(map[string]any, 0)
 		if metric.PerfConfig != nil && metric.PerfConfig.Ignore {
 			continue
 		}
@@ -298,7 +298,7 @@ func (l *HandlerWeb) result2V1(result *CheckResult) (v1Res []CheckWebLineV1) {
 		if val == nil {
 			val = perfData.IntVal
 		}
-		perf := map[string]interface{}{
+		perf := map[string]any{
 			"value": val.Value,
 			"unit":  val.Unit,
 		}
@@ -374,9 +374,9 @@ type HandlerWebLegacy struct {
 func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	command := chi.URLParam(req, "command")
 	result := l.Handler.runCheck(req, command)
-	jsonData := map[string]interface{}{
-		"payload": []interface{}{
-			map[string]interface{}{
+	jsonData := map[string]any{
+		"payload": []any{
+			map[string]any{
 				"command": command,
 				"result":  result.StateString(),
 				"lines": []CheckWebLine{
@@ -449,7 +449,7 @@ func (l *HandlerWebV1) serveCommand(res http.ResponseWriter, req *http.Request) 
 	command := chi.URLParam(req, "command")
 	result := l.Handler.runCheck(req, command)
 	res.Header().Set("Content-Type", "application/json")
-	jsonData := map[string]interface{}{
+	jsonData := map[string]any{
 		"command": command,
 		"result":  result.State,
 		"lines":   l.Handler.result2V1(result),

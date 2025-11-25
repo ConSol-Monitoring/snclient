@@ -169,7 +169,7 @@ func (l *CheckNTPOffset) addTimeDateCtl(ctx context.Context, check *CheckData, f
 	entry := l.defaultEntry("timedatectl")
 
 	valid := false
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		cols := utils.FieldsN(line, 2)
 		if len(cols) < 2 {
 			continue
@@ -216,7 +216,7 @@ func (l *CheckNTPOffset) addChronyc(ctx context.Context, check *CheckData, force
 
 	reBrackets := regexp.MustCompile(`\((.*)\)\s*$`)
 	valid := false
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		cols := utils.TokenizeBy(line, ":", false, false)
 		if len(cols) < 2 {
 			continue
@@ -273,7 +273,7 @@ func (l *CheckNTPOffset) addNTPQ(ctx context.Context, check *CheckData, force bo
 
 	valid := false
 	unusable := 0
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		if !ntpqPeerOK.MatchString(line) {
 			unusable++
 
@@ -355,7 +355,7 @@ func (l *CheckNTPOffset) addW32TM(ctx context.Context, check *CheckData, force b
 }
 
 func (l *CheckNTPOffset) parseW32English(text string) (valid bool, source, offset, stratum, errorStr string) {
-	for _, line := range strings.Split(text, "\n") {
+	for line := range strings.SplitSeq(text, "\n") {
 		cols := utils.TokenizeBy(line, ":", false, false)
 		if len(cols) < 2 {
 			continue
@@ -390,7 +390,7 @@ func (l *CheckNTPOffset) parseW32AnyLang(text string) (valid bool, source, offse
 		line string
 	}
 	attributes := []attr{}
-	for _, line := range strings.Split(text, "\n") {
+	for line := range strings.SplitSeq(text, "\n") {
 		cols := utils.TokenizeBy(line, ":", false, false)
 		if len(cols) < 2 {
 			continue
@@ -441,7 +441,7 @@ func (l *CheckNTPOffset) addOSX(ctx context.Context, check *CheckData, force boo
 	}
 
 	valid := false
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		cols := utils.FieldsN(line, 2)
 		if len(cols) < 2 {
 			continue

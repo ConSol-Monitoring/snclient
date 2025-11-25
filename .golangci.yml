@@ -1,150 +1,270 @@
-linters-settings:
-  gocritic:
-    enabled-tags:
-      - performance
-      - style
-      - experimental
-  gocyclo:
-    min-complexity: 27
-  goconst:
-    min-len: 8
-    min-occurrences: 12
-  lll:
-    line-length: 200
-  funlen:
-    lines: 80
-    statements: 45
-  gomoddirectives:
-    replace-local: true
-  ireturn:
-    allow: "error,empty,Module,CheckHandler"
-  govet:
-    enable-all: true
-    settings:
-      printf:
-        funcs:
-          - Tracef
-          - Infof
-          - Warnf
-          - Errorf
-          - Fatalf
-          - Criticalf
-          - Panicf
+version: "2"
 linters:
-  enable-all: true
-  fast: false
+  default: all
   disable:
     - cyclop
     - depguard
-    - exhaustruct
     - err113
-    - gci
+    - exhaustruct
+    - embeddedstructfieldcheck
+    - funcorder
     - gochecknoglobals
     - gochecknoinits
     - godot
-    - gofumpt
+    - godoclint
     - gomoddirectives
     - nonamedreturns
+    - noinlineerr
     - paralleltest
     - perfsprint
     - tagliatelle
     - testpackage
     - wsl
-    # deprecated
-    - tenv
+    - wsl_v5
+  settings:
+    funlen:
+      lines: 80
+      statements: 45
+    goconst:
+      min-len: 8
+      min-occurrences: 12
+    gocritic:
+      enabled-tags:
+        - performance
+        - style
+        - experimental
+    gocyclo:
+      min-complexity: 27
+    gomoddirectives:
+      replace-local: true
+    govet:
+      enable-all: true
+      settings:
+        printf:
+          funcs:
+            - Tracef
+            - Infof
+            - Warnf
+            - Errorf
+            - Fatalf
+            - Criticalf
+            - Panicf
+    ireturn:
+      allow:
+        - error
+        - empty
+        - Module
+        - CheckHandler
+    lll:
+      line-length: 200
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - copyloopvar
+          - dupword
+          - funlen
+        path: _test.*\.go
+      - linters:
+          - nolintlint
+        path: (check_tcp|check_dns|nameserver.*)\.go
+      - path: (.+)\.go$
+        text: '`noCopy` is unused'
+      - path: (.+)\.go$
+        text: 'Magic number: 0.1, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 0.01, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 0.001, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 2, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 3, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 4, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 5, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 6, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 7, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 10, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 12, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 14, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 15, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 16, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 20, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 22, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 23, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 24, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 31, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 32, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 50, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 59, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 60, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 64, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 100, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 126, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 127, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 365, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 500, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 512, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 600, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 1000, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 1024, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 3600, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 86400, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 1e3, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 1e6, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 1e7, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 1e9, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 1e12, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 1e15, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 0o600, in'
+      - path: (.+)\.go$
+        text: 'Magic number: 0o700, in'
+      - path: (.+)\.go$
+        text: noCopy is missing in
+      - path: (.+)\.go$
+        text: variable name 'ok' is too short
+      - path: (.+)\.go$
+        text: Function 'setListenTLSConfig' has too many statements
+      - path: (.+)\.go$
+        text: Function 'ParseArgs' has too many statements
+      - path: (.+)\.go$
+        text: 'cyclomatic complexity 45 of func `.*\.parseArgs` is high'
+      - path: (.+)\.go$
+        text: Function 'parseArgs' has too many statements
+      - path: (.+)\.go$
+        text: Function 'parseAnyArg' has too many statements
+      - path: (.+)\.go$
+        text: complexity.*setListenTLSConfig
+      - path: (.+)\.go$
+        text: complexity.*checkFlags
+      - path: (.+)\.go$
+        text: complexity.*ParseArgs
+      - path: (.+)\.go$
+        text: Function 'readConfiguration' has too many statements
+      - path: (.+)\.go$
+        text: complexity.*readConfiguration
+      - path: (.+)\.go$
+        text: Function 'Check' has too many statements
+      - path: (.+)\.go$
+        text: Function 'Check' is too long
+      - path: (.+)\.go$
+        text: Function 'fetchProcs' is too long
+      - path: (.+)\.go$
+        text: Function 'buildListMacros' is too long
+      - path: (.+)\.go$
+        text: Function 'fetchProcs' has too many statements
+      - path: (.+)\.go$
+        text: Function 'ReplaceConditionals' has too many statements
+      - path: (.+)\.go$
+        text: cognitive complexity .* of func .*.Check
+      - path: (.+)\.go$
+        text: cognitive complexity .* of func .*conditionAdd
+      - path: (.+)\.go$
+        text: cognitive complexity .* of func .*.matchSingle
+      - path: (.+)\.go$
+        text: cognitive complexity .* of func .*splitToken
+      - path: (.+)\.go$
+        text: cognitive complexity .* of func .*ReplaceConditionals
+      - path: (.+)\.go$
+        text: Function 'matchSingle' has too many statements
+      - path: (.+)\.go$
+        text: cyclomatic complexity .* of func .*.matchSingle
+      - path: (.+)\.go$
+        text: Function 'ParseINI' has too many statements
+      - path: (.+)\.go$
+        text: Function 'buildListMacros' has too many statements
+      - path: (.+)\.go$
+        text: Function 'finalizeOutput' has too many statements
+      - path: (.+)\.go$
+        text: Function 'addFile' has too many statements
+      - path: (.+)\.go$
+        text: cognitive complexity .* of func .*ParseINI`
+      - path: (.+)\.go$
+        text: cyclomatic complexity .* of func .*ParseINI`
+      - path: (.+)\.go$
+        text: cognitive complexity .* of func .*ThresholdString
+      - path: (.+)\.go$
+        text: 'appendAssign: append result not assigned to the same slice'
+      - path: (.+)\.go$
+        text: parameter name 'a' is too short for the scope of its usage
+      - path: (.+)\.go$
+        text: parameter name 'b' is too short for the scope of its usage
+      - path: (.+)\.go$
+        text: .execCommand` - `timeout` always receives `DefaultCmdTimeout
+      - path: (.+)\.go$
+        text: 'fieldalignment: struct'
+      - path: (.+)(utils|utils_test|fieldsn|asciiTable)\.go$
+        text: 'var-naming: avoid meaningless package names'
+      - path: (.+)_test\.go$
+        text: 'stringsbuilder:'
+      - path: (.+)\.go$
+        text: timeout always receives DefaultCmdTimeout
+      - path: (.+)_test\.go$
+        text: 'must not be called. use'
+      - path: (.+)\.go$
+        text: 'fmtappendf:'
+      - path: (.+)_test\.go$
+        text: 'string literal contains rune in Han script'
+      - path: (.+)condition\.go$
+        text: 'stringscutprefix:'
+    paths:
+      - pkg/pdh/pdh.go
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  max-same-issues: 0
   max-issues-per-linter: 0
-  exclude-use-default: true
-  exclude:
-    - "`noCopy` is unused"
-    - "Magic number: 0.1, in"
-    - "Magic number: 0.01, in"
-    - "Magic number: 0.001, in"
-    - "Magic number: 2, in"
-    - "Magic number: 3, in"
-    - "Magic number: 4, in"
-    - "Magic number: 5, in"
-    - "Magic number: 6, in"
-    - "Magic number: 7, in"
-    - "Magic number: 10, in"
-    - "Magic number: 12, in"
-    - "Magic number: 14, in"
-    - "Magic number: 15, in"
-    - "Magic number: 16, in"
-    - "Magic number: 20, in"
-    - "Magic number: 22, in"
-    - "Magic number: 23, in"
-    - "Magic number: 24, in"
-    - "Magic number: 31, in"
-    - "Magic number: 32, in"
-    - "Magic number: 50, in"
-    - "Magic number: 59, in"
-    - "Magic number: 60, in"
-    - "Magic number: 64, in"
-    - "Magic number: 100, in"
-    - "Magic number: 126, in"
-    - "Magic number: 127, in"
-    - "Magic number: 365, in"
-    - "Magic number: 500, in"
-    - "Magic number: 512, in"
-    - "Magic number: 600, in"
-    - "Magic number: 1000, in"
-    - "Magic number: 1024, in"
-    - "Magic number: 3600, in"
-    - "Magic number: 86400, in"
-    - "Magic number: 1e3, in"
-    - "Magic number: 1e6, in"
-    - "Magic number: 1e7, in"
-    - "Magic number: 1e9, in"
-    - "Magic number: 1e12, in"
-    - "Magic number: 1e15, in"
-    - "Magic number: 0o600, in"
-    - "Magic number: 0o700, in"
-    - "noCopy is missing in"
-    - "variable name 'ok' is too short"
-    - "Function 'setListenTLSConfig' has too many statements"
-    - "Function 'ParseArgs' has too many statements"
-    - "Function 'parseAnyArg' has too many statements"
-    - "complexity.*setListenTLSConfig"
-    - "complexity.*checkFlags"
-    - "complexity.*ParseArgs"
-    - "Function 'readConfiguration' has too many statements"
-    - "complexity.*readConfiguration"
-    - "Function 'Check' has too many statements"
-    - "Function 'Check' is too long"
-    - "Function 'fetchProcs' is too long"
-    - "Function 'buildListMacros' is too long"
-    - "Function 'fetchProcs' has too many statements"
-    - "Function 'ReplaceConditionals' has too many statements"
-    - "cognitive complexity .* of func .*.Check"
-    - "cognitive complexity .* of func .*conditionAdd"
-    - "cognitive complexity .* of func .*.matchSingle"
-    - "cognitive complexity .* of func .*splitToken"
-    - "cognitive complexity .* of func .*ReplaceConditionals"
-    - "Function 'matchSingle' has too many statements"
-    - "cyclomatic complexity .* of func .*.matchSingle"
-    - "Function 'ParseINI' has too many statements"
-    - "Function 'buildListMacros' has too many statements"
-    - "Function 'finalizeOutput' has too many statements"
-    - "Function 'addFile' has too many statements"
-    - "cognitive complexity .* of func .*ParseINI`"
-    - "cyclomatic complexity .* of func .*ParseINI`"
-    - "cognitive complexity .* of func .*ThresholdString"
-    - "appendAssign: append result not assigned to the same slice"
-    - "parameter name 'a' is too short for the scope of its usage"
-    - "parameter name 'b' is too short for the scope of its usage"
-    - ".execCommand` - `timeout` always receives `DefaultCmdTimeout"
-    - "fieldalignment: struct"
-  exclude-rules:
-    # Exclude some linters from running on tests files.
-    - path: _test.*\.go
-      linters:
-        - dupword
-        - funlen
-        - copyloopvar
-    - path: (check_tcp|check_dns|nameserver.*)\.go
-      linters:
-        - nolintlint
-  exclude-files:
-    - pkg/pdh/pdh.go
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - pkg/pdh/pdh.go
+      - third_party$
+      - builtin$
+      - examples$

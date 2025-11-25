@@ -8,7 +8,7 @@ import (
 )
 
 // Dump displays arbitrary data.
-func Dump(data interface{}) {
+func Dump(data any) {
 	spew.Config.Indent = "\t"
 	spew.Config.MaxDepth = 20
 	spew.Config.DisableMethods = true
@@ -18,7 +18,7 @@ func Dump(data interface{}) {
 
 var dumpfile *os.File
 
-func File(data interface{}) {
+func File(data any) {
 	if dumpfile == nil {
 		f, err := os.CreateTemp("", "dumpfile")
 		if err != nil {

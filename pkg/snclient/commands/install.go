@@ -4,6 +4,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -149,7 +150,7 @@ func parseInstallerArgs(args []string) (parsed map[string]string) {
 		return parsed
 	}
 
-	for _, a := range strings.Split(args[0], "; ") {
+	for a := range strings.SplitSeq(args[0], "; ") {
 		val := strings.SplitN(a, "=", 2)
 		val[1] = strings.TrimSuffix(val[1], ";")
 		parsed[val[0]] = val[1]
@@ -366,7 +367,7 @@ func addFireWallRule(snc *snclient.Agent) error {
 		fmt.Sprintf("program=%s", execPath),
 		fmt.Sprintf("name=%s", FIREWALLPREFIX),
 	}
-	cmd := exec.Command("netsh", cmdLine...)
+	cmd := exec.CommandContext(context.TODO(), "netsh", cmdLine...)
 
 	snc.Log.Debugf("adding firewall: netsh %s", strings.Join(cmdLine, " "))
 
@@ -407,7 +408,7 @@ func removeFireWallRule(snc *snclient.Agent, name string) error {
 	}
 	snc.Log.Debugf("removing firewall: netsh %s", strings.Join(cmdLine, " "))
 
-	cmd := exec.Command("netsh", cmdLine...)
+	cmd := exec.CommandContext(context.TODO(), "netsh", cmdLine...)
 
 	output, err := cmd.CombinedOutput()
 	output = bytes.TrimSpace(output)

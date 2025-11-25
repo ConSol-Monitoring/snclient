@@ -167,7 +167,7 @@ func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Reque
 	if err != nil {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusBadRequest)
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		LogError(json.NewEncoder(res).Encode(map[string]any{
 			"success": false,
 			"error":   err.Error(),
 		}))
@@ -177,7 +177,7 @@ func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Reque
 	if data.HostName == "" {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusBadRequest)
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		LogError(json.NewEncoder(res).Encode(map[string]any{
 			"success": false,
 			"error":   "expected HostName not to be empty",
 		}))
@@ -230,7 +230,7 @@ func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Reque
 	res.WriteHeader(http.StatusOK)
 	_, err = res.Write(csrPEM)
 	if err != nil {
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		LogError(json.NewEncoder(res).Encode(map[string]any{
 			"success": false,
 			"error":   err.Error(),
 		}))
@@ -295,7 +295,7 @@ func (l *HandlerWebAdmin) serveReload(res http.ResponseWriter, req *http.Request
 
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
-	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+	LogError(json.NewEncoder(res).Encode(map[string]any{
 		"success": true,
 	}))
 	l.Handler.snc.osSignalChannel <- syscall.SIGHUP
@@ -314,7 +314,7 @@ func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.R
 	if err != nil {
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusBadRequest)
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		LogError(json.NewEncoder(res).Encode(map[string]any{
 			"success": false,
 			"error":   err.Error(),
 		}))
@@ -367,7 +367,7 @@ func (l *HandlerWebAdmin) serveCertsReplace(res http.ResponseWriter, req *http.R
 
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
-	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+	LogError(json.NewEncoder(res).Encode(map[string]any{
 		"success": true,
 	}))
 
@@ -446,13 +446,13 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 	if version != "" {
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		LogError(json.NewEncoder(res).Encode(map[string]any{
 			"success": true,
 			"message": "update found and installed",
 			"version": version,
 		}))
 	} else {
-		LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+		LogError(json.NewEncoder(res).Encode(map[string]any{
 			"success": true,
 			"message": "no new update available",
 		}))
@@ -467,7 +467,7 @@ func (l *HandlerWebAdmin) requirePostMethod(res http.ResponseWriter, req *http.R
 
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusBadRequest)
-	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+	LogError(json.NewEncoder(res).Encode(map[string]any{
 		"success": false,
 		"error":   "POST method required",
 	}))
@@ -480,7 +480,7 @@ func (l *HandlerWebAdmin) sendError(res http.ResponseWriter, err error) {
 	log.Debugf("admin request failed: %s", err.Error())
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusInternalServerError)
-	LogError(json.NewEncoder(res).Encode(map[string]interface{}{
+	LogError(json.NewEncoder(res).Encode(map[string]any{
 		"success": false,
 		"error":   err.Error(),
 	}))

@@ -34,11 +34,11 @@ const (
 type CommaStringList []string
 
 type CheckArgument struct {
-	value           interface{} // reference to storage pointer
-	description     string      // used in help
-	isFilter        bool        // if true, default filter is not used when this argument is set
-	defaultCritical string      // overrides default filter if argument is used
-	defaultWarning  string      // same for critical condition
+	value           any    // reference to storage pointer
+	description     string // used in help
+	isFilter        bool   // if true, default filter is not used when this argument is set
+	defaultCritical string // overrides default filter if argument is used
+	defaultWarning  string // same for critical condition
 }
 
 // Implemented defines the available supported operating systems
@@ -1284,8 +1284,7 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 func (cd *CheckData) expandArgDefinitions() {
 	cd.extraArgs = make(map[string]CheckArgument)
 	for k, arg := range cd.args {
-		keys := strings.Split(k, "|")
-		for _, key := range keys {
+		for key := range strings.SplitSeq(k, "|") {
 			key = strings.TrimSpace(key)
 			cd.extraArgs[key] = arg
 		}
@@ -1402,10 +1401,10 @@ func (cd *CheckData) helpImplemented(format ShowHelp) string {
 		osx     string
 	}
 	header := []utils.ASCIITableHeader{
-		{Name: "Windows", Field: "windows", Centered: true},
-		{Name: "Linux", Field: "linux", Centered: true},
-		{Name: "FreeBSD", Field: "freebsd", Centered: true},
-		{Name: "MacOSX", Field: "osx", Centered: true},
+		{Name: "Windows", Field: "windows", Alignment: "centered"},
+		{Name: "Linux", Field: "linux", Alignment: "centered"},
+		{Name: "FreeBSD", Field: "freebsd", Alignment: "centered"},
+		{Name: "MacOSX", Field: "osx", Alignment: "centered"},
 	}
 	implemented := implTableData{}
 	if cd.implemented&Windows > 0 {

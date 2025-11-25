@@ -79,7 +79,7 @@ func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 
 func (snc *Agent) finishUpdate(binPath, mode string) {
 	if mode == "update" {
-		cmd := exec.Command(binPath, "update", "apply")
+		cmd := exec.CommandContext(context.TODO(), binPath, "update", "apply")
 		cmd.Env = os.Environ()
 		err := cmd.Start()
 		if err != nil {

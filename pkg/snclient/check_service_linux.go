@@ -317,8 +317,7 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 
 func (l *CheckService) parseAllServices(ctx context.Context, check *CheckData, output string) (err error) {
 	// services are separated by two empty lines
-	services := strings.Split(output, "\n\n")
-	for _, svc := range services {
+	for svc := range strings.SplitSeq(output, "\n\n") {
 		serviceMatches := reSvcFirstLine.FindStringSubmatch(svc)
 		if len(serviceMatches) < 2 {
 			log.Tracef("no service name found in systemctl output:\n%s", svc)
@@ -351,8 +350,7 @@ func (l *CheckService) findServiceByName(ctx context.Context, service string) (n
 		return ""
 	}
 
-	services := strings.Split(output, "\n")
-	for _, svc := range services {
+	for svc := range strings.SplitSeq(output, "\n") {
 		match := reSvcNameLine.FindStringSubmatch(svc)
 		if len(match) > 1 {
 			realService := strings.TrimSpace(match[1])

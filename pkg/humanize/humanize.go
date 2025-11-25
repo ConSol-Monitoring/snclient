@@ -78,7 +78,7 @@ func ParseBytes(raw string) (uint64, error) {
 	lastDigit := 0
 	hasComma := false
 	for _, r := range raw {
-		if !(unicode.IsDigit(r) || r == '.' || r == ',') {
+		if !unicode.IsDigit(r) && r != '.' && r != ',' {
 			break
 		}
 		if r == ',' {
@@ -166,9 +166,16 @@ func BytesUnitF(num uint64, targetUnit string, precision int) float64 {
 
 func humanizeBytes(num uint64, base float64, sizes []string, precision int) string {
 	if num < 10 {
+		if len(sizes) == 0 {
+			return fmt.Sprintf("%d", num)
+		}
+
 		return fmt.Sprintf("%d %s", num, sizes[0])
 	}
 	exp := math.Floor(logn(float64(num), base))
+	if len(sizes) <= int(exp) {
+		return fmt.Sprintf("%d", num)
+	}
 	suffix := sizes[int(exp)]
 	val := float64(num) / math.Pow(base, exp)
 	switch {

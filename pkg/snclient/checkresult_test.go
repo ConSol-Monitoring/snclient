@@ -96,7 +96,7 @@ func TestCheckResultPerfOnly(t *testing.T) {
 	}}
 	checkRes.ParsePerformanceDataFromOutput()
 	assert.Equalf(t, expect, checkRes.Metrics, "parsed metrics")
-	assert.Equalf(t, "", checkRes.Output, "plugin output is trimmed now")
+	assert.Emptyf(t, checkRes.Output, "plugin output is trimmed now")
 	assert.Equalf(t, "|'free'=317MB", string(checkRes.BuildPluginOutput()), "plugin output")
 }
 
@@ -125,7 +125,7 @@ func TestCheckResultMultiple(t *testing.T) {
 	}}
 	checkRes.ParsePerformanceDataFromOutput()
 	assert.Equalf(t, expect, checkRes.Metrics, "parsed metrics")
-	assert.Equalf(t, "", checkRes.Output, "plugin output is trimmed now")
+	assert.Emptyf(t, checkRes.Output, "plugin output is trimmed now")
 	assert.Equalf(t, `|'free'=317MB 'used bytes'=42GB 'total bytes'=11.5GB;10:20;@5:30`, string(checkRes.BuildPluginOutput()), "plugin output")
 }
 

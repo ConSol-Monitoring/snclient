@@ -65,8 +65,8 @@ github.com/otiai10/copy v1.14.1/go.mod h1:oQwrEDDOci3IM8dJF0d8+jnbfPDllW6vUjNc3D
 github.com/otiai10/mint v1.6.3 h1:87qsV/aw1F5as1eH1zS/yqHY85ANKVMgkDrf9rcxbQs=
 github.com/otiai10/mint v1.6.3/go.mod h1:MJm72SBthJjz8qhefc4z1PYEieWmy8Bku7CjcAqyUSM=
 github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
-github.com/petermattis/goid v0.0.0-20250904145737-900bdf8bb490 h1:QTvNkZ5ylY0PGgA+Lih+GdboMLY/G9SEGLMEGVjTVA4=
-github.com/petermattis/goid v0.0.0-20250904145737-900bdf8bb490/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
+github.com/petermattis/goid v0.0.0-20251121121749-a11dd1a45f9a h1:VweslR2akb/ARhXfqSfRbj1vpWwYXf3eeAUyw/ndms0=
+github.com/petermattis/goid v0.0.0-20251121121749-a11dd1a45f9a/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 h1:o4JXh1EVt9k/+g42oCprj/FisM4qX9L3sZB3upGN2ZU=
@@ -75,8 +75,8 @@ github.com/prometheus/client_golang v1.23.2 h1:Je96obch5RDVy3FDMndoUsjAhG5Edi49h
 github.com/prometheus/client_golang v1.23.2/go.mod h1:Tb1a6LWHB3/SPIzCoaDXI4I8UHKeFTEQ1YCr+0Gyqmg=
 github.com/prometheus/client_model v0.6.2 h1:oBsgwpGs7iVziMvrGhE53c/GrLUsZdHnqNwqPLxwZyk=
 github.com/prometheus/client_model v0.6.2/go.mod h1:y3m2F6Gdpfy6Ut/GBsUqTWZqCUvMVzSfMLjcu6wAwpE=
-github.com/prometheus/common v0.67.2 h1:PcBAckGFTIHt2+L3I33uNRTlKTplNzFctXcWhPyAEN8=
-github.com/prometheus/common v0.67.2/go.mod h1:63W3KZb1JOKgcjlIr64WW/LvFGAqKPj0atm+knVGEko=
+github.com/prometheus/common v0.67.4 h1:yR3NqWO1/UyO1w2PhUvXlGQs/PtFmoveVO0KZ4+Lvsc=
+github.com/prometheus/common v0.67.4/go.mod h1:gP0fq6YjjNCLssJCQp0yk4M8W6ikLURwkdd/YKtTbyI=
 github.com/prometheus/procfs v0.19.2 h1:zUMhqEW66Ex7OXIiDkll3tl9a1ZdilUOd/F6ZXw4Vws=
 github.com/prometheus/procfs v0.19.2/go.mod h1:M0aotyiemPhBCM0z5w87kL22CxfcH05ZpYlu+b4J7mw=
 github.com/reeflective/readline v1.1.3 h1:meGkuEmujZHmalJ9eT3pYkwtkufH5EwYFPTnaph0T0s=
@@ -100,8 +100,8 @@ github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20250317143157-caa67455f3bb h1
 github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20250317143157-caa67455f3bb/go.mod h1:Ja52a8d0K4032zY9tOXLcIh2E0e/NprRnl7nXJjebI0=
 github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9 h1:UDgM4SP5Fd2PKVRdeUFlA/WRNHkvMNeIx0Nmw7sn21k=
 github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9/go.mod h1:VXyAUYIG8zcjjzf5DO9KlhWTStq/PQZTZfbgW93GOPg=
-github.com/sni/shelltoken v0.0.0-20250912120847-52cbb850f3ae h1:WzM4akAKkiDsBJ70u1ug7FvNBn+NG+NejOQpZyMnOx0=
-github.com/sni/shelltoken v0.0.0-20250912120847-52cbb850f3ae/go.mod h1:N5alY3TXWtY0nxyv8UojZOFamxkwcGv+54xGRCfM9BE=
+github.com/sni/shelltoken v0.0.0-20251121074725-29095f38eced h1:/SNal7qC9zaneSuSU0QXcQdI457IeQZLO2OHuKAulHM=
+github.com/sni/shelltoken v0.0.0-20251121074725-29095f38eced/go.mod h1:N5alY3TXWtY0nxyv8UojZOFamxkwcGv+54xGRCfM9BE=
 github.com/spf13/cobra v1.10.1 h1:lJeBwCfmrnXthfAupyUTzJ/J4Nc1RsHC/mSRU2dll/s=
 github.com/spf13/cobra v1.10.1/go.mod h1:7SmJGaTHFVBY0jW4NXGluQoLvhqFQM+6XSKD+P4XaB0=
 github.com/spf13/pflag v1.0.9/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
