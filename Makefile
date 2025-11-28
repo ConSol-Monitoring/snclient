@@ -353,6 +353,8 @@ golangci: tools
 	# golangci combines a few static code analyzer
 	# See https://github.com/golangci/golangci-lint
 	#
+	@which golangci-lint
+	@golangci-lint --version
 	@echo "  - GOOS=linux"; \
 	GOOS=linux CGO_ENABLED=0 golangci-lint run --timeout=5m pkg/... cmd/... t/...
 	@echo "  - GOOS=darwin"; \
