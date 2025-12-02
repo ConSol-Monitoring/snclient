@@ -174,54 +174,88 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLoo
 	)
 }
 
+//nolint:funlen // moving these statements to new helper functions would be illogical
 func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizationResult, ok bool) {
 	res = &CPUUtilizationResult{}
 
-	counter1 := l.snc.Counter.Get("cpuinfo", "info")
-	counter2 := l.snc.Counter.Get("cpuinfo", "info")
-	if counter1 == nil || counter2 == nil {
+	counter := l.snc.Counter.Get("cpuinfo", "info")
+	if counter == nil {
 		return nil, false
 	}
 
 	scanLookBack64, err := convert.Int64E(scanLookBack)
 	if err != nil {
-		log.Warnf("failed to convert scan look back: %s", err.Error())
+		log.Warnf("failed to convert scan look back to int64: %s", err.Error())
 
 		return nil, false
 	}
 
-	cpuinfo1 := counter1.GetLast()
-	cpuinfo2 := counter2.GetAt(time.Now().Add(-time.Duration(scanLookBack64) * time.Second))
-	if cpuinfo1 == nil || cpuinfo2 == nil {
-		log.Errorf("Either the latest cpuinfo counter, or the cpuinfo counter from %d seconds ago seem to be null", scanLookBack)
+	if err = counter.CheckRetention(time.Second*time.Duration(scanLookBack64), 0); err != nil {
+		log.Tracef("cpuinfo counter cant hold the query range: %s", err.Error())
+	}
+
+	if err = counter.CheckRetention(time.Second*time.Duration(scanLookBack64), 100); err != nil {
+		log.Warnf("cpuinfo counter cant hold the query range even when extended: %s", err.Error())
 
 		return nil, false
 	}
 
-	if cpuinfo1.UnixMilli < cpuinfo2.UnixMilli {
-		log.Errorf("The last cpuinfo counters have a smaller timestamp: %d than the one that was found near %d seconds ago: %d", cpuinfo1.UnixMilli, scanLookBack, cpuinfo2.UnixMilli)
+	cpuinfoLatest := counter.GetLast()
+	cpuinfoOldest := counter.GetFirst()
+	if cpuinfoLatest == nil {
+		log.Warnf("latest cpuinfo value seems to be null. counter might not be populated yet.")
 
 		return nil, false
 	}
-	duration := float64(cpuinfo1.UnixMilli - cpuinfo2.UnixMilli)
+	if cpuinfoOldest == nil {
+		log.Warnf("oldest cpuinfo value seems to be null. counter might not be populated yet.")
 
-	if duration <= 0 {
-		// This case might happen if there is not enough recorded counters to make up the look back time
-		// We need to wait until that duration difference can be achieved
-		secondsToSleep := min(scanLookBack, 5)
-
-		log.Tracef("Waiting %d seconds and returning that value, as cpu utilization metrics for the last %d seconds is not available yet.", secondsToSleep, scanLookBack)
-		time.Sleep(time.Second * time.Duration(convert.Int32(secondsToSleep)))
-
-		return l.getMetrics(secondsToSleep - 1)
+		return nil, false
 	}
-	duration /= 1e3 // cpu times are measured in seconds
 
-	info1, ok := cpuinfo1.Value.(*cpuinfo.TimesStat)
+	cpuinfoCounterDuration := cpuinfoLatest.UnixMilli - cpuinfoOldest.UnixMilli
+	if cpuinfoCounterDuration < scanLookBack64*1000 {
+		log.Tracef("cpuinfo counter has %d ms between its latest and oldest value, cannot properly provide %d s range of query", cpuinfoCounterDuration, scanLookBack)
+
+		// Optionally we can wait on this thread while other threads fill the counter up.
+	}
+
+	cpuinfoLookBackAgo := counter.GetAt(time.Now().Add(-time.Duration(scanLookBack64) * time.Second))
+	if cpuinfoLookBackAgo == nil {
+		log.Warnf("cpuinfo value search with lower bound of now-%d seconds returned null", scanLookBack)
+
+		return nil, false
+	}
+
+	duration := float64(cpuinfoLatest.UnixMilli - cpuinfoLookBackAgo.UnixMilli)
+	acceptableDurationMultipler := 0.5
+	minimumAcceptableDuration := float64(scanLookBack) * 1000 * acceptableDurationMultipler
+
+	switch {
+	case duration <= 0:
+		// This case might happen if there is only one counter value so far
+		log.Tracef("counter query from now-%d seconds <-> latest returned a range of %f ms. This is not positive, there might not be enough values recorded yet.", scanLookBack, duration)
+
+		return nil, false
+	case duration < minimumAcceptableDuration:
+		log.Tracef("counter query from now-%d seconds <-> latest returned a range of %f ms. This is not bellow the acceptable range, the data may be unrepresentative. "+
+			"acceptableDurationMultipler * scanLookBack seconds : %f * %f = %f ",
+			scanLookBack, duration, acceptableDurationMultipler, float64(scanLookBack), minimumAcceptableDuration)
+
+		// Optionally we can return an empty result here
+	case duration <= float64(scanLookBack)*1000:
+		log.Tracef("counter query from now-%d seconds <-> latest returned a range of %f ms. This is in the acceptable range, the data should be representative. "+
+			"acceptableDurationMultipler * scanLookBack seconds : %f * %f = %f ",
+			scanLookBack, duration, acceptableDurationMultipler, float64(scanLookBack), minimumAcceptableDuration)
+	default:
+		log.Tracef("counter query from now-%d seconds <-> latest returned a range of %f ms. This is higher than the query range and something must have gone wrong.", scanLookBack, duration)
+	}
+
+	info1, ok := cpuinfoLatest.Value.(*cpuinfo.TimesStat)
 	if !ok {
 		return nil, false
 	}
-	info2, ok := cpuinfo2.Value.(*cpuinfo.TimesStat)
+	info2, ok := cpuinfoLookBackAgo.Value.(*cpuinfo.TimesStat)
 	if !ok {
 		return nil, false
 	}
@@ -233,12 +267,13 @@ func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizati
 		return nil, false
 	}
 
-	res.user = (((info1.User - info2.User) / duration) * 100) / float64(numCPU)
-	res.system = (((info1.System - info2.System) / duration) * 100) / float64(numCPU)
-	res.iowait = (((info1.Iowait - info2.Iowait) / duration) * 100) / float64(numCPU)
-	res.steal = (((info1.Steal - info2.Steal) / duration) * 100) / float64(numCPU)
-	res.guest = (((info1.Guest - info2.Guest) / duration) * 100) / float64(numCPU)
-	res.idle = (((info1.Idle - info2.Idle) / duration) * 100) / float64(numCPU)
+	durationInS := duration / 1e3 // cpu times are measured in seconds
+	res.user = (((info1.User - info2.User) / durationInS * 100) / float64(numCPU))
+	res.system = (((info1.System - info2.System) / durationInS * 100) / float64(numCPU))
+	res.iowait = (((info1.Iowait - info2.Iowait) / durationInS * 100) / float64(numCPU))
+	res.steal = (((info1.Steal - info2.Steal) / durationInS * 100) / float64(numCPU))
+	res.guest = (((info1.Guest - info2.Guest) / durationInS * 100) / float64(numCPU))
+	res.idle = (((info1.Idle - info2.Idle) / durationInS * 100) / float64(numCPU))
 	res.total = (res.user + res.system + res.iowait)
 
 	return res, true
