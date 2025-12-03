@@ -110,6 +110,20 @@ restart_service = NET START "$ARG1$"
 
 If your scripts are located within the `${scripts}` folder, you can specify them using relative paths, as demonstrated in the examples. SNClient will automatically obtain the absolute path for these scripts and use it for execution. Prior to running the scripts, SNClient configures the working directory to be ${shared-dir}.
 
+
+#### Script Discovery
+
+```
+; Load all scripts in a given folder - Load all (${script path}/*) scripts in a given directory and use them as commands.
+; Any executable file is considered a script. They do not have end with an script like extension.
+; In windows, executable files cannot be discerned. It will add every file under the directory.
+; Links are followed, and if they end up under script path, they will be added as a script.
+; If path ends with ** its subdirectories will be searched as well.
+script path = ${scripts}/autoinclude
+```
+
+Scripts can also be automatically discovered and added, without defining them individually. This uses the `script path` setting. There is no way to change the alias, as they will use the scripts name and extension for their alias.
+
 #### Wrapped Scripts
 
 Specify script templates used to define script commands. These templates are expanded by scripts located in the Wrapped Scripts section. Use `%SCRIPT%` to represent the actual script and `%ARGS%` for any provided arguments.
