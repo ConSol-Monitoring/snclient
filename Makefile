@@ -9,8 +9,8 @@ GOVERSION:=$(shell \
 )
 # also update docs/install/build.md and .github/workflows/builds.yml when changing minimum version
 # find . -name go.mod (run make gomods afterwards)
-MINGOVERSION:=00010024
-MINGOVERSIONSTR:=1.24
+MINGOVERSION:=00010025
+MINGOVERSIONSTR:=1.25
 BUILD:=$(shell git rev-parse --short HEAD)
 REVISION:=$(shell ./buildtools/get_version | awk -F . '{ print $$3 }')
 # see https://github.com/go-modules-by-example/index/blob/master/010_tools/README.md

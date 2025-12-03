@@ -6,7 +6,7 @@ linkTitle: From Source
 
 ## Requirements
 
-- golang >= 1.24
+- golang >= 1.25.5
 - openssl
 - make
 - help2man
