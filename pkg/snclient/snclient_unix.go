@@ -178,9 +178,3 @@ func setCmdUser(cmd *exec.Cmd, username string) error {
 
 	return nil
 }
-
-func powerShellCmd(_ context.Context, _ string) *exec.Cmd {
-	log.Panicf("unsupported os")
-
-	return nil
-}
