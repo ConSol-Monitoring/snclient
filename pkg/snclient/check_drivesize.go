@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"sort"
@@ -164,12 +165,36 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	}
 	requiredDisks := map[string]map[string]string{}
 	drives, err := l.getRequiredDisks(l.drives, false)
-	if err != nil {
+	var notFoundErr *PartitionNotFoundError
+	var notMountedErr *PartitionNotMountedError
+	var partitionDiscoveryErr *PartitionDiscoveryError
+	switch {
+	case errors.As(err, &notFoundErr):
+		log.Debugf("check_drivesize, drive is not found : %s, stopping check", notFoundErr.Error())
+
+		// do not return (nil,err) the drives will be empty, then the empty-state override can work when defined
+	case errors.As(err, &notMountedErr):
+		// no special handling of mount errors
+		log.Debugf("check_drivesize, mounting error : %s, stopping check", notMountedErr.Error())
+
 		return nil, err
+	case errors.As(err, &partitionDiscoveryErr):
+		// no special handling of discovery errors
+		log.Debugf("check_drivesize partition discovery error : %s, stopping check", partitionDiscoveryErr.Error())
+
+		return nil, err
+	case err != nil:
+		log.Debugf("check_drivesize error of unspecialized type : %s", err.Error())
+
+		return nil, err
+	default:
+		break
 	}
 	maps.Copy(requiredDisks, drives)
 
+	// when checking for folders and their mountpoints, set parentFallback to true
 	folders, err := l.getRequiredDisks(l.folders, true)
+	// handle folder search errors as well?
 	if err != nil {
 		return nil, err
 	}
@@ -416,4 +441,31 @@ func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
 	}
 
 	return flags
+}
+
+// have to define the error variables here, this file builds on all platforms
+type PartitionNotFoundError struct {
+	Path string
+	err  error
+}
+
+func (e *PartitionNotFoundError) Error() string {
+	return fmt.Sprintf("partition not found for path: %s , error: %s", e.Path, e.err.Error())
+}
+
+type PartitionNotMountedError struct {
+	Path string
+	err  error
+}
+
+func (e *PartitionNotMountedError) Error() string {
+	return fmt.Sprintf("partition not mounted for path: %s , error: %s", e.Path, e.err.Error())
+}
+
+type PartitionDiscoveryError struct {
+	err error
+}
+
+func (e *PartitionDiscoveryError) Error() string {
+	return fmt.Sprintf("error on disk.partitions call: %s", e.err.Error())
 }
