@@ -170,14 +170,22 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	var partitionDiscoveryErr *PartitionDiscoveryError
 	switch {
 	case errors.As(err, &notFoundErr):
-		log.Debugf("check_drivesize, drive is not found : %s, continuing check with empty disks", notFoundErr.Error())
+		log.Debugf("check_drivesize, drive is not found : %s, stopping check", notFoundErr.Error())
+
+		// do not return (nil,err) the drives will be empty, then the empty-state override can work when defined
 	case errors.As(err, &notMountedErr):
 		// no special handling of mount errors
+		log.Debugf("check_drivesize, mounting error : %s, stopping check", notMountedErr.Error())
+
 		return nil, err
 	case errors.As(err, &partitionDiscoveryErr):
 		// no special handling of discovery errors
+		log.Debugf("check_drivesize partition discovery error : %s, stopping check", partitionDiscoveryErr.Error())
+
 		return nil, err
 	case err != nil:
+		log.Debugf("check_drivesize error of unspecialized type : %s", err.Error())
+
 		return nil, err
 	default:
 		break
