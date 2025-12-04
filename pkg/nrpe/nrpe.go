@@ -133,7 +133,7 @@ func BuildPacketV4(packetType, statusCode uint16, statusLine []byte) *Packet {
 	binary.BigEndian.PutUint32(packet.crc32, 0)
 	binary.BigEndian.PutUint16(packet.statusCode, statusCode)
 	binary.BigEndian.PutUint16(packet.alignment, 0)
-	binary.BigEndian.PutUint32(packet.dataLength, uint32(dataLength)) //nolint:gosec // dataLength cannot exceed NrpeV4MaxPacketDataLength which is smaller than MaxUint32
+	binary.BigEndian.PutUint32(packet.dataLength, uint32(dataLength))
 
 	copy(packet.data, statusLine)
 	packet.data[dataLength-1] = 0 // add null byte
