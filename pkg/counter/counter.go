@@ -29,12 +29,12 @@ type Value struct {
 // NewCounter creates a new Counter with given retention time and interval
 func NewCounter(retentionTime, interval time.Duration) *Counter {
 	// round retention and interval to milliseconds
-	retentionMilli := retentionTime.Milliseconds()
-	intervalMilli := interval.Milliseconds()
+	retentionMili := retentionTime.Milliseconds()
+	intervalMili := interval.Milliseconds()
 
-	// round retentionMili time to a multiple of interval
-	retentionMili := int64(math.Ceil(float64(retentionMilli)/float64(intervalMilli))) * intervalMilli
-	size := retentionMili / intervalMilli
+	// round retentionMili to a multiple of interval
+	retentionMiliRounded := int64(math.Ceil(float64(retentionMili)/float64(intervalMili))) * intervalMili
+	size := retentionMiliRounded / intervalMili
 
 	return &Counter{
 		lock:      sync.RWMutex{},
@@ -42,7 +42,7 @@ func NewCounter(retentionTime, interval time.Duration) *Counter {
 		size:      size,
 		current:   -1,
 		oldest:    -1,
-		retention: time.Duration(retentionMili) * time.Millisecond,
+		retention: time.Duration(retentionMiliRounded) * time.Millisecond,
 		interval:  interval,
 		timesSet:  0,
 	}
@@ -85,8 +85,7 @@ func (c *Counter) AvgForDuration(duration time.Duration) float64 {
 		return 0
 	}
 
-	//nolint:intrange // tracking the seen elements is easier
-	for seen := int64(0); seen < c.size; seen++ {
+	for range c.size {
 		if c.data[idx].UnixMilli > useAfter {
 			if val, ok := c.data[idx].Value.(float64); ok {
 				sum += val
@@ -201,7 +200,7 @@ func (c *Counter) getAt(lowerBound time.Time) *Value {
 	}
 
 	var previouslyComparedValue *Value
-	for valuesSeen := int64(0); valuesSeen <= c.size; valuesSeen++ {
+	for range c.size {
 		currentValue := &c.data[idx]
 		if currentValue.UnixMilli < useAfterUnix {
 			return previouslyComparedValue
