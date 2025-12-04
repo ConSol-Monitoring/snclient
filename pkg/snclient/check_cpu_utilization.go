@@ -191,11 +191,11 @@ func (l *CheckCPUUtilization) getMetrics(scanLookBack uint64) (res *CPUUtilizati
 	}
 
 	if err = counter.CheckRetention(time.Second*time.Duration(scanLookBack64), 0); err != nil {
-		log.Tracef("cpuinfo counter cant hold the query range: %s", err.Error())
+		log.Tracef("cpuinfo counter can not hold the query range: %s", err.Error())
 	}
 
 	if err = counter.CheckRetention(time.Second*time.Duration(scanLookBack64), 100); err != nil {
-		log.Warnf("cpuinfo counter cant hold the query range even when extended: %s", err.Error())
+		log.Warnf("cpuinfo counter can not hold the query range even when extended: %s", err.Error())
 
 		return nil, false
 	}
