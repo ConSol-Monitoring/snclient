@@ -82,13 +82,13 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 	return nil
 }
 
-func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
+func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
 	// make sure path exists
-	_, err = os.Stat(drive)
+	_, err = os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
-		log.Debugf("%s: %s", drive, err.Error())
+		log.Debugf("%s: %s", path, err.Error())
 
-		return &PartitionNotFoundError{Path: drive, err: err}
+		return &PartitionNotFoundError{Path: path, err: err}
 	}
 
 	// try to find closest matching mount
@@ -101,30 +101,31 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	var match *map[string]string
 	for i := range availMounts {
 		vol := availMounts[i]
-		if parentFallback && vol["drive"] != "" && strings.HasPrefix(drive, vol["drive"]) {
+		if parentFallback && vol["drive"] != "" && strings.HasPrefix(path, vol["drive"]) {
 			// try to find the longest matching parent path, that is a mountpoint
 			if match == nil || len((*match)["drive"]) < len(vol["drive"]) {
 				match = &vol
 			}
 		}
 		// direct match, no need to search further
-		if drive == vol["drive"] {
+		if path == vol["drive"] {
 			match = &vol
 
 			break
 		}
 	}
+
 	if match != nil {
-		requiredDisks[drive] = utils.CloneStringMap(*match)
-		requiredDisks[drive]["drive"] = drive
+		requiredDisks[path] = utils.CloneStringMap(*match)
+		requiredDisks[path]["drive"] = path
 
 		return nil
 	}
 
 	// add anyway to generate an error later with more default values filled in
-	entry := l.driveEntry(drive)
-	entry["_error"] = (&PartitionNotMountedError{Path: drive, err: fmt.Errorf("")}).Error()
-	requiredDisks[drive] = entry
+	entry := l.driveEntry(path)
+	entry["_error"] = (&PartitionNotMountedError{Path: path, err: fmt.Errorf("path :%s does exist, but could not match it to a drive. its likely that the partition is not mounted", path)}).Error()
+	requiredDisks[path] = entry
 
 	return nil
 }
