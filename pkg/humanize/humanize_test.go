@@ -30,7 +30,7 @@ func TestParseBytes(t *testing.T) {
 		} else {
 			require.NoError(t, err)
 		}
-		assert.Equalf(t, int64(tst.res), int64(res), "ParseBytes: %s -> %d", tst.in, res) //nolint:gosec // no overflow, fixed range of numbers
+		assert.Equalf(t, int64(tst.res), int64(res), "ParseBytes: %s -> %d", tst.in, res)
 	}
 }
 

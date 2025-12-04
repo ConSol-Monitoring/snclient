@@ -65,7 +65,7 @@ func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, args []A
 		if err != nil {
 			return nil, fmt.Errorf("could not convert index. error was %s", err.Error())
 		}
-		res, path := pdh.PdhLookupPerfNameByIndex(uint32(index)) //nolint:gosec // Index is small and needs  to be uint32 for system call
+		res, path := pdh.PdhLookupPerfNameByIndex(uint32(index))
 		if res != pdh.ERROR_SUCCESS {
 			return nil, fmt.Errorf("could not find given index: %d response code: %d", index, res)
 		}

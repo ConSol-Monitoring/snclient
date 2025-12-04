@@ -156,7 +156,7 @@ func Int32E(raw any) (int32, error) {
 			return 0, fmt.Errorf("number to large for int32")
 		}
 
-		return int32(num), nil //nolint:gosec // false positive, MaxInt32 has been checked but it not considered by gosec (https://github.com/securego/gosec/issues/1187)
+		return int32(num), nil
 	}
 }
 
