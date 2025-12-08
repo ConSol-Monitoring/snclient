@@ -7,7 +7,6 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
 )
 
@@ -70,7 +69,7 @@ func (e *ExternalScriptsHandler) registerScripts(conf *Config, runSet *AgentRunS
 		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
 			log.Tracef("registered script: %s -> %s", name, command)
 			if _, ok := AvailableChecks[name]; ok {
-				log.Warnf("there is a built in check with the name: %s . the external script registered on path: %s has the same base name", name, command)
+				log.Debugf("there is a built in check with the name: %s . the external script registered on path: %s has the same base name", name, command)
 			}
 			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler {
 				return &CheckWrap{name: name, commandString: strings.Join(command, " "), config: cmdConf}
@@ -103,7 +102,7 @@ func (e *ExternalScriptsHandler) registerWrapped(conf *Config, runSet *AgentRunS
 		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
 			log.Tracef("registered wrapped script: %s -> %s", name, command)
 			if _, ok := AvailableChecks[name]; ok {
-				log.Warnf("there is a built in check with the name: %s . the external wrapped script registered path: %s has the same base name", name, command)
+				log.Debugf("there is a built in check with the name: %s . the external wrapped script registered path: %s has the same base name", name, command)
 			}
 			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler {
 				return &CheckWrap{name: name, commandString: strings.Join(command, " "), wrapped: true, config: cmdConf}
@@ -135,7 +134,7 @@ func (e *ExternalScriptsHandler) registerScriptPath(defaultScriptConfig *ConfigS
 	}
 
 	// the script path may have '**' at the end, which toggles recursive search within that directory
-	configScriptPath, recurseiveSearch := strings.CutSuffix(configScriptPath, "**")
+	configScriptPath, recursiveSearch := strings.CutSuffix(configScriptPath, "**")
 
 	var scriptPath string
 	var err error
@@ -199,7 +198,6 @@ func (e *ExternalScriptsHandler) registerScriptPath(defaultScriptConfig *ConfigS
 
 			if !filepath.IsAbs(linkTarget) {
 				linkTarget, err = filepath.Abs(filepath.Join(filepath.Dir(path), linkTarget))
-
 				if err != nil {
 					return fmt.Errorf("error when converting the link target to absolute path: %s , linkTarget: %s", path, linkTarget)
 				}
@@ -209,7 +207,7 @@ func (e *ExternalScriptsHandler) registerScriptPath(defaultScriptConfig *ConfigS
 		}
 
 		// optimization: if its a dir, return fs.SkipDir so that filepath.WalkDir can skip over the whole dir
-		if !recurseiveSearch && stat.IsDir() && path != scriptPath {
+		if !recursiveSearch && stat.IsDir() && path != scriptPath {
 			return fs.SkipDir
 		}
 
@@ -220,7 +218,7 @@ func (e *ExternalScriptsHandler) registerScriptPath(defaultScriptConfig *ConfigS
 			return nil
 		}
 
-		if filepath.Dir(path) != scriptPath && !recurseiveSearch {
+		if filepath.Dir(path) != scriptPath && !recursiveSearch {
 			log.Tracef("skipping file as a script to add: %s, recursiveSearch is not toggled", path)
 
 			return nil
@@ -234,14 +232,14 @@ func (e *ExternalScriptsHandler) registerScriptPath(defaultScriptConfig *ConfigS
 		}
 
 		// They have to be executable, available on some platforms
-		checkExecutableRuntimes := [5]string{"linux", "darwin", "netbsd", "openbsd"}
-		if slices.Contains(checkExecutableRuntimes[:], runtime.GOOS) {
+		switch runtime.GOOS {
+		case "linux", "darwin", "netbsd", "openbsd":
 			if !isExecutable(stat.Mode().Perm()) {
-				log.Tracef("skipping file as a script to add: %s, go runtime is: %s, and the file is not executalbe with permissions: %d", path, runtime.GOOS, stat.Mode().Perm())
+				log.Tracef("skipping file as a script to add: %s, go runtime is: %s, and the file is not executable with permissions: %d", path, runtime.GOOS, stat.Mode().Perm())
 
 				return nil
 			}
-		} else {
+		default:
 			log.Tracef("file as a script to add: %s, go runtime is: %s, cannot determine if file is executable", path, runtime.GOOS)
 		}
 
