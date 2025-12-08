@@ -24,7 +24,7 @@ require (
 	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20250317143157-caa67455f3bb
 	github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9
 	github.com/sni/shelltoken v0.0.0-20251121074725-29095f38eced
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
 	github.com/subuk/csrtool v0.0.0-20250413213651-887255723652
