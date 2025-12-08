@@ -111,7 +111,7 @@ func (snc *Agent) buildInventory(ctx context.Context, modules []string) *Invento
 	sort.Strings(keys)
 
 	for _, k := range keys {
-		check, _ := snc.getCheck(k)
+		check, _ := snc.getCheck(k, false)
 		handler := check.Handler()
 		meta := handler.Build()
 		if !meta.isImplemented(runtime.GOOS) {

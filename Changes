@@ -3,6 +3,7 @@ This file documents the revision history for the SNClient agent.
 next
          - change minimum golang requirement to 1.25.5
          - add support for recursive `script path`
+         - add support for cyclic alias check
 
 0.39     Tue Nov 18 14:22:01 CET 2025
          - optionally send HSTS header in HTTP response
