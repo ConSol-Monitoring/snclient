@@ -599,6 +599,8 @@ func (cd *CheckData) parseStateString(state string) int64 {
 
 // parseArgs parses check arguments into the CheckData struct
 // and returns all unknown options
+//
+//nolint:funlen,gocyclo // it is not complex, it is just a long list of options
 func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 	cd.rawArgs = args
 	cd.hasArgsSupplied = map[string]bool{}
@@ -730,6 +732,8 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 				argList = append(argList, Argument{key: keyword, value: argValue})
 			case keyword == "-h", keyword == "--help":
 				cd.showHelp = PluginHelp
+			case keyword == "-a":
+				// ignore -a for legacy compatibility
 			default:
 				return nil, fmt.Errorf("unknown argument: %s", keyword)
 			}

@@ -122,7 +122,12 @@ func NumF(num int64, precision int) string {
 		prefix = "-"
 	}
 
-	return prefix + humanizeBytes(uint64(num), 1000, []string{"", "k", "M", "G", "T", "P", "E"}, precision)
+	// useless but makes gosec G115 happy
+	if num >= 0 {
+		return prefix + humanizeBytes(uint64(num), 1000, []string{"", "k", "M", "G", "T", "P", "E"}, precision)
+	}
+
+	return ""
 }
 
 // Bytes(82854982) -> 83 MB

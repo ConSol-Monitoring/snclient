@@ -156,6 +156,10 @@ func Int32E(raw any) (int32, error) {
 			return 0, fmt.Errorf("number to large for int32")
 		}
 
+		if num < math.MinInt32 {
+			return 0, fmt.Errorf("number to small for int32")
+		}
+
 		return int32(num), nil
 	}
 }

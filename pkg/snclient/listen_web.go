@@ -363,7 +363,7 @@ func (l *HandlerWeb) runCheck(req *http.Request, command string) (result *CheckR
 		}
 	}
 
-	return l.snc.RunCheckWithContext(req.Context(), command, args, timeoutSeconds, l.conf)
+	return l.snc.RunCheckWithContext(req.Context(), command, args, timeoutSeconds, l.conf, false)
 }
 
 type HandlerWebLegacy struct {
