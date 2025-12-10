@@ -61,7 +61,7 @@ Naemon Config
 | Argument  | Description                                                                                               |
 | --------- | --------------------------------------------------------------------------------------------------------- |
 | file      | Alias for path                                                                                            |
-| max-depth | Maximum recursion depth. Default: no limit. '0' disables recursion, '1' includes first sub folder level, etc... |
+| max-depth | Maximum recursion depth. Default: no limit. '0' disables recursion and only includes files/directories directly under path. '1' includes files/directories under the path directly under the path as well, '2' starts to include files/folders of directories of depth '1' and so forth.  |
 | path      | Path in which to search for files                                                                         |
 | paths     | A comma separated list of paths                                                                           |
 | pattern   | Pattern of files to search for                                                                            |
