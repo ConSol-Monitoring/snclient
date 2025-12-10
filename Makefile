@@ -690,6 +690,7 @@ DOC_COMMANDS=\
 	check_eventlog \
 	check_files \
 	check_index \
+	check_interrupts \
 	check_kernel_stats \
 	check_load \
 	check_logfile \
@@ -788,6 +789,9 @@ docs_test:
 
 # ensure docs folder is clean
 gitcleandocs:
+	@echo "Checking that docs folder is clean"
+	@echo Current git status of the docs folder
+	git status --porcelain docs
 	@if [ $$(git status -s docs | wc -l) -gt 0 ]; then \
 		git diff docs; \
 		echo "docs folder not clean:"; \

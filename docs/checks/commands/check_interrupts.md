@@ -1,0 +1,102 @@
+---
+title: interrupts
+---
+
+## check_interrupts
+
+Check interrupt counts on Linux. This reads and parses the /proc/interrupts file.
+
+- [Examples](#examples)
+- [Argument Defaults](#argument-defaults)
+- [Attributes](#attributes)
+
+## Implementation
+
+| Windows | Linux              | FreeBSD | MacOSX |
+|:-------:|:------------------:|:-------:|:------:|
+|         | :white_check_mark: |         |        |
+
+## Examples
+
+### Default Check
+
+Default check does not filter to anything, or has logic to report a warning / critical condition
+    OK - All 842 interrupts are ok
+    
+Check if there is a MCE in core numbers 0,3,7,8
+    
+    check_interrupts cpus="0,3,7,8" interrupts="MCE" crit="interrupt_count > 0"
+    OK - All 4 interrupts are ok |'id: 0 | name: MCE | cpu: 0'=0;;0;0 'id: 0 | name: MCE | cpu: 3'=0;;0;0 'id: 0 | name: MCE | cpu: 7'=0;;0;0 'id: 0 | name: MCE | cpu: 8'=0;;0;0
+
+Same query, but use a numbered interrupt this time.
+
+    check_interrupts cpus="1,2" interrupts="120,121" crit="interrupt_count > 0"
+    OK - All 4 interrupts are ok |'id: 120 | name:  | cpu: 1'=0;;0;0 'id: 120 | name:  | cpu: 2'=0;;0;0 'id: 121 | name:  | cpu: 1'=0;;0;0 'id: 121 | name:  | cpu: 2'=0;;0;0
+
+Some interrupts will have a single value for all cores
+
+    check_interrupts interrupt_filter="ERR" crit="interrupt_count > 0"
+    OK - All 1 interrupts are ok |'id: 0 | name: ERR | cpu: 0'=0;;0;0
+
+Check interrupts regarding the thunderbolt driver, using the filter on the 'interrrupt_device_and_driver_name' attribute with a string match.
+These interrupts are numbered, but it is unclear what these numbers are. One can only match based on the provided driver information. 
+    // I dont want thunderbolt controller interrupts to go to cpu0
+    check_interrupts cpus="0" filter="interrupt_device_and_driver_name ~ '^thunderbolt' " crit="interrupt_count > 0"
+    OK - All 4 interrupts are ok
+
+
+Check interrupts regarding the NVME device on PCI BDF 00:14.0 , using the filter on the 'interrupt_pci_bdf' attribute. 
+Just like above, this interrupt is numbered, so It can be filter with its attribute only. 
+The first CPU should get the interrupts with the vector '1-edge' for this device, add a critical condition if it is receiving interrupts with other vectors.
+    check_interrupts cpus="0" filter=" interrupt_pci_bdf == '00:14.0' && interrupt_pin_name_and_vector != '1-edge' " crit=" interrupt_count > 0"
+    OK - All 1 interrupts are ok
+
+### Example using NRPE and Naemon
+
+Naemon Config
+
+    define command{
+        command_name         check_nrpe
+        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+    }
+
+    define service {
+        host_name            testhost
+        service_description  check_interrupts
+        use                  generic-service
+        check_command        check_nrpe!check_interrupts!
+    }
+
+## Argument Defaults
+
+| Argument      | Default Value                                                                             |
+| ------------- | ----------------------------------------------------------------------------------------- |
+| empty-state   | 3 (UNKNOWN)                                                                               |
+| empty-syntax  | Failed to find any interrupts matching this filter                                        |
+| top-syntax    | %(status) - %(problem_count)/%(count) interrupts , %(problem_list)                        |
+| ok-syntax     | %(status) - All %(count) interrupts are ok                                                |
+| detail-syntax | number: %(interrupt_number) name: (%interrupt_name) cpu: %(cpu) count: %(interrupt_count) |
+
+## Check Specific Arguments
+
+| Argument   | Description                                                                                              |
+| ---------- | -------------------------------------------------------------------------------------------------------- |
+| cpus       | CPUs to check interrupts for. Give it as a comma separated list of integers, corresponding to the cpus. Cpus are indexed starting from zero. Leaving it empty will check all interrupts |
+| interrupts | Interrupt acronyms to check filter for. Give it as a comma separated list of integers corresponding to interrupt ids, or three letter acronymts for named interrupts. E.g 'NMI,154,14,LOC'  |
+
+## Attributes
+
+### Filter Keywords
+
+these can be used in filters and thresholds (along with the default attributes):
+
+| Attribute                        | Description                                                                        |
+| -------------------------------- | ---------------------------------------------------------------------------------- |
+| interrupt_number                 | Hardware interrupt lines of the CPU. These are assigned between CPU and other devices by the system firmware, and get an number. |
+| interrupt_name                   | Named interrupts are generally special events or interrupts generated by the kernel. These are typically not about the other connected devices to the CPU itself. |
+| cpu                              | Interrupt the cpu is on. If the interrupt has a single counter, it is assigned to cpu 0. |
+| interrupt_count                  | The count of the interrupt. Interrupts are almost always counted specifically for each CPU. Some are counted once per system, and assigned to cpu 0. |
+| interrupt_controller             | Mechanism handling the IRQ.IR-IO-APIC interrupts are handled via Advanced Programmable Interrupt.  These are generally legacy IRQs.IR-PCI-MSI(X) are for Message Signaled Interrupts, generally coming from a PCI device. |
+| interrupt_pci_bdf                | The Bus/Device/Function of the device causing the inerrupt. Generally detectable in PCI interrupts. |
+| interrupt_pin_name_vector        | This value contains the interrupt type edge/fasteoi with the physical IRQ pin/line number.  This is useful when looking at the behaviour of interrupts on the same pin/line. |
+| interrupt_device_and_driver_name | Some interrupts display the logical devices name or the kernel driver that is causing it. |
