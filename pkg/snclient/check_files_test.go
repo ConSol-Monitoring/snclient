@@ -28,8 +28,8 @@ func TestCheckFiles(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "'count'=")
 
 	res = snc.RunCheck("check_files", []string{"path=.", "max-depth=0"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Contains(t, string(res.BuildPluginOutput()), "No files found")
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "No files found")
 
 	res = snc.RunCheck("check_files", []string{"paths= ., t", "crit=count>10000", "max-depth=1"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
