@@ -56,8 +56,8 @@ func (l *CheckFiles) Build() *CheckData {
 			"file":    {value: &l.paths, description: "Alias for path", isFilter: true},
 			"paths":   {value: &l.pathList, description: "A comma separated list of paths", isFilter: true},
 			"pattern": {value: &l.pattern, description: "Pattern of files to search for", isFilter: true},
-			"max-depth": {value: &l.maxDepth, description: "Maximum recursion depth. Default: no limit. '0' disables recursion and only includes files/directories directly under path." +
-				" '1' includes files/directories under the path directly under the path as well, '2' starts to include files/folders of directories of depth '1' and so forth. "},
+			"max-depth": {value: &l.maxDepth, description: "Maximum recursion depth. Default: no limit. '0' and '1' disable recursion and only include files/directories directly under path." +
+				", '2' starts to include files/folders of subdirectories with given depth. "},
 			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
 		},
 		detailSyntax: "%(name)",
@@ -222,8 +222,7 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 
 	// if recursion is disabled with maxDepth
 	if l.maxDepth != -1 && pathDepth >= 2 && pathDepth > l.maxDepth {
-		// for debugging
-		// log.Tracef("skipping file: %s, pathDepth: %d, max-depth:%d is lower", path, pathDepth, l.maxDepth)
+		log.Tracef("skipping file: %s, pathDepth: %d, max-depth:%d is lower", path, pathDepth, l.maxDepth)
 
 		return nil
 	}
@@ -446,8 +445,7 @@ func (l *CheckFiles) getDepth(path, basePath string) int64 {
 	}
 
 	if !strings.HasPrefix(path, basePath) {
-		// for debugging
-		// log.Tracef("basePath: %s, is not a prefix of path: %s", basePath, path)
+		log.Tracef("basePath: %s, is not a prefix of path: %s", basePath, path)
 
 		return -1
 	}
@@ -456,8 +454,7 @@ func (l *CheckFiles) getDepth(path, basePath string) int64 {
 	seperatorCount := int64(strings.Count(subPath, string(os.PathSeparator)))
 	depth := seperatorCount
 
-	// for debugging
-	// log.Tracef("path: %s, basePath: %s, subPath: %s, seperatorCount: %d, depth: %d", path, basePath, subPath, seperatorCount, depth)
+	log.Tracef("path: %s, basePath: %s, subPath: %s, seperatorCount: %d, depth: %d", path, basePath, subPath, seperatorCount, depth)
 
 	return depth
 }
