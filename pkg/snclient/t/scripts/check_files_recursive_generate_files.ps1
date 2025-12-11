@@ -1,12 +1,11 @@
 #!/usr/bin/env pwsh
 
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
-
 param(
-    [Parameter(Mandatory = $true, Position = 0)]
+    [Parameter(Mandatory=$true)]
     [string]$TestingDir
 )
+
+$ErrorActionPreference = 'Stop'
 
 New-Item -ItemType Directory -Path $TestingDir -Force
 
