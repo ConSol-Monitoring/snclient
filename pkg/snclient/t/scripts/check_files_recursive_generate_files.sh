@@ -45,8 +45,12 @@ TODAY=$(date -d 'today 00:00:00' +%F)
     #echo "DIRECTORY_COUNT=${DIRECTORY_COUNT}"
     echo "ok - Generated $(( DIRECTORY_COUNT - 1 )) directories for testing"
 
-    echo "printing the tree of the files"
-    tree ${TESTING_DIR}
+    if command -v tree >/dev/null 2>&1; then
+        echo "printing the tree of the files"
+        tree ${TESTING_DIR}
+    else
+        echo "warning: tree command not found, skipping tree output"
+    fi
 )
 
 exit 0
