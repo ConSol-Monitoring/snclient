@@ -734,13 +734,13 @@ func (snc *Agent) logPanicRecover() {
 
 // RunCheck calls check by name and returns the check result.
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
-	return snc.RunCheckWithContext(context.TODO(), name, args, 0, nil)
+	return snc.RunCheckWithContext(context.TODO(), name, args, 0, nil, false)
 }
 
 // RunCheckWithContext calls check by name and returns the check result.
 // secCon configuration section will be used to check for nasty characters and allowed arguments.
-func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection) *CheckResult {
-	res, chk := snc.runCheck(ctx, name, args, timeoutOverride, transportConf, false)
+func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection, skipAlias bool) *CheckResult {
+	res, chk := snc.runCheck(ctx, name, args, timeoutOverride, transportConf, false, skipAlias)
 	if res.Raw == nil || res.Raw.showHelp == 0 {
 		if chk != nil {
 			res.Finalize(chk.timezone)
@@ -752,13 +752,13 @@ func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []s
 	return res
 }
 
-func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection, skipAllowedCheck bool) (*CheckResult, *CheckData) {
+func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection, skipAllowedCheck, skipAlias bool) (*CheckResult, *CheckData) {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
 	if deadline, ok := ctx.Deadline(); ok {
 		log.Tracef("ctx deadline: %s", time.Until(deadline).String())
 	}
-	check, ok := snc.getCheck(name)
+	check, ok := snc.getCheck(name, skipAlias)
 	if !ok {
 		return &CheckResult{
 			State:  CheckExitUnknown,
@@ -857,6 +857,12 @@ func (snc *Agent) runHelp(ctx context.Context, chk *CheckData, handler CheckHand
 	switch builtin := handler.(type) {
 	case *CheckBuiltin:
 		help = builtin.Help(ctx, snc, chk, chk.showHelp)
+	case *CheckAlias:
+		alias, ok := snc.getCheck(builtin.command, true)
+		if ok {
+			realChk := alias.Handler().Build()
+			help = realChk.Help(chk.showHelp)
+		}
 	default:
 		help = chk.Help(chk.showHelp)
 	}
@@ -868,10 +874,12 @@ func (snc *Agent) runHelp(ctx context.Context, chk *CheckData, handler CheckHand
 	}
 }
 
-func (snc *Agent) getCheck(name string) (_ *CheckEntry, ok bool) {
+func (snc *Agent) getCheck(name string, skipAlias bool) (_ *CheckEntry, ok bool) {
 	if snc.runSet != nil {
-		if chk, ok := snc.runSet.cmdAliases[name]; ok {
-			return &chk, ok
+		if !skipAlias {
+			if chk, ok := snc.runSet.cmdAliases[name]; ok {
+				return &chk, ok
+			}
 		}
 		if chk, ok := snc.runSet.cmdWraps[name]; ok {
 			return &chk, ok

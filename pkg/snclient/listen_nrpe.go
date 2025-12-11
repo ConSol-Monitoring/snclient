@@ -116,7 +116,7 @@ func (l *HandlerNRPE) ServeTCP(snc *Agent, con net.Conn) {
 		cmd = "check_snclient_version"
 		args = []string{}
 	}
-	statusResult := snc.RunCheckWithContext(context.TODO(), cmd, args, 0, l.conf)
+	statusResult := snc.RunCheckWithContext(context.TODO(), cmd, args, 0, l.conf, false)
 
 	output := statusResult.BuildPluginOutput()
 	state, err2 := convert.UInt16E(statusResult.State)

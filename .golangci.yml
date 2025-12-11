@@ -168,19 +168,11 @@ linters:
       - path: (.+)\.go$
         text: Function 'setListenTLSConfig' has too many statements
       - path: (.+)\.go$
-        text: Function 'ParseArgs' has too many statements
-      - path: (.+)\.go$
-        text: 'cyclomatic complexity 45 of func `.*\.parseArgs` is high'
-      - path: (.+)\.go$
-        text: Function 'parseArgs' has too many statements
-      - path: (.+)\.go$
         text: Function 'parseAnyArg' has too many statements
       - path: (.+)\.go$
         text: complexity.*setListenTLSConfig
       - path: (.+)\.go$
         text: complexity.*checkFlags
-      - path: (.+)\.go$
-        text: complexity.*ParseArgs
       - path: (.+)\.go$
         text: Function 'readConfiguration' has too many statements
       - path: (.+)\.go$
