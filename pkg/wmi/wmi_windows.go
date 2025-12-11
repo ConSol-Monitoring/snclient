@@ -27,12 +27,12 @@ func InitWbem() error {
 }
 
 // QueryDefaultRetry sends a query with the default retry duration of 1sec
-func QueryDefaultRetry(query string, dst interface{}) (err error) {
+func QueryDefaultRetry(query string, dst any) (err error) {
 	return QueryWithRetries(query, dst, "", 3, 1*time.Second)
 }
 
 // QueryWithRetries executes the given query with specified retries and delay between retries.
-func QueryWithRetries(query string, dst interface{}, namespace string, retries int, delay time.Duration) (err error) {
+func QueryWithRetries(query string, dst any, namespace string, retries int, delay time.Duration) (err error) {
 	for retries > 0 {
 		err = Query(query, dst, namespace)
 		if err == nil {
@@ -49,7 +49,7 @@ func QueryWithRetries(query string, dst interface{}, namespace string, retries i
 }
 
 // Query sends a single query, the namespace is optional and can be empty
-func Query(query string, dst interface{}, namespace string) (err error) {
+func Query(query string, dst any, namespace string) (err error) {
 	query = strings.TrimSpace(query)
 	// MS_409 equals en_US, see https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wmi/259edd31-d6eb-4bc9-a2c4-2891b78bb51d
 	// connect parameters are here: https://learn.microsoft.com/en-us/windows/win32/wmisdk/swbemlocator-connectserver

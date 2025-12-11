@@ -2,9 +2,11 @@ package snclient
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -66,6 +68,9 @@ func (e *ExternalScriptsHandler) registerScripts(conf *Config, runSet *AgentRunS
 		cmdConf := conf.Section(sectionName)
 		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
 			log.Tracef("registered script: %s -> %s", name, command)
+			if _, ok := AvailableChecks[name]; ok {
+				log.Debugf("there is a built in check with the name: %s . the external script registered on path: %s has the same base name", name, command)
+			}
 			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler {
 				return &CheckWrap{name: name, commandString: strings.Join(command, " "), config: cmdConf}
 			}}
@@ -96,6 +101,9 @@ func (e *ExternalScriptsHandler) registerWrapped(conf *Config, runSet *AgentRunS
 		cmdConf := conf.Section(sectionName)
 		if command, _, ok := cmdConf.GetStringRaw("command"); ok {
 			log.Tracef("registered wrapped script: %s -> %s", name, command)
+			if _, ok := AvailableChecks[name]; ok {
+				log.Debugf("there is a built in check with the name: %s . the external wrapped script registered path: %s has the same base name", name, command)
+			}
 			runSet.cmdWraps[name] = CheckEntry{name, func() CheckHandler {
 				return &CheckWrap{name: name, commandString: strings.Join(command, " "), wrapped: true, config: cmdConf}
 			}}
@@ -107,35 +115,153 @@ func (e *ExternalScriptsHandler) registerWrapped(conf *Config, runSet *AgentRunS
 	return nil
 }
 
+func isExecutable(mode fs.FileMode) bool {
+	ownerExecutionBitmask := 0o0100
+	groupExecutableBitmask := 0o0010
+	othersExecutableBitmask := 0o001
+	executableByOwner := int(mode)&ownerExecutionBitmask != 0
+	executableByGroup := int(mode)&groupExecutableBitmask != 0
+	executableByOthers := int(mode)&othersExecutableBitmask != 0
+
+	return executableByOwner || executableByGroup || executableByOthers
+}
+
+//nolint:funlen,gocognit,gocyclo // cant take the walkDirFunc out, the signature is fixed and it writes to captured values outside
 func (e *ExternalScriptsHandler) registerScriptPath(defaultScriptConfig *ConfigSection, conf *Config) error {
-	scriptPath, ok := defaultScriptConfig.GetString("script path")
-	if !ok || scriptPath == "" {
+	configScriptPath, ok := defaultScriptConfig.GetString("script path")
+	if !ok || configScriptPath == "" {
 		return nil
 	}
 
-	_, err := os.Stat(scriptPath)
-	if os.IsNotExist(err) {
-		log.Warnf("script path %s: folder does not exist", scriptPath)
+	// the script path may have '**' at the end, which toggles recursive search within that directory
+	configScriptPath, recursiveSearch := strings.CutSuffix(configScriptPath, "**")
+
+	var scriptPath string
+	var err error
+	if scriptPath, err = filepath.Abs(configScriptPath); err != nil {
+		return fmt.Errorf("could not get the absolute path from config script path %s : %w", configScriptPath, err)
+	}
+
+	stat, err := os.Stat(scriptPath)
+	if os.IsNotExist(err) || !stat.IsDir() {
+		return fmt.Errorf("script path %s: does not exist", scriptPath)
+	}
+
+	if !stat.IsDir() {
+		return fmt.Errorf("script path %s: is not a directory", scriptPath)
+	}
+
+	foundScriptPaths := make([]string, 0)
+
+	var walkDirFunc fs.WalkDirFunc
+
+	walkDirFunc = func(path string, dirEntry fs.DirEntry, err error) error {
+		// this type of function may have a non-nill error
+
+		// First, if the initial Stat on the root directory fails, WalkDir calls the function with path set to root, d set to nil, and err set to the error from fs.Stat.
+		if path == scriptPath && dirEntry == nil && err != nil {
+			return err
+		}
+
+		// Second, if a directory's ReadDir method (see ReadDirFile) fails, WalkDir calls the function with path set to the directory's path,
+		//  d set to an DirEntry describing the directory, and err set to the error from ReadDir.
+		if dirEntry != nil && err != nil {
+			return err
+		}
+
+		// cant use dirEntry, since symlink redirects recursive calls have dirEntry as nil
+		// need to take os.stat for executable permissions
+		stat, statErr := os.Stat(path)
+		if os.IsNotExist(statErr) {
+			return fmt.Errorf("path: %s, does not exist", path)
+		}
+		if statErr != nil {
+			return fmt.Errorf("error when getting os.Stat of the path: %s , %w", path, statErr)
+		}
+
+		// if file lies outside of scriptPath, skip it.
+		if !strings.HasPrefix(path, scriptPath) {
+			log.Tracef("path : %s is outside of the scriptPath : %s", path, scriptPath)
+
+			return nil
+		}
+
+		// if its an link, try to follow this link
+		lstat, errLstat := os.Lstat(path)
+		if errLstat == nil && (lstat.Mode().Type()&fs.ModeSymlink != 0) {
+			log.Tracef("Following the symlink with name: %s at path: %s", lstat.Name(), path)
+
+			linkTarget, err := os.Readlink(path)
+			if err != nil {
+				return fmt.Errorf("reading the link failed, link path: %s", path)
+			}
+
+			if !filepath.IsAbs(linkTarget) {
+				linkTarget, err = filepath.Abs(filepath.Join(filepath.Dir(path), linkTarget))
+				if err != nil {
+					return fmt.Errorf("error when converting the link target to absolute path: %s , linkTarget: %s", path, linkTarget)
+				}
+			}
+
+			return walkDirFunc(linkTarget, nil, nil)
+		}
+
+		// optimization: if its a dir, return fs.SkipDir so that filepath.WalkDir can skip over the whole dir
+		if !recursiveSearch && stat.IsDir() && path != scriptPath {
+			return fs.SkipDir
+		}
+
+		// Skip directories during the walk
+		if stat.IsDir() {
+			log.Tracef("skipping directory as a script to add: %s", path)
+
+			return nil
+		}
+
+		if filepath.Dir(path) != scriptPath && !recursiveSearch {
+			log.Tracef("skipping file as a script to add: %s, recursiveSearch is not toggled", path)
+
+			return nil
+		}
+
+		// They have to be regular files.
+		if stat.Mode().Type()&fs.ModeIrregular != 0 {
+			log.Tracef("skipping file as a script to add: %s, its an irregular file", path)
+
+			return nil
+		}
+
+		// They have to be executable, available on some platforms
+		switch runtime.GOOS {
+		case "linux", "darwin", "netbsd", "openbsd":
+			if !isExecutable(stat.Mode().Perm()) {
+				log.Tracef("skipping file as a script to add: %s, go runtime is: %s, and the file is not executable with permissions: %d", path, runtime.GOOS, stat.Mode().Perm())
+
+				return nil
+			}
+		default:
+			log.Tracef("file as a script to add: %s, go runtime is: %s, cannot determine if file is executable", path, runtime.GOOS)
+		}
+
+		log.Tracef("adding file as a script: %s", path)
+		foundScriptPaths = append(foundScriptPaths, path)
 
 		return nil
 	}
 
-	pattern := filepath.Join(scriptPath, "*.*")
-	log.Debugf("script path: loading all scripts matching: %s", pattern)
-	scripts, err := filepath.Glob(pattern)
-	if err != nil {
-		return fmt.Errorf("failed to list script path: %s", err.Error())
+	if err = filepath.WalkDir(scriptPath, walkDirFunc); err != nil {
+		return fmt.Errorf("error when walking directory: %w", err)
 	}
 
-	for _, command := range scripts {
-		name := filepath.Base(command)
+	for _, scriptPath := range foundScriptPaths {
+		name := filepath.Base(scriptPath)
 		cmdConf := conf.Section("/settings/external scripts/scripts/" + name)
 		if !cmdConf.HasKey("command") {
 			allow, _, _ := defaultScriptConfig.GetBool("allow arguments")
 			if allow {
-				cmdConf.Set("command", command+" %ARGS\"%")
+				cmdConf.Set("command", scriptPath+" %ARGS\"%")
 			} else {
-				cmdConf.Set("command", command)
+				cmdConf.Set("command", scriptPath)
 			}
 		}
 	}

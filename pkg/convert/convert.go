@@ -10,7 +10,7 @@ import (
 
 // Float64 converts anything into a float64
 // errors will fall back to 0
-func Float64(raw interface{}) float64 {
+func Float64(raw any) float64 {
 	val, _ := Float64E(raw)
 
 	return val
@@ -18,7 +18,7 @@ func Float64(raw interface{}) float64 {
 
 // Float64E converts anything into a float64
 // errors will be returned
-func Float64E(raw interface{}) (float64, error) {
+func Float64E(raw any) (float64, error) {
 	switch val := raw.(type) {
 	case float64:
 		return val, nil
@@ -38,7 +38,7 @@ func Float64E(raw interface{}) (float64, error) {
 
 // Int64 converts anything into a int64
 // errors will fall back to 0
-func Int64(raw interface{}) int64 {
+func Int64(raw any) int64 {
 	val, _ := Int64E(raw)
 
 	return val
@@ -46,7 +46,7 @@ func Int64(raw interface{}) int64 {
 
 // Int64E converts anything into a int64
 // errors will be returned
-func Int64E(raw interface{}) (int64, error) {
+func Int64E(raw any) (int64, error) {
 	switch val := raw.(type) {
 	case int64:
 		return val, nil
@@ -78,7 +78,7 @@ func Int64E(raw interface{}) (int64, error) {
 
 // UInt64 converts anything into a uint64
 // errors will fall back to 0
-func UInt64(raw interface{}) uint64 {
+func UInt64(raw any) uint64 {
 	val, _ := UInt64E(raw)
 
 	return val
@@ -86,7 +86,7 @@ func UInt64(raw interface{}) uint64 {
 
 // UInt64E converts anything into a uint64
 // errors will be returned
-func UInt64E(raw interface{}) (uint64, error) {
+func UInt64E(raw any) (uint64, error) {
 	switch val := raw.(type) {
 	case uint64:
 		return val, nil
@@ -106,7 +106,7 @@ func UInt64E(raw interface{}) (uint64, error) {
 
 // Int converts anything into a int
 // errors will fall back to 0
-func Int(raw interface{}) int {
+func Int(raw any) int {
 	val, _ := IntE(raw)
 
 	return val
@@ -114,7 +114,7 @@ func Int(raw interface{}) int {
 
 // IntE converts anything into a int
 // errors will be returned
-func IntE(raw interface{}) (int, error) {
+func IntE(raw any) (int, error) {
 	switch val := raw.(type) {
 	case int:
 		return val, nil
@@ -134,7 +134,7 @@ func IntE(raw interface{}) (int, error) {
 
 // Int32 converts anything into a int32
 // errors will fall back to 0
-func Int32(raw interface{}) int32 {
+func Int32(raw any) int32 {
 	val, _ := Int32E(raw)
 
 	return val
@@ -142,7 +142,7 @@ func Int32(raw interface{}) int32 {
 
 // Int32E converts anything into a int32
 // errors will be returned
-func Int32E(raw interface{}) (int32, error) {
+func Int32E(raw any) (int32, error) {
 	switch val := raw.(type) {
 	case int32:
 		return val, nil
@@ -156,13 +156,17 @@ func Int32E(raw interface{}) (int32, error) {
 			return 0, fmt.Errorf("number to large for int32")
 		}
 
-		return int32(num), nil //nolint:gosec // false positive, MaxInt32 has been checked but it not considered by gosec (https://github.com/securego/gosec/issues/1187)
+		if num < math.MinInt32 {
+			return 0, fmt.Errorf("number to small for int32")
+		}
+
+		return int32(num), nil
 	}
 }
 
 // UInt32 converts anything into a uint32
 // errors will fall back to 0
-func UInt32(raw interface{}) uint32 {
+func UInt32(raw any) uint32 {
 	val, _ := UInt32E(raw)
 
 	return val
@@ -170,7 +174,7 @@ func UInt32(raw interface{}) uint32 {
 
 // UInt32E converts anything into a uint32
 // errors will be returned
-func UInt32E(raw interface{}) (uint32, error) {
+func UInt32E(raw any) (uint32, error) {
 	switch val := raw.(type) {
 	case uint32:
 		return val, nil
@@ -194,7 +198,7 @@ func UInt32E(raw interface{}) (uint32, error) {
 
 // UInt16 converts anything into a uint16
 // errors will fall back to 0
-func UInt16(raw interface{}) uint16 {
+func UInt16(raw any) uint16 {
 	val, _ := UInt16E(raw)
 
 	return val
@@ -202,7 +206,7 @@ func UInt16(raw interface{}) uint16 {
 
 // UInt16E converts anything into a uint16
 // errors will be returned
-func UInt16E(raw interface{}) (uint16, error) {
+func UInt16E(raw any) (uint16, error) {
 	switch val := raw.(type) {
 	case uint16:
 		return val, nil
@@ -226,7 +230,7 @@ func UInt16E(raw interface{}) (uint16, error) {
 
 // Bool converts anything into a bool
 // errors will fall back to false
-func Bool(raw interface{}) bool {
+func Bool(raw any) bool {
 	b, _ := BoolE(raw)
 
 	return b
@@ -234,7 +238,7 @@ func Bool(raw interface{}) bool {
 
 // BoolE converts anything into a bool
 // errors will be returned
-func BoolE(raw interface{}) (bool, error) {
+func BoolE(raw any) (bool, error) {
 	switch val := raw.(type) {
 	case bool:
 		return val, nil
@@ -252,7 +256,7 @@ func BoolE(raw interface{}) (bool, error) {
 
 // VersionF64 converts any version into a float64
 // errors will fall back to 0
-func VersionF64(raw interface{}) float64 {
+func VersionF64(raw any) float64 {
 	val, _ := VersionF64E(raw)
 
 	return val
@@ -260,7 +264,7 @@ func VersionF64(raw interface{}) float64 {
 
 // VersionF64E converts any version into a float64
 // errors will be returned
-func VersionF64E(raw interface{}) (float64, error) {
+func VersionF64E(raw any) (float64, error) {
 	str := fmt.Sprintf("%v", raw)
 	if str == "" {
 		return 0, fmt.Errorf("cannot parse version float64 value from %v (%T)", raw, raw)
@@ -292,7 +296,7 @@ func VersionF64E(raw interface{}) (float64, error) {
 
 // Num2String converts any number into a string
 // errors will fall back to empty string
-func Num2String(raw interface{}) string {
+func Num2String(raw any) string {
 	s, _ := Num2StringE(raw)
 
 	return s
@@ -300,7 +304,7 @@ func Num2String(raw interface{}) string {
 
 // Num2StringE converts any number into a string
 // errors will be returned
-func Num2StringE(raw interface{}) (string, error) {
+func Num2StringE(raw any) (string, error) {
 	switch num := raw.(type) {
 	case float64:
 		if strconv.FormatFloat(num, 'f', -1, 64) != fmt.Sprintf("%d", int64(num)) {

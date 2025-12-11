@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/snclient"
@@ -201,10 +202,8 @@ func injectDoubleSlashAfterRunCmd(rootCmd *cobra.Command) {
 	}
 
 	// check if there isn't any -- already in the args
-	for _, a := range os.Args {
-		if a == "--" {
-			return
-		}
+	if slices.Contains(os.Args, "--") {
+		return
 	}
 
 	// search start of cmd args
@@ -218,12 +217,8 @@ func injectDoubleSlashAfterRunCmd(rootCmd *cobra.Command) {
 
 			break
 		}
-		for _, n := range cmd.Aliases {
-			if arg == n {
-				found = idx
-
-				break
-			}
+		if slices.Contains(cmd.Aliases, arg) {
+			found = idx
 		}
 		if found > 0 {
 			break

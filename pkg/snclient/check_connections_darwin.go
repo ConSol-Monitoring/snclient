@@ -38,7 +38,7 @@ func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64
 
 	counter := make([]int64, tcpStateMAX-1)
 
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		cols := strings.Fields(line)
 		if len(cols) < 6 {
 			continue

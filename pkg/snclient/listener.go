@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -100,8 +101,8 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	// parse/set port.
 	port, ok := conf.GetString("port")
 	if ok {
-		if strings.HasSuffix(port, "s") {
-			port = strings.TrimSuffix(port, "s")
+		if cut, ok2 := strings.CutSuffix(port, "s"); ok2 {
+			port = cut
 			conf.Set("use ssl", "1")
 		}
 
@@ -274,7 +275,8 @@ func (l *Listener) Start() error {
 		}
 		l.listen = listen
 	} else {
-		listen, err := net.Listen("tcp", l.BindString())
+		lc := net.ListenConfig{}
+		listen, err := lc.Listen(context.TODO(), "tcp", l.BindString())
 		if err != nil {
 			return fmt.Errorf("listen failed: %s", err.Error())
 		}
@@ -339,7 +341,7 @@ func (l *Listener) handleTCPCon(con net.Conn, handler RequestHandlerTCP) {
 	log.Tracef("incoming %s connection from %s", l.connType, con.RemoteAddr().String())
 
 	allowed := handler.GetAllowedHosts()
-	if !allowed.Check(con.RemoteAddr().String()) {
+	if !allowed.Check(context.TODO(), con.RemoteAddr().String()) {
 		log.Warnf("ip %s is not in the allowed hosts", con.RemoteAddr().String())
 		con.Close()
 
@@ -395,7 +397,7 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 				mux.HandleFunc(mapping.URL, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					defer l.snc.logPanicExit()
 
-					l.WrappedCheckHTTPHandler(webHandler, &mapping, w, r)
+					l.WrappedCheckHTTPHandler(r.Context(), webHandler, &mapping, w, r)
 				}))
 			}
 		}
@@ -471,9 +473,9 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 }
 
 // wrapper for all known web requests to verify passwords and allowed hosts
-func (l *Listener) WrappedCheckHTTPHandler(webHandler RequestHandlerHTTP, mapping *URLMapping, res http.ResponseWriter, req *http.Request) {
+func (l *Listener) WrappedCheckHTTPHandler(ctx context.Context, webHandler RequestHandlerHTTP, mapping *URLMapping, res http.ResponseWriter, req *http.Request) {
 	allowed := webHandler.GetAllowedHosts()
-	if !allowed.Check(req.RemoteAddr) {
+	if !allowed.Check(ctx, req.RemoteAddr) {
 		log.Warnf("ip %s is not in the allowed hosts", req.RemoteAddr)
 		http.Error(res, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 

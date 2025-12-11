@@ -22,7 +22,7 @@ type winProcess struct {
 	PeakPageFileUsage  uint32
 	PeakVirtualSize    uint64
 	PeakWorkingSetSize uint32
-	ProcessId          uint32 //nolint:revive,stylecheck // var-naming: struct field ProcessId should be ProcessID, but that's how the this field was named in windows
+	ProcessId          uint32 //nolint:revive // var-naming: struct field ProcessId should be ProcessID, but that's how the this field was named in windows
 	WorkingSetSize     uint64
 	VirtualSize        uint64
 	UserModeTime       uint64
@@ -94,6 +94,7 @@ func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
 			"working_set":      fmt.Sprintf("%d", proc.WorkingSetSize),
 			"rss":              fmt.Sprintf("%d", proc.WorkingSetSize),
 			"cpu":              fmt.Sprintf("%f", cpu),
+			"cpu_seconds":      fmt.Sprintf("%f", cpuSec),
 		})
 	}
 

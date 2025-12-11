@@ -143,7 +143,7 @@ func mainSignalHandler(sig os.Signal, _ *Agent) MainStateType {
 
 func (snc *Agent) finishUpdate(binPath, mode string) {
 	if mode == "update" {
-		cmd := exec.Command(binPath, "update", "apply")
+		cmd := exec.CommandContext(context.TODO(), binPath, "update", "apply")
 		cmd.Env = os.Environ()
 		err := cmd.Start()
 		if err != nil {
@@ -164,7 +164,7 @@ func (snc *Agent) finishUpdate(binPath, mode string) {
 		return
 	}
 	// start service again
-	cmd := exec.Command("net", "start", "snclient")
+	cmd := exec.CommandContext(context.TODO(), "net", "start", "snclient")
 	output, err := cmd.CombinedOutput()
 	log.Tracef("[update] net start snclient: %s", strings.TrimSpace(string(output)))
 	if err != nil {
@@ -267,7 +267,7 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	// command does not exist
 	case lookupErr != nil:
 		cwd, _ := os.Getwd()
-		//nolint:stylecheck // error strings must be capitalized here because it ends up like this in the plugin output
+		//nolint:staticcheck // error strings must be capitalized here because it ends up like this in the plugin output
 		return nil, fmt.Errorf("Return code of 127 is out of bounds. Make sure the plugin you're trying to run actually exists (current working directory: %s).\n%s", cwd, lookupErr.Error())
 
 	// .bat files

@@ -18,7 +18,7 @@ type Counter struct {
 // Value is a single entry of a Counter
 type Value struct {
 	UnixMilli int64 // timestamp in unix milliseconds
-	Value     interface{}
+	Value     any
 }
 
 // NewCounter creates a new Counter with given retention time and interval
@@ -40,7 +40,7 @@ func NewCounter(retentionTime, interval time.Duration) *Counter {
 }
 
 // Set adds a new value with current timestamp
-func (c *Counter) Set(val interface{}) {
+func (c *Counter) Set(val any) {
 	c.lock.Lock()
 	c.current++
 	if c.current == c.size {

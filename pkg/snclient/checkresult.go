@@ -169,7 +169,7 @@ func (cr *CheckResult) ParsePerformanceDataFromOutput() {
 	}
 	trimmedOutput := []string{}
 	// parse output line by line and extract metrics
-	for _, line := range strings.Split(cr.Output, "\n") {
+	for line := range strings.SplitSeq(cr.Output, "\n") {
 		// get first pipe which is not escaped
 		pipeIndex := cr.findPipeIndex(line)
 		if pipeIndex == -1 {

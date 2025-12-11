@@ -21,7 +21,7 @@ func (l *CheckService) addProcMetrics(ctx context.Context, pidStr string, listEn
 	rss := uint64(0)
 	vms := uint64(0)
 	createTimeUnix := int64(0)
-	for _, pidStrEx := range strings.Split(pidStr, ",") {
+	for pidStrEx := range strings.SplitSeq(pidStr, ",") {
 		pid, err := convert.Int32E(pidStrEx)
 		if err != nil {
 			return fmt.Errorf("pid is not a number: %s: %s", pidStrEx, err.Error())

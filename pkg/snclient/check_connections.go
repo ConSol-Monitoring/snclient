@@ -186,7 +186,7 @@ func (l *CheckConnections) defaultEntry(source string) map[string]string {
 		"inet":   source,
 		"prefix": "",
 	}
-	for i := tcpStates(0); i < tcpStateMAX; i++ {
+	for i := range tcpStateMAX {
 		name := i.String()
 		entry[name] = ""
 	}
@@ -215,7 +215,7 @@ func (l *CheckConnections) addMetrics(check *CheckData, entry map[string]string)
 	if l.addressFamily == "any" {
 		prefix = entry["inet"] + "_"
 	}
-	for i := tcpStates(0); i < tcpStateMAX; i++ {
+	for i := range tcpStateMAX {
 		name := i.String()
 		str, ok := entry[name]
 		if !ok {

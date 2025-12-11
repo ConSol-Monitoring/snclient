@@ -78,7 +78,7 @@ func ParseBytes(raw string) (uint64, error) {
 	lastDigit := 0
 	hasComma := false
 	for _, r := range raw {
-		if !(unicode.IsDigit(r) || r == '.' || r == ',') {
+		if !unicode.IsDigit(r) && r != '.' && r != ',' {
 			break
 		}
 		if r == ',' {
@@ -122,7 +122,12 @@ func NumF(num int64, precision int) string {
 		prefix = "-"
 	}
 
-	return prefix + humanizeBytes(uint64(num), 1000, []string{"", "k", "M", "G", "T", "P", "E"}, precision) //nolint:gosec // underflow checked before but not recognized by gosec
+	// useless but makes gosec G115 happy
+	if num >= 0 {
+		return prefix + humanizeBytes(uint64(num), 1000, []string{"", "k", "M", "G", "T", "P", "E"}, precision)
+	}
+
+	return ""
 }
 
 // Bytes(82854982) -> 83 MB
@@ -166,9 +171,16 @@ func BytesUnitF(num uint64, targetUnit string, precision int) float64 {
 
 func humanizeBytes(num uint64, base float64, sizes []string, precision int) string {
 	if num < 10 {
+		if len(sizes) == 0 {
+			return fmt.Sprintf("%d", num)
+		}
+
 		return fmt.Sprintf("%d %s", num, sizes[0])
 	}
 	exp := math.Floor(logn(float64(num), base))
+	if len(sizes) <= int(exp) {
+		return fmt.Sprintf("%d", num)
+	}
 	suffix := sizes[int(exp)]
 	val := float64(num) / math.Pow(base, exp)
 	switch {

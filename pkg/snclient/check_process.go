@@ -52,7 +52,8 @@ func (l *CheckProcess) Build() *CheckData {
 			{name: "pid", description: "Process id"},
 			{name: "uid", description: "User if of process owner (linux only)"},
 			{name: "username", description: "User name of process owner (linux only)"},
-			{name: "cpu", description: "CPU usage in percent", unit: UPercent},
+			{name: "cpu", description: "CPU usage in percent (over total lifetime of process)", unit: UPercent},
+			{name: "cpu_seconds", description: "CPU usage in seconds", unit: UDuration},
 			{name: "virtual", description: "Virtual memory usage in bytes", unit: UByte},
 			{name: "rss", description: "Resident memory usage in bytes", unit: UByte},
 			{name: "pagefile", description: "Swap memory usage in bytes", unit: UByte},
@@ -134,10 +135,12 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 	totalRss := int64(0)
 	totalVirtual := int64(0)
 	totalCPU := float64(0)
+	totalCPUSec := float64(0)
 	oldest := int64(-1)
 	youngest := int64(0)
 	for _, p := range check.listData {
 		totalCPU += convert.Float64(p["cpu"])
+		totalCPUSec += convert.Float64(p["cpu_seconds"])
 		totalRss += convert.Int64(p["rss"])
 		totalVirtual += convert.Int64(p["virtual"])
 		create := convert.Int64(p["creation"])
@@ -149,11 +152,12 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 		}
 	}
 	check.details = map[string]string{
-		"cpu":      fmt.Sprintf("%f", totalCPU),
-		"rss":      fmt.Sprintf("%d", totalRss),
-		"virtual":  fmt.Sprintf("%d", totalVirtual),
-		"oldest":   fmt.Sprintf("%d", oldest),
-		"youngest": fmt.Sprintf("%d", youngest),
+		"cpu":         fmt.Sprintf("%f", totalCPU),
+		"cpu_seconds": fmt.Sprintf("%f", totalCPUSec),
+		"rss":         fmt.Sprintf("%d", totalRss),
+		"virtual":     fmt.Sprintf("%d", totalVirtual),
+		"oldest":      fmt.Sprintf("%d", oldest),
+		"youngest":    fmt.Sprintf("%d", youngest),
 	}
 
 	if check.HasThreshold("rss") || len(l.processes) > 0 || len(check.filter) > 0 {
@@ -183,6 +187,16 @@ func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 			Name:     "cpu",
 			Unit:     "%",
 			Value:    totalCPU,
+			Min:      &Zero,
+			Warning:  check.warnThreshold,
+			Critical: check.critThreshold,
+		})
+	}
+	if check.HasThreshold("cpu_seconds") {
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:     "cpu_seconds",
+			Unit:     "s",
+			Value:    totalCPUSec,
 			Min:      &Zero,
 			Warning:  check.warnThreshold,
 			Critical: check.critThreshold,

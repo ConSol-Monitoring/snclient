@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/netip"
@@ -18,7 +19,7 @@ func NewAllowedHostConfig(conf *ConfigSection) (*AllowedHostConfig, error) {
 	// parse / set allowed hosts
 	allowed, _ := conf.GetString("allowed hosts")
 	if allowed != "" {
-		for _, allow := range strings.Split(allowed, ",") {
+		for allow := range strings.SplitSeq(allowed, ",") {
 			allow = strings.TrimSpace(allow)
 			if allow == "" {
 				continue
@@ -43,7 +44,7 @@ func NewAllowedHostConfig(conf *ConfigSection) (*AllowedHostConfig, error) {
 	return ahc, nil
 }
 
-func (ahc *AllowedHostConfig) Check(remoteAddr string) bool {
+func (ahc *AllowedHostConfig) Check(ctx context.Context, remoteAddr string) bool {
 	if len(ahc.Allowed) == 0 {
 		return true
 	}
@@ -68,7 +69,7 @@ func (ahc *AllowedHostConfig) Check(remoteAddr string) bool {
 	}
 
 	for _, allow := range ahc.Allowed {
-		if allow.Contains(addr, ahc.UseCache) {
+		if allow.Contains(ctx, addr, ahc.UseCache) {
 			return true
 		}
 	}
@@ -135,7 +136,7 @@ func (a *AllowedHost) String() string {
 	return ""
 }
 
-func (a *AllowedHost) Contains(addr netip.Addr, useCaching bool) bool {
+func (a *AllowedHost) Contains(ctx context.Context, addr netip.Addr, useCaching bool) bool {
 	switch {
 	case a.Prefix != nil:
 		return a.Prefix.Contains(addr)
@@ -145,7 +146,7 @@ func (a *AllowedHost) Contains(addr netip.Addr, useCaching bool) bool {
 		resolved := a.ResolveCache
 
 		if useCaching || len(a.ResolveCache) == 0 {
-			resolved = a.resolveCache()
+			resolved = a.resolveCache(ctx)
 			if useCaching {
 				a.ResolveCache = resolved
 			}
@@ -163,10 +164,10 @@ func (a *AllowedHost) Contains(addr netip.Addr, useCaching bool) bool {
 	return false
 }
 
-func (a *AllowedHost) resolveCache() []netip.Addr {
+func (a *AllowedHost) resolveCache(ctx context.Context) []netip.Addr {
 	resolved := make([]netip.Addr, 0)
 
-	ips, err := net.LookupIP(*a.HostName)
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, *a.HostName)
 	if err != nil {
 		log.Debugf("dns lookup for %s failed: %s", *a.HostName, err.Error())
 

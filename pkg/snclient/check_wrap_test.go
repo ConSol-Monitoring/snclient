@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -178,12 +179,12 @@ func runTestCheckExternalWrapped(t *testing.T, snc *Agent) {
 }
 
 func TestMain(m *testing.M) {
-	cmd := exec.Command("go", "build", "-o", "check_dummy.exe", "check_dummy.go")
+	cmd := exec.CommandContext(context.TODO(), "go", "build", "-o", "check_dummy.exe", "check_dummy.go")
 	cmd.Dir = "t/scripts"
 	_, _ = cmd.CombinedOutput()
 	if runtime.GOOS != "windows" {
 		_ = os.Mkdir("t/scripts/subdir", os.ModePerm)
-		cmd = exec.Command("go", "build", "-o", "subdir/check_dummy.exe", "check_dummy.go")
+		cmd = exec.CommandContext(context.TODO(), "go", "build", "-o", "subdir/check_dummy.exe", "check_dummy.go")
 		cmd.Dir = "t/scripts"
 		_, _ = cmd.CombinedOutput()
 	}
@@ -265,7 +266,7 @@ func TestCheckExternalArgSpaces(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		assert.Equalf(t, `""`, string(res.BuildPluginOutput()), "output matches")
 	} else {
-		assert.Equalf(t, "", string(res.BuildPluginOutput()), "output matches")
+		assert.Emptyf(t, string(res.BuildPluginOutput()), "output matches")
 	}
 
 	StopTestAgent(t, snc)

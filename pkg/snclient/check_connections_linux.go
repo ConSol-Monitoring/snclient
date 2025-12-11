@@ -63,6 +63,12 @@ func (l *CheckConnections) getProcStats(file string) ([]int64, error) {
 
 			continue
 		}
+		if state >= uint64(len(counter)) {
+			log.Tracef("tcp state %s out of range", fields[3])
+
+			continue
+		}
+
 		counter[0]++
 		counter[state]++
 

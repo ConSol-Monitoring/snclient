@@ -2,12 +2,16 @@ package snclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
@@ -48,12 +52,13 @@ func (l *CheckFiles) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"path":      {value: &l.paths, description: "Path in which to search for files", isFilter: true},
-			"file":      {value: &l.paths, description: "Alias for path", isFilter: true},
-			"paths":     {value: &l.pathList, description: "A comma separated list of paths", isFilter: true},
-			"pattern":   {value: &l.pattern, description: "Pattern of files to search for", isFilter: true},
-			"max-depth": {value: &l.maxDepth, description: "Maximum recursion depth. Default: no limit. '0' disables recursion, '1' includes first sub folder level, etc..."},
-			"timezone":  {description: "Sets the timezone for time metrics (default is local time)"},
+			"path":    {value: &l.paths, description: "Path in which to search for files", isFilter: true},
+			"file":    {value: &l.paths, description: "Alias for path", isFilter: true},
+			"paths":   {value: &l.pathList, description: "A comma separated list of paths", isFilter: true},
+			"pattern": {value: &l.pattern, description: "Pattern of files to search for", isFilter: true},
+			"max-depth": {value: &l.maxDepth, description: "Maximum recursion depth. Default: no limit. '0' and '1' disable recursion and only include files/directories directly under path." +
+				", '2' starts to include files/folders of subdirectories with given depth. "},
+			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
 		},
 		detailSyntax: "%(name)",
 		okSyntax:     "%(status) - All %(count) files are ok: (%(total_size))",
@@ -105,11 +110,8 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 	}
 
 	for _, checkPath := range l.paths {
-		if l.maxDepth == 0 {
-			break
-		}
-
 		checkPath = l.normalizePath(checkPath)
+		log.Tracef("normalized checkPath: %s", checkPath)
 
 		err := filepath.WalkDir(checkPath, func(path string, dirEntry fs.DirEntry, err error) error {
 			return l.addFile(check, path, checkPath, dirEntry, err)
@@ -160,7 +162,11 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 }
 
 func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, err error) error {
-	needVersion := check.HasThreshold("version") || check.HasMacro("version")
+	// if its a directory, checkPath is never added to the entry list
+	if dirEntry != nil && dirEntry.IsDir() && path == checkPath {
+		return nil
+	}
+
 	path = l.normalizePath(path)
 	filename := filepath.Base(path)
 	entry := map[string]string{
@@ -172,29 +178,51 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		"type":     "file",
 	}
 
-	pathDepth := l.getDepth(path, checkPath)
-	log.Tracef("entry: %s (depth: %d)", path, pathDepth)
-
-	if dirEntry != nil && dirEntry.IsDir() {
-		// start path is never returned
-		if path == checkPath {
-			return nil
-		}
-		entry["type"] = "dir"
-		if l.maxDepth != -1 && pathDepth > l.maxDepth {
-			log.Tracef("skipping dir, max-depth reached: %s", path)
-
-			return fs.SkipDir
-		}
-
-		if err != nil {
-			// silently skip failed sub folder
-			return fs.SkipDir
+	matchAndAdd := func() {
+		if check.MatchMapCondition(check.filter, entry, false) {
+			log.Tracef("path : %s, matched the map conditions appending to the check.listData", path)
+			check.listData = append(check.listData, entry)
+		} else {
+			log.Tracef("path : %s, did not match the map conditions", path)
 		}
 	}
 
-	if l.maxDepth != -1 && pathDepth > l.maxDepth {
-		log.Tracef("skipping file, max-depth reached: %s", path)
+	pathDepth := l.getDepth(path, checkPath)
+
+	if dirEntry != nil && dirEntry.IsDir() {
+		entry["type"] = "dir"
+
+		if err != nil {
+			// silently skip failed sub folder.
+			// If you continue on and the error is checked later, it will add error to the entry
+			// This will make tests fail.
+			return fs.SkipDir
+		}
+
+		// if recursion is disabled with maxDepth
+		if l.maxDepth != -1 && pathDepth >= 2 {
+			switch {
+			case pathDepth < l.maxDepth:
+				log.Tracef("dir: %s, pathDepth: %d, maxDepth: %d, possible to add dir, deferring to add", path, pathDepth, l.maxDepth)
+				defer matchAndAdd()
+
+				return nil
+			case pathDepth == l.maxDepth:
+				log.Tracef("dir: %s, pathDepth: %d, maxDepth: %d, possible to add dir, deferring to add and returning fs.Skipdir", path, pathDepth, l.maxDepth)
+				defer matchAndAdd()
+
+				return fs.SkipDir
+			default:
+				log.Tracef("dir: %s, pathDepth: %d, maxDepth: %d, can not add dir, returning fs.SkipDir", path, pathDepth, l.maxDepth)
+
+				return fs.SkipDir
+			}
+		}
+	}
+
+	// if recursion is disabled with maxDepth
+	if l.maxDepth != -1 && pathDepth >= 2 && pathDepth > l.maxDepth {
+		log.Tracef("skipping file: %s, pathDepth: %d, max-depth:%d is lower", path, pathDepth, l.maxDepth)
 
 		return nil
 	}
@@ -207,11 +235,7 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		return nil
 	}
 
-	defer func() {
-		if check.MatchMapCondition(check.filter, entry, false) {
-			check.listData = append(check.listData, entry)
-		}
-	}()
+	defer matchAndAdd()
 
 	// check for errors here, maybe the file would have been filtered out anyway
 	if err != nil {
@@ -242,6 +266,7 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 	entry["write"] = fmt.Sprintf("%d", fileInfoSys.Mtime.Unix())
 	entry["written"] = fmt.Sprintf("%d", fileInfoSys.Mtime.Unix())
 
+	needVersion := check.HasThreshold("version") || check.HasMacro("version")
 	if needVersion {
 		version, err := getFileVersion(path)
 		if err != nil {
@@ -381,7 +406,7 @@ func (l *CheckFiles) addFileMetrics(check *CheckData) {
 	}
 }
 
-// normalizePath returns a trimmed path without spaces and trailing slashes or leading ./
+// normalizePath returns a trimmed path without spaces, trailing / or \, leading ./ or .\
 func (l *CheckFiles) normalizePath(path string) string {
 	path = strings.TrimSpace(path)
 	path = strings.TrimPrefix(path, "./")
@@ -389,18 +414,49 @@ func (l *CheckFiles) normalizePath(path string) string {
 	path = strings.TrimSuffix(path, "/")
 	path = strings.TrimSuffix(path, string(os.PathSeparator))
 
+	// Special handling for Windows drive letters,
+	// Files directly under the drive do not have seperators, e.g: C:pagefile.sys
+	// This confuses the depth calculation
+	if runtime.GOOS == "windows" {
+		// "C:example" -> "C:\example".
+		// Do not change if its just the drive letter. D: -> D:
+		// Otherwise 'D:\' and 'D:\example' would have the same number of seperators, even though the file is under the D: "directory" and should have increased depth
+		if len(path) >= 3 && unicode.IsUpper(rune(path[0])) && path[1] == ':' && path[2] != '\\' {
+			winBasePath := path[:2] + string('\\') + path[2:]
+
+			return winBasePath
+		}
+	}
+
 	return path
 }
 
-// getDepth returns path depth starting at 0 with the top folder
+// getDepth returns path depth starting at 0 with for the basePath
 func (l *CheckFiles) getDepth(path, basePath string) int64 {
+	// both the path and BasePath are normalized once according to CheckFiles.normalizePath()
+	// Windows example:
+	// basePath: C:\foo
+	// path: C:\foo -> 0
+	// path: C:\foo\bar -> 1
+	// path: C:\foo\bar\baz -> 2
+
 	if path == basePath {
 		return 0
 	}
 
-	subPath := strings.TrimPrefix(path, basePath)
+	if !strings.HasPrefix(path, basePath) {
+		log.Tracef("basePath: %s, is not a prefix of path: %s", basePath, path)
 
-	return int64(strings.Count(subPath, string(os.PathSeparator)))
+		return -1
+	}
+
+	subPath := strings.TrimPrefix(path, basePath)
+	seperatorCount := int64(strings.Count(subPath, string(os.PathSeparator)))
+	depth := seperatorCount
+
+	log.Tracef("path: %s, basePath: %s, subPath: %s, seperatorCount: %d, depth: %d", path, basePath, subPath, seperatorCount, depth)
+
+	return depth
 }
 
 func (l *CheckFiles) setError(entry map[string]string, err error) {
@@ -410,6 +466,21 @@ func (l *CheckFiles) setError(entry map[string]string, err error) {
 	case os.IsPermission(err):
 		entry["_error"] = fmt.Sprintf("%s: file or directory not readable", entry["fullname"])
 	default:
-		entry["_error"] = fmt.Sprintf("%s: %s", entry["fullname"], err.Error())
+		// Handle *fs.PathError specifically
+		var pathErr *fs.PathError
+		if errors.As(err, &pathErr) {
+			switch {
+			case errors.Is(pathErr, syscall.ENOENT):
+				entry["_error"] = fmt.Sprintf("%s: no such file or directory", entry["fullname"])
+			case errors.Is(pathErr, syscall.EACCES):
+				entry["_error"] = fmt.Sprintf("%s: file or directory not readable", entry["fullname"])
+			case errors.Is(pathErr, syscall.EPERM):
+				entry["_error"] = fmt.Sprintf("%s: file or directory not readable", entry["fullname"])
+			default:
+				entry["_error"] = fmt.Sprintf("%s: %s", entry["fullname"], pathErr.Err.Error())
+			}
+		} else {
+			entry["_error"] = fmt.Sprintf("%s: %s", entry["fullname"], err.Error())
+		}
 	}
 }

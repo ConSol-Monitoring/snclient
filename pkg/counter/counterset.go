@@ -75,7 +75,7 @@ func (cs *Set) GetRate(category, key string, lookback time.Duration) (res float6
 }
 
 // Set inserts value at current timestamp
-func (cs *Set) Set(category, key string, value interface{}) {
+func (cs *Set) Set(category, key string, value any) {
 	if cat, ok := cs.counter[category]; ok {
 		if counter, ok := cat[key]; ok {
 			counter.Set(value)

@@ -89,7 +89,7 @@ func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []
 				optsWantH[opt] = true
 			}
 			optsHaveH := make(map[string]bool)
-			for _, opt := range strings.Split(partition["options"], ",") {
+			for opt := range strings.SplitSeq(partition["options"], ",") {
 				optsHaveH[opt] = true
 			}
 			missing := []string{}

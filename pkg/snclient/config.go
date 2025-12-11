@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -384,12 +385,12 @@ func (config *Config) parseIncludeSection(section *ConfigSection, srcPath string
 		return nil
 	}
 
-	url, ok := section.GetString("url")
-	if !ok || url == "" {
+	urlStr, ok := section.GetString("url")
+	if !ok || urlStr == "" {
 		return fmt.Errorf("include section %s has no url set", section.name)
 	}
 
-	return config.parseInclude(url, srcPath, section, snc)
+	return config.parseInclude(urlStr, srcPath, section, snc)
 }
 
 func (config *Config) parseInclude(inclPath, srcPath string, section *ConfigSection, snc *Agent) error {
@@ -694,13 +695,8 @@ func (config *Config) DefaultMacros() map[string]string {
 	defaultMacros := map[string]string{
 		"hostname": "",
 	}
-	for key, val := range config.Section("/paths").data {
-		defaultMacros[key] = val
-	}
-
-	for key, val := range GlobalMacros {
-		defaultMacros[key] = val
-	}
+	maps.Copy(defaultMacros, config.Section("/paths").data)
+	maps.Copy(defaultMacros, GlobalMacros)
 
 	config.defaultMacros = &defaultMacros
 
@@ -807,8 +803,8 @@ func (cs *ConfigSection) SetRaw(key, value string) error {
 	newRawValue := []string{rawValue}
 
 	useAppend := false
-	if strings.HasSuffix(key, "+") {
-		key = strings.TrimSpace(strings.TrimSuffix(key, "+"))
+	if cut, ok := strings.CutSuffix(key, "+"); ok {
+		key = strings.TrimSpace(cut)
 		useAppend = true
 	}
 
@@ -1122,7 +1118,7 @@ func (d *ConfigData) Merge(defaults ConfigData) {
 	}
 }
 
-type ConfigInit []interface{}
+type ConfigInit []any
 
 // MergeIniFile merges settings from mergeFile into srcFile and return new config.
 func MergeIniFile(srcFile, mergeFile string, snc *Agent) *Config {

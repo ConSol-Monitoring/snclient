@@ -15,7 +15,7 @@ import (
 type CheckMetric struct {
 	Name          string        // Name as used in the perf data string
 	Unit          string        // Unit of the value
-	Value         interface{}   // Current value
+	Value         any           // Current value
 	ThresholdName string        // if set, use this name instead of Name to extract thresholds from conditions
 	Warning       ConditionList // threshold used for warnings
 	WarningStr    *string       // set warnings from string
@@ -114,7 +114,7 @@ func (m *CheckMetric) tweakedName() (name string) {
 
 // tweakedNum applies perf-config tweaks to a given number and returns the formatted number and unit.
 // It handles multiplication by a magic factor, conversion to percentages, and unit conversions
-func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
+func (m *CheckMetric) tweakedNum(rawNum any) (num, unit string) {
 	str := fmt.Sprintf("%v", rawNum)
 	if str == "U" {
 		return str, ""
@@ -157,7 +157,7 @@ func (m *CheckMetric) tweakedNum(rawNum interface{}) (num, unit string) {
 }
 
 func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
-	conv := func(rawNum interface{}) string {
+	conv := func(rawNum any) string {
 		num, _ := m.tweakedNum(rawNum)
 
 		return num

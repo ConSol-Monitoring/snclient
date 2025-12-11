@@ -25,9 +25,13 @@ func init() {
 }
 
 type CheckLoad struct {
-	warning  string
+	// Warning threshold, triggered if the value goes above. Format: "WLOAD1,WLOAD5,WLOAD15"
+	warning string
+	// Critical threshold, triggered if the value goes above. Format: "CLOAD1,CLOAD5,CLOAD15"
 	critical string
-	perCPU   bool
+	// Divide load averages for the past 1,5,15 minutes by the number of cpus
+	perCPU bool
+	// List the top N cpu consuming processes
 	numProcs int64
 }
 
@@ -70,22 +74,29 @@ func (l *CheckLoad) Build() *CheckData {
 }
 
 func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	// transform warning/critical argument into threshold
-	err := l.transformThreshold(l.warning, "W", &check.warnThreshold)
-	if err != nil {
-		return nil, err
-	}
-	err = l.transformThreshold(l.critical, "C", &check.critThreshold)
-	if err != nil {
-		return nil, err
-	}
-
-	loadAvg, err := load.AvgWithContext(ctx)
+	loadStat, err := load.AvgWithContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("load.Avg(): %s", err.Error())
 	}
+	l.addLoadStats(check, "total", loadStat)
 
-	if l.perCPU {
+	//nolint:nestif // Anything less nested would be more complex to read?
+	if !l.perCPU {
+		// If the percpu mode is off, thresholds are only added for total load values
+		warningThresholdTransformationError := l.transformPluginThresholds(l.warning, "W", "total", &check.warnThreshold)
+		if warningThresholdTransformationError != nil {
+			return nil, warningThresholdTransformationError
+		}
+		criticalThresholdTransformationError := l.transformPluginThresholds(l.critical, "C", "total", &check.critThreshold)
+		if criticalThresholdTransformationError != nil {
+			return nil, criticalThresholdTransformationError
+		}
+
+		// Add total load values as metrics
+		l.addLoadMetrics(check, "", loadStat)
+
+		// Scaled values are not added to the list data, no need to add them as metrics with null values
+	} else {
 		numCPU, err2 := cpuinfo.CountsWithContext(ctx, true)
 		if err2 != nil {
 			return nil, fmt.Errorf("cpuinfo: %s", err2.Error())
@@ -93,14 +104,55 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 		if numCPU == 0 {
 			return nil, fmt.Errorf("cpu count is zero")
 		}
-		scaledLoad := &load.AvgStat{
-			Load1:  loadAvg.Load1 / float64(numCPU),
-			Load5:  loadAvg.Load5 / float64(numCPU),
-			Load15: loadAvg.Load15 / float64(numCPU),
+		scaledLoadStat := &load.AvgStat{
+			Load1:  loadStat.Load1 / float64(numCPU),
+			Load5:  loadStat.Load5 / float64(numCPU),
+			Load15: loadStat.Load15 / float64(numCPU),
 		}
-		l.addLoad(check, "scaled", "scaled_", scaledLoad)
+		// Add scaled load values to the list data
+		l.addLoadStats(check, "scaled", scaledLoadStat)
+
+		// In the percpu mode, thresholds are added only for the scaled load values
+		warningThresholdTransformationError := l.transformPluginThresholds(l.warning, "W", "scaled", &check.warnThreshold)
+		if warningThresholdTransformationError != nil {
+			return nil, warningThresholdTransformationError
+		}
+		criticalThresholdTransformationError := l.transformPluginThresholds(l.critical, "C", "scaled", &check.critThreshold)
+		if criticalThresholdTransformationError != nil {
+			return nil, criticalThresholdTransformationError
+		}
+
+		// Add scaled load values as metrics
+		l.addLoadMetrics(check, "scaled_", scaledLoadStat)
+
+		// IMPORTANT: Add metrics for the total values with null values
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				ThresholdName: "load1",
+				Name:          "load1",
+				Value:         loadStat.Load1,
+				Warning:       nil,
+				Critical:      nil,
+				Min:           &Zero,
+			},
+			&CheckMetric{
+				ThresholdName: "load5",
+				Name:          "load5",
+				Value:         loadStat.Load5,
+				Warning:       nil,
+				Critical:      nil,
+				Min:           &Zero,
+			},
+			&CheckMetric{
+				ThresholdName: "load15",
+				Name:          "load15",
+				Value:         loadStat.Load15,
+				Warning:       nil,
+				Critical:      nil,
+				Min:           &Zero,
+			},
+		)
 	}
-	l.addLoad(check, "total", "", loadAvg)
 
 	if l.numProcs > 0 {
 		err = l.appendProcs(ctx, check)
@@ -120,21 +172,21 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 	return check.Finalize()
 }
 
-func (l *CheckLoad) addLoad(check *CheckData, name, perfPrefix string, loadAvg *load.AvgStat) {
-	maxLoad := loadAvg.Load1
-	if loadAvg.Load5 > maxLoad {
-		maxLoad = loadAvg.Load5
-	}
-	if loadAvg.Load15 > maxLoad {
-		maxLoad = loadAvg.Load15
-	}
+func (l *CheckLoad) addLoadStats(check *CheckData, typename string, loadAvg *load.AvgStat) {
 	check.listData = append(check.listData, map[string]string{
-		"type":   name,
-		"load":   fmt.Sprintf("%.2f", utils.ToPrecision(maxLoad, 2)),
+		"type":   typename,
+		"load":   fmt.Sprintf("%.2f", utils.ToPrecision(max(loadAvg.Load1, loadAvg.Load5, loadAvg.Load15), 2)),
 		"load1":  fmt.Sprintf("%.2f", utils.ToPrecision(loadAvg.Load1, 2)),
 		"load5":  fmt.Sprintf("%.2f", utils.ToPrecision(loadAvg.Load5, 2)),
 		"load15": fmt.Sprintf("%.2f", utils.ToPrecision(loadAvg.Load15, 2)),
 	})
+}
+
+// typename is will be added as "type" attribute, is either "total" or "scaled"
+// do not forget to put all conditions for the check before calling this function
+func (l *CheckLoad) addLoadMetrics(check *CheckData, perfPrefix string, loadAvg *load.AvgStat) {
+	// before adding, transform 'load' keyword into 'load1', 'load5' and 'load15'
+	// this behavior is wanted, so that users can use 'load' keyword without caring which condition hits
 	check.result.Metrics = append(check.result.Metrics,
 		&CheckMetric{
 			ThresholdName: "load1",
@@ -215,12 +267,14 @@ func (l *CheckLoad) appendProcs(ctx context.Context, check *CheckData) error {
 	return nil
 }
 
-// transform "-w num,num,num" threshold into regular threshold
-func (l *CheckLoad) transformThreshold(arg, prefix string, threshold *ConditionList) error {
-	if arg == "" {
+// transform "-w num,num,num" and "-c num,num,num" thresholds into ConditionLists
+// Argument to the modifier threshold is given as a pointer, points either to warning or the critical
+// typename is the 'type' of the attribute, either 'total' or 'scaled'
+func (l *CheckLoad) transformPluginThresholds(thresholdString, prefix, typename string, threshold *ConditionList) error {
+	if thresholdString == "" {
 		return nil
 	}
-	splitted := strings.Split(arg, ",")
+	splitted := strings.Split(thresholdString, ",")
 	if len(splitted) == 1 {
 		// use same threshold for 1m, 5m and 15m
 		splitted = append(splitted, splitted[0], splitted[0])
@@ -228,11 +282,70 @@ func (l *CheckLoad) transformThreshold(arg, prefix string, threshold *ConditionL
 	if len(splitted) != 3 {
 		return fmt.Errorf("warning threshold must be: %s1,%s5,%s15", prefix, prefix, prefix)
 	}
+
 	newThreshold := *threshold
 	newThreshold = append(newThreshold,
-		&Condition{keyword: "load1", value: splitted[0], operator: Greater},
-		&Condition{keyword: "load5", value: splitted[1], operator: Greater},
-		&Condition{keyword: "load15", value: splitted[2], operator: Greater},
+		// The assumption is that these three conditions are used with a logical OR between them
+		&Condition{
+			group: []*Condition{
+				{
+					keyword:  "type",
+					value:    typename,
+					operator: Equal,
+					unit:     "",
+					original: "type == " + "'" + typename + "'",
+				},
+				{
+					keyword:  "load1",
+					value:    splitted[0],
+					operator: Greater,
+					unit:     "",
+					original: "load1 > " + splitted[0],
+				},
+			},
+			groupOperator: GroupAnd,
+			original:      "type == " + "'" + typename + "' && load1 > " + splitted[0],
+		},
+		&Condition{
+			group: []*Condition{
+				{
+					keyword:  "type",
+					value:    typename,
+					operator: Equal,
+					unit:     "",
+					original: "type == 'total'",
+				},
+				{
+					keyword:  "load5",
+					value:    splitted[1],
+					operator: Greater,
+					unit:     "",
+					original: "load5 > " + splitted[1],
+				},
+			},
+			groupOperator: GroupAnd,
+			original:      "type == " + "'" + typename + "' && load5 > " + splitted[1],
+		},
+		&Condition{
+			group: []*Condition{
+				{
+					keyword:  "type",
+					value:    typename,
+					operator: Equal,
+					unit:     "",
+					original: "type == 'total'",
+				},
+				{
+					keyword:  "load15",
+					value:    splitted[2],
+					operator: Greater,
+					unit:     "",
+					original: "load15 > " + splitted[2],
+				},
+			},
+			groupOperator: GroupAnd,
+			original:      "type == " + "'" + typename + "' && load15 > " + splitted[2],
+		},
 	)
 	*threshold = newThreshold
 

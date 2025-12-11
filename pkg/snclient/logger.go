@@ -192,7 +192,7 @@ func LogError(err error) {
 	}
 }
 
-func LogError2(_ interface{}, err error) {
+func LogError2(_ any, err error) {
 	if err != nil {
 		logErr := log.Output(factorlog.ERROR, 2, err.Error())
 		if logErr != nil {
@@ -219,7 +219,7 @@ func LogTrace(err error) {
 	}
 }
 
-func LogStderrf(format string, args ...interface{}) {
+func LogStderrf(format string, args ...any) {
 	if !IsInteractive() && LogFileHandle != nil {
 		// log into standard logfile as well, otherwise we would miss daemon startup errors
 		log.Errorf(format, args...)

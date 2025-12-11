@@ -59,8 +59,8 @@ func ExpandDuration(val string) (res float64, err error) {
 	val = strings.ToLower(val)
 
 	for _, f := range TimeFactors {
-		if strings.HasSuffix(val, f.suffix) {
-			num, err = strconv.ParseFloat(strings.TrimSuffix(val, f.suffix), 64)
+		if cut, ok := strings.CutSuffix(val, f.suffix); ok {
+			num, err = strconv.ParseFloat(cut, 64)
 			res = num * f.factor
 			if err != nil {
 				return 0, fmt.Errorf("expandDuration: %s", err.Error())
@@ -131,7 +131,7 @@ func IsNumeric(s string) bool {
 
 // IsFloatVal returns true if given val is a real float64 with fractions
 // or false if value can be represented as int64
-func IsFloatVal(val interface{}) bool {
+func IsFloatVal(val any) bool {
 	switch num := val.(type) {
 	case float64:
 		return strconv.FormatFloat(num, 'f', -1, 64) != fmt.Sprintf("%d", int64(num))
@@ -204,9 +204,7 @@ func DurationString(dur time.Duration) string {
 
 func CloneStringMap(src map[string]string) (clone map[string]string) {
 	clone = make(map[string]string)
-	for k, v := range src {
-		clone[k] = v
-	}
+	maps.Copy(clone, src)
 
 	return clone
 }
@@ -366,7 +364,7 @@ func ParseVersion(str string) (num float64) {
 }
 
 // Sha256FileSum returns sha256 sum for given file
-func Sha256FileSum(path string) (hash string, err error) {
+func Sha256FileSum(path string) (hashStr string, err error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("open %s: %s", path, err.Error())
@@ -381,7 +379,7 @@ func Sha256FileSum(path string) (hash string, err error) {
 	return fmt.Sprintf("%x", sha.Sum(nil)), nil
 }
 
-func FileHash(path string, algorithm hash.Hash) (hash string, err error) {
+func FileHash(path string, algorithm hash.Hash) (hashStr string, err error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("open %s: %s", path, err.Error())
@@ -395,24 +393,24 @@ func FileHash(path string, algorithm hash.Hash) (hash string, err error) {
 	return fmt.Sprintf("%x", algorithm.Sum(nil)), nil
 }
 
-func MD5FileSum(path string) (hash string, err error) {
+func MD5FileSum(path string) (hashStr string, err error) {
 	return FileHash(path, md5.New()) //nolint:gosec // needed for md5 file hash
 }
 
-func Sha1FileSum(path string) (hash string, err error) {
+func Sha1FileSum(path string) (hashStr string, err error) {
 	return FileHash(path, sha1.New()) //nolint:gosec // needed for sha1 file hash
 }
 
-func Sha384FileSum(path string) (hash string, err error) {
+func Sha384FileSum(path string) (hashStr string, err error) {
 	return FileHash(path, sha512.New384())
 }
 
-func Sha512FileSum(path string) (hash string, err error) {
+func Sha512FileSum(path string) (hashStr string, err error) {
 	return FileHash(path, sha512.New())
 }
 
 // Sha256Sum returns sha256 sum for given string
-func Sha256Sum(text string) (hash string, err error) {
+func Sha256Sum(text string) (hashStr string, err error) {
 	sha := sha256.New()
 	_, err = fmt.Fprint(sha, text)
 	if err != nil {
@@ -606,7 +604,7 @@ func SortRanked(list []string, ranks map[string]int) []string {
 }
 
 // returns string map keys in sorted order
-func SortedKeys[V interface{}](m map[string]V) []string {
+func SortedKeys[V any](m map[string]V) []string {
 	keys := slices.AppendSeq(make([]string, 0, len(m)), maps.Keys(m))
 	sort.Strings(keys)
 

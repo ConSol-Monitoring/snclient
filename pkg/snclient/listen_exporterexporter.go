@@ -291,9 +291,9 @@ func (l *HandlerExporterExporter) doProxy(res http.ResponseWriter, req *http.Req
 }
 
 type exporterModuleConfig struct {
-	Method  string                 `json:"method"  yaml:"method"`
-	Timeout time.Duration          `json:"timeout" yaml:"timeout"`
-	XXX     map[string]interface{} `json:",inline" yaml:",inline"`
+	Method  string         `json:"method"  yaml:"method"`
+	Timeout time.Duration  `json:"timeout" yaml:"timeout"`
+	XXX     map[string]any `json:",inline" yaml:",inline"`
 
 	Exec exporterExecConfig `json:"exec" yaml:"exec"`
 	HTTP exporterHTTPConfig `json:"http" yaml:"http"`
@@ -304,35 +304,35 @@ type exporterModuleConfig struct {
 }
 
 type exporterHTTPConfig struct {
-	Verify                 bool                   `yaml:"verify"`                   // false, not implemented
-	TLSInsecureSkipVerify  bool                   `yaml:"tls_insecure_skip_verify"` // false
-	TLSCertFile            *string                `yaml:"tls_cert_file"`            // no default
-	TLSKeyFile             *string                `yaml:"tls_key_file"`             // no default
-	TLSCACertFile          *string                `yaml:"tls_ca_cert_file"`         // no default
-	Port                   int                    `yaml:"port"`                     // no default
-	Path                   string                 `yaml:"path"`                     // /metrics
-	Scheme                 string                 `yaml:"scheme"`                   // http
-	Address                string                 `yaml:"address"`                  // localhost
-	Headers                map[string]string      `yaml:"headers"`                  // no default
-	BasicAuthUsername      string                 `yaml:"basic_auth_username"`      // no default
-	BasicAuthPassword      string                 `yaml:"basic_auth_password"`      // no default
-	XXX                    map[string]interface{} `yaml:",inline"`
+	Verify                 bool              `yaml:"verify"`                   // false, not implemented
+	TLSInsecureSkipVerify  bool              `yaml:"tls_insecure_skip_verify"` // false
+	TLSCertFile            *string           `yaml:"tls_cert_file"`            // no default
+	TLSKeyFile             *string           `yaml:"tls_key_file"`             // no default
+	TLSCACertFile          *string           `yaml:"tls_ca_cert_file"`         // no default
+	Port                   int               `yaml:"port"`                     // no default
+	Path                   string            `yaml:"path"`                     // /metrics
+	Scheme                 string            `yaml:"scheme"`                   // http
+	Address                string            `yaml:"address"`                  // localhost
+	Headers                map[string]string `yaml:"headers"`                  // no default
+	BasicAuthUsername      string            `yaml:"basic_auth_username"`      // no default
+	BasicAuthPassword      string            `yaml:"basic_auth_password"`      // no default
+	XXX                    map[string]any    `yaml:",inline"`
 	tlsConfig              *tls.Config
 	mcfg                   *exporterModuleConfig
 	*httputil.ReverseProxy `json:"-"`
 }
 
 type exporterExecConfig struct {
-	Command string                 `yaml:"command"`
-	Args    []string               `yaml:"args"`
-	Env     map[string]string      `yaml:"env"`
-	XXX     map[string]interface{} `yaml:",inline"`
+	Command string            `yaml:"command"`
+	Args    []string          `yaml:"args"`
+	Env     map[string]string `yaml:"env"`
+	XXX     map[string]any    `yaml:",inline"`
 	mcfg    *exporterModuleConfig
 }
 
 type exporterFileConfig struct {
-	Path string                 `yaml:"path"`
-	XXX  map[string]interface{} `yaml:",inline"`
+	Path string         `yaml:"path"`
+	XXX  map[string]any `yaml:",inline"`
 	mcfg *exporterModuleConfig
 }
 

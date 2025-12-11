@@ -9,7 +9,7 @@ import (
 
 func TestConvertFloat64E(t *testing.T) {
 	tests := []struct {
-		in  interface{}
+		in  any
 		res float64
 		err bool
 	}{
@@ -36,7 +36,7 @@ func TestConvertFloat64E(t *testing.T) {
 
 func TestConvertBoolE(t *testing.T) {
 	tests := []struct {
-		in  interface{}
+		in  any
 		res bool
 		err bool
 	}{
@@ -62,7 +62,7 @@ func TestConvertBoolE(t *testing.T) {
 
 func TestConvertVersionF64(t *testing.T) {
 	tests := []struct {
-		in  interface{}
+		in  any
 		res float64
 		err bool
 	}{
@@ -91,7 +91,7 @@ func TestConvertVersionF64(t *testing.T) {
 
 func TestNum2String(t *testing.T) {
 	tests := []struct {
-		in  interface{}
+		in  any
 		res string
 		err bool
 	}{

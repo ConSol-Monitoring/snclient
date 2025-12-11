@@ -14,7 +14,7 @@ check_plugin perf-config="selector(key:value;...)"
 For example:
 
 ```bash
-check_drivesize "perf-config=used(unit:G) used %(ignored:true)"
+check_drivesize "perf-config= used %(ignored:true) used(unit:G)"
 ```
 
 This will convert used disk space bytes into gigabytes. It als removes the percent

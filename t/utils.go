@@ -266,10 +266,7 @@ func startBackgroundDaemon(t *testing.T) {
 	}()
 
 	startTimeOut := time.Now().Add(10 * time.Second)
-	for {
-		if time.Now().After(startTimeOut) {
-			break
-		}
+	for time.Now().Before(startTimeOut) {
 		pid, err := utils.ReadPid(daemonPidFile)
 		if err == nil {
 			daemonPid = pid

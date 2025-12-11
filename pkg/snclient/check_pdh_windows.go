@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 	"unsafe"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/pdh"
 	"golang.org/x/sys/windows"
 )
@@ -61,11 +61,11 @@ func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, args []A
 	r := regexp.MustCompile(`\d+`)
 	matches := r.FindAllString(c.CounterPath, -1)
 	for _, match := range matches {
-		index, err := strconv.Atoi(strings.ReplaceAll(match, `\`, ""))
+		index, err := convert.UInt32E(strings.ReplaceAll(match, `\`, ""))
 		if err != nil {
 			return nil, fmt.Errorf("could not convert index. error was %s", err.Error())
 		}
-		res, path := pdh.PdhLookupPerfNameByIndex(uint32(index)) //nolint:gosec // Index is small and needs  to be uint32 for system call
+		res, path := pdh.PdhLookupPerfNameByIndex(index)
 		if res != pdh.ERROR_SUCCESS {
 			return nil, fmt.Errorf("could not find given index: %d response code: %d", index, res)
 		}

@@ -34,11 +34,11 @@ const (
 type CommaStringList []string
 
 type CheckArgument struct {
-	value           interface{} // reference to storage pointer
-	description     string      // used in help
-	isFilter        bool        // if true, default filter is not used when this argument is set
-	defaultCritical string      // overrides default filter if argument is used
-	defaultWarning  string      // same for critical condition
+	value           any    // reference to storage pointer
+	description     string // used in help
+	isFilter        bool   // if true, default filter is not used when this argument is set
+	defaultCritical string // overrides default filter if argument is used
+	defaultWarning  string // same for critical condition
 }
 
 // Implemented defines the available supported operating systems
@@ -599,6 +599,8 @@ func (cd *CheckData) parseStateString(state string) int64 {
 
 // parseArgs parses check arguments into the CheckData struct
 // and returns all unknown options
+//
+//nolint:funlen,gocyclo // it is not complex, it is just a long list of options
 func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 	cd.rawArgs = args
 	cd.hasArgsSupplied = map[string]bool{}
@@ -730,6 +732,8 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 				argList = append(argList, Argument{key: keyword, value: argValue})
 			case keyword == "-h", keyword == "--help":
 				cd.showHelp = PluginHelp
+			case keyword == "-a":
+				// ignore -a for legacy compatibility
 			default:
 				return nil, fmt.Errorf("unknown argument: %s", keyword)
 			}
@@ -1189,32 +1193,14 @@ func (cd *CheckData) TransformThreshold(srcThreshold ConditionList, srcName, tar
 	return transformed
 }
 
-// replaces source keywords in threshold with new keyword
+// Clones existing thresholds, then replaces source keywords in threshold condition with the new specified keyword.
+// Transforms every condition in its ConditionList.
 func (cd *CheckData) TransformMultipleKeywords(srcKeywords []string, targetKeyword string, srcThreshold ConditionList) (threshold ConditionList) {
 	transformed := cd.CloneThreshold(srcThreshold)
-	applyChange := func(cond *Condition) bool {
-		found := ""
-		for _, keyword := range srcKeywords {
-			if keyword == cond.keyword {
-				found = keyword
 
-				break
-			}
-		}
-		if found == "" {
-			return true
-		}
-		cond.keyword = targetKeyword
-		switch {
-		case strings.HasSuffix(found, "_pct"):
-			cond.unit = "%"
-		case strings.HasSuffix(found, "_bytes"):
-			cond.unit = "B"
-		}
-
-		return true
-	}
-	cd.VisitAll(transformed, applyChange)
+	cd.VisitAll(transformed, func(cond *Condition) bool {
+		return cond.TransformMultipleKeywords(srcKeywords, targetKeyword)
+	})
 
 	return transformed
 }
@@ -1302,8 +1288,7 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 func (cd *CheckData) expandArgDefinitions() {
 	cd.extraArgs = make(map[string]CheckArgument)
 	for k, arg := range cd.args {
-		keys := strings.Split(k, "|")
-		for _, key := range keys {
+		for key := range strings.SplitSeq(k, "|") {
 			key = strings.TrimSpace(key)
 			cd.extraArgs[key] = arg
 		}
@@ -1420,10 +1405,10 @@ func (cd *CheckData) helpImplemented(format ShowHelp) string {
 		osx     string
 	}
 	header := []utils.ASCIITableHeader{
-		{Name: "Windows", Field: "windows", Centered: true},
-		{Name: "Linux", Field: "linux", Centered: true},
-		{Name: "FreeBSD", Field: "freebsd", Centered: true},
-		{Name: "MacOSX", Field: "osx", Centered: true},
+		{Name: "Windows", Field: "windows", Alignment: "centered"},
+		{Name: "Linux", Field: "linux", Alignment: "centered"},
+		{Name: "FreeBSD", Field: "freebsd", Alignment: "centered"},
+		{Name: "MacOSX", Field: "osx", Alignment: "centered"},
 	}
 	implemented := implTableData{}
 	if cd.implemented&Windows > 0 {

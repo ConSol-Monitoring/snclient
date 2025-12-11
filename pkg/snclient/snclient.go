@@ -43,7 +43,7 @@ const (
 		" monitoring agent designed as replacement for NRPE and NSClient++."
 
 	// VERSION contains the actual snclient version.
-	VERSION = "0.38"
+	VERSION = "0.39"
 
 	// ExitCodeOK is used for normal exits.
 	ExitCodeOK = 0
@@ -735,13 +735,13 @@ func (snc *Agent) logPanicRecover() {
 
 // RunCheck calls check by name and returns the check result.
 func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
-	return snc.RunCheckWithContext(context.TODO(), name, args, 0, nil)
+	return snc.RunCheckWithContext(context.TODO(), name, args, 0, nil, false)
 }
 
 // RunCheckWithContext calls check by name and returns the check result.
 // secCon configuration section will be used to check for nasty characters and allowed arguments.
-func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection) *CheckResult {
-	res, chk := snc.runCheck(ctx, name, args, timeoutOverride, transportConf, false)
+func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection, skipAlias bool) *CheckResult {
+	res, chk := snc.runCheck(ctx, name, args, timeoutOverride, transportConf, false, skipAlias)
 	if res.Raw == nil || res.Raw.showHelp == 0 {
 		if chk != nil {
 			res.Finalize(chk.timezone)
@@ -753,13 +753,13 @@ func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []s
 	return res
 }
 
-func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection, skipAllowedCheck bool) (*CheckResult, *CheckData) {
+func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection, skipAllowedCheck, skipAlias bool) (*CheckResult, *CheckData) {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
 	if deadline, ok := ctx.Deadline(); ok {
 		log.Tracef("ctx deadline: %s", time.Until(deadline).String())
 	}
-	check, ok := snc.getCheck(name)
+	check, ok := snc.getCheck(name, skipAlias)
 	if !ok {
 		return &CheckResult{
 			State:  CheckExitUnknown,
@@ -858,6 +858,12 @@ func (snc *Agent) runHelp(ctx context.Context, chk *CheckData, handler CheckHand
 	switch builtin := handler.(type) {
 	case *CheckBuiltin:
 		help = builtin.Help(ctx, snc, chk, chk.showHelp)
+	case *CheckAlias:
+		alias, ok := snc.getCheck(builtin.command, true)
+		if ok {
+			realChk := alias.Handler().Build()
+			help = realChk.Help(chk.showHelp)
+		}
 	default:
 		help = chk.Help(chk.showHelp)
 	}
@@ -869,10 +875,12 @@ func (snc *Agent) runHelp(ctx context.Context, chk *CheckData, handler CheckHand
 	}
 }
 
-func (snc *Agent) getCheck(name string) (_ *CheckEntry, ok bool) {
+func (snc *Agent) getCheck(name string, skipAlias bool) (_ *CheckEntry, ok bool) {
 	if snc.runSet != nil {
-		if chk, ok := snc.runSet.cmdAliases[name]; ok {
-			return &chk, ok
+		if !skipAlias {
+			if chk, ok := snc.runSet.cmdAliases[name]; ok {
+				return &chk, ok
+			}
 		}
 		if chk, ok := snc.runSet.cmdWraps[name]; ok {
 			return &chk, ok
@@ -991,7 +999,7 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 
 	if runtime.GOOS == "windows" && mode == "winservice" {
 		// stop service, so we can replace the binary
-		cmd := exec.Command("net", "stop", "snclient")
+		cmd := exec.CommandContext(context.TODO(), "net", "stop", "snclient")
 		output, err2 := cmd.CombinedOutput()
 		log.Tracef("[update] net stop snclient: %s", strings.TrimSpace(string(output)))
 		if err2 != nil {
@@ -1331,7 +1339,7 @@ func (snc *Agent) MakeCmd(ctx context.Context, command string) (*exec.Cmd, error
 }
 
 // redirect log output from 3rd party process to main log file
-func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ...interface{}), pipeFn func() (io.ReadCloser, error)) {
+func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ...any), pipeFn func() (io.ReadCloser, error)) {
 	pipe, err := pipeFn()
 	if err != nil {
 		log.Errorf("failed to connect to %s: %s", name, err.Error())
@@ -1356,16 +1364,16 @@ func (snc *Agent) passthroughLogs(name, prefix string, logFn func(f string, v ..
 }
 
 // returns inventory structure
-func (snc *Agent) GetInventory(ctx context.Context, modules []string) map[string]interface{} {
+func (snc *Agent) GetInventory(ctx context.Context, modules []string) map[string]any {
 	hostID, err := os.Hostname()
 	if err != nil {
 		log.Errorf("failed to get host id: %s", err.Error())
 	}
 
-	return (map[string]interface{}{
+	return (map[string]any{
 		"inventory": snc.getCachedInventory(ctx, modules),
 		"localtime": time.Now().Unix(),
-		"snclient": map[string]interface{}{
+		"snclient": map[string]any{
 			"version":  snc.Version(),
 			"build":    Build,
 			"arch":     runtime.GOARCH,
