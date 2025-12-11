@@ -124,7 +124,9 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 
 	// add anyway to generate an error later with more default values filled in
 	entry := l.driveEntry(path)
-	entry["_error"] = (&PartitionNotMountedError{Path: path, err: fmt.Errorf("path :%s does exist, but could not match it to a drive. its likely that the partition is not mounted", path)}).Error()
+	entry["_error"] = (&PartitionNotMountedError{
+		Path: path, err: fmt.Errorf("path :%s does exist, but could not match it to a drive. its likely that the partition is not mounted", path),
+	}).Error()
 	requiredDisks[path] = entry
 
 	return nil

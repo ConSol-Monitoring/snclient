@@ -168,35 +168,46 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	var notFoundErr *PartitionNotFoundError
 	var notMountedErr *PartitionNotMountedError
 	var partitionDiscoveryErr *PartitionDiscoveryError
-	switch {
-	case errors.As(err, &notFoundErr):
-		log.Debugf("check_drivesize, drive is not found : %s, stopping check", notFoundErr.Error())
 
-		// do not return (nil,err) the drives will be empty, then the empty-state override can work when defined
-	case errors.As(err, &notMountedErr):
-		// no special handling of mount errors
-		log.Debugf("check_drivesize, mounting error : %s, stopping check", notMountedErr.Error())
+	// if empty-state is overridden with the filter, emptyStateSet is true
+	// only handle the errors and return nil if its not overridden
+	if !check.emptyStateSet {
+		switch {
+		case errors.As(err, &notFoundErr):
+			log.Debugf("check_drivesize, drive is not found : %s, stopping check", notFoundErr.Error())
+			// do not return (nil,err), finalize the check wihtout entries to check.listData
+			// we want the empty-state override to work if its specified
+		case errors.As(err, &notMountedErr):
+			// no special handling of mount errors
+			log.Debugf("check_drivesize, mounting error : %s, stopping check", notMountedErr.Error())
 
-		return nil, err
-	case errors.As(err, &partitionDiscoveryErr):
-		// no special handling of discovery errors
-		log.Debugf("check_drivesize partition discovery error : %s, stopping check", partitionDiscoveryErr.Error())
+			return nil, err
+		case errors.As(err, &partitionDiscoveryErr):
+			// no special handling of discovery errors
+			log.Debugf("check_drivesize partition discovery error : %s, stopping check", partitionDiscoveryErr.Error())
 
-		return nil, err
-	case err != nil:
-		log.Debugf("check_drivesize error of unspecialized type : %s", err.Error())
+			return nil, err
+		case err != nil:
+			log.Debugf("check_drivesize error of unspecialized type : %s", err.Error())
 
-		return nil, err
-	default:
-		break
+			return nil, err
+		default:
+			break
+		}
+	} else {
+		log.Debugf("check_drivesize, ignoring errors relating to drive discovery due to empty-state being set.")
 	}
 	maps.Copy(requiredDisks, drives)
 
 	// when checking for folders and their mountpoints, set parentFallback to true
 	folders, err := l.getRequiredDisks(l.folders, true)
-	// handle folder search errors as well?
-	if err != nil {
-		return nil, err
+	// ignore errors if emptyState set is true, just like the drives
+	if !check.emptyStateSet {
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		log.Debugf("check_drivesize, ignoring errors relating to directory discovery due to empty-state being set.")
 	}
 	maps.Copy(requiredDisks, folders)
 
