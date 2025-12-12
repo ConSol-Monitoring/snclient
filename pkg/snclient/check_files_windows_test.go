@@ -43,7 +43,6 @@ func TestCheckFilesRecursiveArguments(t *testing.T) {
 
 	// capture this since t.TempDir() is dyanic
 	geneartionDirectory := t.TempDir()
-	print("generationDirectory: ", geneartionDirectory)
 
 	res := snc.RunCheck("check_files_recurisve_generate_files", []string{geneartionDirectory})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
@@ -118,13 +117,21 @@ func TestCheckFilesRecursiveArguments(t *testing.T) {
 
 func TestCheckDriveLetterPaths(t *testing.T) {
 	snc := StartTestAgent(t, "")
+	var res *CheckResult
 
 	// ===============  C:\pagefile.sys
-	// Virtual memory is generally enabled, so this is safe to test
-	res := snc.RunCheck("check_files", []string{"path=C:", "max-depth=0", "filter= type == 'file' and name == 'pagefile.sys' "})
-	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
-	res = snc.RunCheck("check_files", []string{"path=C:", "max-depth=1", "filter= type == 'file' and name == 'pagefile.sys' "})
-	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
+	// Virtual memory is generally enabled, so this is safe to test locally.
+	// But it might not exist on non-standard systems, like the Github Actions CI.
+	_, pagefileCheckErr := os.Stat(`C:\pagefile.sys`)
+	if pagefileCheckErr == nil {
+		res = snc.RunCheck("check_files", []string{"path=C:", "max-depth=0", "filter= type == 'file' and name == 'pagefile.sys' "})
+		assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
+		res = snc.RunCheck("check_files", []string{"path=C:", "max-depth=1", "filter= type == 'file' and name == 'pagefile.sys' "})
+		assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
+	} else {
+		// Skip pagefile tests if file doesn't exist
+		t.Log("Skipping pagefile.sys tests - file not found")
+	}
 
 	// ===============  C:\Windows
 	res = snc.RunCheck("check_files", []string{"path=C:", "max-depth=0", "filter= type == 'dir' and name == 'Windows' "})
