@@ -2,6 +2,8 @@ module github.com/consol-monitoring/snclient
 
 go 1.25.5
 
+replace github.com/shirou/gopsutil/v4 => github.com/sni/gopsutil/v4 v4.0.0-20251218154514-eb45f3af45ff
+
 require (
 	github.com/beevik/ntp v1.5.0
 	github.com/bi-zone/go-fileversion v1.0.0
