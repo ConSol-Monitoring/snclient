@@ -418,9 +418,12 @@ func (l *CheckFiles) normalizePath(path string) string {
 	// Files directly under the drive do not have seperators, e.g: C:pagefile.sys
 	// This confuses the depth calculation
 	if runtime.GOOS == "windows" {
+		// C: -> C:\
+		if len(path) == 2 && unicode.IsUpper(rune(path[0])) && path[1] == ':' {
+			// Ensure drive letters always have a backslash: "C:" -> "C:\"
+			return path + string(os.PathSeparator)
+		}
 		// "C:example" -> "C:\example".
-		// Do not change if its just the drive letter. D: -> D:
-		// Otherwise 'D:\' and 'D:\example' would have the same number of seperators, even though the file is under the D: "directory" and should have increased depth
 		if len(path) >= 3 && unicode.IsUpper(rune(path[0])) && path[1] == ':' && path[2] != '\\' {
 			winBasePath := path[:2] + string('\\') + path[2:]
 
@@ -434,6 +437,7 @@ func (l *CheckFiles) normalizePath(path string) string {
 // getDepth returns path depth starting at 0 with for the basePath
 func (l *CheckFiles) getDepth(path, basePath string) int64 {
 	// both the path and BasePath are normalized once according to CheckFiles.normalizePath()
+
 	// Windows example:
 	// basePath: C:\foo
 	// path: C:\foo -> 0
@@ -452,9 +456,21 @@ func (l *CheckFiles) getDepth(path, basePath string) int64 {
 
 	subPath := strings.TrimPrefix(path, basePath)
 	seperatorCount := int64(strings.Count(subPath, string(os.PathSeparator)))
-	depth := seperatorCount
+	depthCorrection := 0
 
-	log.Tracef("path: %s, basePath: %s, subPath: %s, seperatorCount: %d, depth: %d", path, basePath, subPath, seperatorCount, depth)
+	// On Windows specifically, the paths have a problem when basePath is a drive letter.
+	// basePath: C:\
+	// path: C:\pagefile.sys -> 0 seperators , even though it is under the drive.
+	// path: C:\Windows\notepad.exe -> 1 seperators, even though it is under the Windows folder.
+	// If you consider the drive itself as a folder, stuff under it should have depth
+	if runtime.GOOS == "windows" && len(basePath) == 3 && unicode.IsUpper(rune(path[0])) && path[1] == ':' && path[2] == '\\' {
+		depthCorrection++
+	}
+	// Implement something similar in Unixes?
+
+	depth := seperatorCount + int64(depthCorrection)
+
+	log.Tracef("path: %s, basePath: %s, subPath: %s, seperatorCount: %d, depthCorrection: %d, depth: %d", path, basePath, subPath, seperatorCount, depthCorrection, depth)
 
 	return depth
 }
