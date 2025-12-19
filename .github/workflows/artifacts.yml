@@ -57,7 +57,7 @@ jobs:
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
-      - uses: actions/upload-artifact@v5.0.0
+      - uses: actions/upload-artifact@v6.0.0
         with:
           name: "${{ env.BIN }}"
           path: "snclient"
@@ -84,7 +84,7 @@ jobs:
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
-      - uses: actions/upload-artifact@v5.0.0
+      - uses: actions/upload-artifact@v6.0.0
         with:
           name: "${{ env.BIN }}"
           path: "snclient"
@@ -114,7 +114,7 @@ jobs:
           make rsrc_windows
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
           mv snclient snclient.exe
-      - uses: actions/upload-artifact@v5.0.0
+      - uses: actions/upload-artifact@v6.0.0
         with:
           name: "${{ env.BIN }}"
           path: "snclient.exe"
@@ -134,7 +134,7 @@ jobs:
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: "${{ env.BIN }}"
           path: "."
@@ -171,7 +171,7 @@ jobs:
           Write-Host "Verify snclient.exe"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x86/signtool.exe" verify /pa snclient.exe
 
-      - uses: actions/upload-artifact@v5.0.0
+      - uses: actions/upload-artifact@v6.0.0
         with:
           name: "${{ env.BIN }}"
           path: "snclient.exe"

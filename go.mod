@@ -2,6 +2,8 @@ module github.com/consol-monitoring/snclient
 
 go 1.25.5
 
+replace github.com/shirou/gopsutil/v4 => github.com/sni/gopsutil/v4 v4.0.0-20251218154514-eb45f3af45ff
+
 require (
 	github.com/beevik/ntp v1.5.0
 	github.com/bi-zone/go-fileversion v1.0.0
@@ -13,7 +15,7 @@ require (
 	github.com/goccy/go-json v0.10.5
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/mackerelio/checkers v0.2.0
-	github.com/miekg/dns v1.1.68
+	github.com/miekg/dns v1.1.69
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/reeflective/readline v1.1.3
@@ -29,8 +31,8 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/subuk/csrtool v0.0.0-20250413213651-887255723652
 	github.com/yusufpapurcu/wmi v1.2.4
-	golang.org/x/sys v0.38.0
-	golang.org/x/term v0.37.0
+	golang.org/x/sys v0.39.0
+	golang.org/x/term v0.38.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
