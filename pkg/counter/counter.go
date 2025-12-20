@@ -1,6 +1,7 @@
 package counter
 
 import (
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -9,10 +10,14 @@ import (
 // Counter is the container for a single timeseries of performance values
 // it used a fixed size storage backend
 type Counter struct {
-	lock    sync.RWMutex // lock for concurrent access
-	data    []Value      // array of values
-	current int64        // position of last inserted value
-	size    int64        // number of values for this series
+	lock      sync.RWMutex  // lock for concurrent access
+	data      []Value       // array of values. size determined by the retention and interval
+	current   int64         // position of last inserted value
+	oldest    int64         // position of the earliest inserted value
+	size      int64         // number of values for this series
+	timesSet  int64         // number of times a value was set in this counter
+	retention time.Duration // the time span this counter can hold, interval * size
+	interval  time.Duration // the interval time that new values are designed to be added
 }
 
 // Value is a single entry of a Counter
@@ -24,30 +29,43 @@ type Value struct {
 // NewCounter creates a new Counter with given retention time and interval
 func NewCounter(retentionTime, interval time.Duration) *Counter {
 	// round retention and interval to milliseconds
-	retentionMilli := retentionTime.Milliseconds()
-	intervalMilli := interval.Milliseconds()
+	retentionMili := retentionTime.Milliseconds()
+	intervalMili := interval.Milliseconds()
 
-	// round retention time to a multiple of interval
-	retention := int64(math.Ceil(float64(retentionMilli)/float64(intervalMilli))) * intervalMilli
-	size := retention / intervalMilli
+	// round retentionMili to a multiple of interval
+	retentionMiliRounded := int64(math.Ceil(float64(retentionMili)/float64(intervalMili))) * intervalMili
+	size := retentionMiliRounded / intervalMili
 
 	return &Counter{
-		lock:    sync.RWMutex{},
-		data:    make([]Value, size),
-		size:    size,
-		current: -1,
+		lock:      sync.RWMutex{},
+		data:      make([]Value, size),
+		size:      size,
+		current:   -1,
+		oldest:    -1,
+		retention: time.Duration(retentionMiliRounded) * time.Millisecond,
+		interval:  interval,
+		timesSet:  0,
 	}
 }
 
 // Set adds a new value with current timestamp
 func (c *Counter) Set(val any) {
 	c.lock.Lock()
+	// setting a value for the first time
+	if c.oldest == -1 {
+		c.oldest = 0
+	}
 	c.current++
 	if c.current == c.size {
 		c.current = 0
 	}
 	c.data[c.current].UnixMilli = time.Now().UTC().UnixMilli()
 	c.data[c.current].Value = val
+	c.timesSet++
+	// if we already filled the array, and started overwriting, the oldest index just got overwritten
+	if c.timesSet > c.size {
+		c.oldest = (c.current + 1) % c.size
+	}
 	c.lock.Unlock()
 }
 
@@ -66,7 +84,8 @@ func (c *Counter) AvgForDuration(duration time.Duration) float64 {
 	if idx == -1 {
 		return 0
 	}
-	for seen := int64(0); seen <= c.size; seen++ {
+
+	for range c.size {
 		if c.data[idx].UnixMilli > useAfter {
 			if val, ok := c.data[idx].Value.(float64); ok {
 				sum += val
@@ -145,35 +164,73 @@ func (c *Counter) getLast() *Value {
 	return &c.data[c.current]
 }
 
-// GetAt returns first value closest to given date
-func (c *Counter) GetAt(useAfter time.Time) *Value {
+// GetFirst returns first (earliest) value
+func (c *Counter) GetFirst() *Value {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	return c.getAt(useAfter)
+	return c.getFirst()
 }
 
-func (c *Counter) getAt(useAfter time.Time) *Value {
-	useAfterUnix := useAfter.UTC().UnixMilli()
+func (c *Counter) getFirst() *Value {
+	// the latest added item had index c.current
+	if c.oldest == -1 {
+		return nil
+	}
+
+	return &c.data[c.oldest]
+}
+
+// GetAt returns first value with >= timestamp than lowerBound
+func (c *Counter) GetAt(lowerBound time.Time) *Value {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.getAt(lowerBound)
+}
+
+// Gets the first counter that has a >= timestamp than lowerBound
+func (c *Counter) getAt(lowerBound time.Time) *Value {
+	useAfterUnix := lowerBound.UTC().UnixMilli()
+
+	// the counter is not yet populated
 	idx := c.current
 	if idx == -1 {
 		return nil
 	}
 
-	var last *Value
-	for seen := int64(0); seen <= c.size; seen++ {
-		val := &c.data[idx]
-		if val.UnixMilli < useAfterUnix {
-			return last
+	var previouslyComparedValue *Value
+	for range c.size {
+		currentValue := &c.data[idx]
+		if currentValue.UnixMilli < useAfterUnix {
+			return previouslyComparedValue
 		}
-		last = val
+
+		previouslyComparedValue = currentValue
 		idx--
 		if idx < 0 {
 			idx = c.size - 1
 		}
 	}
 
-	return last
+	return previouslyComparedValue
+}
+
+// checks if the counter can fit the targetRetention. optionally extend the interval by count in the check
+func (c *Counter) CheckRetention(targetRetention time.Duration, intervalExtensionCount int64) error {
+	extendedRetentionRange := c.retention + time.Duration(intervalExtensionCount)*c.interval
+
+	if extendedRetentionRange < targetRetention {
+		if intervalExtensionCount == 0 {
+			return fmt.Errorf("counter retention range is %f seconds, less than the target retention range of %f seconds",
+				extendedRetentionRange.Seconds(), targetRetention.Seconds())
+		}
+
+		return fmt.Errorf("counter retention range is %f seconds, even when extended by %d intervals to be %f seconds, it is less than target retention range of %f seconds",
+			c.interval.Seconds(), intervalExtensionCount, extendedRetentionRange.Seconds(), targetRetention.Seconds())
+	}
+
+	return nil
 }
 
 // Float64 returns value as float64
