@@ -251,14 +251,14 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 		drive["removable"] = "1"
 	}
 
-	volumeName := make([]uint16, 512)
+	volumeName := make([]uint16, windows.MAX_PATH+1)
 	volumeNameLen, err := convert.UInt32E(len(volumeName))
 	if err != nil {
 		drive["_error"] = fmt.Sprintf("cannot set length of volume name: %s", err.Error())
 
 		return
 	}
-	fileSystemName := make([]uint16, 512)
+	fileSystemName := make([]uint16, windows.MAX_PATH+1)
 	fileSystemNameLen, err := convert.UInt32E(len(fileSystemName))
 	if err != nil {
 		drive["_error"] = fmt.Sprintf("cannot set length of filesystem name: %s", err.Error())

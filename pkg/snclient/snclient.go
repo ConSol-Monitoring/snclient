@@ -43,7 +43,7 @@ const (
 		" monitoring agent designed as replacement for NRPE and NSClient++."
 
 	// VERSION contains the actual snclient version.
-	VERSION = "0.40"
+	VERSION = "0.41"
 
 	// ExitCodeOK is used for normal exits.
 	ExitCodeOK = 0
@@ -489,20 +489,29 @@ func getGlobalMacros() map[string]string {
 		os.Exit(ExitCodeError)
 	}
 
-	// initialize global macros
-	macros := map[string]string{
-		"goos":     runtime.GOOS,
-		"goarch":   runtime.GOARCH,
-		"pkgarch":  pkgArch(runtime.GOARCH),
-		"exe-path": execDir,
-		"exe-file": execFile,
-		"exe-full": execPath,
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Warnf("failed to get hostname: %s", err.Error())
 	}
 
-	macros["file-ext"] = ""
+	fileEXT := ""
 	if runtime.GOOS == "windows" {
-		macros["file-ext"] = ".exe"
+		fileEXT = ".exe"
 	}
+
+	// initialize global macros
+	macros := map[string]string{
+		"exe-file": execFile,
+		"exe-full": execPath,
+		"exe-path": execDir,
+		"file-ext": fileEXT,
+		"goarch":   runtime.GOARCH,
+		"goos":     runtime.GOOS,
+		"hostname": hostname,
+		"pkgarch":  pkgArch(runtime.GOARCH),
+	}
+
+	// [paths] macros will be added in config.DefaultMacros()
 
 	return macros
 }
