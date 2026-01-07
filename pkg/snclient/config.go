@@ -692,19 +692,11 @@ func (config *Config) DefaultMacros() map[string]string {
 		return *config.defaultMacros
 	}
 
-	defaultMacros := map[string]string{
-		"hostname": "",
-	}
+	defaultMacros := map[string]string{}
 	maps.Copy(defaultMacros, config.Section("/paths").data)
 	maps.Copy(defaultMacros, GlobalMacros)
 
 	config.defaultMacros = &defaultMacros
-
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Warnf("failed to get hostname: %s", err.Error())
-	}
-	defaultMacros["hostname"] = hostname
 
 	return *config.defaultMacros
 }

@@ -210,15 +210,26 @@ Supported macro variants:
 - `%(macro name)`
 - all variants of `$` / `%` and `{}` / `()` are interchangeable
 
-Available macros are:
+### Available Macros
 
-- `${exe-path}`
-- `${shared-path}`
-- `${scripts}`
-- `${certificate-path}`
-- `${hostname}`
+Basically all the values from the `[/paths]` section are available as macros
+plus some more.
 
-Basically the values from the `[/paths]` section and the hostname.
+List of available macros:
+
+| Suffix                | Example                                    | Description                                     |
+| --------------------- | ------------------------------------------ | ------------------------------------------------|
+| `${exe-path}`         | /usr/bin or c:\Program Files\snclient      | Directory of executable                         |
+| `${exe-file}`         | snclient or snclient.exe                   | Basename of executable                          |
+| `${exe-full}`         | /usr/bin/snclient                          | Full path to executable                         |
+| `${shared-path}`      | /etc/snclient or c:\Program Files\snclient | Directory of shared files (set by snclient.ini) |
+| `${scripts}`          | usually `${shared-path}/scripts`           | Directory of script files (set by snclient.ini) |
+| `${certificate-path}` | usually `${shared-path}`                   | Directory of certificates (set by snclient.ini) |
+| `${hostname}`         | machine.local                              | Name of the host running the agent              |
+| `${goos}`             | linux, windows, darwin, ...                | The value of Golangs runtime.GOOS               |
+| `${goarch}`           | x86_64, aarch64, i386, ...                 | The value of Golangs runtime.GOARCH             |
+| `${pkgarch}`          | amd64, arm64, 386, ...                     | Architecture as used in package file names      |
+| `${file-ext}`         | .exe or empty                              | File extension of agents executable file        |
 
 ## On Demand Macros
 
