@@ -58,6 +58,7 @@ linters:
     lll:
       line-length: 200
   exclusions:
+    #warn-unused: true
     generated: lax
     presets:
       - comments
@@ -74,13 +75,9 @@ linters:
           - nolintlint
         path: (check_tcp|check_dns|nameserver.*)\.go
       - path: (.+)\.go$
-        text: '`noCopy` is unused'
-      - path: (.+)\.go$
         text: 'Magic number: 0.1, in'
       - path: (.+)\.go$
         text: 'Magic number: 0.01, in'
-      - path: (.+)\.go$
-        text: 'Magic number: 0.001, in'
       - path: (.+)\.go$
         text: 'Magic number: 2, in'
       - path: (.+)\.go$
@@ -110,8 +107,6 @@ linters:
       - path: (.+)\.go$
         text: 'Magic number: 23, in'
       - path: (.+)\.go$
-        text: 'Magic number: 24, in'
-      - path: (.+)\.go$
         text: 'Magic number: 31, in'
       - path: (.+)\.go$
         text: 'Magic number: 32, in'
@@ -122,8 +117,6 @@ linters:
       - path: (.+)\.go$
         text: 'Magic number: 60, in'
       - path: (.+)\.go$
-        text: 'Magic number: 64, in'
-      - path: (.+)\.go$
         text: 'Magic number: 100, in'
       - path: (.+)\.go$
         text: 'Magic number: 126, in'
@@ -133,8 +126,6 @@ linters:
         text: 'Magic number: 365, in'
       - path: (.+)\.go$
         text: 'Magic number: 500, in'
-      - path: (.+)\.go$
-        text: 'Magic number: 512, in'
       - path: (.+)\.go$
         text: 'Magic number: 600, in'
       - path: (.+)\.go$
@@ -152,39 +143,15 @@ linters:
       - path: (.+)\.go$
         text: 'Magic number: 1e7, in'
       - path: (.+)\.go$
-        text: 'Magic number: 1e9, in'
-      - path: (.+)\.go$
-        text: 'Magic number: 1e12, in'
-      - path: (.+)\.go$
-        text: 'Magic number: 1e15, in'
-      - path: (.+)\.go$
         text: 'Magic number: 0o600, in'
       - path: (.+)\.go$
         text: 'Magic number: 0o700, in'
-      - path: (.+)\.go$
-        text: noCopy is missing in
       - path: (.+)\.go$
         text: variable name 'ok' is too short
       - path: (.+)\.go$
         text: Function 'setListenTLSConfig' has too many statements
       - path: (.+)\.go$
-        text: Function 'parseAnyArg' has too many statements
-      - path: (.+)\.go$
-        text: complexity.*setListenTLSConfig
-      - path: (.+)\.go$
-        text: complexity.*checkFlags
-      - path: (.+)\.go$
-        text: Function 'readConfiguration' has too many statements
-      - path: (.+)\.go$
-        text: complexity.*readConfiguration
-      - path: (.+)\.go$
-        text: Function 'Check' has too many statements
-      - path: (.+)\.go$
         text: Function 'Check' is too long
-      - path: (.+)\.go$
-        text: Function 'fetchProcs' is too long
-      - path: (.+)\.go$
-        text: Function 'buildListMacros' is too long
       - path: (.+)\.go$
         text: Function 'fetchProcs' has too many statements
       - path: (.+)\.go$
@@ -195,8 +162,6 @@ linters:
         text: cognitive complexity .* of func .*conditionAdd
       - path: (.+)\.go$
         text: cognitive complexity .* of func .*.matchSingle
-      - path: (.+)\.go$
-        text: cognitive complexity .* of func .*splitToken
       - path: (.+)\.go$
         text: cognitive complexity .* of func .*ReplaceConditionals
       - path: (.+)\.go$
@@ -224,8 +189,6 @@ linters:
       - path: (.+)\.go$
         text: parameter name 'b' is too short for the scope of its usage
       - path: (.+)\.go$
-        text: .execCommand` - `timeout` always receives `DefaultCmdTimeout
-      - path: (.+)\.go$
         text: 'fieldalignment: struct'
       - path: (.+)(utils|utils_test|fieldsn|asciiTable)\.go$
         text: 'var-naming: avoid meaningless package names'
@@ -245,9 +208,6 @@ linters:
         text: 'SA4023'
     paths:
       - pkg/pdh/pdh.go
-      - third_party$
-      - builtin$
-      - examples$
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -257,8 +217,3 @@ formatters:
     - goimports
   exclusions:
     generated: lax
-    paths:
-      - pkg/pdh/pdh.go
-      - third_party$
-      - builtin$
-      - examples$
