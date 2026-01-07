@@ -219,17 +219,17 @@ List of available macros:
 
 | Suffix                | Example                                    | Description                                     |
 | --------------------- | ------------------------------------------ | ------------------------------------------------|
-| `${exe-path}`         | /usr/bin or c:\Program Files\snclient      | Directory of executable                         |
+| `${certificate-path}` | usually `${shared-path}`                   | Directory of certificates (set by snclient.ini) |
 | `${exe-file}`         | snclient or snclient.exe                   | Basename of executable                          |
 | `${exe-full}`         | /usr/bin/snclient                          | Full path to executable                         |
-| `${shared-path}`      | /etc/snclient or c:\Program Files\snclient | Directory of shared files (set by snclient.ini) |
-| `${scripts}`          | usually `${shared-path}/scripts`           | Directory of script files (set by snclient.ini) |
-| `${certificate-path}` | usually `${shared-path}`                   | Directory of certificates (set by snclient.ini) |
-| `${hostname}`         | machine.local                              | Name of the host running the agent              |
-| `${goos}`             | linux, windows, darwin, ...                | The value of Golangs runtime.GOOS               |
-| `${goarch}`           | x86_64, aarch64, i386, ...                 | The value of Golangs runtime.GOARCH             |
-| `${pkgarch}`          | amd64, arm64, 386, ...                     | Architecture as used in package file names      |
+| `${exe-path}`         | /usr/bin or c:\Program Files\snclient      | Directory of executable                         |
 | `${file-ext}`         | .exe or empty                              | File extension of agents executable file        |
+| `${goarch}`           | x86_64, aarch64, i386, ...                 | The value of Golangs runtime.GOARCH             |
+| `${goos}`             | linux, windows, darwin, ...                | The value of Golangs runtime.GOOS               |
+| `${hostname}`         | machine.local                              | Name of the host running the agent              |
+| `${pkgarch}`          | amd64, arm64, 386, ...                     | Architecture as used in package file names      |
+| `${scripts}`          | usually `${shared-path}/scripts`           | Directory of script files (set by snclient.ini) |
+| `${shared-path}`      | /etc/snclient or c:\Program Files\snclient | Directory of shared files (set by snclient.ini) |
 
 ## On Demand Macros
 
