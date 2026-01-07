@@ -241,6 +241,8 @@ linters:
         text: 'string literal contains rune in Han script'
       - path: (.+)condition\.go$
         text: 'stringscutprefix:'
+      - path: (.+)/(check_files|check_tasksched)\.go$
+        text: 'SA4023'
     paths:
       - pkg/pdh/pdh.go
       - third_party$
