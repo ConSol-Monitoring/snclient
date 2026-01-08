@@ -48,7 +48,7 @@ func (l *CheckIndex) Build() *CheckData {
 }
 
 func (l *CheckIndex) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	keys := make([]string, 0)
+	keys := make([]string, 0, len(AvailableChecks)+len(snc.runSet.cmdAliases)+len(snc.runSet.cmdWraps))
 	for k := range AvailableChecks {
 		keys = append(keys, k)
 	}

@@ -394,7 +394,8 @@ func (snc *Agent) fixPathHoles(cmdAndArgs []string) []string {
 		if err == nil {
 			// can be abs., /usr/bin/echo or %scripts%/check_xy
 			// or rel., echo, timeout, anything in $PATH
-			fixed := []string{realPath}
+			fixed := make([]string, 0, len(cmdAndArgs[pieceNo+1:])+1)
+			fixed = append(fixed, realPath)
 			fixed = append(fixed, cmdAndArgs[pieceNo+1:]...)
 
 			return fixed
@@ -407,7 +408,8 @@ func (snc *Agent) fixPathHoles(cmdAndArgs []string) []string {
 		// try a relative lookup in %scripts%
 		realPath, err = exec.LookPath(filepath.Join(scriptsPath, cmdPath))
 		if err == nil {
-			fixed := []string{realPath}
+			fixed := make([]string, 0, len(cmdAndArgs[pieceNo+1:])+1)
+			fixed = append(fixed, realPath)
 			fixed = append(fixed, cmdAndArgs[pieceNo+1:]...)
 
 			return fixed

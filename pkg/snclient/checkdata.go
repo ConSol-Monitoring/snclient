@@ -241,7 +241,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 }
 
 func (cd *CheckData) buildListMacros() map[string]string {
-	list := []string{}
+	list := make([]string, 0, len(cd.listData))
 	okList := make([]string, 0)
 	warnList := make([]string, 0)
 	critList := make([]string, 0)
@@ -560,8 +560,8 @@ func (cd *CheckData) sortList(listData []map[string]string, keys []string) []map
 	}
 
 	slices.SortStableFunc(listData, func(a, b map[string]string) int {
-		sortA := []string{}
-		sortB := []string{}
+		sortA := make([]string, 0, len(keys))
+		sortB := make([]string, 0, len(keys))
 		for _, k := range keys {
 			sortA = append(sortA, a[k])
 			sortB = append(sortB, b[k])
@@ -1145,7 +1145,7 @@ func (cd *CheckData) VisitAll(condList ConditionList, callback func(*Condition) 
 }
 
 func (cd *CheckData) CloneThreshold(srcThreshold ConditionList) (cloned ConditionList) {
-	cloned = make(ConditionList, 0)
+	cloned = make(ConditionList, 0, len(srcThreshold))
 
 	for i := range srcThreshold {
 		cloned = append(cloned, srcThreshold[i].Clone())

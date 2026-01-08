@@ -604,7 +604,7 @@ func configParseString(val string) (string, error) {
 }
 
 func (config *Config) SectionNames() []string {
-	keys := []string{}
+	keys := make([]string, 0, len(config.sections))
 	for name := range config.sections {
 		keys = append(keys, name)
 	}

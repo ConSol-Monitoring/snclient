@@ -37,9 +37,10 @@ type CheckResult struct {
 }
 
 func (cr *CheckResult) Finalize(timezone *time.Location, macros ...map[string]string) {
-	macroSet := []map[string]string{{
+	macroSet := make([]map[string]string, 0, len(macros)+1)
+	macroSet = append(macroSet, map[string]string{
 		"status": cr.StateString(),
-	}}
+	})
 	macroSet = append(macroSet, macros...)
 
 	output, err := ReplaceTemplate(cr.Output, timezone, macroSet...)

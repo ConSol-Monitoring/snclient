@@ -285,7 +285,7 @@ func (l *CheckService) parseSystemCtlStatus(name, output string) (listEntry map[
 	}
 	if listEntry["pid"] == "" {
 		matches := reSvcPidCgroup.FindAllStringSubmatch(output, -1)
-		pids := []string{}
+		pids := make([]string, 0, len(matches))
 		for _, m := range matches {
 			pids = append(pids, m[1])
 		}

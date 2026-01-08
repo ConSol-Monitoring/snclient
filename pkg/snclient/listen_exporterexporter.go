@@ -174,7 +174,7 @@ func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map
 }
 
 func (l *HandlerExporterExporter) JSON() []map[string]string {
-	list := []map[string]string{}
+	list := make([]map[string]string, 0, len(l.modules))
 	ssl := "0"
 	if l.listener.tlsConfig != nil {
 		ssl = "1"
