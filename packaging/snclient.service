@@ -4,14 +4,14 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=snclient
+Group=snclient
 
 Restart=on-failure
 RestartSec=10
 
-WorkingDirectory=/
+WorkingDirectory=/var/lib/snclient
 ExecStart=/usr/bin/snclient --config=/etc/snclient/snclient.ini
-ExecStartPre=/bin/mkdir -p /var/log/snclient
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
