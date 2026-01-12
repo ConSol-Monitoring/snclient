@@ -7,7 +7,7 @@ replace github.com/shirou/gopsutil/v4 => github.com/sni/gopsutil/v4 v4.0.0-20251
 require (
 	github.com/beevik/ntp v1.5.0
 	github.com/bi-zone/go-fileversion v1.0.0
-	github.com/bmatcuk/doublestar/v4 v4.9.1
+	github.com/bmatcuk/doublestar/v4 v4.9.2
 	github.com/consol-monitoring/check_nsc_web v0.7.4
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/go-chi/chi/v5 v5.2.3
