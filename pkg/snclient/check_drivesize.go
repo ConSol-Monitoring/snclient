@@ -152,6 +152,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 	}
 }
 
+//nolint:funlen // no need to split the function, it is simple as is
 func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckDisk")
 	if !enabled {
