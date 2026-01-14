@@ -33,6 +33,7 @@ Check folder, no matter if its a mountpoint itself or not:
 	`
 }
 
+// if parentFallback is true, try to find a parent folder that is a mountpoint. If its false, only the exact matches are checked for mountpoints.
 func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) (requiredDisks map[string]map[string]string, err error) {
 	// create map of required disks/volumes with "drive_or_id" as primary key
 	requiredDisks = map[string]map[string]string{}
@@ -58,6 +59,7 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) 
 	return requiredDisks, nil
 }
 
+// setDisks fills the requiredDisks map with all available disks/partitions
 func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (err error) {
 	partitions, err := disk.Partitions(true)
 	if err != nil {
@@ -80,13 +82,13 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 	return nil
 }
 
-func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
+func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
 	// make sure path exists
-	_, err = os.Stat(drive)
+	_, err = os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
-		log.Debugf("%s: %s", drive, err.Error())
+		log.Debugf("%s: %s", path, err.Error())
 
-		return fmt.Errorf("failed to find disk partition: %s", err.Error())
+		return &PartitionNotFoundError{Path: path, err: err}
 	}
 
 	// try to find closest matching mount
@@ -99,29 +101,33 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	var match *map[string]string
 	for i := range availMounts {
 		vol := availMounts[i]
-		if parentFallback && vol["drive"] != "" && strings.HasPrefix(drive, vol["drive"]) {
+		if parentFallback && vol["drive"] != "" && strings.HasPrefix(path, vol["drive"]) {
+			// try to find the longest matching parent path, that is a mountpoint
 			if match == nil || len((*match)["drive"]) < len(vol["drive"]) {
 				match = &vol
 			}
 		}
 		// direct match, no need to search further
-		if drive == vol["drive"] {
+		if path == vol["drive"] {
 			match = &vol
 
 			break
 		}
 	}
+
 	if match != nil {
-		requiredDisks[drive] = utils.CloneStringMap(*match)
-		requiredDisks[drive]["drive"] = drive
+		requiredDisks[path] = utils.CloneStringMap(*match)
+		requiredDisks[path]["drive"] = path
 
 		return nil
 	}
 
 	// add anyway to generate an error later with more default values filled in
-	entry := l.driveEntry(drive)
-	entry["_error"] = fmt.Sprintf("%s not mounted", drive)
-	requiredDisks[drive] = entry
+	entry := l.driveEntry(path)
+	entry["_error"] = (&PartitionNotMountedError{
+		Path: path, err: fmt.Errorf("path :%s does exist, but could not match it to a drive. its likely that the partition is not mounted", path),
+	}).Error()
+	requiredDisks[path] = entry
 
 	return nil
 }

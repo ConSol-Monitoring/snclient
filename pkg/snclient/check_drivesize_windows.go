@@ -66,6 +66,9 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) 
 		case "all-volumes":
 			l.setVolumes(requiredDisks)
 		default:
+			// drives are like block devices c: -> /dev/sda
+			// partition is written into the disk in a partition table. it exists independently of volumes -> /dev/sdb3
+			// volumes are accessible storage areas where a filesystem is made onto a partition. it can be mounted and have files -> / , /tmp/ , /home
 			// "c" or "c:"" will use the drive c
 			// "c:\" will use the volume
 			// "c:\path" will use the best matching volume
@@ -318,7 +321,7 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 		// "This drive is locked by BitLocker Drive Encryption. You must unlock this drive from Control Panel"
 		// but there can still be valid elements in partitions,
 		// so abort here only if partitions is empty.
-		return fmt.Errorf("disk partitions failed: %s", err.Error())
+		return &PartitionDiscoveryError{err: err}
 	}
 	for _, partition := range partitions {
 		drive := strings.TrimSuffix(partition.Device, "\\") + "\\"
@@ -443,7 +446,7 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	if err != nil && os.IsNotExist(err) {
 		log.Debugf("%s: %s", drive, err.Error())
 
-		return fmt.Errorf("failed to find disk partition: %s", err.Error())
+		return &PartitionNotFoundError{Path: drive, err: err}
 	}
 
 	// try to find closes matching volume

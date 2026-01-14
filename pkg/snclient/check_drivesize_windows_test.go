@@ -27,10 +27,6 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "C:\\ free", "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), ";0;;0;100", "output matches")
 
-	res = snc.RunCheck("check_drivesize", []string{"drive=k"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - failed to find disk partition", "output matches")
-
 	res = snc.RunCheck("check_drivesize", []string{
 		"warning=used > 99",
 		"crit=used > 99.5",
@@ -65,6 +61,32 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:/"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+
+	StopTestAgent(t, snc)
+}
+
+func TestNonexistingDrive(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	res := snc.RunCheck("check_drivesize", []string{"drive=X"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No drives found", "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=X:", "empty-state=warn"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "WARNING - No drives found", "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=X:\\", "empty-state=warn"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "WARNING - No drives found", "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=X", "empty-state=warn"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "WARNING - No drives found", "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=X", "empty-state=crit"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL - No drives found", "output matches")
 
 	StopTestAgent(t, snc)
 }
