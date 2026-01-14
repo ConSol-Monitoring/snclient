@@ -1,6 +1,8 @@
 This file documents the revision history for the SNClient agent.
 
 next:
+         - check_drivesize ignore drive not found errors if empty-state is set (#315)
+         - check_cpu add idle time (#308)
          - chore: update dependencies
 
 0.41     Fri Dec 19 19:16:59 CET 2025
