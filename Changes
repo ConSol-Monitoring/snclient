@@ -1,5 +1,8 @@
 This file documents the revision history for the SNClient agent.
 
+next:
+         - chore: update dependencies
+
 0.41     Fri Dec 19 19:16:59 CET 2025
          - fix windows disk/mount checks showing only the first drive
 
