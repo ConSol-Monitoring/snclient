@@ -46,6 +46,7 @@ func (l *CheckDrivesize) getExample() string {
 	`
 }
 
+// Checks the given path, decides if its an alias and calls the corresponding function that adds the details
 func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) (requiredDisks map[string]map[string]string, err error) {
 	// create map of required disks/volmes with "drive_or_id" as primary key
 	requiredDisks = map[string]map[string]string{}
@@ -65,6 +66,8 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) 
 			}
 		case "all-volumes":
 			l.setVolumes(requiredDisks)
+		case "all-shares":
+			l.setShares(requiredDisks)
 		default:
 			// drives are like block devices c: -> /dev/sda
 			// partition is written into the disk in a partition table. it exists independently of volumes -> /dev/sdb3
@@ -72,11 +75,22 @@ func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) 
 			// "c" or "c:"" will use the drive c
 			// "c:\" will use the volume
 			// "c:\path" will use the best matching volume
+
 			l.hasCustomPath = true
-			err := l.setCustomPath(drive, requiredDisks, parentFallback)
-			if err != nil {
-				return nil, err
+
+			if checkUNCPath(drive) {
+				l.setShares(requiredDisks)
+				err := l.setUNCPath(drive)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				err := l.setCustomPath(drive, requiredDisks, parentFallback)
+				if err != nil {
+					return nil, err
+				}
 			}
+
 		}
 	}
 
@@ -348,6 +362,7 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 
 		return
 	}
+
 	volumeName := make([]uint16, bufLen)
 	hndl, err := windows.FindFirstVolume(&volumeName[0], bufLen)
 	if err != nil {
@@ -358,6 +373,7 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 	defer func() {
 		LogDebug(windows.FindVolumeClose(hndl))
 	}()
+
 	volumes = append(volumes, syscall.UTF16ToString(volumeName))
 
 	for {
@@ -369,6 +385,10 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 		}
 		volumes = append(volumes, syscall.UTF16ToString(volumeName))
 	}
+
+	// Windows syscall findFirstVolume, findNextVolume... give GUID paths to to volumes e.g:
+	// "\\\\?\\Volume{a6b8f57e-dac6-4bac-8dc2-fac22cd740cf}\\"
+	// They need to be translated
 	for _, vol := range volumes {
 		l.setVolume(requiredDisks, vol, volumeName)
 	}
@@ -388,6 +408,8 @@ func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, v
 
 		return
 	}
+	// https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumepathnamesforvolumenamew
+	// SMB does not support volume management functions
 	err = windows.GetVolumePathNamesForVolumeName(volPtr, &volumeName[0], volumeNameLen, &returnLen)
 	if err != nil {
 		log.Warnf("GetVolumePathNamesForVolumeName: %s: %s", vol, err.Error())
@@ -463,6 +485,7 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 		testDrive = string(unicode.ToUpper(r[0]))
 	}
 	var match *map[string]string
+
 	for i := range availVolumes {
 		vol := availVolumes[i]
 		if parentFallback && vol["drive"] != "" && strings.HasPrefix(strings.ToUpper(testDrive+"\\"), strings.ToUpper(vol["drive"])) {
@@ -510,4 +533,30 @@ func (l *CheckDrivesize) driveType(dType uint32) string {
 	}
 
 	return "unknown"
+}
+
+func (l *CheckDrivesize) setUNCPath(drive string) (err error) {
+	availableVolumes := map[string]map[string]string{}
+	l.setVolumes(availableVolumes)
+
+	return nil
+}
+
+// returns if the path looks like an UNC path
+func checkUNCPath(path string) (isUNCPath bool) {
+	// Example 1: \\FileServer01\PublicDocs
+	// Example 2: \\BackupServer\Data\Archive\2025-01-14.zip
+	// Example 3: \\192.168.1.50\SharedData\Images|
+	// But modern programs also generally accept forward slash definitions
+	// //192.168.1.50/Shareddata/Images
+
+	if len(path) < 2 {
+		return false
+	}
+
+	if !strings.HasPrefix(path, "\\\\") && !strings.HasPrefix(path, "//") {
+		return false
+	}
+
+	return true
 }
