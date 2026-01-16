@@ -80,11 +80,11 @@ func (ms *ModuleSet) startModule(name string) {
 
 	err := module.Start()
 	if err != nil {
-		log.Errorf("failed to start %s %s module: %s", name, ms.name, err.Error())
+		// A module failing to start is a fatal error.
+		// Do not try to start it again and again with timeouts, just report the error and quit the program.
 		module.Stop()
 		delete(ms.modules, name)
-
-		return
+		log.Fatalf("Exiting snclient, failed to start module on modeset: %s , module key: %s , error: %s", ms.name, name, err.Error())
 	}
 
 	log.Tracef("module %s started", name)
