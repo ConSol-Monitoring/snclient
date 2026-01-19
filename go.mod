@@ -18,7 +18,7 @@ require (
 	github.com/miekg/dns v1.1.70
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
-	github.com/reeflective/readline v1.1.3
+	github.com/reeflective/readline v1.1.4
 	github.com/sasha-s/go-deadlock v0.3.6
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.6
