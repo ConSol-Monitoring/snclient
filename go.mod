@@ -10,7 +10,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.9.2
 	github.com/consol-monitoring/check_nsc_web v0.7.4
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/go-chi/chi/v5 v5.2.3
+	github.com/go-chi/chi/v5 v5.2.4
 	github.com/go-ole/go-ole v1.3.0
 	github.com/goccy/go-json v0.10.5
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
