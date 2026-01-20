@@ -363,13 +363,10 @@ func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) 
 		if !ok {
 			entry = make(map[string]string)
 		}
-		// Need to convert 'X:\' to -> 'x:'
-		// That is the default used output format
-		logicalDriveConverted := strings.ToLower(logicalDrive[0 : len(logicalDrive)-1])
-		entry["drive"] = logicalDriveConverted
-		entry["drive_or_id"] = logicalDriveConverted
-		entry["drive_or_name"] = logicalDriveConverted
-		entry["letter"] = fmt.Sprintf("%c", logicalDriveConverted[0])
+		entry["drive"] = logicalDrive
+		entry["drive_or_id"] = logicalDrive
+		entry["drive_or_name"] = logicalDrive
+		entry["letter"] = fmt.Sprintf("%c", logicalDrive[0])
 		requiredDrives[logicalDrive] = entry
 	}
 
@@ -506,14 +503,13 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 	switch len(path) {
 	case 1, 2:
 		path = strings.TrimSuffix(path, ":") + ":"
-		path = strings.ToLower(path)
 		availDisks := map[string]map[string]string{}
 		err = l.setDrives(availDisks)
 		for driveOrID := range availDisks {
 			if strings.EqualFold(driveOrID, path+"\\") {
 				requiredDisks[path] = utils.CloneStringMap(availDisks[driveOrID])
-				requiredDisks[path]["drive"] = path // use name from attributes
-
+				requiredDisks[path]["drive"] = path         // use name from attributes
+				requiredDisks[path]["drive_or_name"] = path // used in default detail syntax
 				return nil
 			}
 		}
@@ -605,14 +601,11 @@ func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 				drive = make(map[string]string)
 			}
 			drive["id"] = remoteName
-			// Need to convert 'X:\' to -> 'x:'
-			// That is the default used output format
-			logicalDriveConverted := strings.ToLower(logicalDrive[0 : len(logicalDrive)-1])
-			drive["drive"] = logicalDriveConverted
-			drive["drive_or_id"] = logicalDriveConverted
+			drive["drive"] = logicalDrive
+			drive["drive_or_id"] = logicalDrive
 			// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
-			drive["drive_or_name"] = logicalDriveConverted
-			drive["letter"] = fmt.Sprintf("%c", logicalDriveConverted[0])
+			drive["drive_or_name"] = logicalDrive
+			drive["letter"] = fmt.Sprintf("%c", logicalDrive[0])
 			drive["remote_name"] = remoteName
 			if isNetworkDrivePersistent(logicalDrive) {
 				drive["persistent"] = "1"
