@@ -274,7 +274,13 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 		drive["removable"] = "1"
 	}
 
-	driveUTF16, err := syscall.UTF16PtrFromString(drive["drive_or_id"])
+	// drivePath needs to be in form 'X:\'
+	drivePath, _ := drive["drive_or_id"]
+	drivePath = strings.ToUpper(drivePath)
+	if !strings.HasSuffix(drivePath, "\\") {
+		drivePath += "\\"
+	}
+	driveUTF16, err := syscall.UTF16PtrFromString(drivePath)
 	if err != nil {
 		log.Warnf("Cannot convert drive to UTF16 : %s: %s", drive["drive_or_id"], err.Error())
 
@@ -357,10 +363,13 @@ func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) 
 		if !ok {
 			entry = make(map[string]string)
 		}
-		entry["drive"] = strings.ToLower(logicalDrive)
-		entry["drive_or_id"] = strings.ToLower(logicalDrive)
-		entry["drive_or_name"] = strings.ToLower(logicalDrive)
-		entry["letter"] = fmt.Sprintf("%c", logicalDrive[0])
+		// Need to convert 'X:\' to -> 'x:'
+		// That is the default used output format
+		logicalDriveConverted := strings.ToLower(logicalDrive[0 : len(logicalDrive)-1])
+		entry["drive"] = logicalDriveConverted
+		entry["drive_or_id"] = logicalDriveConverted
+		entry["drive_or_name"] = logicalDriveConverted
+		entry["letter"] = fmt.Sprintf("%c", logicalDriveConverted[0])
 		requiredDrives[logicalDrive] = entry
 	}
 
@@ -436,6 +445,8 @@ func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, v
 		return
 	}
 	names := syscall.UTF16ToString(buffer)
+	// The path name is given with uppercase, convert it.
+	// names = strings.ToLower(names)
 	driveOrID := names
 	if driveOrID == "" {
 		driveOrID = volumeGUIDPath
@@ -477,9 +488,9 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 			if hasRemoteName && strings.HasPrefix(path, remoteName) {
 				requiredDisks[key] = utils.CloneStringMap(discoveredNetworkShares[key])
 				// drive["remote_name"] = \\SERVER\SHARENAME
-				// drive["drive"] = X:\
-				// pathExample1 = \\SERVER\SHARENAME -> X:\
-				// pathExample2 = \\SERVER\SHARENAME\FOO\BAR -> X:\FOO\BAR
+				// drive["drive"] = x:
+				// pathExample1 = \\SERVER\SHARENAME -> x:
+				// pathExample2 = \\SERVER\SHARENAME\FOO\BAR -> x:\FOO\BAR
 				pathReplaced := strings.Replace(path, drive["remote_name"], drive["drive"], 1)
 				requiredDisks[key]["drive"] = pathReplaced
 				// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
@@ -495,6 +506,7 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 	switch len(path) {
 	case 1, 2:
 		path = strings.TrimSuffix(path, ":") + ":"
+		path = strings.ToLower(path)
 		availDisks := map[string]map[string]string{}
 		err = l.setDrives(availDisks)
 		for driveOrID := range availDisks {
@@ -593,11 +605,14 @@ func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 				drive = make(map[string]string)
 			}
 			drive["id"] = remoteName
-			drive["drive"] = strings.ToLower(logicalDrive)
-			drive["drive_or_id"] = strings.ToLower(logicalDrive)
+			// Need to convert 'X:\' to -> 'x:'
+			// That is the default used output format
+			logicalDriveConverted := strings.ToLower(logicalDrive[0 : len(logicalDrive)-1])
+			drive["drive"] = logicalDriveConverted
+			drive["drive_or_id"] = logicalDriveConverted
 			// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
-			drive["drive_or_name"] = strings.ToLower(logicalDrive)
-			drive["letter"] = strings.ToLower(logicalDrive)
+			drive["drive_or_name"] = logicalDriveConverted
+			drive["letter"] = fmt.Sprintf("%c", logicalDriveConverted[0])
 			drive["remote_name"] = remoteName
 			if isNetworkDrivePersistent(logicalDrive) {
 				drive["persistent"] = "1"
