@@ -275,8 +275,7 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	}
 
 	// drivePath needs to be in form 'X:\'
-	drivePath, _ := drive["drive_or_id"]
-	drivePath = strings.ToUpper(drivePath)
+	drivePath := strings.ToUpper(drive["drive_or_id"])
 	if !strings.HasSuffix(drivePath, "\\") {
 		drivePath += "\\"
 	}
