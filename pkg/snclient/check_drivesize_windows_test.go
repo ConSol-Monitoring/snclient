@@ -9,6 +9,9 @@ import (
 func TestCheckDrivesize(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
+	// This is a untypical behavior. if a drive= or folder= argument is given, it should be visible again in the output.
+	// This means the default detail syntax that uses "drive" and "drive_or_name" attribute should be set to the argument.
+	// So the lowercase print of the drive letters is not done in default cases like the ones bellow.
 	res := snc.RunCheck("check_drivesize", []string{"warn=free > 0", "crit=free > 0", "drive=c"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 	assert.Regexpf(t,
