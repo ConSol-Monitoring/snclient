@@ -357,9 +357,9 @@ func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) 
 		if !ok {
 			entry = make(map[string]string)
 		}
-		entry["drive"] = logicalDrive
-		entry["drive_or_id"] = logicalDrive
-		entry["drive_or_name"] = logicalDrive
+		entry["drive"] = strings.ToLower(logicalDrive)
+		entry["drive_or_id"] = strings.ToLower(logicalDrive)
+		entry["drive_or_name"] = strings.ToLower(logicalDrive)
 		entry["letter"] = fmt.Sprintf("%c", logicalDrive[0])
 		requiredDrives[logicalDrive] = entry
 	}
@@ -593,12 +593,12 @@ func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 				drive = make(map[string]string)
 			}
 			drive["id"] = remoteName
-			drive["drive"] = logicalDrive
-			drive["drive_or_id"] = logicalDrive
+			drive["drive"] = strings.ToLower(logicalDrive)
+			drive["drive_or_id"] = strings.ToLower(logicalDrive)
 			// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
-			drive["drive_or_name"] = logicalDrive
+			drive["drive_or_name"] = strings.ToLower(logicalDrive)
 			drive["localised_remote_path"] = remoteName
-			drive["letter"] = logicalDrive
+			drive["letter"] = strings.ToLower(logicalDrive)
 			drive["remote_name"] = remoteName
 			if isNetworkDrivePersistent(logicalDrive) {
 				drive["persistent"] = "1"
