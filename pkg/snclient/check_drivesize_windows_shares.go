@@ -88,17 +88,28 @@ const (
 	DRIVE_RAMDISK     GetDriveTypeReturnValuePrimitive = 6
 )
 
-type WNetGetConnectionWReturnValuePrimitive uint32
+// windows.getDriveType returns a value, use this to return a string representation
+func (driveType GetDriveTypeReturnValuePrimitive) toString() string {
+	switch driveType {
+	case DRIVE_UNKNOWN:
+		return "unknown"
+	case DRIVE_NO_ROOT_DIR:
+		return "no_root_dir"
+	case DRIVE_REMOVABLE:
+		return "removable"
+	case DRIVE_FIXED:
+		return "fixed"
+	case DRIVE_REMOTE:
+		return "remote"
+	case DRIVE_CDROM:
+		return "cdrom"
+	case DRIVE_RAMDISK:
+		return "ramdisk"
+	}
+	return "unknown"
+}
 
-// const (
-// 	ERROR_BAD_DEVICE WNetGetConnectionWReturnValuePrimitive =  //The string pointed to by the lpLocalName parameter is invalid.
-// 	ERROR_NOT_CONNECTED WNetGetConnectionWReturnValuePrimitive =  // The device specified by lpLocalName is not a redirected device. For more information, see the following Remarks section.
-// 	ERROR_MORE_DATA WNetGetConnectionWReturnValuePrimitive = // The buffer is too small. The lpnLength parameter points to a variable that contains the required buffer size. More entries are available with subsequent calls.
-// 	ERROR_CONNECTION_UNAVAIL WNetGetConnectionWReturnValuePrimitive =  // The device is not currently connected, but it is a persistent connection. For more information, see the following Remarks section.
-// 	ERROR_NO_NETWORK WNetGetConnectionWReturnValuePrimitive =  // The network is unavailable.
-// 	ERROR_EXTENDED_ERROR WNetGetConnectionWReturnValuePrimitive = // A network-specific error occurred. To obtain a description of the error, call the WNetGetLastError function.
-// 	ERROR_NO_NET_OR_BAD_PATH WNetGetConnectionWReturnValuePrimitive =  //None of the providers recognize the local name as having a connection. However, the network is not available for at least one provider to whom the connection may belong.
-// )
+type WNetGetConnectionWReturnValuePrimitive uint32
 
 var (
 	kernel32Dll = windows.NewLazySystemDLL("Kernel32.dll")
@@ -284,32 +295,6 @@ func enumerateNetworkResources(rootNetresource *Netresource) (err error) {
 	}
 
 	return nil
-}
-
-func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
-	persistentNetworkDrives, err := discoverPersistentNetworkDrives()
-	for _, drive := range persistentNetworkDrives {
-		log.Debugf("Found network drive %s", drive.DriveLetter)
-	}
-
-	logicalDrives, err := GetLogicalDriveStrings(1024)
-	for _, logicalDrive := range logicalDrives {
-		log.Debugf("Logical Drive: %s", logicalDrive)
-
-		driveType, _ := GetDriveType(logicalDrive)
-		log.Debugf("Drive Type: %d", driveType)
-
-		if driveType == DRIVE_REMOTE {
-			remoteName, _ := NetGetConnection(logicalDrive)
-			log.Debugf("Remote name: %s", remoteName)
-		}
-	}
-
-	err = enumerateNetworkResources(nil)
-	if err != nil {
-		log.Debugf("Error when enumerating network resources: %s", err.Error())
-	}
-
 }
 
 func handleNetOpenEnumAReturnCode(returnCode uintptr, winnetwkDll *windows.LazyDLL) (err error) {

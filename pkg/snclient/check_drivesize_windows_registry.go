@@ -9,8 +9,8 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-type SavedNetworkDrive struct {
-	DriveLetter    string
+type PersistentNetworkDrive struct {
+	DriveLetter    string // Only the driveLetter, so not "X:\" but "X"
 	ConnectFlags   uint32
 	ConnectionType uint32
 	ProviderName   string
@@ -23,26 +23,26 @@ type SavedNetworkDrive struct {
 }
 
 // This function looks into the Windows Registery of the current logged in user for persistent network drives
-func discoverPersistentNetworkDrives() (savedNetworkDrives []SavedNetworkDrive, err error) {
+func discoverPersistentNetworkDrives() (savedNetworkDrives []PersistentNetworkDrive, err error) {
 	// From the observations, HKEY_CURRENT_USER\Network contains subkeys/subfolders that correspond to drive letters
 	// Tracing "C:\Windows\system32\net.exe use" shows that it tries to browse this path to get the current network drives
 
 	hkcuNetwork, err := registry.OpenKey(registry.CURRENT_USER, `Network`, registry.QUERY_VALUE|registry.ENUMERATE_SUB_KEYS)
 	if err != nil {
-		return []SavedNetworkDrive{}, fmt.Errorf("Error when browsing into the registery HKCU\\Network: %w", err)
+		return []PersistentNetworkDrive{}, fmt.Errorf("Error when browsing into the registery HKCU\\Network: %w", err)
 	}
 
 	hkcuNetworkStat, err := hkcuNetwork.Stat()
 	if err != nil {
-		return []SavedNetworkDrive{}, fmt.Errorf("Error when getting the stats for HKCU\\Network: %w", err)
+		return []PersistentNetworkDrive{}, fmt.Errorf("Error when getting the stats for HKCU\\Network: %w", err)
 	}
 
 	hkcuNetworkSubkeys, err := hkcuNetwork.ReadSubKeyNames(int(hkcuNetworkStat.SubKeyCount))
 	if err != nil {
-		return []SavedNetworkDrive{}, fmt.Errorf("Error when listing the subkeys of HCKU\\Network: %w", err)
+		return []PersistentNetworkDrive{}, fmt.Errorf("Error when listing the subkeys of HCKU\\Network: %w", err)
 	}
 
-	networkDrives := make([]SavedNetworkDrive, 0)
+	networkDrives := make([]PersistentNetworkDrive, 0)
 
 	for _, hkcuNetworkSubkey := range hkcuNetworkSubkeys {
 		// HKCU\Network might contain other subkeys that arent drive letters
@@ -55,7 +55,7 @@ func discoverPersistentNetworkDrives() (savedNetworkDrives []SavedNetworkDrive, 
 			continue
 		}
 
-		networkDrive := SavedNetworkDrive{}
+		networkDrive := PersistentNetworkDrive{}
 		networkDrive.DriveLetter = hkcuNetworkSubkey
 
 		driveKey, err := registry.OpenKey(hkcuNetwork, networkDrive.DriveLetter, registry.QUERY_VALUE)
