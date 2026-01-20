@@ -149,6 +149,8 @@ func (l *CheckDrivesize) Build() *CheckData {
 
 			{name: "remote_name", description: "Windows only: the remote name of the drive, if it uses a network name"},
 			{name: "persistent", description: "Windows only: if the network drive is mounted as persistent (0/1)"},
+			{name: "localised_remote_path", description: "Windows only: If the path is given as a remote path, and that remote path has an assigned logical drive," +
+				" this is the replaced path under that logical drive."},
 		},
 		exampleDefault: l.getExample(),
 		exampleArgs:    `'warn=used_pct > 90' 'crit=used_pct > 95'`,

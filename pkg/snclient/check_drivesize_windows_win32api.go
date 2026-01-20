@@ -15,33 +15,34 @@ import (
 type GetDriveTypeReturnValuePrimitive uint32
 
 const (
-	DRIVE_UNKNOWN     GetDriveTypeReturnValuePrimitive = 0
-	DRIVE_NO_ROOT_DIR GetDriveTypeReturnValuePrimitive = 1
-	DRIVE_REMOVABLE   GetDriveTypeReturnValuePrimitive = 2
-	DRIVE_FIXED       GetDriveTypeReturnValuePrimitive = 3
-	DRIVE_REMOTE      GetDriveTypeReturnValuePrimitive = 4
-	DRIVE_CDROM       GetDriveTypeReturnValuePrimitive = 5
-	DRIVE_RAMDISK     GetDriveTypeReturnValuePrimitive = 6
+	DriveUnknown   GetDriveTypeReturnValuePrimitive = 0
+	DriveNoRootDir GetDriveTypeReturnValuePrimitive = 1
+	DriveRemovable GetDriveTypeReturnValuePrimitive = 2
+	DriveFixed     GetDriveTypeReturnValuePrimitive = 3
+	DriveRemote    GetDriveTypeReturnValuePrimitive = 4
+	DriveCdrom     GetDriveTypeReturnValuePrimitive = 5
+	DriveRamdisk   GetDriveTypeReturnValuePrimitive = 6
 )
 
 // windows.getDriveType returns a value, use this to return a string representation
 func (driveType GetDriveTypeReturnValuePrimitive) toString() string {
 	switch driveType {
-	case DRIVE_UNKNOWN:
+	case DriveUnknown:
 		return "unknown"
-	case DRIVE_NO_ROOT_DIR:
+	case DriveNoRootDir:
 		return "no_root_dir"
-	case DRIVE_REMOVABLE:
+	case DriveRemovable:
 		return "removable"
-	case DRIVE_FIXED:
+	case DriveFixed:
 		return "fixed"
-	case DRIVE_REMOTE:
+	case DriveRemote:
 		return "remote"
-	case DRIVE_CDROM:
+	case DriveCdrom:
 		return "cdrom"
-	case DRIVE_RAMDISK:
+	case DriveRamdisk:
 		return "ramdisk"
 	}
+
 	return "unknown"
 }
 
@@ -50,18 +51,22 @@ type WNetGetConnectionWReturnValuePrimitive uint32
 var (
 	kernel32Dll = windows.NewLazySystemDLL("Kernel32.dll")
 
-	// [in] nBufferLength The maximum size of the buffer pointed to by lpBuffer, in TCHARs. This value includes space for the terminating null character. If this parameter is zero, lpBuffer is not used.
-	// [out] lpBuffer A pointer to a buffer that receives a series of null-terminated strings, one for each valid drive in the system, plus with an additional null character. Each string is a device name.
+	// [in] nBufferLength The maximum size of the buffer pointed to by lpBuffer, in TCHARs.
+	// This value includes space for the terminating null character. If this parameter is zero, lpBuffer is not used.
+	// [out] lpBuffer A pointer to a buffer that receives a series of null-terminated strings, one for each valid drive
+	// in the system, plus with an additional null character. Each string is a device name.
 	getLogicalDriveStringsW = kernel32Dll.NewProc("GetLogicalDriveStringsW")
 
-	// [in, optional] lpRootPathName The root directory for the drive. A trailing backslash is required. If this parameter is NULL, the function uses the root of the current directory.
+	// [in, optional] lpRootPathName The root directory for the drive. A trailing backslash is required.
+	// If this parameter is NULL, the function uses the root of the current directory.
 	getDriveTypeW = kernel32Dll.NewProc("GetDriveTypeW")
 
 	winnetwkDll = windows.NewLazySystemDLL("Mpr.dll")
 
 	// [in] lpLocalName Pointer to a constant null-terminated string that specifies the name of the local device to get the network name for.
 	// [out] lpRemoteName Pointer to a null-terminated string that receives the remote name used to make the connection.
-	// [in, out] lpnLength Pointer to a variable that specifies the size of the buffer pointed to by the lpRemoteName parameter, in characters. If the function fails because the buffer is not large enough, this parameter returns the required buffer size.
+	// [in, out] lpnLength Pointer to a variable that specifies the size of the buffer pointed to by the lpRemoteName parameter,
+	//  in characters. If the function fails because the buffer is not large enough, this parameter returns the required buffer size.
 	wNetGetConnectionW = winnetwkDll.NewProc("WNetGetConnectionW")
 )
 
@@ -69,8 +74,8 @@ func GetLogicalDriveStrings(nBufferLength uint32) (logicalDrives []string, err e
 	// We are using getLogicalDriveStringsW , which uses Long Width Chars
 
 	// bufferLength is in TCHARs
-	var nBufferLengthCopy = nBufferLength
-	var lpBuffer = make([]uint16, nBufferLengthCopy)
+	nBufferLengthCopy := nBufferLength
+	lpBuffer := make([]uint16, nBufferLengthCopy)
 	returnValue, _, err := getLogicalDriveStringsW.Call(
 		uintptr(unsafe.Pointer(&nBufferLengthCopy)),
 		uintptr(unsafe.Pointer(&lpBuffer[0])),
@@ -82,17 +87,17 @@ func GetLogicalDriveStrings(nBufferLength uint32) (logicalDrives []string, err e
 
 	if returnValue > uintptr(nBufferLength) {
 		log.Debugf("GetLogicalDriveStringsW was called with a smaller buffer size than required, calling it recursively with size %d", returnValue)
+
 		return GetLogicalDriveStrings(uint32(returnValue))
 	}
 
 	logicalDrives = make([]string, 0)
 
 	if returnValue < uintptr(nBufferLength) {
-		// There are multiple drives in the returned string, seperated by a NULL character
+		// There are multiple drives in the returned string, separated by a NULL character
 		for index := 0; uintptr(index) < returnValue; {
 			decodedDriveStr := windows.UTF16ToString(lpBuffer[index:])
 			logicalDrives = append(logicalDrives, decodedDriveStr)
-			// log.Debugf("%s", decodedDriveStr)
 			index += len(decodedDriveStr) + 1
 		}
 	}
@@ -109,7 +114,7 @@ func GetDriveType(lpRootPathName string) (returnValue GetDriveTypeReturnValuePri
 }
 
 func NetGetConnection(lpLocalName string) (lpRemoteName string, err error) {
-	var lpLocalNameW16 []uint16 = windows.StringToUTF16(lpLocalName)
+	lpLocalNameW16 := windows.StringToUTF16(lpLocalName)
 
 	var lpnLength uint32 = 32768
 	lpRemoteNameW16 := make([]uint16, lpnLength)
@@ -119,24 +124,26 @@ func NetGetConnection(lpLocalName string) (lpRemoteName string, err error) {
 		uintptr(unsafe.Pointer(&lpnLength)),
 	)
 
-	if returnValue != windows.NO_ERROR {
-		if errors.Is(err, windows.ERROR_BAD_DEVICE) {
-			return "", fmt.Errorf("The string pointed to by the lpLocalName parameter is invalid : %s", lpLocalName)
-		} else if errors.Is(err, windows.ERROR_NOT_CONNECTED) {
-			return "", fmt.Errorf("The device specified by lpLocalName is not a redirected device. For more information, see the following Remarks section.")
-		} else if errors.Is(err, windows.ERROR_MORE_DATA) {
-			return "", fmt.Errorf("The buffer is too small. The lpnLength parameter points to a variable that contains the required buffer size. More entries are available with subsequent calls.")
-		} else if errors.Is(err, windows.ERROR_CONNECTION_UNAVAIL) {
-			return "", fmt.Errorf("The device is not currently connected, but it is a persistent connection. For more information, see the following Remarks section.")
-		} else if errors.Is(err, windows.ERROR_NO_NETWORK) {
-			return "", fmt.Errorf(" The network is unavailable.")
-		} else if errors.Is(err, windows.ERROR_EXTENDED_ERROR) {
-			return "", fmt.Errorf("A network-specific error occurred. To obtain a description of the error, call the WNetGetLastError function. WNetGetLastError returned: %s", handleWNetError(returnValue, winnetwkDll))
-		} else if errors.Is(err, windows.ERROR_NO_NET_OR_BAD_PATH) {
-			return "", fmt.Errorf("None of the providers recognize the local name as having a connection. However, the network is not available for at least one provider to whom the connection may belong.")
-		} else {
-			return "", fmt.Errorf("WNetGetConnectionW returned an unrecognized error with value: %d", returnValue)
-		}
+	switch {
+	case returnValue == windows.NO_ERROR:
+		// this is what we want
+	case errors.Is(err, windows.ERROR_BAD_DEVICE):
+		return "", fmt.Errorf("the string pointed to by the lpLocalName parameter is invalid : %s", lpLocalName)
+	case errors.Is(err, windows.ERROR_NOT_CONNECTED):
+		return "", fmt.Errorf("the device specified by lpLocalName is not a redirected device. For more information, see the following Remarks section")
+	case errors.Is(err, windows.ERROR_MORE_DATA):
+		return "", fmt.Errorf("the buffer is too small. The lpnLength parameter points to a variable that contains the required buffer size. More entries are available with subsequent calls")
+	case errors.Is(err, windows.ERROR_CONNECTION_UNAVAIL):
+		return "", fmt.Errorf("the device is not currently connected, but it is a persistent connection. For more information, see the following Remarks section")
+	case errors.Is(err, windows.ERROR_NO_NETWORK):
+		return "", fmt.Errorf("the network is unavailable")
+	case errors.Is(err, windows.ERROR_EXTENDED_ERROR):
+		return "", fmt.Errorf("a network-specific error occurred. To obtain a description of the error, call the WNetGetLastError function."+
+			"WNetGetLastError returned: %w", handleWNetError(returnValue, winnetwkDll))
+	case errors.Is(err, windows.ERROR_NO_NET_OR_BAD_PATH):
+		return "", fmt.Errorf("none of the providers recognize the local name as having a connection. However, the network is not available for at least one provider to whom the connection may belong")
+	default:
+		return "", fmt.Errorf("mNetGetConnectionW returned an unrecognized error with value: %d", returnValue)
 	}
 
 	lpRemoteName = windows.UTF16ToString(lpRemoteNameW16)
@@ -146,20 +153,23 @@ func NetGetConnection(lpLocalName string) (lpRemoteName string, err error) {
 
 func handleWNetError(errorCode uintptr, winnetwkDll *windows.LazyDLL) (err error) {
 	wNetGetLastErrorAFunc := winnetwkDll.NewProc("WNetGetLastErrorA ")
-	lpErrorBuf := make([]byte, 1024)
-	lpNameBuf := make([]byte, 256)
+	const lpErrorBufLength = uint32(1024)
+	lpErrorBuf := make([]byte, lpErrorBufLength)
+	const lpNameBufLength = uint32(256)
+	lpNameBuf := make([]byte, lpNameBufLength)
 	ret, _, _ := wNetGetLastErrorAFunc.Call(
-		uintptr(errorCode),
+		errorCode,
 		uintptr(unsafe.Pointer(&lpErrorBuf)),
-		1024,
+		uintptr(lpErrorBufLength),
 		uintptr(unsafe.Pointer(&lpNameBuf)),
-		256,
+		uintptr(lpNameBufLength),
 	)
 	if ret != windows.NO_ERROR {
-		return fmt.Errorf("Got en error while getting the extended network error")
+		return fmt.Errorf("got en error while getting the extended network error")
 	}
 	if ret == uintptr(windows.ERROR_INVALID_ADDRESS) {
-		return fmt.Errorf("Provided an invalid buffer while getting the extended network error")
+		return fmt.Errorf("provided an invalid buffer while getting the extended network error")
 	}
+
 	return nil
 }
