@@ -597,7 +597,6 @@ func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 			drive["drive_or_id"] = strings.ToLower(logicalDrive)
 			// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
 			drive["drive_or_name"] = strings.ToLower(logicalDrive)
-			drive["localised_remote_path"] = remoteName
 			drive["letter"] = strings.ToLower(logicalDrive)
 			drive["remote_name"] = remoteName
 			if isNetworkDrivePersistent(logicalDrive) {
