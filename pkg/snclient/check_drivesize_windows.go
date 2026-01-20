@@ -509,6 +509,7 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 				requiredDisks[path] = utils.CloneStringMap(availDisks[driveOrID])
 				requiredDisks[path]["drive"] = path         // use name from attributes
 				requiredDisks[path]["drive_or_name"] = path // used in default detail syntax
+
 				return nil
 			}
 		}
