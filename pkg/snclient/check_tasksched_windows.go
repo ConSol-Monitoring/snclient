@@ -130,7 +130,7 @@ func (r TaskResult) String() string {
 }
 
 //nolint:mnd // enumerated exit codes
-func (r TaskResult) exitCode() int32 {
+func (r TaskResult) exitCode() uint32 {
 	switch r {
 	case TaskResSuccess:
 		return 0
@@ -159,7 +159,7 @@ func (r TaskResult) exitCode() int32 {
 	case TaskResQueued:
 		return 12
 	default:
-		return -1
+		return uint32(r)
 	}
 }
 
