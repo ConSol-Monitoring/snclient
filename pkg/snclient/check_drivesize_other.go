@@ -34,7 +34,7 @@ Check folder, no matter if its a mountpoint itself or not:
 }
 
 // if parentFallback is true, try to find a parent folder that is a mountpoint. If its false, only the exact matches are checked for mountpoints.
-func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) (requiredDisks map[string]map[string]string, err error) {
+func (l *CheckDrivesize) getRequiredDrives(drives []string, parentFallback bool) (requiredDisks map[string]map[string]string, err error) {
 	// create map of required disks/volumes with "drive_or_id" as primary key
 	requiredDisks = map[string]map[string]string{}
 

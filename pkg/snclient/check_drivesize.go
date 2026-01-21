@@ -146,6 +146,11 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "removable", description: "Windows only: flag drive is removable (0/1)"},
 			{name: "erasable", description: "Windows only: flag wether if drive is erasable (0/1)"},
 			{name: "hotplug", description: "Windows only: flag drive is hotplugable (0/1)"},
+
+			{name: "remote_name", description: "Windows only: the remote name of the drive, if it uses a network name"},
+			{name: "persistent", description: "Windows only: if the network drive is mounted as persistent (0/1)"},
+			{name: "localised_remote_path", description: "Windows only: If the path is given as a remote path, and that remote path has an assigned logical drive," +
+				" this is the replaced path under that logical drive."},
 		},
 		exampleDefault: l.getExample(),
 		exampleArgs:    `'warn=used_pct > 90' 'crit=used_pct > 95'`,
@@ -165,7 +170,7 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 		l.drives = []string{"all"}
 	}
 	requiredDisks := map[string]map[string]string{}
-	drives, err := l.getRequiredDisks(l.drives, false)
+	drives, err := l.getRequiredDrives(l.drives, false)
 	var notFoundErr *PartitionNotFoundError
 	var notMountedErr *PartitionNotMountedError
 	var partitionDiscoveryErr *PartitionDiscoveryError
@@ -201,7 +206,7 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	maps.Copy(requiredDisks, drives)
 
 	// when checking for folders and their mountpoints, set parentFallback to true
-	folders, err := l.getRequiredDisks(l.folders, true)
+	folders, err := l.getRequiredDrives(l.folders, true)
 	// ignore errors if emptyState set is true, just like the drives
 	if !check.emptyStateSet {
 		if err != nil {
@@ -397,6 +402,7 @@ func (l *CheckDrivesize) addTotalUserMacros(drive map[string]string) {
 	drive["user_used_pct"] = drive["used_pct"]
 }
 
+// Uses the disk.UsageStat argument and adds its data to the drive
 func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]string, usage *disk.UsageStat, magic float64) {
 	total := usage.Total
 	if !l.freespaceIgnoreReserved {

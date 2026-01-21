@@ -46,43 +46,53 @@ func (l *CheckDrivesize) getExample() string {
 	`
 }
 
-func (l *CheckDrivesize) getRequiredDisks(drives []string, parentFallback bool) (requiredDisks map[string]map[string]string, err error) {
-	// create map of required disks/volmes with "drive_or_id" as primary key
-	requiredDisks = map[string]map[string]string{}
+// Terminology
+// Disk : Physical Hardware like a HDD, SSD, Usb Stick. A block device that ca be used to store raw bytes -> \\.\PhysicalDrive0
+// Partition: Is written into the disk in a partition table. It exists independently of volumes, may not be used by Windows
+// Volume: A logical abstraction of a storage, formatted with a file system. It can be a virtual file, a RAID disk or one partition -> \\?\Volume{GUID}\
+// Drive: This term is not defined well. Here, it means a logical access point with an assigned drive letter.
 
-	for _, drive := range drives {
+// For a given path, it may correspond to a mounted disk, like a \\SERVER\SHARENAME being added as K: drive
+// Checks the given path, resolves the alias and calls the corresponding function that adds the details
+func (l *CheckDrivesize) getRequiredDrives(paths []string, parentFallback bool) (requiredDrives map[string]map[string]string, err error) {
+	// create map of required disks/volmes/network_shares with "drive_or_id" as primary key
+
+	requiredDrives = map[string]map[string]string{}
+
+	// if there are multiple drive= arguments, these functions may be called multiple times.
+	// they check if key exists before adding it to requiredDrives.
+	for _, drive := range paths {
 		switch drive {
 		case "*", "all":
-			l.setVolumes(requiredDisks)
-			err := l.setDisks(requiredDisks)
+			l.setVolumes(requiredDrives)
+			err := l.setDrives(requiredDrives)
 			if err != nil {
 				return nil, err
 			}
+			l.setShares(requiredDrives)
 		case "all-drives":
-			err := l.setDisks(requiredDisks)
+			err := l.setDrives(requiredDrives)
 			if err != nil {
 				return nil, err
 			}
 		case "all-volumes":
-			l.setVolumes(requiredDisks)
+			l.setVolumes(requiredDrives)
+		case "all-shares":
+			l.setShares(requiredDrives)
 		default:
-			// drives are like block devices c: -> /dev/sda
-			// partition is written into the disk in a partition table. it exists independently of volumes -> /dev/sdb3
-			// volumes are accessible storage areas where a filesystem is made onto a partition. it can be mounted and have files -> / , /tmp/ , /home
-			// "c" or "c:"" will use the drive c
-			// "c:\" will use the volume
-			// "c:\path" will use the best matching volume
 			l.hasCustomPath = true
-			err := l.setCustomPath(drive, requiredDisks, parentFallback)
+			err := l.setCustomPath(drive, requiredDrives, parentFallback)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	return requiredDisks, nil
+	return requiredDrives, nil
 }
 
+// this is the main function where most of the attributes are added
+// it also adds the capacity and usage metrics
 func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, drive map[string]string, magic float64) {
 	// check filter before querying disk
 	if !check.MatchMapCondition(check.filter, drive, true) {
@@ -100,18 +110,21 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 	drive["erasable"] = "0"
 	drive["hotplug"] = ""
 
-	if err := l.setDeviceFlags(drive); err != nil {
-		log.Debugf("device flags: %s", err.Error())
-	}
-	if err := l.setMediaType(drive); err != nil {
-		log.Debugf("device flags: %s", err.Error())
-	}
-
 	l.setDeviceInfo(drive)
+
+	if drive["type"] != "remote" {
+		if err := l.setDeviceFlags(drive); err != nil {
+			log.Debugf("device flags: %s", err.Error())
+		}
+		if err := l.setMediaType(drive); err != nil {
+			log.Debugf("device flags: %s", err.Error())
+		}
+	}
 
 	timeoutContext, cancel := context.WithTimeout(ctx, DiskDetailsTimeout)
 	defer cancel()
 
+	// Uses gopsutil to check disk usage
 	usage, err := disk.UsageWithContext(timeoutContext, drive["drive_or_id"])
 	if err != nil {
 		switch {
@@ -136,6 +149,8 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 	}
 }
 
+// Creates a handle to the root of the drive, and calls StorageHotplugInfo Ioctl
+// This will not work on remote drives
 func (l *CheckDrivesize) setDeviceFlags(drive map[string]string) error {
 	szDevice := fmt.Sprintf(`\\.\%s`, strings.TrimSuffix(drive["drive"], "\\"))
 	szPtr, err := syscall.UTF16PtrFromString(szDevice)
@@ -192,6 +207,8 @@ func (l *CheckDrivesize) setDeviceFlags(drive map[string]string) error {
 	return nil
 }
 
+// Creates a handle at the root of the drive, and calls GetMediaTypes Ioctl
+// This will not work on remote drives
 func (l *CheckDrivesize) setMediaType(drive map[string]string) error {
 	szDevice := fmt.Sprintf(`\\.\%s`, strings.TrimSuffix(drive["drive"], "\\"))
 	szPtr, err := syscall.UTF16PtrFromString(szDevice)
@@ -242,18 +259,32 @@ func (l *CheckDrivesize) setMediaType(drive map[string]string) error {
 	return nil
 }
 
+// uses GetVolumeInformaton syscall, works on network drives
+//
+//nolint:funlen //no need to split this
 func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
-	volPtr, err := syscall.UTF16PtrFromString(drive["drive_or_id"])
+	driveType, err := GetDriveType(drive["drive_or_id"])
 	if err != nil {
-		log.Warnf("stringPtr: %s: %s", drive["drive_or_id"], err.Error())
+		log.Warnf("Error when getting the drive type of drive %s: %s", drive["drive_or_id"], err.Error())
 
 		return
 	}
-	drive["type"] = l.driveType(windows.GetDriveType(volPtr))
+	drive["type"] = driveType.toString()
 	if drive["type"] == "removable" {
 		drive["removable"] = "1"
 	}
 
+	// drivePath needs to be in form 'X:\'
+	drivePath := strings.ToUpper(drive["drive_or_id"])
+	if !strings.HasSuffix(drivePath, "\\") {
+		drivePath += "\\"
+	}
+	driveUTF16, err := syscall.UTF16PtrFromString(drivePath)
+	if err != nil {
+		log.Warnf("Cannot convert drive to UTF16 : %s: %s", drive["drive_or_id"], err.Error())
+
+		return
+	}
 	volumeName := make([]uint16, windows.MAX_PATH+1)
 	volumeNameLen, err := convert.UInt32E(len(volumeName))
 	if err != nil {
@@ -270,8 +301,10 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	}
 	fileSystemFlags := uint32(0)
 	opts := []string{}
+	// uses GetVolumeInformationW
+	// This system call works on network drives
 	err = windows.GetVolumeInformation(
-		volPtr,
+		driveUTF16,
 		&volumeName[0],
 		volumeNameLen,
 		nil,
@@ -289,6 +322,7 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 
 		return
 	}
+
 	name := syscall.UTF16ToString(volumeName)
 	driveOrName := drive["drive"]
 	if driveOrName == "" {
@@ -310,46 +344,47 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	if drive["fstype"] == "" {
 		drive["fstype"] = syscall.UTF16ToString(fileSystemName)
 	}
-	drive["drive_or_name"] = driveOrName
+	if drive["drive_or_name"] == "" {
+		drive["drive_or_name"] = driveOrName
+	}
 }
 
-func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (err error) {
-	partitions, err := disk.Partitions(true)
-	if err != nil && len(partitions) == 0 {
-		// in case even a single drive is locked by BitLocker, then
-		// the disk.Partitions returns an error.
-		// "This drive is locked by BitLocker Drive Encryption. You must unlock this drive from Control Panel"
-		// but there can still be valid elements in partitions,
-		// so abort here only if partitions is empty.
-		return &PartitionDiscoveryError{err: err}
+// adds all logical drives to the requiredDisks
+// this function is better suited for usage with-network drives. gopsutil has disk.Partitions, but that does not work with network drives
+func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) (err error) {
+	logicalDrives, err := GetLogicalDriveStrings(1024)
+	if err != nil {
+		log.Debug("Error when getting logical drive strings: %s", err.Error())
 	}
-	for _, partition := range partitions {
-		drive := strings.TrimSuffix(partition.Device, "\\") + "\\"
-		entry, ok := requiredDisks[drive]
+
+	for _, logicalDrive := range logicalDrives {
+		entry, ok := requiredDrives[logicalDrive]
 		if !ok {
 			entry = make(map[string]string)
 		}
-		entry["drive"] = drive
-		entry["drive_or_id"] = drive
-		entry["drive_or_name"] = drive
-		entry["letter"] = fmt.Sprintf("%c", drive[0])
-		entry["fstype"] = partition.Fstype
-		requiredDisks[drive] = entry
+		entry["drive"] = logicalDrive
+		entry["drive_or_id"] = logicalDrive
+		entry["drive_or_name"] = logicalDrive
+		entry["letter"] = fmt.Sprintf("%c", logicalDrive[0])
+		requiredDrives[logicalDrive] = entry
 	}
 
 	return nil
 }
 
-func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) {
-	volumes := []string{}
+// adds all logical volumes to the requiredDisks
+// network shares are not listed in volumes
+func (l *CheckDrivesize) setVolumes(requiredDrives map[string]map[string]string) {
+	volumeGUIDPaths := []string{}
 	bufLen, err := convert.UInt32E(windows.MAX_PATH + 1)
 	if err != nil {
 		log.Tracef("convert.UInt32E: %s", err.Error())
 
 		return
 	}
-	volumeName := make([]uint16, bufLen)
-	hndl, err := windows.FindFirstVolume(&volumeName[0], bufLen)
+
+	volumeGUIDPathBuffer := make([]uint16, bufLen)
+	hndl, err := windows.FindFirstVolume(&volumeGUIDPathBuffer[0], bufLen)
 	if err != nil {
 		log.Tracef("FindFirstVolume: %s", err.Error())
 
@@ -358,52 +393,66 @@ func (l *CheckDrivesize) setVolumes(requiredDisks map[string]map[string]string) 
 	defer func() {
 		LogDebug(windows.FindVolumeClose(hndl))
 	}()
-	volumes = append(volumes, syscall.UTF16ToString(volumeName))
+
+	volumeGUIDPaths = append(volumeGUIDPaths, syscall.UTF16ToString(volumeGUIDPathBuffer))
 
 	for {
-		err := windows.FindNextVolume(hndl, &volumeName[0], bufLen)
+		err := windows.FindNextVolume(hndl, &volumeGUIDPathBuffer[0], bufLen)
 		if err != nil {
 			log.Tracef("FindNextVolume: %s", err.Error())
 
 			break
 		}
-		volumes = append(volumes, syscall.UTF16ToString(volumeName))
+		volumeGUIDPaths = append(volumeGUIDPaths, syscall.UTF16ToString(volumeGUIDPathBuffer))
 	}
-	for _, vol := range volumes {
-		l.setVolume(requiredDisks, vol, volumeName)
+
+	// Windows syscall findFirstVolume, findNextVolume... give GUID paths to volumes e.g:
+	// "\\\\?\\Volume{a6b8f57e-dac6-4bac-8dc2-fac22cd740cf}\\"
+	// They need to be translated
+	for _, volumeGUIDPath := range volumeGUIDPaths {
+		// reuse the buffer when filling the details
+		l.setVolume(requiredDrives, volumeGUIDPath, volumeGUIDPathBuffer)
 	}
 }
 
-func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, vol string, volumeName []uint16) {
-	volPtr, err := syscall.UTF16PtrFromString(vol)
+// this function is used to further process the volume GUID path returned from API call
+// takes a GUID path of a volume, finds its path name. it may or may not be mounted directly on a drive letter
+func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, volumeGUIDPath string, buffer []uint16) {
+	volPtr, err := syscall.UTF16PtrFromString(volumeGUIDPath)
 	if err != nil {
-		log.Warnf("stringPtr: %s: %s", vol, err.Error())
+		log.Warnf("stringPtr: %s: %s", volumeGUIDPath, err.Error())
 
 		return
 	}
 	returnLen := uint32(0)
-	volumeNameLen, err := convert.UInt32E(len(volumeName))
+	bufferLen, err := convert.UInt32E(len(buffer))
 	if err != nil {
 		log.Warnf("convert.UInt32E: %s", err.Error())
 
 		return
 	}
-	err = windows.GetVolumePathNamesForVolumeName(volPtr, &volumeName[0], volumeNameLen, &returnLen)
+	// https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumepathnamesforvolumenamew
+	// SMB does not support volume management functions
+	// uses GetVolumePathNamesForVolumeNameW
+	err = windows.GetVolumePathNamesForVolumeName(volPtr, &buffer[0], bufferLen, &returnLen)
 	if err != nil {
-		log.Warnf("GetVolumePathNamesForVolumeName: %s: %s", vol, err.Error())
+		log.Warnf("Error when calling GetVolumePathNamesForVolumeName: %s: %s", volumeGUIDPath, err.Error())
 
 		return
 	}
-	names := syscall.UTF16ToString(volumeName)
+	names := syscall.UTF16ToString(buffer)
+	// The path name is given with uppercase, convert it.
+	// names = strings.ToLower(names)
 	driveOrID := names
 	if driveOrID == "" {
-		driveOrID = vol
+		driveOrID = volumeGUIDPath
 	}
+	// only add it if it does not exists
 	entry, ok := requiredDisks[driveOrID]
 	if !ok {
 		entry = make(map[string]string)
 	}
-	entry["id"] = vol
+	entry["id"] = volumeGUIDPath
 	entry["drive"] = names
 	entry["drive_or_id"] = driveOrID
 	entry["drive_or_name"] = names
@@ -416,19 +465,50 @@ func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, v
 	requiredDisks[driveOrID] = entry
 }
 
-func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
-	// Also allow c:/, d:/volume, f:/folder/with/slash
-	drive = strings.ReplaceAll(drive, "/", "\\")
+// This function is called when a custom path needs to be added
+// This is used if folders are given
+// c:/, d:/volume, f:/folder/with/slash
+//
+//nolint:funlen // can not split this function up
+func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
+	path = strings.ReplaceAll(path, "/", "\\")
+	// if its a network share path, discover existing shares and match it with a drive[remote_path]
+	// then we replace path argument in-place, replacing the network path with the logical drive it is assigned to
+	if isNetworkSharePath(path) {
+		discoveredNetworkShares := map[string]map[string]string{}
+		l.setShares(discoveredNetworkShares)
+
+		for key := range discoveredNetworkShares {
+			drive := discoveredNetworkShares[key]
+			remoteName, hasRemoteName := drive["remote_name"]
+			if hasRemoteName && strings.HasPrefix(path, remoteName) {
+				requiredDisks[key] = utils.CloneStringMap(discoveredNetworkShares[key])
+				// drive["remote_name"] = \\SERVER\SHARENAME
+				// drive["drive"] = x:
+				// pathExample1 = \\SERVER\SHARENAME -> x:
+				// pathExample2 = \\SERVER\SHARENAME\FOO\BAR -> x:\FOO\BAR
+				pathReplaced := strings.Replace(path, drive["remote_name"], drive["drive"], 1)
+				requiredDisks[key]["drive"] = pathReplaced
+				// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
+				// requiredDisks[key]["drive_or_name"] = fmt.Sprintf("%s - (%s)", path, pathReplaced)
+				requiredDisks[key]["localised_remote_path"] = pathReplaced
+
+				return nil
+			}
+		}
+	}
+
 	// match a drive, ex: "c" or "c:"
-	switch len(drive) {
+	switch len(path) {
 	case 1, 2:
-		drive = strings.TrimSuffix(drive, ":") + ":"
+		path = strings.TrimSuffix(path, ":") + ":"
 		availDisks := map[string]map[string]string{}
-		err = l.setDisks(availDisks)
+		err = l.setDrives(availDisks)
 		for driveOrID := range availDisks {
-			if strings.EqualFold(driveOrID, drive+"\\") {
-				requiredDisks[drive] = utils.CloneStringMap(availDisks[driveOrID])
-				requiredDisks[drive]["drive"] = drive // use name from attributes
+			if strings.EqualFold(driveOrID, path+"\\") {
+				requiredDisks[path] = utils.CloneStringMap(availDisks[driveOrID])
+				requiredDisks[path]["drive"] = path         // use name from attributes
+				requiredDisks[path]["drive_or_name"] = path // used in default detail syntax
 
 				return nil
 			}
@@ -442,17 +522,17 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 	}
 
 	// make sure path exists
-	_, err = os.Stat(drive)
+	_, err = os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
-		log.Debugf("%s: %s", drive, err.Error())
+		log.Debugf("%s: %s", path, err.Error())
 
-		return &PartitionNotFoundError{Path: drive, err: err}
+		return &PartitionNotFoundError{Path: path, err: err}
 	}
 
 	// try to find closes matching volume
 	availVolumes := map[string]map[string]string{}
 	l.setVolumes(availVolumes)
-	testDrive := strings.TrimSuffix(drive, "\\")
+	testDrive := strings.TrimSuffix(path, "\\")
 	// make first character uppercase because drives are uppercase in the volume list
 	switch {
 	case len(testDrive) > 1:
@@ -463,6 +543,7 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 		testDrive = string(unicode.ToUpper(r[0]))
 	}
 	var match *map[string]string
+
 	for i := range availVolumes {
 		vol := availVolumes[i]
 		if parentFallback && vol["drive"] != "" && strings.HasPrefix(strings.ToUpper(testDrive+"\\"), strings.ToUpper(vol["drive"])) {
@@ -477,37 +558,97 @@ func (l *CheckDrivesize) setCustomPath(drive string, requiredDisks map[string]ma
 		}
 	}
 	if match != nil {
-		requiredDisks[drive] = utils.CloneStringMap(*match)
-		requiredDisks[drive]["drive"] = drive
+		requiredDisks[path] = utils.CloneStringMap(*match)
+		requiredDisks[path]["drive"] = path
 
 		return nil
 	}
 
 	// add anyway to generate an error later with more default values filled in
-	entry := l.driveEntry(drive)
-	entry["_error"] = fmt.Sprintf("%s not mounted", drive)
-	requiredDisks[drive] = entry
+	entry := l.driveEntry(path)
+	entry["_error"] = fmt.Sprintf("%s not mounted", path)
+	requiredDisks[path] = entry
 
 	return nil
 }
 
-func (l *CheckDrivesize) driveType(dType uint32) string {
-	switch dType {
-	case windows.DRIVE_UNKNOWN:
-		return "unknown"
-	case windows.DRIVE_NO_ROOT_DIR:
-		return "no_root_dir"
-	case windows.DRIVE_REMOVABLE:
-		return "removable"
-	case windows.DRIVE_FIXED:
-		return "fixed"
-	case windows.DRIVE_REMOTE:
-		return "remote"
-	case windows.DRIVE_CDROM:
-		return "cdrom"
-	case windows.DRIVE_RAMDISK:
-		return "ramdisk"
+// adds all network shares to requiredDisks
+func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
+	logicalDrives, err := GetLogicalDriveStrings(1024)
+	if err != nil {
+		log.Debug("Error when getting logical drive strings: %s", err.Error())
 	}
 
-	return "unknown"
+	for _, logicalDrive := range logicalDrives {
+		driveType, err := GetDriveType(logicalDrive)
+		if err != nil {
+			log.Debug("Error when getting the drive type for logical drive %s network drives: %s", logicalDrive, err.Error())
+
+			continue
+		}
+		if driveType == DriveRemote {
+			remoteName, err := NetGetConnection(logicalDrive[0 : len(logicalDrive)-1])
+			if err != nil {
+				log.Debug("Error when getting the connection for logical drive %s : %s", logicalDrive, err.Error())
+
+				continue
+			}
+			log.Debugf("Logical Drive: %s, Drive Type: %d, Remote name: %s", logicalDrive, driveType, remoteName)
+			// modify existing drive if its there
+			// if its not, add it new
+			drive, ok := requiredDisks[logicalDrive]
+			if !ok {
+				drive = make(map[string]string)
+			}
+			drive["id"] = remoteName
+			drive["drive"] = logicalDrive
+			drive["drive_or_id"] = logicalDrive
+			// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
+			drive["drive_or_name"] = logicalDrive
+			drive["letter"] = fmt.Sprintf("%c", logicalDrive[0])
+			drive["remote_name"] = remoteName
+			if isNetworkDrivePersistent(logicalDrive) {
+				drive["persistent"] = "1"
+			} else {
+				drive["persistent"] = "0"
+			}
+			requiredDisks[logicalDrive] = drive
+		}
+	}
+}
+
+// driveLetter is assumed to be like 'X:\'
+func isNetworkDrivePersistent(driveLetter string) (isPersistent bool) {
+	driveLetter = driveLetter[0:1]
+	persistentNetworkDrives, err := discoverPersistentNetworkDrives()
+	if err != nil {
+		log.Debug("Error when discovering persistent network drives: %s", err.Error())
+	}
+	for _, drive := range persistentNetworkDrives {
+		if drive.DriveLetter == driveLetter {
+			return true
+		}
+	}
+	log.Debugf("Found no persistent network drive with driveLetter %s", driveLetter)
+
+	return false
+}
+
+// returns if the path looks like an UNC path
+func isNetworkSharePath(path string) (isNetworkSharePath bool) {
+	// Example 1: \\FileServer01\PublicDocs
+	// Example 2: \\BackupServer\Data\Archive\2025-01-14.zip
+	// Example 3: \\192.168.1.50\SharedData\Images|
+	// But modern programs also generally accept forward slash definitions
+	// //192.168.1.50/Shareddata/Images
+
+	if len(path) < 2 {
+		return false
+	}
+
+	if !strings.HasPrefix(path, "\\\\") && !strings.HasPrefix(path, "//") {
+		return false
+	}
+
+	return true
 }
