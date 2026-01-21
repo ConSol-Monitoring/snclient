@@ -5,8 +5,13 @@ supervisor="supervise-daemon"
 command="/usr/bin/snclient"
 command_args="--config /etc/snclient/snclient.ini"
 command_args_background="--pidfile ${pidfile} daemon"
-command_user="root:root"
-pidfile="/var/run/snclient.pid"
+command_user="snclient:snclient"
+pidfile="/run/snclient/snclient.pid"
+directory="/var/lib/snclient"
+
+start_pre() {
+    checkpath --directory --owner snclient:snclient --mode 0755 /run/snclient
+}
 
 reload() {
   ebegin "Reloading snclient configuration"

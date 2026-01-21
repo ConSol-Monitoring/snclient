@@ -542,6 +542,11 @@ apk: | dist
 	cp ./packaging/APKBUILD dist/
 	cp ./packaging/snclient.initd dist/
 	cp ./packaging/snclient.post-install dist/
+	cp ./packaging/snclient.pre-upgrade dist/
+	cp ./packaging/snclient.post-upgrade dist/
+	cp ./packaging/snclient.pre-deinstall dist/
+	cp ./packaging/snclient.post-deinstall dist/
+	cp ./packaging/snclient.sudoers dist/
 	sed -i dist/APKBUILD -e 's|^pkgver=.*|pkgver=$(VERSION)|'
 	sed -i dist/APKBUILD -e 's|^arch=.*|arch=$(RPM_ARCH)|'
 	cp -rp dist snclient-$(VERSION)

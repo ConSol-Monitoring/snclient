@@ -6,9 +6,10 @@ pkgdesc="SNClient (Secure Naemon Client) is a general-purpose monitoring agent."
 url="https://github.com/Consol-Monitoring/snclient/"
 arch="all"
 license="MIT"
-depends="openrc logrotate"
+depends="openrc logrotate sudo"
 makedepends=""
-source="snclient snclient.confd server.key server.crt cacert.pem snclient.logrotate README.md LICENSE snclient.1 snclient.8 snclient.initd node_exporter"
+install="$pkgname.post-install $pkgname.pre-upgrade $pkgname.post-upgrade $pkgname.pre-deinstall $pkgname.post-deinstall"
+source="snclient snclient.confd server.key server.crt cacert.pem snclient.logrotate snclient.sudoers README.md LICENSE snclient.1 snclient.8 snclient.initd node_exporter"
 
 package() {
     install -Dm755 "$srcdir/snclient" "$pkgdir/usr/bin/snclient"
@@ -22,6 +23,9 @@ package() {
 
     install -Dm644 "$srcdir/snclient.logrotate" "$pkgdir/etc/logrotate.d/snclient"
 
+    install -dm750 "$pkgdir/etc/sudoers.d"
+    install -Dm440 "$srcdir/snclient.sudoers" "$pkgdir/etc/sudoers.d/snclient"
+
     install -Dm644 "$srcdir/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
     install -Dm644 "$srcdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
     install -Dm644 "$srcdir/snclient.1" "$pkgdir/usr/share/man/man1/snclient.1"
@@ -31,5 +35,7 @@ package() {
 
     install -Dm755 "$srcdir/snclient.initd" "$pkgdir/etc/init.d/snclient"
 
-    mkdir -p "$pkgdir/var/log/snclient"
+    # Create directories (ownership set in post-install after user creation)
+    install -dm750 "$pkgdir/var/lib/snclient"
+    install -dm750 "$pkgdir/var/log/snclient"
 }
