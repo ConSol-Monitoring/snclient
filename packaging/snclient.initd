@@ -9,7 +9,7 @@ command_user="root:root"
 pidfile="/var/run/snclient.pid"
 
 reload() {
-  ebegin "Reloading acpid configuration"
+  ebegin "Reloading snclient configuration"
   ${supervisor} ${RC_SVCNAME} --signal HUP --pidfile "${pidfile}"
   eend $?
 }
