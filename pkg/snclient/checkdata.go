@@ -146,6 +146,8 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	log.Debugf("condition  warning: %s", cd.warnThreshold.String())
 	log.Debugf("condition critical: %s", cd.critThreshold.String())
 	log.Debugf("condition       ok: %s", cd.okThreshold.String())
+	// Run thresholds once on cd.details. This is done separately than metrics or entries
+	// This can possibly set a value to cd.details[_state]
 	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	log.Tracef("details: %#v", cd.details)
 
@@ -188,8 +190,10 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 
 				return nil, fmt.Errorf("%s", errMsg)
 			}
+			// each entry in the list data is individually checked
+			// This may set "_state" of each entry
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
-			log.Tracef(" - %#v", entry)
+			log.Tracef("Checking conditions for listData entry - %#v", entry)
 		}
 	}
 
@@ -207,8 +211,10 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 
 	cd.result.ApplyPerfSyntax(cd.perfSyntax, cd.timezone)
 
+	// Run a separate check on the macros
 	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	cd.setStateFromMaps(finalMacros)
+	// Metrics are checked last, which also sets the final state
 	cd.CheckMetrics(cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 
 	switch {
@@ -389,7 +395,7 @@ func (cd *CheckData) buildCountMetrics(listLen, critLen, warnLen int) {
 	}
 }
 
-// setStateFromMaps sets main state from _state or list counts.
+// setStateFromMaps sets main state from _state or list counts. main state is saved under cd.details["_state"]
 func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	switch macros["_state"] {
 	case "1":
@@ -417,23 +423,27 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 }
 
 // Check tries warn/crit/ok conditions against given data and sets result state.
+// The data argument can be anything that has the correct keys that conditions use
 func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond ConditionList) {
 	data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 
 	for i := range warnCond {
 		if res, ok := warnCond[i].Match(data); res && ok {
+			log.Debug("This data '%s' matched the WARNING CONDITION", warnCond[i].original)
 			data["_state"] = fmt.Sprintf("%d", CheckExitWarning)
 		}
 	}
 
 	for i := range critCond {
 		if res, ok := critCond[i].Match(data); res && ok {
+			log.Debug("This data '%s' matched the CRITICAL Condition", critCond[i].original)
 			data["_state"] = fmt.Sprintf("%d", CheckExitCritical)
 		}
 	}
 
 	for i := range okCond {
 		if res, ok := okCond[i].Match(data); res && ok {
+			log.Debug("This data '%s' matched the OK Condition", okCond[i].original)
 			data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 		}
 	}
@@ -441,8 +451,10 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond Co
 
 // CheckMetrics tries warn/crit/ok conditions against given metrics and sets final state accordingly
 func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond ConditionList) {
+	// each metric is ran through conditions individually
 	for _, metric := range cd.result.Metrics {
 		state := CheckExitOK
+		// build up a data map[string]string as condition.Match function requires it as an argument
 		data := map[string]string{
 			metric.Name: fmt.Sprintf("%v", metric.Value),
 		}
@@ -466,8 +478,9 @@ func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond ConditionList) {
 				state = CheckExitOK
 			}
 		}
+
 		if state > CheckExitOK {
-			log.Debugf("metric %s is %s", metric.Name, convert.StateString(state))
+			log.Debugf("metric.Name: '%s', metric.ThresoldName: '%s', metric.Value: '%v', gave non-ok state: %s", metric.Name, metric.ThresholdName, metric.Value, convert.StateString(state))
 			cd.result.EscalateStatus(state)
 		}
 	}
