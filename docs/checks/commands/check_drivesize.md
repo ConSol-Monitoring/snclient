@@ -81,40 +81,43 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute       | Description                                                                         |
-| --------------- | ----------------------------------------------------------------------------------- |
-| drive           | Technical name of drive                                                             |
-| name            | Descriptive name of drive                                                           |
-| id              | Drive or id of drive                                                                |
-| drive_or_id     | Drive letter if present if not use id                                               |
-| drive_or_name   | Drive letter if present if not use name                                             |
-| fstype          | Filesystem type                                                                     |
-| mounted         | Flag wether drive is mounter (0/1)                                                  |
-| free            | Free (human readable) bytes                                                         |
-| free_bytes      | Number of free bytes                                                                |
-| free_pct        | Free bytes in percent                                                               |
-| user_free       | Number of total free bytes (from user perspective)                                  |
-| user_free_pct   | Number of total % free space (from user perspective)                                |
-| total_free      | Number of total free bytes                                                          |
-| total_free_pct  | Number of total % free space                                                        |
-| used            | Used (human readable) bytes                                                         |
-| used_bytes      | Number of used bytes                                                                |
-| used_pct        | Used bytes in percent (from user perspective)                                       |
-| user_used       | Number of total used bytes (from user perspective)                                  |
-| user_used_pct   | Number of total % used space                                                        |
-| total_used      | Number of total used bytes (including root reserved)                                |
-| total_used_pct  | Number of total % used space  (including root reserved)                             |
-| size            | Total size in human readable bytes                                                  |
-| size_bytes      | Total size in bytes                                                                 |
-| inodes_free     | Number of free inodes                                                               |
-| inodes_free_pct | Number of free inodes in percent                                                    |
-| inodes_total    | Number of total free inodes                                                         |
-| inodes_used     | Number of used inodes                                                               |
-| inodes_used_pct | Number of used inodes in percent                                                    |
-| media_type      | Windows only: numeric media type of drive                                           |
-| type            | Windows only: type of drive, ex.: fixed, cdrom, ramdisk, remote, removable, unknown |
-| readable        | Windows only: flag drive is readable (0/1)                                          |
-| writable        | Windows only: flag drive is writable (0/1)                                          |
-| removable       | Windows only: flag drive is removable (0/1)                                         |
-| erasable        | Windows only: flag wether if drive is erasable (0/1)                                |
-| hotplug         | Windows only: flag drive is hotplugable (0/1)                                       |
+| Attribute             | Description                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| drive                 | Technical name of drive                                                                       |
+| name                  | Descriptive name of drive                                                                     |
+| id                    | Drive or id of drive                                                                          |
+| drive_or_id           | Drive letter if present if not use id                                                         |
+| drive_or_name         | Drive letter if present if not use name                                                       |
+| fstype                | Filesystem type                                                                               |
+| mounted               | Flag wether drive is mounter (0/1)                                                            |
+| free                  | Free (human readable) bytes                                                                   |
+| free_bytes            | Number of free bytes                                                                          |
+| free_pct              | Free bytes in percent                                                                         |
+| user_free             | Number of total free bytes (from user perspective)                                            |
+| user_free_pct         | Number of total % free space (from user perspective)                                          |
+| total_free            | Number of total free bytes                                                                    |
+| total_free_pct        | Number of total % free space                                                                  |
+| used                  | Used (human readable) bytes                                                                   |
+| used_bytes            | Number of used bytes                                                                          |
+| used_pct              | Used bytes in percent (from user perspective)                                                 |
+| user_used             | Number of total used bytes (from user perspective)                                            |
+| user_used_pct         | Number of total % used space                                                                  |
+| total_used            | Number of total used bytes (including root reserved)                                          |
+| total_used_pct        | Number of total % used space  (including root reserved)                                       |
+| size                  | Total size in human readable bytes                                                            |
+| size_bytes            | Total size in bytes                                                                           |
+| inodes_free           | Number of free inodes                                                                         |
+| inodes_free_pct       | Number of free inodes in percent                                                              |
+| inodes_total          | Number of total free inodes                                                                   |
+| inodes_used           | Number of used inodes                                                                         |
+| inodes_used_pct       | Number of used inodes in percent                                                              |
+| media_type            | Windows only: numeric media type of drive                                                     |
+| type                  | Windows only: type of drive, ex.: fixed, cdrom, ramdisk, remote, removable, unknown           |
+| readable              | Windows only: flag drive is readable (0/1)                                                    |
+| writable              | Windows only: flag drive is writable (0/1)                                                    |
+| removable             | Windows only: flag drive is removable (0/1)                                                   |
+| erasable              | Windows only: flag wether if drive is erasable (0/1)                                          |
+| hotplug               | Windows only: flag drive is hotplugable (0/1)                                                 |
+| remote_name           | Windows only: the remote name of the drive, if it uses a network name                         |
+| persistent            | Windows only: if the network drive is mounted as persistent (0/1)                             |
+| localised_remote_path | Windows only: If the path is given as a remote path, and that remote path has an assigned logical drive, this is the replaced path under that logical drive. |
