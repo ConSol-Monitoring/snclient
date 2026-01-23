@@ -351,14 +351,14 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 
 // gopsutil disk.Partition had an issue with Bitlocker, but a fix was upstreamed
 // use it instead of custom wrapper around GetLogicalDriveStringsW
-func (l *CheckDrivesize) setDrives(requiredDisks map[string]map[string]string) (err error) {
+func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) (err error) {
 	partitions, err := disk.Partitions(true)
 	if err != nil && len(partitions) == 0 {
 		return fmt.Errorf("disk partitions failed: %s", err.Error())
 	}
 	for _, partition := range partitions {
 		logicalDrive := strings.TrimSuffix(partition.Device, "\\") + "\\"
-		entry, ok := requiredDisks[logicalDrive]
+		entry, ok := requiredDrives[logicalDrive]
 		if !ok {
 			entry = make(map[string]string)
 		}
@@ -367,7 +367,7 @@ func (l *CheckDrivesize) setDrives(requiredDisks map[string]map[string]string) (
 		entry["drive_or_name"] = logicalDrive
 		entry["letter"] = fmt.Sprintf("%c", logicalDrive[0])
 		entry["fstype"] = partition.Fstype
-		requiredDisks[logicalDrive] = entry
+		requiredDrives[logicalDrive] = entry
 	}
 
 	return nil
