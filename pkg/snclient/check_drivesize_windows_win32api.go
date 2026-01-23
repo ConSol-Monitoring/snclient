@@ -70,6 +70,7 @@ var (
 	wNetGetConnectionW = winnetwkDll.NewProc("WNetGetConnectionW")
 )
 
+// this function is not being used anymore, as gopsutil disk.Partitions() is fixed
 func GetLogicalDriveStrings(nBufferLength uint32) (logicalDrives []string, err error) {
 	// We are using getLogicalDriveStringsW , which uses Long Width Chars
 

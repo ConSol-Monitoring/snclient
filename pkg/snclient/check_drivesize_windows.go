@@ -575,12 +575,13 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 
 // adds all network shares to requiredDisks
 func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
-	logicalDrives, err := GetLogicalDriveStrings(1024)
+	partitions, err := disk.Partitions(true)
 	if err != nil {
 		log.Debug("Error when getting logical drive strings: %s", err.Error())
 	}
 
-	for _, logicalDrive := range logicalDrives {
+	for _, partition := range partitions {
+		logicalDrive := strings.TrimSuffix(partition.Device, "\\") + "\\"
 		driveType, err := GetDriveType(logicalDrive)
 		if err != nil {
 			log.Debug("Error when getting the drive type for logical drive %s network drives: %s", logicalDrive, err.Error())
