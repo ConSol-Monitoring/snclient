@@ -349,15 +349,15 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	}
 }
 
-// adds all logical drives to the requiredDisks
-// this function is better suited for usage with-network drives. gopsutil has disk.Partitions, but that does not work with network drives
+// gopsutil disk.Partition had an issue with Bitlocker, but a fix was upstreamed
+// use it instead of custom wrapper around GetLogicalDriveStringsW
 func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) (err error) {
-	logicalDrives, err := GetLogicalDriveStrings(1024)
-	if err != nil {
-		log.Debug("Error when getting logical drive strings: %s", err.Error())
+	partitions, err := disk.Partitions(true)
+	if err != nil && len(partitions) == 0 {
+		return fmt.Errorf("disk partitions failed: %s", err.Error())
 	}
-
-	for _, logicalDrive := range logicalDrives {
+	for _, partition := range partitions {
+		logicalDrive := strings.TrimSuffix(partition.Device, "\\") + "\\"
 		entry, ok := requiredDrives[logicalDrive]
 		if !ok {
 			entry = make(map[string]string)
@@ -366,6 +366,7 @@ func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) 
 		entry["drive_or_id"] = logicalDrive
 		entry["drive_or_name"] = logicalDrive
 		entry["letter"] = fmt.Sprintf("%c", logicalDrive[0])
+		entry["fstype"] = partition.Fstype
 		requiredDrives[logicalDrive] = entry
 	}
 
@@ -574,12 +575,13 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 
 // adds all network shares to requiredDisks
 func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
-	logicalDrives, err := GetLogicalDriveStrings(1024)
+	partitions, err := disk.Partitions(true)
 	if err != nil {
-		log.Debug("Error when getting logical drive strings: %s", err.Error())
+		log.Debug("Error when discovering partitions: %s", err.Error())
 	}
 
-	for _, logicalDrive := range logicalDrives {
+	for _, partition := range partitions {
+		logicalDrive := strings.TrimSuffix(partition.Device, "\\") + "\\"
 		driveType, err := GetDriveType(logicalDrive)
 		if err != nil {
 			log.Debug("Error when getting the drive type for logical drive %s network drives: %s", logicalDrive, err.Error())

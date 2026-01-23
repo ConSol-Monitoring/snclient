@@ -70,6 +70,7 @@ var (
 	wNetGetConnectionW = winnetwkDll.NewProc("WNetGetConnectionW")
 )
 
+// this function is not being used anymore, as gopsutil disk.Partitions() is fixed
 func GetLogicalDriveStrings(nBufferLength uint32) (logicalDrives []string, err error) {
 	// We are using getLogicalDriveStringsW , which uses Long Width Chars
 
@@ -97,6 +98,12 @@ func GetLogicalDriveStrings(nBufferLength uint32) (logicalDrives []string, err e
 		// There are multiple drives in the returned string, separated by a NULL character
 		for index := 0; uintptr(index) < returnValue; {
 			decodedDriveStr := windows.UTF16ToString(lpBuffer[index:])
+			if decodedDriveStr == "" {
+				// At the end there is are two consecutive null terminators
+				// One from the last drive C-string
+				// One that denotes the end of strings
+				break
+			}
 			logicalDrives = append(logicalDrives, decodedDriveStr)
 			index += len(decodedDriveStr) + 1
 		}
