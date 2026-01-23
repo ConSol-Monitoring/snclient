@@ -357,17 +357,17 @@ func (l *CheckDrivesize) setDrives(requiredDisks map[string]map[string]string) (
 		return fmt.Errorf("disk partitions failed: %s", err.Error())
 	}
 	for _, partition := range partitions {
-		drive := strings.TrimSuffix(partition.Device, "\\") + "\\"
-		entry, ok := requiredDisks[drive]
+		logicalDrive := strings.TrimSuffix(partition.Device, "\\") + "\\"
+		entry, ok := requiredDisks[logicalDrive]
 		if !ok {
 			entry = make(map[string]string)
 		}
-		entry["drive"] = drive
-		entry["drive_or_id"] = drive
-		entry["drive_or_name"] = drive
-		entry["letter"] = fmt.Sprintf("%c", drive[0])
+		entry["drive"] = logicalDrive
+		entry["drive_or_id"] = logicalDrive
+		entry["drive_or_name"] = logicalDrive
+		entry["letter"] = fmt.Sprintf("%c", logicalDrive[0])
 		entry["fstype"] = partition.Fstype
-		requiredDisks[drive] = entry
+		requiredDisks[logicalDrive] = entry
 	}
 
 	return nil
@@ -577,7 +577,7 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 	partitions, err := disk.Partitions(true)
 	if err != nil {
-		log.Debug("Error when getting logical drive strings: %s", err.Error())
+		log.Debug("Error when discovering partitions: %s", err.Error())
 	}
 
 	for _, partition := range partitions {
