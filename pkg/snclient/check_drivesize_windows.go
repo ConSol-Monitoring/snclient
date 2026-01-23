@@ -349,24 +349,25 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	}
 }
 
-// adds all logical drives to the requiredDisks
-// this function is better suited for usage with-network drives. gopsutil has disk.Partitions, but that does not work with network drives
-func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) (err error) {
-	logicalDrives, err := GetLogicalDriveStrings(1024)
-	if err != nil {
-		log.Debug("Error when getting logical drive strings: %s", err.Error())
+// gopsutil disk.Partition had an issue with Bitlocker, but a fix was upstreamed
+// use it instead of custom wrapper around GetLogicalDriveStringsW
+func (l *CheckDrivesize) setDrives(requiredDisks map[string]map[string]string) (err error) {
+	partitions, err := disk.Partitions(true)
+	if err != nil && len(partitions) == 0 {
+		return fmt.Errorf("disk partitions failed: %s", err.Error())
 	}
-
-	for _, logicalDrive := range logicalDrives {
-		entry, ok := requiredDrives[logicalDrive]
+	for _, partition := range partitions {
+		drive := strings.TrimSuffix(partition.Device, "\\") + "\\"
+		entry, ok := requiredDisks[drive]
 		if !ok {
 			entry = make(map[string]string)
 		}
-		entry["drive"] = logicalDrive
-		entry["drive_or_id"] = logicalDrive
-		entry["drive_or_name"] = logicalDrive
-		entry["letter"] = fmt.Sprintf("%c", logicalDrive[0])
-		requiredDrives[logicalDrive] = entry
+		entry["drive"] = drive
+		entry["drive_or_id"] = drive
+		entry["drive_or_name"] = drive
+		entry["letter"] = fmt.Sprintf("%c", drive[0])
+		entry["fstype"] = partition.Fstype
+		requiredDisks[drive] = entry
 	}
 
 	return nil
