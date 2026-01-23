@@ -51,12 +51,6 @@ type WNetGetConnectionWReturnValuePrimitive uint32
 var (
 	kernel32Dll = windows.NewLazySystemDLL("Kernel32.dll")
 
-	// [in] nBufferLength The maximum size of the buffer pointed to by lpBuffer, in TCHARs.
-	// This value includes space for the terminating null character. If this parameter is zero, lpBuffer is not used.
-	// [out] lpBuffer A pointer to a buffer that receives a series of null-terminated strings, one for each valid drive
-	// in the system, plus with an additional null character. Each string is a device name.
-	getLogicalDriveStringsW = kernel32Dll.NewProc("GetLogicalDriveStringsW")
-
 	// [in, optional] lpRootPathName The root directory for the drive. A trailing backslash is required.
 	// If this parameter is NULL, the function uses the root of the current directory.
 	getDriveTypeW = kernel32Dll.NewProc("GetDriveTypeW")
@@ -70,49 +64,11 @@ var (
 	wNetGetConnectionW = winnetwkDll.NewProc("WNetGetConnectionW")
 )
 
-// this function is not being used anymore, as gopsutil disk.Partitions() is fixed
-func GetLogicalDriveStrings(nBufferLength uint32) (logicalDrives []string, err error) {
-	// We are using getLogicalDriveStringsW , which uses Long Width Chars
-
-	// bufferLength is in TCHARs
-	nBufferLengthCopy := nBufferLength
-	lpBuffer := make([]uint16, nBufferLengthCopy)
-	returnValue, _, err := getLogicalDriveStringsW.Call(
-		uintptr(unsafe.Pointer(&nBufferLengthCopy)),
-		uintptr(unsafe.Pointer(&lpBuffer[0])),
-	)
-
-	if returnValue == 0 {
-		return []string{}, fmt.Errorf("GetLogicalDriveStringsW returned error: %w", err)
-	}
-
-	if returnValue > uintptr(nBufferLength) {
-		log.Debugf("GetLogicalDriveStringsW was called with a smaller buffer size than required, calling it recursively with size %d", returnValue)
-
-		return GetLogicalDriveStrings(uint32(returnValue))
-	}
-
-	logicalDrives = make([]string, 0)
-
-	if returnValue < uintptr(nBufferLength) {
-		// There are multiple drives in the returned string, separated by a NULL character
-		for index := 0; uintptr(index) < returnValue; {
-			decodedDriveStr := windows.UTF16ToString(lpBuffer[index:])
-			if decodedDriveStr == "" {
-				// At the end there is are two consecutive null terminators
-				// One from the last drive C-string
-				// One that denotes the end of strings
-				break
-			}
-			logicalDrives = append(logicalDrives, decodedDriveStr)
-			index += len(decodedDriveStr) + 1
-		}
-	}
-
-	return logicalDrives, nil
-}
-
 func GetDriveType(lpRootPathName string) (returnValue GetDriveTypeReturnValuePrimitive, err error) {
+	if lpRootPathName == "" {
+		return 0, fmt.Errorf("lpRootPathName cannot be empty")
+	}
+
 	lpRootPathNameW16 := windows.StringToUTF16(lpRootPathName)
 
 	rv, _, _ := getDriveTypeW.Call(uintptr(unsafe.Pointer(&lpRootPathNameW16[0])))
@@ -121,6 +77,10 @@ func GetDriveType(lpRootPathName string) (returnValue GetDriveTypeReturnValuePri
 }
 
 func NetGetConnection(lpLocalName string) (lpRemoteName string, err error) {
+	if lpLocalName == "" {
+		return "", fmt.Errorf("lpLocalName cannot be empty")
+	}
+
 	lpLocalNameW16 := windows.StringToUTF16(lpLocalName)
 
 	var lpnLength uint32 = 32768

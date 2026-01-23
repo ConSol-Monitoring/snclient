@@ -350,7 +350,6 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 }
 
 // gopsutil disk.Partition had an issue with Bitlocker, but a fix was upstreamed
-// use it instead of custom wrapper around GetLogicalDriveStringsW
 func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) (err error) {
 	partitions, err := disk.Partitions(true)
 	if err != nil && len(partitions) == 0 {
