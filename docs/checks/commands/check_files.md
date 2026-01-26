@@ -58,14 +58,15 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument  | Description                                                                                               |
-| --------- | --------------------------------------------------------------------------------------------------------- |
-| file      | Alias for path                                                                                            |
-| max-depth | Maximum recursion depth. Default: no limit. '0' and '1' disable recursion and only include files/directories directly under path., '2' starts to include files/folders of subdirectories with given depth.  |
-| path      | Path in which to search for files                                                                         |
-| paths     | A comma separated list of paths                                                                           |
-| pattern   | Pattern of files to search for                                                                            |
-| timezone  | Sets the timezone for time metrics (default is local time)                                                |
+| Argument                     | Description                                                                            |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| calculate-subdirectory-sizes | For subdirectories that are found under the search paths, calculate the subdirectory sizes based on found files. This calculation may be expensive. Default: false |
+| file                         | Alias for path                                                                         |
+| max-depth                    | Maximum recursion depth. Default: no limit. '0' and '1' disable recursion and only include files/directories directly under path., '2' starts to include files/directories of subdirectories with given depth.  |
+| path                         | Path in which to search for files                                                      |
+| paths                        | A comma separated list of paths                                                        |
+| pattern                      | Pattern of files to search for                                                         |
+| timezone                     | Sets the timezone for time metrics (default is local time)                             |
 
 ## Attributes
 
@@ -73,26 +74,27 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute       | Description                                       |
-| --------------- | ------------------------------------------------- |
-| path            | Path to the file                                  |
-| filename        | Name of the file                                  |
-| name            | Alias for filename                                |
-| file            | Alias for filename                                |
-| fullname        | Full name of the file including path              |
-| type            | Type of item (file or dir)                        |
-| access          | Unix timestamp of last access time                |
-| creation        | Unix timestamp when file was created              |
-| size            | File size in bytes                                |
-| written         | Unix timestamp when file was last written to      |
-| write           | Alias for written                                 |
-| age             | Seconds since file was last written               |
-| version         | Windows exe/dll file version (windows only)       |
-| line_count      | Number of lines in the files (text files)         |
-| total_bytes     | Total size over all files in bytes                |
-| total_size      | Total size over all files as human readable bytes |
-| md5_checksum    | MD5 checksum of the file                          |
-| sha1_checksum   | SHA1 checksum of the file                         |
-| sha256_checksum | SHA256 checksum of the file                       |
-| sha384_checksum | SHA384 checksum of the file                       |
-| sha512_checksum | SHA512 checksum of the file                       |
+| Attribute       | Description                                                          |
+| --------------- | -------------------------------------------------------------------- |
+| path            | Path to the file                                                     |
+| filename        | Name of the file                                                     |
+| name            | Alias for filename                                                   |
+| file            | Alias for filename                                                   |
+| fullname        | Full name of the file including path                                 |
+| type            | Type of item (file or dir)                                           |
+| check_path      | Check path argument whose search led to finding this file/directory. |
+| access          | Unix timestamp of last access time                                   |
+| creation        | Unix timestamp when file was created                                 |
+| size            | File size in bytes                                                   |
+| written         | Unix timestamp when file was last written to                         |
+| write           | Alias for written                                                    |
+| age             | Seconds since file was last written                                  |
+| version         | Windows exe/dll file version (windows only)                          |
+| line_count      | Number of lines in the files (text files)                            |
+| total_bytes     | Total size over all files in bytes                                   |
+| total_size      | Total size over all files as human readable bytes                    |
+| md5_checksum    | MD5 checksum of the file                                             |
+| sha1_checksum   | SHA1 checksum of the file                                            |
+| sha256_checksum | SHA256 checksum of the file                                          |
+| sha384_checksum | SHA384 checksum of the file                                          |
+| sha512_checksum | SHA512 checksum of the file                                          |

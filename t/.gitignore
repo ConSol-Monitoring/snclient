@@ -1,1 +1,4 @@
 snclient
+
+# Temporary test key generated during "make citest"
+test.key.tmp

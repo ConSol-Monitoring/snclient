@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -29,17 +30,19 @@ type FileInfoUnified struct {
 }
 
 type CheckFiles struct {
-	paths    []string
-	pathList CommaStringList
-	pattern  string
-	maxDepth int64
+	paths                      []string
+	pathList                   CommaStringList
+	pattern                    string // constructor NewCheckFiles sets this as '*'
+	maxDepth                   int64  // constructor NewCheckFiles sets this as -1
+	calculateSubdirectorySizes bool   // constructor NewCheckFiles sets this as false
 }
 
 func NewCheckFiles() CheckHandler {
 	return &CheckFiles{
-		pathList: CommaStringList{},
-		pattern:  "*",
-		maxDepth: int64(-1),
+		pathList:                   CommaStringList{},
+		pattern:                    "*",
+		maxDepth:                   int64(-1),
+		calculateSubdirectorySizes: false,
 	}
 }
 
@@ -57,8 +60,10 @@ func (l *CheckFiles) Build() *CheckData {
 			"paths":   {value: &l.pathList, description: "A comma separated list of paths", isFilter: true},
 			"pattern": {value: &l.pattern, description: "Pattern of files to search for", isFilter: true},
 			"max-depth": {value: &l.maxDepth, description: "Maximum recursion depth. Default: no limit. '0' and '1' disable recursion and only include files/directories directly under path." +
-				", '2' starts to include files/folders of subdirectories with given depth. "},
+				", '2' starts to include files/directories of subdirectories with given depth. "},
 			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
+			"calculate-subdirectory-sizes": {value: &l.calculateSubdirectorySizes, description: "For subdirectories that are found under the search paths, " +
+				"calculate the subdirectory sizes based on found files. This calculation may be expensive. Default: false"},
 		},
 		detailSyntax: "%(name)",
 		okSyntax:     "%(status) - All %(count) files are ok: (%(total_size))",
@@ -72,6 +77,7 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "file", description: "Alias for filename"},
 			{name: "fullname", description: "Full name of the file including path"},
 			{name: "type", description: "Type of item (file or dir)"},
+			{name: "check_path", description: "Check path argument whose search led to finding this file/directory."},
 			{name: "access", description: "Unix timestamp of last access time", unit: UDate},
 			{name: "creation", description: "Unix timestamp when file was created", unit: UDate},
 			{name: "size", description: "File size in bytes", unit: UByte},
@@ -121,48 +127,36 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		}
 	}
 
-	totalSize := uint64(0)
-	for _, data := range check.listData {
-		totalSize += convert.UInt64(data["size"])
+	// Cleanup the listData if a filter is used
+	if l.pattern != "*" {
+		l.removeDirectoriesWithoutFilesUnder(check)
 	}
 
-	if len(check.listData) > 0 || check.emptySyntax == "" {
-		check.details = map[string]string{
-			"total_bytes": fmt.Sprintf("%d", totalSize),
-			"total_size":  humanize.IBytesF(convert.UInt64(totalSize), 2),
-		}
+	if l.calculateSubdirectorySizes {
+		l.addSubdirectorySizes(check)
 	}
 
-	if check.HasThreshold("count") {
-		check.result.Metrics = append(check.result.Metrics,
-			&CheckMetric{
-				Name:     "count",
-				Value:    int64(len(check.listData)),
-				Warning:  check.warnThreshold,
-				Critical: check.critThreshold,
-				Min:      &Zero,
-			})
-	}
-	if check.HasThreshold("size") || check.HasThreshold("total_size") {
-		check.result.Metrics = append(check.result.Metrics,
-			&CheckMetric{
-				ThresholdName: "total_size",
-				Name:          "size",
-				Value:         totalSize,
-				Unit:          "B",
-				Warning:       check.warnThreshold,
-				Critical:      check.critThreshold,
-				Min:           &Zero,
-			})
-	}
-
+	// file metrics are always added
 	l.addFileMetrics(check)
+
+	// general metrics are always added
+	l.addGeneralMetrics(check)
+
+	if len(l.paths) > 2 {
+		l.addSearchPathMetrics(check)
+	}
+
+	if l.calculateSubdirectorySizes && l.pattern != "*" {
+		l.addSubDirMetrics(check)
+	}
 
 	return check.Finalize()
 }
 
 func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, err error) error {
-	// if its a directory, checkPath is never added to the entry list
+	// if the search path is a directory e.g '/usr/bin' , the program assumes you are looking for files/subdirectories under it
+	// therefore it does not add the search path directory to the entry list
+	// if it is a file like /usr/bin/bash however, it will add that
 	if dirEntry != nil && dirEntry.IsDir() && path == checkPath {
 		return nil
 	}
@@ -170,12 +164,13 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 	path = l.normalizePath(path)
 	filename := filepath.Base(path)
 	entry := map[string]string{
-		"file":     filename,
-		"filename": filename,
-		"name":     filename,
-		"path":     filepath.Dir(path),
-		"fullname": path,
-		"type":     "file",
+		"file":       filename,
+		"filename":   filename,
+		"name":       filename,
+		"path":       filepath.Dir(path),
+		"fullname":   path,
+		"type":       "file",
+		"check_path": checkPath,
 	}
 
 	matchAndAdd := func() {
@@ -193,7 +188,7 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		entry["type"] = "dir"
 
 		if err != nil {
-			// silently skip failed sub folder.
+			// silently skip failed subdirectory.
 			// If you continue on and the error is checked later, it will add error to the entry
 			// This will make tests fail.
 			return fs.SkipDir
@@ -333,6 +328,180 @@ func checkSlowFileOperations(check *CheckData, entry map[string]string, path str
 	}
 
 	return nil
+}
+
+// The WalkDir normally adds every directory and files under the search path.
+// If a pattern is specified, this prevents files that dont match the pattern to be skipped.
+// This can lead to some directories being in the listData, while not having any matched files under them.
+// This function cleans those directories up.
+func (l *CheckFiles) removeDirectoriesWithoutFilesUnder(check *CheckData) {
+	fileFilepaths := make([]string, 0)
+
+	for _, data := range check.listData {
+		if data["type"] == "file" {
+			fileFilepaths = append(fileFilepaths, data["fullname"])
+		}
+	}
+
+	newListData := make([]map[string]string, 0)
+
+	for _, data := range check.listData {
+		// only filter the directories, files are automatically added
+		if data["type"] == "dir" {
+			hasFilesUnder := false
+			for _, fileFilepath := range fileFilepaths {
+				prefixToMatch := fmt.Sprintf("%s%c", data["fullname"], os.PathSeparator)
+				rest, found := strings.CutPrefix(fileFilepath, prefixToMatch)
+				if found && rest != "" {
+					hasFilesUnder = true
+
+					break
+				}
+			}
+			if hasFilesUnder {
+				newListData = append(newListData, data)
+			} else {
+				log.Debugf("Skipping directory from the new listData, as it does not have any files found under it: %s", data["fullname"])
+			}
+		} else {
+			newListData = append(newListData, data)
+		}
+	}
+
+	check.listData = newListData
+}
+
+// Files are checked by their individual attributes, with directories we have to count and size them up
+// This function should be called with the final check.listData
+func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
+	// totalSize is always calculated, even if there are one/multiple search paths, and they point to files/directories
+	totalSize := uint64(0)
+	for _, data := range check.listData {
+		// directory entries could have their "size" set.
+		// this can lead to including a file multiple times in the count. only add files to totalSize
+		if data["type"] == "file" {
+			totalSize += convert.UInt64(data["size"])
+		}
+	}
+
+	// this is added to check.details and not a metric
+	if len(check.listData) > 0 || check.emptySyntax == "" {
+		check.details = map[string]string{
+			"total_bytes": fmt.Sprintf("%d", totalSize),
+			"total_size":  humanize.IBytesF(convert.UInt64(totalSize), 2),
+		}
+	}
+
+	// files do not have a 'count' atrribute, so this wont collide like 'size' would. No need for 'totalCount'
+	if check.HasThreshold("count") {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				Name:     "count",
+				Value:    int64(len(check.listData)),
+				Warning:  check.warnThreshold,
+				Critical: check.critThreshold,
+				Min:      &Zero,
+			})
+	}
+
+	// entries in listData have a 'size' attribute. This is filled for files directly, with folders they have to be calculated after the walk has ended.
+	// total_size argument is the recommended way for thresholds, if they want to work with size summation of matched entries
+	if check.HasThreshold("total_size") {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				ThresholdName: "total_size",
+				Name:          "total_size",
+				Value:         totalSize,
+				Unit:          "B",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+				Min:           &Zero,
+			})
+	}
+
+	if check.HasThreshold("size") {
+		log.Warn("check_files - Using 'size' in a threshold argument meant to mean \"summation of all found files sizes\" is wrong. " +
+			"This collides with each file entry 'size' attribute during checks. Using 'size' in a condition will check each files 'size' attribute. " +
+			"If you want to check for the sum of sizes, use 'total_size' in your condition instead. ")
+	}
+}
+
+// this check might be called with multiple paths. calculate their sizes individually and add as a metric
+func (l *CheckFiles) addSearchPathMetrics(check *CheckData) {
+	// this calculations are not accurate, as we are not including the directories sizes themselves
+	for _, checkPath := range l.paths {
+		checkPathNormalized := l.normalizePath(checkPath)
+		pathSize := uint64(0)
+		for _, data := range check.listData {
+			// 1. if we look at the paths, a file might be found under multiple search paths
+			// instead we save and check the path that led to this file being found
+			// 2. directory entries could have their "size" set.
+			// this can lead to including a file multiple times in the count. only add files to totalSize
+			if data["type"] == "file" && checkPathNormalized == data["check_path"] {
+				pathSize += convert.UInt64(data["size"])
+			}
+		}
+
+		pathMetricName := "size " + checkPath
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				ThresholdName: pathMetricName,
+				Name:          pathMetricName,
+				Value:         pathSize,
+				Unit:          "B",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+				Min:           &Zero,
+			})
+	}
+}
+
+// if specified, calculate the sizes of the subdirectories, that are not exactly search paths
+// this function modifies the entries in the listData. It does not add metrics
+// the sizes it calculcates are not accurate. it is just a sum of files under them.
+// there are logical/physical sizes, disk block size, indexing, compression etc. to consider.
+func (l *CheckFiles) addSubdirectorySizes(check *CheckData) {
+	for _, subDirData := range check.listData {
+		if subDirData["type"] != "dir" {
+			continue
+		}
+		if slices.Contains(l.paths, subDirData["fullname"]) {
+			continue
+		}
+		subDirSize := uint64(0)
+		for _, data := range check.listData {
+			if data["type"] != "file" {
+				continue
+			}
+			prefixToMatch := fmt.Sprintf("%s%c", subDirData["fullname"], os.PathSeparator)
+			rest, found := strings.CutPrefix(data["fullname"], prefixToMatch)
+			if found && rest != "" {
+				subDirSize += convert.UInt64(data["size"])
+			}
+		}
+
+		subDirData["size"] = fmt.Sprintf("%d", subDirSize)
+	}
+}
+
+// if specified, calculate the sizes of the directories, that are not exactly search paths
+// the entries should have a valid "size" attributes. populate them beforehand.
+func (l *CheckFiles) addSubDirMetrics(check *CheckData) {
+	for _, data := range check.listData {
+		if data["type"] == "dir" {
+			subDirMetricName := data["fullname"] + " size"
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					ThresholdName: subDirMetricName,
+					Name:          subDirMetricName,
+					Value:         data["size"],
+					Unit:          "B",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				})
+		}
+	}
 }
 
 func (l *CheckFiles) addFileMetrics(check *CheckData) {
