@@ -129,102 +129,172 @@ func TestCheckFilesNoPermission(t *testing.T) {
 	StopTestAgent(t, snc)
 }
 
-func TestCheckFilesFilterToday(t *testing.T) {
+func TestCheckFilesFilterDateKeywords(t *testing.T) {
 	snc := StartTestAgent(t, "")
-	// prepare test folder
 	tmpPath := t.TempDir()
 
-	// create file from yesterday
-	yesterday := time.Now().AddDate(0, 0, -1)
-	err := os.WriteFile(filepath.Join(tmpPath, "yesterday.txt"), []byte("yesterday"), 0o600)
-	require.NoError(t, err)
-	err = os.Chtimes(filepath.Join(tmpPath, "yesterday.txt"), yesterday, yesterday)
-	require.NoError(t, err)
-
-	// create file from today (early morning)
+	// 1. Prepare files for today vs yesterday
 	now := time.Now()
-	todayEarly := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 1, 0, time.Local)
-	// if we are running at exactly 00:00:00, this test might be flaky if we don't ensure todayEarly is actually today.
-	// But 1 second after midnight should be safe.
-	err = os.WriteFile(filepath.Join(tmpPath, "today.txt"), []byte("today"), 0o600)
-	require.NoError(t, err)
-	err = os.Chtimes(filepath.Join(tmpPath, "today.txt"), todayEarly, todayEarly)
-	require.NoError(t, err)
+	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	yesterday := midnight.Add(-1 * time.Second)
+	today := midnight.Add(1 * time.Second)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "yesterday.txt"), []byte("yesterday"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "yesterday.txt"), yesterday, yesterday))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "today.txt"), []byte("today"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "today.txt"), today, today))
 
-	// Test 1: filter=written < today
-	// Should match yesterday.txt, but NOT today.txt
-	res := snc.RunCheck("check_files", []string{
-		"path=" + tmpPath,
-		"filter=written < today",
-		"crit=count > 0",
-		"top-syntax=%(list)",
-		"detail-syntax=%(filename)",
-	})
-	assert.Equal(t, CheckExitCritical, res.State, "state Critical")
-	assert.Contains(t, string(res.BuildPluginOutput()), "yesterday.txt")
-	assert.NotContains(t, string(res.BuildPluginOutput()), "today.txt")
+	// 2. Prepare files for thisweek vs lastweek
+	// Monday = 1 ... Sunday = 7 (in Go Sunday is 0)
+	// We want offset from Monday. 0=Monday, ..., 6=Sunday
+	offset := (int(now.Weekday()) + 6) % 7
+	startOfWeek := now.AddDate(0, 0, -offset)
+	startOfWeekMidnight := time.Date(startOfWeek.Year(), startOfWeek.Month(), startOfWeek.Day(), 0, 0, 0, 0, now.Location())
+	lastWeek := startOfWeekMidnight.Add(-1 * time.Second)
+	thisWeek := startOfWeekMidnight.Add(1 * time.Second)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastweek.txt"), []byte("lastweek"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastweek.txt"), lastWeek, lastWeek))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thisweek.txt"), []byte("thisweek"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thisweek.txt"), thisWeek, thisWeek))
 
-	// Test 2: filter=written >= today
-	// Should match today.txt, but NOT yesterday.txt
-	res = snc.RunCheck("check_files", []string{
-		"path=" + tmpPath,
-		"filter=written >= today",
-		"crit=count > 0",
-		"top-syntax=%(list)",
-		"detail-syntax=%(filename)",
-	})
-	assert.Equal(t, CheckExitCritical, res.State, "state Critical")
-	assert.Contains(t, string(res.BuildPluginOutput()), "today.txt")
-	assert.NotContains(t, string(res.BuildPluginOutput()), "yesterday.txt")
+	// 3. Prepare files for thismonth vs lastmonth
+	startOfMonthMidnight := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	lastMonth := startOfMonthMidnight.Add(-1 * time.Second)
+	thisMonth := startOfMonthMidnight.Add(1 * time.Second)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastmonth.txt"), []byte("lastmonth"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastmonth.txt"), lastMonth, lastMonth))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thismonth.txt"), []byte("thismonth"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thismonth.txt"), thisMonth, thisMonth))
+
+	// 4. Prepare files for thisyear vs lastyear
+	startOfYearMidnight := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, now.Location())
+	lastYear := startOfYearMidnight.Add(-1 * time.Second)
+	thisYear := startOfYearMidnight.Add(1 * time.Second)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastyear.txt"), []byte("lastyear"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastyear.txt"), lastYear, lastYear))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thisyear.txt"), []byte("thisyear"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thisyear.txt"), thisYear, thisYear))
+
+	tests := []struct {
+		keyword string
+		older   string
+		newer   string
+	}{
+		{"today", "yesterday.txt", "today.txt"},
+		{"thisweek", "lastweek.txt", "thisweek.txt"},
+		{"thismonth", "lastmonth.txt", "thismonth.txt"},
+		{"thisyear", "lastyear.txt", "thisyear.txt"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.keyword, func(t *testing.T) {
+			// Test: filter=written < keyword (should contain older, not newer)
+			res := snc.RunCheck("check_files", []string{
+				"path=" + tmpPath,
+				"filter=written < " + tc.keyword,
+				"crit=count > 0",
+				"top-syntax=%(list)",
+				"detail-syntax=%(filename)",
+			})
+			assert.Equal(t, CheckExitCritical, res.State, fmt.Sprintf("written < %s state Critical", tc.keyword))
+			assert.Contains(t, string(res.BuildPluginOutput()), tc.older, fmt.Sprintf("written < %s contains older", tc.keyword))
+			assert.NotContains(t, string(res.BuildPluginOutput()), tc.newer, fmt.Sprintf("written < %s not contains newer", tc.keyword))
+
+			// Test: filter=written >= keyword (should contain newer, not older)
+			res = snc.RunCheck("check_files", []string{
+				"path=" + tmpPath,
+				"filter=written >= " + tc.keyword,
+				"crit=count > 0",
+				"top-syntax=%(list)",
+				"detail-syntax=%(filename)",
+			})
+			assert.Equal(t, CheckExitCritical, res.State, fmt.Sprintf("written >= %s state Critical", tc.keyword))
+			assert.Contains(t, string(res.BuildPluginOutput()), tc.newer, fmt.Sprintf("written >= %s contains newer", tc.keyword))
+			assert.NotContains(t, string(res.BuildPluginOutput()), tc.older, fmt.Sprintf("written >= %s not contains older", tc.keyword))
+		})
+	}
 
 	StopTestAgent(t, snc)
 }
 
-func TestCheckFilesFilterTodayUTC(t *testing.T) {
+func TestCheckFilesFilterDateKeywordsUTC(t *testing.T) {
 	snc := StartTestAgent(t, "")
-	// prepare test folder
 	tmpPath := t.TempDir()
 
-	nowUTC := time.Now().UTC()
-	midnightUTC := time.Date(nowUTC.Year(), nowUTC.Month(), nowUTC.Day(), 0, 0, 0, 0, time.UTC)
+	// 1. Prepare files for today:utc vs yesterday
+	now := time.Now().UTC()
+	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	yesterday := midnight.Add(-1 * time.Second)
+	today := midnight.Add(1 * time.Second)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "yesterday_utc.txt"), []byte("yesterday_utc"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "yesterday_utc.txt"), yesterday, yesterday))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "today_utc.txt"), []byte("today_utc"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "today_utc.txt"), today, today))
 
-	// create file before UTC midnight
-	yesterdayUTC := midnightUTC.Add(-1 * time.Second)
-	err := os.WriteFile(filepath.Join(tmpPath, "yesterday_utc.txt"), []byte("yesterday_utc"), 0o600)
-	require.NoError(t, err)
-	err = os.Chtimes(filepath.Join(tmpPath, "yesterday_utc.txt"), yesterdayUTC, yesterdayUTC)
-	require.NoError(t, err)
+	// 2. Prepare files for thisweek:utc vs lastweek
+	offset := (int(now.Weekday()) + 6) % 7
+	startOfWeek := now.AddDate(0, 0, -offset)
+	startOfWeekMidnight := time.Date(startOfWeek.Year(), startOfWeek.Month(), startOfWeek.Day(), 0, 0, 0, 0, time.UTC)
+	lastWeek := startOfWeekMidnight.Add(-1 * time.Second)
+	thisWeek := startOfWeekMidnight.Add(1 * time.Second)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastweek_utc.txt"), []byte("lastweek_utc"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastweek_utc.txt"), lastWeek, lastWeek))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thisweek_utc.txt"), []byte("thisweek_utc"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thisweek_utc.txt"), thisWeek, thisWeek))
 
-	// create file after UTC midnight
-	todayUTC := midnightUTC.Add(1 * time.Second)
-	err = os.WriteFile(filepath.Join(tmpPath, "today_utc.txt"), []byte("today_utc"), 0o600)
-	require.NoError(t, err)
-	err = os.Chtimes(filepath.Join(tmpPath, "today_utc.txt"), todayUTC, todayUTC)
-	require.NoError(t, err)
+	// 3. Prepare files for thismonth:utc vs lastmonth
+	startOfMonthMidnight := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	lastMonth := startOfMonthMidnight.Add(-1 * time.Second)
+	thisMonth := startOfMonthMidnight.Add(1 * time.Second)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastmonth_utc.txt"), []byte("lastmonth_utc"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastmonth_utc.txt"), lastMonth, lastMonth))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thismonth_utc.txt"), []byte("thismonth_utc"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thismonth_utc.txt"), thisMonth, thisMonth))
 
-	// Test 1: filter=written < today:utc
-	res := snc.RunCheck("check_files", []string{
-		"path=" + tmpPath,
-		"filter=written < today:utc",
-		"crit=count > 0",
-		"top-syntax=%(list)",
-		"detail-syntax=%(filename)",
-	})
-	assert.Equal(t, CheckExitCritical, res.State, "state Critical")
-	assert.Contains(t, string(res.BuildPluginOutput()), "yesterday_utc.txt")
-	assert.NotContains(t, string(res.BuildPluginOutput()), "today_utc.txt")
+	// 4. Prepare files for thisyear:utc vs lastyear
+	startOfYearMidnight := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
+	lastYear := startOfYearMidnight.Add(-1 * time.Second)
+	thisYear := startOfYearMidnight.Add(1 * time.Second)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastyear_utc.txt"), []byte("lastyear_utc"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastyear_utc.txt"), lastYear, lastYear))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thisyear_utc.txt"), []byte("thisyear_utc"), 0o600))
+	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thisyear_utc.txt"), thisYear, thisYear))
 
-	// Test 2: filter=written >= today:utc
-	res = snc.RunCheck("check_files", []string{
-		"path=" + tmpPath,
-		"filter=written >= today:utc",
-		"crit=count > 0",
-		"top-syntax=%(list)",
-		"detail-syntax=%(filename)",
-	})
-	assert.Equal(t, CheckExitCritical, res.State, "state Critical")
-	assert.Contains(t, string(res.BuildPluginOutput()), "today_utc.txt")
-	assert.NotContains(t, string(res.BuildPluginOutput()), "yesterday_utc.txt")
+	tests := []struct {
+		keyword string
+		older   string
+		newer   string
+	}{
+		{"today:utc", "yesterday_utc.txt", "today_utc.txt"},
+		{"thisweek:utc", "lastweek_utc.txt", "thisweek_utc.txt"},
+		{"thismonth:utc", "lastmonth_utc.txt", "thismonth_utc.txt"},
+		{"thisyear:utc", "lastyear_utc.txt", "thisyear_utc.txt"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.keyword, func(t *testing.T) {
+			res := snc.RunCheck("check_files", []string{
+				"path=" + tmpPath,
+				"filter=written < " + tc.keyword,
+				"crit=count > 0",
+				"top-syntax=%(list)",
+				"detail-syntax=%(filename)",
+			})
+			assert.Equal(t, CheckExitCritical, res.State, fmt.Sprintf("written < %s state Critical", tc.keyword))
+			assert.Contains(t, string(res.BuildPluginOutput()), tc.older, fmt.Sprintf("written < %s contains older", tc.keyword))
+			assert.NotContains(t, string(res.BuildPluginOutput()), tc.newer, fmt.Sprintf("written < %s not contains newer", tc.keyword))
+
+			res = snc.RunCheck("check_files", []string{
+				"path=" + tmpPath,
+				"filter=written >= " + tc.keyword,
+				"crit=count > 0",
+				"top-syntax=%(list)",
+				"detail-syntax=%(filename)",
+			})
+			assert.Equal(t, CheckExitCritical, res.State, fmt.Sprintf("written >= %s state Critical", tc.keyword))
+			assert.Contains(t, string(res.BuildPluginOutput()), tc.newer, fmt.Sprintf("written >= %s contains newer", tc.keyword))
+			assert.NotContains(t, string(res.BuildPluginOutput()), tc.older, fmt.Sprintf("written >= %s not contains older", tc.keyword))
+		})
+	}
 
 	StopTestAgent(t, snc)
 }

@@ -766,23 +766,56 @@ func (c *Condition) getUnit(keyword string) Unit {
 	return UNone
 }
 
+func (c *Condition) getRefTime(str string) (time.Time, string) {
+	if strings.HasSuffix(strings.ToLower(str), ":utc") {
+		return time.Now().UTC(), str[0 : len(str)-4]
+	}
+
+	return time.Now(), str
+}
+
+func (c *Condition) expandDateKeyword(str string) (bool, error) {
+	now, keyword := c.getRefTime(str)
+
+	if strings.EqualFold(keyword, "today") {
+		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		c.value = fmt.Sprintf("%d", midnight.Unix())
+
+		return true, nil
+	}
+
+	if strings.EqualFold(keyword, "thisweek") {
+		offset := (int(now.Weekday()) + 6) % 7 // 0 = Monday … 6 = Sunday
+		startOfWeek := now.AddDate(0, 0, -offset)
+		midnight := time.Date(startOfWeek.Year(), startOfWeek.Month(), startOfWeek.Day(), 0, 0, 0, 0, now.Location())
+		c.value = fmt.Sprintf("%d", midnight.Unix())
+
+		return true, nil
+	}
+
+	if strings.EqualFold(keyword, "thismonth") {
+		midnight := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		c.value = fmt.Sprintf("%d", midnight.Unix())
+
+		return true, nil
+	}
+
+	if strings.EqualFold(keyword, "thisyear") {
+		midnight := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, now.Location())
+		c.value = fmt.Sprintf("%d", midnight.Unix())
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func (c *Condition) expandUnitByType(str string) error {
-	// valid units might be "today"
+	// valid units might be "today", "thisweek", "thismonth", "thisyear" and ":utc" variants
 	unit := c.getUnit(c.keyword)
 	if unit == UDate || unit == UTimestamp {
-		if strings.EqualFold(str, "today") {
-			now := time.Now()
-			midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
-			c.value = fmt.Sprintf("%d", midnight.Unix())
-
-			return nil
-		}
-		if strings.EqualFold(str, "today:utc") {
-			now := time.Now().UTC()
-			midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-			c.value = fmt.Sprintf("%d", midnight.Unix())
-
-			return nil
+		if done, err := c.expandDateKeyword(str); done || err != nil {
+			return err
 		}
 	}
 
