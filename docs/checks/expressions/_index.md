@@ -58,3 +58,17 @@ For backwards compatibility there more operators available:
 | Operator | Alias   | Description     | Example                     |
 | -------- | --------| ----------------| --------------------------- |
 | `''`     | `str()` | String constant | exe like str(winlogon.exe)  |
+
+
+## Date Keywords
+
+For attributes representing a date or timestamp, the following keywords can be used as values:
+
+| Keyword     | Description |
+| ----------- | ----------- |
+| `today`     | Start of the current day (00:00:00 local time) |
+| `thisweek`  | Start of the current week (Monday 00:00:00 local time) |
+| `thismonth` | Start of the current month (1st, 00:00:00 local time) |
+| `thisyear`  | Start of the current year (Jan 1st, 00:00:00 local time) |
+
+Each keyword can be suffixed with `:utc` to use UTC time instead of local time, e.g., `today:utc`.
