@@ -133,46 +133,7 @@ func TestCheckFilesFilterDateKeywords(t *testing.T) {
 	snc := StartTestAgent(t, "")
 	tmpPath := t.TempDir()
 
-	// 1. Prepare files for today vs yesterday
-	now := time.Now()
-	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	yesterday := midnight.Add(-1 * time.Second)
-	today := midnight.Add(1 * time.Second)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "yesterday.txt"), []byte("yesterday"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "yesterday.txt"), yesterday, yesterday))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "today.txt"), []byte("today"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "today.txt"), today, today))
-
-	// 2. Prepare files for thisweek vs lastweek
-	// Monday = 1 ... Sunday = 7 (in Go Sunday is 0)
-	// We want offset from Monday. 0=Monday, ..., 6=Sunday
-	offset := (int(now.Weekday()) + 6) % 7
-	startOfWeek := now.AddDate(0, 0, -offset)
-	startOfWeekMidnight := time.Date(startOfWeek.Year(), startOfWeek.Month(), startOfWeek.Day(), 0, 0, 0, 0, now.Location())
-	lastWeek := startOfWeekMidnight.Add(-1 * time.Second)
-	thisWeek := startOfWeekMidnight.Add(1 * time.Second)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastweek.txt"), []byte("lastweek"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastweek.txt"), lastWeek, lastWeek))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thisweek.txt"), []byte("thisweek"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thisweek.txt"), thisWeek, thisWeek))
-
-	// 3. Prepare files for thismonth vs lastmonth
-	startOfMonthMidnight := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	lastMonth := startOfMonthMidnight.Add(-1 * time.Second)
-	thisMonth := startOfMonthMidnight.Add(1 * time.Second)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastmonth.txt"), []byte("lastmonth"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastmonth.txt"), lastMonth, lastMonth))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thismonth.txt"), []byte("thismonth"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thismonth.txt"), thisMonth, thisMonth))
-
-	// 4. Prepare files for thisyear vs lastyear
-	startOfYearMidnight := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, now.Location())
-	lastYear := startOfYearMidnight.Add(-1 * time.Second)
-	thisYear := startOfYearMidnight.Add(1 * time.Second)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastyear.txt"), []byte("lastyear"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastyear.txt"), lastYear, lastYear))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thisyear.txt"), []byte("thisyear"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thisyear.txt"), thisYear, thisYear))
+	prepareDateKeywordFiles(t, tmpPath, false)
 
 	tests := []struct {
 		keyword string
@@ -196,44 +157,7 @@ func TestCheckFilesFilterDateKeywordsUTC(t *testing.T) {
 	snc := StartTestAgent(t, "")
 	tmpPath := t.TempDir()
 
-	// 1. Prepare files for today:utc vs yesterday
-	now := time.Now().UTC()
-	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	yesterday := midnight.Add(-1 * time.Second)
-	today := midnight.Add(1 * time.Second)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "yesterday_utc.txt"), []byte("yesterday_utc"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "yesterday_utc.txt"), yesterday, yesterday))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "today_utc.txt"), []byte("today_utc"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "today_utc.txt"), today, today))
-
-	// 2. Prepare files for thisweek:utc vs lastweek
-	offset := (int(now.Weekday()) + 6) % 7
-	startOfWeek := now.AddDate(0, 0, -offset)
-	startOfWeekMidnight := time.Date(startOfWeek.Year(), startOfWeek.Month(), startOfWeek.Day(), 0, 0, 0, 0, time.UTC)
-	lastWeek := startOfWeekMidnight.Add(-1 * time.Second)
-	thisWeek := startOfWeekMidnight.Add(1 * time.Second)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastweek_utc.txt"), []byte("lastweek_utc"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastweek_utc.txt"), lastWeek, lastWeek))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thisweek_utc.txt"), []byte("thisweek_utc"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thisweek_utc.txt"), thisWeek, thisWeek))
-
-	// 3. Prepare files for thismonth:utc vs lastmonth
-	startOfMonthMidnight := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	lastMonth := startOfMonthMidnight.Add(-1 * time.Second)
-	thisMonth := startOfMonthMidnight.Add(1 * time.Second)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastmonth_utc.txt"), []byte("lastmonth_utc"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastmonth_utc.txt"), lastMonth, lastMonth))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thismonth_utc.txt"), []byte("thismonth_utc"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thismonth_utc.txt"), thisMonth, thisMonth))
-
-	// 4. Prepare files for thisyear:utc vs lastyear
-	startOfYearMidnight := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
-	lastYear := startOfYearMidnight.Add(-1 * time.Second)
-	thisYear := startOfYearMidnight.Add(1 * time.Second)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "lastyear_utc.txt"), []byte("lastyear_utc"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "lastyear_utc.txt"), lastYear, lastYear))
-	require.NoError(t, os.WriteFile(filepath.Join(tmpPath, "thisyear_utc.txt"), []byte("thisyear_utc"), 0o600))
-	require.NoError(t, os.Chtimes(filepath.Join(tmpPath, "thisyear_utc.txt"), thisYear, thisYear))
+	prepareDateKeywordFiles(t, tmpPath, true)
 
 	tests := []struct {
 		keyword string
@@ -251,6 +175,57 @@ func TestCheckFilesFilterDateKeywordsUTC(t *testing.T) {
 	}
 
 	StopTestAgent(t, snc)
+}
+
+func prepareDateKeywordFiles(t *testing.T, tmpPath string, utc bool) {
+	t.Helper()
+	suffix := ".txt"
+	if utc {
+		suffix = "_utc.txt"
+	}
+
+	now := time.Now()
+	if utc {
+		now = now.UTC()
+	}
+	location := now.Location()
+
+	// 1. Prepare files for today vs yesterday
+	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, location)
+	yesterday := midnight.Add(-1 * time.Second)
+	today := midnight.Add(1 * time.Second)
+	createTestFile(t, tmpPath, "yesterday"+suffix, yesterday)
+	createTestFile(t, tmpPath, "today"+suffix, today)
+
+	// 2. Prepare files for thisweek vs lastweek
+	offset := (int(now.Weekday()) + 6) % 7
+	startOfWeek := now.AddDate(0, 0, -offset)
+	startOfWeekMidnight := time.Date(startOfWeek.Year(), startOfWeek.Month(), startOfWeek.Day(), 0, 0, 0, 0, location)
+	lastWeek := startOfWeekMidnight.Add(-1 * time.Second)
+	thisWeek := startOfWeekMidnight.Add(1 * time.Second)
+	createTestFile(t, tmpPath, "lastweek"+suffix, lastWeek)
+	createTestFile(t, tmpPath, "thisweek"+suffix, thisWeek)
+
+	// 3. Prepare files for thismonth vs lastmonth
+	startOfMonthMidnight := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, location)
+	lastMonth := startOfMonthMidnight.Add(-1 * time.Second)
+	thisMonth := startOfMonthMidnight.Add(1 * time.Second)
+	createTestFile(t, tmpPath, "lastmonth"+suffix, lastMonth)
+	createTestFile(t, tmpPath, "thismonth"+suffix, thisMonth)
+
+	// 4. Prepare files for thisyear vs lastyear
+	startOfYearMidnight := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, location)
+	lastYear := startOfYearMidnight.Add(-1 * time.Second)
+	thisYear := startOfYearMidnight.Add(1 * time.Second)
+	createTestFile(t, tmpPath, "lastyear"+suffix, lastYear)
+	createTestFile(t, tmpPath, "thisyear"+suffix, thisYear)
+}
+
+func createTestFile(t *testing.T, dir, name string, modTime time.Time) {
+	t.Helper()
+	p := filepath.Join(dir, name)
+	require.NoError(t, os.WriteFile(p, []byte(name), 0o600))
+	require.NoError(t, os.Chtimes(p, modTime, modTime))
 }
 
 func verifyCheckFilesDateKeyword(t *testing.T, snc *Agent, tmpPath, keyword, older, newer string) {
