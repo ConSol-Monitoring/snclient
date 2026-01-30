@@ -186,31 +186,7 @@ func TestCheckFilesFilterDateKeywords(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.keyword, func(t *testing.T) {
-			// Test: filter=written < keyword (should contain older, not newer)
-			res := snc.RunCheck("check_files", []string{
-				"path=" + tmpPath,
-				"filter=written < " + tc.keyword,
-				"crit=count > 0",
-				"top-syntax=%(list)",
-				"detail-syntax=%(filename)",
-			})
-			assert.Equal(t, CheckExitCritical, res.State, fmt.Sprintf("written < %s state Critical", tc.keyword))
-			assert.Contains(t, string(res.BuildPluginOutput()), tc.older, fmt.Sprintf("written < %s contains older", tc.keyword))
-			assert.NotContains(t, string(res.BuildPluginOutput()), tc.newer, fmt.Sprintf("written < %s not contains newer", tc.keyword))
-
-			// Test: filter=written >= keyword (should contain newer, not older)
-			res = snc.RunCheck("check_files", []string{
-				"path=" + tmpPath,
-				"filter=written >= " + tc.keyword,
-				"crit=count > 0",
-				"top-syntax=%(list)",
-				"detail-syntax=%(filename)",
-			})
-			assert.Equal(t, CheckExitCritical, res.State, fmt.Sprintf("written >= %s state Critical", tc.keyword))
-			assert.Contains(t, string(res.BuildPluginOutput()), tc.newer, fmt.Sprintf("written >= %s contains newer", tc.keyword))
-			assert.NotContains(t, string(res.BuildPluginOutput()), tc.older, fmt.Sprintf("written >= %s not contains older", tc.keyword))
-		})
+		verifyCheckFilesDateKeyword(t, snc, tmpPath, tc.keyword, tc.older, tc.newer)
 	}
 
 	StopTestAgent(t, snc)
@@ -271,30 +247,37 @@ func TestCheckFilesFilterDateKeywordsUTC(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.keyword, func(t *testing.T) {
-			res := snc.RunCheck("check_files", []string{
-				"path=" + tmpPath,
-				"filter=written < " + tc.keyword,
-				"crit=count > 0",
-				"top-syntax=%(list)",
-				"detail-syntax=%(filename)",
-			})
-			assert.Equal(t, CheckExitCritical, res.State, fmt.Sprintf("written < %s state Critical", tc.keyword))
-			assert.Contains(t, string(res.BuildPluginOutput()), tc.older, fmt.Sprintf("written < %s contains older", tc.keyword))
-			assert.NotContains(t, string(res.BuildPluginOutput()), tc.newer, fmt.Sprintf("written < %s not contains newer", tc.keyword))
-
-			res = snc.RunCheck("check_files", []string{
-				"path=" + tmpPath,
-				"filter=written >= " + tc.keyword,
-				"crit=count > 0",
-				"top-syntax=%(list)",
-				"detail-syntax=%(filename)",
-			})
-			assert.Equal(t, CheckExitCritical, res.State, fmt.Sprintf("written >= %s state Critical", tc.keyword))
-			assert.Contains(t, string(res.BuildPluginOutput()), tc.newer, fmt.Sprintf("written >= %s contains newer", tc.keyword))
-			assert.NotContains(t, string(res.BuildPluginOutput()), tc.older, fmt.Sprintf("written >= %s not contains older", tc.keyword))
-		})
+		verifyCheckFilesDateKeyword(t, snc, tmpPath, tc.keyword, tc.older, tc.newer)
 	}
 
 	StopTestAgent(t, snc)
+}
+
+func verifyCheckFilesDateKeyword(t *testing.T, snc *Agent, tmpPath, keyword, older, newer string) {
+	t.Helper()
+	t.Run(keyword, func(t *testing.T) {
+		// Test: filter=written < keyword (should contain older, not newer)
+		res := snc.RunCheck("check_files", []string{
+			"path=" + tmpPath,
+			"filter=written < " + keyword,
+			"crit=count > 0",
+			"top-syntax=%(list)",
+			"detail-syntax=%(filename)",
+		})
+		assert.Equalf(t, CheckExitCritical, res.State, "written < %s state Critical", keyword)
+		assert.Containsf(t, string(res.BuildPluginOutput()), older, "written < %s contains older", keyword)
+		assert.NotContainsf(t, string(res.BuildPluginOutput()), newer, "written < %s not contains newer", keyword)
+
+		// Test: filter=written >= keyword (should contain newer, not older)
+		res = snc.RunCheck("check_files", []string{
+			"path=" + tmpPath,
+			"filter=written >= " + keyword,
+			"crit=count > 0",
+			"top-syntax=%(list)",
+			"detail-syntax=%(filename)",
+		})
+		assert.Equalf(t, CheckExitCritical, res.State, "written >= %s state Critical", keyword)
+		assert.Containsf(t, string(res.BuildPluginOutput()), newer, "written >= %s contains newer", keyword)
+		assert.NotContainsf(t, string(res.BuildPluginOutput()), older, "written >= %s not contains older", keyword)
+	})
 }

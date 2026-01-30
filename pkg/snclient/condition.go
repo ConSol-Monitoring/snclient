@@ -766,7 +766,7 @@ func (c *Condition) getUnit(keyword string) Unit {
 	return UNone
 }
 
-func (c *Condition) getRefTime(str string) (time.Time, string) {
+func (c *Condition) getRefTime(str string) (refTime time.Time, refKeyword string) {
 	if strings.HasSuffix(strings.ToLower(str), ":utc") {
 		return time.Now().UTC(), str[0 : len(str)-4]
 	}
@@ -774,14 +774,14 @@ func (c *Condition) getRefTime(str string) (time.Time, string) {
 	return time.Now(), str
 }
 
-func (c *Condition) expandDateKeyword(str string) (bool, error) {
+func (c *Condition) expandDateKeyword(str string) bool {
 	now, keyword := c.getRefTime(str)
 
 	if strings.EqualFold(keyword, "today") {
 		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 		c.value = fmt.Sprintf("%d", midnight.Unix())
 
-		return true, nil
+		return true
 	}
 
 	if strings.EqualFold(keyword, "thisweek") {
@@ -790,32 +790,32 @@ func (c *Condition) expandDateKeyword(str string) (bool, error) {
 		midnight := time.Date(startOfWeek.Year(), startOfWeek.Month(), startOfWeek.Day(), 0, 0, 0, 0, now.Location())
 		c.value = fmt.Sprintf("%d", midnight.Unix())
 
-		return true, nil
+		return true
 	}
 
 	if strings.EqualFold(keyword, "thismonth") {
 		midnight := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 		c.value = fmt.Sprintf("%d", midnight.Unix())
 
-		return true, nil
+		return true
 	}
 
 	if strings.EqualFold(keyword, "thisyear") {
 		midnight := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, now.Location())
 		c.value = fmt.Sprintf("%d", midnight.Unix())
 
-		return true, nil
+		return true
 	}
 
-	return false, nil
+	return false
 }
 
 func (c *Condition) expandUnitByType(str string) error {
 	// valid units might be "today", "thisweek", "thismonth", "thisyear" and ":utc" variants
 	unit := c.getUnit(c.keyword)
 	if unit == UDate || unit == UTimestamp {
-		if done, err := c.expandDateKeyword(str); done || err != nil {
-			return err
+		if done := c.expandDateKeyword(str); done {
+			return nil
 		}
 	}
 
