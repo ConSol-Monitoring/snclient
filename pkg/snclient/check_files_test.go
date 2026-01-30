@@ -128,3 +128,103 @@ func TestCheckFilesNoPermission(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckFilesFilterToday(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	// prepare test folder
+	tmpPath := t.TempDir()
+
+	// create file from yesterday
+	yesterday := time.Now().AddDate(0, 0, -1)
+	err := os.WriteFile(filepath.Join(tmpPath, "yesterday.txt"), []byte("yesterday"), 0o600)
+	require.NoError(t, err)
+	err = os.Chtimes(filepath.Join(tmpPath, "yesterday.txt"), yesterday, yesterday)
+	require.NoError(t, err)
+
+	// create file from today (early morning)
+	now := time.Now()
+	todayEarly := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 1, 0, time.Local)
+	// if we are running at exactly 00:00:00, this test might be flaky if we don't ensure todayEarly is actually today.
+	// But 1 second after midnight should be safe.
+	err = os.WriteFile(filepath.Join(tmpPath, "today.txt"), []byte("today"), 0o600)
+	require.NoError(t, err)
+	err = os.Chtimes(filepath.Join(tmpPath, "today.txt"), todayEarly, todayEarly)
+	require.NoError(t, err)
+
+	// Test 1: filter=written < today
+	// Should match yesterday.txt, but NOT today.txt
+	res := snc.RunCheck("check_files", []string{
+		"path=" + tmpPath,
+		"filter=written < today",
+		"crit=count > 0",
+		"top-syntax=%(list)",
+		"detail-syntax=%(filename)",
+	})
+	assert.Equal(t, CheckExitCritical, res.State, "state Critical")
+	assert.Contains(t, string(res.BuildPluginOutput()), "yesterday.txt")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "today.txt")
+
+	// Test 2: filter=written >= today
+	// Should match today.txt, but NOT yesterday.txt
+	res = snc.RunCheck("check_files", []string{
+		"path=" + tmpPath,
+		"filter=written >= today",
+		"crit=count > 0",
+		"top-syntax=%(list)",
+		"detail-syntax=%(filename)",
+	})
+	assert.Equal(t, CheckExitCritical, res.State, "state Critical")
+	assert.Contains(t, string(res.BuildPluginOutput()), "today.txt")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "yesterday.txt")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckFilesFilterTodayUTC(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	// prepare test folder
+	tmpPath := t.TempDir()
+
+	nowUTC := time.Now().UTC()
+	midnightUTC := time.Date(nowUTC.Year(), nowUTC.Month(), nowUTC.Day(), 0, 0, 0, 0, time.UTC)
+
+	// create file before UTC midnight
+	yesterdayUTC := midnightUTC.Add(-1 * time.Second)
+	err := os.WriteFile(filepath.Join(tmpPath, "yesterday_utc.txt"), []byte("yesterday_utc"), 0o600)
+	require.NoError(t, err)
+	err = os.Chtimes(filepath.Join(tmpPath, "yesterday_utc.txt"), yesterdayUTC, yesterdayUTC)
+	require.NoError(t, err)
+
+	// create file after UTC midnight
+	todayUTC := midnightUTC.Add(1 * time.Second)
+	err = os.WriteFile(filepath.Join(tmpPath, "today_utc.txt"), []byte("today_utc"), 0o600)
+	require.NoError(t, err)
+	err = os.Chtimes(filepath.Join(tmpPath, "today_utc.txt"), todayUTC, todayUTC)
+	require.NoError(t, err)
+
+	// Test 1: filter=written < today:utc
+	res := snc.RunCheck("check_files", []string{
+		"path=" + tmpPath,
+		"filter=written < today:utc",
+		"crit=count > 0",
+		"top-syntax=%(list)",
+		"detail-syntax=%(filename)",
+	})
+	assert.Equal(t, CheckExitCritical, res.State, "state Critical")
+	assert.Contains(t, string(res.BuildPluginOutput()), "yesterday_utc.txt")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "today_utc.txt")
+
+	// Test 2: filter=written >= today:utc
+	res = snc.RunCheck("check_files", []string{
+		"path=" + tmpPath,
+		"filter=written >= today:utc",
+		"crit=count > 0",
+		"top-syntax=%(list)",
+		"detail-syntax=%(filename)",
+	})
+	assert.Equal(t, CheckExitCritical, res.State, "state Critical")
+	assert.Contains(t, string(res.BuildPluginOutput()), "today_utc.txt")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "yesterday_utc.txt")
+
+	StopTestAgent(t, snc)
+}

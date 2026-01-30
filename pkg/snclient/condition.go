@@ -767,6 +767,25 @@ func (c *Condition) getUnit(keyword string) Unit {
 }
 
 func (c *Condition) expandUnitByType(str string) error {
+	// valid units might be "today"
+	unit := c.getUnit(c.keyword)
+	if unit == UDate || unit == UTimestamp {
+		if strings.EqualFold(str, "today") {
+			now := time.Now()
+			midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+			c.value = fmt.Sprintf("%d", midnight.Unix())
+
+			return nil
+		}
+		if strings.EqualFold(str, "today:utc") {
+			now := time.Now().UTC()
+			midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+			c.value = fmt.Sprintf("%d", midnight.Unix())
+
+			return nil
+		}
+	}
+
 	match := reConditionValueUnit.FindStringSubmatch(str)
 	if len(match) < 3 {
 		c.value = str
@@ -782,7 +801,6 @@ func (c *Condition) expandUnitByType(str string) error {
 	}
 
 	// expand known units
-	unit := c.getUnit(c.keyword)
 	switch unit {
 	case UByte:
 		value, err := humanize.ParseBytes(str)
