@@ -24,9 +24,14 @@ shared-path = %%(scripts)
 timeout = 1111111
 
 [/settings/external scripts/scripts]
-check_files_recurisve_generate_files = ./check_files_recursive_generate_files.ps1 "$ARG1$"
+check_files_recursive_generate_files = ./check_files_recursive_generate_files.ps1 "$ARG1$"
+check_files_perfdata_generate_files = ./check_files_perfdata_generate_files.ps1 "$ARG1$"
 
-[/settings/external scripts/scripts/check_files_recurisve_generate_files]
+[/settings/external scripts/scripts/check_files_recursive_generate_files]
+allow arguments = true
+allow nasty characters = true
+
+[/settings/external scripts/scripts/check_files_perfdata_generate_files]
 allow arguments = true
 allow nasty characters = true
 `, scriptsDir)
@@ -44,7 +49,7 @@ func TestCheckFilesRecursiveArguments(t *testing.T) {
 	// capture this since t.TempDir() is dyanic
 	geneartionDirectory := t.TempDir()
 
-	res := snc.RunCheck("check_files_recurisve_generate_files", []string{geneartionDirectory})
+	res := snc.RunCheck("check_files_recursive_generate_files", []string{geneartionDirectory})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
 
 	assert.Containsf(t, string(res.BuildPluginOutput()), "ok - Generated 11 files for testing", "output matches")
@@ -193,6 +198,124 @@ func TestCheckDriveLetterPaths(t *testing.T) {
 	// Path can be given as C:\ as well
 	res = snc.RunCheck("check_files", []string{"path=C:\\", "max-depth=3", "filter= type == 'file' and name == 'arial.ttf' "})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
+
+	StopTestAgent(t, snc)
+}
+
+// check_files_perfdata_generate_files script generates a structure that looks like this
+// The script should build a file three that looks like this
+// .
+// ├── a
+// │   ├── file_1024kb_1.a
+// │   ├── file_1024kb_2.a
+// │   ├── file_1024kb_3.a
+// │   └── file_1024kb_4.a
+// ├── b
+// │   ├── file_1024kb_1.b
+// │   ├── file_1024kb_2.b
+// │   ├── file_1024kb_3.b
+// │   ├── file_1024kb_4.b
+// │   └── file_1024kb_5.b
+// ├── file_1024kb_1.root
+// ├── file_1024kb_2.root
+// ├── file_1024kb_3.root
+// ├── file_512kb_1.root
+// ├── file_512kb_2.root
+// ├── file_512kb_3.root
+// └── file_512kb_4.root
+//
+// 3 directories, 16 files
+
+func TestCheckFilesSizePerfdata(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+
+	config := checkFilesTestConfig(t, scriptsDir)
+	snc := StartTestAgent(t, config)
+
+	// capture this since t.TempDir() is dyanic
+	geneartionDirectory := t.TempDir()
+
+	res := snc.RunCheck("check_files_perfdata_generate_files", []string{geneartionDirectory})
+	assert.Equalf(t, CheckExitOK, res.State, "state matches")
+	outputString := string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "ok - Generated 16 files for testing", "output matches")
+	assert.Containsf(t, outputString, "ok - Generated 2 directories for testing", "output matches")
+
+	// Total size should be exactly 14 mb
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='total_size > 100Mb'"})
+	outputString = string(res.BuildPluginOutput())
+	// This check includes the directories as well
+	assert.Containsf(t, outputString, "OK - All 18 files are ok", "output matches")
+
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='total_size > 100Mb'", "filter='type == file'"})
+	outputString = string(res.BuildPluginOutput())
+	// This filters out the two directories
+	assert.Containsf(t, outputString, "OK - All 16 files are ok", "output matches")
+	assert.Contains(t, outputString, "'total_size'=14680064B")
+
+	// only match the root files and check their total size
+	// file_1024kb_1.root
+	// file_1024kb_2.root
+	// file_1024kb_3.root
+	// file_512kb_1.root
+	// file_512kb_2.root
+	// file_512kb_3.root
+	// file_512kb_4.root
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "max-depth=0", "crit='total_size > 100Mb'", "filter='type == file'"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "OK - All 7 files are ok", "output matches")
+	assert.Contains(t, outputString, "'total_size'=5242880B")
+
+	// only match the root files, but return critical if size is above 512kb
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "max-depth=0", "crit='size > 512Kb'", "filter='type == file'"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "CRITICAL - 3/7 files (5.00 MiB)", "output matches")
+	assert.Containsf(t, outputString, "file_1024kb_1.root size'=1048576B", "Should include metrics named '<filename> size' for all files")
+
+	// "file_512kb_1.root",
+	// "file_1024kb_1.root",
+	// "a/file_1024kb_1.a",
+	// "b/file_1024kb_1.b",
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=file_*_1.*", "crit='total_size != 3670016'", "filter='type == file'"})
+	outputString = string(res.BuildPluginOutput())
+	// the metric check for 'total_size' sets the status to critical
+	// files do not have a 'total_size' attribute, so they do not result towards setting the status
+	assert.Containsf(t, outputString, "CRITICAL - 0/4 files (3.50 MiB)", "output matches")
+	assert.Contains(t, outputString, "total_size'=3670016")
+
+	// Search on the root, but use pattern that only matches files with "b" extension
+	// The pattern matching should remove the files with "root" and "a" extensions
+	// The second pass should remove the "a" folder where files with "a" extension is found
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size == 0B'", "filter='type == file'"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size == 0B'", "filter=' type == file'"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
+
+	// check if the search_path attribute is being populated
+	a_directory := geneartionDirectory + string(os.PathSeparator) + "a"
+	b_directory := geneartionDirectory + string(os.PathSeparator) + "b"
+	res = snc.RunCheck("check_files", []string{"paths=" + a_directory + "," + b_directory, "critical='check_path != " + a_directory + " '"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "CRITICAL - 5/9 files", "output matches")
+	assert.NotContainsf(t, outputString, "file_1024kb_1.a", "output matches")
+
+	// check if calculate-subdirectory-sizes works
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='size > 4Mib'", "calculate-subdirectory-sizes=true"})
+	outputString = string(res.BuildPluginOutput())
+	// files themselves are all 512 Kib or 1 Mib
+	// direcotry 'a' contains four 1 MiB files,
+	// the directory 'b' contains five 1MiB files, it is the only candidate to go over 4MiB
+	assert.Containsf(t, outputString, "CRITICAL - 1/18 files (14.00 MiB) critical(b)", "output matches")
+
+	// When using a pattern and calculate subdirectory sizes is enabled, it will add the subdirectory sizes as metrics
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*_3.*", "crit='size > 0Mib'", "calculate-subdirectory-sizes=true"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "CRITICAL - 6/6 files (3.50 MiB) critical", "output matches")
+	assert.Containsf(t, outputString, "'a size'=1048576B", "should calcualte the size of the subfolder a")
+	assert.Containsf(t, outputString, "'b size'=1048576B", "should calcualte the size of the subfolder b")
 
 	StopTestAgent(t, snc)
 }
