@@ -117,6 +117,30 @@ func TestCheckFilesRecursiveArguments(t *testing.T) {
 	StopTestAgent(t, snc)
 }
 
+// check_files_perfdata_generate_files script generates a structure that looks like this
+// The script should build a file three that looks like this
+// .
+// ├── a
+// │   ├── file_1024kb_1.a
+// │   ├── file_1024kb_2.a
+// │   ├── file_1024kb_3.a
+// │   └── file_1024kb_4.a
+// ├── b
+// │   ├── file_1024kb_1.b
+// │   ├── file_1024kb_2.b
+// │   ├── file_1024kb_3.b
+// │   ├── file_1024kb_4.b
+// │   └── file_1024kb_5.b
+// ├── file_1024kb_1.root
+// ├── file_1024kb_2.root
+// ├── file_1024kb_3.root
+// ├── file_512kb_1.root
+// ├── file_512kb_2.root
+// ├── file_512kb_3.root
+// └── file_512kb_4.root
+//
+// 3 directories, 16 files
+
 func TestCheckFilesSizePerfdata(t *testing.T) {
 	testDir, _ := os.Getwd()
 	scriptsDir := filepath.Join(testDir, "t", "scripts")
@@ -178,9 +202,9 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	// Search on the root, but use pattern that only matches files with "b" extension
 	// The pattern matching should remove the files with "root" and "a" extensions
 	// The second pass should remove the "a" folder where files with "a" extension is found
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size == 0B'", "filter='type == file'"})
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size == 0B'"})
 	outputString = string(res.BuildPluginOutput())
-	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
+	assert.Containsf(t, outputString, "OK - All 6 files are ok", "output matches")
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size == 0B'", "filter=' type == file'"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")

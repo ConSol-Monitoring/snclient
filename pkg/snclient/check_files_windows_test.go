@@ -287,9 +287,9 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	// Search on the root, but use pattern that only matches files with "b" extension
 	// The pattern matching should remove the files with "root" and "a" extensions
 	// The second pass should remove the "a" folder where files with "a" extension is found
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size == 0B'", "filter='type == file'"})
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size == 0B'"})
 	outputString = string(res.BuildPluginOutput())
-	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
+	assert.Containsf(t, outputString, "OK - All 6 files are ok", "output matches")
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size == 0B'", "filter=' type == file'"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
