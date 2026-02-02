@@ -295,9 +295,9 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
 
 	// check if the search_path attribute is being populated
-	a_directory := geneartionDirectory + string(os.PathSeparator) + "a"
-	b_directory := geneartionDirectory + string(os.PathSeparator) + "b"
-	res = snc.RunCheck("check_files", []string{"paths=" + a_directory + "," + b_directory, "critical='check_path != " + a_directory + " '"})
+	aDirectory := filepath.Join(geneartionDirectory, "a")
+	bDirectory := filepath.Join(geneartionDirectory, "b")
+	res = snc.RunCheck("check_files", []string{"paths=" + aDirectory + "," + bDirectory, "critical='check_path != " + aDirectory + " '"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "CRITICAL - 5/9 files", "output matches")
 	assert.NotContainsf(t, outputString, "file_1024kb_1.a", "output matches")
@@ -306,7 +306,7 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='size > 4Mib'", "calculate-subdirectory-sizes=true"})
 	outputString = string(res.BuildPluginOutput())
 	// files themselves are all 512 Kib or 1 Mib
-	// direcotry 'a' contains four 1 MiB files,
+	// directory 'a' contains four 1 MiB files,
 	// the directory 'b' contains five 1MiB files, it is the only candidate to go over 4MiB
 	assert.Containsf(t, outputString, "CRITICAL - 1/18 files (14.00 MiB) critical(b)", "output matches")
 
@@ -314,8 +314,8 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*_3.*", "crit='size > 0Mib'", "calculate-subdirectory-sizes=true"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "CRITICAL - 6/6 files (3.50 MiB) critical", "output matches")
-	assert.Containsf(t, outputString, "'a size'=1048576B", "should calcualte the size of the subfolder a")
-	assert.Containsf(t, outputString, "'b size'=1048576B", "should calcualte the size of the subfolder b")
+	assert.Containsf(t, outputString, "'a size'=1048576B", "should calculate the size of the subfolder a")
+	assert.Containsf(t, outputString, "'b size'=1048576B", "should calculate the size of the subfolder b")
 
 	StopTestAgent(t, snc)
 }
