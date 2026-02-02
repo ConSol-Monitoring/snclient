@@ -7,7 +7,7 @@ GOVERSION:=$(shell \
     go version | \
     awk -F'go| ' '{ split($$5, a, /\./); printf ("%04d%04d", a[1], a[2]); exit; }' \
 )
-# also update docs/install/build.md and .github/workflows/builds.yml when changing minimum version
+# also update other go.mod files when changing minimum version
 # find . -name go.mod (run make gomods afterwards)
 MINGOVERSION:=00010025
 MINGOVERSIONSTR:=1.25
