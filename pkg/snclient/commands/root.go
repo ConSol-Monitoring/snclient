@@ -143,6 +143,46 @@ func sanitizeOSArgs() {
 func sanitizeGlobalOptions() {
 	sortedArgs := []string{}
 
+	// if snclient is running in a single-command mode, try to discover the command/check
+	var runCommandIndex *int
+idxFindingLoop:
+	for idx, arg := range os.Args {
+		switch arg {
+		case "run", "test", "do":
+			runCommandIndex = &idx
+
+			// break after the first occurrence
+			break idxFindingLoop
+		default:
+		}
+	}
+
+	// snclient has a global flag for verbosity
+	// this toggles verbosity for the internal checks as well
+	// there is no separate snclient-specific and check-specific flag
+	// for this reason, verbose flags for the internal checks are shoved to the front
+	// so they can be interpreted as the global flag
+
+	// for external commands however, one cannot indiscriminately shove it, as it does
+	// not know if it belongs to the external command or the snclient
+
+	relocateVerboseArgument := bool(false)
+	if runCommandIndex != nil && *runCommandIndex+1 < len(os.Args) {
+		nextArg := os.Args[*runCommandIndex+1]
+		if strings.HasPrefix(nextArg, "check_") {
+			if _, ok := snclient.AvailableChecks[nextArg]; ok {
+				relocateVerboseArgument = true
+			}
+		}
+	}
+
+	if !relocateVerboseArgument {
+		return
+	}
+
+	// only shove the short forms for verbosity
+	// --verbose is not shoved
+
 	cmdName := os.Args[0]
 	for _, arg := range os.Args[1:] {
 		switch arg {
