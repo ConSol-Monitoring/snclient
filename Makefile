@@ -710,6 +710,7 @@ DOC_COMMANDS=\
 	check_temperature \
 	check_uptime \
 	check_wmi \
+	check_drive_io \
 
 # generate markdown help files for all plugins
 DOC_PLUGINS=\

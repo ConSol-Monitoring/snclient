@@ -29,6 +29,83 @@ var DefaultSystemTaskConfig = ConfigData{
 	"metrics interval":      "5s",
 }
 
+// initialization function first discovers partitions
+// depending on their type, corresponding device of that partition is added
+// non-physical drives are not added to IO counters
+var PartitionDevicesToWatch []string
+
+func init() {
+	// gopsutil on Linux seems to be reading /proc/partitions and then adding more info according to /sys/class/block/<device>/*
+	partitions, err := disk.Partitions(true)
+
+	partitionTypesToFilterOut := []string{
+		"autofs",
+		"bdev",
+		"binfmt_misc",
+		"bpf",
+		"cgroup",
+		"cgroup2",
+		"configfs",
+		"cpuset",
+		"debugfs",
+		"devpts",
+		"devtmpfs",
+		"efivarfs",
+		"fuse.portal",
+		"fusectl",
+		"hugetlbfs",
+		"mqueue",
+		"nsfs",
+		"overlay",
+		"pipefs",
+		"proc",
+		"pstore",
+		"ramfs",
+		"rpc_pipefs",
+		"securityfs",
+		"selinuxfs",
+		"sockfs",
+		"sysfs",
+		"tracefs",
+	}
+
+	if err == nil {
+		for _, partition := range partitions {
+			if partition.Device == "none" {
+				continue
+			}
+
+			if slices.Contains(partitionTypesToFilterOut, partition.Fstype) {
+				continue
+			}
+
+			PartitionDevicesToWatch = append(PartitionDevicesToWatch, partition.Device)
+		}
+	}
+}
+
+// This function determines if counters
+func DiskEligibleForWatch(diskName string) bool {
+	// partitionDevices were calculated in init() function
+
+	// while diskName comes from gopsutil disk.IoCounters()
+	// On linux it seems to be reading /proc/diskstats
+	// Has entries that look like this:
+	// "nvme0n1p2"
+
+	diskEligible := false
+
+	for _, partitionDevice := range PartitionDevicesToWatch {
+		if strings.Contains(partitionDevice, diskName) {
+			diskEligible = true
+
+			break
+		}
+	}
+
+	return diskEligible
+}
+
 type CheckSystemHandler struct {
 	noCopy noCopy
 
@@ -98,7 +175,6 @@ func (c *CheckSystemHandler) mainLoop() {
 
 			return
 		case <-ticker.C:
-			//log.Tracef("CheckSystem mainLoop timer ticked, updating counters")
 			c.update(false)
 
 			continue
@@ -160,6 +236,7 @@ func (c *CheckSystemHandler) update(create bool) {
 	if runtime.GOOS == "linux" {
 		c.addLinuxKernelStats(create)
 		c.addLinuxSwapMemoryStats(create)
+		c.addLinuxDiskStats(create)
 	}
 }
 
@@ -285,4 +362,44 @@ func (c *CheckSystemHandler) addLinuxSwapMemoryStats(create bool) {
 
 	c.snc.Counter.Set("memory", "swp_in", float64(swap.Sin))
 	c.snc.Counter.Set("memory", "swp_out", float64(swap.Sout))
+}
+
+func (c *CheckSystemHandler) addLinuxDiskStats(create bool) {
+	diskIOCounters, err := disk.IOCounters()
+	// do not create the counters if there is an error
+	if err != nil {
+		return
+	}
+
+	if create {
+		for diskName := range diskIOCounters {
+			if !DiskEligibleForWatch(diskName) {
+				log.Tracef("not adding disk stat counter since it is found to be not-physical: %s", diskName)
+
+				continue
+			}
+
+			category := "disk_" + diskName
+			c.snc.counterCreate(category, "write_bytes", c.bufferLength, c.metricsInterval)
+			c.snc.counterCreate(category, "write_count", c.bufferLength, c.metricsInterval)
+			c.snc.counterCreate(category, "read_bytes", c.bufferLength, c.metricsInterval)
+			c.snc.counterCreate(category, "read_count", c.bufferLength, c.metricsInterval)
+			c.snc.counterCreate(category, "io_time", c.bufferLength, c.metricsInterval)
+		}
+	}
+
+	// use the no-copy range iteraiton, otherwise we copy the whole struct and linter does not allow it
+	for diskName := range diskIOCounters {
+		if !DiskEligibleForWatch(diskName) {
+			continue
+		}
+
+		category := "disk_" + diskName
+
+		c.snc.Counter.Set(category, "write_bytes", float64(diskIOCounters[diskName].WriteBytes))
+		c.snc.Counter.Set(category, "write_count", float64(diskIOCounters[diskName].WriteCount))
+		c.snc.Counter.Set(category, "read_bytes", float64(diskIOCounters[diskName].ReadBytes))
+		c.snc.Counter.Set(category, "read_count", float64(diskIOCounters[diskName].ReadCount))
+		c.snc.Counter.Set(category, "io_time", float64(diskIOCounters[diskName].IoTime))
+	}
 }
