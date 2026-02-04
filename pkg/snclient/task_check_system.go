@@ -6,11 +6,14 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	cpuinfo "github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/disk"
+	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/shirou/gopsutil/v4/net"
 )
 
@@ -95,6 +98,7 @@ func (c *CheckSystemHandler) mainLoop() {
 
 			return
 		case <-ticker.C:
+			//log.Tracef("CheckSystem mainLoop timer ticked, updating counters")
 			c.update(false)
 
 			continue
@@ -155,6 +159,7 @@ func (c *CheckSystemHandler) update(create bool) {
 
 	if runtime.GOOS == "linux" {
 		c.addLinuxKernelStats(create)
+		c.addLinuxSwapMemoryStats(create)
 	}
 }
 
@@ -201,6 +206,9 @@ func (c *CheckSystemHandler) addLinuxKernelStats(create bool) {
 		c.snc.counterCreate("kernel", "processes", c.bufferLength, c.metricsInterval)
 	}
 
+	// psutil has cpu_stats() function which gives the context switch count
+	// gopsutil does not have it impelmented yet
+
 	statFile, err := os.Open("/proc/stat")
 	if err != nil {
 		return
@@ -220,4 +228,61 @@ func (c *CheckSystemHandler) addLinuxKernelStats(create bool) {
 			c.snc.Counter.Set("kernel", row[0], num)
 		}
 	}
+}
+
+//nolint:unused // we use the gopsutil intead of opening the file
+func parseProcVmstatLine(line, wantedMetric string) (value float64, err error) {
+	if !strings.HasPrefix(line, wantedMetric) {
+		return 0, fmt.Errorf("prefix is not available on the line: %s", line)
+	}
+	row := strings.Fields(line)
+	num := convert.Float64(row[1])
+
+	return num, nil
+}
+
+// use gopsutil instead of opening the /proc/vmstat
+//
+//nolint:unused // we use the gopsutil intead of opening the file
+func (c *CheckSystemHandler) addLinuxSwapStats(create bool) {
+	if create {
+		c.snc.counterCreate("memory", "swp_in", c.bufferLength, c.metricsInterval)
+		c.snc.counterCreate("memory", "swp_out", c.bufferLength, c.metricsInterval)
+	}
+
+	vmstatFile, err := os.Open("/proc/vmstat")
+	if err != nil {
+		return
+	}
+	defer vmstatFile.Close()
+
+	vmstatFileScanner := bufio.NewScanner(vmstatFile)
+	for vmstatFileScanner.Scan() {
+		line := vmstatFileScanner.Text()
+		if val, err := parseProcVmstatLine(line, "pswpin"); err != nil {
+			c.snc.Counter.Set("memory", "swp_in", val)
+
+			continue
+		}
+		if val, err := parseProcVmstatLine(line, "pswpout"); err != nil {
+			c.snc.Counter.Set("memory", "swp_out", val)
+
+			continue
+		}
+	}
+}
+
+func (c *CheckSystemHandler) addLinuxSwapMemoryStats(create bool) {
+	if create {
+		c.snc.counterCreate("memory", "swp_in", c.bufferLength, c.metricsInterval)
+		c.snc.counterCreate("memory", "swp_out", c.bufferLength, c.metricsInterval)
+	}
+
+	swap, err := mem.SwapMemory()
+	if err != nil {
+		return
+	}
+
+	c.snc.Counter.Set("memory", "swp_in", float64(swap.Sin))
+	c.snc.Counter.Set("memory", "swp_out", float64(swap.Sout))
 }
