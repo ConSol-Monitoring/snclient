@@ -108,9 +108,10 @@ func (c *Counter) AvgForDuration(duration time.Duration) float64 {
 	return sum / count
 }
 
-// GetRate calculates rate for given lookback timerange
-// only works if values are stored as float64
-func (c *Counter) GetRate(lookback time.Duration) (res float64, ok bool) {
+// GetRate calculates rate for given lookback timerange .
+// only works if values are stored as float64 .
+// returned result is in type <change>/s .
+func (c *Counter) GetRate(lookback time.Duration) (res float64, err error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -120,32 +121,39 @@ func (c *Counter) GetRate(lookback time.Duration) (res float64, ok bool) {
 
 	count1 := c.getLast()
 	count2 := c.getAt(time.Now().Add(-lookback))
-	if count1 == nil || count2 == nil {
-		return res, false
+	if count1 == nil {
+		return res, fmt.Errorf("last counter entry was nil")
+	}
+
+	if count2 == nil {
+		return res, fmt.Errorf("counter entry searched at T-%d was nil", lookback)
 	}
 
 	if count1.UnixMilli < count2.UnixMilli {
-		return res, false
+		return res, fmt.Errorf("last counter entry has a lower timestamp than entry searched at T-%d", lookback)
 	}
 
 	durationMillis := float64(count1.UnixMilli - count2.UnixMilli)
-	if durationMillis <= 0 {
-		return res, false
+	if durationMillis < 0 {
+		return res, fmt.Errorf("the duration difference between the counter entries is negative: %f", durationMillis)
+	}
+	if durationMillis == 0 {
+		return res, fmt.Errorf("the duration difference between the counter entries is 0")
 	}
 
 	val1, ok := count1.Value.(float64)
 	if !ok {
-		return res, false
+		return res, fmt.Errorf("last counter entry has a non float64 value")
 	}
 
 	val2, ok := count2.Value.(float64)
 	if !ok {
-		return res, false
+		return res, fmt.Errorf("counter entry searched at T-%f has a non float64 value", durationMillis)
 	}
 
 	res = ((val1 - val2) / durationMillis) * 1000
 
-	return res, true
+	return res, nil
 }
 
 // GetLast returns last (latest) value
