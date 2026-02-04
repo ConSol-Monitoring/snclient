@@ -134,7 +134,11 @@ func (l *CheckKernelStats) getRate(name string) (rate, last float64) {
 		return 0, 0
 	}
 
-	rate, _ = counter.GetRate(KernelRateDuration)
+	rate, err := counter.GetRate(KernelRateDuration)
+	if err != nil {
+		log.Debugf("Error when getting the kernel counter with name: %s, error: %s", name, err.Error())
+	}
+
 	last = counter.GetLast().Float64()
 
 	if rate < 0 {

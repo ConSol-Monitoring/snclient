@@ -22,9 +22,9 @@ func TestCounter(t *testing.T) {
 	avg := counter.AvgForDuration(time.Second)
 	assert.InDelta(t, 0.0, avg, 0.00001)
 
-	rate, ok := counter.GetRate(time.Second)
-	assert.False(t, ok)
-	assert.InDelta(t, 0.0, rate, 0.00001)
+	rate, err := counter.GetRate(time.Second)
+	assert.InDelta(t, 0.0, rate, 0)
+	require.Error(t, err)
 
 	// insert test data via set
 	for i := range 5 {
@@ -48,8 +48,8 @@ func TestCounter(t *testing.T) {
 	avg = counter.AvgForDuration(time.Second)
 	assert.InDelta(t, 4.5, avg, 0.00001)
 
-	rate, ok = counter.GetRate(time.Second)
-	assert.True(t, ok)
+	rate, err = counter.GetRate(time.Second)
+	require.NoError(t, err)
 	assert.GreaterOrEqualf(t, rate, 40.0, "rate should be more than 40")
 	assert.LessOrEqualf(t, rate, 120.0, "rate should be less than 120")
 
