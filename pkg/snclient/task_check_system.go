@@ -13,7 +13,6 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	cpuinfo "github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
-	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/shirou/gopsutil/v4/net"
 )
 
@@ -235,9 +234,13 @@ func (c *CheckSystemHandler) update(create bool) {
 
 	if runtime.GOOS == "linux" {
 		c.addLinuxKernelStats(create)
-		c.addLinuxSwapMemoryStats(create)
-		c.addLinuxDiskStats(create)
 	}
+
+	// Windows and Non-Windows have their own definitions for this
+	c.addDiskStats(create)
+
+	// Windows and Non-Windows have their own defintions for this
+	c.addMemoryStats(create)
 }
 
 func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo.TimesStat, netdata map[string]float64, err error) {
@@ -304,102 +307,5 @@ func (c *CheckSystemHandler) addLinuxKernelStats(create bool) {
 			num := convert.Float64(row[1])
 			c.snc.Counter.Set("kernel", row[0], num)
 		}
-	}
-}
-
-//nolint:unused // we use the gopsutil intead of opening the file
-func parseProcVmstatLine(line, wantedMetric string) (value float64, err error) {
-	if !strings.HasPrefix(line, wantedMetric) {
-		return 0, fmt.Errorf("prefix is not available on the line: %s", line)
-	}
-	row := strings.Fields(line)
-	num := convert.Float64(row[1])
-
-	return num, nil
-}
-
-// use gopsutil instead of opening the /proc/vmstat
-//
-//nolint:unused // we use the gopsutil intead of opening the file
-func (c *CheckSystemHandler) addLinuxSwapStats(create bool) {
-	if create {
-		c.snc.counterCreate("memory", "swp_in", c.bufferLength, c.metricsInterval)
-		c.snc.counterCreate("memory", "swp_out", c.bufferLength, c.metricsInterval)
-	}
-
-	vmstatFile, err := os.Open("/proc/vmstat")
-	if err != nil {
-		return
-	}
-	defer vmstatFile.Close()
-
-	vmstatFileScanner := bufio.NewScanner(vmstatFile)
-	for vmstatFileScanner.Scan() {
-		line := vmstatFileScanner.Text()
-		if val, err := parseProcVmstatLine(line, "pswpin"); err != nil {
-			c.snc.Counter.Set("memory", "swp_in", val)
-
-			continue
-		}
-		if val, err := parseProcVmstatLine(line, "pswpout"); err != nil {
-			c.snc.Counter.Set("memory", "swp_out", val)
-
-			continue
-		}
-	}
-}
-
-func (c *CheckSystemHandler) addLinuxSwapMemoryStats(create bool) {
-	if create {
-		c.snc.counterCreate("memory", "swp_in", c.bufferLength, c.metricsInterval)
-		c.snc.counterCreate("memory", "swp_out", c.bufferLength, c.metricsInterval)
-	}
-
-	swap, err := mem.SwapMemory()
-	if err != nil {
-		return
-	}
-
-	c.snc.Counter.Set("memory", "swp_in", float64(swap.Sin))
-	c.snc.Counter.Set("memory", "swp_out", float64(swap.Sout))
-}
-
-func (c *CheckSystemHandler) addLinuxDiskStats(create bool) {
-	diskIOCounters, err := disk.IOCounters()
-	// do not create the counters if there is an error
-	if err != nil {
-		return
-	}
-
-	if create {
-		for diskName := range diskIOCounters {
-			if !DiskEligibleForWatch(diskName) {
-				log.Tracef("not adding disk stat counter since it is found to be not-physical: %s", diskName)
-
-				continue
-			}
-
-			category := "disk_" + diskName
-			c.snc.counterCreate(category, "write_bytes", c.bufferLength, c.metricsInterval)
-			c.snc.counterCreate(category, "write_count", c.bufferLength, c.metricsInterval)
-			c.snc.counterCreate(category, "read_bytes", c.bufferLength, c.metricsInterval)
-			c.snc.counterCreate(category, "read_count", c.bufferLength, c.metricsInterval)
-			c.snc.counterCreate(category, "io_time", c.bufferLength, c.metricsInterval)
-		}
-	}
-
-	// use the no-copy range iteraiton, otherwise we copy the whole struct and linter does not allow it
-	for diskName := range diskIOCounters {
-		if !DiskEligibleForWatch(diskName) {
-			continue
-		}
-
-		category := "disk_" + diskName
-
-		c.snc.Counter.Set(category, "write_bytes", float64(diskIOCounters[diskName].WriteBytes))
-		c.snc.Counter.Set(category, "write_count", float64(diskIOCounters[diskName].WriteCount))
-		c.snc.Counter.Set(category, "read_bytes", float64(diskIOCounters[diskName].ReadBytes))
-		c.snc.Counter.Set(category, "read_count", float64(diskIOCounters[diskName].ReadCount))
-		c.snc.Counter.Set(category, "io_time", float64(diskIOCounters[diskName].IoTime))
 	}
 }

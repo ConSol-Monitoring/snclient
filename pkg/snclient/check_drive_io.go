@@ -66,11 +66,14 @@ func (l *CheckDriveIO) Build() *CheckData {
 			{name: "write_bytes", description: "Total number of bytes written to the disk"},
 			{name: "write_bytes_rate", description: "Average bytes written per second during the lookback period"},
 			{name: "write_time", description: "Total time spent on write operations (milliseconds)"},
-			{name: "iops_in_progress", description: "Number of I/O operations currently in flight"},
-			{name: "io_time", description: "Total time during which the disk had at least one active I/O (milliseconds)"},
-			{name: "io_time_rate", description: "Change in I/O time per second"},
-			{name: "weighted_io", description: "Measure of both I/O completion time and the number of backlogged requests"},
-			{name: "utilization", description: "Percentage of time the disk was busy (0-100%)"},
+
+			// Windows does not report these
+
+			{name: "io_time", description: "Total time during which the disk had at least one active I/O (milliseconds). Windows does not report this."},
+			{name: "io_time_rate", description: "Change in I/O time per second. Windows does not report this."},
+			{name: "weighted_io", description: "Measure of both I/O completion time and the number of backlogged requests. Windows does not report this."},
+			{name: "utilization", description: "Percentage of time the disk was busy (0-100%).. Windows does not report this."},
+			{name: "iops_in_progress", description: "Number of I/O operations currently in flight. Windows does not report this."},
 
 			// note to future: currently only the utilization is calculated by adding io_time to the counter
 			// if more stats are saved in the counters, one can calculate relatively useful metrics as well
@@ -105,13 +108,27 @@ func (l *CheckDriveIO) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 	sort.Strings(drivesToCheck)
 
-	diskIOCounters, err := disk.IOCounters()
+	var diskIOCounters map[string]disk.IOCountersStat
+	var err error
+
+	switch runtime.GOOS {
+	case "windows":
+		diskIOCounters, err = IoCountersCustom()
+	default:
+		diskIOCounters, err = disk.IOCounters()
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("error when getting disk io counters: %s", err.Error())
 	}
 
 	for _, drive := range drivesToCheck {
-		entry := l.buildDriveIOEntry(snc, check, drive, diskIOCounters)
+		entry, err := l.buildDriveIOEntry(snc, check, drive, diskIOCounters)
+
+		// if one entry has errors, skip it
+		if err != nil {
+			continue
+		}
 
 		check.listData = append(check.listData, entry)
 	}
@@ -121,7 +138,9 @@ func (l *CheckDriveIO) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	return check.Finalize()
 }
 
-func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string, diskIOCounters map[string]disk.IOCountersStat) map[string]string {
+// drive parameter should be the logical name for linux, e.g 'sda'
+// for windows it should be the drive letter, e.g 'C'
+func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string, diskIOCounters map[string]disk.IOCountersStat) (map[string]string, error) {
 	entry := map[string]string{}
 	entry["drive"] = drive
 	entry["lookback"] = fmt.Sprintf("%d", l.lookback)
@@ -132,22 +151,25 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 		entry["_error"] = errorString
 		entry["_skip"] = "1"
 
-		return entry
+		return entry, fmt.Errorf(errorString)
 	}
 
 	foundDisk := false
-	deviceLogicalName := drive
+	deviceLogicalNameOrLetter := drive
 
+	// adjust the drive name if parameters are not passed properly
 	switch runtime.GOOS {
 	case "freebsd", "darwin", "linux":
 		if strings.HasPrefix(drive, "/dev/") {
-			deviceLogicalName, _ = strings.CutPrefix(drive, "/dev/")
+			deviceLogicalNameOrLetter, _ = strings.CutPrefix(drive, "/dev/")
 		}
 	case "windows":
+		deviceLogicalNameOrLetter, _ = strings.CutSuffix(deviceLogicalNameOrLetter, "\\")
+		deviceLogicalNameOrLetter, _ = strings.CutSuffix(deviceLogicalNameOrLetter, ":")
 	default:
 	}
 
-	if counters, ok := diskIOCounters[deviceLogicalName]; ok {
+	if counters, ok := diskIOCounters[deviceLogicalNameOrLetter]; ok {
 		foundDisk = true
 
 		// counters use this format when saving metrics
@@ -169,11 +191,15 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 		entry["write_time"] = fmt.Sprintf("%d", counters.WriteTime)
 
 		entry["iops_in_progress"] = fmt.Sprintf("%d", counters.IopsInProgress)
-		entry["io_time"] = fmt.Sprintf("%d", counters.IoTime)
-		l.addRateToEntry(snc, entry, "io_time_rate", counterCategory, "io_time")
+
+		if runtime.GOOS != "windows" {
+			entry["io_time"] = fmt.Sprintf("%d", counters.IoTime)
+			l.addRateToEntry(snc, entry, "io_time_rate", counterCategory, "io_time")
+			l.addUtilizationToEntry(entry)
+		}
+
 		entry["weighted_io"] = fmt.Sprintf("%d", counters.WeightedIO)
 
-		l.addUtilizationToEntry(entry)
 	}
 
 	if !foundDisk {
@@ -182,10 +208,10 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 		entry["_error"] = errorString
 		entry["_skip"] = "1"
 
-		return entry
+		return entry, fmt.Errorf(errorString)
 	}
 
-	return entry
+	return entry, nil
 }
 
 func (l *CheckDriveIO) addRateToEntry(snc *Agent, entry map[string]string, entryKey, counterCategory, counterKey string) {
