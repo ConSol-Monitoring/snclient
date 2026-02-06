@@ -69,9 +69,9 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument | Description                                                                         |
-| -------- | ----------------------------------------------------------------------------------- |
-| type     | Type of memory to check. Default: physical,committed (win) or physical,swap (other) |
+| Argument | Description                                                                           |
+| -------- | ------------------------------------------------------------------------------------- |
+| type     | Types of memory to check. Default: physical,committed (win) or physical,swap (other). |
 
 ## Attributes
 
@@ -91,3 +91,5 @@ these can be used in filters and thresholds (along with the default attributes):
 | free_pct   | Free memory in percent                                                             |
 | size       | Total memory in human readable bytes (IEC)                                         |
 | size_bytes | Total memory in bytes (IEC)                                                        |
+| in         | Swap/Pages being brought in                                                        |
+| out        | Swap/Pages being sent out                                                          |
