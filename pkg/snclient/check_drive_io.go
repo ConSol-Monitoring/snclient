@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/humanize"
 )
 
 func init() {
@@ -48,7 +49,7 @@ func (l *CheckDriveIO) Build() *CheckData {
 		defaultWarning:  "utilization > 95",
 		defaultCritical: "",
 		okSyntax:        "%(status) - %(list)",
-		detailSyntax:    "%(drive) >%(write_bytes_rate) <%(read_bytes_rate) %(utilization)",
+		detailSyntax:    "%(drive) >%(write_bytes_rate) <%(read_bytes_rate) %(utilization)%",
 		topSyntax:       "%(status) - %(list)",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - No drives found",
@@ -58,18 +59,18 @@ func (l *CheckDriveIO) Build() *CheckData {
 			{name: "lookback", description: "Lookback period for which the value change rate and utilization is calculated."},
 			{name: "read_count", description: "Total number of read operations completed successfully"},
 			{name: "read_count_rate", description: "Number of read operations per second during the lookback period"},
-			{name: "read_bytes", description: "Total number of bytes read from the disk"},
-			{name: "read_bytes_rate", description: "Average bytes read per second during the lookback period"},
-			{name: "read_time", description: "Total time spent on read operations (milliseconds)"},
+			{name: "read_bytes", description: "Total number of bytes read from the disk", unit: UByte},
+			{name: "read_bytes_rate", description: "Average bytes read per second during the lookback period", unit: UByte},
+			{name: "read_time", description: "Total time spent on read operations (milliseconds)."},
 			{name: "write_count", description: "Total number of write operations completed successfully"},
 			{name: "write_count_rate", description: "Number of write operations per second during the lookback period"},
-			{name: "write_bytes", description: "Total number of bytes written to the disk"},
-			{name: "write_bytes_rate", description: "Average bytes written per second during the lookback period"},
-			{name: "write_time", description: "Total time spent on write operations (milliseconds)"},
+			{name: "write_bytes", description: "Total number of bytes written to the disk", unit: UByte},
+			{name: "write_bytes_rate", description: "Average bytes written per second during the lookback period", unit: UByte},
+			{name: "write_time", description: "Total time spent on write operations (milliseconds)."},
 
 			// Windows does not report these
 
-			{name: "label", description: "Label of the drive"},
+			{name: "label", description: "Label of the drive. Windows does not report this."},
 			{name: "io_time", description: "Total time during which the disk had at least one active I/O (milliseconds). Windows does not report this."},
 			{name: "io_time_rate", description: "Change in I/O time per second. Windows does not report this."},
 			{name: "weighted_io", description: "Measure of both I/O completion time and the number of backlogged requests. Windows does not report this."},
@@ -100,12 +101,8 @@ func (l *CheckDriveIO) Build() *CheckData {
 		//nolint:lll // the output is long
 		exampleDefault: `
     check_drive_io
-    OK - All 1 drive(s) are ok
-
-Check a single drive IO, and show utilization details
-
-    check_drive_io drive='C:' show-all
-    OK - C: 0.2
+	OK - C >20.1 MiB/s <1.4 GiB/s 41.2% |'C_read_count'=4791920c;;;0; 'C_read_bytes'=1729039767552c;;;0; 'C_read_time'=119710.31709ms;;;0; 'C_write_count'=2260624c;;;0; 'C_write_bytes'=479384686592c;;;0; 'C_write_time'=89071.67515ms;;;0; 'C
+_utilization'=41.2%;95;;0; 'C_queue_depth'=0;;;0;
 
 Check a UNIX drive and alert if for the last 30 seconds written bytes/second is above 10 Mb/s . Dm-0 is the name of the encrypted volume, it could be nvme0n1 or sdb as well
 
@@ -205,7 +202,9 @@ func (l *CheckDriveIO) addRateToEntry(snc *Agent, entry map[string]string, entry
 		return
 	}
 
-	entry[entryKey] = fmt.Sprintf("%v", rate)
+	humanizedBytes := humanize.IBytesF(uint64(rate), 1)
+
+	entry[entryKey] = fmt.Sprintf("%v/s", humanizedBytes)
 }
 
 func cleanupDriveName(drive string) (deviceLogicalNameOrLetter string) {
