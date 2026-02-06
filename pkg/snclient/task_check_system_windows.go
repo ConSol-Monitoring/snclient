@@ -11,15 +11,24 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/shirou/gopsutil/v4/mem"
 	"golang.org/x/sys/windows"
+
+	"syscall"
 )
 
 // diskPerformance is an equivalent representation of DISK_PERFORMANCE in the Windows API.
 // https://docs.microsoft.com/fr-fr/windows/win32/api/winioctl/ns-winioctl-disk_performance
+// Additional info: https://stackoverflow.com/questions/9258705/disk-performance-structs-readtime-and-writetime-members
 type diskPerformance struct {
 	BytesRead    int64
 	BytesWritten int64
-	ReadTime     int64
-	WriteTime    int64
+	// This has a different meaning on Windows/Non-Windows platforms.
+	// According to Microsoft Docs: The time it takes to complete a read.
+	// In our testing, it behaves like an always increasing counter, not related to the current load of the disk.
+	ReadTime int64
+	// This has a different meaning on Windows/Non-Windows platforms.
+	// According to Microsoft Docs: The time it takes to complete a write.
+	// In our testing, it behaves like an always increasing counter, not related to the current load of the disk.
+	WriteTime int64
 	// IdleTime: Total time the disk has been idle since boot (in 100-nanosecond increments).
 	IdleTime   int64
 	ReadCount  uint32
@@ -44,8 +53,10 @@ type IOCountersStatWindows struct {
 	WriteCount uint64 `json:"writeCount"`
 	ReadBytes  uint64 `json:"readBytes"`
 	WriteBytes uint64 `json:"writeBytes"`
-	ReadTime   uint64 `json:"readTime"`
-	WriteTime  uint64 `json:"writeTime"`
+	// When constructing this struct, it is converted to ms
+	ReadTime float64 `json:"readTime"`
+	// When constructing this struct, it is converted to ms
+	WriteTime float64 `json:"writeTime"`
 
 	// Windows Specific Fields
 
@@ -69,7 +80,28 @@ type IOCountersStatWindows struct {
 	// Label            string `json:"label"`
 }
 
+// The frequency of the performance counter is fixed at system boot and is consistent across all processors.
+// Therefore, the frequency need only be queried upon application initialization, and the result can be cached.
+var performanceFrequency = uint64(0)
+
 var storageDeviceNumbers map[string]storageDeviceNumberStruct
+
+var (
+	kernel32DLL                   = syscall.NewLazyDLL("kernel32.dll")
+	QueryPerformanceFrequencyFunc = kernel32DLL.NewProc("QueryPerformanceFrequency")
+)
+
+func getPerformanceFrequency() (performanceFrequency uint64) {
+
+	returnValue, _, _ := QueryPerformanceFrequencyFunc.Call(uintptr(unsafe.Pointer(&performanceFrequency)))
+
+	if returnValue == 0 {
+		log.Debugf("Could not get performance counter frequency")
+		return 0
+	}
+
+	return performanceFrequency
+}
 
 func init() {
 	RegisterModule(
@@ -83,6 +115,8 @@ func init() {
 	)
 
 	storageDeviceNumbers = getDriveStorageDeviceNumbers()
+
+	performanceFrequency = getPerformanceFrequency()
 }
 
 // names: drive names to filter to. if empty, all drives are discovered
@@ -139,13 +173,18 @@ func IoCountersWindows(names ...string) (map[string]IOCountersStatWindows, error
 
 		if len(names) == 0 || slices.Contains(names, deviceLetter) {
 			drivemap[deviceLetter] = IOCountersStatWindows{
-				Name:                deviceLetter,
-				ReadBytes:           convert.UInt64(dPerformance.BytesRead),
-				WriteBytes:          convert.UInt64(dPerformance.BytesWritten),
-				ReadCount:           convert.UInt64(dPerformance.ReadCount),
-				WriteCount:          convert.UInt64(dPerformance.WriteCount),
-				ReadTime:            convert.UInt64(dPerformance.ReadTime / 10000 / 1000), // convert to ms: https://github.com/giampaolo/psutil/issues/1012
-				WriteTime:           convert.UInt64(dPerformance.WriteTime / 10000 / 1000),
+				Name:       deviceLetter,
+				ReadBytes:  convert.UInt64(dPerformance.BytesRead),
+				WriteBytes: convert.UInt64(dPerformance.BytesWritten),
+				ReadCount:  convert.UInt64(dPerformance.ReadCount),
+				WriteCount: convert.UInt64(dPerformance.WriteCount),
+				// these are not a total counter of time, but the period they count is based on performanceFrequency
+				// performanceFrequency is a hertz value
+				// 1 / performanceFrequency is the period in s, 1000 / performanceFrequency is the period in ms
+				// Read time seems to be the period ammount, period defined by performanceFrequency
+				ReadTime: float64(dPerformance.ReadTime) * (1000 / float64(performanceFrequency)),
+				// Same as ReadTime
+				WriteTime:           float64(dPerformance.WriteTime) * (1000 / float64(performanceFrequency)),
 				IdleTime:            convert.UInt64(dPerformance.IdleTime),  // do not convert these to ms, loses precision when calculating rate
 				QueryTime:           convert.UInt64(dPerformance.QueryTime), // do not convert these to ms, loses precision when calculating rate
 				QueueDepth:          convert.UInt32(dPerformance.QueueDepth),

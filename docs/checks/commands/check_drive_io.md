@@ -21,12 +21,8 @@ Checks the disk IO on the host.
 ### Default Check
 
     check_drive_io
-    OK - All 1 drive(s) are ok
-
-Check a single drive IO, and show utilization details
-
-    check_drive_io drive='C:' show-all
-    OK - C: 0.2
+	OK - C >20.1 MiB/s <1.4 GiB/s 41.2% |'C_read_count'=4791920c;;;0; 'C_read_bytes'=1729039767552c;;;0; 'C_read_time'=119710.31709ms;;;0; 'C_write_count'=2260624c;;;0; 'C_write_bytes'=479384686592c;;;0; 'C_write_time'=89071.67515ms;;;0; 'C
+_utilization'=41.2%;95;;0; 'C_queue_depth'=0;;;0;
 
 Check a UNIX drive and alert if for the last 30 seconds written bytes/second is above 10 Mb/s . Dm-0 is the name of the encrypted volume, it could be nvme0n1 or sdb as well
 
@@ -51,14 +47,14 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                    |
-| ------------- | ---------------------------------------------------------------- |
-| warning       | utilization > 95                                                 |
-| empty-state   | 3 (UNKNOWN)                                                      |
-| empty-syntax  | %(status) - No drives found                                      |
-| top-syntax    | %(status) - %(list)                                              |
-| ok-syntax     | %(status) - %(list)                                              |
-| detail-syntax | %(drive) >%(write_bytes_rate) <%(read_bytes_rate) %(utilization) |
+| Argument      | Default Value                                                     |
+| ------------- | ----------------------------------------------------------------- |
+| warning       | utilization > 95                                                  |
+| empty-state   | 3 (UNKNOWN)                                                       |
+| empty-syntax  | %(status) - No drives found                                       |
+| top-syntax    | %(status) - %(list)                                               |
+| ok-syntax     | %(status) - %(list)                                               |
+| detail-syntax | %(drive) >%(write_bytes_rate) <%(read_bytes_rate) %(utilization)% |
 
 ## Check Specific Arguments
 
@@ -81,13 +77,13 @@ these can be used in filters and thresholds (along with the default attributes):
 | read_count_rate  | Number of read operations per second during the lookback period                                    |
 | read_bytes       | Total number of bytes read from the disk                                                           |
 | read_bytes_rate  | Average bytes read per second during the lookback period                                           |
-| read_time        | Total time spent on read operations (milliseconds)                                                 |
+| read_time        | Total time spent on read operations (milliseconds).                                                |
 | write_count      | Total number of write operations completed successfully                                            |
 | write_count_rate | Number of write operations per second during the lookback period                                   |
 | write_bytes      | Total number of bytes written to the disk                                                          |
 | write_bytes_rate | Average bytes written per second during the lookback period                                        |
-| write_time       | Total time spent on write operations (milliseconds)                                                |
-| label            | Label of the drive                                                                                 |
+| write_time       | Total time spent on write operations (milliseconds).                                               |
+| label            | Label of the drive. Windows does not report this.                                                  |
 | io_time          | Total time during which the disk had at least one active I/O (milliseconds). Windows does not report this. |
 | io_time_rate     | Change in I/O time per second. Windows does not report this.                                       |
 | weighted_io      | Measure of both I/O completion time and the number of backlogged requests. Windows does not report this. |
