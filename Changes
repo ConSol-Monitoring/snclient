@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient agent.
 
 next:
+         - change minimum golang requirement to 1.25.7
          - check_drivesize ignore drive not found errors if empty-state is set (#315)
          - check_cpu add idle time (#308)
          - chore: update dependencies
