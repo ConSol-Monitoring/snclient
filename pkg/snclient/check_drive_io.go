@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
-	"github.com/consol-monitoring/snclient/pkg/counter"
-	"github.com/shirou/gopsutil/v4/disk"
 )
 
 func init() {
@@ -49,13 +47,14 @@ func (l *CheckDriveIO) Build() *CheckData {
 		},
 		defaultWarning:  "utilization > 95",
 		defaultCritical: "",
-		okSyntax:        "%(status) - All %(count) drive(s) are ok",
-		detailSyntax:    "%(drive) %(utilization)",
-		topSyntax:       "%(status) - ${problem_list}",
+		okSyntax:        "%(status) - %(list)",
+		detailSyntax:    "%(drive) >%(write_bytes_rate) <%(read_bytes_rate) %(utilization)",
+		topSyntax:       "%(status) - %(list)",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - No drives found",
 		attributes: []CheckAttribute{
-			{name: "drive", description: "Name(s) of the drives to check the io stats for. If left empty, it will check all drives. For Windows this is the drive letter. For UNIX it is the logical name of the drive."},
+			{name: "drive", description: "Name(s) of the drives to check the io stats for. If left empty, it will check all drives. " +
+				"For Windows this is the drive letter. For UNIX it is the logical name of the drive."},
 			{name: "lookback", description: "Lookback period for which the value change rate and utilization is calculated."},
 			{name: "read_count", description: "Total number of read operations completed successfully"},
 			{name: "read_count_rate", description: "Number of read operations per second during the lookback period"},
@@ -98,8 +97,22 @@ func (l *CheckDriveIO) Build() *CheckData {
 			// indicates the average number of requests that waited in the queue. If the saturation is aways above > 1.0 the disk is fully utilized
 			// if its always above > 5 the disk could not keep up with the requests, and a 5x faster disk at processing io would be necessary to keep up
 		},
-		exampleDefault: "",
-		exampleArgs:    "",
+		//nolint:lll // the output is long
+		exampleDefault: `
+    check_drive_io
+    OK - All 1 drive(s) are ok
+
+Check a single drive IO, and show utilization details
+
+    check_drive_io drive='C:' show-all
+    OK - C: 0.2
+
+Check a UNIX drive and alert if for the last 30 seconds written bytes/second is above 10 Mb/s . Dm-0 is the name of the encrypted volume, it could be nvme0n1 or sdb as well
+
+    check_drivesize lookback=30 warn="write_bytes_rate > 10Mb"
+	OK - dm-0 >580134.2346306148 <2621.335146594136 0.3 |'dm-0_read_count'=525328;;;0; 'dm-0_read_bytes'=19601354752B;;;0; 'dm-0_read_time'=126528;;;0; 'dm-0_write_count'=4182134;;;0; 'dm-0_write_bytes'=263957790720B;;;0; 'dm-0_write_time'=145147492;;;0; 'dm-0_utilization'=0.3;;;0; 'dm-0_io_time'=307500;;;0; 'dm-0_weighted_io'=145274020;;;0; 'dm-0_iops_in_progress'=0;;;0;
+	`,
+		exampleArgs: "",
 	}
 }
 
@@ -118,22 +131,13 @@ func (l *CheckDriveIO) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 	sort.Strings(drivesToCheck)
 
-	var diskIOCounters any
-	var err error
-	switch runtime.GOOS {
-	case "windows":
-		diskIOCounters, err = IoCountersWindows()
-	default:
-		diskIOCounters, err = disk.IOCounters()
-	}
-
+	diskIOCounters, err := getIOCounters()
 	if err != nil {
 		return nil, fmt.Errorf("error when getting disk io counters: %s", err.Error())
 	}
 
 	for _, drive := range drivesToCheck {
 		entry, err := l.buildDriveIOEntry(snc, check, drive, diskIOCounters)
-
 		// if one entry has errors, skip it
 		if err != nil {
 			continue
@@ -164,8 +168,48 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 		return entry, errors.New(errorString)
 	}
 
-	foundDisk := false
-	deviceLogicalNameOrLetter := drive
+	deviceLogicalNameOrLetter := cleanupDriveName(drive)
+	// overwrite with the cleaner name
+	entry["drive"] = deviceLogicalNameOrLetter
+
+	builtEntry := l.buildEntry(snc, diskIOCounters, deviceLogicalNameOrLetter, entry)
+
+	if !builtEntry {
+		errorString := fmt.Sprintf("DiskIOCounters did not have drive: %s", drive)
+		log.Debugf(errorString)
+		entry["_error"] = errorString
+		entry["_skip"] = "1"
+
+		return entry, errors.New(errorString)
+	}
+
+	return entry, nil
+}
+
+func (l *CheckDriveIO) addRateToEntry(snc *Agent, entry map[string]string, entryKey, counterCategory, counterKey string) {
+	counterInstance := snc.Counter.Get(counterCategory, counterKey)
+	if counterInstance == nil {
+		errorString := fmt.Sprintf("No counter found with category: %s, key: %s", counterCategory, counterKey)
+		log.Debugf(errorString)
+		entry["_error"] = entry["_error"] + " . " + errorString
+
+		return
+	}
+
+	rate, err := counterInstance.GetRate(time.Duration(l.lookback) * time.Second)
+	if err != nil {
+		errorString := fmt.Sprintf("Error when getting the counter rate, lookback: %d, counterCategory: %s, counterKey: %s, err: %s", l.lookback, counterCategory, counterKey, err.Error())
+		log.Debugf(errorString)
+		entry["_error"] = entry["_error"] + " . " + errorString
+
+		return
+	}
+
+	entry[entryKey] = fmt.Sprintf("%v", rate)
+}
+
+func cleanupDriveName(drive string) (deviceLogicalNameOrLetter string) {
+	deviceLogicalNameOrLetter = drive
 
 	// adjust the drive name if parameters are not passed properly
 	switch runtime.GOOS {
@@ -179,247 +223,115 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 	default:
 	}
 
-	if diskIOCounters, ok := diskIOCounters.(map[string]disk.IOCountersStat); ok {
-		if counters, ok := diskIOCounters[deviceLogicalNameOrLetter]; ok {
-			foundDisk = true
-
-			// counters use this format when saving metrics
-			// found in CheckSystemHandler.addLinuxDiskStats
-			counterCategory := "disk_" + counters.Name
-
-			entry["label"] = counters.Label
-
-			entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
-			l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
-			entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
-			l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
-			entry["read_time"] = fmt.Sprintf("%d", counters.ReadTime)
-
-			entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
-			l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
-			entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
-			l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
-			entry["write_time"] = fmt.Sprintf("%d", counters.WriteTime)
-
-			entry["io_time"] = fmt.Sprintf("%d", counters.IoTime)
-			l.addRateToEntry(snc, entry, "io_time_rate", counterCategory, "io_time")
-			l.addUtilizationFromIoTime(entry)
-
-			entry["iops_in_progress"] = fmt.Sprintf("%d", counters.IopsInProgress)
-			entry["weighted_io"] = fmt.Sprintf("%d", counters.WeightedIO)
-		}
-	}
-
-	if diskIOCounters, ok := diskIOCounters.(map[string]IOCountersStatWindows); ok {
-		if counters, ok := diskIOCounters[deviceLogicalNameOrLetter]; ok {
-			foundDisk = true
-
-			// counters use this format when saving metrics
-			// found in CheckSystemHandler.addLinuxDiskStats
-			counterCategory := "disk_" + counters.Name
-
-			entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
-			l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
-			entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
-			l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
-			entry["read_time"] = fmt.Sprintf("%d", counters.ReadTime)
-
-			entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
-			l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
-			entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
-			l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
-			entry["write_time"] = fmt.Sprintf("%d", counters.WriteTime)
-
-			entry["idle_time"] = fmt.Sprintf("%d", counters.IdleTime)
-			entry["query_time"] = fmt.Sprintf("%d", counters.QueryTime)
-
-			idleTimeCounter := snc.Counter.Get(counterCategory, "idle_time")
-			queryTimeCounter := snc.Counter.Get(counterCategory, "query_time")
-
-			if idleTimeCounter != nil && queryTimeCounter != nil {
-				utilization, err := l.calculateUtilizationFromIdleAndQueryCounters(idleTimeCounter, queryTimeCounter)
-				if err != nil {
-					log.Tracef("Error when calculating utilization from IdleTime and QueryTime counters: %e", err.Error())
-				}
-				entry["utilization"] = fmt.Sprintf("%.1f", utilization)
-			}
-
-			entry["queue_depth"] = fmt.Sprintf("%d", counters.QueueDepth)
-			entry["split_count"] = fmt.Sprintf("%d", counters.SplitCount)
-		}
-	}
-
-	if !foundDisk {
-		errorString := fmt.Sprintf("DiskIOCounters did not have drive: %s", drive)
-		log.Debugf(errorString)
-		entry["_error"] = errorString
-		entry["_skip"] = "1"
-
-		return entry, errors.New(errorString)
-	}
-
-	return entry, nil
+	return deviceLogicalNameOrLetter
 }
 
-func (l *CheckDriveIO) addRateToEntry(snc *Agent, entry map[string]string, entryKey, counterCategory, counterKey string) {
-	counter := snc.Counter.Get(counterCategory, counterKey)
-	if counter == nil {
-		errorString := fmt.Sprintf("No counter found with category: %s, key: %s", counterCategory, counterKey)
-		log.Debugf(errorString)
-		entry["_error"] = entry["_error"] + " . " + errorString
-
-		return
-	}
-
-	rate, err := counter.GetRate(time.Duration(l.lookback) * time.Second)
-	if err != nil {
-		errorString := fmt.Sprintf("Error when getting the counter rate, lookback: %d, counterCategory: %s, counterKey: %s, err: %s", l.lookback, counterCategory, counterKey, err.Error())
-		log.Debugf(errorString)
-		entry["_error"] = entry["_error"] + " . " + errorString
-
-		return
-	}
-
-	entry[entryKey] = fmt.Sprintf("%v", rate)
-}
-
-func (l *CheckDriveIO) addUtilizationFromIoTime(entry map[string]string) {
-	// io_time is most likely field 10 in /proc/diskstats on Linux
-	// 		Field 10 -- # of milliseconds spent doing I/Os (unsigned int)
-	// This field increases so long as field 9 is nonzero.
-
-	// Since 5.0 this field counts jiffies when at least one request was
-	// started or completed. If request runs more than 2 jiffies then some
-	// I/O time might be not accounted in case of concurrent requests.
-
-	// The documentation tells that 'it counts jiffies' , but that contradicts its own saying at the beginning
-	// We found that it is most likely counting miliseconds
-
-	// getRate function returns change / seconds, but the counter increases per millisecond
-
-	// ex 624 miliseconds of io_time / second -> 624/1000 = 0.624 overall occupancy -> 0.624 * 100 = 62.4 percent utilization
-	entry["utilization"] = fmt.Sprintf("%.1f", convert.Float64(entry["io_time_rate"])/10)
-}
-
-func (l *CheckDriveIO) calculateUtilizationFromIdleAndQueryCounters(idleTimeCounter, queryTimeCounter *counter.Counter) (utilizationRatio float64, err error) {
-	// This function is designed for windows.
-	// Windows does not expose an io time, instead it counts idle time
-	// Each query for disk performance additionally returns a query time
-
-	// delta(idle time) / delta(query time) -> returns the idle ratio
-	// 1 - idle ratio ~ utilization ratio
-
-	lookbackTime := time.Now().Add(-time.Duration(l.lookback) * time.Second)
-
-	idleTimeLastPtr := idleTimeCounter.GetLast()
-	idleTimeLookbackPtr := idleTimeCounter.GetAt(lookbackTime)
-
-	if idleTimeLastPtr == nil {
-		return 0, fmt.Errorf("idleTimeLastPtr is nil")
-	}
-
-	if idleTimeLookbackPtr == nil {
-		return 0, fmt.Errorf("idleTimeLookbackPtr is nil")
-	}
-
-	idleTimeDelta := convert.Float64(idleTimeLastPtr.Value) - convert.Float64(idleTimeLookbackPtr.Value)
-
-	queryTimeLastPtr := queryTimeCounter.GetLast()
-	queryTimeLookbackPtr := queryTimeCounter.GetAt(lookbackTime)
-
-	if queryTimeLastPtr == nil {
-		return 0, fmt.Errorf("idleTimeLastPtr is nil")
-	}
-
-	if queryTimeLookbackPtr == nil {
-		return 0, fmt.Errorf("idleTimeLookbackPtr is nil")
-	}
-
-	queryTimeDelta := queryTimeLastPtr.Value.(uint64) - queryTimeLookbackPtr.Value.(uint64)
-
-	if queryTimeDelta == 0 {
-		return 0, fmt.Errorf("queryTimeDelta is 0, calculation will result in NaN")
-	}
-
-	idleRatio := idleTimeDelta / float64(queryTimeDelta)
-
-	utilizationRatio = 1 - idleRatio
-
-	utilizationPercentage := utilizationRatio * 100
-
-	return utilizationPercentage, nil
-}
-
+//nolint:funlen // it is long because there are a lot of attributes. the function is simple
 func (l *CheckDriveIO) addMetrics(check *CheckData) {
-	needReadCountRate := check.HasThreshold("read_count_rate")
-	needReadBytesRate := check.HasThreshold("read_bytes_rate")
-	needWriteCountRate := check.HasThreshold("write_count_rate")
-	needWriteBytesRate := check.HasThreshold("write_bytes_rate")
-	needIoTimeRate := check.HasThreshold("io_time_rate")
-
 	for _, data := range check.listData {
-		if needReadCountRate {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				Name:          data["drive"] + "_read_count",
+				ThresholdName: "read_count",
+				Value:         convert.Float64(data["read_count"]),
+				Unit:          "c",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+				Min:           &Zero,
+			},
+			&CheckMetric{
+				Name:          data["drive"] + "_read_bytes",
+				ThresholdName: "read_bytes",
+				Value:         convert.Float64(data["read_bytes"]),
+				Unit:          "c",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+				Min:           &Zero,
+			},
+			&CheckMetric{
+				Name:          data["drive"] + "_read_time",
+				ThresholdName: "read_time",
+				Value:         convert.Float64(data["read_time"]),
+				Unit:          "ms",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+				Min:           &Zero,
+			},
+			&CheckMetric{
+				Name:          data["drive"] + "_write_count",
+				ThresholdName: "write_count",
+				Value:         convert.Float64(data["write_count"]),
+				Unit:          "c",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+				Min:           &Zero,
+			},
+			&CheckMetric{
+				Name:          data["drive"] + "_write_bytes",
+				ThresholdName: "write_bytes",
+				Value:         convert.Float64(data["write_bytes"]),
+				Unit:          "c",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+				Min:           &Zero,
+			},
+			&CheckMetric{
+				Name:          data["drive"] + "_write_time",
+				ThresholdName: "write_time",
+				Value:         convert.Float64(data["write_time"]),
+				Unit:          "ms",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+				Min:           &Zero,
+			},
+			&CheckMetric{
+				Name:          data["drive"] + "_utilization",
+				ThresholdName: "utilization",
+				Value:         convert.Float64(data["utilization"]),
+				Unit:          "%",
+				Warning:       check.warnThreshold,
+				Critical:      check.critThreshold,
+				Min:           &Zero,
+			},
+		)
+
+		switch runtime.GOOS {
+		case "windows":
 			check.result.Metrics = append(check.result.Metrics,
 				&CheckMetric{
-					Name:          data["drive"] + "read_count_rate",
-					ThresholdName: "read_count_rate",
-					Value:         convert.Float64(data["read_count_rate"]),
+					Name:          data["drive"] + "_queue_depth",
+					ThresholdName: "queue_depth",
+					Value:         convert.Float64(data["queue_depth"]),
 					Unit:          "",
 					Warning:       check.warnThreshold,
 					Critical:      check.critThreshold,
 					Min:           &Zero,
 				},
 			)
-		}
-
-		if needReadBytesRate {
+		default:
 			check.result.Metrics = append(check.result.Metrics,
 				&CheckMetric{
-					Name:          data["drive"] + " read_bytes_rate",
-					ThresholdName: "read_bytes_rate",
-					Value:         convert.Float64(data["read_bytes_rate"]),
-					Unit:          "B",
+					Name:          data["drive"] + "_io_time",
+					ThresholdName: "io_time",
+					Value:         convert.Float64(data["io_time"]),
+					Unit:          "ms",
 					Warning:       check.warnThreshold,
 					Critical:      check.critThreshold,
 					Min:           &Zero,
 				},
-			)
-		}
-
-		if needWriteCountRate {
-			check.result.Metrics = append(check.result.Metrics,
 				&CheckMetric{
-					Name:          data["drive"] + " write_count_rate",
-					ThresholdName: "write_count_rate",
-					Value:         convert.Float64(data["write_count_rate"]),
+					Name:          data["drive"] + "_weighted_io",
+					ThresholdName: "weighted_io",
+					Value:         convert.Float64(data["weighted_io"]),
 					Unit:          "",
 					Warning:       check.warnThreshold,
 					Critical:      check.critThreshold,
 					Min:           &Zero,
 				},
-			)
-		}
-
-		if needWriteBytesRate {
-			check.result.Metrics = append(check.result.Metrics,
 				&CheckMetric{
-					Name:          data["drive"] + " write_bytes_rate",
-					ThresholdName: "write_bytes_rates",
-					Value:         convert.Float64(data["write_bytes_rate"]),
-					Unit:          "B",
-					Warning:       check.warnThreshold,
-					Critical:      check.critThreshold,
-					Min:           &Zero,
-				},
-			)
-		}
-
-		if needIoTimeRate {
-			check.result.Metrics = append(check.result.Metrics,
-				&CheckMetric{
-					Name:          data["drive"] + " io_time_rate",
-					ThresholdName: "io_time_rate",
-					Value:         convert.Float64(data["io_time_rate"]),
+					Name:          data["drive"] + "_iops_in_progress",
+					ThresholdName: "iops_in_progress",
+					Value:         convert.Float64(data["iops_in_progress"]),
 					Unit:          "",
 					Warning:       check.warnThreshold,
 					Critical:      check.critThreshold,
