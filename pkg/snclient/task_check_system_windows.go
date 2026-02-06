@@ -8,6 +8,7 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/shirou/gopsutil/v4/mem"
 	"golang.org/x/sys/windows"
 )
@@ -68,7 +69,7 @@ type IOCountersStatWindows struct {
 	// Label            string `json:"label"`
 }
 
-var storageDeviceNumbers map[string]storageDeviceNumber
+var storageDeviceNumbers map[string]storageDeviceNumberStruct
 
 func init() {
 	RegisterModule(
@@ -92,7 +93,6 @@ func IoCountersWindows(names ...string) (map[string]IOCountersStatWindows, error
 	// For getting a handle to the root of the drive, specify the path as \\.\PhysicalDriveX .
 	// This seems to be better at picking the correct drives that can do IoctlCalls
 	for deviceNumber := range uint32(32) {
-
 		// Skip deviceNumbers that do not have a drive letter
 		deviceLetter := ""
 		for letter, storageDeviceNumber := range storageDeviceNumbers {
@@ -106,21 +106,21 @@ func IoCountersWindows(names ...string) (map[string]IOCountersStatWindows, error
 
 		handlePath := `\\.\PhysicalDrive` + fmt.Sprintf("%d", deviceNumber)
 
-		h, err := windows.CreateFile(windows.StringToUTF16Ptr(handlePath), 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, 0, 0)
+		handle, err := windows.CreateFile(windows.StringToUTF16Ptr(handlePath), 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, 0, 0)
 		if err != nil {
 			if errors.Is(err, windows.ERROR_FILE_NOT_FOUND) {
 				continue
 			}
-			return drivemap, err
+
+			return drivemap, fmt.Errorf("error when creating a file handle on handlePath: %s, err: %w", handlePath, err)
 		}
-		if h == windows.InvalidHandle {
+		if handle == windows.InvalidHandle {
 			continue
 		}
-		defer windows.CloseHandle(h)
 
 		var diskPerformanceSize uint32
-		const IOCTL_DISK_PERFORMANCE = 0x70020
-		err = windows.DeviceIoControl(h, IOCTL_DISK_PERFORMANCE, nil, 0, (*byte)(unsafe.Pointer(&dPerformance)), uint32(unsafe.Sizeof(dPerformance)), &diskPerformanceSize, nil)
+		const IOctlDiskPerformance = 0x70020
+		err = windows.DeviceIoControl(handle, IOctlDiskPerformance, nil, 0, (*byte)(unsafe.Pointer(&dPerformance)), uint32(unsafe.Sizeof(dPerformance)), &diskPerformanceSize, nil)
 		if err != nil {
 			if errors.Is(err, windows.ERROR_INVALID_FUNCTION) {
 				continue
@@ -128,44 +128,52 @@ func IoCountersWindows(names ...string) (map[string]IOCountersStatWindows, error
 			if errors.Is(err, windows.ERROR_NOT_SUPPORTED) {
 				continue
 			}
-			return drivemap, err
+
+			return drivemap, fmt.Errorf("error when calling IoctlDiskPerformance with a open handle to: %s, err: %w", handlePath, err)
+		}
+
+		err = windows.CloseHandle(handle)
+		if err != nil {
+			log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, err.Error())
 		}
 
 		if len(names) == 0 || slices.Contains(names, deviceLetter) {
 			drivemap[deviceLetter] = IOCountersStatWindows{
 				Name:                deviceLetter,
-				ReadBytes:           uint64(dPerformance.BytesRead),
-				WriteBytes:          uint64(dPerformance.BytesWritten),
-				ReadCount:           uint64(dPerformance.ReadCount),
-				WriteCount:          uint64(dPerformance.WriteCount),
-				ReadTime:            uint64(dPerformance.ReadTime / 10000 / 1000), // convert to ms: https://github.com/giampaolo/psutil/issues/1012
-				WriteTime:           uint64(dPerformance.WriteTime / 10000 / 1000),
-				IdleTime:            uint64(dPerformance.IdleTime),  // do not convert these to ms, loses precision when calculating rate
-				QueryTime:           uint64(dPerformance.QueryTime), // do not convert these to ms, loses precision when calculating rate
-				QueueDepth:          uint32(dPerformance.QueueDepth),
-				SplitCount:          uint32(dPerformance.SplitCount),
+				ReadBytes:           convert.UInt64(dPerformance.BytesRead),
+				WriteBytes:          convert.UInt64(dPerformance.BytesWritten),
+				ReadCount:           convert.UInt64(dPerformance.ReadCount),
+				WriteCount:          convert.UInt64(dPerformance.WriteCount),
+				ReadTime:            convert.UInt64(dPerformance.ReadTime / 10000 / 1000), // convert to ms: https://github.com/giampaolo/psutil/issues/1012
+				WriteTime:           convert.UInt64(dPerformance.WriteTime / 10000 / 1000),
+				IdleTime:            convert.UInt64(dPerformance.IdleTime),  // do not convert these to ms, loses precision when calculating rate
+				QueryTime:           convert.UInt64(dPerformance.QueryTime), // do not convert these to ms, loses precision when calculating rate
+				QueueDepth:          convert.UInt32(dPerformance.QueueDepth),
+				SplitCount:          convert.UInt32(dPerformance.SplitCount),
 				StorageManagerName:  strings.TrimSpace(string(utf16.Decode(dPerformance.StorageManagerName[:]))),
-				StorageDeviceNumber: uint32(dPerformance.StorageDeviceNumber),
+				StorageDeviceNumber: convert.UInt32(dPerformance.StorageDeviceNumber),
 			}
 		}
 	}
+
 	return drivemap, nil
 }
 
 // This is a struct that will be filled with the Ioctl IOCTL_STORAGE_GET_DEVICE_NUMBER call.
-// Does not seem to be 1:1 with storageDeviceNumber field returned from Ioctl IOCTL_DISK_PERFORMANCE call for the same drive.
+// Does not seem to be 1:1 with storageDeviceNumberStruct field returned from Ioctl IOCTL_DISK_PERFORMANCE call for the same drive.
 // https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-ioctl_storage_get_device_number
-type storageDeviceNumber struct {
+type storageDeviceNumberStruct struct {
 	DeviceType      uint16
 	DeviceNumber    uint32
 	PartitionNumber uint32
 }
 
-func getDriveStorageDeviceNumbers() map[string]storageDeviceNumber {
-	mappings := map[string]storageDeviceNumber{}
+func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
+	mappings := map[string]storageDeviceNumberStruct{}
 
-	lpBuffer := make([]uint16, 254)
-	lpBufferLen, _ := windows.GetLogicalDriveStrings(uint32(len(lpBuffer)), &lpBuffer[0])
+	const lpBufferLength = uint32(256)
+	lpBuffer := make([]uint16, lpBufferLength)
+	lpBufferLen, _ := windows.GetLogicalDriveStrings(lpBufferLength, &lpBuffer[0])
 
 	// extract the letters out of the concatanation of multiple drive paths, e.g: "C:\D:\F:\Z:\"
 	logicalDriveLetters := make([]string, 0)
@@ -178,31 +186,35 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumber {
 
 	// The buffer contains strings one after another,
 	for _, logicalDriveLetter := range logicalDriveLetters {
-
 		path := logicalDriveLetter + ":"
-		szDevice := `\\.\` + path
+		handlePath := `\\.\` + path
 
-		handle, err := windows.CreateFile(windows.StringToUTF16Ptr(szDevice), 0,
+		handle, err := windows.CreateFile(windows.StringToUTF16Ptr(handlePath), 0,
 			windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil,
 			windows.OPEN_EXISTING, 0, 0)
 		if err != nil {
-			log.Tracef("Logical drive %s, got an error while getting a handle to %s, err: %s\n", logicalDriveLetter, szDevice, err.Error())
+			log.Tracef("Logical drive %s, got an error while getting a handle to %s, err: %s\n", logicalDriveLetter, handlePath, err.Error())
+
 			continue
 		}
-		defer windows.CloseHandle(handle)
 
 		// Got this from Windows Kit, Microsoft does not put them in their docs for some reason.
 		// C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winioctl.h
-		const IOCTL_STORAGE_GET_DEVICE_NUMBER = 0x2D1080
-		storageDeviceNumber := storageDeviceNumber{}
+		const IOctlStorageGetDeviceNumber = 0x2D1080
+		storageDeviceNumber := storageDeviceNumberStruct{}
 		bytesReturned := uint32(0)
 
-		err = windows.DeviceIoControl(handle, IOCTL_STORAGE_GET_DEVICE_NUMBER, nil, 0,
+		err = windows.DeviceIoControl(handle, IOctlStorageGetDeviceNumber, nil, 0,
 			(*byte)(unsafe.Pointer(&storageDeviceNumber)), uint32(unsafe.Sizeof(storageDeviceNumber)), &bytesReturned, nil)
-
 		if err != nil {
 			log.Tracef("Logical drive %s, got an error from Ioctl IOCTL_STORAGE_GET_DEVICE_NUMBER. Likely has no physical device e.g VirtioFS/Network. Err: %s\n", logicalDriveLetter, err.Error())
+
 			continue
+		}
+
+		err = windows.CloseHandle(handle)
+		if err != nil {
+			log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, err.Error())
 		}
 
 		mappings[logicalDriveLetter] = storageDeviceNumber
@@ -257,7 +269,7 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 		// even current values on 2026, the value has log2 around 56
 		// float64 has 53 bits of significant precision, it loses precision
 		// makes calculating utilization impossible
-		c.snc.Counter.Set(category, "query_time", uint64(diskIOCounters[diskName].QueryTime))
+		c.snc.Counter.Set(category, "query_time", diskIOCounters[diskName].QueryTime)
 	}
 }
 
