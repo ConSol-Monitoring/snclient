@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"syscall"
 	"unicode/utf16"
 	"unsafe"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/shirou/gopsutil/v4/mem"
 	"golang.org/x/sys/windows"
-
-	"syscall"
 )
 
 // diskPerformance is an equivalent representation of DISK_PERFORMANCE in the Windows API.
@@ -92,11 +91,11 @@ var (
 )
 
 func getPerformanceFrequency() (performanceFrequency uint64) {
-
 	returnValue, _, _ := QueryPerformanceFrequencyFunc.Call(uintptr(unsafe.Pointer(&performanceFrequency)))
 
 	if returnValue == 0 {
 		log.Debugf("Could not get performance counter frequency")
+
 		return 0
 	}
 
@@ -178,10 +177,9 @@ func IoCountersWindows(names ...string) (map[string]IOCountersStatWindows, error
 				WriteBytes: convert.UInt64(dPerformance.BytesWritten),
 				ReadCount:  convert.UInt64(dPerformance.ReadCount),
 				WriteCount: convert.UInt64(dPerformance.WriteCount),
-				// these are not a total counter of time, but the period they count is based on performanceFrequency
-				// performanceFrequency is a hertz value
+				// these are not a total counter of time, but the period is based on performanceFrequency, a hertz value
 				// 1 / performanceFrequency is the period in s, 1000 / performanceFrequency is the period in ms
-				// Read time seems to be the period ammount, period defined by performanceFrequency
+				// Read time seems to be the period amount, period defined by performanceFrequency
 				ReadTime: float64(dPerformance.ReadTime) * (1000 / float64(performanceFrequency)),
 				// Same as ReadTime
 				WriteTime:           float64(dPerformance.WriteTime) * (1000 / float64(performanceFrequency)),
