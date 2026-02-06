@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
 	"sort"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/counter"
 	"github.com/shirou/gopsutil/v4/disk"
 )
 
@@ -43,19 +45,18 @@ func (l *CheckDriveIO) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"drive":    {value: &l.drives, isFilter: true, description: "Name(s) of the drives to check the IO stats for ex.: c: or / .If left empty, it will check all drives"},
-			"lookback": {value: &l.lookback, isFilter: true, description: "Lookback period for the rate calculations, given in seconds. Default: 300"},
+			"lookback": {value: &l.lookback, isFilter: true, description: "Lookback period for value change rate and utilization calculations, given in seconds. Default: 300"},
 		},
-		defaultWarning:  "utilization > 80",
-		defaultCritical: "utilization > 95",
+		defaultWarning:  "utilization > 95",
+		defaultCritical: "",
 		okSyntax:        "%(status) - All %(count) drive(s) are ok",
 		detailSyntax:    "%(drive) %(utilization)",
 		topSyntax:       "%(status) - ${problem_list}",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - No drives found",
 		attributes: []CheckAttribute{
-			{name: "drive", description: "Name(s) of the drives to check the io stats for. If left empty, it will check all drives"},
-			{name: "lookback", description: "Lookback period for which the rate was calculated"},
-			{name: "label", description: "Label of the drive"},
+			{name: "drive", description: "Name(s) of the drives to check the io stats for. If left empty, it will check all drives. For Windows this is the drive letter. For UNIX it is the logical name of the drive."},
+			{name: "lookback", description: "Lookback period for which the value change rate and utilization is calculated."},
 			{name: "read_count", description: "Total number of read operations completed successfully"},
 			{name: "read_count_rate", description: "Number of read operations per second during the lookback period"},
 			{name: "read_bytes", description: "Total number of bytes read from the disk"},
@@ -69,11 +70,20 @@ func (l *CheckDriveIO) Build() *CheckData {
 
 			// Windows does not report these
 
+			{name: "label", description: "Label of the drive"},
 			{name: "io_time", description: "Total time during which the disk had at least one active I/O (milliseconds). Windows does not report this."},
 			{name: "io_time_rate", description: "Change in I/O time per second. Windows does not report this."},
 			{name: "weighted_io", description: "Measure of both I/O completion time and the number of backlogged requests. Windows does not report this."},
 			{name: "utilization", description: "Percentage of time the disk was busy (0-100%).. Windows does not report this."},
 			{name: "iops_in_progress", description: "Number of I/O operations currently in flight. Windows does not report this."},
+
+			// Windows specific
+			// https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-disk_performance
+
+			{name: "idle_time", description: "Count of the 100 ns periods the disk was idle. Windows only"},
+			{name: "query_time", description: "The time the performance query was sent. Count of 100 ns periods since the Win32 epoch of 01.01.1601. Windows only"},
+			{name: "queue_depth", description: "The depth of the IO queue. Windows only."},
+			{name: "split_count", description: "The cumulative count of IOs that are associated IOs. Windows only."},
 
 			// note to future: currently only the utilization is calculated by adding io_time to the counter
 			// if more stats are saved in the counters, one can calculate relatively useful metrics as well
@@ -108,12 +118,11 @@ func (l *CheckDriveIO) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 	sort.Strings(drivesToCheck)
 
-	var diskIOCounters map[string]disk.IOCountersStat
+	var diskIOCounters any
 	var err error
-
 	switch runtime.GOOS {
 	case "windows":
-		diskIOCounters, err = IoCountersCustom()
+		diskIOCounters, err = IoCountersWindows()
 	default:
 		diskIOCounters, err = disk.IOCounters()
 	}
@@ -140,7 +149,8 @@ func (l *CheckDriveIO) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 // drive parameter should be the logical name for linux, e.g 'sda'
 // for windows it should be the drive letter, e.g 'C'
-func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string, diskIOCounters map[string]disk.IOCountersStat) (map[string]string, error) {
+// diskIOCounters should either be of type: map[string]gopsutil.disk.IOCountersStat or map[string]IoCountersStatWindows
+func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string, diskIOCounters any) (map[string]string, error) {
 	entry := map[string]string{}
 	entry["drive"] = drive
 	entry["lookback"] = fmt.Sprintf("%d", l.lookback)
@@ -151,7 +161,7 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 		entry["_error"] = errorString
 		entry["_skip"] = "1"
 
-		return entry, fmt.Errorf(errorString)
+		return entry, errors.New(errorString)
 	}
 
 	foundDisk := false
@@ -169,37 +179,74 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 	default:
 	}
 
-	if counters, ok := diskIOCounters[deviceLogicalNameOrLetter]; ok {
-		foundDisk = true
+	if diskIOCounters, ok := diskIOCounters.(map[string]disk.IOCountersStat); ok {
+		if counters, ok := diskIOCounters[deviceLogicalNameOrLetter]; ok {
+			foundDisk = true
 
-		// counters use this format when saving metrics
-		// found in CheckSystemHandler.addLinuxDiskStats
-		counterCategory := "disk_" + counters.Name
+			// counters use this format when saving metrics
+			// found in CheckSystemHandler.addLinuxDiskStats
+			counterCategory := "disk_" + counters.Name
 
-		entry["label"] = counters.Label
+			entry["label"] = counters.Label
 
-		entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
-		l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
-		entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
-		l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
-		entry["read_time"] = fmt.Sprintf("%d", counters.ReadTime)
+			entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
+			l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
+			entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
+			l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
+			entry["read_time"] = fmt.Sprintf("%d", counters.ReadTime)
 
-		entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
-		l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
-		entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
-		l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
-		entry["write_time"] = fmt.Sprintf("%d", counters.WriteTime)
+			entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
+			l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
+			entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
+			l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
+			entry["write_time"] = fmt.Sprintf("%d", counters.WriteTime)
 
-		entry["iops_in_progress"] = fmt.Sprintf("%d", counters.IopsInProgress)
-
-		if runtime.GOOS != "windows" {
 			entry["io_time"] = fmt.Sprintf("%d", counters.IoTime)
 			l.addRateToEntry(snc, entry, "io_time_rate", counterCategory, "io_time")
-			l.addUtilizationToEntry(entry)
+			l.addUtilizationFromIoTime(entry)
+
+			entry["iops_in_progress"] = fmt.Sprintf("%d", counters.IopsInProgress)
+			entry["weighted_io"] = fmt.Sprintf("%d", counters.WeightedIO)
 		}
+	}
 
-		entry["weighted_io"] = fmt.Sprintf("%d", counters.WeightedIO)
+	if diskIOCounters, ok := diskIOCounters.(map[string]IOCountersStatWindows); ok {
+		if counters, ok := diskIOCounters[deviceLogicalNameOrLetter]; ok {
+			foundDisk = true
 
+			// counters use this format when saving metrics
+			// found in CheckSystemHandler.addLinuxDiskStats
+			counterCategory := "disk_" + counters.Name
+
+			entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
+			l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
+			entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
+			l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
+			entry["read_time"] = fmt.Sprintf("%d", counters.ReadTime)
+
+			entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
+			l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
+			entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
+			l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
+			entry["write_time"] = fmt.Sprintf("%d", counters.WriteTime)
+
+			entry["idle_time"] = fmt.Sprintf("%d", counters.IdleTime)
+			entry["query_time"] = fmt.Sprintf("%d", counters.QueryTime)
+
+			idleTimeCounter := snc.Counter.Get(counterCategory, "idle_time")
+			queryTimeCounter := snc.Counter.Get(counterCategory, "query_time")
+
+			if idleTimeCounter != nil && queryTimeCounter != nil {
+				utilization, err := l.calculateUtilizationFromIdleAndQueryCounters(idleTimeCounter, queryTimeCounter)
+				if err != nil {
+					log.Tracef("Error when calculating utilization from IdleTime and QueryTime counters: %e", err.Error())
+				}
+				entry["utilization"] = fmt.Sprintf("%.1f", utilization)
+			}
+
+			entry["queue_depth"] = fmt.Sprintf("%d", counters.QueueDepth)
+			entry["split_count"] = fmt.Sprintf("%d", counters.SplitCount)
+		}
 	}
 
 	if !foundDisk {
@@ -208,7 +255,7 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 		entry["_error"] = errorString
 		entry["_skip"] = "1"
 
-		return entry, fmt.Errorf(errorString)
+		return entry, errors.New(errorString)
 	}
 
 	return entry, nil
@@ -236,7 +283,7 @@ func (l *CheckDriveIO) addRateToEntry(snc *Agent, entry map[string]string, entry
 	entry[entryKey] = fmt.Sprintf("%v", rate)
 }
 
-func (l *CheckDriveIO) addUtilizationToEntry(entry map[string]string) {
+func (l *CheckDriveIO) addUtilizationFromIoTime(entry map[string]string) {
 	// io_time is most likely field 10 in /proc/diskstats on Linux
 	// 		Field 10 -- # of milliseconds spent doing I/Os (unsigned int)
 	// This field increases so long as field 9 is nonzero.
@@ -252,6 +299,55 @@ func (l *CheckDriveIO) addUtilizationToEntry(entry map[string]string) {
 
 	// ex 624 miliseconds of io_time / second -> 624/1000 = 0.624 overall occupancy -> 0.624 * 100 = 62.4 percent utilization
 	entry["utilization"] = fmt.Sprintf("%.1f", convert.Float64(entry["io_time_rate"])/10)
+}
+
+func (l *CheckDriveIO) calculateUtilizationFromIdleAndQueryCounters(idleTimeCounter, queryTimeCounter *counter.Counter) (utilizationRatio float64, err error) {
+	// This function is designed for windows.
+	// Windows does not expose an io time, instead it counts idle time
+	// Each query for disk performance additionally returns a query time
+
+	// delta(idle time) / delta(query time) -> returns the idle ratio
+	// 1 - idle ratio ~ utilization ratio
+
+	lookbackTime := time.Now().Add(-time.Duration(l.lookback) * time.Second)
+
+	idleTimeLastPtr := idleTimeCounter.GetLast()
+	idleTimeLookbackPtr := idleTimeCounter.GetAt(lookbackTime)
+
+	if idleTimeLastPtr == nil {
+		return 0, fmt.Errorf("idleTimeLastPtr is nil")
+	}
+
+	if idleTimeLookbackPtr == nil {
+		return 0, fmt.Errorf("idleTimeLookbackPtr is nil")
+	}
+
+	idleTimeDelta := convert.Float64(idleTimeLastPtr.Value) - convert.Float64(idleTimeLookbackPtr.Value)
+
+	queryTimeLastPtr := queryTimeCounter.GetLast()
+	queryTimeLookbackPtr := queryTimeCounter.GetAt(lookbackTime)
+
+	if queryTimeLastPtr == nil {
+		return 0, fmt.Errorf("idleTimeLastPtr is nil")
+	}
+
+	if queryTimeLookbackPtr == nil {
+		return 0, fmt.Errorf("idleTimeLookbackPtr is nil")
+	}
+
+	queryTimeDelta := queryTimeLastPtr.Value.(uint64) - queryTimeLookbackPtr.Value.(uint64)
+
+	if queryTimeDelta == 0 {
+		return 0, fmt.Errorf("queryTimeDelta is 0, calculation will result in NaN")
+	}
+
+	idleRatio := idleTimeDelta / float64(queryTimeDelta)
+
+	utilizationRatio = 1 - idleRatio
+
+	utilizationPercentage := utilizationRatio * 100
+
+	return utilizationPercentage, nil
 }
 
 func (l *CheckDriveIO) addMetrics(check *CheckData) {
