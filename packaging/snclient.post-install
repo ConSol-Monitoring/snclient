@@ -1,4 +1,22 @@
 #!/bin/sh
 
+# Create snclient group if it doesn't exist
+if ! getent group snclient >/dev/null; then
+    addgroup -S snclient
+fi
+
+# Create snclient user if it doesn't exist
+if ! getent passwd snclient >/dev/null; then
+    adduser -S -D -H -h /var/lib/snclient -s /sbin/nologin -G snclient -g "Secure Naemon Client" snclient
+fi
+
+# Create and set permissions on directories
+install -d -m 0755 -o snclient -g snclient /etc/snclient
+install -d -m 0750 -o snclient -g snclient /var/lib/snclient
+install -d -m 0750 -o snclient -g snclient /var/log/snclient
+
+# Fix ownership of config files
+chown -R snclient:snclient /etc/snclient
+
 rc-update -q add snclient default
 rc-service -q snclient start

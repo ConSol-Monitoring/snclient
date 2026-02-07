@@ -1,3 +1,15 @@
 #!/bin/sh
 
-rc-service -q snclient start
+# Ensure user/group exist (in case of upgrade from old version)
+if ! getent group snclient >/dev/null; then
+    addgroup -S snclient
+fi
+
+if ! getent passwd snclient >/dev/null; then
+    adduser -S -D -H -h /var/lib/snclient -s /sbin/nologin -G snclient -g "Secure Naemon Client" snclient
+fi
+
+# Fix ownership of directories and files
+chown -R snclient:snclient /etc/snclient /var/lib/snclient /var/log/snclient 2>/dev/null || true
+
+rc-service -q snclient restart

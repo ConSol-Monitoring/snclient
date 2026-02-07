@@ -3,7 +3,7 @@ Version: UNSET
 Section: net
 Priority: optional
 Architecture: UNSET
-Depends: logrotate
+Depends: logrotate, systemd
 Standards-Version: 3.9.8
 Suggests: monitoring-plugins-basic
 Maintainer: Sven Nierlein <sven@consol.de>
