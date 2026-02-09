@@ -313,8 +313,7 @@ func TestCheckFilesRecursiveArguments(t *testing.T) {
 	case "linux":
 		scriptFilename += ".sh"
 	default:
-		// can other platforms run bash scripts?
-		scriptFilename += ".sh"
+		t.Skipf("Test is not intended to be run on %s", runtime.GOOS)
 	}
 
 	t.Logf("testDir: %s", testDir)
@@ -410,9 +409,10 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 		scriptFilename += ".ps1"
 	case "linux":
 		scriptFilename += ".sh"
+	case "darwin":
+		t.Skip("Skipping on darwin as its 'date' command does not work in the script")
 	default:
-		// can other platforms run bash scripts?
-		scriptFilename += ".sh"
+		t.Skipf("Test is not intended to be run on %s", runtime.GOOS)
 	}
 
 	t.Logf("testDir: %s", testDir)
