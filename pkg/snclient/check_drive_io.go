@@ -23,33 +23,36 @@ type CheckDriveIO struct {
 }
 
 const (
-	defaultLookback = int64(300)
+	defaultLookbackDriveIO = int64(300)
 )
 
 func NewCheckDriveIO() CheckHandler {
 	return &CheckDriveIO{
 		drives:   []string{},
-		lookback: defaultLookback,
+		lookback: defaultLookbackDriveIO,
 	}
 }
 
 func (l *CheckDriveIO) Build() *CheckData {
 	return &CheckData{
 		name:         "check_drive_io",
-		description:  "Checks the disk IO on the host.",
+		description:  "Checks the disk Input / Output on the host.",
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"drive":    {value: &l.drives, isFilter: true, description: "Name(s) of the drives to check the IO stats for ex.: c: or / .If left empty, it will check all drives"},
-			"lookback": {value: &l.lookback, isFilter: true, description: "Lookback period for value change rate and utilization calculations, given in seconds. Default: 300"},
+			"drive": {value: &l.drives, isFilter: true, description: "Name(s) of the drives to check the IO stats for ex.: c: or / .If left empty, it will check all drives"},
+			"lookback": {
+				value: &l.lookback, isFilter: true,
+				description: fmt.Sprintf("Lookback period for value change rate and utilization calculations, given in seconds. Default: %d", defaultLookbackDriveIO),
+			},
 		},
 		defaultWarning:  "utilization > 95",
 		defaultCritical: "",
 		okSyntax:        "%(status) - %(list)",
-		detailSyntax:    "%(drive) >%(write_bytes_rate) <%(read_bytes_rate) %(utilization)%",
+		detailSyntax:    "%(drive) >%(write_bytes_rate)/s <%(read_bytes_rate)/s %(utilization)%",
 		topSyntax:       "%(status) - %(list)",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - No drives found",
@@ -74,7 +77,7 @@ func (l *CheckDriveIO) Build() *CheckData {
 			{name: "io_time", description: "Total time during which the disk had at least one active I/O (milliseconds). Windows does not report this."},
 			{name: "io_time_rate", description: "Change in I/O time per second. Windows does not report this."},
 			{name: "weighted_io", description: "Measure of both I/O completion time and the number of backlogged requests. Windows does not report this."},
-			{name: "utilization", description: "Percentage of time the disk was busy (0-100%).. Windows does not report this."},
+			{name: "utilization", description: "Percentage of time the disk was busy (0-100%). Windows does not report this."},
 			{name: "iops_in_progress", description: "Number of I/O operations currently in flight. Windows does not report this."},
 
 			// Windows specific

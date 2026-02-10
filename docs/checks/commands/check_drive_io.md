@@ -4,7 +4,7 @@ title: drive_io
 
 ## check_drive_io
 
-Checks the disk IO on the host.
+Checks the disk Input / Output on the host.
 
 - [Examples](#examples)
 - [Argument Defaults](#argument-defaults)
@@ -47,14 +47,14 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                     |
-| ------------- | ----------------------------------------------------------------- |
-| warning       | utilization > 95                                                  |
-| empty-state   | 3 (UNKNOWN)                                                       |
-| empty-syntax  | %(status) - No drives found                                       |
-| top-syntax    | %(status) - %(list)                                               |
-| ok-syntax     | %(status) - %(list)                                               |
-| detail-syntax | %(drive) >%(write_bytes_rate) <%(read_bytes_rate) %(utilization)% |
+| Argument      | Default Value                                                         |
+| ------------- | --------------------------------------------------------------------- |
+| warning       | utilization > 95                                                      |
+| empty-state   | 3 (UNKNOWN)                                                           |
+| empty-syntax  | %(status) - No drives found                                           |
+| top-syntax    | %(status) - %(list)                                                   |
+| ok-syntax     | %(status) - %(list)                                                   |
+| detail-syntax | %(drive) >%(write_bytes_rate)/s <%(read_bytes_rate)/s %(utilization)% |
 
 ## Check Specific Arguments
 
@@ -87,7 +87,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | io_time          | Total time during which the disk had at least one active I/O (milliseconds). Windows does not report this. |
 | io_time_rate     | Change in I/O time per second. Windows does not report this.                                       |
 | weighted_io      | Measure of both I/O completion time and the number of backlogged requests. Windows does not report this. |
-| utilization      | Percentage of time the disk was busy (0-100%).. Windows does not report this.                      |
+| utilization      | Percentage of time the disk was busy (0-100%). Windows does not report this.                       |
 | iops_in_progress | Number of I/O operations currently in flight. Windows does not report this.                        |
 | idle_time        | Count of the 100 ns periods the disk was idle. Windows only                                        |
 | query_time       | The time the performance query was sent. Count of 100 ns periods since the Win32 epoch of 01.01.1601. Windows only |
