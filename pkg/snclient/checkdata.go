@@ -1303,7 +1303,10 @@ func (cd *CheckData) expandArgDefinitions() {
 	for k, arg := range cd.args {
 		for key := range strings.SplitSeq(k, "|") {
 			key = strings.TrimSpace(key)
+			key = strings.TrimPrefix(key, "-")
 			cd.extraArgs[key] = arg
+			cd.extraArgs["-"+key] = arg
+			cd.extraArgs["--"+key] = arg
 		}
 	}
 }

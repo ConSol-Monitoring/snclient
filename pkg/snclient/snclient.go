@@ -3,6 +3,7 @@ package snclient
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -27,12 +28,14 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/counter"
+	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/consol-monitoring/snclient/pkg/wmi"
 	"github.com/kdar/factorlog"
 	deadlock "github.com/sasha-s/go-deadlock"
 	daemon "github.com/sevlyar/go-daemon"
 	"github.com/shirou/gopsutil/v4/host"
+	"github.com/shirou/gopsutil/v4/process"
 )
 
 const (
@@ -637,12 +640,12 @@ func (snc *Agent) checkStalePidFile() bool {
 		return false
 	}
 
-	process, err := os.FindProcess(pid)
+	procs, err := os.FindProcess(pid)
 	if err != nil {
 		return false
 	}
 
-	err = process.Signal(syscall.Signal(0))
+	err = procs.Signal(syscall.Signal(0))
 	if err == nil {
 		LogStderrf("ERROR: worker already running: %d", pid)
 		snc.CleanExit(ExitCodeError)
@@ -1573,4 +1576,103 @@ func (snc *Agent) adjustMemoryAndGCLimits() {
 	} else {
 		log.Debugf("limits: GOGC=%s%%", os.Getenv("GOGC"))
 	}
+}
+
+// appendProcs appends process information to the check result details. It fetches the list of processes and sorts them by CPU or memory usage
+func appendProcs(ctx context.Context, check *CheckData, numProcs int64, hideArgs bool, sortBy string) error {
+	format := "%-8s %-8s %-8s %-8s %-8s %-8s %-8s %s\n"
+	check.result.Details = fmt.Sprintf(format,
+		"USER", "PID", "%CPU", "%MEM", "VSC", "RSS", "TIME", "COMMAND")
+
+	procs, err := process.ProcessesWithContext(ctx)
+	if err != nil {
+		return fmt.Errorf("fetching processes failed: %s", err.Error())
+	}
+
+	type sortableProc struct {
+		cpuPercent float64
+		memPercent float32
+		proc       *process.Process
+	}
+
+	sortable := []sortableProc{}
+
+	for _, proc := range procs {
+		p, _ := proc.CPUPercentWithContext(ctx)
+		m, _ := proc.MemoryPercentWithContext(ctx)
+		sortable = append(sortable, sortableProc{
+			cpuPercent: p,
+			memPercent: m,
+			proc:       proc,
+		})
+	}
+
+	switch sortBy {
+	case "cpu":
+		slices.SortFunc(sortable, func(a, b sortableProc) int {
+			return cmp.Compare(b.cpuPercent, a.cpuPercent)
+		})
+	case "mem":
+		slices.SortFunc(sortable, func(a, b sortableProc) int {
+			return cmp.Compare(b.memPercent, a.memPercent)
+		})
+	default:
+		return fmt.Errorf("invalid sortBy value: %s", sortBy)
+	}
+
+	for i, proc := range sortable {
+		if i >= int(numProcs) {
+			break
+		}
+
+		cmdLine, _ := proc.proc.Cmdline()
+		exe, _ := buildExeAndFilename(ctx, proc.proc)
+		if cmdLine == "" || hideArgs {
+			cmdLine = exe
+		}
+
+		username, _ := proc.proc.Username()
+		mem, _ := proc.proc.MemoryPercent()
+		memInfo, _ := proc.proc.MemoryInfoWithContext(ctx)
+		times, _ := proc.proc.TimesWithContext(ctx)
+		check.result.Details += fmt.Sprintf(format,
+			username,
+			fmt.Sprintf("%d", proc.proc.Pid),
+			fmt.Sprintf("%.1f", proc.cpuPercent),
+			fmt.Sprintf("%.1f", mem),
+			humanize.Bytes(memInfo.VMS),
+			humanize.Bytes(memInfo.RSS),
+			fmt.Sprintf("%.1f", times.User+times.System),
+			cmdLine,
+		)
+	}
+
+	return nil
+}
+
+func buildExeAndFilename(ctx context.Context, proc *process.Process) (exe, filename string) {
+	filename, err := proc.ExeWithContext(ctx)
+	if err == nil {
+		// in case the binary has been removed / updated meanwhile it shows up as "".../path/bin (deleted)""
+		// %> ls -la /proc/857375/exe
+		// lrwxrwxrwx 1 user group 0 Oct 11 20:40 /proc/857375/exe -> '/usr/bin/ssh (deleted)'
+		filename = strings.TrimSuffix(filename, " (deleted)")
+		exe = filepath.Base(filename)
+	} else {
+		cmd, err2 := proc.CmdlineSliceWithContext(ctx)
+		if err2 == nil && len(cmd) >= 1 {
+			filename = cmd[0]
+			exe = filepath.Base(filename)
+		}
+	}
+	if exe == "" {
+		name, err2 := proc.NameWithContext(ctx)
+		if err2 != nil {
+			log.Debugf("check_process: name error: %s", err2.Error())
+		} else {
+			exe = fmt.Sprintf("[%s]", name)
+		}
+	}
+
+	return
 }

@@ -4,6 +4,9 @@ next:
          - change minimum golang requirement to 1.25.7
          - check_drivesize ignore drive not found errors if empty-state is set (#315)
          - check_cpu add idle time (#308)
+         - check_cpu add procs-to-show option to show 10 N processes
+         - check_memory add procs-to-show option to show 10 N processes sorted by memory usage
+         - add hide-args options when using procs-to-show to only show the executable without arguments
          - chore: update dependencies
 
 0.41     Fri Dec 19 19:16:59 CET 2025

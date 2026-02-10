@@ -155,6 +155,8 @@ linters:
       - path: (.+)\.go$
         text: Function 'fetchProcs' has too many statements
       - path: (.+)\.go$
+        text: Function 'fetchProcs' is too long
+      - path: (.+)\.go$
         text: Function 'ReplaceConditionals' has too many statements
       - path: (.+)\.go$
         text: cognitive complexity .* of func .*.Check

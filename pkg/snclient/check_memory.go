@@ -15,6 +15,10 @@ func init() {
 
 type CheckMemory struct {
 	memType CommaStringList
+	// List the top N cpu consuming processes
+	numProcs int64
+	// Hide arguments when showing the top N processes
+	hideArgs bool
 }
 
 func NewCheckMemory() CheckHandler {
@@ -52,7 +56,9 @@ read more on windows virtual address space:
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"type": {value: &l.memType, description: "Type of memory to check. Default: physical,committed (win) or physical,swap (other)"},
+			"type":            {value: &l.memType, description: "Type of memory to check. Default: physical,committed (win) or physical,swap (other)"},
+			"n|procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
+			"hide-args":       {value: &l.hideArgs, description: "Hide arguments when showing the top N processes"},
 		},
 		defaultWarning:  "used > 80%",
 		defaultCritical: "used > 90%",
@@ -83,7 +89,7 @@ Changing the return syntax to get more information:
 	}
 }
 
-func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
 
 	physical, err := mem.VirtualMemory()
@@ -93,6 +99,13 @@ func (l *CheckMemory) Check(_ context.Context, _ *Agent, check *CheckData, _ []A
 
 	if physical.Total == 0 {
 		return nil, fmt.Errorf("total physical memory is zero")
+	}
+
+	if l.numProcs > 0 {
+		err = appendProcs(ctx, check, l.numProcs, l.hideArgs, "mem")
+		if err != nil {
+			return nil, fmt.Errorf("procs: %s", err.Error())
+		}
 	}
 
 	for _, memType := range l.memType {

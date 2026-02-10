@@ -1,18 +1,14 @@
 package snclient
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"runtime"
-	"slices"
 	"strings"
 
-	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	cpuinfo "github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/load"
-	"github.com/shirou/gopsutil/v4/process"
 )
 
 func init() {
@@ -33,6 +29,8 @@ type CheckLoad struct {
 	perCPU bool
 	// List the top N cpu consuming processes
 	numProcs int64
+	// Hide arguments when showing the top N processes
+	hideArgs bool
 }
 
 func NewCheckLoad() CheckHandler {
@@ -53,6 +51,7 @@ func (l *CheckLoad) Build() *CheckData {
 			"-c|--critical":      {value: &l.critical, description: "Critical threshold: CLOAD1,CLOAD5,CLOAD15"},
 			"-r|--percpu":        {value: &l.perCPU, description: "Divide the load averages by the number of CPUs"},
 			"-n|--procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
+			"--hide-args":        {value: &l.hideArgs, description: "Hide arguments when showing the top N processes"},
 		},
 		defaultFilter: "none",
 		detailSyntax:  "${type} load average: ${load1}, ${load5}, ${load15}",
@@ -155,7 +154,7 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 	}
 
 	if l.numProcs > 0 {
-		err = l.appendProcs(ctx, check)
+		err = appendProcs(ctx, check, l.numProcs, l.hideArgs, "cpu")
 		if err != nil {
 			return nil, fmt.Errorf("procs: %s", err.Error())
 		}
@@ -212,59 +211,6 @@ func (l *CheckLoad) addLoadMetrics(check *CheckData, perfPrefix string, loadAvg 
 			Critical:      check.TransformMultipleKeywords([]string{"load"}, "load15", check.critThreshold),
 			Min:           &Zero,
 		})
-}
-
-func (l *CheckLoad) appendProcs(ctx context.Context, check *CheckData) error {
-	format := "%-8s %-8s %-8s %-8s %-8s %-8s %-8s %s\n"
-	check.result.Details = fmt.Sprintf(format,
-		"USER", "PID", "%CPU", "%MEM", "VSC", "RSS", "TIME", "COMMAND")
-
-	procs, err := process.ProcessesWithContext(ctx)
-	if err != nil {
-		return fmt.Errorf("fetching processes failed: %s", err.Error())
-	}
-
-	type sortableProc struct {
-		cpuPercent float64
-		proc       *process.Process
-	}
-
-	sortable := []sortableProc{}
-
-	for _, proc := range procs {
-		p, _ := proc.CPUPercentWithContext(ctx)
-		sortable = append(sortable, sortableProc{
-			cpuPercent: p,
-			proc:       proc,
-		})
-	}
-
-	slices.SortFunc(sortable, func(a, b sortableProc) int {
-		return cmp.Compare(b.cpuPercent, a.cpuPercent)
-	})
-
-	for i, proc := range sortable {
-		if i >= int(l.numProcs) {
-			break
-		}
-		user, _ := proc.proc.Username()
-		mem, _ := proc.proc.MemoryPercent()
-		memInfo, _ := proc.proc.MemoryInfoWithContext(ctx)
-		time, _ := proc.proc.TimesWithContext(ctx)
-		cmdLine, _ := proc.proc.Cmdline()
-		check.result.Details += fmt.Sprintf(format,
-			user,
-			fmt.Sprintf("%d", proc.proc.Pid),
-			fmt.Sprintf("%.1f", proc.cpuPercent),
-			fmt.Sprintf("%.1f", mem),
-			humanize.Bytes(memInfo.VMS),
-			humanize.Bytes(memInfo.RSS),
-			fmt.Sprintf("%.1f", time.User+time.System),
-			cmdLine,
-		)
-	}
-
-	return nil
 }
 
 // transform "-w num,num,num" and "-c num,num,num" thresholds into ConditionLists

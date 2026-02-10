@@ -27,6 +27,10 @@ type CPUUtilizationResult struct {
 type CheckCPUUtilization struct {
 	snc      *Agent
 	avgRange string
+	// List the top N cpu consuming processes
+	numProcs int64
+	// Hide arguments when showing the top N processes
+	hideArgs bool
 }
 
 func NewCheckCPUUtilization() CheckHandler {
@@ -45,7 +49,9 @@ func (l *CheckCPUUtilization) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"range": {value: &l.avgRange, description: "Sets time range to calculate average (default is 1m)"},
+			"range":           {value: &l.avgRange, description: "Sets time range to calculate average (default is 1m)"},
+			"n|procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
+			"hide-args":       {value: &l.hideArgs, description: "Hide arguments when showing the top N processes"},
 		},
 		defaultWarning:  "total > 90",
 		defaultCritical: "total > 95",
@@ -68,7 +74,7 @@ OK - user: 2% - system: 1% - iowait: 0% - steal: 0% - guest: 0 - idle: 96% |'tot
 	}
 }
 
-func (l *CheckCPUUtilization) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckCPUUtilization) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	l.snc = snc
 	if len(snc.Counter.Keys("cpu")) == 0 {
 		return nil, fmt.Errorf("no cpu counter available, make sure CheckSystem / CheckSystemUnix in /modules config is enabled")
@@ -82,6 +88,13 @@ func (l *CheckCPUUtilization) Check(_ context.Context, snc *Agent, check *CheckD
 		lookBack *= -1
 	}
 	scanLookBack := uint64(lookBack)
+
+	if l.numProcs > 0 {
+		err = appendProcs(ctx, check, l.numProcs, l.hideArgs, "cpu")
+		if err != nil {
+			return nil, fmt.Errorf("procs: %s", err.Error())
+		}
+	}
 
 	l.addCPUUtilizationMetrics(check, scanLookBack)
 

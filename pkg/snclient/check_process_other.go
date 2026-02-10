@@ -5,7 +5,6 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -27,29 +26,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			log.Debugf("check_process: cmd line error: %s", err.Error())
 		}
 
-		exe := ""
-		filename, err := proc.ExeWithContext(ctx)
-		if err == nil {
-			// in case the binary has been removed / updated meanwhile it shows up as "".../path/bin (deleted)""
-			// %> ls -la /proc/857375/exe
-			// lrwxrwxrwx 1 user group 0 Oct 11 20:40 /proc/857375/exe -> '/usr/bin/ssh (deleted)'
-			filename = strings.TrimSuffix(filename, " (deleted)")
-			exe = filepath.Base(filename)
-		} else {
-			cmd, err2 := proc.CmdlineSliceWithContext(ctx)
-			if err2 == nil && len(cmd) >= 1 {
-				filename = cmd[0]
-				exe = filepath.Base(filename)
-			}
-		}
-		if exe == "" {
-			name, err2 := proc.NameWithContext(ctx)
-			if err2 != nil {
-				log.Debugf("check_process: name error: %s", err2.Error())
-			} else {
-				exe = fmt.Sprintf("[%s]", name)
-			}
-		}
+		exe, filename := buildExeAndFilename(ctx, proc)
 
 		if len(l.processes) > 0 && !slices.Contains(l.processes, strings.ToLower(exe)) && !slices.Contains(l.processes, "*") {
 			continue
