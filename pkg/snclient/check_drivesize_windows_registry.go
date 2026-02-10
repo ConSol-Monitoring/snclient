@@ -58,7 +58,7 @@ func discoverPersistentNetworkDrives() (savedNetworkDrives []PersistentNetworkDr
 		}
 		firstRune, _ := utf8.DecodeRuneInString(hkcuNetworkSubkey)
 		if firstRune == utf8.RuneError {
-			log.Debugf("Error when getting the first rune of %s: %s", hkcuNetworkSubkey)
+			log.Debugf("Error when getting the first rune of %s", hkcuNetworkSubkey)
 		}
 		if !unicode.IsLetter(firstRune) {
 			log.Debugf("Subkey under HKCU\\Network is not a letter, cannot be a drive: %s", hkcuNetworkSubkey)
@@ -71,7 +71,7 @@ func discoverPersistentNetworkDrives() (savedNetworkDrives []PersistentNetworkDr
 
 		driveKey, err := registry.OpenKey(hkcuNetwork, networkDrive.DriveLetter, registry.QUERY_VALUE)
 		if err != nil {
-			log.Debugf("Error when getting the registry key for drive %s: %e", networkDrive.DriveLetter, err.Error())
+			log.Debugf("Error when getting the registry key for drive %s: %s", networkDrive.DriveLetter, err.Error())
 
 			continue
 		}
@@ -86,7 +86,7 @@ func discoverPersistentNetworkDrives() (savedNetworkDrives []PersistentNetworkDr
 		case errors.Is(err, registry.ErrNotExist):
 			log.Debugf("Network Drive %s does not have a RemotePath", networkDrive.DriveLetter)
 		case errors.Is(err, registry.ErrUnexpectedType):
-			log.Debugf("Network Drive %s has a RemotePath value, but the getter function used a wrong type, correct type is %s", valtype)
+			log.Debugf("Network Drive %s has a RemotePath value, but the getter function used a wrong type, correct type is %d", networkDrive.DriveLetter, valtype)
 		}
 
 		valueStr, valtype, err = driveKey.GetStringValue("UserName")
@@ -96,7 +96,7 @@ func discoverPersistentNetworkDrives() (savedNetworkDrives []PersistentNetworkDr
 		case errors.Is(err, registry.ErrNotExist):
 			log.Debugf("Network Drive %s does not have a UserName", networkDrive.DriveLetter)
 		case errors.Is(err, registry.ErrUnexpectedType):
-			log.Debugf("Network Drive %s has a UserName value, but the getter function used a wrong type, correct type is %s", valtype)
+			log.Debugf("Network Drive %s has a UserName value, but the getter function used a wrong type, correct type is %d", networkDrive.DriveLetter, valtype)
 		}
 
 		valueUInt64, valtype, err := driveKey.GetIntegerValue("ProviderType")
@@ -106,7 +106,7 @@ func discoverPersistentNetworkDrives() (savedNetworkDrives []PersistentNetworkDr
 		case errors.Is(err, registry.ErrNotExist):
 			log.Debugf("Network Drive %s does not have a ProviderType", networkDrive.DriveLetter)
 		case errors.Is(err, registry.ErrUnexpectedType):
-			log.Debugf("Network Drive %s has a ProviderType value, but the getter function used a wrong type, correct type is %s", valtype)
+			log.Debugf("Network Drive %s has a ProviderType value, but the getter function used a wrong type, correct type is %d", networkDrive.DriveLetter, valtype)
 		}
 
 		valueUInt64, valtype, err = driveKey.GetIntegerValue("ConnectFlags")
@@ -116,7 +116,7 @@ func discoverPersistentNetworkDrives() (savedNetworkDrives []PersistentNetworkDr
 		case errors.Is(err, registry.ErrNotExist):
 			log.Debugf("Network Drive %s does not have a ConnectFlags", networkDrive.DriveLetter)
 		case errors.Is(err, registry.ErrUnexpectedType):
-			log.Debugf("Network Drive %s has a ConnectFlags value, but the getter function used a wrong type, correct type is %s", valtype)
+			log.Debugf("Network Drive %s has a ConnectFlags value, but the getter function used a wrong type, correct type is %d", networkDrive.DriveLetter, valtype)
 		}
 
 		valueUInt64, valtype, err = driveKey.GetIntegerValue("ProviderFlags")
@@ -126,7 +126,7 @@ func discoverPersistentNetworkDrives() (savedNetworkDrives []PersistentNetworkDr
 		case errors.Is(err, registry.ErrNotExist):
 			log.Debugf("Network Drive %s does not have a ProviderFlags", networkDrive.DriveLetter)
 		case errors.Is(err, registry.ErrUnexpectedType):
-			log.Debugf("Network Drive %s has a ProviderFlags value, but the getter function used a wrong type, correct type is %s", valtype)
+			log.Debugf("Network Drive %s has a ProviderFlags value, but the getter function used a wrong type, correct type is %d", networkDrive.DriveLetter, valtype)
 		}
 
 		valueUInt64, valtype, err = driveKey.GetIntegerValue("DeferFlags")
@@ -136,7 +136,7 @@ func discoverPersistentNetworkDrives() (savedNetworkDrives []PersistentNetworkDr
 		case errors.Is(err, registry.ErrNotExist):
 			log.Debugf("Network Drive %s does not have a DeferFlags", networkDrive.DriveLetter)
 		case errors.Is(err, registry.ErrUnexpectedType):
-			log.Debugf("Network Drive %s has a DeferFlags value, but the getter function used a wrong type, correct type is %s", valtype)
+			log.Debugf("Network Drive %s has a DeferFlags value, but the getter function used a wrong type, correct type is %d", networkDrive.DriveLetter, valtype)
 		}
 
 		valueUInt64, valtype, err = driveKey.GetIntegerValue("ConnectionType")
@@ -146,7 +146,7 @@ func discoverPersistentNetworkDrives() (savedNetworkDrives []PersistentNetworkDr
 		case errors.Is(err, registry.ErrNotExist):
 			log.Debugf("Network Drive %s does not have a ConnectionType", networkDrive.DriveLetter)
 		case errors.Is(err, registry.ErrUnexpectedType):
-			log.Debugf("Network Drive %s has a ConnectionType value, but the getter function used a wrong type, correct type is %s", valtype)
+			log.Debugf("Network Drive %s has a ConnectionType value, but the getter function used a wrong type, correct type is %d", networkDrive.DriveLetter, valtype)
 		}
 
 		networkDrives = append(networkDrives, networkDrive)
