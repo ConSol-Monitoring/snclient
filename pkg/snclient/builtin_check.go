@@ -81,7 +81,7 @@ func (l *CheckBuiltin) Help(ctx context.Context, snc *Agent, check *CheckData, f
 
 	out = check.helpHeader(format, true)
 
-	usage := string(res.BuildPluginOutput())
+	usage := res.BuildOutputString()
 	usage = regexp.MustCompile(`(?m)^\s+$`).ReplaceAllString(usage, "")
 	if format == Markdown {
 		out += "## Usage\n\n"

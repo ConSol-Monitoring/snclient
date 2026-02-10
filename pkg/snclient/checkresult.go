@@ -29,11 +29,11 @@ var reValuesUnit = regexp.MustCompile(`^([0-9.]+)(.*?)$`)
 
 // CheckResult is the result of a single check run.
 type CheckResult struct {
-	State   int64
-	Output  string
-	Metrics []*CheckMetric
-	Raw     *CheckData
-	Details string
+	State   int64          // naemon exit code: OK=0, Warning=1, Critical=2, Unknown=3
+	Output  string         // plugin output, should be human readable
+	Metrics []*CheckMetric // performance data metrics
+	Raw     *CheckData     // reference to the original check data, for use in inventory and other checks
+	Details string         // additional details that should be printed on a new line after the main output, e.g. for showing top consuming processes
 }
 
 func (cr *CheckResult) Finalize(timezone *time.Location, macros ...map[string]string) {
@@ -123,12 +123,18 @@ func (cr *CheckResult) EscalateStatus(state int64) {
 	}
 }
 
-func (cr *CheckResult) BuildPluginOutput() []byte {
-	output := []byte(cr.Output)
+// BuildOutputString returns the output string with details if available
+func (cr *CheckResult) BuildOutputString() string {
 	if cr.Details != "" {
-		output = append(output, '\n')
-		output = append(output, []byte(cr.Details)...)
+		return cr.Output + "\n" + cr.Details
 	}
+
+	return cr.Output
+}
+
+// BuildPluginOutput returns the output as bytes including metrics
+func (cr *CheckResult) BuildPluginOutput() []byte {
+	output := []byte(cr.BuildOutputString())
 	if len(cr.Metrics) > 0 {
 		lines := bytes.Split(output, []byte("\n"))
 		firstLine := lines[0]

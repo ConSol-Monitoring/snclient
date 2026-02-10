@@ -282,7 +282,7 @@ func (l *HandlerWeb) metrics2PerfInt64MinMax(metric *CheckMetric, val *CheckWebP
 // return "lines" list suitable as v1 result, each metric will be a new line to keep the order of the metrics
 func (l *HandlerWeb) result2V1(result *CheckResult) (v1Res []CheckWebLineV1) {
 	v1Res = []CheckWebLineV1{{
-		Message: result.Output,
+		Message: result.BuildOutputString(),
 		Perf:    map[string]any{},
 	}}
 	if len(result.Metrics) == 0 {
@@ -381,7 +381,7 @@ func (l *HandlerWebLegacy) ServeHTTP(res http.ResponseWriter, req *http.Request)
 				"result":  result.StateString(),
 				"lines": []CheckWebLine{
 					{
-						Message: result.Output,
+						Message: result.BuildOutputString(),
 						Perf:    l.Handler.metrics2Perf(result.Metrics),
 					},
 				},
