@@ -356,6 +356,10 @@ func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) 
 		return fmt.Errorf("disk partitions failed: %s", err.Error())
 	}
 	for _, partition := range partitions {
+		// skip empty partitions
+		if partition.Device == "" && partition.Mountpoint == "" && partition.Fstype == "" {
+			continue
+		}
 		logicalDrive := strings.TrimSuffix(partition.Device, "\\") + "\\"
 		entry, ok := requiredDrives[logicalDrive]
 		if !ok {
@@ -580,6 +584,10 @@ func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 	}
 
 	for _, partition := range partitions {
+		// skip empty partitions
+		if partition.Device == "" && partition.Mountpoint == "" && partition.Fstype == "" {
+			continue
+		}
 		logicalDrive := strings.TrimSuffix(partition.Device, "\\") + "\\"
 		driveType, err := GetDriveType(logicalDrive)
 		if err != nil {
