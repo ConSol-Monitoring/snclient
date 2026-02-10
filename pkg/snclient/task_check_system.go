@@ -37,36 +37,7 @@ func init() {
 	// gopsutil on Linux seems to be reading /proc/partitions and then adding more info according to /sys/class/block/<device>/*
 	partitions, err := disk.Partitions(true)
 
-	partitionTypesToFilterOut := []string{
-		"autofs",
-		"bdev",
-		"binfmt_misc",
-		"bpf",
-		"cgroup",
-		"cgroup2",
-		"configfs",
-		"cpuset",
-		"debugfs",
-		"devpts",
-		"devtmpfs",
-		"efivarfs",
-		"fuse.portal",
-		"fusectl",
-		"hugetlbfs",
-		"mqueue",
-		"nsfs",
-		"overlay",
-		"pipefs",
-		"proc",
-		"pstore",
-		"ramfs",
-		"rpc_pipefs",
-		"securityfs",
-		"selinuxfs",
-		"sockfs",
-		"sysfs",
-		"tracefs",
-	}
+	partitionTypesToExclude := defaultExcludedFsTypes()
 
 	if err == nil {
 		for _, partition := range partitions {
@@ -74,7 +45,7 @@ func init() {
 				continue
 			}
 
-			if slices.Contains(partitionTypesToFilterOut, partition.Fstype) {
+			if slices.Contains(partitionTypesToExclude, partition.Fstype) {
 				continue
 			}
 
