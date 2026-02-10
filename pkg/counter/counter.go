@@ -111,6 +111,7 @@ func (c *Counter) AvgForDuration(duration time.Duration) float64 {
 // GetRate calculates rate for given lookback timerange .
 // only works if values are stored as float64 .
 // returned result is in type <change>/s .
+// It uses the unixMili timestamp that is set alongisde Value on every save.
 func (c *Counter) GetRate(lookback time.Duration) (res float64, err error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -224,7 +225,9 @@ func (c *Counter) getAt(lowerBound time.Time) *Value {
 	return previouslyComparedValue
 }
 
-// checks if the counter can fit the targetRetention. optionally extend the interval by count in the check
+// checks if the counter can fit the targetRetention.
+// intervalExtensionCount gives the seconds to optionally extend the interval before checking.
+// if intervalExtensionCount is not 0, a different error message may be returned
 func (c *Counter) CheckRetention(targetRetention time.Duration, intervalExtensionCount int64) error {
 	extendedRetentionRange := c.retention + time.Duration(intervalExtensionCount)*c.interval
 
