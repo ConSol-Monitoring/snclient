@@ -191,6 +191,8 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 			// silently skip failed subdirectory.
 			// If you continue on and the error is checked later, it will add error to the entry
 			// This will make tests fail.
+			log.Tracef("dir: %s, an error occurred during walk: %s, skipping this directory", entry["fullname"], err.Error())
+
 			return fs.SkipDir
 		}
 
@@ -223,7 +225,11 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 	}
 
 	// check filter and pattern before doing more expensive things
-	if match, _ := filepath.Match(l.pattern, entry["filename"]); !match {
+	// pattern matching is only done on files, directories are always added
+	// directories that do not have any matched files under them are later removed
+	if match, _ := filepath.Match(l.pattern, entry["filename"]); entry["type"] == "file" && !match {
+		log.Tracef("filename: %s did not match the pattern: %s , skipping", entry["filename"], l.pattern)
+
 		return nil
 	}
 	if !check.MatchMapCondition(check.filter, entry, true) {
