@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"runtime"
-	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/shirou/gopsutil/v4/mem"
@@ -13,13 +12,6 @@ import (
 func init() {
 	AvailableChecks["check_memory"] = CheckEntry{"check_memory", NewCheckMemory}
 }
-
-const (
-	// Swap In/Out is a raw value stored in the agent counters. To calculate their rate, we need to use a lookback period
-	// Snclient likely has a refresh period around 5 seconds for its counters.
-	// It is recommended to use a calculation period that is higher than 2 times of that
-	SwapInOutRateCalculationPeriod = 30 * time.Second
-)
 
 type CheckMemory struct {
 	memType CommaStringList
@@ -83,8 +75,6 @@ read more on windows virtual address space:
 			{name: "free_pct", description: "Free memory in percent", unit: UPercent},
 			{name: "size", description: "Total memory in human readable bytes (IEC)", unit: UByte},
 			{name: "size_bytes", description: "Total memory in bytes (IEC)", unit: UByte},
-			{name: "in", description: "Swap/Pages being brought in", unit: UNone},
-			{name: "out", description: "Swap/Pages being sent out", unit: UNone},
 		},
 		exampleDefault: `
     check_memory
@@ -99,7 +89,7 @@ Changing the return syntax to get more information:
 	}
 }
 
-func (l *CheckMemory) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
 
 	physical, err := mem.VirtualMemory()
@@ -128,7 +118,7 @@ func (l *CheckMemory) Check(ctx context.Context, snc *Agent, check *CheckData, _
 				return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
 			}
 			if swap.Total > 0 || check.hasArgsSupplied["type"] {
-				l.addSwapResults(check, snc, swap)
+				l.addMemType(check, "swap", swap.Used, swap.Free, swap.Total)
 			}
 		case "committed":
 			total, avail, err := l.committedMemory()
@@ -153,95 +143,6 @@ func (l *CheckMemory) Check(ctx context.Context, snc *Agent, check *CheckData, _
 	}
 
 	return check.Finalize()
-}
-
-func (l *CheckMemory) addSwapResults(check *CheckData, snc *Agent, swap *mem.SwapMemoryStat) {
-	entry := map[string]string{
-		"swap":       fmt.Sprintf("%d", swap.Used),
-		"type":       "swap",
-		"used":       humanize.IBytesF(swap.Used, 2),
-		"used_bytes": fmt.Sprintf("%d", swap.Used),
-		"used_pct":   fmt.Sprintf("%.3f", (float64(swap.Used) * 100 / (float64(swap.Total)))),
-		"free":       humanize.IBytesF(swap.Free, 2),
-		"free_bytes": fmt.Sprintf("%d", swap.Free),
-		"free_pct":   fmt.Sprintf("%.3f", (float64(swap.Free) * 100 / (float64(swap.Free)))),
-		"size":       humanize.IBytesF(swap.Total, 2),
-		"size_bytes": fmt.Sprintf("%d", swap.Total),
-		"in":         fmt.Sprintf("%d", swap.Sin),
-		"out":        fmt.Sprintf("%d", swap.Sout),
-	}
-
-	check.listData = append(check.listData, entry)
-
-	if check.HasThreshold("free") || check.HasThreshold("free_pct") {
-		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.warnThreshold)
-		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.critThreshold)
-		check.AddBytePercentMetrics("free", "swap_free", float64(swap.Free), float64(swap.Total))
-	}
-	if check.HasThreshold("used") || check.HasThreshold("used_pct") {
-		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.warnThreshold)
-		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.critThreshold)
-		check.AddBytePercentMetrics("used", "swap", float64(swap.Used), float64(swap.Total))
-	}
-
-	l.addSwapRate(check, snc)
-}
-
-func (l *CheckMemory) addSwapRate(check *CheckData, snc *Agent) {
-	// snclient counters start saving the swap in and out numbers
-	// add its rate as a metric
-
-	swapInCounter := snc.Counter.Get("memory", "swp_in")
-	if swapInCounter != nil {
-		if err := swapInCounter.CheckRetention(SwapInOutRateCalculationPeriod, 0); err != nil {
-			log.Tracef("memory swap_in counter can not hold the query period: %d, returned err: %s", SwapInOutRateCalculationPeriod, err.Error())
-		}
-
-		if swapInRate, err := swapInCounter.GetRate(SwapInOutRateCalculationPeriod); err == nil {
-			check.result.Metrics = append(check.result.Metrics,
-				&CheckMetric{
-					Name:          "swap_in_rate",
-					Unit:          "",
-					Value:         swapInRate,
-					ThresholdName: "swap_in",
-					Warning:       nil,
-					WarningStr:    nil,
-					Critical:      nil,
-					Min:           &Zero,
-					Max:           nil,
-					PerfConfig:    nil,
-				},
-			)
-		} else {
-			log.Debugf("Error during memory swap_in counter rate calculation: %s", err.Error())
-		}
-	}
-
-	swapOutCounter := snc.Counter.Get("memory", "swp_out")
-	if swapOutCounter != nil {
-		if err := swapOutCounter.CheckRetention(SwapInOutRateCalculationPeriod, 0); err != nil {
-			log.Tracef("memory swap_out counter can not hold the query period: %d, returned err: %s", SwapInOutRateCalculationPeriod, err.Error())
-		}
-
-		if swapOutRate, err := swapOutCounter.GetRate(SwapInOutRateCalculationPeriod); err == nil {
-			check.result.Metrics = append(check.result.Metrics,
-				&CheckMetric{
-					Name:          "swap_out_rate",
-					Unit:          "",
-					Value:         swapOutRate,
-					ThresholdName: "swap_out_rate",
-					Warning:       nil,
-					WarningStr:    nil,
-					Critical:      nil,
-					Min:           &Zero,
-					Max:           nil,
-					PerfConfig:    nil,
-				},
-			)
-		} else {
-			log.Debugf("Error during memory swap_out counter rate calculation: %s", err.Error())
-		}
-	}
 }
 
 func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, total uint64) {

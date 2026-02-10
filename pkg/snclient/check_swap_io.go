@@ -1,0 +1,133 @@
+package snclient
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/consol-monitoring/snclient/pkg/humanize"
+)
+
+func init() {
+	AvailableChecks["check_swap_io"] = CheckEntry{"check_swap_io", NewCheckSwapIO}
+}
+
+type CheckSwapIO struct {
+	lookback int64
+}
+
+const (
+	defaultLookbackSwapIO = int64(60)
+)
+
+func NewCheckSwapIO() CheckHandler {
+	return &CheckSwapIO{
+		lookback: defaultLookbackSwapIO,
+	}
+}
+
+func (l *CheckSwapIO) Build() *CheckData {
+	return &CheckData{
+		name:         "check_swap_io",
+		description:  `Checks the swap Input / Output rate on the host.`,
+		implemented:  ALL,
+		hasInventory: ListInventory,
+		result: &CheckResult{
+			State: CheckExitOK,
+		},
+		args: map[string]CheckArgument{
+			"lookback": {value: &l.lookback, isFilter: true, description: fmt.Sprintf("Lookback period for the value change rate calculations, given in seconds. Default: %d", defaultLookbackDriveIO)},
+		},
+		defaultWarning:  "",
+		defaultCritical: "",
+		okSyntax:        "%(status) - %(list)",
+		detailSyntax:    ">%(swap_in_rate)/s <%(swap_out_rate)/s",
+		topSyntax:       "%(status) - %(list)",
+		attributes: []CheckAttribute{
+			{name: "swap_in_rate_bytes", description: "Swap/Pages being brought in", unit: UByte},
+			{name: "swap_in_rate", description: "Swap/Pages being sent out", unit: UByte},
+			{name: "swap_out_rate_bytes", description: "Swap/Pages being brought in", unit: UByte},
+			{name: "swap_out_rate", description: "Swap/Pages being sent out", unit: UByte},
+		},
+		exampleDefault: `
+	check_swap_io
+`,
+		exampleArgs: "",
+	}
+}
+
+func (l *CheckSwapIO) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
+
+	l.addSwapRate(check, snc)
+
+	return check.Finalize()
+}
+
+func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
+	// snclient counters start periodicallysaving the swap in and out numbers after proram start
+
+	entry := make(map[string]string)
+
+	swapInCounter := snc.Counter.Get("memory", "swp_in")
+	if swapInCounter != nil {
+		if err := swapInCounter.CheckRetention(time.Duration(l.lookback)*time.Second, 0); err != nil {
+			log.Tracef("memory swap_in counter can not hold the query period in s: %d, returned err: %s", l.lookback, err.Error())
+		}
+
+		if swapInRate, err := swapInCounter.GetRate(time.Duration(l.lookback) * time.Second); err == nil {
+			entry["swap_in_rate_bytes"] = fmt.Sprintf("%f", swapInRate)
+			entry["swap_in_rate"] = humanize.IBytesF(uint64(swapInRate), 2)
+
+			// No metrics in this check
+			// check.result.Metrics = append(check.result.Metrics,
+			// 	&CheckMetric{
+			// 		Name:          "swap_in_rate",
+			// 		Unit:          "",
+			// 		Value:         swapInRate,
+			// 		ThresholdName: "swap_in",
+			// 		Warning:       nil,
+			// 		WarningStr:    nil,
+			// 		Critical:      nil,
+			// 		Min:           &Zero,
+			// 		Max:           nil,
+			// 		PerfConfig:    nil,
+			// 	},
+			// )
+		} else {
+			log.Debugf("Error during memory swap_in counter rate calculation: %s", err.Error())
+		}
+	}
+
+	swapOutCounter := snc.Counter.Get("memory", "swp_out")
+	if swapOutCounter != nil {
+		if err := swapOutCounter.CheckRetention(time.Duration(l.lookback)*time.Second, 0); err != nil {
+			log.Tracef("memory swap_out counter can not hold the query period in s: %d, returned err: %s", l.lookback, err.Error())
+		}
+
+		if swapOutRate, err := swapOutCounter.GetRate(time.Duration(l.lookback) * time.Second); err == nil {
+			entry["swap_out_rate_bytes"] = fmt.Sprintf("%f", swapOutRate)
+			entry["swap_out_rate"] = humanize.IBytesF(uint64(swapOutRate), 2)
+
+			// No metrics in this check
+			// check.result.Metrics = append(check.result.Metrics,
+			// 	&CheckMetric{
+			// 		Name:          "swap_out_rate",
+			// 		Unit:          "",
+			// 		Value:         swapOutRate,
+			// 		ThresholdName: "swap_out_rate",
+			// 		Warning:       nil,
+			// 		WarningStr:    nil,
+			// 		Critical:      nil,
+			// 		Min:           &Zero,
+			// 		Max:           nil,
+			// 		PerfConfig:    nil,
+			// 	},
+			// )
+		} else {
+			log.Debugf("Error during memory swap_out counter rate calculation: %s", err.Error())
+		}
+	}
+
+	check.listData = append(check.listData, entry)
+}
