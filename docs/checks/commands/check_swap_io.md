@@ -40,13 +40,13 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                          |
-| ------------- | -------------------------------------- |
-| empty-state   | 0 (OK)                                 |
-| empty-syntax  |                                        |
-| top-syntax    | %(status) - %(list)                    |
-| ok-syntax     | %(status) - %(list)                    |
-| detail-syntax | >%(swap_in_rate)/s <%(swap_out_rate)/s |
+| Argument      | Default Value                                              |
+| ------------- | ---------------------------------------------------------- |
+| empty-state   | 0 (OK)                                                     |
+| empty-syntax  |                                                            |
+| top-syntax    | %(status) - %(list)                                        |
+| ok-syntax     | %(status) - %(list)                                        |
+| detail-syntax | %(swap_count) swaps >%(swap_in_rate)/s <%(swap_out_rate)/s |
 
 ## Check Specific Arguments
 
@@ -62,6 +62,7 @@ these can be used in filters and thresholds (along with the default attributes):
 
 | Attribute           | Description                 |
 | ------------------- | --------------------------- |
+| swap_count          | Count of swap partitions    |
 | swap_in_rate_bytes  | Swap/Pages being brought in |
 | swap_in_rate        | Swap/Pages being sent out   |
 | swap_out_rate_bytes | Swap/Pages being brought in |

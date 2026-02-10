@@ -1,10 +1,15 @@
 package snclient
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"os"
+	"runtime"
+	"strings"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
 )
 
@@ -41,9 +46,10 @@ func (l *CheckSwapIO) Build() *CheckData {
 		defaultWarning:  "",
 		defaultCritical: "",
 		okSyntax:        "%(status) - %(list)",
-		detailSyntax:    ">%(swap_in_rate)/s <%(swap_out_rate)/s",
+		detailSyntax:    "%(swap_count) swaps >%(swap_in_rate)/s <%(swap_out_rate)/s",
 		topSyntax:       "%(status) - %(list)",
 		attributes: []CheckAttribute{
+			{name: "swap_count", description: "Count of swap partitions"},
 			{name: "swap_in_rate_bytes", description: "Swap/Pages being brought in", unit: UByte},
 			{name: "swap_in_rate", description: "Swap/Pages being sent out", unit: UByte},
 			{name: "swap_out_rate_bytes", description: "Swap/Pages being brought in", unit: UByte},
@@ -68,6 +74,10 @@ func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
 	// snclient counters start periodicallysaving the swap in and out numbers after proram start
 
 	entry := make(map[string]string)
+
+	swaps := readSwaps()
+
+	entry["swap_count"] = fmt.Sprintf("%d", len(swaps))
 
 	swapInCounter := snc.Counter.Get("memory", "swp_in")
 	if swapInCounter != nil {
@@ -130,4 +140,75 @@ func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
 	}
 
 	check.listData = append(check.listData, entry)
+}
+
+type ProcSwapsLine struct {
+	filename string
+	_type    string
+	_size    uint64
+	used     uint64
+	priority int32
+}
+
+func readSwaps() []ProcSwapsLine {
+	swaps := make([]ProcSwapsLine, 0)
+
+	switch runtime.GOOS {
+	case "linux", "bsd", "darwin":
+	default:
+		return swaps
+	}
+
+	file, err := os.Open("/proc/swaps")
+
+	// discern error if file does not exist
+	if err != nil {
+		return swaps
+	}
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// skip header , which looks like this
+		// Filename  Type  Size  Used  Priority
+		if strings.HasPrefix(line, "Filename") {
+			continue
+		}
+
+		fields := strings.Fields(line)
+
+		if len(fields) == 5 {
+			filename := fields[0]
+
+			_type := fields[1]
+
+			_size, err := convert.UInt64E(fields[2])
+			if err != nil {
+				continue
+			}
+
+			used, err := convert.UInt64E(fields[3])
+			if err != nil {
+				continue
+			}
+
+			priority, err := convert.Int32E(fields[4])
+			if err != nil {
+				continue
+			}
+
+			swaps = append(swaps, ProcSwapsLine{
+				filename: filename,
+				_type:    _type,
+				_size:    _size,
+				used:     used,
+				priority: priority,
+			})
+
+		}
+	}
+
+	return swaps
 }
