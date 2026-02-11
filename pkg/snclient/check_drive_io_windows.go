@@ -15,6 +15,7 @@ func (l *CheckDriveIO) buildEntry(snc *Agent, diskIOCounters any, deviceLogicalN
 	diskIOCountersTypecasted, ok := diskIOCounters.(map[string]IOCountersStatWindows)
 	if !ok {
 		log.Debug("Platform is windows, diskIOCounters should have IOCountersStatWindows keys")
+
 		return false
 	}
 
@@ -94,7 +95,7 @@ func (l *CheckDriveIO) calculateUtilizationFromIdleAndQueryCounters(idleTimeCoun
 	// idle time may be 0 for real if drive did nothing, no need to check it unlike queryTime
 
 	if idleTimeLastUint64 < idleTimeLookbackUint64 {
-		return 0, fmt.Errorf("idleTimeLastUint64 is smaller than idleTimeLookbackUint64, it is a counter and should always grow.")
+		return 0, fmt.Errorf("idleTimeLastUint64 is smaller than idleTimeLookbackUint64, it is a counter and should always grow")
 	}
 
 	queryTimeLastPtr := queryTimeCounter.GetLast()
@@ -125,7 +126,7 @@ func (l *CheckDriveIO) calculateUtilizationFromIdleAndQueryCounters(idleTimeCoun
 	}
 
 	if queryTimeLastUint64 < queryTimeLookbackUint64 {
-		return 0, fmt.Errorf("queryTimeLastUint64 is smaller than queryTimeLookbackUint64, it is a timestamp counter and should always grow.")
+		return 0, fmt.Errorf("queryTimeLastUint64 is smaller than queryTimeLookbackUint64, it is a timestamp counter and should always grow")
 	}
 
 	// This may not be precise, but there are no other primitives to do it
