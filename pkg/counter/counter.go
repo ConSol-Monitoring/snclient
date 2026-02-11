@@ -134,11 +134,11 @@ func (c *Counter) GetRate(lookback time.Duration) (res float64, err error) {
 		return res, fmt.Errorf("last counter entry has a lower timestamp than entry searched at T-%d", lookback)
 	}
 
-	durationMillis := float64(count1.UnixMilli - count2.UnixMilli)
-	if durationMillis < 0 {
-		return res, fmt.Errorf("the duration difference between the counter entries is negative: %f", durationMillis)
+	deltaTinMs := float64(count1.UnixMilli - count2.UnixMilli)
+	if deltaTinMs < 0 {
+		return res, fmt.Errorf("the duration difference between the counter entries is negative: %f", deltaTinMs)
 	}
-	if durationMillis == 0 {
+	if deltaTinMs == 0 {
 		return res, fmt.Errorf("the duration difference between the counter entries is 0")
 	}
 
@@ -149,10 +149,16 @@ func (c *Counter) GetRate(lookback time.Duration) (res float64, err error) {
 
 	val2, ok := count2.Value.(float64)
 	if !ok {
-		return res, fmt.Errorf("counter entry searched at T-%f has a non float64 value", durationMillis)
+		return res, fmt.Errorf("counter entry searched at T-%f has a non float64 value", deltaTinMs)
 	}
 
-	res = ((val1 - val2) / durationMillis) * 1000
+	// calculate in this order to preserve precision
+
+	deltaVal := val1 - val2
+
+	deltaTinS := deltaTinMs / 1000
+
+	res = deltaVal / deltaTinS
 
 	return res, nil
 }
