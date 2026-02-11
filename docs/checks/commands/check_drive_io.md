@@ -27,7 +27,7 @@ _utilization'=41.2%;95;;0; 'C_queue_depth'=0;;;0;
 Check a UNIX drive and alert if for the last 30 seconds written bytes/second is above 10 Mb/s . Dm-0 is the name of the encrypted volume, it could be nvme0n1 or sdb as well
 
     check_drivesize lookback=30 warn="write_bytes_rate > 10Mb"
-	OK - dm-0 >580134.2346306148 <2621.335146594136 0.3 |'dm-0_read_count'=525328;;;0; 'dm-0_read_bytes'=19601354752B;;;0; 'dm-0_read_time'=126528;;;0; 'dm-0_write_count'=4182134;;;0; 'dm-0_write_bytes'=263957790720B;;;0; 'dm-0_write_time'=145147492;;;0; 'dm-0_utilization'=0.3;;;0; 'dm-0_io_time'=307500;;;0; 'dm-0_weighted_io'=145274020;;;0; 'dm-0_iops_in_progress'=0;;;0;
+	OK - dm-0 >1.8 MiB/s/s <815.0 B/s/s 0.0%, sda1 >0 B/s/s <0 B/s/s 0.0% |'dm-0_read_count'=396738362c;;;0; 'dm-0_read_bytes'=33871348975616c;;;0; 'dm-0_read_time'=2990729692ms;;;0; 'dm-0_write_count'=624158141c;;;0; 'dm-0_write_bytes'=36083702012416c;;;0; 'dm-0_write_time'=1412729952ms;;;0; 'dm-0_utilization'=0%;95;;0; 'dm-0_io_time'=738627512ms;;;0; 'dm-0_weighted_io'=108492348;;;0; 'dm-0_iops_in_progress'=0;;;0; 'sda1_read_count'=3178c;;;0; 'sda1_read_bytes'=67430400c;;;0; 'sda1_read_time'=13572ms;;;0; 'sda1_write_count'=3193c;;;0; 'sda1_write_bytes'=282012672c;;;0; 'sda1_write_time'=9446ms;;;0; 'sda1_utilization'=0%;95;;0; 'sda1_io_time'=10832ms;;;0; 'sda1_weighted_io'=23019;;;0; 'sda1_iops_in_progress'=0;;;0;
 
 ### Example using NRPE and Naemon
 
