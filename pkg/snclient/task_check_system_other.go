@@ -19,7 +19,7 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 	if create {
 		for diskName := range diskIOCounters {
 			if !DiskEligibleForWatch(diskName) {
-				log.Tracef("not adding disk stat counter since it is found to be not-physical: %s", diskName)
+				log.Tracef("not adding disk stat counter since it is not found to be eligible for watch: %s", diskName)
 
 				continue
 			}

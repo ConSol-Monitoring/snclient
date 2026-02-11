@@ -34,11 +34,10 @@ var DefaultSystemTaskConfig = ConfigData{
 var PartitionDevicesToWatch []string
 
 func init() {
-	// gopsutil on Linux seems to be reading /proc/partitions and then adding more info according to /sys/class/block/<device>/*
+	// gopsutil on Linux seems to be reading /proc/partitions
+	// Then it adds more info according to /sys/class/block/<device>/*
 	partitions, err := disk.Partitions(true)
-
 	partitionTypesToExclude := defaultExcludedFsTypes()
-
 	if err == nil {
 		for _, partition := range partitions {
 			if partition.Device == "none" {
@@ -49,8 +48,17 @@ func init() {
 				continue
 			}
 
+			// Do not leave debug calls on init functions, this can mess up the plugin output
+			// Only used for debugging temporarily
+			// log.Tracef("Adding device to watch, partition: %v", partition)
+
 			PartitionDevicesToWatch = append(PartitionDevicesToWatch, partition.Device)
 		}
+	} else {
+
+		// Do not leave debug calls on init functions, this can mess up the plugin output
+		// Only used for debugging temporarily
+		// log.Warnf("Error when calling disk.Partitions() , err: %s", err.Error())
 	}
 }
 
