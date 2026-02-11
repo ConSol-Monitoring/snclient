@@ -57,6 +57,7 @@ func (l *CheckSwapIO) Build() *CheckData {
 		},
 		exampleDefault: `
 	check_swap_io
+	OK - 1 swaps >22.98 KiB/s <18.58 MiB/s |'swap_in'=54024851456c;;;0; 'swap_out'=179375353856c;;;0;
 `,
 		exampleArgs: "",
 	}

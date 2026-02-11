@@ -21,6 +21,7 @@ Checks the swap Input / Output rate on the host.
 ### Default Check
 
 	check_swap_io
+	OK - 1 swaps >22.98 KiB/s <18.58 MiB/s |'swap_in'=54024851456c;;;0; 'swap_out'=179375353856c;;;0;
 
 ### Example using NRPE and Naemon
 
@@ -50,9 +51,9 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument | Description                                                                            |
-| -------- | -------------------------------------------------------------------------------------- |
-| lookback | Lookback period for the value change rate calculations, given in seconds. Default: 300 |
+| Argument | Description                                                                           |
+| -------- | ------------------------------------------------------------------------------------- |
+| lookback | Lookback period for the value change rate calculations, given in seconds. Default: 60 |
 
 ## Attributes
 
