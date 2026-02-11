@@ -2,12 +2,15 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - change minimum golang requirement to 1.25.7
-         - check_drivesize ignore drive not found errors if empty-state is set (#315)
+         - check_drivesize: ignore drive not found errors if empty-state is set (#315)
+         - check_drivesize: add support to check windows network shares (#318)
          - check_cpu add idle time (#308)
          - check_cpu add procs-to-show option to show 10 N processes
-         - check_memory add procs-to-show option to show 10 N processes sorted by memory usage
-         - add hide-args options when using procs-to-show to only show the executable without arguments
+         - check_memory: add procs-to-show option to show 10 N processes sorted by memory usage
+         - check_load: add hide-args options when using procs-to-show to only show the executable without arguments
+         - add today/thisweek/thismonth/... filter (#324)
          - fix showing procs-to-show via rest api
+         - check_tasksched: fix returning unknown error codes
          - chore: update dependencies
 
 0.41     Fri Dec 19 19:16:59 CET 2025

@@ -115,7 +115,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "drive_or_id", description: "Drive letter if present if not use id"},
 			{name: "drive_or_name", description: "Drive letter if present if not use name"},
 			{name: "fstype", description: "Filesystem type"},
-			{name: "mounted", description: "Flag wether drive is mounter (0/1)"},
+			{name: "mounted", description: "Flag whether drive is mounter (0/1)"},
 
 			{name: "free", description: "Free (human readable) bytes", unit: UByte},
 			{name: "free_bytes", description: "Number of free bytes", unit: UByte},
@@ -145,7 +145,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "readable", description: "Windows only: flag drive is readable (0/1)"},
 			{name: "writable", description: "Windows only: flag drive is writable (0/1)"},
 			{name: "removable", description: "Windows only: flag drive is removable (0/1)"},
-			{name: "erasable", description: "Windows only: flag wether if drive is erasable (0/1)"},
+			{name: "erasable", description: "Windows only: flag whether if drive is erasable (0/1)"},
 			{name: "hotplug", description: "Windows only: flag drive is hotplugable (0/1)"},
 
 			{name: "remote_name", description: "Windows only: the remote name of the drive, if it uses a network name"},
