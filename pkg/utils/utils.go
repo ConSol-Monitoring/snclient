@@ -332,8 +332,6 @@ func TrimQuotes(str string) (res string, err error) {
 		if err != nil && errors.Is(err, &st.UnbalancedQuotesError{}) {
 			return str, fmt.Errorf("unbalanced quotes in '%s'", str)
 		}
-		str = strings.TrimPrefix(str, "'")
-		str = strings.TrimSuffix(str, "'")
 	}
 
 	switch {

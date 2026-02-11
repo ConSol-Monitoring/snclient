@@ -143,6 +143,8 @@ func TestTrimQuotes(t *testing.T) {
 		{`test'test`, `test'test`, false},
 		{`test test'`, "", true},
 		{`test test"`, "", true},
+		{`test='test'`, `test='test'`, false},
+		{`test="test"`, `test="test"`, false},
 	}
 
 	for _, tst := range tests {
