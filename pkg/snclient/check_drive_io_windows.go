@@ -88,8 +88,10 @@ func (l *CheckDriveIO) calculateUtilizationFromIdleAndQueryCounters(idleTimeCoun
 
 	idleTimeDelta := idleTimeLastUint64 - idleTimeLookbackUint64
 
-	if idleTimeDelta < 0 {
-		return 0, fmt.Errorf("IdleTimeDelta is negative, it is a counter and should always grow.")
+	// idle time may be 0 for real if drive did nothing, no need to check it unlike queryTime
+
+	if idleTimeLastUint64 < idleTimeLookbackUint64 {
+		return 0, fmt.Errorf("idleTimeLastUint64 is smaller than idleTimeLookbackUint64, it is a counter and should always grow.")
 	}
 
 	queryTimeLastPtr := queryTimeCounter.GetLast()
@@ -119,8 +121,8 @@ func (l *CheckDriveIO) calculateUtilizationFromIdleAndQueryCounters(idleTimeCoun
 		return 0, fmt.Errorf("queryTimeDelta is 0, calculation will result in NaN")
 	}
 
-	if queryTimeDelta < 0 {
-		return 0, fmt.Errorf("queryTimeDelta is negative, it is a timestamp counter and should always grow.")
+	if queryTimeLastUint64 < queryTimeLookbackUint64 {
+		return 0, fmt.Errorf("queryTimeLastUint64 is smaller than queryTimeLookbackUint64, it is a timestamp counter and should always grow.")
 	}
 
 	// This may not be precise, but there are no other primitives to do it
