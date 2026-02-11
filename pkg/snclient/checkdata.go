@@ -1629,13 +1629,24 @@ func (cd *CheckData) applyDefaultThreshold(defaultThreshold string, list Conditi
 
 // set default threshold unless already set
 func (cd *CheckData) appendDefaultThreshold(keyword, condStr, defaultThreshold string, list ConditionList) (ConditionList, error) {
-	if len(list) > 0 {
-		return nil, fmt.Errorf("keyword %s= cannot be used multiple times", keyword)
-	}
-
 	cond, err := NewCondition(condStr, &cd.attributes)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(list) > 0 {
+		if keyword != "filter+" {
+			return nil, fmt.Errorf("keyword %s= cannot be used multiple times", keyword)
+		}
+
+		combined := append(list, cond)
+
+		list = ConditionList{&Condition{
+			group:         combined,
+			groupOperator: GroupAnd,
+		}}
+
+		return list, nil
 	}
 
 	if defaultThreshold == "" {

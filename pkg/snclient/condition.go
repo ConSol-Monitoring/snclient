@@ -39,7 +39,7 @@ type Condition struct {
 	// store initial string
 	original string
 
-	// reference to check attributes (used to expand by unit)
+	// back reference to check attributes (used to expand by unit)
 	attr *[]CheckAttribute
 }
 

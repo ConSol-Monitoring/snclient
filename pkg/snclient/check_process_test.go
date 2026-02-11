@@ -65,5 +65,10 @@ func TestCheckProcess(t *testing.T) {
 	assert.Regexpf(t, `OK - no processes found with this filter`, string(res.BuildPluginOutput()), "output ok")
 	assert.Regexpf(t, `'count'=0;`, string(res.BuildPluginOutput()), "count ok")
 
+	// appending filter to previously set filter
+	res = snc.RunCheck("check_process", []string{"filter='pid > 0'", "filter+='pid < 10000'"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `OK - all \d+ processes are ok`, string(res.BuildPluginOutput()), "output ok")
+
 	StopTestAgent(t, snc)
 }

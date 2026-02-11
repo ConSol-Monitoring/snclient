@@ -69,6 +69,15 @@ results in:
 
     fstype is not tmpfs AND fstype is not debugfs
 
+Same applies to appending to previously set filters:
+
+ex.:
+    filter="fstype is not tmpfs"    filter+="fstype is not debugfs"
+
+also results in:
+
+    fstype is not tmpfs AND fstype is not debugfs
+
 ## Expressions
 
 Expressions are explained on the [expressions page](../expressions).
