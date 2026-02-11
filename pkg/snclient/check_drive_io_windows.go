@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/counter"
 )
 
@@ -77,31 +76,55 @@ func (l *CheckDriveIO) calculateUtilizationFromIdleAndQueryCounters(idleTimeCoun
 		return 0, fmt.Errorf("idleTimeLookbackPtr is nil")
 	}
 
-	idleTimeDelta := convert.Float64(idleTimeLastPtr.Value) - convert.Float64(idleTimeLookbackPtr.Value)
+	idleTimeLastUint64, ok := idleTimeLastPtr.Value.(uint64)
+	if !ok {
+		return 0, fmt.Errorf("idleTimeLastPtr.Value is not uint64")
+	}
+
+	idleTimeLookbackUint64, ok := idleTimeLookbackPtr.Value.(uint64)
+	if !ok {
+		return 0, fmt.Errorf("idleTimeLookbackPtr.Value is not uint64")
+	}
+
+	idleTimeDelta := idleTimeLastUint64 - idleTimeLookbackUint64
+
+	if idleTimeDelta < 0 {
+		return 0, fmt.Errorf("IdleTimeDelta is negative, it is a counter and should always grow.")
+	}
 
 	queryTimeLastPtr := queryTimeCounter.GetLast()
 	queryTimeLookbackPtr := queryTimeCounter.GetAt(lookbackTime)
 
 	if queryTimeLastPtr == nil {
-		return 0, fmt.Errorf("idleTimeLastPtr is nil")
+		return 0, fmt.Errorf("queryTimeLastPtr is nil")
 	}
 
 	if queryTimeLookbackPtr == nil {
-		return 0, fmt.Errorf("idleTimeLookbackPtr is nil")
+		return 0, fmt.Errorf("queryTimeLookbackPtr is nil")
 	}
 
-	queryTimeDelta := uint64(0)
-	if queryTimeLastUint64, ok := queryTimeLastPtr.Value.(uint64); ok {
-		if queryTimeLookbackUint64, ok := queryTimeLookbackPtr.Value.(uint64); ok {
-			queryTimeDelta = queryTimeLastUint64 - queryTimeLookbackUint64
-		}
+	queryTimeLastUint64, ok := queryTimeLastPtr.Value.(uint64)
+	if !ok {
+		return 0, fmt.Errorf("queryTimeLastPtr.Value is not uint64")
 	}
+
+	queryTimeLookbackUint64, ok := queryTimeLookbackPtr.Value.(uint64)
+	if !ok {
+		return 0, fmt.Errorf("queryTimeLookbackPtr.Value is not uint64")
+	}
+
+	queryTimeDelta := queryTimeLastUint64 - queryTimeLookbackUint64
 
 	if queryTimeDelta == 0 {
 		return 0, fmt.Errorf("queryTimeDelta is 0, calculation will result in NaN")
 	}
 
-	idleRatio := idleTimeDelta / float64(queryTimeDelta)
+	if queryTimeDelta < 0 {
+		return 0, fmt.Errorf("queryTimeDelta is negative, it is a timestamp counter and should always grow.")
+	}
+
+	// This may not be precise, but there are no other primitives to do it
+	idleRatio := float64(idleTimeDelta) / float64(queryTimeDelta)
 
 	utilizationRatio = 1 - idleRatio
 
