@@ -41,7 +41,7 @@ func (l *CheckSwapIO) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"lookback": {value: &l.lookback, isFilter: true, description: fmt.Sprintf("Lookback period for the value change rate calculations, given in seconds. Default: %d", defaultLookbackDriveIO)},
+			"lookback": {value: &l.lookback, isFilter: true, description: fmt.Sprintf("Lookback period for the value change rate calculations, given in seconds. Default: %d", defaultLookbackSwapIO)},
 		},
 		defaultWarning:  "",
 		defaultCritical: "",
@@ -70,6 +70,7 @@ func (l *CheckSwapIO) Check(_ context.Context, snc *Agent, check *CheckData, _ [
 	return check.Finalize()
 }
 
+//nolint:funlen // the function is simple enough
 func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
 	// snclient counters start periodicallysaving the swap in and out numbers after proram start
 
@@ -79,64 +80,96 @@ func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
 
 	entry["swap_count"] = fmt.Sprintf("%d", len(swaps))
 
-	swapInCounter := snc.Counter.Get("memory", "swp_in")
-	if swapInCounter != nil {
-		if err := swapInCounter.CheckRetention(time.Duration(l.lookback)*time.Second, 0); err != nil {
-			log.Tracef("memory swap_in counter can not hold the query period in s: %d, returned err: %s", l.lookback, err.Error())
-		}
+	counterCategory := "memory"
+	counterKey := "swp_in"
+	swapInCounter := snc.Counter.Get(counterCategory, counterKey)
 
-		if swapInRate, err := swapInCounter.GetRate(time.Duration(l.lookback) * time.Second); err == nil {
-			entry["swap_in_rate_bytes"] = fmt.Sprintf("%f", swapInRate)
-			entry["swap_in_rate"] = humanize.IBytesF(uint64(swapInRate), 2)
+	if swapInCounter == nil {
+		entry["_error"] += fmt.Sprintf("There is no counter with category: %s and key: %s", counterCategory, counterKey)
 
-			// No metrics in this check
-			// check.result.Metrics = append(check.result.Metrics,
-			// 	&CheckMetric{
-			// 		Name:          "swap_in_rate",
-			// 		Unit:          "",
-			// 		Value:         swapInRate,
-			// 		ThresholdName: "swap_in",
-			// 		Warning:       nil,
-			// 		WarningStr:    nil,
-			// 		Critical:      nil,
-			// 		Min:           &Zero,
-			// 		Max:           nil,
-			// 		PerfConfig:    nil,
-			// 	},
-			// )
-		} else {
-			log.Debugf("Error during memory swap_in counter rate calculation: %s", err.Error())
-		}
+		return
+	}
+
+	if err := swapInCounter.CheckRetention(time.Duration(l.lookback)*time.Second, 0); err != nil {
+		message := fmt.Sprintf("memory swap_in counter can not hold the query period in s: %d, returned err: %s", l.lookback, err.Error())
+		log.Trace(message)
+		entry["_error"] = entry["_error"] + " | " + message
+	}
+
+	swapInLast := swapInCounter.GetLast()
+	if swapInLast != nil {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				Name:          "swap_in",
+				Unit:          "c",
+				Value:         swapInLast.Value,
+				ThresholdName: "swap_in",
+				Warning:       nil,
+				WarningStr:    nil,
+				Critical:      nil,
+				Min:           &Zero,
+				Max:           nil,
+				PerfConfig:    nil,
+			},
+		)
+	} else {
+		message := "swapInCounter does not have a last value"
+		log.Debug(message)
+		entry["_error"] = entry["_error"] + " | " + message
+	}
+
+	if swapInRate, err := swapInCounter.GetRate(time.Duration(l.lookback) * time.Second); err == nil {
+		entry["swap_in_rate_bytes"] = fmt.Sprintf("%f", swapInRate)
+		entry["swap_in_rate"] = humanize.IBytesF(uint64(swapInRate), 2)
+	} else {
+		message := fmt.Sprintf("Error during memory swap_in counter rate calculation: %s", err.Error())
+		log.Debug(message)
+		entry["_error"] = entry["_error"] + " | " + message
 	}
 
 	swapOutCounter := snc.Counter.Get("memory", "swp_out")
-	if swapOutCounter != nil {
-		if err := swapOutCounter.CheckRetention(time.Duration(l.lookback)*time.Second, 0); err != nil {
-			log.Tracef("memory swap_out counter can not hold the query period in s: %d, returned err: %s", l.lookback, err.Error())
-		}
+	counterKey = "swp_out"
+	if swapOutCounter == nil {
+		entry["_error"] += fmt.Sprintf("There is no counter with category: %s and key: %s", counterCategory, counterKey)
 
-		if swapOutRate, err := swapOutCounter.GetRate(time.Duration(l.lookback) * time.Second); err == nil {
-			entry["swap_out_rate_bytes"] = fmt.Sprintf("%f", swapOutRate)
-			entry["swap_out_rate"] = humanize.IBytesF(uint64(swapOutRate), 2)
+		return
+	}
 
-			// No metrics in this check
-			// check.result.Metrics = append(check.result.Metrics,
-			// 	&CheckMetric{
-			// 		Name:          "swap_out_rate",
-			// 		Unit:          "",
-			// 		Value:         swapOutRate,
-			// 		ThresholdName: "swap_out_rate",
-			// 		Warning:       nil,
-			// 		WarningStr:    nil,
-			// 		Critical:      nil,
-			// 		Min:           &Zero,
-			// 		Max:           nil,
-			// 		PerfConfig:    nil,
-			// 	},
-			// )
-		} else {
-			log.Debugf("Error during memory swap_out counter rate calculation: %s", err.Error())
-		}
+	swapOutLast := swapOutCounter.GetLast()
+	if swapOutLast != nil {
+		check.result.Metrics = append(check.result.Metrics,
+			&CheckMetric{
+				Name:          "swap_out",
+				Unit:          "c",
+				Value:         swapOutLast.Value,
+				ThresholdName: "swap_out",
+				Warning:       nil,
+				WarningStr:    nil,
+				Critical:      nil,
+				Min:           &Zero,
+				Max:           nil,
+				PerfConfig:    nil,
+			},
+		)
+	} else {
+		message := "swapOutCounter does not have a last value"
+		log.Debug(message)
+		entry["_error "] = entry["_error"] + " | " + message
+	}
+
+	if err := swapOutCounter.CheckRetention(time.Duration(l.lookback)*time.Second, 0); err != nil {
+		message := fmt.Sprintf("memory swap_out counter can not hold the query period in s: %d, returned err: %s", l.lookback, err.Error())
+		log.Trace(message)
+		entry["_error"] = entry["_error"] + " | " + message
+	}
+
+	if swapOutRate, err := swapOutCounter.GetRate(time.Duration(l.lookback) * time.Second); err == nil {
+		entry["swap_out_rate_bytes"] = fmt.Sprintf("%f", swapOutRate)
+		entry["swap_out_rate"] = humanize.IBytesF(uint64(swapOutRate), 2)
+	} else {
+		message := fmt.Sprintf("Error during memory swap_out counter rate calculation: %s", err.Error())
+		log.Debug(message)
+		entry["_error"] = entry["_error"] + " | " + message
 	}
 
 	check.listData = append(check.listData, entry)
@@ -160,7 +193,6 @@ func readSwaps() []ProcSwapsLine {
 	}
 
 	file, err := os.Open("/proc/swaps")
-
 	// discern error if file does not exist
 	if err != nil {
 		return swaps
@@ -206,7 +238,6 @@ func readSwaps() []ProcSwapsLine {
 				used:     used,
 				priority: priority,
 			})
-
 		}
 	}
 
