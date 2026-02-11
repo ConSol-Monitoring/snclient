@@ -11,45 +11,48 @@ func getIOCounters() (any, error) {
 	return IoCountersWindows()
 }
 
-//nolint:nestif // two typecasts cause nested ifs, the block inside is simple
 func (l *CheckDriveIO) buildEntry(snc *Agent, diskIOCounters any, deviceLogicalNameOrLetter string, entry map[string]string) (foundDisk bool) {
-	if diskIOCounters, ok := diskIOCounters.(map[string]IOCountersStatWindows); ok {
-		if counters, ok := diskIOCounters[deviceLogicalNameOrLetter]; ok {
-			foundDisk = true
+	diskIOCountersTypecasted, ok := diskIOCounters.(map[string]IOCountersStatWindows)
+	if !ok {
+		log.Debug("Platform is windows, diskIOCounters should have IOCountersStatWindows keys")
+		return false
+	}
 
-			// counters use this format when saving metrics
-			// found in CheckSystemHandler.addLinuxDiskStats
-			counterCategory := "disk_" + counters.Name
+	if counters, ok := diskIOCountersTypecasted[deviceLogicalNameOrLetter]; ok {
+		foundDisk = true
 
-			entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
-			l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
-			entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
-			l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
-			entry["read_time"] = fmt.Sprintf("%f", counters.ReadTime)
+		// counters use this format when saving metrics
+		// found in CheckSystemHandler.addLinuxDiskStats
+		counterCategory := "disk_" + counters.Name
 
-			entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
-			l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
-			entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
-			l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
-			entry["write_time"] = fmt.Sprintf("%f", counters.WriteTime)
+		entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
+		l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
+		entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
+		l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
+		entry["read_time"] = fmt.Sprintf("%f", counters.ReadTime)
 
-			entry["idle_time"] = fmt.Sprintf("%d", counters.IdleTime)
-			entry["query_time"] = fmt.Sprintf("%d", counters.QueryTime)
+		entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
+		l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
+		entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
+		l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
+		entry["write_time"] = fmt.Sprintf("%f", counters.WriteTime)
 
-			idleTimeCounter := snc.Counter.Get(counterCategory, "idle_time")
-			queryTimeCounter := snc.Counter.Get(counterCategory, "query_time")
+		entry["idle_time"] = fmt.Sprintf("%d", counters.IdleTime)
+		entry["query_time"] = fmt.Sprintf("%d", counters.QueryTime)
 
-			if idleTimeCounter != nil && queryTimeCounter != nil {
-				utilization, err := l.calculateUtilizationFromIdleAndQueryCounters(idleTimeCounter, queryTimeCounter)
-				if err != nil {
-					log.Tracef("Error when calculating utilization from IdleTime and QueryTime counters: %s", err.Error())
-				}
-				entry["utilization"] = fmt.Sprintf("%.1f", utilization)
+		idleTimeCounter := snc.Counter.Get(counterCategory, "idle_time")
+		queryTimeCounter := snc.Counter.Get(counterCategory, "query_time")
+
+		if idleTimeCounter != nil && queryTimeCounter != nil {
+			utilization, err := l.calculateUtilizationFromIdleAndQueryCounters(idleTimeCounter, queryTimeCounter)
+			if err != nil {
+				log.Tracef("Error when calculating utilization from IdleTime and QueryTime counters: %s", err.Error())
 			}
-
-			entry["queue_depth"] = fmt.Sprintf("%d", counters.QueueDepth)
-			entry["split_count"] = fmt.Sprintf("%d", counters.SplitCount)
+			entry["utilization"] = fmt.Sprintf("%.1f", utilization)
 		}
+
+		entry["queue_depth"] = fmt.Sprintf("%d", counters.QueueDepth)
+		entry["split_count"] = fmt.Sprintf("%d", counters.SplitCount)
 	}
 
 	return foundDisk

@@ -33,7 +33,8 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 		}
 	}
 
-	// use the no-copy range iteraiton, otherwise we copy the whole struct and linter does not allow it
+	// for key K, value V := range map[K]V copies value
+	// use the no-copy range iteraiton, since the struct is 136 bytes
 	for diskName := range diskIOCounters {
 		if !DiskEligibleForWatch(diskName) {
 			continue
