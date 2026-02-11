@@ -613,7 +613,7 @@ func (cd *CheckData) parseStateString(state string) int64 {
 // parseArgs parses check arguments into the CheckData struct
 // and returns all unknown options
 //
-//nolint:funlen,gocyclo // it is not complex, it is just a long list of options
+//nolint:funlen,gocyclo,maintidx // it is not complex, it is just a long list of options
 func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 	cd.rawArgs = args
 	cd.hasArgsSupplied = map[string]bool{}
@@ -621,9 +621,19 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 	cd.expandArgDefinitions()
 	topSupplied := false
 	okSupplied := false
+
 	sanitized, defaultWarning, defaultCritical, applyDefaultFilter, err := cd.preParseArgs(args)
 	if err != nil {
 		return nil, err
+	}
+
+	// skip argument parsing for external scripts
+	if _, ok := AvailableChecks[cd.name]; !ok && cd.argsPassthrough {
+		for _, arg := range sanitized {
+			argList = append(argList, Argument{key: arg.key, value: arg.value})
+		}
+
+		return argList, nil
 	}
 
 	for _, arg := range sanitized {

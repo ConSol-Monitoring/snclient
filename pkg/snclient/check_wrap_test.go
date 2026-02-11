@@ -133,6 +133,10 @@ func runTestCheckExternalDefault(t *testing.T, snc *Agent) {
 	res = snc.RunCheck("check_dummy_arg2", []string{"0"})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
 	assert.Equalf(t, "OK", string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_dummy_args", []string{"0", "arg1", "-v", "-m", "critical"})
+	assert.Equalf(t, CheckExitOK, res.State, "state matches")
+	assert.Equalf(t, "OK: arg1", string(res.BuildPluginOutput()), "output matches")
 }
 
 func runTestCheckExternalArgs(t *testing.T, snc *Agent) {

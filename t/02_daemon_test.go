@@ -39,8 +39,10 @@ password = ` + localDaemonAdminPassword + `
 allow arguments = true
 
 [/settings/external scripts/scripts]
-check_echo = echo '%ARG1%'
-check_echo_win = cmd /c echo '%ARG1%'
+check_echo          = echo '%ARG1%'
+check_echo_win      = cmd /c echo '%ARG1%'
+check_echo_args     = echo '%ARGS%'
+check_echo_args_win = cmd /c echo '%ARGS%'
 
 [/settings/updates/channel]
 local = file://./tmpupdates/snclient${file-ext}
@@ -146,6 +148,17 @@ func TestDaemonRequests(t *testing.T) {
 		Cmd:  bin,
 		Args: append(append(baseArgs, "-a", "1"), checkArgs...),
 		Like: expect,
+	})
+
+	// check arg expansion
+	echoCmd := "check_echo_args"
+	if runtime.GOOS == "windows" {
+		echoCmd = "check_echo_args_win"
+	}
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", echoCmd, "-v", "-m", "critical"},
+		Like: []string{`-v -m critical`},
 	})
 }
 

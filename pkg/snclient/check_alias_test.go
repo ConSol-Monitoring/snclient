@@ -13,8 +13,10 @@ CheckExternalScripts = enabled
 
 [/settings/external scripts/alias]
 alias_cpu = check_cpu warn=load=101 crit=load=102
-check_memory = check_memory -a type=physical warn="used > 100" crit="used > 100"
-check_uptime = check_uptime "warn=uptime > 3000d" "crit=uptime > 6000d"
+check_memory  = check_memory -a type=physical warn="used > 100" crit="used > 100"
+check_memory2 = check_memory -a type=physical warn="used > 100" crit="used > 100"
+check_memory3 = check_memory type=physical warn='used > 100' crit='used > 100'
+check_uptime  = check_uptime "warn=uptime > 3000d" "crit=uptime > 6000d"
 
 [/settings/external scripts/alias/alias_cpu2]
 command = check_cpu warn=load=101 crit=load=102
@@ -39,7 +41,7 @@ allow arguments = yes
 `
 	snc := StartTestAgent(t, config)
 
-	assert.Lenf(t, snc.runSet.cmdAliases, 8, "there should be 8 alias entries")
+	assert.Lenf(t, snc.runSet.cmdAliases, 10, "there should be 10 alias entries")
 
 	res := snc.RunCheck("alias_cpu", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
@@ -88,6 +90,16 @@ allow arguments = yes
 
 	// recursive memory check
 	res = snc.RunCheck("check_memory", []string{})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(t, `^OK - physical =`, string(res.BuildPluginOutput()), "output matches")
+
+	// same check from different alias
+	res = snc.RunCheck("check_memory2", []string{})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(t, `^OK - physical =`, string(res.BuildPluginOutput()), "output matches")
+
+	// same check with single quotes
+	res = snc.RunCheck("check_memory3", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(t, `^OK - physical =`, string(res.BuildPluginOutput()), "output matches")
 

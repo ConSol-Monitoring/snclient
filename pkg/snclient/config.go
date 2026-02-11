@@ -960,6 +960,7 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 // GetStringRaw returns the raw string (including quotes)
 // along the clean string from config section.
 // it returns the value if found and sets ok to true.
+// the value is returned as string array because the value could be multiple lines with += syntax.
 func (cs *ConfigSection) GetStringRaw(key string) (raw []string, val string, ok bool) {
 	raw = cs.raw[key]
 	val, ok = cs.data[key]

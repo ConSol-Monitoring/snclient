@@ -346,6 +346,20 @@ func TrimQuotes(str string) (res string, err error) {
 	return str, nil
 }
 
+// return string with single quotes if it contains spaces or double quotes
+func JoinQuoted(strs []string) string {
+	var quoted []string
+	for _, str := range strs {
+		if strings.ContainsAny(str, " \t\n\r") {
+			quoted = append(quoted, fmt.Sprintf("'%s'", strings.ReplaceAll(str, "'", "\\'")))
+		} else {
+			quoted = append(quoted, str)
+		}
+	}
+
+	return strings.Join(quoted, " ")
+}
+
 func ParseVersion(str string) (num float64) {
 	str = strings.TrimPrefix(str, "v")
 	token := strings.Split(str, ".")
