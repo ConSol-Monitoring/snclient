@@ -161,7 +161,7 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 
 	if !DiskEligibleForWatch(drive) {
 		errorString := fmt.Sprintf("Drive that was passed does not seem to be eligible for watching: %s", drive)
-		log.Debugf(errorString)
+		log.Debug(errorString)
 		entry["_error"] = errorString
 		entry["_skip"] = "1"
 
@@ -176,7 +176,7 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 
 	if !builtEntry {
 		errorString := fmt.Sprintf("DiskIOCounters did not have drive: %s", drive)
-		log.Debugf(errorString)
+		log.Debug(errorString)
 		entry["_error"] = errorString
 		entry["_skip"] = "1"
 
@@ -190,7 +190,7 @@ func (l *CheckDriveIO) addRateToEntry(snc *Agent, entry map[string]string, entry
 	counterInstance := snc.Counter.Get(counterCategory, counterKey)
 	if counterInstance == nil {
 		errorString := fmt.Sprintf("No counter found with category: %s, key: %s", counterCategory, counterKey)
-		log.Debugf(errorString)
+		log.Debug(errorString)
 		entry["_error"] = entry["_error"] + " . " + errorString
 
 		return
@@ -199,7 +199,7 @@ func (l *CheckDriveIO) addRateToEntry(snc *Agent, entry map[string]string, entry
 	rate, err := counterInstance.GetRate(time.Duration(l.lookback) * time.Second)
 	if err != nil {
 		errorString := fmt.Sprintf("Error when getting the counter rate, lookback: %d, counterCategory: %s, counterKey: %s, err: %s", l.lookback, counterCategory, counterKey, err.Error())
-		log.Debugf(errorString)
+		log.Debug(errorString)
 		entry["_error"] = entry["_error"] + " . " + errorString
 
 		return
