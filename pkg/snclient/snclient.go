@@ -100,7 +100,7 @@ const (
 	Resume
 )
 
-// MainRunMode gives hints about wether snclient runs as server or not.
+// MainRunMode gives hints about whether snclient runs as server or not.
 type MainRunMode int
 
 const (

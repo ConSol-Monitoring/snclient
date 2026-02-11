@@ -89,7 +89,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | drive_or_id           | Drive letter if present if not use id                                                         |
 | drive_or_name         | Drive letter if present if not use name                                                       |
 | fstype                | Filesystem type                                                                               |
-| mounted               | Flag wether drive is mounter (0/1)                                                            |
+| mounted               | Flag whether drive is mounter (0/1)                                                           |
 | free                  | Free (human readable) bytes                                                                   |
 | free_bytes            | Number of free bytes                                                                          |
 | free_pct              | Free bytes in percent                                                                         |
@@ -116,7 +116,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | readable              | Windows only: flag drive is readable (0/1)                                                    |
 | writable              | Windows only: flag drive is writable (0/1)                                                    |
 | removable             | Windows only: flag drive is removable (0/1)                                                   |
-| erasable              | Windows only: flag wether if drive is erasable (0/1)                                          |
+| erasable              | Windows only: flag whether if drive is erasable (0/1)                                         |
 | hotplug               | Windows only: flag drive is hotplugable (0/1)                                                 |
 | remote_name           | Windows only: the remote name of the drive, if it uses a network name                         |
 | persistent            | Windows only: if the network drive is mounted as persistent (0/1)                             |

@@ -69,7 +69,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | application          | Name of the application that the task is associated with           |
 | comment              | Comment or description for the work item                           |
 | creator              | Creator of the work item                                           |
-| enabled              | Flag wether this job is enabled (true/false)                       |
+| enabled              | Flag whether this job is enabled (true/false)                      |
 | exit_code            | The last jobs exit code                                            |
 | exit_string          | The last jobs exit code as string                                  |
 | folder               | Task folder                                                        |

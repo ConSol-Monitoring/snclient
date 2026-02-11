@@ -39,7 +39,7 @@ func (l *CheckTasksched) Build() *CheckData {
 			{name: "application", description: "Name of the application that the task is associated with"},
 			{name: "comment", description: "Comment or description for the work item"},
 			{name: "creator", description: "Creator of the work item"},
-			{name: "enabled", description: "Flag wether this job is enabled (true/false)"},
+			{name: "enabled", description: "Flag whether this job is enabled (true/false)"},
 			{name: "exit_code", description: "The last jobs exit code"},
 			{name: "exit_string", description: "The last jobs exit code as string"},
 			{name: "folder", description: "Task folder"},
