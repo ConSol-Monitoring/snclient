@@ -74,11 +74,11 @@ Show all temperature sensors and apply custom thresholds:
 func (l *CheckTemperature) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	sens, err := sensors.TemperaturesWithContext(ctx)
 	if err != nil {
-		log.Debugf("sensors.TemperaturesWithContext: %s: %w", err.Error(), err)
+		log.Debugf("sensors.TemperaturesWithContext: %s", err.Error())
 	}
 	merged, err := l.mergeExclusiveSensors(ctx, sens)
 	if err != nil {
-		log.Debugf("os specific sensors error: %s: %w", err.Error(), err)
+		log.Debugf("os specific sensors error: %s", err.Error())
 	}
 
 	duplicates := map[string]int{}

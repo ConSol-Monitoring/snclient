@@ -1551,7 +1551,7 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	}
 
 	if strings.ContainsAny(cmd, nastyChars) {
-		log.Debugf("command string contained nasty character", cmd)
+		log.Debugf("command string contained nasty character: %s", cmd)
 
 		return false
 	}

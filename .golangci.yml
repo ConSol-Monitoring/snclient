@@ -42,13 +42,23 @@ linters:
       settings:
         printf:
           funcs:
+            - Trace
             - Tracef
+            - Debug
+            - Debugf
             - Infof
+            - Info
             - Warnf
+            - Warn
             - Errorf
+            - Error
             - Fatalf
+            - Fatal
             - Criticalf
+            - Critical
             - Panicf
+            - Panic
+            - LogStderrf
     ireturn:
       allow:
         - error

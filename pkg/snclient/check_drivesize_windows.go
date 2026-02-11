@@ -356,6 +356,10 @@ func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) 
 		return fmt.Errorf("disk partitions failed: %s", err.Error())
 	}
 	for _, partition := range partitions {
+		// skip empty partitions
+		if partition.Device == "" && partition.Mountpoint == "" && partition.Fstype == "" {
+			continue
+		}
 		logicalDrive := strings.TrimSuffix(partition.Device, "\\") + "\\"
 		entry, ok := requiredDrives[logicalDrive]
 		if !ok {
@@ -576,21 +580,25 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 	partitions, err := disk.Partitions(true)
 	if err != nil {
-		log.Debug("Error when discovering partitions: %s", err.Error())
+		log.Debugf("Error when discovering partitions: %s", err.Error())
 	}
 
 	for _, partition := range partitions {
+		// skip empty partitions
+		if partition.Device == "" && partition.Mountpoint == "" && partition.Fstype == "" {
+			continue
+		}
 		logicalDrive := strings.TrimSuffix(partition.Device, "\\") + "\\"
 		driveType, err := GetDriveType(logicalDrive)
 		if err != nil {
-			log.Debug("Error when getting the drive type for logical drive %s network drives: %s", logicalDrive, err.Error())
+			log.Debugf("Error when getting the drive type for logical drive %s network drives: %s", logicalDrive, err.Error())
 
 			continue
 		}
 		if driveType == DriveRemote {
 			remoteName, err := NetGetConnection(logicalDrive[0 : len(logicalDrive)-1])
 			if err != nil {
-				log.Debug("Error when getting the connection for logical drive %s : %s", logicalDrive, err.Error())
+				log.Debugf("Error when getting the connection for logical drive %s: %s", logicalDrive, err.Error())
 
 				continue
 			}
@@ -623,7 +631,7 @@ func isNetworkDrivePersistent(driveLetter string) (isPersistent bool) {
 	driveLetter = driveLetter[0:1]
 	persistentNetworkDrives, err := discoverPersistentNetworkDrives()
 	if err != nil {
-		log.Debug("Error when discovering persistent network drives: %s", err.Error())
+		log.Debugf("Error when discovering persistent network drives: %s", err.Error())
 	}
 	for _, drive := range persistentNetworkDrives {
 		if drive.DriveLetter == driveLetter {

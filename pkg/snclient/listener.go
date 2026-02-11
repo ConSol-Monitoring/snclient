@@ -414,7 +414,7 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 	}
 
 	if l.listen == nil {
-		log.Error("listener for %s is nil", l.bindAddress)
+		log.Errorf("listener for %s is nil", l.bindAddress)
 
 		return
 	}

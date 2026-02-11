@@ -363,7 +363,7 @@ func replaceMacroOpString(value, flag string) string {
 		cut, err := strconv.Atoi(strings.TrimPrefix(flag, "cut="))
 		runes := []rune(value)
 		if err != nil {
-			log.Warn("could not extract cut macro expected format cut=%d+")
+			log.Warnf("could not extract cut macro expected format cut=<num>, got: %s", flag)
 
 			return ""
 		}

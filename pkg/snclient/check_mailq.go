@@ -190,7 +190,7 @@ func (l *CheckMailq) folderStats(folder string) (count, size int64, err error) {
 
 		fileInfo, err := dir.Info()
 		if err != nil {
-			log.Debugf("reading file failed %s: %s", filepath.Join(path, dir.Name(), err.Error()))
+			log.Debugf("reading file failed %s: %s", filepath.Join(path, dir.Name()), err.Error())
 
 			return nil
 		}

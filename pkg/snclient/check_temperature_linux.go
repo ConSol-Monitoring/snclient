@@ -10,7 +10,7 @@ func (l *CheckTemperature) mergeExclusiveSensors(ctx context.Context, src []sens
 	ex := sensors.NewExLinux()
 	exSensors, err := ex.TemperatureWithContext(ctx)
 	if err != nil {
-		log.Debugf("(linux)sensors.TemperaturesWithContext: %s: %w", err.Error(), err)
+		log.Debugf("(linux)sensors.TemperaturesWithContext: %s", err.Error())
 	}
 
 	res := make([]temperatureStat, len(src))
