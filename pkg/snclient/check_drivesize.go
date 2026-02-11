@@ -42,6 +42,7 @@ func defaultExcludedFsTypes() []string {
 		"fuse.portal",
 		"fusectl",
 		"hugetlbfs",
+		"iso9660",
 		"mqueue",
 		"nsfs",
 		"overlay",
