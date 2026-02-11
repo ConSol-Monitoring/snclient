@@ -54,12 +54,13 @@ func init() {
 
 			PartitionDevicesToWatch = append(PartitionDevicesToWatch, partition.Device)
 		}
-	} else {
-
-		// Do not leave debug calls on init functions, this can mess up the plugin output
-		// Only used for debugging temporarily
-		// log.Warnf("Error when calling disk.Partitions() , err: %s", err.Error())
 	}
+	// else {
+
+	// 	// Do not leave debug calls on init functions, this can mess up the plugin output
+	// 	// Only used for debugging temporarily
+	// 	// log.Warnf("Error when calling disk.Partitions() , err: %s", err.Error())
+	// }
 }
 
 // This function determines if counters

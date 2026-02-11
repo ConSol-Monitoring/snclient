@@ -66,7 +66,8 @@ func (l *CheckSwapIO) Build() *CheckData {
 func (l *CheckSwapIO) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	switch runtime.GOOS {
 	case "windows":
-		return nil, fmt.Errorf("Swap IO is not supported on windows")
+		return nil, fmt.Errorf("swap IO is not supported on windows")
+	default:
 	}
 
 	l.addSwapRate(check, snc)
