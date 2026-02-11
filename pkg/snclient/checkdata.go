@@ -612,15 +612,11 @@ func (cd *CheckData) parseStateString(state string) int64 {
 
 // parseArgs parses check arguments into the CheckData struct
 // and returns all unknown options
-//
-//nolint:funlen,gocyclo,maintidx // it is not complex, it is just a long list of options
 func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 	cd.rawArgs = args
 	cd.hasArgsSupplied = map[string]bool{}
 	argList = make([]Argument, 0, len(args))
 	cd.expandArgDefinitions()
-	topSupplied := false
-	okSupplied := false
 
 	sanitized, defaultWarning, defaultCritical, applyDefaultFilter, err := cd.preParseArgs(args)
 	if err != nil {
@@ -632,9 +628,34 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 		for _, arg := range sanitized {
 			argList = append(argList, Argument{key: arg.key, value: arg.value})
 		}
-
-		return argList, nil
+	} else {
+		argList, applyDefaultFilter, err = cd.processArgs(sanitized, defaultWarning, defaultCritical, applyDefaultFilter)
+		if err != nil {
+			return nil, err
+		}
 	}
+
+	if cd.timezone == nil {
+		timeZone, _ := time.LoadLocation("Local")
+		cd.timezone = timeZone
+	}
+
+	err = cd.setFallbacks(applyDefaultFilter, defaultWarning, defaultCritical)
+	if err != nil {
+		return nil, err
+	}
+
+	cd.applyConditionColAlias()
+	cd.applyConditionAlias()
+
+	return argList, nil
+}
+
+//nolint:funlen,gocyclo // it is not complex, it is just a long list of options
+func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCritical string, initialApplyDefaultFilter bool) (argList []Argument, applyDefaultFilter bool, err error) {
+	topSupplied := false
+	okSupplied := false
+	applyDefaultFilter = initialApplyDefaultFilter
 
 	for _, arg := range sanitized {
 		keyword := arg.key
@@ -649,49 +670,49 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 				cd.showHelp = PluginHelp
 			}
 
-			return nil, nil
+			return nil, false, nil
 		case "ok":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
-				return nil, err2
+				return nil, false, err2
 			}
 			cd.okThreshold = append(cd.okThreshold, cond)
 		case "warn+", "warning+":
 			warn, err2 := cd.appendDefaultThreshold(keyword, argValue, defaultWarning, cd.warnThreshold)
 			if err2 != nil {
-				return nil, err2
+				return nil, false, err2
 			}
 			cd.warnThreshold = warn
 		case "warn", "warning":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
-				return nil, err2
+				return nil, false, err2
 			}
 			cd.warnThreshold = append(cd.warnThreshold, cond)
 		case "crit+", "critical+":
 			crit, err2 := cd.appendDefaultThreshold(keyword, argValue, defaultCritical, cd.critThreshold)
 			if err2 != nil {
-				return nil, err2
+				return nil, false, err2
 			}
 			cd.critThreshold = crit
 		case "crit", "critical":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
-				return nil, err2
+				return nil, false, err2
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
 		case "filter+":
 			applyDefaultFilter = false
 			filter, err2 := cd.appendDefaultThreshold(keyword, argValue, cd.defaultFilter, cd.filter)
 			if err2 != nil {
-				return nil, err2
+				return nil, false, err2
 			}
 			cd.filter = filter
 		case "filter":
 			applyDefaultFilter = false
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
-				return nil, err2
+				return nil, false, err2
 			}
 			cd.filter = append(cd.filter, cond)
 		case "debug":
@@ -718,26 +739,26 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			} else {
 				showAll, err2 := convert.BoolE(argValue)
 				if err2 != nil {
-					return nil, fmt.Errorf("parseBool %s: %s", argValue, err2.Error())
+					return nil, false, fmt.Errorf("parseBool %s: %s", argValue, err2.Error())
 				}
 				cd.showAll = showAll
 			}
 		case "timezone":
 			timeZone, err2 := time.LoadLocation(argValue)
 			if err2 != nil {
-				return nil, fmt.Errorf("couldn't find timezone: %s", argValue)
+				return nil, false, fmt.Errorf("couldn't find timezone: %s", argValue)
 			}
 			cd.timezone = timeZone
 		case "timeout":
 			timeout, err2 := convert.Float64E(argValue)
 			if err2 != nil {
-				return nil, fmt.Errorf("timeout parse error: %s", err2.Error())
+				return nil, false, fmt.Errorf("timeout parse error: %s", err2.Error())
 			}
 			cd.timeout = timeout
 		case "perf-config":
 			perf, err2 := NewPerfConfig(argValue)
 			if err2 != nil {
-				return nil, err2
+				return nil, false, err2
 			}
 			cd.perfConfig = append(cd.perfConfig, perf...)
 		case "perf-syntax":
@@ -748,7 +769,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			parsed, err2 := cd.parseAnyArg(argExpr, keyword, argValue)
 			switch {
 			case err2 != nil:
-				return nil, err2
+				return nil, false, err2
 			case parsed:
 				// ok
 			case cd.argsPassthrough:
@@ -758,7 +779,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 			case keyword == "-a":
 				// ignore -a for legacy compatibility
 			default:
-				return nil, fmt.Errorf("unknown argument: %s", keyword)
+				return nil, false, fmt.Errorf("unknown argument: %s", keyword)
 			}
 		}
 	}
@@ -767,20 +788,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 		cd.okSyntax = cd.topSyntax
 	}
 
-	if cd.timezone == nil {
-		timeZone, _ := time.LoadLocation("Local")
-		cd.timezone = timeZone
-	}
-
-	err = cd.setFallbacks(applyDefaultFilter, defaultWarning, defaultCritical)
-	if err != nil {
-		return nil, err
-	}
-
-	cd.applyConditionColAlias()
-	cd.applyConditionAlias()
-
-	return argList, nil
+	return argList, applyDefaultFilter, nil
 }
 
 func (cd *CheckData) preParseArgs(args []string) (sanitized []Argument, defaultWarning, defaultCritical string, hasArgsFilter bool, err error) {
