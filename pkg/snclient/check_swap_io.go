@@ -64,7 +64,10 @@ func (l *CheckSwapIO) Build() *CheckData {
 }
 
 func (l *CheckSwapIO) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
+	switch runtime.GOOS {
+	case "windows":
+		return nil, fmt.Errorf("Swap IO is not supported on windows")
+	}
 
 	l.addSwapRate(check, snc)
 
