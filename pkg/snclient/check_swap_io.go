@@ -64,6 +64,11 @@ func (l *CheckSwapIO) Build() *CheckData {
 }
 
 func (l *CheckSwapIO) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckSwapIO")
+	if !enabled {
+		return nil, fmt.Errorf("module CheckSwapIO is not enabled in /modules section")
+	}
+
 	switch runtime.GOOS {
 	case "windows":
 		return nil, fmt.Errorf("swap IO is not supported on windows")
