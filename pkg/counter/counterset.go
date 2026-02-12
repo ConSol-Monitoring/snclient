@@ -1,6 +1,7 @@
 package counter
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -64,11 +65,11 @@ func (cs *Set) Get(category, key string) *Counter {
 }
 
 // calculate rate for given lookback timerange
-func (cs *Set) GetRate(category, key string, lookback time.Duration) (res float64, ok bool) {
+func (cs *Set) GetRate(category, key string, lookback time.Duration) (res float64, err error) {
 	counter := cs.Get(category, key)
 
 	if counter == nil {
-		return res, false
+		return res, fmt.Errorf("no counter found with category: %s, key: %s", category, key)
 	}
 
 	return counter.GetRate(lookback)

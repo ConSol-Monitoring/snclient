@@ -6,11 +6,13 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	cpuinfo "github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/net"
 )
 
@@ -24,6 +26,61 @@ var DefaultSystemTaskConfig = ConfigData{
 	"default buffer length": "15m",
 	"device filter":         "^veth",
 	"metrics interval":      "5s",
+}
+
+// initialization function first discovers partitions
+// depending on their type, corresponding device of that partition is added
+// non-physical drives are not added to IO counters
+var StorageDevicesToWatch []string
+
+func init() {
+	// gopsutil on Linux seems to be reading /proc/partitions
+	// Then it adds more info according to /sys/class/block/<device>/*
+	partitions, err := disk.Partitions(true)
+	partitionTypesToExclude := defaultExcludedFsTypes()
+	if err == nil {
+		for _, partition := range partitions {
+			if partition.Device == "none" {
+				continue
+			}
+
+			if slices.Contains(partitionTypesToExclude, partition.Fstype) {
+				continue
+			}
+
+			// /dev/loop22 ***
+			if partition.Fstype == "iso9660" && strings.Contains(partition.Device, "/loop") {
+				continue
+			}
+
+			StorageDevicesToWatch = append(StorageDevicesToWatch, partition.Device)
+		}
+	}
+}
+
+func DiskEligibleForWatch(diskName string) bool {
+	// while diskName comes from gopsutil disk.IoCounters()
+	// On linux it seems to be reading /proc/diskstats
+	// It also keeps stats for individual partitions, e.g there are two separate stats for:
+	// "nvme0n1" , "nvme0n1p2"
+
+	// For partitions like "nvme0n1p2", I need to see if they contain
+	// a device to watch such like "nvme0n1"
+
+	diskEligible := false
+
+	// Calculated in init() function
+	// it uses disk.Partitions and excludes some filesytem types
+	// directly and uses other heuristics to exclude some more
+	for _, storageDeviceToWatch := range StorageDevicesToWatch {
+		if strings.Contains(storageDeviceToWatch, diskName) {
+			diskEligible = true
+
+			break
+		}
+	}
+
+	return diskEligible
 }
 
 type CheckSystemHandler struct {
@@ -156,6 +213,12 @@ func (c *CheckSystemHandler) update(create bool) {
 	if runtime.GOOS == "linux" {
 		c.addLinuxKernelStats(create)
 	}
+
+	// Windows and Non-Windows have their own definitions for this
+	c.addDiskStats(create)
+
+	// Windows and Non-Windows have their own defintions for this
+	c.addMemoryStats(create)
 }
 
 func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo.TimesStat, netdata map[string]float64, err error) {
@@ -200,6 +263,9 @@ func (c *CheckSystemHandler) addLinuxKernelStats(create bool) {
 		c.snc.counterCreate("kernel", "ctxt", c.bufferLength, c.metricsInterval)
 		c.snc.counterCreate("kernel", "processes", c.bufferLength, c.metricsInterval)
 	}
+
+	// psutil has cpu_stats() function which gives the context switch count
+	// gopsutil does not have it impelmented yet
 
 	statFile, err := os.Open("/proc/stat")
 	if err != nil {
