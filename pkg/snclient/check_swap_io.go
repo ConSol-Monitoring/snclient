@@ -35,7 +35,7 @@ func (l *CheckSwapIO) Build() *CheckData {
 	return &CheckData{
 		name:         "check_swap_io",
 		description:  `Checks the swap Input / Output rate on the host.`,
-		implemented:  ALL,
+		implemented:  Linux | FreeBSD | Darwin,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -46,7 +46,7 @@ func (l *CheckSwapIO) Build() *CheckData {
 		defaultWarning:  "",
 		defaultCritical: "",
 		okSyntax:        "%(status) - %(list)",
-		detailSyntax:    "%(swap_count) swaps >%(swap_in_rate)/s <%(swap_out_rate)/s",
+		detailSyntax:    "%(swap_count) swap device(s) >%(swap_in_rate)/s <%(swap_out_rate)/s",
 		topSyntax:       "%(status) - %(list)",
 		attributes: []CheckAttribute{
 			{name: "swap_count", description: "Count of swap partitions"},
@@ -128,14 +128,9 @@ func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
 		entry["_error"] = entry["_error"] + " | " + message
 	}
 
-	if swapInRate, err := swapInCounter.GetRate(time.Duration(l.lookback) * time.Second); err == nil {
-		entry["swap_in_rate_bytes"] = fmt.Sprintf("%f", swapInRate)
-		entry["swap_in_rate"] = humanize.IBytesF(uint64(swapInRate), 2)
-	} else {
-		message := fmt.Sprintf("Error during memory swap_in counter rate calculation: %s", err.Error())
-		log.Debug(message)
-		entry["_error"] = entry["_error"] + " | " + message
-	}
+	swapInRate, _ := swapInCounter.GetRate(time.Duration(l.lookback) * time.Second)
+	entry["swap_in_rate_bytes"] = fmt.Sprintf("%f", swapInRate)
+	entry["swap_in_rate"] = humanize.IBytesF(uint64(swapInRate), 2)
 
 	swapOutCounter := snc.Counter.Get("memory", "swp_out")
 	counterKey = "swp_out"
@@ -173,14 +168,9 @@ func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
 		entry["_error"] = entry["_error"] + " | " + message
 	}
 
-	if swapOutRate, err := swapOutCounter.GetRate(time.Duration(l.lookback) * time.Second); err == nil {
-		entry["swap_out_rate_bytes"] = fmt.Sprintf("%f", swapOutRate)
-		entry["swap_out_rate"] = humanize.IBytesF(uint64(swapOutRate), 2)
-	} else {
-		message := fmt.Sprintf("Error during memory swap_out counter rate calculation: %s", err.Error())
-		log.Debug(message)
-		entry["_error"] = entry["_error"] + " | " + message
-	}
+	swapOutRate, _ := swapOutCounter.GetRate(time.Duration(l.lookback) * time.Second)
+	entry["swap_out_rate_bytes"] = fmt.Sprintf("%f", swapOutRate)
+	entry["swap_out_rate"] = humanize.IBytesF(uint64(swapOutRate), 2)
 
 	check.listData = append(check.listData, entry)
 }
