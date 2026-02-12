@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -900,6 +901,36 @@ func (c *Condition) TransformMultipleKeywords(srcKeywords []string, targetKeywor
 	}
 
 	return true
+}
+
+// pass an argument as a function.
+// the function should have a pointer receiver type, no arguments and return an error.
+// the function will be applied to the current instance.
+// if the current instance is a group condition, this function will be called for every condition in that group.
+// error messages are accumulated during recursion.
+// if at least one error is encountered during recursion, err will not be nil.
+func (c *Condition) RunFuncRecursively(_func func(c *Condition) error) (err error) {
+	errString := ""
+	thisErr := _func(c)
+	if thisErr != nil {
+		errString = thisErr.Error()
+	}
+
+	for _, conditionInGroup := range c.group {
+		childErr := conditionInGroup.RunFuncRecursively(_func)
+		if childErr != nil {
+			if errString != "" {
+				errString += " + "
+			}
+			errString += fmt.Sprintf("Group(%s) : %s", conditionInGroup.String(), childErr.Error())
+		}
+	}
+
+	if errString != "" {
+		return errors.New(errString)
+	}
+
+	return nil
 }
 
 func (c *Condition) expandUnitByName(str string) error {
