@@ -98,6 +98,9 @@ func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, args []A
 }
 
 func (c *CheckPDH) parseCheckSpecificArgs(args []Argument) error {
+	if len(args) == 0 {
+		return fmt.Errorf("no counter defined")
+	}
 	carg := args[0]
 	parts := strings.Split(carg.key, ":")
 	if len(parts) < 2 {

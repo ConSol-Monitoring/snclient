@@ -50,3 +50,13 @@ func TestCheckPDHIndexLookup(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckPDHNoArgs(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	res := snc.RunCheck("check_pdh", []string{})
+	assert.Equalf(t, CheckExitUnknown, res.State, "The check could not be run")
+	assert.Contains(t, string(res.BuildPluginOutput()), "no counter defined")
+
+	StopTestAgent(t, snc)
+}
