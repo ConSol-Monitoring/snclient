@@ -49,7 +49,7 @@ func init() {
 			}
 
 			// /dev/loop22 ***
-			if partition.Fstype == "iso9660" && strings.Contains(partition.Device, "/loop") {
+			if partition.Fstype == "iso9660" && strings.HasPrefix(partition.Device, "/dev/loop") {
 				continue
 			}
 

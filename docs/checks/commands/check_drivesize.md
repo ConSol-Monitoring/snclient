@@ -53,7 +53,7 @@ Naemon Config
 
 | Argument      | Default Value                                                                                         |
 | ------------- | ----------------------------------------------------------------------------------------------------- |
-| filter        | fstype not in ('autofs', 'bdev', 'binfmt_misc', 'bpf', 'cgroup', 'cgroup2', 'configfs', 'cpuset', 'debugfs', 'devpts', 'devtmpfs', 'efivarfs', 'fuse.portal', 'fusectl', 'hugetlbfs', 'iso9660', 'mqueue', 'nsfs', 'overlay', 'pipefs', 'proc', 'pstore', 'ramfs', 'rpc_pipefs', 'securityfs', 'selinuxfs', 'sockfs', 'sysfs', 'tracefs') |
+| filter        | fstype not in ('autofs', 'bdev', 'binfmt_misc', 'bpf', 'cgroup', 'cgroup2', 'configfs', 'cpuset', 'debugfs', 'devpts', 'devtmpfs', 'efivarfs', 'fuse.portal', 'fusectl', 'hugetlbfs', 'mqueue', 'nsfs', 'overlay', 'pipefs', 'proc', 'pstore', 'ramfs', 'rpc_pipefs', 'securityfs', 'selinuxfs', 'sockfs', 'sysfs', 'tracefs') |
 | warning       | used_pct > 80                                                                                         |
 | critical      | used_pct > 90                                                                                         |
 | empty-state   | 3 (UNKNOWN)                                                                                           |
