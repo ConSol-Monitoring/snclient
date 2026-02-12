@@ -229,7 +229,9 @@ func waitUntilResponse(t *testing.T, bin string) {
 			Exit: -1,
 		})
 		if res.ExitCode == 0 {
-			t.Logf("daemon responded after %s", time.Since(waitStart))
+			if time.Since(waitStart) > 5*time.Second {
+				t.Logf("daemon responded after %s", time.Since(waitStart))
+			}
 
 			break
 		}
@@ -259,7 +261,6 @@ func startBackgroundDaemon(t *testing.T) {
 			CmdChannel: daemonCmdChan,
 		})
 		require.NotNilf(t, res, "got daemon result") //nolint:testifylint // assertions outside of main goroutine secured by channel
-		t.Logf("daemon finished")
 		assert.NotContainsf(t, res.Stdout, "[Error]", "log does not contain errors")
 		assert.Emptyf(t, res.Stderr, "stderr should be empty")
 		daemonFinChan <- true
@@ -278,13 +279,11 @@ func startBackgroundDaemon(t *testing.T) {
 
 	require.Positivef(t, daemonPid, "daemon started")
 
-	t.Logf("daemon started with pid: %d", daemonPid)
 	time.Sleep(500 * time.Millisecond)
 }
 
 func stopBackgroundDaemon(t *testing.T) bool {
 	t.Helper()
-	t.Logf("test done, shuting down")
 
 	cmd := <-daemonCmdChan
 

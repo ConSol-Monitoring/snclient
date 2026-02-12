@@ -316,11 +316,6 @@ func TestCheckFilesRecursiveArguments(t *testing.T) {
 		t.Skipf("Test is not intended to be run on %s", runtime.GOOS)
 	}
 
-	t.Logf("testDir: %s", testDir)
-	t.Logf("scriptsDir: %s", scriptsDir)
-	t.Logf("scriptName: %s", scriptName)
-	t.Logf("scriptFilename: %s", scriptFilename)
-
 	config := checkFilesTestConfigWithScript(t, scriptsDir, scriptName, scriptFilename)
 	snc := StartTestAgent(t, config)
 
@@ -414,11 +409,6 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	default:
 		t.Skipf("Test is not intended to be run on %s", runtime.GOOS)
 	}
-
-	t.Logf("testDir: %s", testDir)
-	t.Logf("scriptsDir: %s", scriptsDir)
-	t.Logf("scriptName: %s", scriptName)
-	t.Logf("scriptFilename: %s", scriptFilename)
 
 	config := checkFilesTestConfigWithScript(t, scriptsDir, scriptName, scriptFilename)
 	snc := StartTestAgent(t, config)
