@@ -198,11 +198,7 @@ func (l *CheckDriveIO) addRateToEntry(snc *Agent, entry map[string]string, entry
 
 	rate, err := counterInstance.GetRate(time.Duration(l.lookback) * time.Second)
 	if err != nil {
-		errorString := fmt.Sprintf("Error when getting the counter rate, lookback: %d, counterCategory: %s, counterKey: %s, err: %s", l.lookback, counterCategory, counterKey, err.Error())
-		log.Debug(errorString)
-		entry["_error"] = entry["_error"] + " . " + errorString
-
-		return
+		log.Debugf("Error when getting the counter rate, lookback: %d, counterCategory: %s, counterKey: %s, err: %s", l.lookback, counterCategory, counterKey, err.Error())
 	}
 
 	humanizedBytes := humanize.IBytesF(uint64(rate), 1)
