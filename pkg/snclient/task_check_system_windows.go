@@ -10,7 +10,6 @@ import (
 	"unsafe"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
-	"github.com/shirou/gopsutil/v4/mem"
 	"golang.org/x/sys/windows"
 )
 
@@ -312,8 +311,6 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 
 func (c *CheckSystemHandler) addMemoryStats(create bool) {
 	if create {
-		c.snc.counterCreate("memory", "total", c.bufferLength, c.metricsInterval)
-		c.snc.counterCreate("memory", "used", c.bufferLength, c.metricsInterval)
 		c.snc.counterCreate("memory", "swp_in", c.bufferLength, c.metricsInterval)
 		c.snc.counterCreate("memory", "swp_out", c.bufferLength, c.metricsInterval)
 	}
@@ -327,10 +324,6 @@ func (c *CheckSystemHandler) addMemoryStats(create bool) {
 	// Free
 	// === Does Not report
 	// ...
-	virtualMemory, err := mem.VirtualMemory()
-	if err != nil {
-		return
-	}
 
 	// Windows
 	// Even the reported ones do not currently work
@@ -343,7 +336,4 @@ func (c *CheckSystemHandler) addMemoryStats(create bool) {
 	// if err != nil {
 	// 	return
 	// }
-
-	c.snc.Counter.Set("memory", "total", float64(virtualMemory.Total))
-	c.snc.Counter.Set("memory", "used", float64(virtualMemory.Used))
 }

@@ -82,7 +82,7 @@ func (l *CheckSwapIO) Check(_ context.Context, snc *Agent, check *CheckData, _ [
 
 //nolint:funlen // the function is simple enough
 func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
-	// snclient counters start periodicallysaving the swap in and out numbers after proram start
+	// snclient counters start periodically saving the swap in and out numbers after program start
 
 	entry := make(map[string]string)
 

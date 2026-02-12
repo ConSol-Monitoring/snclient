@@ -33,8 +33,6 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 		}
 	}
 
-	// for key K, value V := range map[K]V copies value
-	// use the no-copy range iteraiton, since the struct is 136 bytes
 	for diskName := range diskIOCounters {
 		if !DiskEligibleForWatch(diskName) {
 			continue
@@ -52,15 +50,8 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 
 func (c *CheckSystemHandler) addMemoryStats(create bool) {
 	if create {
-		c.snc.counterCreate("memory", "total", c.bufferLength, c.metricsInterval)
-		c.snc.counterCreate("memory", "used", c.bufferLength, c.metricsInterval)
 		c.snc.counterCreate("memory", "swp_in", c.bufferLength, c.metricsInterval)
 		c.snc.counterCreate("memory", "swp_out", c.bufferLength, c.metricsInterval)
-	}
-
-	virtualMemory, err := mem.VirtualMemory()
-	if err != nil {
-		return
 	}
 
 	swap, err := mem.SwapMemory()
@@ -68,8 +59,6 @@ func (c *CheckSystemHandler) addMemoryStats(create bool) {
 		return
 	}
 
-	c.snc.Counter.Set("memory", "total", float64(virtualMemory.Total))
-	c.snc.Counter.Set("memory", "used", float64(virtualMemory.Used))
 	c.snc.Counter.Set("memory", "swp_in", float64(swap.Sin))
 	c.snc.Counter.Set("memory", "swp_out", float64(swap.Sout))
 }
