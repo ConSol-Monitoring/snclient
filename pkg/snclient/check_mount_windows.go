@@ -43,6 +43,12 @@ func (l *CheckMount) getVolumes(ctx context.Context, check *CheckData, partition
 			continue
 		}
 
+		if mountPoint == "" {
+			log.Tracef("skipped mountpoint: %s - empty mount point", mountPoint)
+
+			continue
+		}
+
 		entry := map[string]string{
 			"mount":   mountPoint,
 			"device":  mountPoint,
