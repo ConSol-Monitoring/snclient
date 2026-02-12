@@ -363,7 +363,7 @@ func (l *CheckNTPOffset) parseW32TMOutput(text string) (valid bool, source, offs
 	reDuration := regexp.MustCompile(`(-?\d+[.,]?\d*)(s|ms|µs|ns)`)
 	reNumber := regexp.MustCompile(`^\d+`)
 
-	for i, line := range lines {
+	for lineIndex, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -378,92 +378,13 @@ func (l *CheckNTPOffset) parseW32TMOutput(text string) (valid bool, source, offs
 		value := strings.TrimSpace(cols[1])
 
 		// Strategy 1: Try English keywords first
-		switch key {
-		case "Source":
-			servers := utils.TokenizeBy(value, ",", false, false)
-			if len(servers) > 0 {
-				sourceValue = strings.TrimSpace(servers[0])
-			}
-		case "Phase Offset":
-			// normalize decimal separator for Go parsing
-			normalizedValue := strings.ReplaceAll(value, ",", ".")
-			if duration, err := time.ParseDuration(normalizedValue); err == nil {
-				phaseOffsetValue = fmt.Sprintf("%f", float64(duration.Nanoseconds())/1e6)
-			}
-		case "Stratum":
-			fields := strings.Fields(value)
-			if len(fields) > 0 {
-				stratumValue = fields[0]
-			}
-		case "State Machine":
-			fields := strings.Fields(value)
-			if len(fields) > 0 {
-				stateValue = fields[0]
-			}
-		}
+		l.parseW32TMEnglishKeywords(key, value, &sourceValue, &phaseOffsetValue, &stratumValue, &stateValue)
 
 		// Strategy 2: Pattern-based detection (language-independent)
-
-		// detect phase offset by duration pattern
-		if phaseOffsetValue == "" && reDuration.MatchString(value) {
-			// check if this looks like a phase offset line
-			// usually appears after source and contains time duration
-			keyLower := strings.ToLower(key)
-			if (sourceValue != "" || i > 5) &&
-				(strings.Contains(keyLower, "offset") ||
-					strings.Contains(keyLower, "décalage") ||
-					strings.Contains(keyLower, "phase")) {
-				// normalize decimal separator
-				normalizedValue := strings.ReplaceAll(value, ",", ".")
-				if duration, err := time.ParseDuration(normalizedValue); err == nil {
-					phaseOffsetValue = fmt.Sprintf("%f", float64(duration.Nanoseconds())/1e6)
-				}
-			}
-		}
-
-		// detect stratum by pattern
-		if stratumValue == "" && reNumber.MatchString(value) {
-			fields := strings.Fields(value)
-			if len(fields) > 0 {
-				num := fields[0]
-				// stratum is typically 0-16
-				keyLower := strings.ToLower(key)
-				if len(num) <= 2 && (strings.Contains(keyLower, "strat") ||
-					strings.Contains(keyLower, "strate")) {
-					stratumValue = num
-				}
-			}
-		}
-
-		// detect state machine value
-		if stateValue == "" && reNumber.MatchString(value) {
-			keyLower := strings.ToLower(key)
-			if strings.Contains(keyLower, "state") ||
-				strings.Contains(keyLower, "état") ||
-				strings.Contains(keyLower, "machine") ||
-				strings.Contains(keyLower, "ordinateur") {
-				fields := strings.Fields(value)
-				if len(fields) > 0 {
-					stateValue = fields[0]
-				}
-			}
-		}
+		l.parseW32TMPatterns(key, value, lineIndex, &sourceValue, &phaseOffsetValue, &stratumValue, &stateValue, reDuration, reNumber)
 
 		// Strategy 3: Positional fallback for source (usually in first 15 lines)
-		if sourceValue == "" && i > 0 && i < 15 {
-			// source field typically contains hostname, IP, or comma-separated values
-			if (strings.Contains(value, ".") || strings.Contains(value, ",")) &&
-				!strings.Contains(value, "ms") && !strings.Contains(value, "s") {
-				servers := utils.TokenizeBy(value, ",", false, false)
-				if len(servers) > 0 {
-					candidate := strings.TrimSpace(servers[0])
-					// basic validation: not empty, reasonable length
-					if len(candidate) > 0 && len(candidate) < 256 {
-						sourceValue = candidate
-					}
-				}
-			}
-		}
+		l.parseW32TMPositional(value, lineIndex, &sourceValue)
 	}
 
 	// validate and assign results
@@ -486,6 +407,125 @@ func (l *CheckNTPOffset) parseW32TMOutput(text string) (valid bool, source, offs
 	}
 
 	return valid, source, offset, stratum, errorStr
+}
+
+// parseW32TMEnglishKeywords tries to parse w32tm output using English field names
+func (l *CheckNTPOffset) parseW32TMEnglishKeywords(key, value string, sourceValue, phaseOffsetValue, stratumValue, stateValue *string) {
+	switch key {
+	case "Source":
+		if *sourceValue == "" {
+			servers := utils.TokenizeBy(value, ",", false, false)
+			if len(servers) > 0 {
+				*sourceValue = strings.TrimSpace(servers[0])
+			}
+		}
+	case "Phase Offset":
+		if *phaseOffsetValue == "" {
+			normalizedValue := strings.ReplaceAll(value, ",", ".")
+			if duration, err := time.ParseDuration(normalizedValue); err == nil {
+				*phaseOffsetValue = fmt.Sprintf("%f", float64(duration.Nanoseconds())/1e6)
+			}
+		}
+	case "Stratum":
+		if *stratumValue == "" {
+			fields := strings.Fields(value)
+			if len(fields) > 0 {
+				*stratumValue = fields[0]
+			}
+		}
+	case "State Machine":
+		if *stateValue == "" {
+			fields := strings.Fields(value)
+			if len(fields) > 0 {
+				*stateValue = fields[0]
+			}
+		}
+	}
+}
+
+// parseW32TMPatterns uses pattern matching to detect fields in any language
+func (l *CheckNTPOffset) parseW32TMPatterns(key, value string, lineIndex int, sourceValue, phaseOffsetValue, stratumValue, stateValue *string, reDuration, reNumber *regexp.Regexp) {
+	keyLower := strings.ToLower(key)
+
+	// detect phase offset by duration pattern
+	if *phaseOffsetValue == "" && reDuration.MatchString(value) {
+		if (*sourceValue != "" || lineIndex > 5) && l.isOffsetKeyword(keyLower) {
+			normalizedValue := strings.ReplaceAll(value, ",", ".")
+			if duration, err := time.ParseDuration(normalizedValue); err == nil {
+				*phaseOffsetValue = fmt.Sprintf("%f", float64(duration.Nanoseconds())/1e6)
+			}
+		}
+	}
+
+	// detect stratum by pattern (stratum keyword + number 0-16)
+	if *stratumValue == "" && reNumber.MatchString(value) && l.isStratumKeyword(keyLower) {
+		fields := strings.Fields(value)
+		if len(fields) > 0 && len(fields[0]) <= 2 {
+			*stratumValue = fields[0]
+		}
+	}
+
+	// detect state machine value
+	if *stateValue == "" && reNumber.MatchString(value) && l.isStateKeyword(keyLower) {
+		fields := strings.Fields(value)
+		if len(fields) > 0 {
+			*stateValue = fields[0]
+		}
+	}
+}
+
+// parseW32TMPositional uses positional fallback to find source field
+func (l *CheckNTPOffset) parseW32TMPositional(value string, lineIndex int, sourceValue *string) {
+	const maxSourceLineIndex = 15
+	const maxSourceLength = 256
+
+	if *sourceValue != "" || lineIndex == 0 || lineIndex >= maxSourceLineIndex {
+		return
+	}
+
+	// source field typically contains hostname, IP, or comma-separated values
+	if !l.looksLikeSourceValue(value) {
+		return
+	}
+
+	servers := utils.TokenizeBy(value, ",", false, false)
+	if len(servers) == 0 {
+		return
+	}
+
+	candidate := strings.TrimSpace(servers[0])
+	if candidate != "" && len(candidate) < maxSourceLength {
+		*sourceValue = candidate
+	}
+}
+
+// isOffsetKeyword checks if a key contains offset-related keywords
+func (l *CheckNTPOffset) isOffsetKeyword(keyLower string) bool {
+	return strings.Contains(keyLower, "offset") ||
+		strings.Contains(keyLower, "décalage") ||
+		strings.Contains(keyLower, "phase")
+}
+
+// isStratumKeyword checks if a key contains stratum-related keywords
+func (l *CheckNTPOffset) isStratumKeyword(keyLower string) bool {
+	return strings.Contains(keyLower, "stratum") ||
+		strings.Contains(keyLower, "strate")
+}
+
+// isStateKeyword checks if a key contains state machine keywords
+func (l *CheckNTPOffset) isStateKeyword(keyLower string) bool {
+	return strings.Contains(keyLower, "state") ||
+		strings.Contains(keyLower, "état") ||
+		strings.Contains(keyLower, "machine") ||
+		strings.Contains(keyLower, "ordinateur")
+}
+
+// looksLikeSourceValue checks if a value looks like a source server field
+func (l *CheckNTPOffset) looksLikeSourceValue(value string) bool {
+	hasDotOrComma := strings.Contains(value, ".") || strings.Contains(value, ",")
+	hasTimeUnit := strings.Contains(value, "ms") || strings.Contains(value, "s")
+
+	return hasDotOrComma && !hasTimeUnit
 }
 
 // get offset on Mac OSX
