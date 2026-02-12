@@ -54,7 +54,7 @@ Naemon Config
 
 | Argument            | Description                                                           |
 | ------------------- | --------------------------------------------------------------------- |
-| --hide-args         | Hide arguments when showing the top N processes                       |
+| --show-args         | Show arguments when listing the top N processes                       |
 | -c\|--critical      | Critical threshold: CLOAD1,CLOAD5,CLOAD15                             |
 | -n\|--procs-to-show | Number of processes to show when printing the top consuming processes |
 | -r\|--percpu        | Divide the load averages by the number of CPUs                        |

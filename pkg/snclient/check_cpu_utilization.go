@@ -29,8 +29,8 @@ type CheckCPUUtilization struct {
 	avgRange string
 	// List the top N cpu consuming processes
 	numProcs int64
-	// Hide arguments when showing the top N processes
-	hideArgs bool
+	// Show arguments when listing the top N processes
+	showArgs bool
 }
 
 func NewCheckCPUUtilization() CheckHandler {
@@ -51,7 +51,7 @@ func (l *CheckCPUUtilization) Build() *CheckData {
 		args: map[string]CheckArgument{
 			"range":           {value: &l.avgRange, description: "Sets time range to calculate average (default is 1m)"},
 			"n|procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
-			"hide-args":       {value: &l.hideArgs, description: "Hide arguments when showing the top N processes"},
+			"show-args":       {value: &l.showArgs, description: "Show arguments when listing the top N processes"},
 		},
 		defaultWarning:  "total > 90",
 		defaultCritical: "total > 95",
@@ -90,7 +90,7 @@ func (l *CheckCPUUtilization) Check(ctx context.Context, snc *Agent, check *Chec
 	scanLookBack := uint64(lookBack)
 
 	if l.numProcs > 0 {
-		err = appendProcs(ctx, check, l.numProcs, l.hideArgs, "cpu")
+		err = appendProcs(ctx, check, l.numProcs, l.showArgs, "cpu")
 		if err != nil {
 			return nil, fmt.Errorf("procs: %s", err.Error())
 		}

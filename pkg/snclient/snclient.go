@@ -1585,7 +1585,7 @@ func (snc *Agent) adjustMemoryAndGCLimits() {
 }
 
 // appendProcs appends process information to the check result details. It fetches the list of processes and sorts them by CPU or memory usage
-func appendProcs(ctx context.Context, check *CheckData, numProcs int64, hideArgs bool, sortBy string) error {
+func appendProcs(ctx context.Context, check *CheckData, numProcs int64, showArgs bool, sortBy string) error {
 	format := "%-8s %-8s %-8s %-8s %-8s %-8s %-8s %s\n"
 	check.result.Details = fmt.Sprintf(format,
 		"USER", "PID", "%CPU", "%MEM", "VSC", "RSS", "TIME", "COMMAND")
@@ -1632,7 +1632,7 @@ func appendProcs(ctx context.Context, check *CheckData, numProcs int64, hideArgs
 			continue
 		}
 		exe, _ := buildExeAndFilename(ctx, proc.proc)
-		if cmdLine == "" || hideArgs {
+		if cmdLine == "" || !showArgs {
 			cmdLine = exe
 		}
 

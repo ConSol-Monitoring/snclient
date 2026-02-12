@@ -29,8 +29,8 @@ type CheckLoad struct {
 	perCPU bool
 	// List the top N cpu consuming processes
 	numProcs int64
-	// Hide arguments when showing the top N processes
-	hideArgs bool
+	// Show arguments when listing the top N processes
+	showArgs bool
 }
 
 func NewCheckLoad() CheckHandler {
@@ -51,7 +51,7 @@ func (l *CheckLoad) Build() *CheckData {
 			"-c|--critical":      {value: &l.critical, description: "Critical threshold: CLOAD1,CLOAD5,CLOAD15"},
 			"-r|--percpu":        {value: &l.perCPU, description: "Divide the load averages by the number of CPUs"},
 			"-n|--procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
-			"--hide-args":        {value: &l.hideArgs, description: "Hide arguments when showing the top N processes"},
+			"--show-args":        {value: &l.showArgs, description: "Show arguments when listing the top N processes"},
 		},
 		defaultFilter: "none",
 		detailSyntax:  "${type} load average: ${load1}, ${load5}, ${load15}",
@@ -154,7 +154,7 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 	}
 
 	if l.numProcs > 0 {
-		err = appendProcs(ctx, check, l.numProcs, l.hideArgs, "cpu")
+		err = appendProcs(ctx, check, l.numProcs, l.showArgs, "cpu")
 		if err != nil {
 			return nil, fmt.Errorf("procs: %s", err.Error())
 		}

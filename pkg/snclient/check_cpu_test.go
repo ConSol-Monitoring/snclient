@@ -40,7 +40,7 @@ func TestCheckCPU(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "core0 1m", "output matches")
 	assert.NotContainsf(t, string(res.BuildPluginOutput()), "core1 1m", "output matches not")
 
-	res = snc.RunCheck("check_cpu", []string{"warn=load = 101", "crit=load = 102", "-n", "10", "--hide-args=false"})
+	res = snc.RunCheck("check_cpu", []string{"warn=load = 101", "crit=load = 102", "-n", "10", "--show-args"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "RSS", "output matches")
 	assert.Contains(t, string(res.BuildPluginOutput()), "%MEM", "output matches")

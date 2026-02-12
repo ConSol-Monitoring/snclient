@@ -24,5 +24,11 @@ func TestCheckLoad(t *testing.T) {
 		"output matches",
 	)
 
+	res = snc.RunCheck("check_load", []string{"-w", "999,999,999", "-c", "999,999,999", "-n", "10", "--show-args"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "RSS", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "%MEM", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "COMMAND", "output matches")
+
 	StopTestAgent(t, snc)
 }

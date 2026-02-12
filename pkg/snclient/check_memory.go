@@ -17,8 +17,8 @@ type CheckMemory struct {
 	memType CommaStringList
 	// List the top N cpu consuming processes
 	numProcs int64
-	// Hide arguments when showing the top N processes
-	hideArgs bool
+	// Show arguments when listing the top N processes
+	showArgs bool
 }
 
 func NewCheckMemory() CheckHandler {
@@ -58,7 +58,7 @@ read more on windows virtual address space:
 		args: map[string]CheckArgument{
 			"type":            {value: &l.memType, description: "Type of memory to check. Default: physical,committed (win) or physical,swap (other)"},
 			"n|procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
-			"hide-args":       {value: &l.hideArgs, description: "Hide arguments when showing the top N processes"},
+			"show-args":       {value: &l.showArgs, description: "Show arguments when listing the top N processes"},
 		},
 		defaultWarning:  "used > 80%",
 		defaultCritical: "used > 90%",
@@ -102,7 +102,7 @@ func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ [
 	}
 
 	if l.numProcs > 0 {
-		err = appendProcs(ctx, check, l.numProcs, l.hideArgs, "mem")
+		err = appendProcs(ctx, check, l.numProcs, l.showArgs, "mem")
 		if err != nil {
 			return nil, fmt.Errorf("procs: %s", err.Error())
 		}

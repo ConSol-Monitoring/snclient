@@ -55,9 +55,9 @@ Naemon Config
 
 | Argument         | Description                                                           |
 | ---------------- | --------------------------------------------------------------------- |
-| hide-args        | Hide arguments when showing the top N processes                       |
 | n\|procs-to-show | Number of processes to show when printing the top consuming processes |
 | range            | Sets time range to calculate average (default is 1m)                  |
+| show-args        | Show arguments when listing the top N processes                       |
 
 ## Attributes
 

@@ -17,8 +17,8 @@ type CheckCPU struct {
 	times []string
 	// List the top N cpu consuming processes
 	numProcs int64
-	// Hide arguments when showing the top N processes
-	hideArgs bool
+	// Show arguments when listing the top N processes
+	showArgs bool
 }
 
 func NewCheckCPU() CheckHandler {
@@ -39,7 +39,7 @@ func (l *CheckCPU) Build() *CheckData {
 		args: map[string]CheckArgument{
 			"time":            {value: &l.times, description: "The times to check, default: 5m,1m,5s"},
 			"n|procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
-			"hide-args":       {value: &l.hideArgs, description: "Hide arguments when showing the top N processes"},
+			"show-args":       {value: &l.showArgs, description: "Show arguments when listing the top N processes"},
 		},
 		defaultFilter:   "core = 'total'",
 		defaultWarning:  "load > 80",
@@ -109,7 +109,7 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 	}
 
 	if l.numProcs > 0 {
-		err := appendProcs(ctx, check, l.numProcs, l.hideArgs, "cpu")
+		err := appendProcs(ctx, check, l.numProcs, l.showArgs, "cpu")
 		if err != nil {
 			return nil, fmt.Errorf("procs: %s", err.Error())
 		}
