@@ -12,9 +12,9 @@ Checks the swap Input / Output rate on the host.
 
 ## Implementation
 
-| Windows            | Linux              | FreeBSD            | MacOSX             |
-|:------------------:|:------------------:|:------------------:|:------------------:|
-| :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| Windows | Linux              | FreeBSD            | MacOSX             |
+|:-------:|:------------------:|:------------------:|:------------------:|
+|         | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Examples
 
@@ -41,13 +41,13 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                              |
-| ------------- | ---------------------------------------------------------- |
-| empty-state   | 0 (OK)                                                     |
-| empty-syntax  |                                                            |
-| top-syntax    | %(status) - %(list)                                        |
-| ok-syntax     | %(status) - %(list)                                        |
-| detail-syntax | %(swap_count) swaps >%(swap_in_rate)/s <%(swap_out_rate)/s |
+| Argument      | Default Value                                                       |
+| ------------- | ------------------------------------------------------------------- |
+| empty-state   | 0 (OK)                                                              |
+| empty-syntax  |                                                                     |
+| top-syntax    | %(status) - %(list)                                                 |
+| ok-syntax     | %(status) - %(list)                                                 |
+| detail-syntax | %(swap_count) swap device(s) >%(swap_in_rate)/s <%(swap_out_rate)/s |
 
 ## Check Specific Arguments
 
