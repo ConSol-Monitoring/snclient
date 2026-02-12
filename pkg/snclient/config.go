@@ -46,6 +46,8 @@ var DefaultConfig = map[string]ConfigData{
 		"CheckAlias":           "enabled",
 		"CheckExternalScripts": "enabled",
 		"CheckDisk":            "enabled",
+		"CheckDriveIO":         "enabled",
+		"CheckSwapIO":          "enabled",
 		"CheckWMI":             "disabled",
 		"CheckLogFile":         "disabled",
 		"NRPEServer":           "disabled",
