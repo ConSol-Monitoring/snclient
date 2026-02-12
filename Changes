@@ -1,7 +1,11 @@
 This file documents the revision history for the SNClient agent.
 
 next:
+         - *DEPRECATION NOTICE* the next release will use an unprivileged snclient user
+           instead of root when using the linux packages.
          - change minimum golang requirement to 1.25.7
+         - check_drive_io: add new check for drive io
+         - check_swap_io: add new check for swap io
          - check_drivesize: ignore drive not found errors if empty-state is set (#315)
          - check_drivesize: add support to check windows network shares (#318)
          - check_cpu add idle time (#308)
@@ -60,7 +64,7 @@ next:
 
 0.35     Fri Jun 13 16:30:25 CEST 2025
          - change showing performance data in check_files and check_services (#243)
-         - kill orphanded managed exporters which might block listen ports
+         - kill orphaned managed exporters which might block listen ports
          - remove pipes from unknown macros in final output
          - only proxy /metrics instead of * for managed exporter
          - add option `url match` for managed exporter to configure which urls should be proxied
