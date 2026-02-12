@@ -40,14 +40,11 @@ func TestCheckCPU(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "core0 1m", "output matches")
 	assert.NotContainsf(t, string(res.BuildPluginOutput()), "core1 1m", "output matches not")
 
-	StopTestAgent(t, snc)
-}
-
-func TestCheckCPUUtilization(t *testing.T) {
-	snc := StartTestAgent(t, "")
-
-	res := snc.RunCheck("check_cpu_utilization", []string{"warn=none", "crit=none", "range=1m"})
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - user:", "output matches")
+	res = snc.RunCheck("check_cpu", []string{"warn=load = 101", "crit=load = 102", "-n", "10", "--hide-args=false"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "RSS", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "%MEM", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "COMMAND", "output matches")
 
 	StopTestAgent(t, snc)
 }

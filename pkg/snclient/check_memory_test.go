@@ -103,5 +103,11 @@ func TestCheckMemory(t *testing.T) {
 		assert.Containsf(t, string(res.BuildPluginOutput()), "UNKNOWN - virtual memory is only supported on windows", "output matches")
 	}
 
+	res = snc.RunCheck("check_memory", []string{"type=physical", "warn=none", "crit=none", "-n", "10", "--hide-args=false"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "RSS", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "%MEM", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "COMMAND", "output matches")
+
 	StopTestAgent(t, snc)
 }

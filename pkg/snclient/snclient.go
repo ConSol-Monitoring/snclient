@@ -179,6 +179,12 @@ type ParsedFile struct {
 	inode  uint64
 }
 
+type sortableProc struct {
+	cpuPercent float64
+	memPercent float32
+	proc       *process.Process
+}
+
 // AgentRunSet contains the runtime dynamic references
 type AgentRunSet struct {
 	config     *Config
@@ -1589,20 +1595,19 @@ func appendProcs(ctx context.Context, check *CheckData, numProcs int64, hideArgs
 		return fmt.Errorf("fetching processes failed: %s", err.Error())
 	}
 
-	type sortableProc struct {
-		cpuPercent float64
-		memPercent float32
-		proc       *process.Process
-	}
-
 	sortable := []sortableProc{}
-
 	for _, proc := range procs {
-		p, _ := proc.CPUPercentWithContext(ctx)
-		m, _ := proc.MemoryPercentWithContext(ctx)
+		cpuPerc, err := proc.CPUPercentWithContext(ctx)
+		if err != nil {
+			continue
+		}
+		memPerc, err := proc.MemoryPercentWithContext(ctx)
+		if err != nil {
+			continue
+		}
 		sortable = append(sortable, sortableProc{
-			cpuPercent: p,
-			memPercent: m,
+			cpuPercent: cpuPerc,
+			memPercent: memPerc,
 			proc:       proc,
 		})
 	}
@@ -1620,31 +1625,42 @@ func appendProcs(ctx context.Context, check *CheckData, numProcs int64, hideArgs
 		return fmt.Errorf("invalid sortBy value: %s", sortBy)
 	}
 
-	for i, proc := range sortable {
-		if i >= int(numProcs) {
-			break
+	added := 0
+	for _, proc := range sortable {
+		cmdLine, err := proc.proc.CmdlineWithContext(ctx)
+		if err != nil {
+			continue
 		}
-
-		cmdLine, _ := proc.proc.Cmdline()
 		exe, _ := buildExeAndFilename(ctx, proc.proc)
 		if cmdLine == "" || hideArgs {
 			cmdLine = exe
 		}
 
 		username, _ := proc.proc.Username()
-		mem, _ := proc.proc.MemoryPercent()
-		memInfo, _ := proc.proc.MemoryInfoWithContext(ctx)
-		times, _ := proc.proc.TimesWithContext(ctx)
+		memInfo, err := proc.proc.MemoryInfoWithContext(ctx)
+		if err != nil {
+			continue
+		}
+		times, err := proc.proc.TimesWithContext(ctx)
+		if err != nil {
+			continue
+		}
+
 		check.result.Details += fmt.Sprintf(format,
 			username,
 			fmt.Sprintf("%d", proc.proc.Pid),
 			fmt.Sprintf("%.1f", proc.cpuPercent),
-			fmt.Sprintf("%.1f", mem),
+			fmt.Sprintf("%.1f", proc.memPercent),
 			humanize.Bytes(memInfo.VMS),
 			humanize.Bytes(memInfo.RSS),
 			fmt.Sprintf("%.1f", times.User+times.System),
 			cmdLine,
 		)
+		added++
+
+		if added >= int(numProcs) {
+			break
+		}
 	}
 
 	return nil
