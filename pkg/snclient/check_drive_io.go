@@ -126,7 +126,7 @@ func (l *CheckDriveIO) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 	if len(l.drives) == 0 {
 		// This value is calculated during the initialization of TaskSystemCheck
-		drivesToCheck = append(drivesToCheck, PartitionDevicesToWatch...)
+		drivesToCheck = append(drivesToCheck, StorageDevicesToWatch...)
 	}
 
 	sort.Strings(drivesToCheck)

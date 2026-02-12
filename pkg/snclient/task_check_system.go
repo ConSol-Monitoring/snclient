@@ -31,7 +31,7 @@ var DefaultSystemTaskConfig = ConfigData{
 // initialization function first discovers partitions
 // depending on their type, corresponding device of that partition is added
 // non-physical drives are not added to IO counters
-var PartitionDevicesToWatch []string
+var StorageDevicesToWatch []string
 
 func init() {
 	// gopsutil on Linux seems to be reading /proc/partitions
@@ -48,24 +48,32 @@ func init() {
 				continue
 			}
 
-			PartitionDevicesToWatch = append(PartitionDevicesToWatch, partition.Device)
+			// /dev/loop22 ***
+			if partition.Fstype == "iso9660" && strings.Contains(partition.Device, "/loop") {
+				continue
+			}
+
+			StorageDevicesToWatch = append(StorageDevicesToWatch, partition.Device)
 		}
 	}
 }
 
-// This function determines if counters
 func DiskEligibleForWatch(diskName string) bool {
-	// partitionDevices were calculated in init() function
-
 	// while diskName comes from gopsutil disk.IoCounters()
 	// On linux it seems to be reading /proc/diskstats
-	// Has entries that look like this:
-	// "nvme0n1p2"
+	// It also keeps stats for individual partitions, e.g there are two separate stats for:
+	// "nvme0n1" , "nvme0n1p2"
+
+	// For partitions like "nvme0n1p2", I need to see if they contain
+	// a device to watch such like "nvme0n1"
 
 	diskEligible := false
 
-	for _, partitionDevice := range PartitionDevicesToWatch {
-		if strings.Contains(partitionDevice, diskName) {
+	// Calculated in init() function
+	// it uses disk.Partitions and excludes some filesytem types
+	// directly and uses other heuristics to exclude some more
+	for _, storageDeviceToWatch := range StorageDevicesToWatch {
+		if strings.Contains(storageDeviceToWatch, diskName) {
 			diskEligible = true
 
 			break
