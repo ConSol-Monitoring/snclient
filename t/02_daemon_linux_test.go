@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -105,11 +106,26 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 	})
 	require.NoErrorf(t, err, "post data json encoded")
 
+	started := getStartedTime(t, baseURL)
+	require.Greater(t, started, 0.0, "got a start time from inventory: %f", started)
+
 	runCmd(t, &cmd{
 		Cmd:  "curl",
 		Args: []string{"-s", "-u", "user:" + localDaemonAdminPassword, "-k", "-s", "-d", string(postData), baseURL + "/api/v1/admin/certs/replace"},
 		Like: []string{`{"success":true}`},
 	})
+
+	// wait until snclient has restarted
+	restarted := 0.0
+	for range 300 {
+		restarted = getStartedTime(t, baseURL)
+		if restarted > started {
+			break
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+	assert.Greaterf(t, restarted, started, "snclient did restart after certificate replacement: %f / %f -> Δ%f", restarted, started, restarted-started)
 
 	// Check if new private Key matches the on we got from the csr Endpoint
 	key, _ := os.ReadFile("test.key")
@@ -179,4 +195,30 @@ use ssl = enabled
 		Like:    []string{`snclient working`},
 		ErrLike: []string{`Strict-Transport-Security`},
 	})
+}
+
+func getStartedTime(t *testing.T, baseURL string) float64 {
+	t.Helper()
+
+	res := runCmd(t, &cmd{
+		Cmd:  "curl",
+		Args: []string{"-s", "-u", "user:" + localDaemonPassword, "-k", "-s", baseURL + "/api/v1/inventory/uptime"},
+		Like: []string{`"starttime"`},
+	})
+
+	inventoryResult := struct {
+		Snclient struct {
+			Starttime float64 `json:"starttime"`
+		} `json:"snclient"`
+	}{}
+
+	err := json.Unmarshal([]byte(res.Stdout), &inventoryResult)
+	if err != nil {
+		// that's ok, we wait for snclient to restart, so it might not be available yet
+		t.Logf("request failed: %v", err)
+
+		return 0
+	}
+
+	return inventoryResult.Snclient.Starttime
 }

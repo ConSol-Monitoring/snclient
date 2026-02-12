@@ -191,6 +191,7 @@ type AgentRunSet struct {
 	listeners  *ModuleSet
 	tasks      *ModuleSet
 	files      []string
+	startTime  time.Time
 	cmdAliases map[string]CheckEntry // contains all registered check handler aliases
 	cmdWraps   map[string]CheckEntry // contains all registered wrapped check handler
 }
@@ -530,6 +531,7 @@ func (snc *Agent) ReadConfiguration(files []string) (initSet *AgentRunSet, err e
 	initSet = &AgentRunSet{
 		config:     config,
 		files:      files,
+		startTime:  time.Now(),
 		cmdAliases: make(map[string]CheckEntry),
 		cmdWraps:   make(map[string]CheckEntry),
 	}
@@ -1392,11 +1394,12 @@ func (snc *Agent) GetInventory(ctx context.Context, modules []string) map[string
 		"inventory": snc.getCachedInventory(ctx, modules),
 		"localtime": time.Now().Unix(),
 		"snclient": map[string]any{
-			"version":  snc.Version(),
-			"build":    Build,
-			"arch":     runtime.GOARCH,
-			"os":       runtime.GOOS,
-			"hostname": hostID,
+			"version":   snc.Version(),
+			"build":     Build,
+			"arch":      runtime.GOARCH,
+			"os":        runtime.GOOS,
+			"hostname":  hostID,
+			"starttime": float64(snc.runSet.startTime.UnixMilli()) / 1000,
 		},
 	})
 }
