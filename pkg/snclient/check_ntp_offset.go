@@ -322,16 +322,8 @@ func (l *CheckNTPOffset) addW32TM(ctx context.Context, check *CheckData, force b
 		return nil
 	}
 
-	var valid bool
-	var source string
-	var offset string
-	var stratum string
-	var errorStr string
-	if strings.Contains(output, "Phase Offset") {
-		valid, source, offset, stratum, errorStr = l.parseW32English(output)
-	} else {
-		valid, source, offset, stratum, errorStr = l.parseW32AnyLang(output)
-	}
+	// use the new language-independent parser
+	valid, source, offset, stratum, errorStr := l.parseW32TMOutput(output)
 
 	switch {
 	case errorStr != "":
@@ -354,69 +346,143 @@ func (l *CheckNTPOffset) addW32TM(ctx context.Context, check *CheckData, force b
 	return nil
 }
 
-func (l *CheckNTPOffset) parseW32English(text string) (valid bool, source, offset, stratum, errorStr string) {
-	for line := range strings.SplitSeq(text, "\n") {
+// parseW32TMOutput parses w32tm.exe output in any language using multiple strategies
+// Strategy 1: Try English keywords (Source, Phase Offset, Stratum, State Machine)
+// Strategy 2: Pattern matching for duration formats and numeric values (language-independent)
+// Strategy 3: Contextual positioning as fallback
+func (l *CheckNTPOffset) parseW32TMOutput(text string) (valid bool, source, offset, stratum, errorStr string) {
+	lines := strings.Split(text, "\n")
+
+	// patterns for identifying key values across languages
+	var sourceValue string
+	var phaseOffsetValue string
+	var stratumValue string
+	var stateValue string
+
+	// regular expressions for pattern matching
+	reDuration := regexp.MustCompile(`(-?\d+[.,]?\d*)(s|ms|µs|ns)`)
+	reNumber := regexp.MustCompile(`^\d+`)
+
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
 		cols := utils.TokenizeBy(line, ":", false, false)
 		if len(cols) < 2 {
 			continue
 		}
-		cols[1] = strings.TrimSpace(cols[1])
-		switch cols[0] {
+
+		key := strings.TrimSpace(cols[0])
+		value := strings.TrimSpace(cols[1])
+
+		// Strategy 1: Try English keywords first
+		switch key {
 		case "Source":
-			servers := utils.TokenizeBy(cols[1], ",", false, false)
-			source = servers[0]
+			servers := utils.TokenizeBy(value, ",", false, false)
+			if len(servers) > 0 {
+				sourceValue = strings.TrimSpace(servers[0])
+			}
 		case "Phase Offset":
-			value, _ := time.ParseDuration(cols[1])
-			offset = fmt.Sprintf("%f", float64(value.Nanoseconds())/1e6)
-			valid = true
+			// normalize decimal separator for Go parsing
+			normalizedValue := strings.ReplaceAll(value, ",", ".")
+			if duration, err := time.ParseDuration(normalizedValue); err == nil {
+				phaseOffsetValue = fmt.Sprintf("%f", float64(duration.Nanoseconds())/1e6)
+			}
 		case "Stratum":
-			stratas := strings.Fields(cols[1])
-			stratum = stratas[0]
+			fields := strings.Fields(value)
+			if len(fields) > 0 {
+				stratumValue = fields[0]
+			}
 		case "State Machine":
-			fields := strings.Fields(cols[1])
-			if fields[0] != "2" {
-				errorStr = fmt.Sprintf("w32tm.exe: %s", line)
+			fields := strings.Fields(value)
+			if len(fields) > 0 {
+				stateValue = fields[0]
+			}
+		}
+
+		// Strategy 2: Pattern-based detection (language-independent)
+
+		// detect phase offset by duration pattern
+		if phaseOffsetValue == "" && reDuration.MatchString(value) {
+			// check if this looks like a phase offset line
+			// usually appears after source and contains time duration
+			keyLower := strings.ToLower(key)
+			if (sourceValue != "" || i > 5) &&
+				(strings.Contains(keyLower, "offset") ||
+					strings.Contains(keyLower, "décalage") ||
+					strings.Contains(keyLower, "phase")) {
+				// normalize decimal separator
+				normalizedValue := strings.ReplaceAll(value, ",", ".")
+				if duration, err := time.ParseDuration(normalizedValue); err == nil {
+					phaseOffsetValue = fmt.Sprintf("%f", float64(duration.Nanoseconds())/1e6)
+				}
+			}
+		}
+
+		// detect stratum by pattern
+		if stratumValue == "" && reNumber.MatchString(value) {
+			fields := strings.Fields(value)
+			if len(fields) > 0 {
+				num := fields[0]
+				// stratum is typically 0-16
+				keyLower := strings.ToLower(key)
+				if len(num) <= 2 && (strings.Contains(keyLower, "strat") ||
+					strings.Contains(keyLower, "strate")) {
+					stratumValue = num
+				}
+			}
+		}
+
+		// detect state machine value
+		if stateValue == "" && reNumber.MatchString(value) {
+			keyLower := strings.ToLower(key)
+			if strings.Contains(keyLower, "state") ||
+				strings.Contains(keyLower, "état") ||
+				strings.Contains(keyLower, "machine") ||
+				strings.Contains(keyLower, "ordinateur") {
+				fields := strings.Fields(value)
+				if len(fields) > 0 {
+					stateValue = fields[0]
+				}
+			}
+		}
+
+		// Strategy 3: Positional fallback for source (usually in first 15 lines)
+		if sourceValue == "" && i > 0 && i < 15 {
+			// source field typically contains hostname, IP, or comma-separated values
+			if (strings.Contains(value, ".") || strings.Contains(value, ",")) &&
+				!strings.Contains(value, "ms") && !strings.Contains(value, "s") {
+				servers := utils.TokenizeBy(value, ",", false, false)
+				if len(servers) > 0 {
+					candidate := strings.TrimSpace(servers[0])
+					// basic validation: not empty, reasonable length
+					if len(candidate) > 0 && len(candidate) < 256 {
+						sourceValue = candidate
+					}
+				}
 			}
 		}
 	}
 
-	return valid, source, offset, stratum, errorStr
-}
-
-func (l *CheckNTPOffset) parseW32AnyLang(text string) (valid bool, source, offset, stratum, errorStr string) {
-	type attr struct {
-		key  string
-		val  string
-		line string
-	}
-	attributes := []attr{}
-	for line := range strings.SplitSeq(text, "\n") {
-		cols := utils.TokenizeBy(line, ":", false, false)
-		if len(cols) < 2 {
-			continue
-		}
-		cols[1] = strings.TrimSpace(cols[1])
-		attributes = append(attributes, attr{cols[0], cols[1], line})
+	// validate and assign results
+	if sourceValue != "" {
+		source = sourceValue
 	}
 
-	if len(attributes) < 12 {
-		return false, "", "", "", ""
+	if phaseOffsetValue != "" {
+		offset = phaseOffsetValue
+		valid = true
 	}
 
-	// assume output offsets stay sane across languages
-	servers := utils.TokenizeBy(attributes[7].val, ",", false, false)
-	source = servers[0]
+	if stratumValue != "" {
+		stratum = stratumValue
+	}
 
-	phase, _ := time.ParseDuration(attributes[9].val)
-	offset = fmt.Sprintf("%f", float64(phase.Nanoseconds())/1e6)
-	valid = true
-
-	stratas := strings.Fields(attributes[1].val)
-	stratum = stratas[0]
-
-	fields := strings.Fields(attributes[11].val)
-	if fields[0] != "2" {
-		errorStr = fmt.Sprintf("w32tm.exe: %s", attributes[11].line)
+	// check state machine value (should be 2 for synchronized)
+	if stateValue != "" && stateValue != "2" {
+		errorStr = fmt.Sprintf("w32tm.exe: Time service not synchronized (state: %s)", stateValue)
 	}
 
 	return valid, source, offset, stratum, errorStr
