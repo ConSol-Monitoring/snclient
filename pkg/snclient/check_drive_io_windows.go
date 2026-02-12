@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/counter"
@@ -12,51 +13,55 @@ func getIOCounters() (any, error) {
 }
 
 func (l *CheckDriveIO) buildEntry(snc *Agent, diskIOCounters any, deviceLogicalNameOrLetter string, entry map[string]string) (foundDisk bool) {
-	diskIOCountersTypecasted, ok := diskIOCounters.(map[string]IOCountersStatWindows)
-	if !ok {
+	diskIOCountersTypecasted, typecastOk := diskIOCounters.(map[string]IOCountersStatWindows)
+	if !typecastOk {
 		log.Debug("Platform is windows, diskIOCounters should have IOCountersStatWindows keys")
 
 		return false
 	}
 
-	if counters, ok := diskIOCountersTypecasted[deviceLogicalNameOrLetter]; ok {
-		foundDisk = true
+	counters, driveLogicalNameOrLetterPresent := diskIOCountersTypecasted[deviceLogicalNameOrLetter]
 
-		// counters use this format when saving metrics
-		// found in CheckSystemHandler.addLinuxDiskStats
-		counterCategory := "disk_" + counters.Name
+	if !driveLogicalNameOrLetterPresent {
+		log.Debugf("Drive logical name or letter: %s , is not present in the diskIOCounters, its keys are: %v", deviceLogicalNameOrLetter, maps.Keys(diskIOCountersTypecasted))
 
-		entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
-		l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
-		entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
-		l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
-		entry["read_time"] = fmt.Sprintf("%f", counters.ReadTime)
-
-		entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
-		l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
-		entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
-		l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
-		entry["write_time"] = fmt.Sprintf("%f", counters.WriteTime)
-
-		entry["idle_time"] = fmt.Sprintf("%d", counters.IdleTime)
-		entry["query_time"] = fmt.Sprintf("%d", counters.QueryTime)
-
-		idleTimeCounter := snc.Counter.Get(counterCategory, "idle_time")
-		queryTimeCounter := snc.Counter.Get(counterCategory, "query_time")
-
-		if idleTimeCounter != nil && queryTimeCounter != nil {
-			utilization, err := l.calculateUtilizationFromIdleAndQueryCounters(idleTimeCounter, queryTimeCounter)
-			if err != nil {
-				log.Tracef("Error when calculating utilization from IdleTime and QueryTime counters: %s", err.Error())
-			}
-			entry["utilization"] = fmt.Sprintf("%.1f", utilization)
-		}
-
-		entry["queue_depth"] = fmt.Sprintf("%d", counters.QueueDepth)
-		entry["split_count"] = fmt.Sprintf("%d", counters.SplitCount)
+		return false
 	}
 
-	return foundDisk
+	// counters use this format when saving metrics
+	// found in CheckSystemHandler.addLinuxDiskStats
+	counterCategory := "disk_" + counters.Name
+
+	entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
+	l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
+	entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
+	l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
+	entry["read_time"] = fmt.Sprintf("%f", counters.ReadTime)
+
+	entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
+	l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
+	entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
+	l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
+	entry["write_time"] = fmt.Sprintf("%f", counters.WriteTime)
+
+	entry["idle_time"] = fmt.Sprintf("%d", counters.IdleTime)
+	entry["query_time"] = fmt.Sprintf("%d", counters.QueryTime)
+
+	idleTimeCounter := snc.Counter.Get(counterCategory, "idle_time")
+	queryTimeCounter := snc.Counter.Get(counterCategory, "query_time")
+
+	if idleTimeCounter != nil && queryTimeCounter != nil {
+		utilization, err := l.calculateUtilizationFromIdleAndQueryCounters(idleTimeCounter, queryTimeCounter)
+		if err != nil {
+			log.Tracef("Error when calculating utilization from IdleTime and QueryTime counters: %s", err.Error())
+		}
+		entry["utilization"] = fmt.Sprintf("%.1f", utilization)
+	}
+
+	entry["queue_depth"] = fmt.Sprintf("%d", counters.QueueDepth)
+	entry["split_count"] = fmt.Sprintf("%d", counters.SplitCount)
+
+	return true
 }
 
 func (l *CheckDriveIO) calculateUtilizationFromIdleAndQueryCounters(idleTimeCounter, queryTimeCounter *counter.Counter) (utilizationRatio float64, err error) {
