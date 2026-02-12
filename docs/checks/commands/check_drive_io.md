@@ -47,14 +47,14 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                         |
-| ------------- | --------------------------------------------------------------------- |
-| warning       | utilization > 95                                                      |
-| empty-state   | 3 (UNKNOWN)                                                           |
-| empty-syntax  | %(status) - No drives found                                           |
-| top-syntax    | %(status) - %(list)                                                   |
-| ok-syntax     | %(status) - %(list)                                                   |
-| detail-syntax | %(drive) >%(write_bytes_rate)/s <%(read_bytes_rate)/s %(utilization)% |
+| Argument      | Default Value                                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| warning       | utilization > 95                                                                                      |
+| empty-state   | 3 (UNKNOWN)                                                                                           |
+| empty-syntax  | %(status) - No drives found                                                                           |
+| top-syntax    | %(status) - %(list)                                                                                   |
+| ok-syntax     | %(status) - %(list)                                                                                   |
+| detail-syntax | %(drive){{ IF label ne '' }} (%(label)){{ END }} >%(write_bytes_rate) <%(read_bytes_rate) %(utilization)% |
 
 ## Check Specific Arguments
 

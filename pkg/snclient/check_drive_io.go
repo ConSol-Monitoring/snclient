@@ -11,6 +11,7 @@ import (
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
+	"github.com/shirou/gopsutil/v4/disk"
 )
 
 func init() {
@@ -52,7 +53,7 @@ func (l *CheckDriveIO) Build() *CheckData {
 		defaultWarning:  "utilization > 95",
 		defaultCritical: "",
 		okSyntax:        "%(status) - %(list)",
-		detailSyntax:    "%(drive) >%(write_bytes_rate)/s <%(read_bytes_rate)/s %(utilization)%",
+		detailSyntax:    "%(drive){{ IF label ne '' }} (%(label)){{ END }} >%(write_bytes_rate) <%(read_bytes_rate) %(utilization)%",
 		topSyntax:       "%(status) - %(list)",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - No drives found",
@@ -116,7 +117,7 @@ Check a UNIX drive and alert if for the last 30 seconds written bytes/second is 
 	}
 }
 
-func (l *CheckDriveIO) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckDriveIO) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckDriveIO")
 	if !enabled {
 		return nil, fmt.Errorf("module CheckDriveIO is not enabled in /modules section")
@@ -131,13 +132,18 @@ func (l *CheckDriveIO) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 	sort.Strings(drivesToCheck)
 
-	diskIOCounters, err := getIOCounters()
+	diskIOCounters, err := getIOCounters(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error when getting disk io counters: %s", err.Error())
 	}
 
+	partitions, err := disk.PartitionsWithContext(ctx, true)
+	if err != nil {
+		return nil, fmt.Errorf("error when getting disk partitions: %s", err.Error())
+	}
+
 	for _, drive := range drivesToCheck {
-		entry, err := l.buildDriveIOEntry(snc, check, drive, diskIOCounters)
+		entry, err := l.buildDriveIOEntry(snc, check, drive, diskIOCounters, partitions)
 		// if one entry has errors, skip it
 		if err != nil {
 			continue
@@ -154,12 +160,12 @@ func (l *CheckDriveIO) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 // drive parameter should be the logical name for linux, e.g 'sda'
 // for windows it should be the drive letter, e.g 'C'
 // diskIOCounters should either be of type: map[string]gopsutil.disk.IOCountersStat or map[string]IoCountersStatWindows
-func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string, diskIOCounters any) (map[string]string, error) {
+func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string, diskIOCounters any, partitions []disk.PartitionStat) (map[string]string, error) {
 	entry := map[string]string{}
 	entry["drive"] = drive
 	entry["lookback"] = fmt.Sprintf("%d", l.lookback)
 
-	if !DiskEligibleForWatch(drive) {
+	if !diskEligibleForWatch(drive) {
 		errorString := fmt.Sprintf("Drive that was passed does not seem to be eligible for watching: %s", drive)
 		log.Debug(errorString)
 		entry["_error"] = errorString
@@ -172,7 +178,7 @@ func (l *CheckDriveIO) buildDriveIOEntry(snc *Agent, _ *CheckData, drive string,
 	// overwrite with the cleaner name
 	entry["drive"] = deviceLogicalNameOrLetter
 
-	builtEntry := l.buildEntry(snc, diskIOCounters, deviceLogicalNameOrLetter, entry)
+	builtEntry := l.buildEntry(snc, diskIOCounters, deviceLogicalNameOrLetter, entry, partitions)
 
 	if !builtEntry {
 		errorString := fmt.Sprintf("DiskIOCounters did not have drive: %s", drive)

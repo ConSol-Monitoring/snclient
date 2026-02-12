@@ -60,6 +60,7 @@ Further details are covered in the [documentation](https://omd.consol.de/docs/sn
 | **check_cpu**                     |    X    |    X    |    X    |    X    |
 | **check_dns**                     |    X    |    X    |    X    |    X    |
 | **check_drivesize**               |    X    |    X    |    X    |    X    |
+| **check_drive_io**                |    X    |    X    |    X    |    X    |
 | **check_dummy**                   |    X    |    X    |    X    |    X    |
 | **check_eventlog**                |    X    |         |         |         |
 | **check_files**                   |    X    |    X    |    X    |    X    |
@@ -83,6 +84,7 @@ Further details are covered in the [documentation](https://omd.consol.de/docs/sn
 | **check_process**                 |    X    |    X    |    X    |    X    |
 | **check_service**                 |    X    |    X    |         |         |
 | **check_snclient_version**        |    X    |    X    |    X    |    X    |
+| **check_swap_io**                 |         |    X    |    X    |    X    |
 | **check_tasksched**               |    X    |         |         |         |
 | **check_tcp**                     |    X    |    X    |    X    |    X    |
 | **check_temperature**             |         |    X    |         |         |

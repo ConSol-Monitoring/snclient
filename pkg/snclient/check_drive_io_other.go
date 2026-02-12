@@ -3,14 +3,15 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/shirou/gopsutil/v4/disk"
 )
 
-func getIOCounters() (any, error) {
-	counters, err := disk.IOCounters()
+func getIOCounters(ctx context.Context) (any, error) {
+	counters, err := disk.IOCountersWithContext(ctx)
 	if err != nil {
 		return counters, fmt.Errorf("Error when getting IO Counters: %w", err)
 	}
@@ -18,39 +19,53 @@ func getIOCounters() (any, error) {
 	return counters, nil
 }
 
-func (l *CheckDriveIO) buildEntry(snc *Agent, diskIOCounters any, deviceLogicalNameOrLetter string, entry map[string]string) (foundDisk bool) {
-	if diskIOCounters, ok := diskIOCounters.(map[string]disk.IOCountersStat); ok {
-		if counters, ok := diskIOCounters[deviceLogicalNameOrLetter]; ok {
-			foundDisk = true
+func (l *CheckDriveIO) buildEntry(snc *Agent, diskIOCounters any, deviceLogicalNameOrLetter string, entry map[string]string, partitions []disk.PartitionStat) (foundDisk bool) {
+	diskIOCounterStat, ok := diskIOCounters.(map[string]disk.IOCountersStat)
+	if !ok {
+		return false
+	}
 
-			// counters use this format when saving metrics
-			// found in CheckSystemHandler.addLinuxDiskStats
-			counterCategory := "disk_" + counters.Name
+	counters, ok := diskIOCounterStat[deviceLogicalNameOrLetter]
+	if !ok {
+		return false
+	}
 
-			entry["label"] = counters.Label
+	// counters use this format when saving metrics
+	// found in CheckSystemHandler.addLinuxDiskStats
+	counterCategory := "disk_" + counters.Name
 
-			entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
-			l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
-			entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
-			l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
-			entry["read_time"] = fmt.Sprintf("%d", counters.ReadTime)
+	entry["label"] = counters.Label
+	if counters.Label == "" {
+		// if label is empty, we can try to find a more user friendly name from the partitions list
+		for _, partition := range partitions {
+			if partition.Device == counters.Name || partition.Device == "/dev/"+counters.Name {
+				entry["label"] = partition.Mountpoint
 
-			entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
-			l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
-			entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
-			l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
-			entry["write_time"] = fmt.Sprintf("%d", counters.WriteTime)
-
-			entry["io_time"] = fmt.Sprintf("%d", counters.IoTime)
-			l.addRateToEntry(snc, entry, "io_time_rate", counterCategory, "io_time")
-			l.addUtilizationFromIoTime(entry)
-
-			entry["iops_in_progress"] = fmt.Sprintf("%d", counters.IopsInProgress)
-			entry["weighted_io"] = fmt.Sprintf("%d", counters.WeightedIO)
+				break
+			}
 		}
 	}
 
-	return foundDisk
+	entry["read_count"] = fmt.Sprintf("%d", counters.ReadCount)
+	l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
+	entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
+	l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
+	entry["read_time"] = fmt.Sprintf("%d", counters.ReadTime)
+
+	entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
+	l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
+	entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
+	l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
+	entry["write_time"] = fmt.Sprintf("%d", counters.WriteTime)
+
+	entry["io_time"] = fmt.Sprintf("%d", counters.IoTime)
+	l.addRateToEntry(snc, entry, "io_time_rate", counterCategory, "io_time")
+	l.addUtilizationFromIoTime(entry)
+
+	entry["iops_in_progress"] = fmt.Sprintf("%d", counters.IopsInProgress)
+	entry["weighted_io"] = fmt.Sprintf("%d", counters.WeightedIO)
+
+	return true
 }
 
 func (l *CheckDriveIO) addUtilizationFromIoTime(entry map[string]string) {

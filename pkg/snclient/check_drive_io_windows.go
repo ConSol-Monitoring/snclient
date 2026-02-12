@@ -1,18 +1,20 @@
 package snclient
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/counter"
+	"github.com/shirou/gopsutil/v4/disk"
 )
 
-func getIOCounters() (any, error) {
-	return IoCountersWindows()
+func getIOCounters(_ context.Context) (any, error) {
+	return ioCountersWindows()
 }
 
-func (l *CheckDriveIO) buildEntry(snc *Agent, diskIOCounters any, deviceLogicalNameOrLetter string, entry map[string]string) (foundDisk bool) {
+func (l *CheckDriveIO) buildEntry(snc *Agent, diskIOCounters any, deviceLogicalNameOrLetter string, entry map[string]string, _ []disk.PartitionStat) (foundDisk bool) {
 	diskIOCountersTypecasted, typecastOk := diskIOCounters.(map[string]IOCountersStatWindows)
 	if !typecastOk {
 		log.Debug("Platform is windows, diskIOCounters should have IOCountersStatWindows keys")

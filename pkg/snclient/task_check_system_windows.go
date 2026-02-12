@@ -118,7 +118,7 @@ func init() {
 }
 
 // names: drive names to filter to. if empty, all drives are discovered
-func IoCountersWindows(names ...string) (map[string]IOCountersStatWindows, error) {
+func ioCountersWindows(names ...string) (map[string]IOCountersStatWindows, error) {
 	drivemap := make(map[string]IOCountersStatWindows, 0)
 	var dPerformance diskPerformance
 
@@ -263,7 +263,7 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 // Until the gopsutil is patched, use this version
 // The function reports these attributes correctly
 func (c *CheckSystemHandler) addDiskStats(create bool) {
-	diskIOCounters, err := IoCountersWindows()
+	diskIOCounters, err := ioCountersWindows()
 	// do not create the counters if there is an error
 	if err != nil {
 		return
@@ -271,7 +271,7 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 
 	if create {
 		for diskName := range diskIOCounters {
-			if !DiskEligibleForWatch(diskName) {
+			if !diskEligibleForWatch(diskName) {
 				log.Tracef("not adding disk stat counter since it is found to be not-physical: %s", diskName)
 
 				continue
@@ -289,7 +289,7 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 
 	// use the no-copy range iteraiton, otherwise we copy the whole struct and linter does not allow it
 	for diskName := range diskIOCounters {
-		if !DiskEligibleForWatch(diskName) {
+		if !diskEligibleForWatch(diskName) {
 			continue
 		}
 

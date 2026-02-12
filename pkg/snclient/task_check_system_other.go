@@ -18,7 +18,7 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 
 	if create {
 		for diskName := range diskIOCounters {
-			if !DiskEligibleForWatch(diskName) {
+			if !diskEligibleForWatch(diskName) {
 				log.Tracef("not adding disk stat counter since it is not found to be eligible for watch: %s", diskName)
 
 				continue
@@ -34,7 +34,7 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 	}
 
 	for diskName := range diskIOCounters {
-		if !DiskEligibleForWatch(diskName) {
+		if !diskEligibleForWatch(diskName) {
 			continue
 		}
 

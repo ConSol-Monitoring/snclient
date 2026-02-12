@@ -58,7 +58,7 @@ func init() {
 	}
 }
 
-func DiskEligibleForWatch(diskName string) bool {
+func diskEligibleForWatch(diskName string) bool {
 	// while diskName comes from gopsutil disk.IoCounters()
 	// On linux it seems to be reading /proc/diskstats
 	// It also keeps stats for individual partitions, e.g there are two separate stats for:
@@ -70,7 +70,7 @@ func DiskEligibleForWatch(diskName string) bool {
 	diskEligible := false
 
 	// Calculated in init() function
-	// it uses disk.Partitions and excludes some filesytem types
+	// it uses disk.Partitions and excludes some filesystem types
 	// directly and uses other heuristics to exclude some more
 	for _, storageDeviceToWatch := range StorageDevicesToWatch {
 		if strings.Contains(storageDeviceToWatch, diskName) {
