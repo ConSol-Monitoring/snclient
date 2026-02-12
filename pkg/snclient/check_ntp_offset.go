@@ -43,7 +43,7 @@ func (l *CheckNTPOffset) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"server": {value: &l.ntpserver, description: "Fetch offset from this ntp server(s). First valid response is used."},
-			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of auto detect. Can be timedatectl, ntpq, chronyc, osx or w32tm"},
+			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of auto detect. Valid values are: auto, timedatectl, ntpq, chronyc, osx, w32tm."},
 		},
 		defaultFilter:   "none",
 		defaultWarning:  "offset > 50 || offset < -50",
@@ -57,8 +57,9 @@ func (l *CheckNTPOffset) Build() *CheckData {
 			{name: "server", description: "ntp server name"},
 			{name: "stratum", description: "stratum value (distance to root ntp server)"},
 			{name: "jitter", description: "jitter of the clock in milliseconds"},
-			{name: "offset", description: "time offset to ntp server in milliseconds"},
-			{name: "offset_seconds", description: "time offset to ntp server in seconds", unit: UDuration},
+			{name: "offset", description: "time offset to ntp server in milliseconds. This will be added as a metric."},
+			{name: "offset_seconds", description: "time offset to ntp server in seconds. This will not be added as a metric. " +
+				" Any thresholds using 'offset_seconds' will be converted to 'offset' silently.", unit: UDuration},
 		},
 		exampleDefault: `
     check_ntp_offset
@@ -71,12 +72,47 @@ func (l *CheckNTPOffset) Build() *CheckData {
 func (l *CheckNTPOffset) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	l.snc = snc
 
+	// convert thresholds
+	// only 'offset' is given as a perf data metric, which is in milliseconds
+	// any thresholds using 'offset_seconds' have to be converted into seconds and added as an 'offset' threshold
+
+	for _, warnCond := range check.warnThreshold {
+		err := warnCond.RunFuncRecursively(convertOffsetSecondOperandToOffset)
+		if err != nil {
+			return nil, fmt.Errorf("error converting 'offset_seconds' warning threshold to 'offset' threshold: %s", err.Error())
+		}
+	}
+
+	for _, critCond := range check.critThreshold {
+		err := critCond.RunFuncRecursively(convertOffsetSecondOperandToOffset)
+		if err != nil {
+			return nil, fmt.Errorf("error converting 'offset_seconds' critical threshold to 'offset' threshold: %s", err.Error())
+		}
+	}
+
 	err := l.addSources(ctx, check)
 	if err != nil {
 		return nil, err
 	}
 
 	return check.Finalize()
+}
+
+func convertOffsetSecondOperandToOffset(condition *Condition) (err error) {
+	if condition.keyword == "offset_seconds" {
+		valueFloat64, valueFloat64ConversionErr := convert.Float64E(condition.value)
+		if valueFloat64ConversionErr != nil {
+			return fmt.Errorf("could not convert condition value: %s to float: %s", condition.value, valueFloat64ConversionErr.Error())
+		}
+
+		condition.keyword = "offset"
+		condition.value = fmt.Sprintf("%f", valueFloat64*1000)
+
+		// do not change condition.original
+		// that saves a string of what user gave as the condition
+	}
+
+	return nil
 }
 
 func (l *CheckNTPOffset) addSources(ctx context.Context, check *CheckData) (err error) {
@@ -515,7 +551,7 @@ func (l *CheckNTPOffset) getOSXData(ctx context.Context) (output, server string,
 
 // get offset and stratum from user supplied ntp server
 func (l *CheckNTPOffset) addNTPServer(_ context.Context, check *CheckData) (err error) {
-	options := ntp.QueryOptions{Timeout: time.Duration(DefaultCmdTimeout) * time.Second}
+	options := ntp.QueryOptions{Timeout: time.Duration(DefaultCmdTimeout) * time.Second, LocalAddress: "0.0.0.0"}
 	for _, server := range l.ntpserver {
 		response, nErr := ntp.QueryWithOptions(server, options)
 		if nErr != nil {
@@ -572,6 +608,7 @@ func (l *CheckNTPOffset) addMetrics(check *CheckData, entry map[string]string) {
 			Min:      &Zero,
 		},
 	)
+
 	if entry["jitter"] != "" {
 		check.result.Metrics = append(check.result.Metrics,
 			&CheckMetric{
