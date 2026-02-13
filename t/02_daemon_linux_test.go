@@ -16,11 +16,8 @@ func TestDaemonRequestsLinux(t *testing.T) {
 	bin := getBinary()
 	require.FileExistsf(t, bin, "snclient binary must exist")
 
-	writeFile(t, `./snclient.ini`, localDaemonINI)
-
-	startBackgroundDaemon(t)
-
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d", localDaemonPort)
+	_, baseURL, _, cleanUp := daemonInit(t, "")
+	defer cleanUp()
 
 	runCmd(t, &cmd{
 		Cmd:  "curl",
@@ -29,8 +26,6 @@ func TestDaemonRequestsLinux(t *testing.T) {
 		Exit: 0,
 	})
 
-	stopBackgroundDaemon(t)
-	os.Remove("snclient.ini")
 	os.Remove("test.crt")
 	os.Remove("test.key")
 }
@@ -99,7 +94,7 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 	_, baseURL, _, cleanUp = daemonInit(t, "")
 	defer cleanUp()
 
-	started := getStartedTime(t, baseURL)
+	started := getStartedTime(t, baseURL, localDaemonPassword)
 	require.Greater(t, started, 0.0, "got a start time from inventory: %f", started)
 
 	postData, err = json.Marshal(map[string]any{
@@ -117,7 +112,7 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 	// wait until snclient has restarted
 	restarted := 0.0
 	for range 300 {
-		restarted = getStartedTime(t, baseURL)
+		restarted = getStartedTime(t, baseURL, localDaemonPassword)
 		if restarted > started {
 			break
 		}
@@ -194,29 +189,4 @@ use ssl = enabled
 		Like:    []string{`snclient working`},
 		ErrLike: []string{`Strict-Transport-Security`},
 	})
-}
-
-func getStartedTime(t *testing.T, baseURL string) float64 {
-	t.Helper()
-
-	res := runCmd(t, &cmd{
-		Cmd:  "curl",
-		Args: []string{"-s", "-u", "user:" + localDaemonPassword, "-k", "-s", baseURL + "/api/v1/inventory/uptime"},
-	})
-
-	inventoryResult := struct {
-		Snclient struct {
-			Starttime float64 `json:"starttime"`
-		} `json:"snclient"`
-	}{}
-
-	err := json.Unmarshal([]byte(res.Stdout), &inventoryResult)
-	if err != nil {
-		// that's ok, we wait for snclient to restart, so it might not be available yet
-		t.Logf("request failed: %v", err)
-
-		return 0
-	}
-
-	return inventoryResult.Snclient.Starttime
 }

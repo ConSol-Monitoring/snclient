@@ -5,7 +5,7 @@ import (
 )
 
 func TestLinuxChecks(t *testing.T) {
-	bin, cleanup := localInit(t, "")
+	bin, _, cleanup := localInit(t, "")
 	defer cleanup()
 
 	// multiple filter are combined with an OR

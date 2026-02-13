@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,32 +51,36 @@ local = file://./tmpupdates/snclient${file-ext}
 `
 )
 
-func localInit(t *testing.T, configOverride string) (bin string, cleanUp func()) {
+func localInit(t *testing.T, configOverride string) (bin, usedConfig string, cleanUp func()) {
 	t.Helper()
 
 	bin = getBinary()
 	require.FileExistsf(t, bin, "snclient binary must exist")
 
 	if configOverride != "" {
-		writeFile(t, `snclient.ini`, configOverride)
+		usedConfig = configOverride
 	} else {
-		writeFile(t, `snclient.ini`, localDaemonINI)
+		usedConfig = localDaemonINI
 	}
+	writeFile(t, `snclient.ini`, usedConfig)
 
 	cleanUp = func() {
 		os.Remove("snclient.ini")
 	}
 
-	return bin, cleanUp
+	return bin, usedConfig, cleanUp
 }
 
 func daemonInit(t *testing.T, configOverride string) (bin, baseURL string, baseArgs []string, cleanUp func()) {
 	t.Helper()
 
-	bin, localClean := localInit(t, configOverride)
+	bin, actConf, localClean := localInit(t, configOverride)
 
 	startBackgroundDaemon(t)
 	baseURL = fmt.Sprintf("http://127.0.0.1:%d", localDaemonPort)
+	if matched, _ := regexp.MatchString(`use ssl\s*=\s*(enabled|true)`, actConf); matched {
+		baseURL = fmt.Sprintf("https://127.0.0.1:%d", localDaemonPort)
+	}
 
 	baseArgs = []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-u", baseURL}
 
@@ -82,6 +88,16 @@ func daemonInit(t *testing.T, configOverride string) (bin, baseURL string, baseA
 		ok := stopBackgroundDaemon(t)
 		assert.Truef(t, ok, "stopping worked")
 		localClean()
+	}
+
+	// wait 10 seconds until daemon answers
+	for range 200 {
+		started := getStartedTime(t, baseURL, localDaemonPassword)
+		if started > 0 {
+			break
+		}
+
+		time.Sleep(50 * time.Millisecond)
 	}
 
 	return bin, baseURL, baseArgs, cleanUp

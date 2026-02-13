@@ -10,7 +10,7 @@ import (
 )
 
 func TestCommandFlags(t *testing.T) {
-	bin, cleanup := localInit(t, "")
+	bin, _, cleanup := localInit(t, "")
 	defer cleanup()
 
 	runCmd(t, &cmd{
@@ -60,7 +60,7 @@ func TestCommandFlags(t *testing.T) {
 }
 
 func TestCommandUpdate(t *testing.T) {
-	bin, cleanup := localInit(t, "")
+	bin, _, cleanup := localInit(t, "")
 	defer cleanup()
 	defer os.RemoveAll("./tmpupdates")
 

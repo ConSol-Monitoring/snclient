@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -278,8 +279,6 @@ func startBackgroundDaemon(t *testing.T) {
 	}
 
 	require.Positivef(t, daemonPid, "daemon started")
-
-	time.Sleep(500 * time.Millisecond)
 }
 
 func stopBackgroundDaemon(t *testing.T) bool {
@@ -297,4 +296,31 @@ func stopBackgroundDaemon(t *testing.T) bool {
 	<-daemonFinChan
 
 	return true
+}
+
+func getStartedTime(t *testing.T, baseURL, localDaemonPassword string) float64 {
+	t.Helper()
+
+	res := runCmd(t, &cmd{
+		Cmd:  "curl",
+		Args: []string{"-s", "-u", "user:" + localDaemonPassword, "-k", baseURL + "/api/v1/inventory/uptime"},
+	})
+
+	inventoryResult := struct {
+		Snclient struct {
+			Starttime float64 `json:"starttime"`
+		} `json:"snclient"`
+	}{}
+
+	err := json.Unmarshal([]byte(res.Stdout), &inventoryResult)
+	if err != nil {
+		// that's ok, we wait for snclient to restart, so it might not be available yet
+		t.Logf("request out: %s", res.Stdout)
+		t.Logf("request err: %s", res.Stderr)
+		t.Logf("request failed: %v", err)
+
+		return 0
+	}
+
+	return inventoryResult.Snclient.Starttime
 }
