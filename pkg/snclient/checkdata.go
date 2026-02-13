@@ -31,6 +31,14 @@ const (
 	NoCallInventory                // does not call this check and puts single entry into inventory
 )
 
+// OutputMode sets available output modes
+type OutputMode uint8
+
+const (
+	OutputDefault   OutputMode = iota
+	OutputInventory            // only reports available inventory
+)
+
 type CommaStringList []string
 
 type CheckArgument struct {
@@ -123,7 +131,7 @@ type CheckData struct {
 	perfConfig             []PerfConfig
 	perfSyntax             string
 	hasInventory           InventoryMode
-	output                 string
+	output                 OutputMode
 	implemented            Implemented
 	attributes             []CheckAttribute
 	listSorted             []string // sort result list by this keys
@@ -159,7 +167,7 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 		cd.result = &CheckResult{}
 	}
 	cd.result.Raw = cd
-	if cd.output == "inventory_json" {
+	if cd.output == OutputInventory {
 		return cd.result, nil
 	}
 
@@ -764,7 +772,12 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 		case "perf-syntax":
 			cd.perfSyntax = argValue
 		case "output":
-			cd.output = argValue
+			switch argValue {
+			case "inventory_json":
+				cd.output = OutputInventory
+			default:
+				return nil, false, fmt.Errorf("unknown output mode: %s (valid values are: inventory_json)", argValue)
+			}
 		default:
 			parsed, err2 := cd.parseAnyArg(argExpr, keyword, argValue)
 			switch {

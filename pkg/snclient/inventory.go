@@ -127,7 +127,7 @@ func (snc *Agent) buildInventory(ctx context.Context, modules []string) *Invento
 			if len(modules) > 0 && (!slices.Contains(modules, name)) {
 				continue
 			}
-			meta.output = "inventory_json"
+			meta.output = OutputInventory
 			meta.filter = ConditionList{{isNone: true}}
 			data, err := handler.Check(ctx, snc, meta, []Argument{})
 			if err != nil && (data == nil || data.Raw == nil) {

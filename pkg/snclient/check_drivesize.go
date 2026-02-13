@@ -230,7 +230,7 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 			continue
 		}
 		// skip file mount in inventory mode, like ex.: from docker /etc/hostname
-		if check.output == "inventory_json" && utils.IsFile(drive["drive_or_id"]) == nil {
+		if check.output == OutputInventory && utils.IsFile(drive["drive_or_id"]) == nil {
 			continue
 		}
 
