@@ -99,16 +99,15 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 	_, baseURL, _, cleanUp = daemonInit(t, "")
 	defer cleanUp()
 
+	started := getStartedTime(t, baseURL)
+	require.Greater(t, started, 0.0, "got a start time from inventory: %f", started)
+
 	postData, err = json.Marshal(map[string]any{
 		"Reload":   true,
 		"CertData": base64.StdEncoding.EncodeToString(newCert),
 		"KeyData":  "",
 	})
 	require.NoErrorf(t, err, "post data json encoded")
-
-	started := getStartedTime(t, baseURL)
-	require.Greater(t, started, 0.0, "got a start time from inventory: %f", started)
-
 	runCmd(t, &cmd{
 		Cmd:  "curl",
 		Args: []string{"-s", "-u", "user:" + localDaemonAdminPassword, "-k", "-s", "-d", string(postData), baseURL + "/api/v1/admin/certs/replace"},
@@ -203,7 +202,6 @@ func getStartedTime(t *testing.T, baseURL string) float64 {
 	res := runCmd(t, &cmd{
 		Cmd:  "curl",
 		Args: []string{"-s", "-u", "user:" + localDaemonPassword, "-k", "-s", baseURL + "/api/v1/inventory/uptime"},
-		Like: []string{`"starttime"`},
 	})
 
 	inventoryResult := struct {
