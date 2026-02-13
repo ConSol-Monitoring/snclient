@@ -54,7 +54,7 @@ Naemon Config
 | empty-syntax  | %(status) - No drives found                                                                           |
 | top-syntax    | %(status) - %(list)                                                                                   |
 | ok-syntax     | %(status) - %(list)                                                                                   |
-| detail-syntax | %(drive){{ IF label ne '' }} (%(label)){{ END }} >%(write_bytes_rate) <%(read_bytes_rate) %(utilization)% |
+| detail-syntax | %(drive){{ IF label ne '' }} (%(label)){{ END }} >%(write_bytes_rate_humanized) <%(read_bytes_rate_humanized) %(utilization)% |
 
 ## Check Specific Arguments
 
@@ -69,27 +69,29 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute        | Description                                                                                        |
-| ---------------- | -------------------------------------------------------------------------------------------------- |
-| drive            | Name(s) of the drives to check the io stats for. If left empty, it will check all drives. For Windows this is the drive letter. For UNIX it is the logical name of the drive. |
-| lookback         | Lookback period for which the value change rate and utilization is calculated.                     |
-| read_count       | Total number of read operations completed successfully                                             |
-| read_count_rate  | Number of read operations per second during the lookback period                                    |
-| read_bytes       | Total number of bytes read from the disk                                                           |
-| read_bytes_rate  | Average bytes read per second during the lookback period                                           |
-| read_time        | Total time spent on read operations (milliseconds).                                                |
-| write_count      | Total number of write operations completed successfully                                            |
-| write_count_rate | Number of write operations per second during the lookback period                                   |
-| write_bytes      | Total number of bytes written to the disk                                                          |
-| write_bytes_rate | Average bytes written per second during the lookback period                                        |
-| write_time       | Total time spent on write operations (milliseconds).                                               |
-| label            | Label of the drive. Windows does not report this.                                                  |
-| io_time          | Total time during which the disk had at least one active I/O (milliseconds). Windows does not report this. |
-| io_time_rate     | Change in I/O time per second. Windows does not report this.                                       |
-| weighted_io      | Measure of both I/O completion time and the number of backlogged requests. Windows does not report this. |
-| utilization      | Percentage of time the disk was busy (0-100%). Windows does not report this.                       |
-| iops_in_progress | Number of I/O operations currently in flight. Windows does not report this.                        |
-| idle_time        | Count of the 100 ns periods the disk was idle. Windows only                                        |
-| query_time       | The time the performance query was sent. Count of 100 ns periods since the Win32 epoch of 01.01.1601. Windows only |
-| queue_depth      | The depth of the IO queue. Windows only.                                                           |
-| split_count      | The cumulative count of IOs that are associated IOs. Windows only.                                 |
+| Attribute                  | Description                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------- |
+| drive                      | Name(s) of the drives to check the io stats for. If left empty, it will check all drives. For Windows this is the drive letter. For UNIX it is the logical name of the drive. |
+| lookback                   | Lookback period for which the value change rate and utilization is calculated.           |
+| read_count                 | Total number of read operations completed successfully                                   |
+| read_count_rate            | Number of read operations per second during the lookback period                          |
+| read_bytes                 | Total number of bytes read from the disk                                                 |
+| read_bytes_rate            | Average bytes read per second during the lookback period                                 |
+| read_bytes_rate_humanized  | Average bytes read per second during the lookback period, written in humanized format    |
+| read_time                  | Total time spent on read operations (milliseconds).                                      |
+| write_count                | Total number of write operations completed successfully                                  |
+| write_count_rate           | Number of write operations per second during the lookback period                         |
+| write_bytes                | Total number of bytes written to the disk                                                |
+| write_bytes_rate           | Average bytes written per second during the lookback period                              |
+| write_bytes_rate_humanized | Average bytes read per second during the lookback period, written in humanized format    |
+| write_time                 | Total time spent on write operations (milliseconds).                                     |
+| label                      | Label of the drive. Windows does not report this.                                        |
+| io_time                    | Total time during which the disk had at least one active I/O (milliseconds). Windows does not report this. |
+| io_time_rate               | Change in I/O time per second. Windows does not report this.                             |
+| weighted_io                | Measure of both I/O completion time and the number of backlogged requests. Windows does not report this. |
+| utilization                | Percentage of time the disk was busy (0-100%). Windows does not report this.             |
+| iops_in_progress           | Number of I/O operations currently in flight. Windows does not report this.              |
+| idle_time                  | Count of the 100 ns periods the disk was idle. Windows only                              |
+| query_time                 | The time the performance query was sent. Count of 100 ns periods since the Win32 epoch of 01.01.1601. Windows only |
+| queue_depth                | The depth of the IO queue. Windows only.                                                 |
+| split_count                | The cumulative count of IOs that are associated IOs. Windows only.                       |
