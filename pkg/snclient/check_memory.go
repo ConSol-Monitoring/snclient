@@ -117,7 +117,8 @@ func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ [
 			if err != nil {
 				return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
 			}
-			if swap.Total > 0 || check.hasArgsSupplied["type"] {
+			// osx changes swap total on demand, so always return something
+			if swap.Total > 0 || check.hasArgsSupplied["type"] || runtime.GOOS == "darwin" {
 				l.addMemType(check, "swap", swap.Used, swap.Free, swap.Total)
 			}
 		case "committed":
@@ -157,6 +158,11 @@ func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, tota
 		"free_pct":   fmt.Sprintf("%.3f", (float64(free) * 100 / (float64(total)))),
 		"size":       humanize.IBytesF(total, 2),
 		"size_bytes": fmt.Sprintf("%d", total),
+	}
+	// avoid NaN values in percentages when total is zero
+	if total == 0 {
+		entry["used_pct"] = "0"
+		entry["free_pct"] = "0"
 	}
 	check.listData = append(check.listData, entry)
 	if check.HasThreshold("free") || check.HasThreshold("free_pct") {
