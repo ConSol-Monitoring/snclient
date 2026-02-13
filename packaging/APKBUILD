@@ -8,6 +8,7 @@ arch="all"
 license="MIT"
 depends="openrc logrotate"
 makedepends=""
+install="$pkgname.post-install $pkgname.pre-upgrade $pkgname.post-upgrade $pkgname.pre-deinstall $pkgname.post-deinstall"
 source="snclient snclient.confd server.key server.crt cacert.pem snclient.logrotate README.md LICENSE snclient.1 snclient.8 snclient.initd node_exporter"
 
 package() {
@@ -31,5 +32,7 @@ package() {
 
     install -Dm755 "$srcdir/snclient.initd" "$pkgdir/etc/init.d/snclient"
 
-    mkdir -p "$pkgdir/var/log/snclient"
+    # Create directories (ownership set in post-install after user creation)
+    install -dm750 "$pkgdir/var/lib/snclient"
+    install -dm750 "$pkgdir/var/log/snclient"
 }
