@@ -298,12 +298,14 @@ func stopBackgroundDaemon(t *testing.T) bool {
 	return true
 }
 
+// returns time when daemon started, 0 if not available
 func getStartedTime(t *testing.T, baseURL, localDaemonPassword string) float64 {
 	t.Helper()
 
 	res := runCmd(t, &cmd{
 		Cmd:  "curl",
 		Args: []string{"-s", "-u", "user:" + localDaemonPassword, "-k", baseURL + "/api/v1/inventory/uptime"},
+		Exit: -1,
 	})
 
 	inventoryResult := struct {

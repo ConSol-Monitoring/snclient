@@ -91,14 +91,16 @@ func daemonInit(t *testing.T, configOverride string) (bin, baseURL string, baseA
 	}
 
 	// wait 10 seconds until daemon answers
+	started := 0.0
 	for range 200 {
-		started := getStartedTime(t, baseURL, localDaemonPassword)
+		started = getStartedTime(t, baseURL, localDaemonPassword)
 		if started > 0 {
 			break
 		}
 
 		time.Sleep(50 * time.Millisecond)
 	}
+	require.Greaterf(t, started, 0.0, "daemon should have started and answered to http requests")
 
 	return bin, baseURL, baseArgs, cleanUp
 }
