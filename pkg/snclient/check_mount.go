@@ -174,6 +174,12 @@ func (l *CheckMount) getDrives(ctx context.Context, partitionMap map[string]bool
 			}
 		}
 
+		if partition.Fstype == "" && partition.Device == "" && partition.Mountpoint == "" {
+			log.Tracef("skipped mountpoint: %s - empty device, fstype and mountpoint", partition.Mountpoint)
+
+			continue
+		}
+
 		device := utils.ReplaceCommonPasswordPattern(partition.Device)
 		entry := map[string]string{
 			"mount":   partition.Mountpoint,
