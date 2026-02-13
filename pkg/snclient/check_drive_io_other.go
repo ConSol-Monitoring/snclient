@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/shirou/gopsutil/v4/disk"
 )
 
@@ -50,12 +51,18 @@ func (l *CheckDriveIO) buildEntry(snc *Agent, diskIOCounters any, deviceLogicalN
 	l.addRateToEntry(snc, entry, "read_count_rate", counterCategory, "read_count")
 	entry["read_bytes"] = fmt.Sprintf("%d", counters.ReadBytes)
 	l.addRateToEntry(snc, entry, "read_bytes_rate", counterCategory, "read_bytes")
+	readBytesRateFloat64 := convert.Float64(entry["read_bytes_rate"])
+	humanizedReadBytesRate := humanize.IBytesF(uint64(readBytesRateFloat64), 1)
+	entry["read_bytes_rate_humanized"] = humanizedReadBytesRate + "/s"
 	entry["read_time"] = fmt.Sprintf("%d", counters.ReadTime)
 
 	entry["write_count"] = fmt.Sprintf("%d", counters.WriteCount)
 	l.addRateToEntry(snc, entry, "write_count_rate", counterCategory, "write_count")
 	entry["write_bytes"] = fmt.Sprintf("%d", counters.WriteBytes)
 	l.addRateToEntry(snc, entry, "write_bytes_rate", counterCategory, "write_bytes")
+	writeBytesRateFloat64 := convert.Float64(entry["write_bytes_rate"])
+	humanizedWriteBytesRate := humanize.IBytesF(uint64(writeBytesRateFloat64), 1)
+	entry["write_bytes_rate_humanized"] = humanizedWriteBytesRate + "/s"
 	entry["write_time"] = fmt.Sprintf("%d", counters.WriteTime)
 
 	entry["io_time"] = fmt.Sprintf("%d", counters.IoTime)

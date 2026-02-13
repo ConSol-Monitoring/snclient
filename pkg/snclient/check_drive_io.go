@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
-	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/shirou/gopsutil/v4/disk"
 )
 
@@ -53,7 +52,7 @@ func (l *CheckDriveIO) Build() *CheckData {
 		defaultWarning:  "utilization > 95",
 		defaultCritical: "",
 		okSyntax:        "%(status) - %(list)",
-		detailSyntax:    "%(drive){{ IF label ne '' }} (%(label)){{ END }} >%(write_bytes_rate) <%(read_bytes_rate) %(utilization)%",
+		detailSyntax:    "%(drive){{ IF label ne '' }} (%(label)){{ END }} >%(write_bytes_rate_humanized) <%(read_bytes_rate_humanized) %(utilization)%",
 		topSyntax:       "%(status) - %(list)",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - No drives found",
@@ -65,11 +64,13 @@ func (l *CheckDriveIO) Build() *CheckData {
 			{name: "read_count_rate", description: "Number of read operations per second during the lookback period"},
 			{name: "read_bytes", description: "Total number of bytes read from the disk", unit: UByte},
 			{name: "read_bytes_rate", description: "Average bytes read per second during the lookback period", unit: UByte},
+			{name: "read_bytes_rate_humanized", description: "Average bytes read per second during the lookback period, written in humanized format"},
 			{name: "read_time", description: "Total time spent on read operations (milliseconds)."},
 			{name: "write_count", description: "Total number of write operations completed successfully"},
 			{name: "write_count_rate", description: "Number of write operations per second during the lookback period"},
 			{name: "write_bytes", description: "Total number of bytes written to the disk", unit: UByte},
 			{name: "write_bytes_rate", description: "Average bytes written per second during the lookback period", unit: UByte},
+			{name: "write_bytes_rate_humanized", description: "Average bytes read per second during the lookback period, written in humanized format"},
 			{name: "write_time", description: "Total time spent on write operations (milliseconds)."},
 
 			// Windows does not report these
@@ -207,9 +208,7 @@ func (l *CheckDriveIO) addRateToEntry(snc *Agent, entry map[string]string, entry
 		log.Debugf("Error when getting the counter rate, lookback: %d, counterCategory: %s, counterKey: %s, err: %s", l.lookback, counterCategory, counterKey, err.Error())
 	}
 
-	humanizedBytes := humanize.IBytesF(uint64(rate), 1)
-
-	entry[entryKey] = fmt.Sprintf("%v/s", humanizedBytes)
+	entry[entryKey] = fmt.Sprintf("%f", rate)
 }
 
 func cleanupDriveName(drive string) (deviceLogicalNameOrLetter string) {
