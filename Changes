@@ -1,6 +1,6 @@
 This file documents the revision history for the SNClient agent.
 
-next:
+0.42     Fri Feb 13 15:37:38 CET 2026
          - *DEPRECATION NOTICE* the next release will use an unprivileged snclient user
            instead of root when using the linux packages.
          - change minimum golang requirement to 1.25.7
