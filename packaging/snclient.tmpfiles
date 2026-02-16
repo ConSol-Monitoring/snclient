@@ -1,0 +1,7 @@
+d /etc/snclient 0755 snclient snclient - -
+Z /etc/snclient - snclient snclient - -
+
+d /var/lib/snclient 0750 snclient snclient - -
+Z /var/lib/snclient - snclient snclient - -
+
+d /var/log/snclient 0750 snclient snclient - -

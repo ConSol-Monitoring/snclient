@@ -449,6 +449,8 @@ deb: | dist
 		build-deb/usr/lib/snclient \
 		build-deb/usr/bin \
 		build-deb/lib/systemd/system \
+		build-deb/lib/sysusers.d \
+		build-deb/lib/tmpfiles.d \
 		build-deb/etc/logrotate.d \
 		build-deb/usr/share/doc/snclient \
 		build-deb/usr/share/doc/snclient \
@@ -467,6 +469,8 @@ deb: | dist
 	cp ./dist/snclient.ini ./dist/server.crt ./dist/server.key ./dist/cacert.pem ./build-deb/etc/snclient
 	cp -p ./dist/snclient build-deb/usr/bin/snclient
 	cp ./packaging/snclient.service build-deb/lib/systemd/system/
+	cp ./packaging/snclient.sysusers build-deb/lib/sysusers.d/snclient.conf
+	cp ./packaging/snclient.tmpfiles build-deb/lib/tmpfiles.d/snclient.conf
 	cp ./packaging/snclient.logrotate build-deb/etc/logrotate.d/snclient
 	cp Changes build-deb/usr/share/doc/snclient/Changes
 	dch --empty --create --newversion "$(VERSION)" --package "snclient" -D "UNRELEASED" --urgency "low" -c build-deb/usr/share/doc/snclient/changelog "new upstream release"
@@ -497,6 +501,8 @@ deb: | dist
 rpm: | dist
 	rm -rf snclient-$(VERSION)
 	cp ./packaging/snclient.service dist/
+	cp ./packaging/snclient.sysusers dist/
+	cp ./packaging/snclient.tmpfiles dist/
 	cp ./packaging/snclient.spec dist/
 	sed -i dist/snclient.spec -e 's|^Version: .*|Version: $(VERSION)|'
 	sed -i dist/snclient.spec -e 's|^BuildArch: .*|BuildArch: $(RPM_ARCH)|'
@@ -531,6 +537,10 @@ apk: | dist
 	cp ./packaging/APKBUILD dist/
 	cp ./packaging/snclient.initd dist/
 	cp ./packaging/snclient.post-install dist/
+	cp ./packaging/snclient.pre-upgrade dist/
+	cp ./packaging/snclient.post-upgrade dist/
+	cp ./packaging/snclient.pre-deinstall dist/
+	cp ./packaging/snclient.post-deinstall dist/
 	sed -i dist/APKBUILD -e 's|^pkgver=.*|pkgver=$(VERSION)|'
 	sed -i dist/APKBUILD -e 's|^arch=.*|arch=$(RPM_ARCH)|'
 	cp -rp dist snclient-$(VERSION)

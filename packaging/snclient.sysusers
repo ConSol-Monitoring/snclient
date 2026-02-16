@@ -1,0 +1,2 @@
+g snclient - -
+u snclient - "Secure Naemon Client" /var/lib/snclient

@@ -53,6 +53,13 @@ func TestDEBinstaller(t *testing.T) {
 	for _, file := range requiredFiles {
 		require.FileExistsf(t, file, file+" has been installed")
 	}
+	requiredFolders := []string{
+		"/var/lib/snclient",
+		"/var/log/snclient",
+	}
+	for _, folder := range requiredFolders {
+		require.DirExistsf(t, folder, folder+" has been created")
+	}
 
 	runCmd(t, &cmd{
 		Cmd:  "/usr/bin/snclient",
@@ -66,7 +73,7 @@ func TestDEBinstaller(t *testing.T) {
 		Like: []string{`/usr/bin/snclient`, `running`},
 	})
 
-	// add custom .ini
+	// add custom .ini with correct ownership for snclient user
 	runCmd(t, &cmd{
 		Cmd:  "sudo",
 		Args: []string{"touch", localDEBINIPath},
@@ -76,6 +83,14 @@ func TestDEBinstaller(t *testing.T) {
 		Args: []string{"chmod", "666", localDEBINIPath},
 	})
 	writeFile(t, localDEBINIPath, localTestINI)
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"chown", "snclient:snclient", localDEBINIPath},
+	})
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"chmod", "640", localDEBINIPath},
+	})
 	writeFile(t, `snclient.ini`, localDaemonINI)
 
 	runCmd(t, &cmd{
@@ -104,7 +119,11 @@ func TestDEBinstaller(t *testing.T) {
 		Like: []string{"OK - CPU load is ok."},
 	})
 
-	// make logfile readable and check for errors
+	// make logfolder and logfile readable and check for errors
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"chmod", "755", "/var/log/snclient"},
+	})
 	runCmd(t, &cmd{
 		Cmd:  "sudo",
 		Args: []string{"chmod", "666", "/var/log/snclient/snclient.log"},
