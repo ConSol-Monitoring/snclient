@@ -27,7 +27,7 @@ func (l *CheckConnections) addIPV6(ctx context.Context, check *CheckData) error 
 	return nil
 }
 
-func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64, error) {
+func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]uint64, error) {
 	output, stderr, rc, err := l.snc.execCommand(ctx, "netstat.exe /a /n /p "+name, DefaultCmdTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("netstat.exe failed: %s\n%s", err.Error(), stderr)
@@ -36,7 +36,7 @@ func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]int64
 		return nil, fmt.Errorf("netstat.exe failed: %s\n%s", output, stderr)
 	}
 
-	counter := make([]int64, tcpStateMAX-1)
+	counter := make([]uint64, tcpStateMAX-1)
 
 	for line := range strings.SplitSeq(output, "\n") {
 		cols := strings.Fields(line)

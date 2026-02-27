@@ -31,7 +31,7 @@ func ASCIITable(header []ASCIITableHeader, rows any, escapePipes bool) (string, 
 	out := ""
 	strBuilder := strings.Builder{}
 	for _, head := range header {
-		strBuilder.WriteString(fmt.Sprintf(fmt.Sprintf("| %%-%ds ", head.size), head.Name))
+		fmt.Fprintf(&strBuilder, fmt.Sprintf("| %%-%ds ", head.size), head.Name)
 	}
 	out += strBuilder.String() + "|\n"
 
@@ -42,7 +42,7 @@ func ASCIITable(header []ASCIITableHeader, rows any, escapePipes bool) (string, 
 		if head.Alignment == "centered" {
 			padding = ":"
 		}
-		strBuilder.WriteString(fmt.Sprintf("|%s%s%s", padding, strings.Repeat("-", head.size), padding))
+		fmt.Fprintf(&strBuilder, "|%s%s%s", padding, strings.Repeat("-", head.size), padding)
 	}
 	out += strBuilder.String() + "|\n"
 	strBuilder.Reset()
@@ -55,12 +55,12 @@ func ASCIITable(header []ASCIITableHeader, rows any, escapePipes bool) (string, 
 
 			switch head.Alignment {
 			case "right":
-				strBuilder.WriteString(fmt.Sprintf(fmt.Sprintf("| %%%ds ", head.size), value))
+				fmt.Fprintf(&strBuilder, fmt.Sprintf("| %%%ds ", head.size), value)
 			case "left", "":
-				strBuilder.WriteString(fmt.Sprintf(fmt.Sprintf("| %%-%ds ", head.size), value))
+				fmt.Fprintf(&strBuilder, fmt.Sprintf("| %%-%ds ", head.size), value)
 			case "centered":
 				padding := (head.size - len(value)) / 2
-				strBuilder.WriteString(fmt.Sprintf("| %*s%-*s ", padding, "", head.size-padding, value))
+				fmt.Fprintf(&strBuilder, "| %*s%-*s ", padding, "", head.size-padding, value)
 			default:
 				err := fmt.Errorf("unsupported alignment '%s' in table", head.Alignment)
 

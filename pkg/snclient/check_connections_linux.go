@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
@@ -33,7 +32,7 @@ func (l *CheckConnections) addIPV6(_ context.Context, check *CheckData) error {
 	return nil
 }
 
-func (l *CheckConnections) getProcStats(file string) ([]int64, error) {
+func (l *CheckConnections) getProcStats(file string) ([]uint64, error) {
 	log.Debugf("collecting stats from %s", file)
 	procFile, err := os.Open(file)
 	if err != nil {
@@ -41,30 +40,25 @@ func (l *CheckConnections) getProcStats(file string) ([]int64, error) {
 	}
 	defer procFile.Close()
 
-	counter := make([]int64, tcpStateMAX-1)
+	counter := make([]uint64, tcpStateMAX)
 	fileScanner := bufio.NewScanner(procFile)
 	fileScanner.Scan() // skip first header line
 	for fileScanner.Scan() {
 		line := fileScanner.Text()
 		fields := strings.Fields(line)
-		if len(fields) < 4 {
-			log.Tracef("corrupt tcp line: %s", line)
+		if len(fields) < 6 {
+			log.Debugf("corrupt tcp line: %s", line)
 
 			continue
 		}
-		state, err := strconv.ParseUint(fields[3], 16, 64)
+		state, err := convert.IntE(fields[3])
 		if err != nil {
-			log.Tracef("cannot parse tcp state %s: %s", fields[3], err.Error())
+			log.Debugf("cannot parse tcp state %s: %s", fields[3], err.Error())
 
 			continue
 		}
-		if state >= uint64(tcpStateMAX) {
-			log.Tracef("unknown tcp state %s", fields[3])
-
-			continue
-		}
-		if state >= uint64(len(counter)) {
-			log.Tracef("tcp state %s out of range", fields[3])
+		if state >= len(counter) || state <= 0 {
+			log.Debugf("unknown tcp state %s", fields[3])
 
 			continue
 		}
@@ -81,6 +75,10 @@ func (l *CheckConnections) getProcStats(file string) ([]int64, error) {
 		}
 	}
 
+	if err := fileScanner.Err(); err != nil {
+		return nil, fmt.Errorf("scan %s: %s", file, err.Error())
+	}
+
 	return counter, nil
 }
 
@@ -90,7 +88,7 @@ func (l *CheckConnections) parseHexIP(raw string) (address string, port uint64) 
 		return raw, 0
 	}
 
-	port, err := strconv.ParseUint(fields[1], 16, 16)
+	port, err := convert.UInt64E(fields[1])
 	if err != nil {
 		log.Tracef("port parse error for address %s: %s", raw, err.Error())
 

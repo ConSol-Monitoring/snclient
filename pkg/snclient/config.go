@@ -431,7 +431,7 @@ func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigS
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %s", err.Error())
 	}
-	cacheFile := filepath.Join(os.TempDir(), fmt.Sprintf("snclient-%s.ini", sum))
+	cacheFile := filepath.Clean(filepath.Join(os.TempDir(), fmt.Sprintf("snclient-%s.ini", sum)))
 	config.alreadyIncluded[inclURL] = srcPath
 
 	// check if fetch is required (file not found, oneshotmode, ..., reload?)
@@ -512,7 +512,7 @@ func (config *Config) fetchHTTPInclude(inclURL, cacheFile string, section *Confi
 		resp.Request.URL.User = url.UserPassword(resp.Request.URL.User.Username(), "...")
 	}
 	contents = append([]byte(
-		fmt.Sprintf("# cached ini fetched\n# from: %s\n# date: %s\n",
+		fmt.Sprintf("# snclient cached ini file\n# source: %s\n# last updated: %s\n",
 			resp.Request.URL,
 			time.Now().String())),
 		contents...)

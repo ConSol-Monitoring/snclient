@@ -47,7 +47,7 @@ func (m *CheckMetric) String() string {
 	}
 
 	num, unit := m.tweakedNum(m.Value)
-	res.WriteString(fmt.Sprintf("'%s'=%s%s", name, num, unit))
+	fmt.Fprintf(&res, "'%s'=%s%s", name, num, unit)
 
 	res.WriteString(";")
 	if m.WarningStr != nil {

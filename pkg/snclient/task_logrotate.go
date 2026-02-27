@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
 )
 
@@ -92,16 +93,16 @@ func (l *LogrotateHandler) mainLoop() {
 				continue
 			}
 
-			size := fileInfo.Size()
+			size := convert.UInt64(fileInfo.Size())
 			if size <= 0 {
 				continue
 			}
 
 			log.Tracef("check logfile rotation (threshold %s / current size: %s)",
 				humanize.IBytes(l.maxSize),
-				humanize.IBytes(uint64(size)),
+				humanize.IBytes(size),
 			)
-			if uint64(size) > l.maxSize {
+			if size > l.maxSize {
 				l.rotate(logFile)
 			}
 

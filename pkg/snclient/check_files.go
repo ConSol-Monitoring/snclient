@@ -590,7 +590,7 @@ func (l *CheckFiles) normalizePath(path string) string {
 	path = strings.TrimSuffix(path, string(os.PathSeparator))
 
 	// Special handling for Windows drive letters,
-	// Files directly under the drive do not have seperators, e.g: C:pagefile.sys
+	// Files directly under the drive do not have separators, e.g: C:pagefile.sys
 	// This confuses the depth calculation
 	if runtime.GOOS == "windows" {
 		// C: -> C:\

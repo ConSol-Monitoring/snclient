@@ -41,10 +41,10 @@ func (i *ResponseWriterCapture) Header() http.Header {
 
 func (i *ResponseWriterCapture) String(req *http.Request, body bool) string {
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\n", i.statusCode, http.StatusText(i.statusCode)))
+	fmt.Fprintf(&buf, "HTTP/1.1 %d %s\n", i.statusCode, http.StatusText(i.statusCode))
 	for k, val := range i.w.Header() {
 		for _, v := range val {
-			buf.WriteString(fmt.Sprintf("%s: %v\n", k, v))
+			fmt.Fprintf(&buf, "%s: %v\n", k, v)
 		}
 	}
 	buf.WriteString("\n")

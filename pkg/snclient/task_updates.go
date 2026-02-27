@@ -637,13 +637,8 @@ func (u *UpdateHandler) checkUpdateFile(ctx context.Context, url string) (update
 	}
 
 	// copy to tmp location
-	tempFile, err := os.CreateTemp("", "snclient-tmpupdate")
-	if err != nil {
-		return nil, fmt.Errorf("mktemp: %s", err.Error())
-	}
-	LogError(tempFile.Close())
-	os.Remove(tempFile.Name())
-	tempUpdate := tempFile.Name() + GlobalMacros["file-ext"]
+	tempUpdate := filepath.Join(os.TempDir(), "snclient-tmpupdate") + GlobalMacros["file-ext"]
+	os.Remove(tempUpdate) // remove if it already exists for some reason
 	err = utils.CopyFile(localPath, tempUpdate)
 	if err != nil {
 		return nil, fmt.Errorf("copy update file failed: %s", err.Error())
@@ -739,6 +734,8 @@ func (u *UpdateHandler) extractUpdate(ctx context.Context, updateFile string) (e
 		startOver = false
 	}
 
+	updateFile = filepath.Clean(updateFile)
+
 	if startOver {
 		if err != nil {
 			return err
@@ -754,7 +751,7 @@ func (u *UpdateHandler) extractUpdate(ctx context.Context, updateFile string) (e
 	}
 
 	// simple sanity check
-	if !strings.HasSuffix(info.Main.Path, "/snclient") {
+	if info.Main.Path != "github.com/consol-monitoring/snclient" {
 		return fmt.Errorf("failed to verify snclient update file, invalid source: %s", info.Main.Path)
 	}
 
@@ -1102,7 +1099,7 @@ func (u *UpdateHandler) extractMsi(ctx context.Context, fileName string) error {
 	log.Tracef("temp dir: %s", tempDir)
 
 	// Use the "msiexec" command to extract the file from the .msi
-	cmd := exec.CommandContext(ctx, "msiexec", "/a", fileName, "/qn", "TARGETDIR="+tempDir) //nolint:gosec // no user input here
+	cmd := exec.CommandContext(ctx, "msiexec", "/a", fileName, "/qn", "TARGETDIR="+tempDir)
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("failed to run msiexec %s: %s", strings.Join(cmd.Args, " "), err.Error())
 	}

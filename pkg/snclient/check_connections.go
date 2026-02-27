@@ -194,7 +194,7 @@ func (l *CheckConnections) defaultEntry(source string) map[string]string {
 	return entry
 }
 
-func (l *CheckConnections) addEntry(name string, check *CheckData, counter []int64) {
+func (l *CheckConnections) addEntry(name string, check *CheckData, counter []uint64) {
 	entry := l.defaultEntry(name)
 	for i64 := range counter {
 		i16, err := convert.UInt16E(i64)

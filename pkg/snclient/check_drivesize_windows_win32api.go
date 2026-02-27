@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"golang.org/x/sys/windows"
 )
 
@@ -66,14 +67,26 @@ var (
 
 func GetDriveType(lpRootPathName string) (returnValue GetDriveTypeReturnValuePrimitive, err error) {
 	if lpRootPathName == "" {
-		return 0, fmt.Errorf("lpRootPathName cannot be empty")
+		return DriveUnknown, fmt.Errorf("lpRootPathName cannot be empty")
 	}
 
 	lpRootPathNameW16 := windows.StringToUTF16(lpRootPathName)
 
-	rv, _, _ := getDriveTypeW.Call(uintptr(unsafe.Pointer(&lpRootPathNameW16[0])))
+	ret, _, err := getDriveTypeW.Call(uintptr(unsafe.Pointer(&lpRootPathNameW16[0])))
+	if err != nil {
+		log.Debugf("getDriveTypeW: Call returned an error: %s", err.Error())
 
-	return GetDriveTypeReturnValuePrimitive(rv), nil
+		return DriveUnknown, nil
+	}
+
+	rvU, err := convert.UInt32E(ret)
+	if err != nil {
+		log.Debugf("getDriveTypeW: Call returned unexpected value: %s", err.Error())
+
+		return DriveUnknown, nil
+	}
+
+	return GetDriveTypeReturnValuePrimitive(rvU), nil
 }
 
 func NetGetConnection(lpLocalName string) (lpRemoteName string, err error) {
