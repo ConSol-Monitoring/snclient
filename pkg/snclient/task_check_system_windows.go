@@ -118,25 +118,46 @@ func init() {
 }
 
 // names: drive names to filter to. if empty, all drives are discovered
-func ioCountersWindows(names ...string) (map[string]IOCountersStatWindows, error) {
+// tries to match physical drives only
+func ioCountersWindows(names ...string) map[string]IOCountersStatWindows {
 	drivemap := make(map[string]IOCountersStatWindows, 0)
 	var dPerformance diskPerformance
 
+	// filter the real physical drives from all gathered storageDeviceNumbers
+	validStorageDeviceNumbers := make(map[string]storageDeviceNumberStruct)
+
+	// first 32 devices are more likely to be real physical drives
+	for deviceNumber := range uint32(32) {
+		// multiple letters might share the same storage device if disk is partitioned
+		for letter, sdn := range storageDeviceNumbers {
+			if sdn.DeviceNumber != deviceNumber {
+				continue
+			}
+
+			// seems to be reserved for non-physical drives
+			// for example a CD drive looked like this:
+			// storageDeviceNumber.DeviceNumber = 0 and storageDeviceNumber.PartitionNumber = 4294967295
+			if sdn.PartitionNumber > 32 {
+				log.Tracef("Device Invalid for disk IO, likely non-drive. DeviceNumber: %d, DeviceType: %d, Partition Number: %d", sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+				continue
+			}
+
+			// C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winioctl.h
+			// FILE_DEVICE_DISK = 7
+			if sdn.DeviceType != 7 {
+				log.Tracef("Device Invalid for disk IO, deviceType is not a disk. DeviceNumber: %d, DeviceType: %d, Partition Number: %d", sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+				continue
+			}
+
+			validStorageDeviceNumbers[letter] = sdn
+		}
+	}
+
 	// For getting a handle to the root of the drive, specify the path as \\.\PhysicalDriveX .
 	// This seems to be better at picking the correct drives that can do IoctlCalls
-	for deviceNumber := range uint32(32) {
-		// Skip deviceNumbers that do not have a drive letter
-		deviceLetter := ""
-		for letter, storageDeviceNumber := range storageDeviceNumbers {
-			if storageDeviceNumber.DeviceNumber == deviceNumber {
-				deviceLetter = letter
-			}
-		}
-		if deviceLetter == "" {
-			continue
-		}
+	for deviceLetter, sdn := range validStorageDeviceNumbers {
 
-		handlePath := `\\.\PhysicalDrive` + fmt.Sprintf("%d", deviceNumber)
+		handlePath := `\\.\PhysicalDrive` + fmt.Sprintf("%d", sdn.DeviceNumber)
 
 		handle, err := windows.CreateFile(windows.StringToUTF16Ptr(handlePath), 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, 0, 0)
 		if err != nil {
@@ -144,9 +165,11 @@ func ioCountersWindows(names ...string) (map[string]IOCountersStatWindows, error
 				continue
 			}
 
-			return drivemap, fmt.Errorf("error when creating a file handle on handlePath: %s, err: %w", handlePath, err)
+			log.Debugf("Error when creating a file handle on handlePath: %s, err: %s", handlePath, err.Error())
+			continue
 		}
 		if handle == windows.InvalidHandle {
+			log.Debugf("Invalid handle for PhysicalDrive %d with path: %s", sdn.DeviceNumber, handlePath)
 			continue
 		}
 
@@ -155,13 +178,28 @@ func ioCountersWindows(names ...string) (map[string]IOCountersStatWindows, error
 		err = windows.DeviceIoControl(handle, IOctlDiskPerformance, nil, 0, (*byte)(unsafe.Pointer(&dPerformance)), uint32(unsafe.Sizeof(dPerformance)), &diskPerformanceSize, nil)
 		if err != nil {
 			if errors.Is(err, windows.ERROR_INVALID_FUNCTION) {
+				log.Debugf("IOCTL_DISK_PERFORMANCE not supported for PhysicalDrive%d", sdn.DeviceNumber)
+				errClose := windows.CloseHandle(handle)
+				if errClose != nil {
+					log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, errClose.Error())
+				}
 				continue
 			}
 			if errors.Is(err, windows.ERROR_NOT_SUPPORTED) {
+				log.Debugf("IOCTL_DISK_PERFORMANCE not supported for PhysicalDrive%d", sdn.DeviceNumber)
+				errClose := windows.CloseHandle(handle)
+				if errClose != nil {
+					log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, errClose.Error())
+				}
 				continue
 			}
 
-			return drivemap, fmt.Errorf("error when calling IoctlDiskPerformance with a open handle to: %s, err: %w", handlePath, err)
+			log.Debugf("Error when calling IoctlDiskPerformance with a open handle to: %s, err: %s", handlePath, err.Error())
+			errClose := windows.CloseHandle(handle)
+			if errClose != nil {
+				log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, errClose.Error())
+			}
+			continue
 		}
 
 		err = windows.CloseHandle(handle)
@@ -192,7 +230,7 @@ func ioCountersWindows(names ...string) (map[string]IOCountersStatWindows, error
 		}
 	}
 
-	return drivemap, nil
+	return drivemap
 }
 
 // This is a struct that will be filled with the Ioctl IOCTL_STORAGE_GET_DEVICE_NUMBER call.
@@ -244,7 +282,11 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 			(*byte)(unsafe.Pointer(&storageDeviceNumber)), uint32(unsafe.Sizeof(storageDeviceNumber)), &bytesReturned, nil)
 		if err != nil {
 			log.Tracef("Logical drive %s, got an error from Ioctl IOCTL_STORAGE_GET_DEVICE_NUMBER. Likely has no physical device e.g VirtioFS/Network. Err: %s\n", logicalDriveLetter, err.Error())
-
+			// Close handle before continuing
+			errClose := windows.CloseHandle(handle)
+			if errClose != nil {
+				log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, errClose.Error())
+			}
 			continue
 		}
 
@@ -254,6 +296,7 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 		}
 
 		mappings[logicalDriveLetter] = storageDeviceNumber
+		log.Debugf("Mapped logical drive letter %s to device number %d , partition number: %d", logicalDriveLetter, storageDeviceNumber.DeviceNumber, storageDeviceNumber.PartitionNumber)
 	}
 
 	return mappings
@@ -263,11 +306,8 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 // Until the gopsutil is patched, use this version
 // The function reports these attributes correctly
 func (c *CheckSystemHandler) addDiskStats(create bool) {
-	diskIOCounters, err := ioCountersWindows()
+	diskIOCounters := ioCountersWindows()
 	// do not create the counters if there is an error
-	if err != nil {
-		return
-	}
 
 	if create {
 		for diskName := range diskIOCounters {
