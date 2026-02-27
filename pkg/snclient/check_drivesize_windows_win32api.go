@@ -73,7 +73,7 @@ func GetDriveType(lpRootPathName string) (returnValue GetDriveTypeReturnValuePri
 	lpRootPathNameW16 := windows.StringToUTF16(lpRootPathName)
 
 	ret, _, err := getDriveTypeW.Call(uintptr(unsafe.Pointer(&lpRootPathNameW16[0])))
-	if err != nil {
+	if err != nil && ret == 0 {
 		log.Debugf("getDriveTypeW: Call returned an error: %s", err.Error())
 
 		return DriveUnknown, nil
