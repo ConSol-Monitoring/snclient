@@ -8,7 +8,7 @@ URL:           https://github.com/Consol-Monitoring/snclient/
 Source0:       snclient-%{version}.tar.gz
 Group:         Applications/System
 Summary:       Monitoring Agent
-Requires:      logrotate
+Requires:      logrotate, systemd
 
 %description
 SNClient (Secure Naemon Client) is a general purpose monitoring agent designed
@@ -41,6 +41,12 @@ It supports Prometheus, NRPE and a REST API HTTP(s) protocol to run checks.
 %{__mkdir_p} -m 0755 %{buildroot}/lib/systemd/system
 %{__install} -D -m 0644 -p snclient.service %{buildroot}/lib/systemd/system/snclient.service
 
+%{__mkdir_p} -m 0755 %{buildroot}/lib/sysusers.d
+%{__install} -D -m 0644 -p snclient.sysusers %{buildroot}/lib/sysusers.d/snclient.conf
+
+%{__mkdir_p} -m 0755 %{buildroot}/lib/tmpfiles.d
+%{__install} -D -m 0644 -p snclient.tmpfiles %{buildroot}/lib/tmpfiles.d/snclient.conf
+
 %{__mkdir_p} -m 0755 %{buildroot}/usr/share/snclient
 %{__install} -D -m 0644 -p README.md LICENSE %{buildroot}/usr/share/snclient
 
@@ -57,11 +63,17 @@ gzip -n -9 %{buildroot}/usr/share/man/man8/snclient.8
 case "$*" in
   1)
     # First installation
+    # create user and files/folders
+    systemd-sysusers
+    systemd-tmpfiles --create
+    # start service
     systemctl --system daemon-reload >/dev/null || true
     systemctl enable snclient.service >/dev/null || true
     systemctl start snclient.service >/dev/null || true
   ;;
   2)
+    # Post upgrade permissions fix
+    systemd-tmpfiles --create
     # Upgrading
     systemctl --system daemon-reload >/dev/null || true
     systemctl try-restart snclient.service >/dev/null || true
@@ -106,6 +118,8 @@ exit 0
 %attr(0755,root,root) /usr/bin/snclient
 %attr(0755,root,root) /usr/lib/snclient/node_exporter
 %attr(0644,root,root) /lib/systemd/system/snclient.service
+%attr(0644,root,root) /lib/sysusers.d/snclient.conf
+%attr(0644,root,root) /lib/tmpfiles.d/snclient.conf
 %dir %config(noreplace) /etc/snclient
 %config(noreplace) %attr(0600,root,root) /etc/snclient/snclient.ini
 %config(noreplace) %attr(0600,root,root) /etc/snclient/server.key

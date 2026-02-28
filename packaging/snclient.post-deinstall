@@ -2,3 +2,9 @@
 
 # remove leftover additional config files.
 rm -rf /etc/snclient
+rm -rf /var/lib/snclient
+rm -rf /var/log/snclient
+
+# Optionally remove user/group (uncomment if desired)
+# deluser snclient 2>/dev/null || true
+# delgroup snclient 2>/dev/null || true
