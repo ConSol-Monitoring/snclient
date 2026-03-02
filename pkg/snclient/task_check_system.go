@@ -33,6 +33,11 @@ var DefaultSystemTaskConfig = ConfigData{
 // non-physical drives are not added to IO counters
 var StorageDevicesToWatch []string
 
+// Logs written during init(). Since logging to file is not set up yet,
+// they print out to stdout and pollute some tests that check how the stdout looks
+// save them here and then print them out in CheckSystemHandler.Init
+var taskCheckSystemInitLogs []string
+
 func init() {
 	// gopsutil on Linux seems to be reading /proc/partitions
 	// Then it adds more info according to /sys/class/block/<device>/*
@@ -101,6 +106,8 @@ func NewCheckSystemHandler() Module {
 func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config, _ *AgentRunSet) error {
 	c.snc = snc
 	c.stopChannel = make(chan bool)
+
+	log.Debugf("Logs saved during System handler init() functions:\n%s", strings.Join(taskCheckSystemInitLogs, "\n"))
 
 	bufferLength, _, err := section.GetDuration("default buffer length")
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 )
 
 func getIOCounters(_ context.Context) (any, error) {
-	return ioCountersWindows()
+	return ioCountersWindows(), nil
 }
 
 func (l *CheckDriveIO) buildEntry(snc *Agent, diskIOCounters any, deviceLogicalNameOrLetter string, entry map[string]string, _ []disk.PartitionStat) (foundDisk bool) {
