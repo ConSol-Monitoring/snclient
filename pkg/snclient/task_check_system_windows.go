@@ -125,6 +125,8 @@ func init() {
 
 // names: drive names to filter to. if empty, all drives are discovered
 // tries to match physical drives only
+//
+//nolint:gocognit // checking every handle is good practice
 func ioCountersWindows(names ...string) map[string]IOCountersStatWindows {
 	drivemap := make(map[string]IOCountersStatWindows, 0)
 	var dPerformance diskPerformance
@@ -132,7 +134,6 @@ func ioCountersWindows(names ...string) map[string]IOCountersStatWindows {
 	// For getting a handle to the root of the drive, specify the path as \\.\PhysicalDriveX .
 	// This seems to be better at picking the correct drives that can do IoctlCalls
 	for deviceLetter, sdn := range storageDeviceNumbersToWatch {
-
 		handlePath := `\\.\PhysicalDrive` + fmt.Sprintf("%d", sdn.DeviceNumber)
 
 		handle, err := windows.CreateFile(windows.StringToUTF16Ptr(handlePath), 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, 0, 0)
@@ -142,16 +143,19 @@ func ioCountersWindows(names ...string) map[string]IOCountersStatWindows {
 			}
 
 			log.Debugf("Error when creating a file handle on handlePath: %s, err: %s", handlePath, err.Error())
+
 			continue
 		}
 		if handle == windows.InvalidHandle {
 			log.Debugf("Invalid handle for PhysicalDrive %d with path: %s", sdn.DeviceNumber, handlePath)
+
 			continue
 		}
 
 		var diskPerformanceSize uint32
 		const IOctlDiskPerformance = 0x70020
 		err = windows.DeviceIoControl(handle, IOctlDiskPerformance, nil, 0, (*byte)(unsafe.Pointer(&dPerformance)), uint32(unsafe.Sizeof(dPerformance)), &diskPerformanceSize, nil)
+		//nolint:nestif // checking if handles are closed is good practice
 		if err != nil {
 			if errors.Is(err, windows.ERROR_INVALID_FUNCTION) {
 				log.Debugf("IOCTL_DISK_PERFORMANCE not supported for PhysicalDrive%d", sdn.DeviceNumber)
@@ -159,6 +163,7 @@ func ioCountersWindows(names ...string) map[string]IOCountersStatWindows {
 				if errClose != nil {
 					log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, errClose.Error())
 				}
+
 				continue
 			}
 			if errors.Is(err, windows.ERROR_NOT_SUPPORTED) {
@@ -167,6 +172,7 @@ func ioCountersWindows(names ...string) map[string]IOCountersStatWindows {
 				if errClose != nil {
 					log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, errClose.Error())
 				}
+
 				continue
 			}
 
@@ -175,6 +181,7 @@ func ioCountersWindows(names ...string) map[string]IOCountersStatWindows {
 			if errClose != nil {
 				log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, errClose.Error())
 			}
+
 			continue
 		}
 
@@ -263,6 +270,7 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 			if errClose != nil {
 				log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, errClose.Error())
 			}
+
 			continue
 		}
 
@@ -272,7 +280,8 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 		}
 
 		mappings[logicalDriveLetter] = storageDeviceNumber
-		log.Debugf("Adding to storageDeviceNumber map. Letter: %s, Device Number: %d, DeviceType: %d, Partition Number: %d", logicalDriveLetter, storageDeviceNumber.DeviceNumber, storageDeviceNumber.DeviceType, storageDeviceNumber.PartitionNumber)
+		log.Debugf("Adding to storageDeviceNumber map. Letter: %s, Device Number: %d, DeviceType: %d, Partition Number: %d",
+			logicalDriveLetter, storageDeviceNumber.DeviceNumber, storageDeviceNumber.DeviceType, storageDeviceNumber.PartitionNumber)
 	}
 
 	return mappings
@@ -294,18 +303,23 @@ func getStorageDeviceNumbersToWatch() map[string]storageDeviceNumberStruct {
 			// for example a CD drive looked like this:
 			// storageDeviceNumber.DeviceNumber = 0 and storageDeviceNumber.PartitionNumber = 4294967295
 			if sdn.PartitionNumber > 32 {
-				log.Tracef("Device unfit to watch, is likely not a drive due to high partitionNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d", letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+				log.Tracef("Device unfit to watch, is likely not a drive due to high partitionNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+					letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+
 				continue
 			}
 
 			// C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winioctl.h
 			// FILE_DEVICE_DISK = 7
 			if sdn.DeviceType != 7 {
-				log.Tracef("Device unfit to watch, its deviceType is not a disk. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d", letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+				log.Tracef("Device unfit to watch, its deviceType is not a disk. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+					letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+
 				continue
 			}
 
-			log.Debugf("Adding to storageDeviceNumbersToWatch. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d", letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+			log.Debugf("Adding to storageDeviceNumbersToWatch. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
 			storageDeviceNumbersToWatch[letter] = sdn
 		}
 	}
