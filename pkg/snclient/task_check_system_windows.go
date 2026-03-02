@@ -97,8 +97,7 @@ func getPerformanceFrequency() (performanceFrequency uint64) {
 	returnValue, _, _ := QueryPerformanceFrequencyFunc.Call(uintptr(unsafe.Pointer(&performanceFrequency)))
 
 	if returnValue == 0 {
-		log.Debugf("Could not get performance counter frequency")
-
+		taskCheckSystemInitLogs = append(taskCheckSystemInitLogs, "Could not get performance counter frequency")
 		return 0
 	}
 
@@ -250,7 +249,8 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 			windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil,
 			windows.OPEN_EXISTING, 0, 0)
 		if err != nil {
-			log.Tracef("Logical drive %s, got an error while getting a handle to %s, err: %s\n", logicalDriveLetter, handlePath, err.Error())
+			taskCheckSystemInitLogs = append(taskCheckSystemInitLogs,
+				fmt.Sprintf("Logical drive %s, got an error while getting a handle to %s, err: %s\n", logicalDriveLetter, handlePath, err.Error()))
 
 			continue
 		}
@@ -264,11 +264,14 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 		err = windows.DeviceIoControl(handle, IOctlStorageGetDeviceNumber, nil, 0,
 			(*byte)(unsafe.Pointer(&storageDeviceNumber)), uint32(unsafe.Sizeof(storageDeviceNumber)), &bytesReturned, nil)
 		if err != nil {
-			log.Tracef("Logical drive %s, got an error from Ioctl IOCTL_STORAGE_GET_DEVICE_NUMBER. Likely has no physical device e.g VirtioFS/Network. Err: %s\n", logicalDriveLetter, err.Error())
+			taskCheckSystemInitLogs = append(taskCheckSystemInitLogs,
+				fmt.Sprintf("Logical drive %s, got an error from Ioctl IOCTL_STORAGE_GET_DEVICE_NUMBER. Likely has no physical device e.g VirtioFS/Network. Err: %s\n",
+					logicalDriveLetter, err.Error()))
 			// Close handle before continuing
 			errClose := windows.CloseHandle(handle)
 			if errClose != nil {
-				log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, errClose.Error())
+				taskCheckSystemInitLogs = append(taskCheckSystemInitLogs,
+					fmt.Sprintf("Error when closing handle, handlePath: %s, err: %s", handlePath, errClose.Error()))
 			}
 
 			continue
@@ -276,12 +279,13 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 
 		err = windows.CloseHandle(handle)
 		if err != nil {
-			log.Debugf("Error when closing handle, handlePath: %s, err: %s", handlePath, err.Error())
+			taskCheckSystemInitLogs = append(taskCheckSystemInitLogs, fmt.Sprintf("Error when closing handle, handlePath: %s, err: %s", handlePath, err.Error()))
 		}
 
 		mappings[logicalDriveLetter] = storageDeviceNumber
-		log.Debugf("Adding to storageDeviceNumber map. Letter: %s, Device Number: %d, DeviceType: %d, Partition Number: %d",
-			logicalDriveLetter, storageDeviceNumber.DeviceNumber, storageDeviceNumber.DeviceType, storageDeviceNumber.PartitionNumber)
+		taskCheckSystemInitLogs = append(taskCheckSystemInitLogs,
+			fmt.Sprintf("Adding to storageDeviceNumber map. Letter: %s, Device Number: %d, DeviceType: %d, Partition Number: %d",
+				logicalDriveLetter, storageDeviceNumber.DeviceNumber, storageDeviceNumber.DeviceType, storageDeviceNumber.PartitionNumber))
 	}
 
 	return mappings
@@ -294,8 +298,9 @@ func getStorageDeviceNumbersToWatch() map[string]storageDeviceNumberStruct {
 	for letter, sdn := range storageDeviceNumbers {
 		// real physical drives seem to have the first 32 deviceNumbers reserved for them
 		if sdn.DeviceNumber > 32 {
-			log.Tracef("Device unfit to watch, is likely not a drive due to high deviceNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
-				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+			taskCheckSystemInitLogs = append(taskCheckSystemInitLogs, fmt.Sprintf("Device unfit to watch, is likely not a drive due to high deviceNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber))
+
 			continue
 		}
 
@@ -303,8 +308,8 @@ func getStorageDeviceNumbersToWatch() map[string]storageDeviceNumberStruct {
 		// for example a CD drive looked like this:
 		// storageDeviceNumber.DeviceNumber = 0 and storageDeviceNumber.PartitionNumber = 4294967295
 		if sdn.PartitionNumber > 32 {
-			log.Tracef("Device unfit to watch, is likely not a drive due to high partitionNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
-				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+			taskCheckSystemInitLogs = append(taskCheckSystemInitLogs, fmt.Sprintf("Device unfit to watch, is likely not a drive due to high partitionNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber))
 
 			continue
 		}
@@ -312,14 +317,16 @@ func getStorageDeviceNumbersToWatch() map[string]storageDeviceNumberStruct {
 		// C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winioctl.h
 		// FILE_DEVICE_DISK = 7
 		if sdn.DeviceType != 7 {
-			log.Tracef("Device unfit to watch, its deviceType is not a disk. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
-				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+			taskCheckSystemInitLogs = append(taskCheckSystemInitLogs,
+				fmt.Sprintf("Device unfit to watch, its deviceType is not a disk. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+					letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber))
 
 			continue
 		}
 
-		log.Debugf("Adding to storageDeviceNumbersToWatch. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
-			letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+		taskCheckSystemInitLogs = append(taskCheckSystemInitLogs,
+			fmt.Sprintf("Adding to storageDeviceNumbersToWatch. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber))
 		storageDeviceNumbersToWatch[letter] = sdn
 	}
 
