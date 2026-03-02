@@ -82,7 +82,11 @@ type IOCountersStatWindows struct {
 // Therefore, the frequency need only be queried upon application initialization, and the result can be cached.
 var performanceFrequency = uint64(0)
 
+// All gathered storage devices
 var storageDeviceNumbers map[string]storageDeviceNumberStruct
+
+// Filtered storage devices to watch, used in disk stats
+var storageDeviceNumbersToWatch map[string]storageDeviceNumberStruct
 
 var (
 	kernel32DLL                   = syscall.NewLazyDLL("kernel32.dll")
@@ -114,6 +118,8 @@ func init() {
 
 	storageDeviceNumbers = getDriveStorageDeviceNumbers()
 
+	storageDeviceNumbersToWatch = getStorageDeviceNumbersToWatch()
+
 	performanceFrequency = getPerformanceFrequency()
 }
 
@@ -123,39 +129,9 @@ func ioCountersWindows(names ...string) map[string]IOCountersStatWindows {
 	drivemap := make(map[string]IOCountersStatWindows, 0)
 	var dPerformance diskPerformance
 
-	// filter the real physical drives from all gathered storageDeviceNumbers
-	validStorageDeviceNumbers := make(map[string]storageDeviceNumberStruct)
-
-	// first 32 devices are more likely to be real physical drives
-	for deviceNumber := range uint32(32) {
-		// multiple letters might share the same storage device if disk is partitioned
-		for letter, sdn := range storageDeviceNumbers {
-			if sdn.DeviceNumber != deviceNumber {
-				continue
-			}
-
-			// seems to be reserved for non-physical drives
-			// for example a CD drive looked like this:
-			// storageDeviceNumber.DeviceNumber = 0 and storageDeviceNumber.PartitionNumber = 4294967295
-			if sdn.PartitionNumber > 32 {
-				log.Tracef("Device Invalid for disk IO, likely non-drive. DeviceNumber: %d, DeviceType: %d, Partition Number: %d", sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
-				continue
-			}
-
-			// C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winioctl.h
-			// FILE_DEVICE_DISK = 7
-			if sdn.DeviceType != 7 {
-				log.Tracef("Device Invalid for disk IO, deviceType is not a disk. DeviceNumber: %d, DeviceType: %d, Partition Number: %d", sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
-				continue
-			}
-
-			validStorageDeviceNumbers[letter] = sdn
-		}
-	}
-
 	// For getting a handle to the root of the drive, specify the path as \\.\PhysicalDriveX .
 	// This seems to be better at picking the correct drives that can do IoctlCalls
-	for deviceLetter, sdn := range validStorageDeviceNumbers {
+	for deviceLetter, sdn := range storageDeviceNumbersToWatch {
 
 		handlePath := `\\.\PhysicalDrive` + fmt.Sprintf("%d", sdn.DeviceNumber)
 
@@ -296,10 +272,45 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 		}
 
 		mappings[logicalDriveLetter] = storageDeviceNumber
-		log.Debugf("Mapped logical drive letter %s to device number %d , partition number: %d", logicalDriveLetter, storageDeviceNumber.DeviceNumber, storageDeviceNumber.PartitionNumber)
+		log.Debugf("Adding to storageDeviceNumber map. Letter: %s, Device Number: %d, DeviceType: %d, Partition Number: %d", logicalDriveLetter, storageDeviceNumber.DeviceNumber, storageDeviceNumber.DeviceType, storageDeviceNumber.PartitionNumber)
 	}
 
 	return mappings
+}
+
+func getStorageDeviceNumbersToWatch() map[string]storageDeviceNumberStruct {
+	// filter the real physical drives from all gathered storageDeviceNumbers
+	storageDeviceNumbersToWatch := make(map[string]storageDeviceNumberStruct)
+
+	// first 32 devices are more likely to be real physical drives
+	for deviceNumber := range uint32(32) {
+		// multiple letters might share the same storage device if disk is partitioned
+		for letter, sdn := range storageDeviceNumbers {
+			if sdn.DeviceNumber != deviceNumber {
+				continue
+			}
+
+			// seems to be reserved for non-physical drives
+			// for example a CD drive looked like this:
+			// storageDeviceNumber.DeviceNumber = 0 and storageDeviceNumber.PartitionNumber = 4294967295
+			if sdn.PartitionNumber > 32 {
+				log.Tracef("Device unfit to watch, is likely not a drive due to high partitionNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d", letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+				continue
+			}
+
+			// C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winioctl.h
+			// FILE_DEVICE_DISK = 7
+			if sdn.DeviceType != 7 {
+				log.Tracef("Device unfit to watch, its deviceType is not a disk. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d", letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+				continue
+			}
+
+			log.Debugf("Adding to storageDeviceNumbersToWatch. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d", letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+			storageDeviceNumbersToWatch[letter] = sdn
+		}
+	}
+
+	return storageDeviceNumbersToWatch
 }
 
 // Windows uses an patched version of gopsutil disk.IOCounters() stored here
