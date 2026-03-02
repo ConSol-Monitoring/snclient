@@ -291,37 +291,36 @@ func getStorageDeviceNumbersToWatch() map[string]storageDeviceNumberStruct {
 	// filter the real physical drives from all gathered storageDeviceNumbers
 	storageDeviceNumbersToWatch := make(map[string]storageDeviceNumberStruct)
 
-	// first 32 devices are more likely to be real physical drives
-	for deviceNumber := range uint32(32) {
-		// multiple letters might share the same storage device if disk is partitioned
-		for letter, sdn := range storageDeviceNumbers {
-			if sdn.DeviceNumber != deviceNumber {
-				continue
-			}
-
-			// seems to be reserved for non-physical drives
-			// for example a CD drive looked like this:
-			// storageDeviceNumber.DeviceNumber = 0 and storageDeviceNumber.PartitionNumber = 4294967295
-			if sdn.PartitionNumber > 32 {
-				log.Tracef("Device unfit to watch, is likely not a drive due to high partitionNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
-					letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
-
-				continue
-			}
-
-			// C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winioctl.h
-			// FILE_DEVICE_DISK = 7
-			if sdn.DeviceType != 7 {
-				log.Tracef("Device unfit to watch, its deviceType is not a disk. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
-					letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
-
-				continue
-			}
-
-			log.Debugf("Adding to storageDeviceNumbersToWatch. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+	for letter, sdn := range storageDeviceNumbers {
+		// real physical drives seem to have the first 32 deviceNumbers reserved for them
+		if sdn.DeviceNumber > 32 {
+			log.Tracef("Device unfit to watch, is likely not a drive due to high deviceNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
 				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
-			storageDeviceNumbersToWatch[letter] = sdn
+			continue
 		}
+
+		// seems to be reserved for non-physical drives
+		// for example a CD drive looked like this:
+		// storageDeviceNumber.DeviceNumber = 0 and storageDeviceNumber.PartitionNumber = 4294967295
+		if sdn.PartitionNumber > 32 {
+			log.Tracef("Device unfit to watch, is likely not a drive due to high partitionNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+
+			continue
+		}
+
+		// C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\winioctl.h
+		// FILE_DEVICE_DISK = 7
+		if sdn.DeviceType != 7 {
+			log.Tracef("Device unfit to watch, its deviceType is not a disk. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+
+			continue
+		}
+
+		log.Debugf("Adding to storageDeviceNumbersToWatch. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+			letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber)
+		storageDeviceNumbersToWatch[letter] = sdn
 	}
 
 	return storageDeviceNumbersToWatch
