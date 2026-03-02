@@ -98,6 +98,7 @@ func getPerformanceFrequency() (performanceFrequency uint64) {
 
 	if returnValue == 0 {
 		taskCheckSystemInitLogs = append(taskCheckSystemInitLogs, "Could not get performance counter frequency")
+
 		return 0
 	}
 
@@ -298,8 +299,9 @@ func getStorageDeviceNumbersToWatch() map[string]storageDeviceNumberStruct {
 	for letter, sdn := range storageDeviceNumbers {
 		// real physical drives seem to have the first 32 deviceNumbers reserved for them
 		if sdn.DeviceNumber > 32 {
-			taskCheckSystemInitLogs = append(taskCheckSystemInitLogs, fmt.Sprintf("Device unfit to watch, is likely not a drive due to high deviceNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
-				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber))
+			taskCheckSystemInitLogs = append(taskCheckSystemInitLogs,
+				fmt.Sprintf("Device unfit to watch, is likely not a drive due to high deviceNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+					letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber))
 
 			continue
 		}
@@ -308,8 +310,9 @@ func getStorageDeviceNumbersToWatch() map[string]storageDeviceNumberStruct {
 		// for example a CD drive looked like this:
 		// storageDeviceNumber.DeviceNumber = 0 and storageDeviceNumber.PartitionNumber = 4294967295
 		if sdn.PartitionNumber > 32 {
-			taskCheckSystemInitLogs = append(taskCheckSystemInitLogs, fmt.Sprintf("Device unfit to watch, is likely not a drive due to high partitionNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
-				letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber))
+			taskCheckSystemInitLogs = append(taskCheckSystemInitLogs,
+				fmt.Sprintf("Device unfit to watch, is likely not a drive due to high partitionNumber. Letter: %s, DeviceNumber: %d, DeviceType: %d, Partition Number: %d",
+					letter, sdn.DeviceNumber, sdn.DeviceType, sdn.PartitionNumber))
 
 			continue
 		}
