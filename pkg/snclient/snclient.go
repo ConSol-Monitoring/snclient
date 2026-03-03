@@ -1634,7 +1634,7 @@ func appendProcs(ctx context.Context, check *CheckData, numProcs int64, showArgs
 		if err != nil {
 			continue
 		}
-		exe, _ := buildExeAndFilename(ctx, proc.proc)
+		exe, _ := buildExeAndFilename(ctx, proc.proc, cmdLine)
 		if cmdLine == "" || !showArgs {
 			cmdLine = exe
 		}
@@ -1669,21 +1669,28 @@ func appendProcs(ctx context.Context, check *CheckData, numProcs int64, showArgs
 	return nil
 }
 
-func buildExeAndFilename(ctx context.Context, proc *process.Process) (exe, filename string) {
+func buildExeAndFilename(ctx context.Context, proc *process.Process, cmdLine string) (exe, filename string) {
+	// this usually requires root permissions for system processes
 	filename, err := proc.ExeWithContext(ctx)
-	if err == nil {
+	switch {
+	case err == nil:
 		// in case the binary has been removed / updated meanwhile it shows up as "".../path/bin (deleted)""
 		// %> ls -la /proc/857375/exe
 		// lrwxrwxrwx 1 user group 0 Oct 11 20:40 /proc/857375/exe -> '/usr/bin/ssh (deleted)'
 		filename = strings.TrimSuffix(filename, " (deleted)")
 		exe = filepath.Base(filename)
-	} else {
+	case strings.Contains(cmdLine, ":"):
+		parts := strings.SplitN(cmdLine, ":", 2)
+		exe = parts[0]
+		filename = exe
+	default:
 		cmd, err2 := proc.CmdlineSliceWithContext(ctx)
 		if err2 == nil && len(cmd) >= 1 {
 			filename = cmd[0]
 			exe = filepath.Base(filename)
 		}
 	}
+
 	if exe == "" {
 		name, err2 := proc.NameWithContext(ctx)
 		if err2 != nil {
@@ -1693,5 +1700,5 @@ func buildExeAndFilename(ctx context.Context, proc *process.Process) (exe, filen
 		}
 	}
 
-	return
+	return exe, filename
 }

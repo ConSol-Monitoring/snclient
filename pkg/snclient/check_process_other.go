@@ -26,7 +26,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			log.Debugf("check_process: cmd line error: %s", err.Error())
 		}
 
-		exe, filename := buildExeAndFilename(ctx, proc)
+		exe, filename := buildExeAndFilename(ctx, proc, cmdLine)
 
 		if len(l.processes) > 0 && !slices.Contains(l.processes, strings.ToLower(exe)) && !slices.Contains(l.processes, "*") {
 			continue
@@ -38,7 +38,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 		}
 		state := []string{}
 		for _, s := range states {
-			state = append(state, convertStatusChar(s))
+			state = append(state, l.convertStatusChar(s))
 		}
 
 		ctimeMilli, err := proc.CreateTimeWithContext(ctx)
@@ -116,7 +116,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 	return nil
 }
 
-func convertStatusChar(letter string) string {
+func (l *CheckProcess) convertStatusChar(letter string) string {
 	switch strings.ToLower(letter) {
 	case "i", "idle":
 		return "idle"
