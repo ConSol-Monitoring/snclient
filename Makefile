@@ -501,10 +501,10 @@ deb: | dist
 
 rpm: | dist
 	rm -rf snclient-$(VERSION)
-	cp ./packaging/snclient.service dist/
+	cp ./packaging/snclient.service  dist/
 	cp ./packaging/snclient.sysusers dist/
 	cp ./packaging/snclient.tmpfiles dist/
-	cp ./packaging/snclient.spec dist/
+	cp ./packaging/rpm/snclient.spec dist/
 	sed -i dist/snclient.spec -e 's|^Version: .*|Version: $(VERSION)|'
 	sed -i dist/snclient.spec -e 's|^BuildArch: .*|BuildArch: $(RPM_ARCH)|'
 	cp -rp dist snclient-$(VERSION)
@@ -531,17 +531,17 @@ rpm: | dist
 		-bb dist/snclient.spec
 	mv $(RPM_TOPDIR)/RPMS/*/snclient-*.rpm $(RPMFILE)
 	rm -rf $(RPM_TOPDIR) build-rpm
-	-rpmlint -f packaging/rpmlintrc $(RPMFILE)
+	-rpmlint -f packaging/rpm/rpmlintrc $(RPMFILE)
 
 apk: | dist
 	rm -rf snclient-$(VERSION)
-	cp ./packaging/APKBUILD dist/
-	cp ./packaging/snclient.initd dist/
-	cp ./packaging/snclient.post-install dist/
-	cp ./packaging/snclient.pre-upgrade dist/
-	cp ./packaging/snclient.post-upgrade dist/
-	cp ./packaging/snclient.pre-deinstall dist/
-	cp ./packaging/snclient.post-deinstall dist/
+	cp ./packaging/apk/APKBUILD                dist/
+	cp ./packaging/apk/snclient.initd          dist/
+	cp ./packaging/apk/snclient.post-install   dist/
+	cp ./packaging/apk/snclient.pre-upgrade    dist/
+	cp ./packaging/apk/snclient.post-upgrade   dist/
+	cp ./packaging/apk/snclient.pre-deinstall  dist/
+	cp ./packaging/apk/snclient.post-deinstall dist/
 	sed -i dist/APKBUILD -e 's|^pkgver=.*|pkgver=$(VERSION)|'
 	sed -i dist/APKBUILD -e 's|^arch=.*|arch=$(RPM_ARCH)|'
 	cp -rp dist snclient-$(VERSION)
