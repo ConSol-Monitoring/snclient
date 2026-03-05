@@ -3,10 +3,11 @@ package utils
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 )
 
-const maxLineLength = 120
+const defaultMaxLineLength = 140
 
 type ASCIITableHeader struct {
 	Name      string // name in table header
@@ -16,13 +17,19 @@ type ASCIITableHeader struct {
 }
 
 // ASCIITable creates an ascii table from columns and data rows
-func ASCIITable(header []ASCIITableHeader, rows any, escapePipes bool) (string, error) {
+func ASCIITable(header []ASCIITableHeader, rows any, escapePipes bool, maxLineLength int) (string, error) {
 	dataRows := reflect.ValueOf(rows)
 	if dataRows.Kind() != reflect.Slice {
 		return "", fmt.Errorf("rows is not a slice")
 	}
 
-	err := calculateHeaderSize(header, dataRows, escapePipes)
+	moveLargeColToBack := false
+	if header == nil {
+		header = buildHeaderFromData(dataRows)
+		moveLargeColToBack = true
+	}
+
+	err := calculateHeaderSize(header, dataRows, escapePipes, maxLineLength, moveLargeColToBack)
 	if err != nil {
 		return "", err
 	}
@@ -78,7 +85,15 @@ func ASCIITable(header []ASCIITableHeader, rows any, escapePipes bool) (string, 
 
 func asciiTableRowValue(escape bool, rowVal reflect.Value, head ASCIITableHeader) (string, error) {
 	value := ""
-	field := rowVal.FieldByName(head.Field)
+	var field reflect.Value
+	switch rowVal.Kind() {
+	case reflect.Struct:
+		field = rowVal.FieldByName(head.Field)
+	case reflect.Map:
+		field = rowVal.MapIndex(reflect.ValueOf(head.Field))
+	default:
+	}
+
 	if field.IsValid() {
 		t := field.Type().String()
 		switch t {
@@ -99,17 +114,20 @@ func asciiTableRowValue(escape bool, rowVal reflect.Value, head ASCIITableHeader
 	return value, nil
 }
 
-func calculateHeaderSize(header []ASCIITableHeader, dataRows reflect.Value, escapePipes bool) error {
+func calculateHeaderSize(header []ASCIITableHeader, dataRows reflect.Value, escapePipes bool, maxLineLength int, moveLargeColToBack bool) error {
 	// set headers as minimum size
 	for i, head := range header {
 		header[i].size = len(head.Name)
 	}
 
 	// adjust column size from max row data
-	for i := range dataRows.Len() {
-		rowVal := dataRows.Index(i)
-		if rowVal.Kind() != reflect.Struct {
-			return fmt.Errorf("row %d is not a struct", i)
+	for rowNum := range dataRows.Len() {
+		rowVal := dataRows.Index(rowNum)
+		switch rowVal.Kind() {
+		case reflect.Struct:
+		case reflect.Map:
+		default:
+			return fmt.Errorf("row %d is not a struct or map", rowNum)
 		}
 		for num, head := range header {
 			value, err := asciiTableRowValue(escapePipes, rowVal, head)
@@ -129,22 +147,40 @@ func calculateHeaderSize(header []ASCIITableHeader, dataRows reflect.Value, esca
 		total += header[i].size + 3 // add padding
 	}
 
+	if maxLineLength <= 0 {
+		maxLineLength = defaultMaxLineLength
+	}
+
 	if total < maxLineLength {
 		return nil
 	}
 
 	avgAvail := maxLineLength / len(header)
-	tooWide := []int{}
 	sumTooWide := 0
+	numTooWide := 0
 	for i := range header {
 		if header[i].size > avgAvail {
-			tooWide = append(tooWide, i)
 			sumTooWide += header[i].size
+			numTooWide++
 		}
 	}
-	avgLargeCol := (maxLineLength - (total - sumTooWide)) / len(tooWide)
-	for _, i := range tooWide {
-		header[i].size = avgLargeCol
+
+	if moveLargeColToBack {
+		// sort headers by name and col size
+		sort.Slice(header, func(i, j int) bool {
+			if header[i].size == header[j].size {
+				return header[i].Name < header[j].Name
+			}
+
+			return header[i].size < header[j].size
+		})
+	}
+
+	avgLargeCol := (maxLineLength - (total - sumTooWide)) / numTooWide
+	for i := range header {
+		if header[i].size > avgAvail {
+			header[i].size = avgLargeCol
+		}
 	}
 
 	return nil
@@ -152,4 +188,36 @@ func calculateHeaderSize(header []ASCIITableHeader, dataRows reflect.Value, esca
 
 func (header ASCIITableHeader) Size() int {
 	return header.size
+}
+
+func buildHeaderFromData(dataRows reflect.Value) []ASCIITableHeader {
+	header := []ASCIITableHeader{}
+	seen := map[string]bool{}
+
+	for i := range dataRows.Len() {
+		rowVal := dataRows.Index(i)
+		if rowVal.Kind() != reflect.Map {
+			continue
+		}
+
+		iter := rowVal.MapRange()
+		for iter.Next() {
+			key := iter.Key().String()
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			header = append(header, ASCIITableHeader{
+				Name:  key,
+				Field: key,
+			})
+		}
+	}
+
+	// sort headers by name
+	sort.Slice(header, func(i, j int) bool {
+		return header[i].Name < header[j].Name
+	})
+
+	return header
 }

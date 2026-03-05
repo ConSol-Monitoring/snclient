@@ -111,7 +111,7 @@ func (l *CheckOMD) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string) {
 	details := map[string]string{
 		"site":                site,
-		"autostart":           "0",
+		"autostart":           "1",
 		"state":               "3",
 		"status":              "unknown",
 		"failed_services":     "",
@@ -311,6 +311,8 @@ func (l *CheckOMD) setAutostart(ctx context.Context, site string, details map[st
 
 		return false
 	}
+
+	details["autostart"] = "0"
 	if convert.Bool(autostartRaw) {
 		details["autostart"] = "1"
 	}

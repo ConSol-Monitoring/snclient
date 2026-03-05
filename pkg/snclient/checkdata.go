@@ -176,7 +176,6 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 
 func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	if len(cd.listData) > 0 {
-		log.Tracef("list data:")
 		for _, entry := range cd.listData {
 			if entry["_skip"] == "1" {
 				continue
@@ -188,22 +187,31 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 			if exitCode != "" {
 				cd.result.State = convert.Int64(exitCode)
 				cd.result.Output = fmt.Sprintf("%s - %s", convert.StateString(cd.result.State), errMsg)
-				log.Tracef(" - %#v", entry)
+				log.Tracef("list data:")
+				logTraceASCIIMap(cd.listData)
+				log.Tracef("this entry exited and is not filtered, which is fatal:")
+				log.Tracef("%#v", entry)
 
 				return cd.result, nil
 			}
 
 			if errMsg != "" {
-				log.Tracef(" - %#v", entry)
+				log.Tracef("list data:")
+				logTraceASCIIMap(cd.listData)
+				log.Tracef("this entry errored and is not filtered, which is fatal:")
+				log.Tracef("%#v", entry)
 
 				return nil, fmt.Errorf("%s", errMsg)
 			}
+
 			// each entry in the list data is individually checked
 			// This may set "_state" of each entry
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
-			log.Tracef("Checking conditions for listData entry - %#v", entry)
 		}
 	}
+
+	log.Tracef("list data:")
+	logTraceASCIIMap(cd.listData)
 
 	var finalMacros map[string]string
 	log.Tracef("detail template: %s", cd.detailSyntax)
@@ -488,7 +496,7 @@ func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond ConditionList) {
 		}
 
 		if state > CheckExitOK {
-			log.Debugf("metric.Name: '%s', metric.ThresoldName: '%s', metric.Value: '%v', gave non-ok state: %s", metric.Name, metric.ThresholdName, metric.Value, convert.StateString(state))
+			log.Debugf("metric.Name: '%s', metric.ThresholdName: '%s', metric.Value: '%v', gave non-ok state: %s", metric.Name, metric.ThresholdName, metric.Value, convert.StateString(state))
 			cd.result.EscalateStatus(state)
 		}
 	}
@@ -1470,7 +1478,7 @@ func (cd *CheckData) helpImplemented(format ShowHelp) string {
 	if cd.implemented&Darwin > 0 {
 		implemented.osx = ":white_check_mark:"
 	}
-	table, err := utils.ASCIITable(header, []implTableData{implemented}, format == Markdown)
+	table, err := utils.ASCIITable(header, []implTableData{implemented}, format == Markdown, 0)
 	if err != nil {
 		log.Errorf("ascii table failed: %s", err.Error())
 	}
@@ -1521,7 +1529,7 @@ func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
 		{Name: "Argument", Field: "name"},
 		{Name: "Default Value", Field: "defaults"},
 	}
-	table, err := utils.ASCIITable(header, defaultArgs, format == Markdown)
+	table, err := utils.ASCIITable(header, defaultArgs, format == Markdown, 0)
 	if err != nil {
 		log.Errorf("ascii table failed: %s", err.Error())
 	}
@@ -1572,7 +1580,7 @@ func (cd *CheckData) helpSpecificArguments(format ShowHelp) string {
 		{Name: "Argument", Field: "name"},
 		{Name: "Description", Field: "description"},
 	}
-	table, err := utils.ASCIITable(header, attributes, format == Markdown)
+	table, err := utils.ASCIITable(header, attributes, format == Markdown, 0)
 	if err != nil {
 		log.Errorf("ascii table failed: %s", err.Error())
 	}
@@ -1604,7 +1612,7 @@ func (cd *CheckData) helpAttributes(format ShowHelp) string {
 		{Name: "Attribute", Field: "name"},
 		{Name: "Description", Field: "description"},
 	}
-	table, err := utils.ASCIITable(header, cd.attributes, format == Markdown)
+	table, err := utils.ASCIITable(header, cd.attributes, format == Markdown, 0)
 	if err != nil {
 		log.Errorf("ascii table failed: %s", err.Error())
 	}

@@ -258,6 +258,18 @@ func logHTTPResponse(resp *http.Response) {
 	}
 }
 
+func logTraceASCIIMap(data any) {
+	if !log.IsV(LogVerbosityTrace2) {
+		return
+	}
+
+	str, _ := utils.ASCIITable(nil, data, false, 0)
+
+	for line := range strings.SplitSeq(str, "\n") {
+		log.Tracef("%s", line)
+	}
+}
+
 // LogWriter implements the io.Writer interface and simply logs everything with given level.
 type LogWriter struct {
 	level string

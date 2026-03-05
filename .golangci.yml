@@ -67,6 +67,8 @@ linters:
         - CheckHandler
     lll:
       line-length: 200
+    exhaustive:
+      default-signifies-exhaustive: true
   exclusions:
     #warn-unused: true
     generated: lax
