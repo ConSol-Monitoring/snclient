@@ -65,7 +65,7 @@ func (l *CheckOMD) Build() *CheckData {
 
 Check **specific** site by site filter:
 
-    check_omd site=mode
+    check_omd site=demo
     OK - site demo: running |...
 	`,
 	}
