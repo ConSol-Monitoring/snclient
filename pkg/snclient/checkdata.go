@@ -1047,7 +1047,7 @@ func (cd *CheckData) applyConditionColAliasList(condList ConditionList) {
 			if cond.keyword != replaceKeyword {
 				continue
 			}
-			list := ConditionList{}
+			list := make(ConditionList, 0, len(aliasList))
 			for _, alias := range aliasList {
 				newCond := cond.Clone()
 				newCond.keyword = alias
