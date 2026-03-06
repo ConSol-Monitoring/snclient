@@ -403,6 +403,9 @@ jobs:
           name: "${{ env.BIN }}.deb"
           path: "${{ env.BIN }}.deb"
           if-no-files-found: error
+      - run: |
+          echo "Install test for ${{ env.BIN }}.deb"
+          apt install -y ./${{ env.BIN }}.deb
 
 
   pkg-rpm:
@@ -436,6 +439,9 @@ jobs:
           name: "${{ env.BIN }}.rpm"
           path: "${{ env.BIN }}.rpm"
           if-no-files-found: error
+      - run: |
+          echo "Install test for ${{ env.BIN }}.rpm"
+          dnf install -y ./${{ env.BIN }}.rpm
 
 
   pkg-apk:
@@ -491,7 +497,9 @@ jobs:
           name: "${{ env.BIN }}.apk"
           path: "${{ env.BIN }}.apk"
           if-no-files-found: error
-
+      - run: |
+          echo "Install test for ${{ env.BIN }}.apk"
+          apk add ./${{ env.BIN }}.apk
 
   pkg-osx:
     strategy:
