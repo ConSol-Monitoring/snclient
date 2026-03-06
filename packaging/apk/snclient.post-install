@@ -20,3 +20,5 @@ chown -R snclient:snclient /etc/snclient
 
 rc-update -q add snclient default
 rc-service -q snclient start
+
+exit 0

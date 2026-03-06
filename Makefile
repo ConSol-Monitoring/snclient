@@ -162,6 +162,11 @@ build-linux-amd64: vendor
 		( cd ./cmd/$$CMD && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.linux.amd64 ) ; \
 	done
 
+build-linux-arm64: vendor
+	set -e; for CMD in $(CMDS); do \
+		( cd ./cmd/$$CMD && GOOS=linux GOARCH=arm64 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.linux.arm64 ) ; \
+	done
+
 build-linux-i386: vendor
 	set -e; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && GOOS=linux GOARCH=386 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.linux.i386 ) ; \
