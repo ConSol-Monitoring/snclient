@@ -263,7 +263,7 @@ func logTraceASCIIMap(data any) {
 		return
 	}
 
-	str, _ := utils.ASCIITable(nil, data, false, 140)
+	str, _ := utils.ASCIITable(nil, data, false, 0)
 
 	for line := range strings.SplitSeq(str, "\n") {
 		log.Tracef("%s", line)
