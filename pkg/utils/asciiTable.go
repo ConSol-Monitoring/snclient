@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const defaultMaxLineLength = 140
+const defaultMaxLineLength = 120
 
 type ASCIITableHeader struct {
 	Name      string // name in table header
