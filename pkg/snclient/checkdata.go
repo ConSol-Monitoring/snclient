@@ -208,10 +208,10 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 			// This may set "_state" of each entry
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 		}
-	}
 
-	log.Tracef("list data:")
-	logTraceASCIIMap(cd.listData)
+		log.Tracef("list data:")
+		logTraceASCIIMap(cd.listData)
+	}
 
 	var finalMacros map[string]string
 	log.Tracef("detail template: %s", cd.detailSyntax)
