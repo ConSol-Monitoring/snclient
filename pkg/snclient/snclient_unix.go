@@ -4,6 +4,7 @@ package snclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -133,9 +134,23 @@ func processTimeoutKill(process *os.Process) {
 
 func processKill(process *os.Process) {
 	go func(pid int) {
-		LogDebug(syscall.Kill(-pid, syscall.SIGTERM))
+		err := syscall.Kill(-pid, syscall.SIGTERM)
+		switch {
+		case err == nil:
+			// process killed successfully, keep going and make sure its gone
+		case errors.Is(err, syscall.ESRCH): // process already exited
+			return
+		}
 		time.Sleep(100 * time.Millisecond)
-		LogTrace(syscall.Kill(-pid, syscall.SIGKILL))
+		err = syscall.Kill(-pid, syscall.SIGKILL)
+		switch {
+		case err == nil:
+			// process killed successfully
+		case errors.Is(err, syscall.ESRCH): // process already exited
+			return
+		default:
+			log.Errorf("failed to kill process %d: %s", pid, err.Error())
+		}
 	}(process.Pid)
 }
 

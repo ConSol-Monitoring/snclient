@@ -157,7 +157,8 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	// Run thresholds once on cd.details. This is done separately than metrics or entries
 	// This can possibly set a value to cd.details[_state]
 	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
-	log.Tracef("details: %#v", cd.details)
+	log.Tracef("details:")
+	logTraceASCIIMap(cd.details)
 
 	// apply final filter
 	cd.listData = cd.Filter(cd.filter, cd.listData)

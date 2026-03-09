@@ -1224,8 +1224,8 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 	catchOutputErrors(&cmd.Path, &stderr, &exitCode)
 
 	log.Tracef("exit: %d", exitCode)
-	log.Tracef("stdout: %s", stdout)
-	log.Tracef("stderr: %s", stderr)
+	logTraceStringTrimmed("stdout", stdout)
+	logTraceStringTrimmed("stderr", stderr)
 
 	return stdout, stderr, exitCode, state, nil
 }

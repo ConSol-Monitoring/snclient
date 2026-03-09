@@ -258,6 +258,16 @@ func logHTTPResponse(resp *http.Response) {
 	}
 }
 
+func logTraceStringTrimmed(prefix, value string) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		log.Tracef("%s: <empty>", prefix)
+
+		return
+	}
+	log.Tracef("%s:\n%s", prefix, value)
+}
+
 func logTraceASCIIMap(data any) {
 	if !log.IsV(LogVerbosityTrace2) {
 		return

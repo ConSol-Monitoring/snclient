@@ -19,6 +19,12 @@ type ASCIITableHeader struct {
 // ASCIITable creates an ascii table from columns and data rows
 func ASCIITable(header []ASCIITableHeader, rows any, escapePipes bool, maxLineLength int) (string, error) {
 	dataRows := reflect.ValueOf(rows)
+	skipHeader := false
+	if dataRows.Kind() == reflect.Map {
+		rows = convertToSliceOfMaps(rows)
+		dataRows = reflect.ValueOf(rows)
+		skipHeader = true
+	}
 	if dataRows.Kind() != reflect.Slice {
 		return "", fmt.Errorf("rows is not a slice")
 	}
@@ -36,25 +42,12 @@ func ASCIITable(header []ASCIITableHeader, rows any, escapePipes bool, maxLineLe
 
 	// output header
 	out := ""
-	strBuilder := strings.Builder{}
-	for _, head := range header {
-		fmt.Fprintf(&strBuilder, fmt.Sprintf("| %%-%ds ", head.size), head.Name)
+	if !skipHeader {
+		out += buildHeader(header)
 	}
-	out += strBuilder.String() + "|\n"
-
-	// output separator
-	strBuilder.Reset()
-	for _, head := range header {
-		padding := " "
-		if head.Alignment == "centered" {
-			padding = ":"
-		}
-		fmt.Fprintf(&strBuilder, "|%s%s%s", padding, strings.Repeat("-", head.size), padding)
-	}
-	out += strBuilder.String() + "|\n"
-	strBuilder.Reset()
 
 	// output data
+	strBuilder := strings.Builder{}
 	for i := range dataRows.Len() {
 		rowVal := dataRows.Index(i)
 		for _, head := range header {
@@ -220,4 +213,40 @@ func buildHeaderFromData(dataRows reflect.Value) []ASCIITableHeader {
 	})
 
 	return header
+}
+
+func convertToSliceOfMaps(data any) []map[string]string {
+	res := []map[string]string{}
+	val := reflect.ValueOf(data)
+	iter := val.MapRange()
+	for iter.Next() {
+		key := iter.Key().String()
+		value := iter.Value().Interface()
+		res = append(res, map[string]string{
+			"key":   key,
+			"value": fmt.Sprintf("%v", value),
+		})
+	}
+
+	return res
+}
+
+func buildHeader(header []ASCIITableHeader) string {
+	strBuilder := strings.Builder{}
+	for _, head := range header {
+		fmt.Fprintf(&strBuilder, fmt.Sprintf("| %%-%ds ", head.size), head.Name)
+	}
+	strBuilder.WriteString("|\n")
+
+	// output separator
+	for _, head := range header {
+		padding := " "
+		if head.Alignment == "centered" {
+			padding = ":"
+		}
+		fmt.Fprintf(&strBuilder, "|%s%s%s", padding, strings.Repeat("-", head.size), padding)
+	}
+	strBuilder.WriteString("|\n")
+
+	return strBuilder.String()
 }
