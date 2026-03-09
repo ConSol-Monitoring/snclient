@@ -17,7 +17,7 @@ require (
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/reeflective/readline v1.1.4
-	github.com/sasha-s/go-deadlock v0.3.6
+	github.com/sasha-s/go-deadlock v0.3.7
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v4 v4.26.2
