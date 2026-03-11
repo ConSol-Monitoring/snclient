@@ -612,8 +612,9 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *A
 
 		name := entry.Name()
 		if listener, ok := mod.(RequestHandler); ok {
-			name = listener.BindString()
-			log.Debugf("bind: %s", name)
+			// If it can be converted into a Requesthandler, the name changes. Why? Is it later used to parse the port or hostname?
+			log.Debugf("module name: %s bindString: %s", name, listener.BindString())
+			name += listener.BindString()
 		}
 
 		err = modules.Add(name, mod)
