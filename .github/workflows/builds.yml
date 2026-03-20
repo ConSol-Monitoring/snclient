@@ -221,7 +221,7 @@ jobs:
 
       - name: "Sign snclient.exe"
         if: ${{ env.CERTURL != '' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 5
           timeout_minutes: 5
@@ -336,7 +336,7 @@ jobs:
 
       - name: "Sign snclient.msi"
         if: ${{ env.CERTURL != '' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 5
           timeout_minutes: 5
