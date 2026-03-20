@@ -13,7 +13,7 @@ func TestCheckServiceLinux(t *testing.T) {
 	}
 	snc := NewAgent(flags)
 
-	initSet, _ := snc.Init()
+	initSet, _ := snc.Init(InitInitial)
 	snc.runSet = initSet
 	snc.Tasks = initSet.tasks
 	snc.config = initSet.config
@@ -236,7 +236,7 @@ func TestCheckServiceLinuxOutput(t *testing.T) {
 	}
 	snc := NewAgent(flags)
 
-	initSet, _ := snc.Init()
+	initSet, _ := snc.Init(InitInitial)
 	snc.runSet = initSet
 	snc.Tasks = initSet.tasks
 	snc.config = initSet.config

@@ -113,6 +113,19 @@ const (
 	ModeOneShot
 )
 
+// InitMode gives hints about whether this is the initial config request or a reload.
+type InitMode int
+
+const (
+	_ InitMode = iota
+
+	// Initial is used for the initial config request.
+	InitInitial
+
+	// Reload is used for a reload request.
+	InitReload
+)
+
 var (
 	AvailableTasks     []*LoadableModule
 	AvailableListeners []*LoadableModule
@@ -194,6 +207,7 @@ type AgentRunSet struct {
 	startTime  time.Time
 	cmdAliases map[string]CheckEntry // contains all registered check handler aliases
 	cmdWraps   map[string]CheckEntry // contains all registered wrapped check handler
+	mode       InitMode
 }
 
 // NewAgent returns a new Agent object ready to be started by Run()
@@ -201,7 +215,7 @@ func NewAgent(flags *AgentFlags) *Agent {
 	snc := NewAgentSimple(flags)
 
 	// reads the args, check if they are params, if so sends them to the configuration reader
-	initSet, err := snc.Init()
+	initSet, err := snc.Init(InitInitial)
 	if initSet != nil {
 		// create logger early, so start up errors can be added to the default log as well
 		snc.createLogger(initSet.config)
@@ -336,7 +350,7 @@ func (snc *Agent) mainLoop() MainStateType {
 			case Resume:
 				continue
 			case Reload:
-				updateSet, err := snc.Init()
+				updateSet, err := snc.Init(InitReload)
 				if err != nil {
 					log.Errorf("reloading configuration failed: %s", err.Error())
 
@@ -418,8 +432,8 @@ func (snc *Agent) startModules(initSet *AgentRunSet) {
 	snc.Listeners = initSet.listeners
 	snc.Tasks = initSet.tasks
 
-	snc.Tasks.Start()
-	snc.Listeners.Start()
+	snc.Tasks.Start(initSet.mode)
+	snc.Listeners.Start(initSet.mode)
 
 	snc.runSet = initSet
 }
@@ -455,7 +469,7 @@ func (snc *Agent) FindConfigFiles() (files, defaultLocations ConfigFiles) {
 	return files, defaultLocations
 }
 
-func (snc *Agent) Init() (*AgentRunSet, error) {
+func (snc *Agent) Init(mode InitMode) (*AgentRunSet, error) {
 	files, defaultLocations := snc.FindConfigFiles()
 
 	// still empty
@@ -468,6 +482,8 @@ func (snc *Agent) Init() (*AgentRunSet, error) {
 	if err != nil {
 		return initSet, err
 	}
+
+	initSet.mode = mode
 
 	initSet.tasks = NewModuleSet("tasks")
 	err = snc.initModules("tasks", AvailableTasks, initSet, initSet.tasks)

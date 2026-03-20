@@ -80,7 +80,7 @@ func installPkg(_ *cobra.Command, args []string) {
 	mergeIniFile(snc, installConfig)
 
 	// reload config
-	_, err := snc.Init()
+	_, err := snc.Init(snclient.InitReload)
 	if err != nil {
 		snc.Log.Errorf("failed to reload config: %s", err.Error())
 	}

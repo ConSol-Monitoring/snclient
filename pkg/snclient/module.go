@@ -42,9 +42,9 @@ func (ms *ModuleSet) StopRemove() {
 	}
 }
 
-func (ms *ModuleSet) Start() {
+func (ms *ModuleSet) Start(mode InitMode) {
 	for name := range ms.modules {
-		ms.startModule(name)
+		ms.startModule(name, mode)
 	}
 }
 
@@ -70,7 +70,7 @@ func (ms *ModuleSet) Add(name string, task Module) error {
 	return nil
 }
 
-func (ms *ModuleSet) startModule(name string) {
+func (ms *ModuleSet) startModule(name string, mode InitMode) {
 	module, ok := ms.modules[name]
 	if !ok {
 		log.Errorf("no %s module with name: %s", ms.name, name)
@@ -80,6 +80,12 @@ func (ms *ModuleSet) startModule(name string) {
 
 	err := module.Start()
 	if err != nil {
+		// if we are in initial mode, we should exit to indicate config issues
+		// when reloading the config, keep running and log an error
+		if mode == InitInitial {
+			log.Fatalf("failed to start %s %s module: %s", name, ms.name, err.Error())
+		}
+
 		log.Errorf("failed to start %s %s module: %s", name, ms.name, err.Error())
 		module.Stop()
 		delete(ms.modules, name)
