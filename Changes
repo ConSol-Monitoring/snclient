@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - *DEPRECATION NOTICE* linux agent runs now as unprivileged snclient user
+         - update windows exporter to 0.31.4
          - change minimum golang requirement to 1.26.1
          - make listener errors fatal during startup
 
