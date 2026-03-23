@@ -1,12 +1,8 @@
 package snclient
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"io"
-	"net"
 	"os"
 	"runtime"
 	"slices"
@@ -15,6 +11,11 @@ import (
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/goccy/go-json"
+)
+
+const (
+	OMDbin     = "/usr/bin/omd"
+	UNIXCATbin = "/omd/versions/default/bin/unixcat"
 )
 
 func init() {
@@ -81,7 +82,7 @@ func (l *CheckOMD) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 	if len(l.siteFilter) > 0 {
 		sites = l.siteFilter
 	} else {
-		stdout, stderr, _, err := snc.execCommand(ctx, "omd -b sites", DefaultCmdTimeout)
+		stdout, stderr, _, err := snc.execCommand(ctx, fmt.Sprintf("%s -b sites", OMDbin), DefaultCmdTimeout)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch omd sites: %s", err.Error())
 		}
@@ -119,9 +120,9 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 	}
 	check.listData = append(check.listData, details)
 
-	// check requires root permission
-	if os.Geteuid() != 0 {
-		details["_error"] = "check_omd requires root permissions"
+	// check requires root permission or capabilities
+	if os.Geteuid() != 0 && !l.snc.HasCapabilities() {
+		details["_error"] = "check_omd requires root permissions or cap_setuid/cap_setgid"
 
 		return
 	}
@@ -130,7 +131,7 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 		return
 	}
 
-	statusRaw, stderr, _, err := l.snc.execCommand(ctx, fmt.Sprintf("omd -b status '%s'", site), DefaultCmdTimeout)
+	statusRaw, stderr, _, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("omd -b status '%s'", site), DefaultCmdTimeout)
 	if err != nil {
 		log.Warnf("omd status: %s%s", statusRaw, stderr)
 		details["_error"] = err.Error()
@@ -247,49 +248,40 @@ func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string
 		return nil, fmt.Errorf("deadline exceeded")
 	}
 
-	d := net.Dialer{
-		Timeout: timeout,
-	}
-	conn, err := d.DialContext(ctx, "unix", socketPath)
-	if err != nil {
-		return nil, fmt.Errorf("dial: %s", err.Error())
-	}
-	// set read timeout
-	err = conn.SetDeadline(deadline)
-	if err != nil {
-		return nil, fmt.Errorf("conn.SetDeadline: %s", err.Error())
-	}
-
 	query = strings.TrimSpace(query)
 	query += "\nResponseHeader: fixed16\nOutputFormat: json"
 	log.Tracef("sending livestatus query:\n%s", query)
-	_, err = fmt.Fprintf(conn, "%s\n\n", query)
+
+	cmdString := fmt.Sprintf("printf '%%s\\n\\n' '%s' | %s %s",
+		strings.ReplaceAll(query, "'", "'\\''"),
+		UNIXCATbin,
+		socketPath)
+
+	stdout, stderr, exitCode, err := l.snc.execCommandAsRoot(ctx, cmdString, int64(timeout.Seconds()))
 	if err != nil {
-		return nil, fmt.Errorf("socket error: %s", err.Error())
+		return nil, fmt.Errorf("exec %s failed: %s (stderr: %s)", UNIXCATbin, err.Error(), stderr)
 	}
 
-	header := new(bytes.Buffer)
-	_, err = io.CopyN(header, conn, 16)
-	resBytes := header.Bytes()
-	if err != nil {
-		return nil, fmt.Errorf("read: %s", err.Error())
+	if exitCode != 0 {
+		return nil, fmt.Errorf("exec %s failed: exit code %d (stderr: %s)", UNIXCATbin, exitCode, stderr)
 	}
-	head := bytes.SplitN(resBytes, []byte(" "), 2)
+
+	if len(stdout) < 16 {
+		return nil, fmt.Errorf("response error in livestatus header: %s", stdout)
+	}
+
+	header := stdout[:16]
+	head := strings.SplitN(header, " ", 2)
 	if len(head) < 2 {
-		return nil, fmt.Errorf("response error in livestatus header: %s", resBytes)
+		return nil, fmt.Errorf("response error in livestatus header: %s", header)
 	}
-	expSize := convert.Int64(string(bytes.TrimSpace(head[1])))
-	body := new(bytes.Buffer)
-	_, err = io.CopyN(body, conn, expSize)
-	if err != nil && errors.Is(err, io.EOF) {
-		err = nil
+	expSize := convert.Int(strings.TrimSpace(head[1]))
+
+	if len(stdout) != expSize+15 {
+		return nil, fmt.Errorf("response error in livestatus body: expected %d bytes, got %d", expSize, len(stdout)-15)
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("io.CopyN: %s", err.Error())
-	}
-
-	res := body.Bytes()
+	res := []byte(stdout)[16:]
 	data := make([]any, 0)
 	err = json.Unmarshal(res, &data)
 	if err != nil {
@@ -300,7 +292,7 @@ func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string
 }
 
 func (l *CheckOMD) setAutostart(ctx context.Context, site string, details map[string]string) bool {
-	autostartRaw, stderr, _, err := l.snc.execCommand(ctx, fmt.Sprintf("omd config %s show AUTOSTART", site), DefaultCmdTimeout)
+	autostartRaw, stderr, _, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("%s config %s show AUTOSTART", OMDbin, site), DefaultCmdTimeout)
 	if err != nil {
 		details["_error"] = err.Error()
 

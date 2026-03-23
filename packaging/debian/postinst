@@ -28,6 +28,10 @@ case "$1" in
         fi
       fi
 
+      if command -v setcap >/dev/null; then
+        setcap "cap_setuid,cap_setgid+ep" /usr/bin/snclient || true
+      fi
+
       systemctl --system daemon-reload >/dev/null 2>&1 || true
       deb-systemd-invoke start snclient
     ;;

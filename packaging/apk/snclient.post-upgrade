@@ -12,4 +12,8 @@ fi
 # Fix ownership of directories and files
 chown -R snclient:snclient /etc/snclient /var/lib/snclient /var/log/snclient 2>/dev/null || true
 
+if command -v setcap >/dev/null; then
+    setcap "cap_setuid,cap_setgid+ep" /usr/bin/snclient || true
+fi
+
 rc-service -q snclient restart

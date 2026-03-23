@@ -66,6 +66,9 @@ case "$*" in
     # create user and files/folders
     systemd-sysusers
     systemd-tmpfiles --create
+    if command -v setcap >/dev/null; then
+        setcap "cap_setuid,cap_setgid+ep" /usr/bin/snclient || true
+    fi
     # start service
     systemctl --system daemon-reload >/dev/null || true
     systemctl enable snclient.service >/dev/null || true
@@ -75,6 +78,9 @@ case "$*" in
     # Post upgrade permissions fix
     systemd-tmpfiles --create
     # Upgrading
+    if command -v setcap >/dev/null; then
+        setcap "cap_setuid,cap_setgid+ep" /usr/bin/snclient || true
+    fi
     systemctl --system daemon-reload >/dev/null || true
     systemctl try-restart snclient.service >/dev/null || true
   ;;

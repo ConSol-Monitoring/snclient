@@ -19,6 +19,11 @@ install -d -m 0755 -o snclient -g snclient /var/log/snclient
 chown -R snclient:snclient /etc/snclient
 
 rc-update -q add snclient default
+
+if command -v setcap >/dev/null; then
+    setcap "cap_setuid,cap_setgid+ep" /usr/bin/snclient || true
+fi
+
 rc-service -q snclient start
 
 exit 0

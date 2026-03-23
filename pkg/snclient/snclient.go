@@ -1183,7 +1183,7 @@ func (snc *Agent) runExternalCheckString(ctx context.Context, command string, ti
 	return stdout, stderr, exitCode, err
 }
 
-// runs command and does not touch exit code and such
+// runs command and does not touch exit code and such (timeout is in seconds)
 func (snc *Agent) execCommand(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
 	cmd, err := snc.MakeCmd(ctx, command)
 	if err == nil {
@@ -1193,6 +1193,7 @@ func (snc *Agent) execCommand(ctx context.Context, command string, timeout int64
 	return stdout, stderr, exitCode, err
 }
 
+// run command and return raw output and exit code (timeout is in seconds)
 func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
