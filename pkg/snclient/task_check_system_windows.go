@@ -373,12 +373,12 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 		c.snc.Counter.Set(category, "write_count", float64(diskIOCounters[diskName].WriteCount))
 		c.snc.Counter.Set(category, "read_bytes", float64(diskIOCounters[diskName].ReadBytes))
 		c.snc.Counter.Set(category, "read_count", float64(diskIOCounters[diskName].ReadCount))
-		c.snc.Counter.Set(category, "idle_time", float64(diskIOCounters[diskName].IdleTime))
-		// important to put the query_time in uint64 form
+		// important to put the query_time and idle_time uint64 form
 		// it is some kind of nanosecond counter starting from long ago
 		// even current values on 2026, the value has log2 around 56
 		// float64 has 53 bits of significant precision, it loses precision
 		// makes calculating utilization impossible
+		c.snc.Counter.Set(category, "idle_time", diskIOCounters[diskName].IdleTime)
 		c.snc.Counter.Set(category, "query_time", diskIOCounters[diskName].QueryTime)
 	}
 }
