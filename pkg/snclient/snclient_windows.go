@@ -293,7 +293,7 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 			}
 		}
 		cmd := execCommandContext(ctx, "powershell", env)
-		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -Command ". '%s' %s; exit($LASTEXITCODE)"`, POWERSHELL, cmdName, strings.Join(cmdArgs, " "))
+		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -Command ". '%s' %s ; exit($LASTEXITCODE)"`, POWERSHELL, cmdName, strings.Join(cmdArgs, " "))
 
 		return cmd, nil
 

@@ -10,6 +10,75 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Generates a config file, where snclient can call a script.
+// scriptName does not have an extension
+// scriptFilename does have (most likely an OS specific) script extension.
+// It registers four commands for script
+// scriptName_arg1 : ./${SCRIPT_FILENAME} "$ARG1$"
+// scriptName_arg_numbered : ./${SCRIPT_FILENAME} "$ARG1$" "$ARG2$" "$ARG3$" "$ARG4$" "$ARG5$" "$ARG6$" "$ARG7$" "$ARG8$" "$ARG9$" "$ARG10$"
+// scriptName_args : ./${SCRIPT_FILENAME} "$ARGS$"
+// scriptName_args_quouted : ./${SCRIPT_FILENAME} "$ARGS"$"
+func snclientConfigFileWithScript(t *testing.T, scriptsDir, scriptName, scriptFilename string) string {
+	t.Helper()
+
+	configTemplate := `
+[/modules]
+CheckExternalScripts = enabled
+
+[/paths]
+scripts = ${SCRIPTS_DIR}
+shared-path = %(scripts)
+
+[/settings/external scripts]
+timeout = 1111111
+allow arguments = true
+
+[/settings/external scripts/scripts]
+${SCRIPT_NAME}_arg1 = ./${SCRIPT_FILENAME} $ARG1$
+
+[/settings/external scripts/scripts/${SCRIPT_NAME}_arg1]
+allow arguments = true
+allow nasty characters = true
+
+[/settings/external scripts/scripts]
+${SCRIPT_NAME}_arg_numbered = ./${SCRIPT_FILENAME} $ARG1$ $ARG2$ $ARG3$ $ARG4$ $ARG5$ $ARG6$ $ARG7$ $ARG8$ $ARG9$ $ARG10$
+
+[/settings/external scripts/scripts/${SCRIPT_NAME}_arg_numbered]
+allow arguments = true
+allow nasty characters = true
+
+[/settings/external scripts/scripts]
+${SCRIPT_NAME}_args = ./${SCRIPT_FILENAME} $ARGS$
+
+[/settings/external scripts/scripts/${SCRIPT_NAME}_args]
+allow arguments = true
+allow nasty characters = true
+
+[/settings/external scripts/scripts]
+${SCRIPT_NAME}_args_quouted = ./${SCRIPT_FILENAME} $ARGS"$
+
+[/settings/external scripts/scripts/${SCRIPT_NAME}_args_quouted]
+allow arguments = true
+allow nasty characters = true
+`
+
+	mapper := func(placeholderName string) string {
+		switch placeholderName {
+		case "SCRIPTS_DIR":
+			return scriptsDir
+		case "SCRIPT_NAME":
+			return scriptName
+		case "SCRIPT_FILENAME":
+			return scriptFilename
+		default:
+			// if its not some value we know, leave it as is
+			return "$" + placeholderName
+		}
+	}
+
+	return os.Expand(configTemplate, mapper)
+}
+
 func TestPasswords(t *testing.T) {
 	config := fmt.Sprintf(`
 [/settings]
