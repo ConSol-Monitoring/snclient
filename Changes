@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - *DEPRECATION NOTICE* linux agent runs now as unprivileged snclient user
+         - update node exporter to 1.11.0
          - update windows exporter to 0.31.6
          - use linux capabilities for check_omd
          - change minimum golang requirement to 1.26.1

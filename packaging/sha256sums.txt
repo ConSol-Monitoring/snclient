@@ -1,8 +1,8 @@
 77628892cd8b98afcf3c0012480d6a64f2d33286054bd4527102d558f3ec8641  windows_exporter-386.exe
 2f05d9b7101c18bf6bc5470e7cbccd62a9a069960facec70d17269b3ab401df6  windows_exporter-amd64.exe
 6b9439c7e3942315321fdbd0eabd9578f59ed08f3d367cc1cce6d9bc6d96a8c2  windows_exporter-arm64.exe
-62ff8e7e00ec1b914f11a05d91717d5b16d8e96ca16b00d4573452e30c7fcd66  node_exporter-1.10.2.darwin-amd64.tar.gz
-9268528253c1bb920eba1ae0e90d71c887dd6964fdf15a658c9f318427268162  node_exporter-1.10.2.darwin-arm64.tar.gz
-0220ed76581bb1e25c0c6416338ea254c7a259f17de50fc74cdb0abd74148bc7  node_exporter-1.10.2.linux-386.tar.gz
-c46e5b6f53948477ff3a19d97c58307394a29fe64a01905646f026ddc32cb65b  node_exporter-1.10.2.linux-amd64.tar.gz
-de69ec8341c8068b7c8e4cfe3eb85065d24d984a3b33007f575d307d13eb89a6  node_exporter-1.10.2.linux-arm64.tar.gz
+82193b62d96c778a30767f95073649243d9775422a7d4204e6b0ce3e18fedecb  node_exporter-1.11.0.darwin-amd64.tar.gz
+e1454f16bc75064cf436e2404212796c04c6a37db9f9e43d9f2df320a1e52235  node_exporter-1.11.0.darwin-arm64.tar.gz
+b19113e5c6b5af4f677614b23d2e609cd2d2c4ca1cca792b9d507a83ce7594c1  node_exporter-1.11.0.linux-386.tar.gz
+4f8fbd23b8380b8fb720b125fb9029de261dc5fcd68bfe81ae010c0d32f5f6c3  node_exporter-1.11.0.linux-amd64.tar.gz
+cd09ceffd418e91c25365ad008b2baac88fa1743632b71c620829d3d5596b141  node_exporter-1.11.0.linux-arm64.tar.gz
