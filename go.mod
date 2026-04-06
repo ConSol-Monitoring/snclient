@@ -12,7 +12,7 @@ require (
 	github.com/go-ole/go-ole v1.3.0
 	github.com/goccy/go-json v0.10.6
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
-	github.com/mackerelio/checkers v0.2.0
+	github.com/mackerelio/checkers v0.2.1
 	github.com/miekg/dns v1.1.72
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
