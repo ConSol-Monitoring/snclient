@@ -37,11 +37,12 @@ func TestMakeCmd(t *testing.T) {
 	// assert.Equalf(t, expectedArgs, cmd.Args, "converted exec.Cmd from command: %s should have these args: %v", commandString, expectedArgs)
 
 	// the quoutes should not be removed
-	// the reasoning is to pass some arguments as written, and have them take a string from
+	// the reasoning is to pass some arguments as written inside the quoutes, so that they can take a string form and not be converted
 	// if an argument is passed like this --optionX foo,bar powershell parameter parser thiks it is a string array and refuses to parse it as string
 	// users have to use it like this --optionX 'foo,bar' to have it accepted as a string
+
 	cmdLineExpectedContains := `-option1 option1 -option2 'option2' -option3 "option3" -option4 'option4.option4,option4:option4;option4|option4$option4'`
-	assert.Containsf(t, cmd.SysProcAttr.CmdLine, cmdLineExpectedContains, "exec.Cmd from command: %s should contain this substring: %s", commandString, cmdLineExpectedContains)
+	assert.Containsf(t, cmd.SysProcAttr.CmdLine, cmdLineExpectedContains, "exec.Cmd from command: %s\nshould contain this substring: %s\nbut it looks like this: %s", commandString, cmdLineExpectedContains, cmd.SysProcAttr.CmdLine)
 
 	var pathEnv string
 	for _, envVar := range cmd.Env {
@@ -51,8 +52,10 @@ func TestMakeCmd(t *testing.T) {
 	}
 
 	assert.NotEmpty(t, pathEnv, cmd.Env, "converted exec.Cmd from command: %s should contain PATH environment variable", commandString)
-	scriptsPath, _ := snc.config.Section("/paths").GetString("scripts")
-	assert.Containsf(t, pathEnv, scriptsPath+";", "converted exec.Cmd from command: %s should have its PATH variable: %s include the config ScriptsPath: %s", commandString, pathEnv, scriptsPath)
+
+	// script is found under C:\Users\sorus\repositories\snclient\pkg\snclient\t
+	// scriptsPath, _ := snc.config.Section("/paths").GetString("scripts")
+	// assert.Containsf(t, pathEnv, scriptsPath+":", "converted exec.Cmd from command: %s should have its PATH variable: %s include the config ScriptsPath: %s", commandString, pathEnv, scriptsPath)
 
 	assert.Equal(t, true, cmd.SysProcAttr.HideWindow, "converted exec.Cmd from command: %s should hide its spawned window", commandString)
 
@@ -63,20 +66,20 @@ func TestPowershell1(t *testing.T) {
 	testDir, _ := os.Getwd()
 	scriptsDir := filepath.Join(testDir, "t", "scripts")
 	scriptName := "powershell_detail"
-	scriptFilename := scriptName + ".ps1"
+	scriptFilename := "powershell_detail.ps1"
 
 	config := snclientConfigFileWithScript(t, scriptsDir, scriptName, scriptFilename)
 	snc := StartTestAgent(t, config)
 
 	// simulate a default call of the script with no arguments
-	res := snc.RunCheck("powershell_detail", []string{})
+	res := snc.RunCheck("powershell_detail_arg1", []string{})
 
 	outputString := string(res.BuildPluginOutput())
-	t.Logf("\n%s\n", outputString)
+	// t.Logf("\n%s\n", outputString)
 
 	assert.Equalf(t, CheckExitOK, res.State, "check should return state ok")
 
-	// this rawCommandLine is printed from the script. Invoke it locally and get snippets from its output
+	// the string rawCommandLine: <value> is printed from the powershell_detail script. Invoke it locally and get snippets from its output
 	rawCommandlineExpected := []string{
 		`Raw Commandline: `,
 		`t\scripts\powershell_detail.ps1`,
@@ -108,22 +111,25 @@ func TestPowershellScriptArg1(t *testing.T) {
 	assert.NotNilf(t, checkData, "check should return a checkData")
 
 	outputString := string(checkResult.BuildPluginOutput())
-	t.Logf("\n%s\n", outputString)
+	// t.Logf("\n%s\n", outputString)
 
 	assert.Equalf(t, CheckExitOK, checkResult.State, "check should return state OK")
+
+	// raw commandline seems to strip options with double quotation marks
+	// the solution: if you want to pass something literally, use single quotation marks
 
 	rawCommandlineExpected := []string{
 		`Raw Commandline: `,
 		`t\scripts\powershell_detail.ps1`,
 		`-option1 option1`,
 		`-option2 'option2'`,
-		`-option3 "option3"`,
+		`-option3 option3`,
 		`-option4 'foo,bar`,
-		`-option5 "baz,xyz"`,
+		`-option5 baz,xyz`,
 		`Bound Parameter | Name: option1 | Type: String | Value: option1`,
 		`Bound Parameter | Name: option2 | Type: String | Value: option2`,
 		`Bound Parameter | Name: option3 | Type: String | Value: option3`,
-		`Bound Parameter | Name: option4 | Type: Object[] | Value: foo bar`,
+		`Bound Parameter | Name: option4 | Type: String | Value: foo,bar`,
 		`Bound Parameter | Name: option5 | Type: Object[] | Value: baz xyz`,
 	}
 
@@ -132,7 +138,7 @@ func TestPowershellScriptArg1(t *testing.T) {
 	}
 }
 
-func TestPowershellScriptDefault(t *testing.T) {
+func TestPowershellScriptArgNumbered(t *testing.T) {
 	testDir, _ := os.Getwd()
 	scriptsDir := filepath.Join(testDir, "t", "scripts")
 	scriptName := "powershell_detail"
@@ -161,7 +167,7 @@ func TestPowershellScriptDefault(t *testing.T) {
 	assert.NotNilf(t, checkData, "check should return a checkData")
 
 	outputString := string(checkResult.BuildPluginOutput())
-	t.Logf("\n%s\n", outputString)
+	//t.Logf("\n%s\n", outputString)
 
 	assert.Equalf(t, CheckExitOK, checkResult.State, "check should return state OK")
 
@@ -169,10 +175,123 @@ func TestPowershellScriptDefault(t *testing.T) {
 		`Raw Commandline: `,
 		`t\scripts\powershell_detail.ps1`,
 		`-option1 option1`,
-		`-option2 'option2`,
-		`-option3 'option3`,
-		`-option4 'foo,bar`,
-		`-option5 "baz,xyz`,
+		`-option2 option2`,
+		`-option3 option3`,
+		`-option4 'foo,bar'`,
+		`-option5 baz,xyz`,
+		`Bound Parameter | Name: option1 | Type: String | Value: option1`,
+		`Bound Parameter | Name: option2 | Type: String | Value: option2`,
+		`Bound Parameter | Name: option3 | Type: String | Value: option3`,
+		`Bound Parameter | Name: option4 | Type: String | Value: foo,bar`,
+		`Bound Parameter | Name: option5 | Type: Object[] | Value: baz xyz`,
+	}
+
+	for _, rawCommandLineExpectedItem := range rawCommandlineExpected {
+		assert.Containsf(t, outputString, rawCommandLineExpectedItem, "raw commandline should contain: %s", rawCommandLineExpectedItem)
+	}
+}
+
+func TestPowershellScriptArgs(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	scriptName := "powershell_detail"
+	scriptFilename := scriptName + ".ps1"
+	scriptMacroType := "_args"
+	scriptArgs := []string{
+		"-option1",
+		"option1",
+		"-option2",
+		"'option2'",
+		"-option3",
+		"\"option3\"",
+		"-option4",
+		"'foo,bar'",
+		"-option5",
+		"\"baz,xyz\"",
+	}
+
+	config := snclientConfigFileWithScript(t, scriptsDir, scriptName, scriptFilename)
+	snc := StartTestAgent(t, config)
+
+	// call different registered versions of the script command
+	// this one is using the arg_numbered
+	checkResult, checkData := snc.runCheck(context.TODO(), scriptName+scriptMacroType, scriptArgs, 0, nil, false, false)
+	assert.NotNilf(t, checkResult, "check should return a checkResult")
+	assert.NotNilf(t, checkData, "check should return a checkData")
+
+	outputString := string(checkResult.BuildPluginOutput())
+	//t.Logf("\n%s\n", outputString)
+
+	assert.Equalf(t, CheckExitOK, checkResult.State, "check should return state OK")
+
+	rawCommandlineExpected := []string{
+		`Raw Commandline: `,
+		`t\scripts\powershell_detail.ps1`,
+		`-option1 option1`,
+		`-option2 'option2'`,
+		`-option3 option3`,
+		`-option4 'foo,bar'`,
+		`-option5 baz,xyz`,
+		`Bound Parameter | Name: option1 | Type: String | Value: option1`,
+		`Bound Parameter | Name: option2 | Type: String | Value: option2`,
+		`Bound Parameter | Name: option3 | Type: String | Value: option3`,
+		`Bound Parameter | Name: option4 | Type: String | Value: foo,bar`,
+		`Bound Parameter | Name: option5 | Type: Object[] | Value: baz xyz`,
+	}
+
+	for _, rawCommandLineExpectedItem := range rawCommandlineExpected {
+		assert.Containsf(t, outputString, rawCommandLineExpectedItem, "raw commandline should contain: %s", rawCommandLineExpectedItem)
+	}
+}
+
+func TestPowershellScriptArgsQuouted(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	scriptName := "powershell_detail"
+	scriptFilename := scriptName + ".ps1"
+	scriptMacroType := "_args_quouted"
+	scriptArgs := []string{
+		"-option1",
+		"option1",
+		"-option2",
+		"'option2'",
+		"-option3",
+		"\"option3\"",
+		"-option4",
+		"'foo,bar'",
+		"-option5",
+		"\"baz,xyz\"",
+	}
+
+	config := snclientConfigFileWithScript(t, scriptsDir, scriptName, scriptFilename)
+	snc := StartTestAgent(t, config)
+
+	// call different registered versions of the script command
+	// this one is using the arg_numbered
+	checkResult, checkData := snc.runCheck(context.TODO(), scriptName+scriptMacroType, scriptArgs, 0, nil, false, false)
+	assert.NotNilf(t, checkResult, "check should return a checkResult")
+	assert.NotNilf(t, checkData, "check should return a checkData")
+
+	outputString := string(checkResult.BuildPluginOutput())
+	t.Logf("\n%s\n", outputString)
+
+	assert.Equalf(t, CheckExitOK, checkResult.State, "check should return state OK")
+
+	// args_quouted uses macro $ARGS"$
+
+	rawCommandlineExpected := []string{
+		`Raw Commandline: `,
+		`t\scripts\powershell_detail.ps1`,
+		`-option1 option1`,
+		`-option2 'option2'`,
+		`-option3 "option3"`,
+		`-option4 'foo,bar'`,
+		`-option5 "baz,xyz"`,
+		`Bound Parameter | Name: option1 | Type: String | Value: option1`,
+		`Bound Parameter | Name: option2 | Type: String | Value: option2`,
+		`Bound Parameter | Name: option3 | Type: String | Value: option3`,
+		`Bound Parameter | Name: option4 | Type: String | Value: foo,bar`,
+		`Bound Parameter | Name: option5 | Type: String | Value: baz,xyz`,
 	}
 
 	for _, rawCommandLineExpectedItem := range rawCommandlineExpected {

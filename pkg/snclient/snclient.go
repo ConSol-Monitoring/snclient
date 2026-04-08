@@ -1367,9 +1367,9 @@ func (snc *Agent) MakeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	case err != nil:
 		return nil, err
 	case cmd.Args != nil:
-		log.Tracef("command object:\n path: %s\n args: %v\n dir: %s\n workingDirectory: %s\n SysProcAttr: %v\n", cmd.Path, cmd.Args, cmd.Dir, workingDirectory, cmd.SysProcAttr)
+		log.Tracef("command object:\n path: %s\n args: %v\n dir: %s\n workingDirectory: %s\n SysProcAttr: %#v\n", cmd.Path, cmd.Args, cmd.Dir, workingDirectory, cmd.SysProcAttr)
 	default:
-		log.Tracef("command object:\n path: %s\n args: (none)\n dir: %s\n workingDirectory: %s\n SysProcAttr: %v\n", cmd.Path, cmd.Dir, workingDirectory, cmd.SysProcAttr)
+		log.Tracef("command object:\n path: %s\n args: (none)\n dir: %s\n workingDirectory: %s\n SysProcAttr: %#v\n", cmd.Path, cmd.Dir, workingDirectory, cmd.SysProcAttr)
 	}
 
 	return cmd, err

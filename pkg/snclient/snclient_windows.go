@@ -317,7 +317,14 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 }
 
 func (snc *Agent) shellParse(command string) (cmdName string, args []string, hasShellCode bool, err error) {
-	args, err = shelltoken.SplitQuotes(command, shelltoken.Whitespace, shelltoken.SplitKeepBackslashes|shelltoken.SplitContinueOnShellCharacters)
+	// reason for adding shelltoken.SplitKeepQuotes:
+	// when invoking a script, the script might use $ARG1$ macro
+	// arg1 here might be a single string composed of many arguments, e.g:
+	// powershell_detail_arg1 "-option1 option1 -option2 `'option2`' -option3 `"option3`" -option4 `'foo,bar`' -option5 `"baz,xyz`" "
+	// if sheltoken.SplitKeepQuoutes option is not set, it strips these as well.
+	// this leads to arguments like foo,bar not being quouted and being left as is
+	// powershell then thinks its an array due to comma
+	args, err = shelltoken.SplitQuotes(command, shelltoken.Whitespace, shelltoken.SplitKeepBackslashes|shelltoken.SplitContinueOnShellCharacters|shelltoken.SplitKeepQuotes)
 	if err != nil {
 		tst := &shelltoken.ShellCharactersFoundError{}
 		if errors.As(err, &tst) {
