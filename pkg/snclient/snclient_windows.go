@@ -287,6 +287,11 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 
 	// powershell files
 	case isPsFile(cmdName):
+		// parse the command one more time, this time adding the shelltoken.SplitKeepQuoutes option
+		cmdName, cmdArgs, _, err = snc.shellParse(command, shelltoken.SplitKeepQuotes)
+		if err != nil {
+			return nil, err
+		}
 		for i, ca := range cmdArgs {
 			if strings.ContainsAny(ca, " \t") {
 				cmdArgs[i] = `'` + ca + `'`
@@ -316,15 +321,23 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	}
 }
 
-func (snc *Agent) shellParse(command string) (cmdName string, args []string, hasShellCode bool, err error) {
-	// reason for adding shelltoken.SplitKeepQuotes:
+func (snc *Agent) shellParse(command string, additionalOptions ...shelltoken.SplitOption) (cmdName string, args []string, hasShellCode bool, err error) {
+	options := shelltoken.SplitKeepBackslashes | shelltoken.SplitContinueOnShellCharacters
+
+	// shelltoken.SplitKeepQuotes may be passed as an additional Option
 	// when invoking a script, the script might use $ARG1$ macro
 	// arg1 here might be a single string composed of many arguments, e.g:
 	// powershell_detail_arg1 "-option1 option1 -option2 `'option2`' -option3 `"option3`" -option4 `'foo,bar`' -option5 `"baz,xyz`" "
-	// if sheltoken.SplitKeepQuoutes option is not set, it strips these as well.
+	// if sheltoken.SplitKeepQuoutes option is not set, it strips the quotation marks from each option value
 	// this leads to arguments like foo,bar not being quouted and being left as is
 	// powershell then thinks its an array due to comma
-	args, err = shelltoken.SplitQuotes(command, shelltoken.Whitespace, shelltoken.SplitKeepBackslashes|shelltoken.SplitContinueOnShellCharacters|shelltoken.SplitKeepQuotes)
+	// if they were quouted, it would think that they are a string that includes comma character
+
+	for _, opt := range additionalOptions {
+		options |= opt
+	}
+
+	args, err = shelltoken.SplitQuotes(command, shelltoken.Whitespace, options)
 	if err != nil {
 		tst := &shelltoken.ShellCharactersFoundError{}
 		if errors.As(err, &tst) {
