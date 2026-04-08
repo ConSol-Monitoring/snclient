@@ -108,10 +108,10 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat, 
 		"sensor":      sensorKey,
 		"name":        name,
 		"label":       label,
-		"temperature": fmt.Sprintf("%f", sensor.Temperature),
-		"crit":        fmt.Sprintf("%f", sensor.Critical),
-		"max":         fmt.Sprintf("%f", sensor.High),
-		"min":         fmt.Sprintf("%f", sensor.Min),
+		"temperature": fmt.Sprintf("%f", utils.ToPrecision(sensor.Temperature, 3)),
+		"crit":        fmt.Sprintf("%f", utils.ToPrecision(sensor.Critical, 3)),
+		"max":         fmt.Sprintf("%f", utils.ToPrecision(sensor.High, 3)),
+		"min":         fmt.Sprintf("%f", utils.ToPrecision(sensor.Min, 3)),
 	}
 
 	if len(l.sensors) > 0 && !slices.Contains(l.sensors, name) && !slices.Contains(l.sensors, label) {
@@ -122,12 +122,14 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat, 
 		return
 	}
 
+	minVal := utils.ToPrecision(sensor.Min, 3)
+	maxVal := utils.ToPrecision(sensor.High, 3)
 	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 		ThresholdName: sensorKey,
 		Name:          sensorKey,
-		Value:         sensor.Temperature,
-		Min:           &sensor.Min,
-		Max:           &sensor.High,
+		Value:         utils.ToPrecision(sensor.Temperature, 3),
+		Min:           &minVal,
+		Max:           &maxVal,
 		Warning:       check.ExpandMetricMacros(check.TransformMultipleKeywords([]string{"temp", "temperature"}, sensorKey, check.warnThreshold), entry),
 		Critical:      check.ExpandMetricMacros(check.TransformMultipleKeywords([]string{"temp", "temperature"}, sensorKey, check.critThreshold), entry),
 	})
