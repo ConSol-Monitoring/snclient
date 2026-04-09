@@ -295,7 +295,6 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 
 		cmdArgsModified := make([]string, 0, len(cmdArgs))
 		for _, cmdArg := range cmdArgs {
-
 			// parsed arguments might include double quoutes.
 			// cmd.SysProcAttr.CmdLine is set so that the arguments are found within double quoutes inside the -Command parameter
 			// to include a double quoute here, you have to add three double quoutes.
