@@ -1,1 +1,0 @@
-C:/Users/sorus/repositories/snclient/pkg/snclient/t/scripts/powershell_detail.ps1
