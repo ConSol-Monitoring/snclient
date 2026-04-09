@@ -262,6 +262,8 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 		cmd := execCommandContext(ctx, "powershell", env)
 		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -command %s; exit($LASTEXITCODE)`, POWERSHELL, command)
 
+		log.Tracef("cmd.SysProcAttr.CmdLine: %s", cmd.SysProcAttr.CmdLine)
+
 		return cmd, nil
 
 	// command does not exist
@@ -282,6 +284,8 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 			strings.ReplaceAll(cmdName, " ", "^ "),
 			strings.Join(cmdArgs, " "),
 		)
+
+		log.Tracef("cmd.SysProcAttr.CmdLine: %s", cmd.SysProcAttr.CmdLine)
 
 		return cmd, nil
 
@@ -308,6 +312,8 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 		cmd := execCommandContext(ctx, "powershell", env)
 		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -Command ". '%s' %s ; exit($LASTEXITCODE)"`, POWERSHELL, cmdName, strings.Join(cmdArgsModified, " "))
 
+		log.Tracef("cmd.SysProcAttr.CmdLine: %s", cmd.SysProcAttr.CmdLine)
+
 		return cmd, nil
 
 	// other command but no shell special characters
@@ -324,6 +330,8 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 			`%s /c %s`,
 			shell,
 			strings.Replace(command, cmdName, syscall.EscapeArg(cmdName), 1))
+
+		log.Tracef("cmd.SysProcAttr.CmdLine: %s", cmd.SysProcAttr.CmdLine)
 
 		return cmd, nil
 	}
