@@ -287,18 +287,27 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 
 	// powershell files
 	case isPsFile(cmdName):
-		// parse the command one more time, this time adding the shelltoken.SplitKeepQuoutes option
+		// parse the command one more time, this time adding the shelltoken.KeepQuoutes option
 		cmdName, cmdArgs, _, err = snc.shellParse(command, shelltoken.SplitKeepQuotes)
 		if err != nil {
 			return nil, err
 		}
-		for i, ca := range cmdArgs {
-			if strings.ContainsAny(ca, " \t") {
-				cmdArgs[i] = `'` + ca + `'`
-			}
+
+		cmdArgsModified := make([]string, 0, len(cmdArgs))
+		for _, cmdArg := range cmdArgs {
+
+			// parsed arguments might include double quoutes.
+			// cmd.SysProcAttr.CmdLine is set so that the arguments are found within double quoutes inside the -Command parameter
+			// to include a double quoute here, you have to add three double quoutes.
+			// windows has very confusing, runtime-dependent command line argument parsing
+			// This is done with the assumption that its using GetCommandLineW, and it works for now
+			cmdArg = strings.ReplaceAll(cmdArg, `"`, `"""`)
+
+			cmdArgsModified = append(cmdArgsModified, cmdArg)
 		}
+
 		cmd := execCommandContext(ctx, "powershell", env)
-		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -Command ". '%s' %s ; exit($LASTEXITCODE)"`, POWERSHELL, cmdName, strings.Join(cmdArgs, " "))
+		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -Command ". '%s' %s ; exit($LASTEXITCODE)"`, POWERSHELL, cmdName, strings.Join(cmdArgsModified, " "))
 
 		return cmd, nil
 
