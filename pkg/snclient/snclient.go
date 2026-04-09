@@ -1096,8 +1096,8 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 }
 
 func fixReturnCodes(output, stderr *string, exitCode *int64, timeout int64, cmd *exec.Cmd, procState *os.ProcessState, err error) {
-	log.Tracef("stdout: %s", *output)
-	log.Tracef("stderr: %s", *stderr)
+	log.Tracef("stdout: \n%s", *output)
+	log.Tracef("stderr: \n%s", *stderr)
 	log.Tracef("exitCode: %d", *exitCode)
 	log.Tracef("timeout: %d", timeout)
 	log.Tracef("error: %#v", err)
