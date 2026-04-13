@@ -1,6 +1,9 @@
 package snclient
 
 import (
+	"context"
+	"io"
+
 	"github.com/consol-monitoring/check_nsc_web/pkg/checknscweb"
 )
 
@@ -13,7 +16,7 @@ func NewCheckNSCWeb() CheckHandler {
 		name: "check_nsc_web",
 		description: `Runs check_nsc_web to perform checks on other snclient agents.
 It basically wraps the plugin from https://github.com/ConSol-Monitoring/check_nsc_web`,
-		check:    checknscweb.Check,
+		check:    checkNSCWebWrapper,
 		docTitle: `check_nsc_web`,
 		usage:    `check_nsc_web [<options>]`,
 		exampleDefault: `
@@ -27,4 +30,8 @@ Check specific plugin:
 `,
 		exampleArgs: `'-H' 'omd.consol.de' '--uri=/docs' '-S'`,
 	}
+}
+
+func checkNSCWebWrapper(ctx context.Context, output io.Writer, osArgs []string) int {
+	return (checknscweb.Check(ctx, output, osArgs, nil))
 }

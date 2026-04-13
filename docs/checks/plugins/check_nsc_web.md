@@ -54,7 +54,7 @@ Description:
   and receiving check information over HTTP(S).
 
 Version:
-  check_nsc_web v0.7.4
+  check_nsc_web v0.7.6
 
 Example:
   connectivity check (parent service):
@@ -85,6 +85,18 @@ TLS/SSL Options:
   -tlsmin <string>         Minimum tls version used to connect. Default: tls1.0
   -tlshostname <string>    Use this servername when verifying tls server name
   -k                       Insecure mode - skip TLS verification
+
+Environment Variables:
+  Command line options take predence over environment variables.
+
+  check_nsc_web_password   REST webserver password
+  CHECK_NSC_WEB_PASSWORD
+  check_nsc_web_login      REST webserver login
+  CHECK_NSC_WEB_LOGIN
+  check_nsc_web_timeout    Connection timeout in seconds
+                           Optional set timeout state: 0-3 or OK, WARNING, CRITICAL, UNKNOWN
+                           (default timeout state is UNKNOWN)
+  CHECK_NSC_WEB_TIMEOUT
 
 Output Options:
   -h                       Print help
