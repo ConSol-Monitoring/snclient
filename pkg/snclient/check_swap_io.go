@@ -159,7 +159,7 @@ func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
 	} else {
 		message := "swapOutCounter does not have a last value"
 		log.Debug(message)
-		entry["_error "] = entry["_error"] + " | " + message
+		entry["_error"] = entry["_error"] + " | " + message
 	}
 
 	if err := swapOutCounter.CheckRetention(time.Duration(l.lookback)*time.Second, 0); err != nil {
