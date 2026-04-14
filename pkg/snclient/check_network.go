@@ -169,7 +169,7 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 				"name":              deviceName,
 				"net_connection_id": deviceName,
 				"received":          "0",
-				"toal_received":     "0",
+				"total_received":    "0",
 				"sent":              "0",
 				"total_sent":        "0",
 				"total":             "0",
