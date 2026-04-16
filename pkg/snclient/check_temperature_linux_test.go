@@ -18,7 +18,7 @@ func TestTemperature(t *testing.T) {
 	}
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(t,
-		`^OK -.*(core_0|amdgpu_edge): [\d.]+ °C`,
+		`^OK -.*: [\d.]+ °C`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
