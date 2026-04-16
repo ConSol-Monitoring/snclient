@@ -291,7 +291,7 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 
 	// powershell files
 	case isPsFile(cmdName):
-		// parse the command one more time, this time adding the shelltoken.KeepQuoutes option
+		// parse the command one more time, this time adding the shelltoken.KeepQuotes option
 		cmdName, cmdArgs, _, err = snc.shellParse(command, shelltoken.SplitKeepQuotes)
 		if err != nil {
 			return nil, err
@@ -299,9 +299,9 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 
 		cmdArgsModified := make([]string, 0, len(cmdArgs))
 		for _, cmdArg := range cmdArgs {
-			// parsed arguments might include double quoutes.
-			// cmd.SysProcAttr.CmdLine is set so that the arguments are found within double quoutes inside the -Command parameter
-			// to include a double quoute here, you have to add three double quoutes.
+			// parsed arguments might include double quotes.
+			// cmd.SysProcAttr.CmdLine is set so that the arguments are found within double quotes inside the -Command parameter
+			// to include a double quote here, you have to add three double quotes.
 			// windows has very confusing, runtime-dependent command line argument parsing
 			// This is done with the assumption that its using GetCommandLineW, and it works for now
 			cmdArg = strings.ReplaceAll(cmdArg, `"`, `"""`)
@@ -344,10 +344,10 @@ func (snc *Agent) shellParse(command string, additionalOptions ...shelltoken.Spl
 	// when invoking a script, the script might use $ARG1$ macro
 	// arg1 here might be a single string composed of many arguments, e.g:
 	// powershell_detail_arg1 "-option1 option1 -option2 `'option2`' -option3 `"option3`" -option4 `'foo,bar`' -option5 `"baz,xyz`" "
-	// if sheltoken.SplitKeepQuoutes option is not set, it strips the quotation marks from each option value
-	// this leads to arguments like foo,bar not being quouted and being left as is
+	// if shelltoken.SplitKeepQuotes option is not set, it strips the quotation marks from each option value
+	// this leads to arguments like foo,bar not being quoted and being left as is
 	// powershell then thinks its an array due to comma
-	// if they were quouted, it would think that they are a string that includes comma character
+	// if they were quoted, it would think that they are a string that includes comma character
 
 	for _, opt := range additionalOptions {
 		options |= opt

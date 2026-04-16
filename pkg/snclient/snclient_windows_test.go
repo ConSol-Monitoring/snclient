@@ -18,7 +18,7 @@ import (
 // scriptName_arg1 : ./${SCRIPT_FILENAME} "$ARG1$"
 // scriptName_arg_numbered : ./${SCRIPT_FILENAME} "$ARG1$" "$ARG2$" "$ARG3$" "$ARG4$" "$ARG5$" "$ARG6$" "$ARG7$" "$ARG8$" "$ARG9$" "$ARG10$"
 // scriptName_args : ./${SCRIPT_FILENAME} "$ARGS$"
-// scriptName_args_quouted : ./${SCRIPT_FILENAME} "$ARGS"$"
+// scriptName_args_quoted : ./${SCRIPT_FILENAME} "$ARGS"$"
 //
 //nolint:unparam // scriptName is so far always "powershell_detail" , no other test script uses this function. Keep it as a parameter for future use.
 func snclientConfigFileWithScript(t *testing.T, scriptsDir, scriptName, scriptFilename string) string {
@@ -58,9 +58,9 @@ allow arguments = true
 allow nasty characters = true
 
 [/settings/external scripts/scripts]
-${SCRIPT_NAME}_args_quouted = ./${SCRIPT_FILENAME} $ARGS"$
+${SCRIPT_NAME}_args_quoted = ./${SCRIPT_FILENAME} $ARGS"$
 
-[/settings/external scripts/scripts/${SCRIPT_NAME}_args_quouted]
+[/settings/external scripts/scripts/${SCRIPT_NAME}_args_quoted]
 allow arguments = true
 allow nasty characters = true
 `
@@ -96,12 +96,12 @@ func TestMakeCmd(t *testing.T) {
 	// cmd.Args is unused if cmd.SysProcAttr.CmdLine is set and nonempty
 	// snclient sets it and does not populate cmd.Args
 
-	// the quoutes should not be removed
-	// the reasoning is to pass some arguments as written inside the quoutes, so that they can take a string form and not be converted
+	// the quotes should not be removed
+	// the reasoning is to pass some arguments as written inside the quotes, so that they can take a string form and not be converted
 	// if an argument is passed like this --optionX foo,bar powershell parameter parser thinks it is an object/string array and refuses to parse it as string
 	// it has to be passed like --optionX 'foo,bar' to be parsed as a string
 
-	// 1 double quoute (") has to be converted to 3 double quoutes of cmd.SysProcAttr.CmdLine
+	// 1 double quote (") has to be converted to 3 double quotes of cmd.SysProcAttr.CmdLine
 	// check snclient_windows.go powershell block for more explanation
 	cmdLineExpectedContains := `-option1 option1 -option2 'option2' -option3 """option3""" -option4 'option4.option4,option4:option4;option4|option4$option4'`
 	assert.Containsf(t, cmd.SysProcAttr.CmdLine,
@@ -161,7 +161,7 @@ func TestPowershellScriptArg1(t *testing.T) {
 	scriptsDir := filepath.Join(testDir, "t", "scripts")
 	scriptName := "powershell_detail"
 	scriptFilename := scriptName + ".ps1"
-	// arg1 adds a single double-quoute around the first argument, which includes everything
+	// arg1 adds a single double-quote around the first argument, which includes everything
 	scriptMacroType := "_arg1"
 	scriptArgs := []string{"-option1 option1 -option2 'option2' -option3  \"option3\" -option4 'foo,bar' -option5 \"baz,xyz\" "}
 
@@ -311,13 +311,13 @@ func TestPowershellScriptArgs(t *testing.T) {
 }
 
 //nolint:dupl // the functions are largely the same, but scriptMacroType is different. Redefining expected strings for each macro type is easier to understand.
-func TestPowershellScriptArgsQuouted(t *testing.T) {
+func TestPowershellScriptArgsQuoted(t *testing.T) {
 	testDir, _ := os.Getwd()
 	scriptsDir := filepath.Join(testDir, "t", "scripts")
 	scriptName := "powershell_detail"
 	scriptFilename := scriptName + ".ps1"
-	scriptMacroType := "_args_quouted"
-	// args_quouted adds double quoutes around each argument and joins them with space in-between
+	scriptMacroType := "_args_quoted"
+	// args_quoted adds double quotes around each argument and joins them with space in-between
 	// the arguments are passed as a list here, not a single string
 	scriptArgs := []string{
 		"-option1",
@@ -341,7 +341,7 @@ func TestPowershellScriptArgsQuouted(t *testing.T) {
 
 	outputString := string(checkResult.BuildPluginOutput())
 
-	// since option specifiers like -option1 and -option2 are also quouted, this prevents them from working properly
+	// since option specifiers like -option1 and -option2 are also quoted, this prevents them from working properly
 
 	assert.Equalf(t, CheckExitUnknown, checkResult.State, "check should return state Unknown")
 
