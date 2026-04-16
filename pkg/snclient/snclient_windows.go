@@ -262,6 +262,8 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 		cmd := execCommandContext(ctx, "powershell", env)
 		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -command %s; exit($LASTEXITCODE)`, POWERSHELL, command)
 
+		log.Tracef("cmd.SysProcAttr.CmdLine: %s", cmd.SysProcAttr.CmdLine)
+
 		return cmd, nil
 
 	// command does not exist
@@ -283,17 +285,34 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 			strings.Join(cmdArgs, " "),
 		)
 
+		log.Tracef("cmd.SysProcAttr.CmdLine: %s", cmd.SysProcAttr.CmdLine)
+
 		return cmd, nil
 
 	// powershell files
 	case isPsFile(cmdName):
-		for i, ca := range cmdArgs {
-			if strings.ContainsAny(ca, " \t") {
-				cmdArgs[i] = `'` + ca + `'`
-			}
+		// parse the command one more time, this time adding the shelltoken.KeepQuotes option
+		cmdName, cmdArgs, _, err = snc.shellParse(command, shelltoken.SplitKeepQuotes)
+		if err != nil {
+			return nil, err
 		}
+
+		cmdArgsModified := make([]string, 0, len(cmdArgs))
+		for _, cmdArg := range cmdArgs {
+			// parsed arguments might include double quotes.
+			// cmd.SysProcAttr.CmdLine is set so that the arguments are found within double quotes inside the -Command parameter
+			// to include a double quote here, you have to add three double quotes.
+			// windows has very confusing, runtime-dependent command line argument parsing
+			// This is done with the assumption that its using GetCommandLineW, and it works for now
+			cmdArg = strings.ReplaceAll(cmdArg, `"`, `"""`)
+
+			cmdArgsModified = append(cmdArgsModified, cmdArg)
+		}
+
 		cmd := execCommandContext(ctx, "powershell", env)
-		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -Command ". '%s' %s; exit($LASTEXITCODE)"`, POWERSHELL, cmdName, strings.Join(cmdArgs, " "))
+		cmd.SysProcAttr.CmdLine = fmt.Sprintf(`%s -Command ". '%s' %s ; exit($LASTEXITCODE)"`, POWERSHELL, cmdName, strings.Join(cmdArgsModified, " "))
+
+		log.Tracef("cmd.SysProcAttr.CmdLine: %s", cmd.SysProcAttr.CmdLine)
 
 		return cmd, nil
 
@@ -312,12 +331,29 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 			shell,
 			strings.Replace(command, cmdName, syscall.EscapeArg(cmdName), 1))
 
+		log.Tracef("cmd.SysProcAttr.CmdLine: %s", cmd.SysProcAttr.CmdLine)
+
 		return cmd, nil
 	}
 }
 
-func (snc *Agent) shellParse(command string) (cmdName string, args []string, hasShellCode bool, err error) {
-	args, err = shelltoken.SplitQuotes(command, shelltoken.Whitespace, shelltoken.SplitKeepBackslashes|shelltoken.SplitContinueOnShellCharacters)
+func (snc *Agent) shellParse(command string, additionalOptions ...shelltoken.SplitOption) (cmdName string, args []string, hasShellCode bool, err error) {
+	options := shelltoken.SplitKeepBackslashes | shelltoken.SplitContinueOnShellCharacters
+
+	// shelltoken.SplitKeepQuotes may be passed as an additional Option
+	// when invoking a script, the script might use $ARG1$ macro
+	// arg1 here might be a single string composed of many arguments, e.g:
+	// powershell_detail_arg1 "-option1 option1 -option2 `'option2`' -option3 `"option3`" -option4 `'foo,bar`' -option5 `"baz,xyz`" "
+	// if shelltoken.SplitKeepQuotes option is not set, it strips the quotation marks from each option value
+	// this leads to arguments like foo,bar not being quoted and being left as is
+	// powershell then thinks its an array due to comma
+	// if they were quoted, it would think that they are a string that includes comma character
+
+	for _, opt := range additionalOptions {
+		options |= opt
+	}
+
+	args, err = shelltoken.SplitQuotes(command, shelltoken.Whitespace, options)
 	if err != nil {
 		tst := &shelltoken.ShellCharactersFoundError{}
 		if errors.As(err, &tst) {
