@@ -22,6 +22,7 @@ import (
 const (
 	managedExporterRestartDelay     = 3 * time.Second
 	managedExporterMemWatchInterval = 30 * time.Second
+	environmentMarker               = "STARTED_BY_SNCLIENT=1"
 )
 
 type HandlerManagedExporter struct {
@@ -232,6 +233,7 @@ func (l *HandlerManagedExporter) procMainLoop() {
 			return
 		}
 		cmd := exec.CommandContext(context.TODO(), l.agentPath, args...) //nolint:gosec // input source is the config file
+		cmd.Env = append(os.Environ(), environmentMarker)
 
 		// drop privileges when started as root
 		if l.agentUser != "" && os.Geteuid() == 0 {
@@ -352,6 +354,8 @@ func (l *HandlerManagedExporter) logPass(f string, v ...any) {
 
 // kill process based on path and arguments
 func (l *HandlerManagedExporter) killOrphanedExporters(agentPath string, args []string) {
+	log.Infof("HandlerManagerExporter.killOrphanedExporters agentPath: %s args: %v", agentPath, args)
+
 	if len(args) == 0 {
 		log.Debugf("no arguments provided for %s exporter, skipping orphaned process check", l.name)
 
@@ -392,11 +396,30 @@ func (l *HandlerManagedExporter) killOrphanedExporters(agentPath string, args []
 			continue
 		}
 
+		environ, err := proc.Environ()
+		hasEnvironmentMarker := false
+		if err == nil {
+			for _, env := range environ {
+				// Normalize for cross-platform (e.g., Windows sometimes uses uppercase env keys)
+				if strings.HasPrefix(strings.ToUpper(env), strings.ToUpper(environmentMarker)) {
+					hasEnvironmentMarker = true
+
+					break
+				}
+			}
+		}
+		if hasEnvironmentMarker {
+			log.Warnf("killing orphaned %s exporter process with pid: %d as it has the environment marker: %s", l.name, proc.Pid, environmentMarker)
+			LogDebug(proc.Kill())
+
+			continue
+		}
+
 		if agentArgs != strings.Join(cmdline[1:], ";") {
 			continue
 		}
 
-		log.Warnf("killing orphaned %s exporter process %d (%s)", l.name, proc.Pid, strings.Join(cmdline, " "))
+		log.Warnf("killing orphaned %s exporter process with pid: %d as it matches the commandline: (%s)", l.name, proc.Pid, strings.Join(cmdline, " "))
 		LogDebug(proc.Kill())
 	}
 }
