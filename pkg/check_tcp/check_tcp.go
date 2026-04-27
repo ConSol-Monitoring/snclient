@@ -44,7 +44,7 @@ type tcpOpts struct {
 	MaxBytes     int     `short:"m" long:"maxbytes" description:"Close connection once more than this number of bytes are received"`
 	Delay        float64 `short:"d" long:"delay" description:"Seconds to wait between sending string and polling for response"`
 	Warning      float64 `short:"w" long:"warning" description:"Response time to result in warning status (seconds)"`
-	Critical     float64 `short:"c" long:"critical" description:"Response time to result in critical status (seconds)"`
+	Critical     float64 `short:"c" long:"critical" description:"Response time to result in critical status (seconds)" default:"10"`
 	Escape       bool    `short:"E" long:"escape" description:"Can use \\n, \\r, \\t or \\ in send or quit string. Must come before send or quit option. By default, nothing added to send, \\r\\n added to end of quit"`
 	ErrWarning   bool    `short:"W" long:"error-warning" description:"Set the error level to warning when exiting with unexpected error (default: critical). In the case of request succeeded, evaluation result of -c option eval takes priority."`
 	ExpectClosed bool    `short:"C" long:"expect-closed" description:"Verify that the port/unixsock is closed. If the port/unixsock is closed, OK; if open, follow the ErrWarning flag. This option only verifies the connection."`
@@ -289,6 +289,9 @@ func (opts *tcpOpts) run() *checkers.Checker {
 	if res != "" {
 		msg += fmt.Sprintf(" [%s]", strings.Trim(res, "\r\n"))
 	}
+
+	msg += fmt.Sprintf(" | time=%fs;;;%f;%f", elapsedSeconds, opts.Warning, opts.Critical)
+
 	return checkers.NewChecker(chkSt, msg)
 }
 
