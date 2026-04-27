@@ -65,7 +65,14 @@ func parseArgs(args []string) (*tcpOpts, error) {
 	opts := &tcpOpts{}
 	psr := flags.NewParser(opts, flags.HelpFlag|flags.PassDoubleDash) // default flags without flags.PrintErrors
 	psr.Name = "check_tcp"
-	_, err := psr.ParseArgs(args)
+	remaining, err := psr.ParseArgs(args)
+	if len(remaining) > 0 && opts.Hostname == "" {
+		opts.Hostname = remaining[0]
+		remaining = remaining[1:]
+	}
+	if len(remaining) > 0 {
+		return nil, fmt.Errorf("cannot parse options, unknown option: %s", strings.Join(remaining, " "))
+	}
 	return opts, err
 }
 
@@ -182,6 +189,9 @@ func (opts *tcpOpts) run() *checkers.Checker {
 		proto = "unix"
 		addr = opts.UnixSock
 	} else {
+		if opts.Hostname == "" {
+			return checkers.Unknown("hostname is required.")
+		}
 		if opts.Port == 0 {
 			return checkers.Unknown("port is required.")
 		}

@@ -7,6 +7,7 @@ next:
          - use linux capabilities for check_omd
          - change minimum golang requirement to 1.26.2
          - make listener errors fatal during startup
+         - check_tcp: make hostname mandatory
 
 0.42     Fri Feb 13 15:37:38 CET 2026
          - *DEPRECATION NOTICE* the next release will use an unprivileged snclient user
