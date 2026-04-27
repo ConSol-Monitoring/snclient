@@ -195,6 +195,11 @@ build-freebsd-i386: vendor
 		( cd ./cmd/$$CMD && GOOS=freebsd GOARCH=386 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.freebsd.i386 ) ; \
 	done
 
+build-freebsd-amd64: vendor
+	set -e; for CMD in $(CMDS); do \
+		( cd ./cmd/$$CMD && GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.freebsd.i386 ) ; \
+	done
+
 build-darwin-aarch64: vendor
 	set -e; for CMD in $(CMDS); do \
 		( cd ./cmd/$$CMD && GOOS=darwin GOARCH=arm64 CGO_ENABLED=$(shell if [ "$(GOOS)" != "darwin" ]; then echo "0"; else echo $(CGO_ENABLED); fi ) $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.darwin.aarch64 ) ; \
