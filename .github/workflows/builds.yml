@@ -92,6 +92,7 @@ jobs:
           sysctl hw.ncpu
           sysctl hw.physmem
           sysctl hw.usermem
+          pkg update
           pkg install -y bash
           pkg install -y gmake
           pkg install -y git
