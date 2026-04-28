@@ -75,7 +75,7 @@ Application Options:
   -w, --warning=              Response time to result in warning status
                               (seconds)
   -c, --critical=             Response time to result in critical status
-                              (seconds)
+                              (seconds) (default: 10)
   -E, --escape                Can use \n, \r, \t or \ in send or quit string.
                               Must come before send or quit option. By default,
                               nothing added to send, \r\n added to end of quit
