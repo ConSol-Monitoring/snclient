@@ -71,7 +71,7 @@ There is a specific [check_service for windows](../check_service_windows) as wel
 		defaultFilter:   "active != inactive",
 		defaultCritical: stateCondition + " && preset != 'disabled'",
 		detailSyntax:    "${name}=${state}",
-		topSyntax:       "%(status) - %(crit_list)",
+		topSyntax:       "%(status) - %{count} service(s) %(crit_list)",
 		okSyntax:        "%(status) - All %(count) service(s) are ok.",
 		emptySyntax:     "%(status) - No services found",
 		emptyState:      CheckExitUnknown,
