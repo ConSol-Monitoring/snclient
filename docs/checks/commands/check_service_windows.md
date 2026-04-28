@@ -50,16 +50,16 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                    |
-| ------------- | ------------------------------------------------ |
-| filter        | none                                             |
-| warning       | state != 'running' && start_type = 'delayed'     |
-| critical      | state != 'running' && start_type = 'auto'        |
-| empty-state   | 3 (UNKNOWN)                                      |
-| empty-syntax  | %(status) - No services found                    |
-| top-syntax    | %(status) - %(crit_list), delayed (%(warn_list)) |
-| ok-syntax     | %(status) - All %(count) service(s) are ok.      |
-| detail-syntax | \${name}=\${state} (\${start_type})              |
+| Argument      | Default Value                                                        |
+| ------------- | -------------------------------------------------------------------- |
+| filter        | none                                                                 |
+| warning       | state != 'running' && start_type = 'delayed'                         |
+| critical      | state != 'running' && start_type = 'auto'                            |
+| empty-state   | 3 (UNKNOWN)                                                          |
+| empty-syntax  | %(status) - No services found                                        |
+| top-syntax    | %(status) - %{count} service(s) %(crit_list), delayed (%(warn_list)) |
+| ok-syntax     | %(status) - All %(count) service(s) are ok.                          |
+| detail-syntax | \${name}=\${state} (\${start_type})                                  |
 
 ## Check Specific Arguments
 
