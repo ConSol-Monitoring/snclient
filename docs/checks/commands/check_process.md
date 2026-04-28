@@ -60,15 +60,15 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                    |
-| ------------- | ------------------------------------------------ |
-| warning       | count = 0                                        |
-| critical      | state = 'stopped' or count = 0                   |
-| empty-state   | 2 (CRITICAL)                                     |
-| empty-syntax  | %(status) - no processes found with this filter. |
-| top-syntax    | %(status) - \${problem_list}                     |
-| ok-syntax     | %(status) - all %{count} processes are ok.       |
-| detail-syntax | \${exe}=\${state}                                |
+| Argument      | Default Value                                             |
+| ------------- | --------------------------------------------------------- |
+| warning       | count = 0                                                 |
+| critical      | state = 'stopped' or count = 0                            |
+| empty-state   | 2 (CRITICAL)                                              |
+| empty-syntax  | %(status) - no processes found with this filter.          |
+| top-syntax    | %(status) - %{count} process(es) running \${problem_list} |
+| ok-syntax     | %(status) - all %{count} process(es) are ok.              |
+| detail-syntax | \${exe}=\${state}                                         |
 
 ## Check Specific Arguments
 
