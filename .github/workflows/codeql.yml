@@ -34,6 +34,10 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      - name: Build test binaries
+        run: |
+          make test
+
       - name: Build all binaries
         run: |
           make build-linux-i386
