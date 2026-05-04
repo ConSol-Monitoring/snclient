@@ -17,6 +17,7 @@ import (
 	"os/signal"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
@@ -81,6 +82,11 @@ var (
 	// Revision contains the minor version number (number of commits, since last tag)
 	// compile passing -ldflags "-X snclient.Revision <commits>" to set the revision number.
 	Revision = ""
+
+	// procCmdLineNamePrefixColonRe matches process cmdlines like:
+	// "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
+	// It intentionally requires whitespace after ":" to avoid false positives like "C:\path" or "http://...".
+	procCmdLineNamePrefixColonRe = regexp.MustCompile(`^([^:\s]+):\s+`)
 )
 
 // MainStateType is used to set different states of the main loop.
@@ -1687,6 +1693,8 @@ func appendProcs(ctx context.Context, check *CheckData, numProcs int64, showArgs
 }
 
 func buildExeAndFilename(ctx context.Context, proc *process.Process, cmdLine string) (exe, filename string) {
+	colonMatch := procCmdLineNamePrefixColonRe.FindStringSubmatch(cmdLine)
+
 	// this usually requires root permissions for system processes
 	filename, err := proc.ExeWithContext(ctx)
 	switch {
@@ -1696,9 +1704,9 @@ func buildExeAndFilename(ctx context.Context, proc *process.Process, cmdLine str
 		// lrwxrwxrwx 1 user group 0 Oct 11 20:40 /proc/857375/exe -> '/usr/bin/ssh (deleted)'
 		filename = strings.TrimSuffix(filename, " (deleted)")
 		exe = filepath.Base(filename)
-	case strings.Contains(cmdLine, ":"):
-		parts := strings.SplitN(cmdLine, ":", 2)
-		exe = parts[0]
+	case colonMatch != nil:
+		// cmdline may look like this: sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+		exe = colonMatch[1]
 		filename = exe
 	default:
 		cmd, err2 := proc.CmdlineSliceWithContext(ctx)
