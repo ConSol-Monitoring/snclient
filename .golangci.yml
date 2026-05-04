@@ -10,6 +10,8 @@ linters:
     - funcorder
     - gochecknoglobals
     - gochecknoinits
+    - gomodguard
+    - goconst
     - godot
     - godoclint
     - gomoddirectives

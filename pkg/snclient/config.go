@@ -293,7 +293,7 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 			// append comments to previous section unless they cuddle next section without newlines
 			if currentSection != nil && len(currentComments) > 0 {
 				// search comments (in reverse) for the first empty line and split those onto the next section
-				for i := len(currentComments) - 1; i >= 0; i-- {
+				for i := range slices.Backward(currentComments) {
 					if currentComments[i] == "" {
 						currentSection.comments["_END"] = currentComments[:i]
 						currentComments = currentComments[i:]
