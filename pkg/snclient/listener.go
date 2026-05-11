@@ -268,15 +268,21 @@ func (l *Listener) Start() error {
 		allowed.Debug()
 	}
 
+	bindString := l.BindString()
+	conType := "tcp"
+	if l.bindAddress != "" && isIpv4(l.bindAddress) {
+		conType = "tcp4"
+	}
+
 	if l.tlsConfig != nil {
-		listen, err := tls.Listen("tcp", l.BindString(), l.tlsConfig)
+		listen, err := tls.Listen(conType, bindString, l.tlsConfig)
 		if err != nil {
 			return fmt.Errorf("tls listen failed: %s", err.Error())
 		}
 		l.listen = listen
 	} else {
 		lc := net.ListenConfig{}
-		listen, err := lc.Listen(context.TODO(), "tcp", l.BindString())
+		listen, err := lc.Listen(context.TODO(), conType, bindString)
 		if err != nil {
 			return fmt.Errorf("listen failed: %s", err.Error())
 		}
@@ -489,4 +495,10 @@ func (l *Listener) WrappedCheckHTTPHandler(ctx context.Context, webHandler Reque
 	}
 
 	mapping.Handler.ServeHTTP(res, req)
+}
+
+func isIpv4(addr string) bool {
+	ip := net.ParseIP(addr)
+
+	return ip != nil && ip.To4() != nil
 }
