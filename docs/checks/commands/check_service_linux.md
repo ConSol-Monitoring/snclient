@@ -61,7 +61,7 @@ Naemon Config
 | critical      | ( state not in ('running', 'oneshot', 'static') \|\| active = 'failed' )  && preset != 'disabled' |
 | empty-state   | 3 (UNKNOWN)                                                                                       |
 | empty-syntax  | %(status) - No services found                                                                     |
-| top-syntax    | %(status) - %(crit_list)                                                                          |
+| top-syntax    | %(status) - %{count} service(s) %(crit_list)                                                      |
 | ok-syntax     | %(status) - All %(count) service(s) are ok.                                                       |
 | detail-syntax | \${name}=\${state}                                                                                |
 
