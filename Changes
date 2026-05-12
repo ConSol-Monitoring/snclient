@@ -5,7 +5,7 @@ next:
          - update node exporter to 1.11.1
          - update windows exporter to 0.31.6
          - use linux capabilities for check_omd
-         - change minimum golang requirement to 1.26.2
+         - update golang build chain to 1.26.3
          - make listener errors fatal during startup
          - check_tcp: make hostname mandatory
          - check_tcp: critical defaults to 10s
