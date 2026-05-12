@@ -19,7 +19,7 @@ func TestCheckProcess(t *testing.T) {
 
 	res := snc.RunCheck("check_process", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	assert.Regexpf(t, `^OK - all \d+ processes are ok`, string(res.BuildPluginOutput()), "output matches")
+	assert.Regexpf(t, `^OK - all \d+ process\(es\) are ok`, string(res.BuildPluginOutput()), "output matches")
 	assert.Regexpf(t, `'count'=\d+;0;0;0$`, string(res.BuildPluginOutput()), "perfdata ok")
 
 	res = snc.RunCheck("check_process", []string{"process=noneexisting.exe"})
@@ -50,13 +50,13 @@ func TestCheckProcess(t *testing.T) {
 	require.NoErrorf(t, err, "got own exe")
 	res = snc.RunCheck("check_process", []string{"process=" + filepath.Base(myExe)})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	assert.Regexpf(t, `OK - all \d+ processes are ok.`, string(res.BuildPluginOutput()), "output ok")
+	assert.Regexpf(t, `OK - all \d+ process\(es\) are ok.`, string(res.BuildPluginOutput()), "output ok")
 	assert.Regexpf(t, `rss'=\d{1,15}B;;;0`, string(res.BuildPluginOutput()), "rss ok")
 
 	// should work case insensitive
 	res = snc.RunCheck("check_process", []string{"process=" + strings.ToUpper(filepath.Base(myExe))})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	assert.Regexpf(t, `OK - all \d+ processes are ok.`, string(res.BuildPluginOutput()), "output ok")
+	assert.Regexpf(t, `OK - all \d+ process\(es\) are ok.`, string(res.BuildPluginOutput()), "output ok")
 	assert.Regexpf(t, `rss'=\d{1,15}B;;;0`, string(res.BuildPluginOutput()), "rss ok")
 
 	// check process it not running
@@ -68,7 +68,7 @@ func TestCheckProcess(t *testing.T) {
 	// appending filter to previously set filter
 	res = snc.RunCheck("check_process", []string{"filter='pid > 0'", "filter+='pid < 10000'"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	assert.Regexpf(t, `OK - all \d+ processes are ok`, string(res.BuildPluginOutput()), "output ok")
+	assert.Regexpf(t, `OK - all \d+ process\(es\) are ok`, string(res.BuildPluginOutput()), "output ok")
 
 	StopTestAgent(t, snc)
 }
