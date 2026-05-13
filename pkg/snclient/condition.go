@@ -907,8 +907,8 @@ func (c *Condition) TransformMultipleKeywords(srcKeywords []string, targetKeywor
 // the function should have a pointer receiver type, no arguments and return an error.
 // the function will be applied to the current instance.
 // if the current instance is a group condition, this function will be called for every condition in that group.
-// error messages are accumulated during recursion.
-// if at least one error is encountered during recursion, err will not be nil.
+// error messages are accumulated during recursion into a group.
+// if AT LEAST ONE error is encountered during group recursion, it will return an error.
 func (c *Condition) RunFuncRecursively(_func func(c *Condition) error) (err error) {
 	errString := ""
 	thisErr := _func(c)
@@ -931,6 +931,22 @@ func (c *Condition) RunFuncRecursively(_func func(c *Condition) error) (err erro
 	}
 
 	return nil
+}
+
+// if the current instance is a single condition, the callback result will be returned
+// if the current instance is a group condition, and one of the conditions return true, return true
+func (c *Condition) runBoolFuncRecursivelyLogicalOr(_func func(c *Condition) bool) bool {
+	if len(c.group) == 0 {
+		return _func(c)
+	}
+
+	for _, conditionInGroup := range c.group {
+		if ok := conditionInGroup.runBoolFuncRecursivelyLogicalOr(_func); ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (c *Condition) expandUnitByName(str string) error {
@@ -1096,6 +1112,18 @@ func (cl *ConditionList) String() string {
 
 	// top level conditions are joined as OR
 	return strings.Join(res, " or ")
+}
+
+// calls the callback function for each condition
+// if one of them returns true, return true
+func (cl *ConditionList) LogicalOr(callback func(*Condition) bool) bool {
+	for _, condition := range *cl {
+		if callback(condition) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func replaceStrOp(input string) string {

@@ -42,6 +42,7 @@ func (l *CheckProcess) Build() *CheckData {
 		emptySyntax:     "%(status) - no processes found with this filter.",
 		defaultWarning:  "count = 0",
 		defaultCritical: "state = 'stopped' or count = 0",
+		attributeUsage:  AttributeUsageStaticBit,
 		attributes: []CheckAttribute{
 			{name: "process", description: "Name of the executable (without path)"},
 			{name: "exe", description: "Name of the executable (without path)"},

@@ -835,6 +835,17 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 		chk.timeout = timeoutOverride
 	}
 
+	conditionListCheckErr := chk.DryCheckConditionLists()
+
+	if snc.config != nil && snc.config.Section("/settings/default") != nil {
+		if val, ok, configErr := snc.config.Section("/settings/default").GetBool("enforce attributechecks"); val && ok && configErr == nil {
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: fmt.Sprintf("error when checking attributes against conditions: %s", conditionListCheckErr.Error()),
+			}, chk
+		}
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(chk.timeout+1)*time.Second)
 	defer cancel()
 

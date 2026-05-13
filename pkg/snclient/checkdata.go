@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"slices"
@@ -90,6 +91,13 @@ type CheckAttribute struct {
 	unit        Unit
 }
 
+type AttributeUsageBit uint8
+
+const (
+	AttributeUsageStaticBit  AttributeUsageBit = 1 << 7 // Check produces attributes defined in attributes field
+	AttributeUsageDynamicBit AttributeUsageBit = 1 << 6 // Check produces attributes not defined in attributes field
+)
+
 // CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
 	noCopy                 noCopy
@@ -134,6 +142,7 @@ type CheckData struct {
 	output                 OutputMode
 	implemented            Implemented
 	attributes             []CheckAttribute
+	attributeUsage         AttributeUsageBit
 	listSorted             []string // sort result list by this keys
 	exampleDefault         string
 	exampleArgs            string
@@ -1195,6 +1204,74 @@ func (cd *CheckData) VisitAll(condList ConditionList, callback func(*Condition) 
 	}
 
 	return true
+}
+
+// Checks if the attributes will be used in condition list
+// If a condition list uses an attribute, but that attribute is not defined or dynamically generated,
+// the condition list wont mean much.
+func (cd *CheckData) DryCheckConditionLists() error {
+	// cd.listData is an array of map[string]string
+	// this map contains the attributes of a check e.g state , command_line , creation , file_name
+	// to extract a value of a keyword in a condition, this function is used
+	// c.getVarValue(data)
+	// it expects data as an data map[string]string
+
+	// most of these attributes are fixed, and are always present. those are saved in cd.attributes
+	// some of them are platform dependent. they appear only on certain platforms
+	// some attributes are dynamically generated, and there is no way of knowing them beforehand
+
+	// before the check, we know some attributes will be there, we can use a dry check on them
+
+	dummyData := map[string]string{}
+	dummyData["count"] = "0"
+
+	for _, attr := range cd.attributes {
+		dummyData[attr.name] = attr.name
+	}
+
+	dummyDataIsUsedForCondition := func(condition *Condition) bool {
+		dummyDataIsUsedForSingleConditions := func(condition *Condition) bool {
+			_, ok := condition.getVarValue(dummyData)
+
+			return ok
+		}
+
+		return condition.runBoolFuncRecursivelyLogicalOr(dummyDataIsUsedForSingleConditions)
+	}
+
+	if len(cd.okThreshold) > 0 && !cd.okThreshold.LogicalOr(dummyDataIsUsedForCondition) {
+		errStr := fmt.Sprintf("Ok threshold: '%s' does not use known attributes of this check: %s", cd.okThreshold.String(), cd.name)
+		if cd.attributeUsage == AttributeUsageStaticBit {
+			return errors.New(errStr)
+		}
+		log.Warnf("%s", errStr)
+	}
+
+	if len(cd.warnThreshold) > 0 && !cd.warnThreshold.LogicalOr(dummyDataIsUsedForCondition) {
+		errStr := fmt.Sprintf("Warning threshold: '%s' does not use known attributes of this check: %s", cd.warnThreshold.String(), cd.name)
+		if cd.attributeUsage == AttributeUsageStaticBit {
+			return errors.New(errStr)
+		}
+		log.Warnf("%s", errStr)
+	}
+
+	if len(cd.critThreshold) > 0 && !cd.critThreshold.LogicalOr(dummyDataIsUsedForCondition) {
+		errStr := fmt.Sprintf("Critical threshold: '%s' does not use known attributes of this check: %s", cd.critThreshold.String(), cd.name)
+		if cd.attributeUsage == AttributeUsageStaticBit {
+			return errors.New(errStr)
+		}
+		log.Warnf("%s", errStr)
+	}
+
+	if len(cd.filter) > 0 && !cd.filter.LogicalOr(dummyDataIsUsedForCondition) {
+		errStr := fmt.Sprintf("Filter: '%s' does not use known attributes of this check: %s", cd.filter.String(), cd.name)
+		if cd.attributeUsage == AttributeUsageStaticBit {
+			return errors.New(errStr)
+		}
+		log.Warnf("%s", errStr)
+	}
+
+	return nil
 }
 
 func (cd *CheckData) CloneThreshold(srcThreshold ConditionList) (cloned ConditionList) {
