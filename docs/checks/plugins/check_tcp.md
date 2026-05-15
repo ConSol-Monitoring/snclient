@@ -87,6 +87,7 @@ Application Options:
                               port/unixsock is closed, OK; if open, follow the
                               ErrWarning flag. This option only verifies the
                               connection.
+  -v, --verbose               Enables verbose logging of the actions taken.
 
 Help Options:
   -h, --help                  Show this help message

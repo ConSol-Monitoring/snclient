@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -17,13 +18,29 @@ import (
 )
 
 func Check(ctx context.Context, output io.Writer, args []string) int {
+	// snclient supports short arguments with multiple chars like -v and not -vv or -vvv
+	// if snclient agent has these verbose arguments, they are passed as is to internal checks
+	// if that is the case, delete them and add -v instead.
+	hadVerbose := false
+	args = slices.DeleteFunc(args, func(s string) bool {
+		isVerbose := s == "-v" || s == "-vv" || s == "-vvv"
+		if isVerbose {
+			hadVerbose = true
+		}
+
+		return isVerbose
+	})
+	if hadVerbose {
+		args = append(args, "-v")
+	}
+
 	opts, err := parseArgs(args)
 	if err != nil {
 		fmt.Fprintf(output, "%s", err.Error())
 		return 2
 	}
 
-	ckr := opts.run()
+	ckr := opts.run(output)
 	ckr.Name = "TCP"
 	if opts.Service != "" {
 		ckr.Name = opts.Service
@@ -48,6 +65,7 @@ type tcpOpts struct {
 	Escape       bool    `short:"E" long:"escape" description:"Can use \\n, \\r, \\t or \\ in send or quit string. Must come before send or quit option. By default, nothing added to send, \\r\\n added to end of quit"`
 	ErrWarning   bool    `short:"W" long:"error-warning" description:"Set the error level to warning when exiting with unexpected error (default: critical). In the case of request succeeded, evaluation result of -c option eval takes priority."`
 	ExpectClosed bool    `short:"C" long:"expect-closed" description:"Verify that the port/unixsock is closed. If the port/unixsock is closed, OK; if open, follow the ErrWarning flag. This option only verifies the connection."`
+	Verbose      bool    `short:"v" long:"verbose" description:"Enables verbose logging of the actions taken."`
 }
 
 type exchange struct {
@@ -120,6 +138,11 @@ var defaultExchangeMap = map[string]exchange{
 		Send:          "version\n",
 		ExpectPattern: `\A[0-9]+\.[0-9]+\n\z`,
 	},
+	"SSH": {
+		Port:          22,
+		Send:          "SSH-1.0-check_tcp",
+		ExpectPattern: `^SSH-\d+\.\d+-[!-,.-~]+`,
+	},
 }
 
 func (opts *tcpOpts) prepare() error {
@@ -174,7 +197,7 @@ func dial(network, address string, ssl bool, noCheckCertificate bool, timeout ti
 	return d.Dial(network, address)
 }
 
-func (opts *tcpOpts) run() *checkers.Checker {
+func (opts *tcpOpts) run(output io.Writer) *checkers.Checker {
 	err := opts.prepare()
 	if err != nil {
 		return checkers.Unknown(err.Error())
@@ -202,6 +225,9 @@ func (opts *tcpOpts) run() *checkers.Checker {
 		time.Sleep(time.Duration(opts.Delay) * time.Second)
 	}
 
+	if opts.Verbose {
+		fmt.Fprintf(output, "Establishing a connection to addr: %s protocol: %s ssl: %t noCheckCertificate: %t timeout: %f\n", addr, proto, opts.SSL, opts.NoCheckCertificate, timeout.Seconds())
+	}
 	conn, err := dial(proto, addr, opts.SSL, opts.NoCheckCertificate, timeout)
 	if err != nil {
 		if opts.ExpectClosed {
@@ -234,6 +260,9 @@ func (opts *tcpOpts) run() *checkers.Checker {
 	}
 
 	if opts.Send != "" {
+		if opts.Verbose {
+			fmt.Fprintf(output, "Writing to the socket: %s\n", opts.Send)
+		}
 		err := write(conn, []byte(opts.Send), timeout)
 		if err != nil {
 			if opts.ErrWarning {
@@ -258,10 +287,17 @@ func (opts *tcpOpts) run() *checkers.Checker {
 				return checkers.Warning("Unexpected response from host/socket: " + res)
 			}
 			return checkers.Critical("Unexpected response from host/socket: " + res)
+		} else {
+			if opts.Verbose {
+				fmt.Fprintf(output, "Result matched expected regex: '%s'\n", opts.ExpectPattern)
+			}
 		}
 	}
 
 	if opts.Quit != "" {
+		if opts.Verbose {
+			fmt.Fprintf(output, "Writing to the socket for quitting: %s\n", opts.Quit)
+		}
 		err := write(conn, []byte(opts.Quit), timeout)
 		if err != nil {
 			if opts.ErrWarning {

@@ -55,6 +55,7 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 
 	args := []string{}
 	args = append(args, check.rawArgs...)
+	// if snclient is started with verbose arguments, pass them to internal check as well
 	switch {
 	case snc.flags.Verbose >= 3:
 		args = append(args, "-vvv")
