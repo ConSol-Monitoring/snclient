@@ -740,6 +740,7 @@ DOC_PLUGINS=\
 	check_http \
 	check_nsc_web \
 	check_tcp \
+	check_ssh \
 
 # skip markdown help files for these commands
 DOC_EXCLUDES=\

@@ -1,10 +1,10 @@
 ---
-title: check_tcp
+title: check_ssh
 ---
 
-## check_tcp
+## check_ssh
 
-Runs check_tcp to perform tcp connection checks.
+Runs check_tcp with an SSH configururation to check for a running SSH server.
 It basically wraps the plugin from https://github.com/taku-k/go-check-plugins/tree/master/check-tcp
 
 - [Examples](#examples)
@@ -20,20 +20,11 @@ It basically wraps the plugin from https://github.com/taku-k/go-check-plugins/tr
 
 ### Default Check
 
-Alert if tcp connection fails:
+		check_ssh github.com
+SSH OK - 0.234 seconds response time on github.com port 22 [SSH-2.0-8ad108e] | time=0.234029s;;;0.000000;10.000000
 
-    check_tcp -H omd.consol.de -p 80
-    TCP OK - 0.003 seconds response time on omd.consol.de port 80
-
-Send something and expect specific string:
-
-    check_tcp -H outlook.com -p 25 -s "HELO" -e "Microsoft ESMTP MAIL Service ready" -q "QUIT
-    TCP OK - 0.197 seconds response time on outlook.com port 25
-
-It can be a bit tricky to set the -u/--uri on windows, since the / is considered as start of
-a command line parameter.
-
-To avoid this issue, simply use the long form --uri=/path.. so the parameter does not start with a slash.
+		check_ssh --hostname github.com --warning 1
+SSH OK - 0.262 seconds response time on github.com port 22 [SSH-2.0-8ad108e] | time=0.262048s;;;1.000000;10.000000
 
 ### Example using NRPE and Naemon
 
@@ -46,9 +37,9 @@ Naemon Config
 
     define service {
         host_name            testhost
-        service_description  check_tcp
+        service_description  check_ssh
         use                  generic-service
-        check_command        check_nrpe!check_tcp!'-H' 'omd.consol.de' '-p' '80'
+        check_command        check_nrpe!check_ssh!'-H' '192.168.178.100' '-p' '2323'
     }
 
 ## Usage
