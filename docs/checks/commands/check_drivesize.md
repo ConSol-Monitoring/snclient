@@ -33,6 +33,10 @@ Check folder, no matter if its a mountpoint itself or not:
     check_drivesize folder=/tmp show-all
     OK - /tmp 280.155 GiB/455.948 GiB (64.7%) |...
 
+This check supports specifying different usage thresholds for each drive. Use '[drive] used_pct' or '[drive] used %' in the condition:
+	check_drivesize "drive=/" "drive=/tmp" "warn='/ used_pct' gt 70" "crit='/tmp used %' > 1"
+	CRITICAL - / 428.040 GiB/935.929 GiB (45.7%), /tmp 471.496 MiB/31.127 GiB (1.5%) |'/ used'=459604856832B;;;0;1004946423808 '/ used %'=45.7%;70;;0;100 '/tmp used'=494399488B;;;0;33422544896 '/tmp used %'=1.5%;;1;0;100
+
 ### Example using NRPE and Naemon
 
 Naemon Config

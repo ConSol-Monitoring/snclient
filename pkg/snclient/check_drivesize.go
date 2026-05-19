@@ -309,7 +309,19 @@ func (l *CheckDrivesize) addMetrics(drive string, check *CheckData, usage *disk.
 		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct", "free_bytes"}, "free", check.critThreshold)
 		check.AddBytePercentMetrics("free", drive+" free", magic*float64(usage.Free), magic*float64(total))
 	}
-	if check.HasThreshold("used") || check.HasThreshold("used_pct") || check.HasThreshold("used_bytes") {
+
+	// convert '<drive> used_pct' keywords in conditions to '<drive> used %' as that matches the metric name
+	convertDriveUsagePctMetric1 := fmt.Sprintf("%s used_pct", drive)
+	// metrics are normally added if the operand is simply 'used' , 'used_pct' , 'used_bytes' etc. and do not have a drive prefix
+	// detect conditions where the operand is named '<drive> used %', this is the default way snclient names percent usage metrics.
+	// if there is a condition using that as an operand, add usage metrics for that drive as well. during the metrics condition checking, they will take effect.
+	// this helps to check usage metrics specific to drives.
+	driveUsagePctMetric := fmt.Sprintf("%s used %%", drive)
+
+	check.warnThreshold = check.TransformMultipleKeywords([]string{convertDriveUsagePctMetric1}, driveUsagePctMetric, check.warnThreshold)
+	check.critThreshold = check.TransformMultipleKeywords([]string{convertDriveUsagePctMetric1}, driveUsagePctMetric, check.critThreshold)
+
+	if check.HasThreshold(driveUsagePctMetric) || check.HasThreshold("used") || check.HasThreshold("used_pct") || check.HasThreshold("used_bytes") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes"}, "used", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes"}, "used", check.critThreshold)
 		check.AddBytePercentMetrics("used", drive+" used", magic*float64(usage.Used), magic*float64(total))

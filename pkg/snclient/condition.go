@@ -229,7 +229,12 @@ func NewCondition(input string, attr *[]CheckAttribute) (*Condition, error) {
 
 func (c *Condition) String() string {
 	if c.original != "" {
-		return c.original
+		// keyword might have been changed by a transform function, print it out separately if that is the case
+		if strings.Contains(c.original, c.keyword) {
+			return c.original
+		}
+
+		return fmt.Sprintf("(original: %s | keyword: %s)", c.original, c.keyword)
 	}
 
 	if len(c.group) > 0 {
