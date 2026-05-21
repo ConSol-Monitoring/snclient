@@ -193,6 +193,46 @@ Returns
 {"success":true}
 ```
 
+### /api/v1/admin/log/level
+
+Temporarily (or permanently) override the current log level.
+
+`duration` (in seconds) is optional. When set and greater than 0, the previous log level is restored automatically after the duration elapsed.
+
+Example:
+
+```bash
+curl \
+    -u user:changeme \
+    -H 'Content-Type: application/json' \
+    -d '{ "level": "debug", "duration": 60 }' \
+    https://127.0.0.1:8443/api/v1/admin/log/level
+```
+
+Returns
+
+```json
+{
+    "success": true,
+    "previous": "info",
+    "current": "debug",
+    "expires_at": "2026-05-21T12:34:56Z"
+}
+```
+
+### /api/v1/admin/log/file
+
+Download the current logfile as plain text. Returns 404 when logging to stdout/stderr.
+
+Example:
+
+```bash
+curl \
+    -u user:changeme \
+    -o snclient.log \
+    https://127.0.0.1:8443/api/v1/admin/log/file
+```
+
 ### /api/v1/admin/certs/replace
 
 Replace the TLS certificate and key on the fly. Reload is optional.

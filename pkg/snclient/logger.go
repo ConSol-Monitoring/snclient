@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/kdar/factorlog"
@@ -55,6 +56,11 @@ var (
 	targetWriter      io.Writer
 	restoreLevel      string
 	LogFileHandle     *os.File
+	LogFilePath       string
+
+	logLevelMu        sync.Mutex
+	logLevelTimer     *time.Timer
+	logLevelExpiresAt time.Time
 )
 
 func setLogLevel(level string) {
@@ -72,7 +78,7 @@ func setLogLevel(level string) {
 	case "info":
 		log.SetMinMaxSeverity(factorlog.INFO, factorlog.PANIC)
 		log.SetVerbosity(LogVerbosityDefault)
-	case "debug":
+	case "debug", "verbose":
 		log.SetMinMaxSeverity(factorlog.DEBUG, factorlog.PANIC)
 		log.SetVerbosity(LogVerbosityDebug)
 	case "trace":
@@ -85,6 +91,57 @@ func setLogLevel(level string) {
 	default:
 		log.Errorf("unknown log level: %s", level)
 	}
+}
+
+func isSupportedLogLevel(level string) bool {
+	switch strings.ToLower(level) {
+	case "off", "error", "warning", "warn", "info", "debug", "verbose", "trace", "trace2":
+		return true
+	default:
+		return false
+	}
+}
+
+// SetLogLevelOverride sets the log level permanently (when duration <= 0) or temporarily.
+// When a duration is given, any previously scheduled restore is replaced.
+func SetLogLevelOverride(level string, duration time.Duration) (prev string, expiresAt time.Time, err error) {
+	if !isSupportedLogLevel(level) {
+		return "", time.Time{}, fmt.Errorf("unknown log level: %s", level)
+	}
+
+	logLevelMu.Lock()
+	defer logLevelMu.Unlock()
+
+	prev = restoreLevel
+	setLogLevel(level)
+
+	if logLevelTimer != nil {
+		logLevelTimer.Stop()
+		logLevelTimer = nil
+		logLevelExpiresAt = time.Time{}
+	}
+
+	if duration > 0 {
+		expiresAt = time.Now().Add(duration)
+		logLevelExpiresAt = expiresAt
+		restoreTo := prev
+		logLevelTimer = time.AfterFunc(duration, func() {
+			logLevelMu.Lock()
+			defer logLevelMu.Unlock()
+			setLogLevel(restoreTo)
+			logLevelExpiresAt = time.Time{}
+			logLevelTimer = nil
+		})
+	}
+
+	return prev, expiresAt, nil
+}
+
+func GetLogLevelOverride() (level string, expiresAt time.Time) {
+	logLevelMu.Lock()
+	defer logLevelMu.Unlock()
+
+	return restoreLevel, logLevelExpiresAt
 }
 
 func disableLogsTemporarily() {
@@ -112,6 +169,7 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 	}
 
 	LogFileHandle = nil
+	LogFilePath = ""
 	var logFormatter factorlog.Formatter
 	switch file {
 	case "stdout", "":
@@ -133,6 +191,7 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 		}
 		targetWriter = fHandle
 		LogFileHandle = fHandle
+		LogFilePath = file
 	}
 
 	if IsInteractive() {

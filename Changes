@@ -11,6 +11,8 @@ next:
          - check_tcp: critical defaults to 10s
          - check_tcp: add time performance data
          - check_http: add certificate checks and redirect support
+         - add /api/v1/admin/log/level rest endpoint to change log level
+         - add /api/v1/admin/log/file rest endpoint to retrieve log file
 
 0.42     Fri Feb 13 15:37:38 CET 2026
          - *DEPRECATION NOTICE* the next release will use an unprivileged snclient user

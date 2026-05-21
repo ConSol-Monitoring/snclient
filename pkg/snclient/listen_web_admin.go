@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/subuk/csrtool/pkg/csrtool"
@@ -63,6 +65,11 @@ type replaceCertData struct {
 	CertData string `json:"CertData"`
 	KeyData  string `json:"KeyData"`
 	Reload   bool   `json:"Reload"`
+}
+
+type logLevelOverrideRequest struct {
+	Level    string  `json:"level"`
+	Duration float64 `json:"duration"`
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -144,6 +151,10 @@ func (l *HandlerWebAdmin) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 	switch path {
 	case "/api/v1/admin/reload":
 		l.serveReload(res, req)
+	case "/api/v1/admin/log/level":
+		l.serveLogLevel(res, req)
+	case "/api/v1/admin/log/file":
+		l.serveLogFile(res, req)
 	case "/api/v1/admin/certs/replace":
 		l.serveCertsReplace(res, req)
 	case "/api/v1/admin/csr":
@@ -154,6 +165,114 @@ func (l *HandlerWebAdmin) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 		res.WriteHeader(http.StatusNotFound)
 		LogError2(res.Write([]byte("404 - nothing here\n")))
 	}
+}
+
+func (l *HandlerWebAdmin) serveLogLevel(res http.ResponseWriter, req *http.Request) {
+	if !l.requirePostMethod(res, req) {
+		return
+	}
+
+	decoder := json.NewDecoder(req.Body)
+	decoder.DisallowUnknownFields()
+	data := logLevelOverrideRequest{}
+	if err := decoder.Decode(&data); err != nil {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]any{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
+	}
+
+	if strings.TrimSpace(data.Level) == "" {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]any{
+			"success": false,
+			"error":   "missing log level",
+		}))
+
+		return
+	}
+
+	var duration time.Duration
+	if data.Duration > 0 {
+		duration = time.Duration(data.Duration * float64(time.Second))
+	}
+
+	prev, expiresAt, err := SetLogLevelOverride(data.Level, duration)
+	if err != nil {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]any{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
+	}
+
+	expireStr := "next restart"
+	if !expiresAt.IsZero() {
+		expireStr = duration.String()
+	}
+	log.Infof("log level override set: %s -> %s (expires: %s)", prev, data.Level, expireStr)
+
+	cur, curExpiresAt := GetLogLevelOverride()
+	if !expiresAt.IsZero() {
+		curExpiresAt = expiresAt
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	LogError(json.NewEncoder(res).Encode(map[string]any{
+		"success":    true,
+		"previous":   prev,
+		"current":    cur,
+		"expires_at": curExpiresAt,
+	}))
+}
+
+func (l *HandlerWebAdmin) serveLogFile(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]any{
+			"success": false,
+			"error":   "GET method required",
+		}))
+
+		return
+	}
+
+	logPath := LogFilePath
+	if logPath == "" {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusNotFound)
+		LogError(json.NewEncoder(res).Encode(map[string]any{
+			"success": false,
+			"error":   "no logfile configured (logging to stdout/stderr)",
+		}))
+
+		return
+	}
+
+	if _, err := os.Stat(logPath); err != nil {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusNotFound)
+		LogError(json.NewEncoder(res).Encode(map[string]any{
+			"success": false,
+			"error":   fmt.Sprintf("logfile not readable: %s", err.Error()),
+		}))
+
+		return
+	}
+
+	res.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	res.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filepath.Base(logPath)))
+	http.ServeFile(res, req, logPath)
 }
 
 func (l *HandlerWebAdmin) serveCertsCSR(res http.ResponseWriter, req *http.Request) {
