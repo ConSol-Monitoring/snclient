@@ -21,7 +21,7 @@ require (
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v4 v4.26.4
-	github.com/sni/check_http_go/pkg/checkhttp v0.0.0-20250317143157-caa67455f3bb
+	github.com/sni/check_http_go v0.0.0-20260521135839-6f1d76261a1d
 	github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9
 	github.com/sni/shelltoken v0.0.0-20251121074725-29095f38eced
 	github.com/spf13/cobra v1.10.2
