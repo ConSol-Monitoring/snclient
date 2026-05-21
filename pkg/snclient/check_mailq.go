@@ -88,7 +88,7 @@ func (l *CheckMailq) addQueues(ctx context.Context, check *CheckData) (err error
 
 // get queue from postfix
 func (l *CheckMailq) addPostfix(ctx context.Context, check *CheckData) error {
-	queueFolder, stderr, rc, err := l.snc.execCommand(ctx, "postconf -h queue_directory", DefaultCmdTimeout)
+	queueFolder, stderr, rc, err := l.snc.execCommand(ctx, "postconf -h queue_directory", l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return fmt.Errorf("postfix: postconf failed: %s\n%s", err.Error(), stderr)
 	}
@@ -124,7 +124,8 @@ func (l *CheckMailq) defaultEntry(source string) map[string]string {
 
 func (l *CheckMailq) addMetrics(check *CheckData, entry map[string]string) {
 	if entry["active"] != "" {
-		check.result.Metrics = append(check.result.Metrics,
+		check.result.Metrics = append(
+			check.result.Metrics,
 			&CheckMetric{
 				Name:     "active",
 				Unit:     "",
@@ -137,7 +138,8 @@ func (l *CheckMailq) addMetrics(check *CheckData, entry map[string]string) {
 	}
 
 	if entry["active_size"] != "" {
-		check.result.Metrics = append(check.result.Metrics,
+		check.result.Metrics = append(
+			check.result.Metrics,
 			&CheckMetric{
 				Name:     "active_size",
 				Unit:     "B",
@@ -150,7 +152,8 @@ func (l *CheckMailq) addMetrics(check *CheckData, entry map[string]string) {
 	}
 
 	if entry["deferred"] != "" {
-		check.result.Metrics = append(check.result.Metrics,
+		check.result.Metrics = append(
+			check.result.Metrics,
 			&CheckMetric{
 				Name:     "deferred",
 				Unit:     "",
@@ -163,7 +166,8 @@ func (l *CheckMailq) addMetrics(check *CheckData, entry map[string]string) {
 	}
 
 	if entry["deferred_size"] != "" {
-		check.result.Metrics = append(check.result.Metrics,
+		check.result.Metrics = append(
+			check.result.Metrics,
 			&CheckMetric{
 				Name:     "deferred_size",
 				Unit:     "B",

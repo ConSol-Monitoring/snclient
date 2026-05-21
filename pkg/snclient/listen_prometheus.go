@@ -33,14 +33,16 @@ var (
 			Name: "snclient_info",
 			Help: "information about this agent",
 		},
-		[]string{"version", "build", "os"})
+		[]string{"version", "build", "os"},
+	)
 
 	promHTTPRequestsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
 			Help: "total http requests",
 		},
-		[]string{"code", "path"})
+		[]string{"code", "path"},
+	)
 
 	promHTTPDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "http_response_time_seconds",
@@ -52,7 +54,8 @@ var (
 			Name: "tcp_requests_total",
 			Help: "total tcp requests",
 		},
-		[]string{"module"})
+		[]string{"module"},
+	)
 
 	promTCPDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "tcp_response_time_seconds",

@@ -18,7 +18,8 @@ import (
 )
 
 func init() {
-	RegisterModule(&AvailableListeners,
+	RegisterModule(
+		&AvailableListeners,
 		"WEBAdminServer",
 		"/settings/WEBAdmin/server",
 		NewHandlerAdmin,

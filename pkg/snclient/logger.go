@@ -180,7 +180,7 @@ func buildLogHandle(file string) (*os.File, error) {
 func BuildFormatter(format string) *factorlog.StdFormatter {
 	format = strings.ReplaceAll(format, "%{Pid}", fmt.Sprintf("%d", os.Getpid()))
 
-	return (factorlog.NewStdFormatter(format))
+	return factorlog.NewStdFormatter(format)
 }
 
 func LogError(err error) {

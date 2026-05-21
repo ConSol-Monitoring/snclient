@@ -389,7 +389,8 @@ func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
 
 func (cd *CheckData) buildCountMetrics(listLen, critLen, warnLen int) {
 	if cd.addCountMetrics {
-		cd.result.Metrics = append(cd.result.Metrics,
+		cd.result.Metrics = append(
+			cd.result.Metrics,
 			&CheckMetric{
 				Name:     "count",
 				Value:    listLen,
@@ -400,7 +401,8 @@ func (cd *CheckData) buildCountMetrics(listLen, critLen, warnLen int) {
 		)
 	}
 	if cd.addProblemCountMetrics {
-		cd.result.Metrics = append(cd.result.Metrics,
+		cd.result.Metrics = append(
+			cd.result.Metrics,
 			&CheckMetric{
 				Name:     "failed",
 				Value:    critLen + warnLen,
@@ -1290,7 +1292,8 @@ func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, tot
 		percent = val * 100 / total
 	}
 	pctName := perfLabel + " %"
-	cd.result.Metrics = append(cd.result.Metrics,
+	cd.result.Metrics = append(
+		cd.result.Metrics,
 		&CheckMetric{
 			Name:     perfLabel,
 			Unit:     "B",
@@ -1322,7 +1325,8 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 	if total > 0 {
 		percent = val * 100 / total
 	}
-	cd.result.Metrics = append(cd.result.Metrics,
+	cd.result.Metrics = append(
+		cd.result.Metrics,
 		&CheckMetric{
 			Name:          perfLabel,
 			ThresholdName: threshold,
@@ -1518,7 +1522,8 @@ func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
 	if cd.defaultCritical != "" {
 		defaultArgs = append(defaultArgs, defaultArg{name: "critical", defaults: cd.defaultCritical})
 	}
-	defaultArgs = append(defaultArgs,
+	defaultArgs = append(
+		defaultArgs,
 		defaultArg{name: "empty-state", defaults: fmt.Sprintf("%d (%s)", cd.emptyState, convert.StateString(cd.emptyState))},
 		defaultArg{name: "empty-syntax", defaults: cd.emptySyntax},
 		defaultArg{name: "top-syntax", defaults: cd.topSyntax},

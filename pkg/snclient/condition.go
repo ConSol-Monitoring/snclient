@@ -117,40 +117,40 @@ func OperatorParse(str string) (Operator, error) {
 func (o *Operator) String() string {
 	switch *o {
 	case Equal:
-		return ("=")
+		return "="
 	case Unequal:
-		return ("!=")
+		return "!="
 	case Contains:
-		return ("like")
+		return "like"
 	case ContainsNot:
-		return ("unlike")
+		return "unlike"
 	case ContainsCase:
-		return ("slike")
+		return "slike"
 	case ContainsNotCase:
-		return ("not slike")
+		return "not slike"
 	case RegexMatch:
-		return ("~")
+		return "~"
 	case RegexMatchNot:
-		return ("!~")
+		return "!~"
 	case RegexMatchNoCase:
-		return ("~~")
+		return "~~"
 	case RegexMatchNotNoCase:
-		return ("!~~")
+		return "!~~"
 	case Lower:
-		return ("<")
+		return "<"
 	case LowerEqual:
-		return ("<=")
+		return "<="
 	case Greater:
-		return (">")
+		return ">"
 	case GreaterEqual:
-		return (">=")
+		return ">="
 	case InList:
-		return ("in")
+		return "in"
 	case NotInList:
-		return ("not in")
+		return "not in"
 	}
 
-	return ("unknown")
+	return "unknown"
 }
 
 // GroupOperator is the operator used to combine multiple filter conditions.
@@ -166,12 +166,12 @@ const (
 func (g *GroupOperator) String() string {
 	switch *g {
 	case GroupAnd:
-		return ("and")
+		return "and"
 	case GroupOr:
-		return ("or")
+		return "or"
 	}
 
-	return ("unknown")
+	return "unknown"
 }
 
 // GroupOperatorParse parses group operator
@@ -1087,7 +1087,7 @@ type ConditionList []*Condition
 
 func (cl *ConditionList) String() string {
 	if len(*cl) == 0 {
-		return ("none")
+		return "none"
 	}
 
 	if len(*cl) == 1 {

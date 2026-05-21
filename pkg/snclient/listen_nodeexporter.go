@@ -17,7 +17,8 @@ func init() {
 			defaultManagedExporterConfig,
 			"/settings/default",
 			DefaultListenHTTPConfig,
-		})
+		},
+	)
 }
 
 func NewHandlerNodeExporter() Module {

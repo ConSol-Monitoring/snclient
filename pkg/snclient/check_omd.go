@@ -82,7 +82,7 @@ func (l *CheckOMD) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 	if len(l.siteFilter) > 0 {
 		sites = l.siteFilter
 	} else {
-		stdout, stderr, _, err := snc.execCommand(ctx, fmt.Sprintf("%s -b sites", OMDbin), DefaultCmdTimeout)
+		stdout, stderr, _, err := snc.execCommand(ctx, fmt.Sprintf("%s -b sites", OMDbin), l.snc.getBuiltinCmdTimeout())
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch omd sites: %s", err.Error())
 		}
@@ -94,7 +94,7 @@ func (l *CheckOMD) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 
 	deadline, ok := ctx.Deadline()
 	if !ok || deadline.IsZero() {
-		ctxDeadline, cancel := context.WithDeadline(ctx, time.Now().Add(DefaultCmdTimeout*time.Second))
+		ctxDeadline, cancel := context.WithDeadline(ctx, time.Now().Add(time.Duration(l.snc.getBuiltinCmdTimeout())*time.Second))
 		defer cancel()
 		ctx = ctxDeadline
 	}
@@ -131,7 +131,7 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 		return
 	}
 
-	statusRaw, stderr, _, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("omd -b status '%s'", site), DefaultCmdTimeout)
+	statusRaw, stderr, _, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("omd -b status '%s'", site), l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		log.Warnf("omd status: %s%s", statusRaw, stderr)
 		details["_error"] = err.Error()
@@ -292,7 +292,7 @@ func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string
 }
 
 func (l *CheckOMD) setAutostart(ctx context.Context, site string, details map[string]string) bool {
-	autostartRaw, stderr, _, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("%s config %s show AUTOSTART", OMDbin, site), DefaultCmdTimeout)
+	autostartRaw, stderr, _, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("%s config %s show AUTOSTART", OMDbin, site), l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		details["_error"] = err.Error()
 

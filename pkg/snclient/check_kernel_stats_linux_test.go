@@ -11,7 +11,8 @@ func TestKernelStats(t *testing.T) {
 
 	res := snc.RunCheck("check_kernel_stats", []string{})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	assert.Regexpf(t,
+	assert.Regexpf(
+		t,
 		`^OK - Context Switches [\d.]+/s, Process Creations [\d.]+/s`,
 		string(res.BuildPluginOutput()),
 		"output matches",

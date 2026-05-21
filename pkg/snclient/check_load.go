@@ -125,7 +125,8 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 		l.addLoadMetrics(check, "scaled_", scaledLoadStat)
 
 		// IMPORTANT: Add metrics for the total values with null values
-		check.result.Metrics = append(check.result.Metrics,
+		check.result.Metrics = append(
+			check.result.Metrics,
 			&CheckMetric{
 				ThresholdName: "load1",
 				Name:          "load1",
@@ -230,7 +231,8 @@ func (l *CheckLoad) transformPluginThresholds(thresholdString, prefix, typename 
 	}
 
 	newThreshold := *threshold
-	newThreshold = append(newThreshold,
+	newThreshold = append(
+		newThreshold,
 		// The assumption is that these three conditions are used with a logical OR between them
 		&Condition{
 			group: []*Condition{

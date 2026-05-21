@@ -28,7 +28,7 @@ func (l *CheckConnections) addIPV6(ctx context.Context, check *CheckData) error 
 }
 
 func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]uint64, error) {
-	output, stderr, rc, err := l.snc.execCommand(ctx, "netstat -an -p tcp -f  "+name, DefaultCmdTimeout)
+	output, stderr, rc, err := l.snc.execCommand(ctx, "netstat -an -p tcp -f  "+name, l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return nil, fmt.Errorf("netstat failed: %s\n%s", err.Error(), stderr)
 	}

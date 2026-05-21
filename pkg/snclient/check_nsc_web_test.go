@@ -23,7 +23,8 @@ password = test
 
 	res := snc.RunCheck("check_nsc_web", []string{"-u", "http://127.0.0.1:45666", "-p", "test"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	assert.Regexpf(t,
+	assert.Regexpf(
+		t,
 		`^OK - REST API reachable`,
 		string(res.BuildPluginOutput()),
 		"output matches",

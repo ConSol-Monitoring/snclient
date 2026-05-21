@@ -267,7 +267,7 @@ func extractMacroString(str string) string {
 		str = strings.TrimSpace(str)
 	}
 
-	return (str)
+	return str
 }
 
 func getMacrosetsValue(macro, orig string, timezone *time.Location, macroSets ...map[string]string) string {
@@ -301,7 +301,7 @@ func getMacrosetsValue(macro, orig string, timezone *time.Location, macroSets ..
 		return value
 	}
 
-	return (replaceMacroOperators(value, flags[1:], timezone))
+	return replaceMacroOperators(value, flags[1:], timezone)
 }
 
 func replaceMacroOperators(value string, flags []string, timezone *time.Location) string {

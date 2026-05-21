@@ -64,7 +64,8 @@ func SharedWebListener(snc *Agent, conf *ConfigSection, webHandler RequestHandle
 			handler.handler = append(handler.handler, webHandler)
 
 			if (handler.tlsConfig == nil) != (listener.tlsConfig == nil) {
-				return nil, fmt.Errorf("shared port configuration must also share tls/ssl configuration: %s: use ssl = %v vs. %s: use ssl = %v",
+				return nil, fmt.Errorf(
+					"shared port configuration must also share tls/ssl configuration: %s: use ssl = %v vs. %s: use ssl = %v",
 					handler.connType,
 					handler.tlsConfig != nil,
 					listener.connType,
@@ -135,7 +136,7 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	case err != nil:
 		return fmt.Errorf("invalid use ssl specification: %s", err.Error())
 	case useSsl:
-		if err2 := l.setListenTLSConfig((conf)); err2 != nil {
+		if err2 := l.setListenTLSConfig(conf); err2 != nil {
 			return err2
 		}
 	}
@@ -431,7 +432,7 @@ func (l *Listener) startListenerHTTP(handler []RequestHandler) {
 }
 
 func (l *Listener) BindString() string {
-	return (fmt.Sprintf("%s:%d", l.bindAddress, l.port))
+	return fmt.Sprintf("%s:%d", l.bindAddress, l.port)
 }
 
 // log wrapper for all web requests
@@ -469,7 +470,8 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 	promHTTPRequestsTotal.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), req.URL.Path).Add(1)
 	promHTTPDuration.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), req.URL.Path).Observe(duration.Seconds())
 
-	log.Debugf("http(s) request finished from: %-20s | duration: %12s | code: %3d | %s %s",
+	log.Debugf(
+		"http(s) request finished from: %-20s | duration: %12s | code: %3d | %s %s",
 		req.RemoteAddr,
 		duration,
 		resCapture.statusCode,

@@ -45,7 +45,7 @@ func (l *CheckOSUpdates) addWindows(ctx context.Context, check *CheckData) (bool
 	if l.update {
 		cmd.Env = append(cmd.Env, "ONLINE_SEARCH=1")
 	}
-	output, stderr, exitCode, _, err := l.snc.runExternalCommand(ctx, cmd, DefaultCmdTimeout)
+	output, stderr, exitCode, _, err := l.snc.runExternalCommand(ctx, cmd, l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return true, fmt.Errorf("getting pending updates failed: %s\n%s", err.Error(), stderr)
 	}

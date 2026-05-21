@@ -108,7 +108,8 @@ func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
 
 	swapInLast := swapInCounter.GetLast()
 	if swapInLast != nil {
-		check.result.Metrics = append(check.result.Metrics,
+		check.result.Metrics = append(
+			check.result.Metrics,
 			&CheckMetric{
 				Name:          "swap_in",
 				Unit:          "c",
@@ -142,7 +143,8 @@ func (l *CheckSwapIO) addSwapRate(check *CheckData, snc *Agent) {
 
 	swapOutLast := swapOutCounter.GetLast()
 	if swapOutLast != nil {
-		check.result.Metrics = append(check.result.Metrics,
+		check.result.Metrics = append(
+			check.result.Metrics,
 			&CheckMetric{
 				Name:          "swap_out",
 				Unit:          "c",

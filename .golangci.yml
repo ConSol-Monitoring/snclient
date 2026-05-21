@@ -208,8 +208,6 @@ linters:
         text: 'var-naming: avoid meaningless package names'
       - path: (.+)_test\.go$
         text: 'stringsbuilder:'
-      - path: (.+)\.go$
-        text: timeout always receives DefaultCmdTimeout
       - path: (.+)_test\.go$
         text: 'must not be called. use'
       - path: (.+)\.go$

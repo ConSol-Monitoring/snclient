@@ -103,7 +103,8 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 		"count_security": fmt.Sprintf("%d", countSecurity),
 	}
 
-	check.result.Metrics = append(check.result.Metrics,
+	check.result.Metrics = append(
+		check.result.Metrics,
 		&CheckMetric{
 			ThresholdName: "count_security",
 			Name:          "security",

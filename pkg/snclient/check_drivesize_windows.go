@@ -311,7 +311,8 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 		nil,
 		&fileSystemFlags,
 		&fileSystemName[0],
-		fileSystemNameLen)
+		fileSystemNameLen,
+	)
 	if err != nil {
 		switch {
 		case drive["type"] == "cdrom":

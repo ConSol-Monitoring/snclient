@@ -329,7 +329,8 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 		cmd.SysProcAttr.CmdLine = fmt.Sprintf(
 			`%s /c %s`,
 			shell,
-			strings.Replace(command, cmdName, syscall.EscapeArg(cmdName), 1))
+			strings.Replace(command, cmdName, syscall.EscapeArg(cmdName), 1),
+		)
 
 		log.Tracef("cmd.SysProcAttr.CmdLine: %s", cmd.SysProcAttr.CmdLine)
 

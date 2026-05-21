@@ -232,7 +232,8 @@ func cleanupDriveName(drive string) (deviceLogicalNameOrLetter string) {
 //nolint:funlen // it is long because there are a lot of attributes. the function is simple
 func (l *CheckDriveIO) addMetrics(check *CheckData) {
 	for _, data := range check.listData {
-		check.result.Metrics = append(check.result.Metrics,
+		check.result.Metrics = append(
+			check.result.Metrics,
 			&CheckMetric{
 				Name:          data["drive"] + "_read_count",
 				ThresholdName: "read_count",
@@ -300,7 +301,8 @@ func (l *CheckDriveIO) addMetrics(check *CheckData) {
 
 		switch runtime.GOOS {
 		case "windows":
-			check.result.Metrics = append(check.result.Metrics,
+			check.result.Metrics = append(
+				check.result.Metrics,
 				&CheckMetric{
 					Name:          data["drive"] + "_queue_depth",
 					ThresholdName: "queue_depth",
@@ -312,7 +314,8 @@ func (l *CheckDriveIO) addMetrics(check *CheckData) {
 				},
 			)
 		default:
-			check.result.Metrics = append(check.result.Metrics,
+			check.result.Metrics = append(
+				check.result.Metrics,
 				&CheckMetric{
 					Name:          data["drive"] + "_io_time",
 					ThresholdName: "io_time",

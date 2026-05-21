@@ -98,7 +98,8 @@ func (l *LogrotateHandler) mainLoop() {
 				continue
 			}
 
-			log.Tracef("check logfile rotation (threshold %s / current size: %s)",
+			log.Tracef(
+				"check logfile rotation (threshold %s / current size: %s)",
 				humanize.IBytes(l.maxSize),
 				humanize.IBytes(size),
 			)

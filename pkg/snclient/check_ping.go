@@ -314,7 +314,8 @@ func (l *CheckPing) addMetrics(check *CheckData, entry map[string]string) {
 	if entry["rta"] != "" {
 		rta = convert.Float64(entry["rta"])
 	}
-	check.result.Metrics = append(check.result.Metrics,
+	check.result.Metrics = append(
+		check.result.Metrics,
 		&CheckMetric{
 			Name:     "rta",
 			Unit:     "ms",

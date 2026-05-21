@@ -514,7 +514,8 @@ func (config *Config) fetchHTTPInclude(inclURL, cacheFile string, section *Confi
 	contents = append([]byte(
 		fmt.Sprintf("# snclient cached ini file\n# source: %s\n# last updated: %s\n",
 			resp.Request.URL,
-			time.Now().String())),
+			time.Now().String()),
+	),
 		contents...)
 	err = os.WriteFile(cacheFile, contents, 0o600)
 	if err != nil {

@@ -1241,8 +1241,8 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 	}
 
 	// extract stdout and stderr
-	stdout = string(bytes.TrimSpace((bytes.Trim(outbuf.Bytes(), "\x00"))))
-	stderr = string(bytes.TrimSpace((bytes.Trim(errbuf.Bytes(), "\x00"))))
+	stdout = string(bytes.TrimSpace(bytes.Trim(outbuf.Bytes(), "\x00")))
+	stderr = string(bytes.TrimSpace(bytes.Trim(errbuf.Bytes(), "\x00")))
 
 	catchOutputErrors(&cmd.Path, &stderr, &exitCode)
 
@@ -1251,6 +1251,17 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 	logTraceStringTrimmed("stderr", stderr)
 
 	return stdout, stderr, exitCode, state, nil
+}
+
+// returns the timeout for builtin external commands
+func (snc *Agent) getBuiltinCmdTimeout() int64 {
+	defaultSection := snc.config.Section("/settings/default")
+	timeout, ok, _ := defaultSection.GetInt("timeout")
+	if !ok || timeout <= 0 {
+		return DefaultCmdTimeout
+	}
+
+	return timeout
 }
 
 func procTimeoutGuard(ctx context.Context, snc *Agent, proc *os.Process) {
@@ -1672,7 +1683,8 @@ func appendProcs(ctx context.Context, check *CheckData, numProcs int64, showArgs
 			continue
 		}
 
-		check.result.Details += fmt.Sprintf(format,
+		check.result.Details += fmt.Sprintf(
+			format,
 			username,
 			fmt.Sprintf("%d", proc.proc.Pid),
 			fmt.Sprintf("%.1f", proc.cpuPercent),

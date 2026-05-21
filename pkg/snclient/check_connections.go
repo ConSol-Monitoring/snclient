@@ -221,7 +221,8 @@ func (l *CheckConnections) addMetrics(check *CheckData, entry map[string]string)
 		if !ok {
 			continue
 		}
-		check.result.Metrics = append(check.result.Metrics,
+		check.result.Metrics = append(
+			check.result.Metrics,
 			&CheckMetric{
 				ThresholdName: name,
 				Name:          prefix + name,

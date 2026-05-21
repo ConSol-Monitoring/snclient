@@ -120,7 +120,7 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 
 	if len(l.services) == 0 || slices.Contains(l.services, "*") {
 		// fetch status of all services at once instead of calling systemctl over and over
-		output, stderr, _, err := snc.execCommand(ctx, fmt.Sprintf("%s --type=service --all", systemctlStatusCmd), DefaultCmdTimeout)
+		output, stderr, _, err := snc.execCommand(ctx, fmt.Sprintf("%s --type=service --all", systemctlStatusCmd), l.snc.getBuiltinCmdTimeout())
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch service list: %s%s", err.Error(), stderr)
 		}
@@ -181,7 +181,7 @@ func (l *CheckService) addServiceByName(ctx context.Context, check *CheckData, s
 }
 
 func (l *CheckService) addServiceByExactName(ctx context.Context, check *CheckData, service string, services, excludes []string) error {
-	output, stderr, _, err := l.snc.execCommand(ctx, fmt.Sprintf("%s %s.service ", systemctlStatusCmd, service), DefaultCmdTimeout)
+	output, stderr, _, err := l.snc.execCommand(ctx, fmt.Sprintf("%s %s.service ", systemctlStatusCmd, service), l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return fmt.Errorf("systemctl failed: %s\n%s", err.Error(), stderr)
 	}
@@ -343,7 +343,7 @@ func (l *CheckService) parseAllServices(ctx context.Context, check *CheckData, o
 }
 
 func (l *CheckService) findServiceByName(ctx context.Context, service string) (name string) {
-	output, _, _, err := l.snc.execCommand(ctx, systemctlNames, DefaultCmdTimeout)
+	output, _, _, err := l.snc.execCommand(ctx, systemctlNames, l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		log.Tracef("systemctl failed: %s", err.Error())
 
@@ -360,5 +360,5 @@ func (l *CheckService) findServiceByName(ctx context.Context, service string) (n
 		}
 	}
 
-	return ("")
+	return ""
 }

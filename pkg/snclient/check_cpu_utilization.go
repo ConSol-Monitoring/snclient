@@ -127,7 +127,8 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLoo
 	entry["guest"] = fmt.Sprintf("%.f", cpuMetrics.guest)
 	entry["idle"] = fmt.Sprintf("%.f", cpuMetrics.idle)
 
-	check.result.Metrics = append(check.result.Metrics,
+	check.result.Metrics = append(
+		check.result.Metrics,
 		&CheckMetric{
 			Name:     "total",
 			Value:    utils.ToPrecision(cpuMetrics.total, 2),

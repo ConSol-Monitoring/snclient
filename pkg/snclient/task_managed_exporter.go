@@ -70,7 +70,8 @@ func (ch *ManagedExporterHandler) registerHandler(conf *Config) (nr int64) {
 				defaultManagedExporterConfig,
 				"/settings/default",
 				DefaultListenHTTPConfig,
-			})
+			},
+		)
 		// since config initialization was done already, apply defaults for this section
 		conf.ApplyMergeDefaultsKey(sectionName, moduleConfigDefaults)
 		nr++

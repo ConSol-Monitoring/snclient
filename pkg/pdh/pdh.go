@@ -282,7 +282,8 @@ func PdhAddCounter(hQuery PDH_HQUERY, szFullCounterPath string, dwUserData uintp
 		uintptr(hQuery),
 		uintptr(unsafe.Pointer(ptxt)),
 		dwUserData,
-		uintptr(unsafe.Pointer(phCounter)))
+		uintptr(unsafe.Pointer(phCounter)),
+	)
 
 	return uint32(ret)
 }
@@ -299,7 +300,8 @@ func PdhAddEnglishCounter(hQuery PDH_HQUERY, szFullCounterPath string, dwUserDat
 		uintptr(hQuery),
 		uintptr(unsafe.Pointer(ptxt)),
 		dwUserData,
-		uintptr(unsafe.Pointer(phCounter)))
+		uintptr(unsafe.Pointer(phCounter)),
+	)
 
 	return uint32(ret)
 }
@@ -346,7 +348,8 @@ func PdhGetFormattedCounterValueDouble(hCounter PDH_HCOUNTER, lpdwType *uint32, 
 		uintptr(hCounter),
 		uintptr(PDH_FMT_DOUBLE),
 		uintptr(unsafe.Pointer(lpdwType)),
-		uintptr(unsafe.Pointer(pValue)))
+		uintptr(unsafe.Pointer(pValue)),
+	)
 
 	return uint32(ret)
 }
@@ -358,7 +361,8 @@ func PdhGetFormattedCounterValueLarge(hCounter PDH_HCOUNTER, lpdwType *uint32, p
 		uintptr(hCounter),
 		uintptr(PDH_FMT_LARGE),
 		uintptr(unsafe.Pointer(lpdwType)),
-		uintptr(unsafe.Pointer(pValue)))
+		uintptr(unsafe.Pointer(pValue)),
+	)
 
 	return uint32(ret)
 }
@@ -376,7 +380,8 @@ func PdhGetFormattedCounterValueLong(hCounter PDH_HCOUNTER, lpdwType *uint32, pV
 		uintptr(hCounter),
 		uintptr(PDH_FMT_LONG),
 		uintptr(unsafe.Pointer(lpdwType)),
-		uintptr(unsafe.Pointer(pValue)))
+		uintptr(unsafe.Pointer(pValue)),
+	)
 
 	return uint32(ret)
 }
@@ -424,7 +429,8 @@ func PdhGetFormattedCounterArrayDouble(hCounter PDH_HCOUNTER, lpdwBufferSize *ui
 		uintptr(PDH_FMT_DOUBLE),
 		uintptr(unsafe.Pointer(lpdwBufferSize)),
 		uintptr(unsafe.Pointer(lpdwBufferCount)),
-		uintptr(unsafe.Pointer(itemBuffer)))
+		uintptr(unsafe.Pointer(itemBuffer)),
+	)
 
 	return uint32(ret)
 }
@@ -438,7 +444,8 @@ func PdhGetFormattedCounterArrayLarge(hCounter PDH_HCOUNTER, lpdwBufferSize *uin
 		uintptr(PDH_FMT_LARGE),
 		uintptr(unsafe.Pointer(lpdwBufferSize)),
 		uintptr(unsafe.Pointer(lpdwBufferCount)),
-		uintptr(unsafe.Pointer(itemBuffer)))
+		uintptr(unsafe.Pointer(itemBuffer)),
+	)
 
 	return uint32(ret)
 }
@@ -454,7 +461,8 @@ func PdhGetFormattedCounterArrayLong(hCounter PDH_HCOUNTER, lpdwBufferSize *uint
 		uintptr(PDH_FMT_LONG),
 		uintptr(unsafe.Pointer(lpdwBufferSize)),
 		uintptr(unsafe.Pointer(lpdwBufferCount)),
-		uintptr(unsafe.Pointer(itemBuffer)))
+		uintptr(unsafe.Pointer(itemBuffer)),
+	)
 
 	return uint32(ret)
 }
@@ -470,7 +478,8 @@ func PdhOpenQuery(szDataSource uintptr, dwUserData uintptr, phQuery *PDH_HQUERY)
 	ret, _, _ := pdh_OpenQuery.Call(
 		szDataSource,
 		dwUserData,
-		uintptr(unsafe.Pointer(phQuery)))
+		uintptr(unsafe.Pointer(phQuery)),
+	)
 
 	return uint32(ret)
 }

@@ -13,7 +13,8 @@ func TestCheckDrivesize(t *testing.T) {
 
 	res := snc.RunCheck("check_drivesize", []string{"warn=free > 0", "crit=free > 0", "drive=/"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
-	assert.Regexpf(t,
+	assert.Regexpf(
+		t,
 		`^CRITICAL - / .*?\/.*? \(\d+\.\d+%\) \|'/ free'=.*?B;0;0;0;.*? '/ free %'=.*?%;0;0;0;100`,
 		string(res.BuildPluginOutput()),
 		"output matches",
@@ -21,7 +22,8 @@ func TestCheckDrivesize(t *testing.T) {
 
 	res = snc.RunCheck("check_drivesize", []string{"warn=free_bytes > 0", "crit=free_bytes > 0", "drive=/"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
-	assert.Regexpf(t,
+	assert.Regexpf(
+		t,
 		`^CRITICAL - / .*?\/.*? \(\d+\.\d+%\) \|'/ free'=.*?B;0;0;0;.*? '/ free %'=.*?%;0;0;0;100`,
 		string(res.BuildPluginOutput()),
 		"output matches",

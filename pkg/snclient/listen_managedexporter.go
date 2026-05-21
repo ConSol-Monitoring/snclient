@@ -320,7 +320,8 @@ func (l *HandlerManagedExporter) procMemWatcher() {
 		}
 
 		if memInfo.RSS > l.agentMaxMem {
-			log.Warnf("%s memory usage - rss: %s (limit: %s), vms: %s -> restarting the agent process",
+			log.Warnf(
+				"%s memory usage - rss: %s (limit: %s), vms: %s -> restarting the agent process",
 				l.name,
 				humanize.BytesF(memInfo.RSS, 2),
 				humanize.BytesF(l.agentMaxMem, 2),
@@ -328,7 +329,8 @@ func (l *HandlerManagedExporter) procMemWatcher() {
 			)
 			l.StopProc()
 		} else {
-			log.Tracef("%s memory usage - rss: %s (limit: %s), vms: %s",
+			log.Tracef(
+				"%s memory usage - rss: %s (limit: %s), vms: %s",
 				l.name,
 				humanize.BytesF(memInfo.RSS, 2),
 				humanize.BytesF(l.agentMaxMem, 2),

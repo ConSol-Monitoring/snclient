@@ -51,7 +51,7 @@ func (l *CheckOSUpdates) addOSX(ctx context.Context, check *CheckData) (bool, er
 		opts = ""
 	}
 
-	output, stderr, exitCode, err := l.snc.execCommand(ctx, "softwareupdate -l"+opts, DefaultCmdTimeout)
+	output, stderr, exitCode, err := l.snc.execCommand(ctx, "softwareupdate -l"+opts, l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return true, fmt.Errorf("softwareupdate failed: %s\n%s", err.Error(), stderr)
 	}

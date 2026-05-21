@@ -365,7 +365,7 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 		return
 	}
 
-	usedPct := float64(used) * 100 / (float64(total))
+	usedPct := float64(used) * 100 / float64(total)
 
 	drive := map[string]string{
 		"id":            "total",
@@ -380,7 +380,7 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 		"used_pct":      fmt.Sprintf("%f", usedPct),
 		"free":          humanize.IBytesF(convert.UInt64(free), 3),
 		"free_bytes":    fmt.Sprintf("%d", free),
-		"free_pct":      fmt.Sprintf("%f", float64(free)*100/(float64(total))),
+		"free_pct":      fmt.Sprintf("%f", float64(free)*100/float64(total)),
 		"fstype":        "total",
 	}
 	l.addTotalUserMacros(drive)
@@ -424,8 +424,8 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 	freePct := float64(0)
 	usedPct := float64(0)
 	if total > 0 {
-		freePct = float64(usage.Free) * 100 / (float64(total))
-		usedPct = float64(usage.Used) * 100 / (float64(total))
+		freePct = float64(usage.Free) * 100 / float64(total)
+		usedPct = float64(usage.Used) * 100 / float64(total)
 	}
 
 	drive["size"] = humanize.IBytesF(uint64(magic*float64(total)), 3)

@@ -254,7 +254,7 @@ func LogThreadDump(log *factorlog.FactorLog) {
 // Tokenize returns list of string tokens
 // token will still have quotes around after tokenizing
 func Tokenize(str string) []string {
-	return (TokenizeBy(str, " \t\n\r", true, false))
+	return TokenizeBy(str, " \t\n\r", true, false)
 }
 
 // TokenizeBy returns list of string tokens separated by any char in separator

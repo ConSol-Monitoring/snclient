@@ -33,5 +33,5 @@ Check specific plugin:
 }
 
 func checkNSCWebWrapper(ctx context.Context, output io.Writer, osArgs []string) int {
-	return (checknscweb.Check(ctx, output, osArgs, nil))
+	return checknscweb.Check(ctx, output, osArgs, nil)
 }
