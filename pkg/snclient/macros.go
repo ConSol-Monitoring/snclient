@@ -270,14 +270,37 @@ func extractMacroString(str string) string {
 	return str
 }
 
-func getMacrosetsValue(macro, orig string, timezone *time.Location, macroSets ...map[string]string) string {
+func getMacrosetsValue(macro, orig string, timezone *time.Location, macroSets ...map[string]string) (value string) {
+	// split ORs by ||
+	// like in ex.: ${problem_list || 'found ${count} processes'}
+	for alternative := range strings.SplitSeq(macro, "||") {
+		alternative = strings.TrimSpace(alternative)
+
+		// if this is a quoted string, we threat it as a nested macro and start over
+		// ex.: 'found ${count} processes'
+		if utils.IsQuotedString(alternative) {
+			alternative, _ = utils.TrimQuotes(alternative)
+			value = ReplaceMacros(alternative, timezone, macroSets...)
+		} else {
+			value = getMacrosetsValueAlt(alternative, orig, timezone, macroSets...)
+		}
+
+		if value != "" && value != "0" {
+			return value
+		}
+	}
+
+	return value
+}
+
+func getMacrosetsValueAlt(macro, orig string, timezone *time.Location, macroSets ...map[string]string) string {
 	// split by : and |
 	flags := strings.FieldsFunc(macro, func(r rune) bool { return r == '|' || r == ':' })
 
 	macro = strings.TrimSpace(flags[0])
 	value := orig
-
 	found := false
+
 	// strip off common suffixes from marco name
 	for _, suffix := range []string{"", "_unix"} {
 		macroName := strings.TrimSuffix(macro, suffix)

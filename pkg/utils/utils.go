@@ -321,6 +321,18 @@ func TrimQuotesList(list []string) (res []string, err error) {
 	return res, nil
 }
 
+// IsQuotedString returns true if string has quotes around
+func IsQuotedString(str string) (res bool) {
+	switch {
+	case strings.HasPrefix(str, "'") && strings.HasSuffix(str, "'") && len(str) >= 2:
+		return true
+	case strings.HasPrefix(str, `"`) && strings.HasSuffix(str, `"`) && len(str) >= 2:
+		return true
+	}
+
+	return false
+}
+
 // TrimQuotes returns string with quotes removed
 func TrimQuotes(str string) (res string, err error) {
 	switch {

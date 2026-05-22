@@ -37,7 +37,7 @@ func (l *CheckProcess) Build() *CheckData {
 		conditionAlias:  l.buildConditionAlias(),
 		okSyntax:        "%(status) - all %{count} processes are ok.",
 		detailSyntax:    "${exe}=${state}",
-		topSyntax:       "%(status) - ${problem_list}",
+		topSyntax:       "%(status) - ${problem_list || 'found ${count} processes'}",
 		emptyState:      2,
 		emptySyntax:     "%(status) - no processes found with this filter.",
 		defaultWarning:  "count = 0",

@@ -21,6 +21,9 @@ func TestMacros(t *testing.T) {
 		"yesterday":  fmt.Sprintf("%d", time.Now().Add(-24*time.Hour).Unix()),
 		"characters": `öäüß@€utf`,
 		"space text": ` test `,
+		"empty":      "",
+		"zero":       "0",
+		"one":        "1",
 	}
 
 	tests := []struct {
@@ -51,6 +54,10 @@ func TestMacros(t *testing.T) {
 		{In: "$(characters:cut=1 )", Expect: "ö"},
 		{In: "$(space text | chomp )", Expect: " test"},
 		{In: "$(space text | trim )", Expect: "test"},
+		{In: "$(space text || 'alt text' )", Expect: " test "},
+		{In: "$(empty || 'alt text' )", Expect: "alt text"},
+		{In: "$(zero || 'alt text' )", Expect: "alt text"},
+		{In: "$(one || 'alt text' )", Expect: "1"},
 	}
 
 	for i, tst := range tests {
