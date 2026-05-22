@@ -11,6 +11,7 @@ This file documents the revision history for the SNClient agent.
          - check_tcp: critical defaults to 10s
          - check_tcp: add time performance data
          - check_http: add certificate checks and redirect support
+         - check_ssh: add new check_ssh to test ssh server
          - add /api/v1/admin/log/level rest endpoint to change log level
          - add /api/v1/admin/log/file rest endpoint to retrieve log file
 
