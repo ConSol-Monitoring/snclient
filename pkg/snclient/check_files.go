@@ -598,7 +598,7 @@ func (l *CheckFiles) normalizePath(path string) string {
 		path = fromSlash
 	}
 
-	// Remove groups of seperators next to each other , and replace them with a single seperator
+	// Remove groups of seperators next to each other , and replace them with a single separator
 	sep := string(os.PathSeparator)
 	for strings.Contains(path, sep+sep) {
 		path = strings.ReplaceAll(path, sep+sep, sep)

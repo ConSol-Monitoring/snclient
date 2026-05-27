@@ -94,7 +94,7 @@ func TestCheckPathSpecifications(t *testing.T) {
 	var res *CheckResult
 
 	// ===============  C:\Windows\Fonts\arial.ttf
-	// Intended seperator is backward slashes like this
+	// Intended separator is backward slashes like this
 	res = snc.RunCheck("check_files", []string{"path=C:\\Windows\\fonts", "max-depth=1", "filter= type == 'file' and name == 'arial.ttf' "})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
 
