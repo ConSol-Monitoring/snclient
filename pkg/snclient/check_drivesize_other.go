@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
@@ -118,6 +119,13 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 
 			break
 		}
+		if path == fmt.Sprintf("%s%c", vol["drive"], filepath.Separator) {
+			match = &vol
+
+			log.Debugf("Taking drive: '%s' for path: '%s' since it just needs a separator: '%c' at the end", vol["drive"], path, filepath.Separator)
+
+			break
+		}
 	}
 
 	if match != nil {
@@ -130,7 +138,7 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 	// add anyway to generate an error later with more default values filled in
 	entry := l.driveEntry(path)
 	entry["_error"] = (&PartitionNotMountedError{
-		Path: path, err: fmt.Errorf("path :%s does exist, but could not match it to a drive. its likely that the partition is not mounted", path),
+		Path: path, err: fmt.Errorf("path :%s does exist, but could not match it to a drive. its likely that the partition does not exist or is not mounted", path),
 	}).Error()
 	requiredDisks[path] = entry
 
