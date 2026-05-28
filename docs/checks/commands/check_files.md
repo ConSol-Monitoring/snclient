@@ -23,12 +23,12 @@ Checks files and directories.
 Alert if there are logs older than 1 hour in /tmp:
 
     check_files path="/tmp" pattern="*.log" "filter=age > 1h" crit="count > 0" empty-state=0 empty-syntax="no old files found" top-syntax="found %(count) too old logs"
-    OK - All 138 files are ok: (29.22 MiB) |'count'=138;500;600;0 'size'=30642669B;;;0
+    OK - All 138 files are ok: (29.22 MiB) |'count'=138;500;600;0 'total_size'=30642669B;;;0
 
 Check for folder size:
 
     check_files 'path=/tmp' 'warn=total_size > 200MiB' 'crit=total_size > 300MiB'
-    OK - All 145 files are ok: (34.72 MiB) |'count'=145;;;0 'size'=36406741B;209715200;314572800;0
+    OK - All 145 files are ok: (34.72 MiB) |'count'=145;;;0 'total_size'=36406741B;209715200;314572800;0
 
 ### Example using NRPE and Naemon
 

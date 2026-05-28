@@ -447,10 +447,15 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	// 3 directories, 16 files
 
 	// Total size should be exactly 14 mb
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='total_size > 100Mb'"})
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='total_size > 20Mb'"})
 	outputString = string(res.BuildPluginOutput())
 	// This check includes the directories as well
 	assert.Containsf(t, outputString, "OK - All 18 files are ok", "output matches")
+
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='total_size > 13Mb'"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "CRITICAL - 0/18 files", "output matches")
+	assert.Equal(t, CheckExitCritical, res.State)
 
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='total_size > 100Mb'", "filter='type == file'"})
 	outputString = string(res.BuildPluginOutput())

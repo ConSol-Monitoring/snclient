@@ -33,7 +33,7 @@ type CheckFiles struct {
 	paths                      []string
 	pathList                   CommaStringList
 	pattern                    string // constructor NewCheckFiles sets this as '*'
-	maxDepth                   int64  // constructor NewCheckFiles sets this as -1
+	maxDepth                   int64  // constructor NewCheckFiles sets this as -1. -1 disables recursion while checking paths.
 	calculateSubdirectorySizes bool   // constructor NewCheckFiles sets this as false
 }
 
@@ -98,12 +98,12 @@ func (l *CheckFiles) Build() *CheckData {
 Alert if there are logs older than 1 hour in /tmp:
 
     check_files path="/tmp" pattern="*.log" "filter=age > 1h" crit="count > 0" empty-state=0 empty-syntax="no old files found" top-syntax="found %(count) too old logs"
-    OK - All 138 files are ok: (29.22 MiB) |'count'=138;500;600;0 'size'=30642669B;;;0
+    OK - All 138 files are ok: (29.22 MiB) |'count'=138;500;600;0 'total_size'=30642669B;;;0
 
 Check for folder size:
 
     check_files 'path=/tmp' 'warn=total_size > 200MiB' 'crit=total_size > 300MiB'
-    OK - All 145 files are ok: (34.72 MiB) |'count'=145;;;0 'size'=36406741B;209715200;314572800;0
+    OK - All 145 files are ok: (34.72 MiB) |'count'=145;;;0 'total_size'=36406741B;209715200;314572800;0
 	`,
 		exampleArgs: `'path=/tmp' 'filter=age > 3d' 'warn=count > 500' 'crit=count > 600'`,
 	}
@@ -153,6 +153,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 	return check.Finalize()
 }
 
+//nolint:gocyclo // this function is delegating to other functions as much as it can
 func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, err error) error {
 	// if the search path is a directory e.g '/usr/bin' , the program assumes you are looking for files/subdirectories under it
 	// therefore it does not add the search path directory to the entry list
@@ -161,8 +162,16 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		return nil
 	}
 
+	originalFilename := filepath.Base(path)
+	if strings.TrimSpace(originalFilename) == "" {
+		log.Tracef("skipping entry with whitespace-only name: '%s' ", path)
+
+		return nil
+	}
+
 	path = l.normalizePath(path)
 	filename := filepath.Base(path)
+
 	entry := map[string]string{
 		"file":       filename,
 		"filename":   filename,
@@ -227,6 +236,7 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 	// check filter and pattern before doing more expensive things
 	// pattern matching is only done on files, directories are always added
 	// directories that do not have any matched files under them are later removed
+	// IMPORTANT: filepath.Match uses shell type matching, NOT REGEX. This is the intended way the pattern works.
 	if match, _ := filepath.Match(l.pattern, entry["filename"]); entry["type"] == "file" && !match {
 		log.Tracef("filename: %s did not match the pattern: %s , skipping", entry["filename"], l.pattern)
 
@@ -412,18 +422,16 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 
 	// entries in listData have a 'size' attribute. This is filled for files directly, with folders they have to be calculated after the walk has ended.
 	// total_size argument is the recommended way for thresholds, if they want to work with size summation of matched entries
-	if check.HasThreshold("total_size") {
-		check.result.Metrics = append(check.result.Metrics,
-			&CheckMetric{
-				ThresholdName: "total_size",
-				Name:          "total_size",
-				Value:         totalSize,
-				Unit:          "B",
-				Warning:       check.warnThreshold,
-				Critical:      check.critThreshold,
-				Min:           &Zero,
-			})
-	}
+	check.result.Metrics = append(check.result.Metrics,
+		&CheckMetric{
+			ThresholdName: "total_size",
+			Name:          "total_size",
+			Value:         totalSize,
+			Unit:          "B",
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+			Min:           &Zero,
+		})
 
 	if check.HasThreshold("size") {
 		log.Warn("check_files - Using 'size' in a threshold argument meant to mean \"summation of all found files sizes\" is wrong. " +
