@@ -76,6 +76,7 @@ case "$*" in
   ;;
   2)
     # Post upgrade permissions fix
+    systemd-sysusers
     systemd-tmpfiles --create
     # Upgrading
     if command -v setcap >/dev/null; then
