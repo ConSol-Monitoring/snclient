@@ -185,7 +185,9 @@ func (l *CheckService) Check(ctx context.Context, _ *Agent, check *CheckData, _ 
 
 	if len(l.services) == 0 && !check.showAll {
 		check.addCountMetrics = true
+		check.addCountMetricsToFront = true
 		check.addProblemCountMetrics = true
+		check.addProblemCountMetricsToFront = true
 	}
 
 	return check.Finalize()

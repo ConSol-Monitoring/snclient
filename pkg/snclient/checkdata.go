@@ -92,52 +92,54 @@ type CheckAttribute struct {
 
 // CheckData contains the runtime data of a generic check plugin
 type CheckData struct {
-	noCopy                 noCopy
-	name                   string
-	description            string
-	docTitle               string
-	usage                  string
-	defaultFilter          string
-	conditionAlias         map[string]map[string]string // replacement map of equivalent condition values
-	conditionColAlias      map[string][]string          // if there are filter for given column, apply to alias columns too
-	args                   map[string]CheckArgument
-	extraArgs              map[string]CheckArgument // internal, map of expanded args
-	argsPassthrough        bool                     // allow arbitrary arguments without complaining about unknown argument
-	hasArgsSupplied        map[string]bool          // map which is true if a arg has been specified on the command line
-	rawArgs                []string
-	filter                 ConditionList // if set, only show entries matching this filter set
-	warnThreshold          ConditionList
-	defaultWarning         string
-	critThreshold          ConditionList
-	defaultCritical        string
-	okThreshold            ConditionList
-	detailSyntax           string
-	topSyntax              string
-	okSyntax               string
-	hasArgsFilter          bool // will be true if any arg supplied which has isFilter set
-	emptySyntax            string
-	emptyState             int64
-	emptyStateSet          bool
-	details                map[string]string
-	listData               []map[string]string
-	listCombine            string // join string for detail list
-	listCombineSet         bool   // has the listCombine been set by user
-	showAll                bool   // flag if check called with show-all
-	addCountMetrics        bool
-	addProblemCountMetrics bool
-	result                 *CheckResult
-	showHelp               ShowHelp
-	timeout                float64 // timeout in seconds
-	perfConfig             []PerfConfig
-	perfSyntax             string
-	hasInventory           InventoryMode
-	output                 OutputMode
-	implemented            Implemented
-	attributes             []CheckAttribute
-	listSorted             []string // sort result list by this keys
-	exampleDefault         string
-	exampleArgs            string
-	timezone               *time.Location // timezone used for date output set by --timezone
+	noCopy                        noCopy
+	name                          string
+	description                   string
+	docTitle                      string
+	usage                         string
+	defaultFilter                 string
+	conditionAlias                map[string]map[string]string // replacement map of equivalent condition values
+	conditionColAlias             map[string][]string          // if there are filter for given column, apply to alias columns too
+	args                          map[string]CheckArgument
+	extraArgs                     map[string]CheckArgument // internal, map of expanded args
+	argsPassthrough               bool                     // allow arbitrary arguments without complaining about unknown argument
+	hasArgsSupplied               map[string]bool          // map which is true if a arg has been specified on the command line
+	rawArgs                       []string
+	filter                        ConditionList // if set, only show entries matching this filter set
+	warnThreshold                 ConditionList
+	defaultWarning                string
+	critThreshold                 ConditionList
+	defaultCritical               string
+	okThreshold                   ConditionList
+	detailSyntax                  string
+	topSyntax                     string
+	okSyntax                      string
+	hasArgsFilter                 bool // will be true if any arg supplied which has isFilter set
+	emptySyntax                   string
+	emptyState                    int64
+	emptyStateSet                 bool
+	details                       map[string]string
+	listData                      []map[string]string
+	listCombine                   string // join string for detail list
+	listCombineSet                bool   // has the listCombine been set by user
+	showAll                       bool   // flag if check called with show-all
+	addCountMetrics               bool
+	addCountMetricsToFront        bool
+	addProblemCountMetrics        bool
+	addProblemCountMetricsToFront bool
+	result                        *CheckResult
+	showHelp                      ShowHelp
+	timeout                       float64 // timeout in seconds
+	perfConfig                    []PerfConfig
+	perfSyntax                    string
+	hasInventory                  InventoryMode
+	output                        OutputMode
+	implemented                   Implemented
+	attributes                    []CheckAttribute
+	listSorted                    []string // sort result list by this keys
+	exampleDefault                string
+	exampleArgs                   string
+	timezone                      *time.Location // timezone used for date output set by --timezone
 }
 
 func (cd *CheckData) Finalize() (*CheckResult, error) {
@@ -388,29 +390,36 @@ func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
 }
 
 func (cd *CheckData) buildCountMetrics(listLen, critLen, warnLen int) {
-	if cd.addCountMetrics {
-		cd.result.Metrics = append(
-			cd.result.Metrics,
-			&CheckMetric{
-				Name:     "count",
-				Value:    listLen,
-				Warning:  cd.warnThreshold,
-				Critical: cd.critThreshold,
-				Min:      &Zero,
-			},
-		)
-	}
+	// prepending is slower, so keep separate flags for adding to front
+
 	if cd.addProblemCountMetrics {
-		cd.result.Metrics = append(
-			cd.result.Metrics,
-			&CheckMetric{
-				Name:     "failed",
-				Value:    critLen + warnLen,
-				Warning:  cd.warnThreshold,
-				Critical: cd.critThreshold,
-				Min:      &Zero,
-			},
-		)
+		metric := &CheckMetric{
+			Name:     "failed",
+			Value:    critLen + warnLen,
+			Warning:  cd.warnThreshold,
+			Critical: cd.critThreshold,
+			Min:      &Zero,
+		}
+		if cd.addProblemCountMetricsToFront {
+			cd.result.Metrics = append([]*CheckMetric{metric}, cd.result.Metrics...)
+		} else {
+			cd.result.Metrics = append(cd.result.Metrics, metric)
+		}
+	}
+
+	if cd.addCountMetrics {
+		metric := &CheckMetric{
+			Name:     "count",
+			Value:    listLen,
+			Warning:  cd.warnThreshold,
+			Critical: cd.critThreshold,
+			Min:      &Zero,
+		}
+		if cd.addCountMetricsToFront {
+			cd.result.Metrics = append([]*CheckMetric{metric}, cd.result.Metrics...)
+		} else {
+			cd.result.Metrics = append(cd.result.Metrics, metric)
+		}
 	}
 }
 
