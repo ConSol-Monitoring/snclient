@@ -212,7 +212,10 @@ func (l *CheckService) addService(ctx context.Context, check *CheckData, service
 
 	check.listData = append(check.listData, listEntry)
 
-	l.addServiceMetrics(service, l.svcStateFloat(listEntry["state"]), check, listEntry)
+	// if the count is in a condition, we do not want to add services individually to perfdata
+	if !check.HasThreshold("count") {
+		l.addServiceMetrics(service, l.svcStateFloat(listEntry["state"]), check, listEntry)
+	}
 
 	return nil
 }
