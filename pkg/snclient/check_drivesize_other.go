@@ -122,7 +122,10 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 		if path == fmt.Sprintf("%s%c", vol["drive"], filepath.Separator) {
 			match = &vol
 
-			log.Debugf("Taking drive: '%s' for path: '%s' since it just needs a separator: '%c' at the end", vol["drive"], path, filepath.Separator)
+			log.Debugf("For search path: '%s', taking drive: '%s' since adding a separator: '%s' matches the search path: '%s' ", path, vol["drive"], string(filepath.Separator), path)
+
+			// correct search path so that it looks uniform with the drivename in perfdata
+			path = strings.TrimSuffix(path, string(filepath.Separator))
 
 			break
 		}
