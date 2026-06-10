@@ -32,10 +32,10 @@ const (
 	DefaultPassword = "CHANGEME"
 
 	// DefaultNastyCharacters set the list of nasty characters which are not allowed
-	DefaultNastyCharacters = "$|`&><'\"\\[]{}"
+	DefaultNastyCharacters = "$|`&><'\"\\[]{};"
 
 	// SystemCmdNastyCharacters is a list of nasty characters which are not allowed in host names, ex.: in check_ping
-	SystemCmdNastyCharacters = "$|`&><'\"\\{}"
+	SystemCmdNastyCharacters = "$|`&><'\"\\{};"
 )
 
 var DefaultConfig = map[string]ConfigData{

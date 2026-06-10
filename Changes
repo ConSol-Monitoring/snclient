@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient agent.
 
 next:
+         - add semicolon to default nasty characters
          - check_service: fix typo in output
 
 0.43     Fri May 22 10:24:30 CEST 2026
