@@ -593,6 +593,18 @@ func (l *CheckFiles) normalizePath(path string) string {
 	// Files directly under the drive do not have separators, e.g: C:pagefile.sys
 	// This confuses the depth calculation
 	if runtime.GOOS == "windows" {
+		// Convert forward slashes to backward slashes
+		fromSlash := filepath.FromSlash(path)
+		path = fromSlash
+	}
+
+	// Remove groups of seperators next to each other , and replace them with a single separator
+	sep := string(os.PathSeparator)
+	for strings.Contains(path, sep+sep) {
+		path = strings.ReplaceAll(path, sep+sep, sep)
+	}
+
+	if runtime.GOOS == "windows" {
 		// C: -> C:\
 		if len(path) == 2 && unicode.IsUpper(rune(path[0])) && path[1] == ':' {
 			// Ensure drive letters always have a backslash: "C:" -> "C:\"

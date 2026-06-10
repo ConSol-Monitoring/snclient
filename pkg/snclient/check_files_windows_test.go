@@ -88,3 +88,31 @@ func TestCheckDriveLetterPaths(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckPathSpecifications(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	var res *CheckResult
+
+	// ===============  C:\Windows\Fonts\arial.ttf
+	// Intended separator is backward slashes like this
+	res = snc.RunCheck("check_files", []string{"path=C:\\Windows\\fonts", "max-depth=1", "filter= type == 'file' and name == 'arial.ttf' "})
+	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
+
+	// Forward slashes should be converted to backward slashes
+	res = snc.RunCheck("check_files", []string{"path=C:/Windows/fonts", "max-depth=1", "filter= type == 'file' and name == 'arial.ttf' "})
+	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
+
+	// Multiple backward slashes that do not actually go into subfolders and add depth should be ignored
+	res = snc.RunCheck("check_files", []string{"path=C:\\\\\\Windows\\\\fonts", "max-depth=1", "filter= type == 'file' and name == 'arial.ttf' "})
+	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
+
+	// Multiple backward slashes that do not actually go into subfolders and add depth should be ignored
+	res = snc.RunCheck("check_files", []string{"path=C:\\\\Windows\\\\fonts", "max-depth=1", "filter= type == 'file' and name == 'arial.ttf' "})
+	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
+
+	// Multiple forward slashes that do not actually go into subfolders and add depth should be ignored
+	res = snc.RunCheck("check_files", []string{"path=C://Windows////fonts", "max-depth=1", "filter= type == 'file' and name == 'arial.ttf' "})
+	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
+
+	StopTestAgent(t, snc)
+}
