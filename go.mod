@@ -1,6 +1,6 @@
 module github.com/consol-monitoring/snclient
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/beevik/ntp v1.5.0
@@ -21,7 +21,7 @@ require (
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v4 v4.26.5
-	github.com/sni/check_http_go v0.0.0-20260521143317-c37e234e609b
+	github.com/sni/check_http_go v0.0.0-20260610084415-f9915b4a720f
 	github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9
 	github.com/sni/shelltoken v0.0.0-20251121074725-29095f38eced
 	github.com/spf13/cobra v1.10.2
@@ -64,7 +64,7 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/mod v0.37.0 // indirect
-	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect

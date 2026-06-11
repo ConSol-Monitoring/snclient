@@ -116,14 +116,19 @@ Application Options:
       --ignore-certificate-chain                                  by default all certificates are checked in many
                                                                   aspects. Toggle this option to only check the leaf
                                                                   (final) certificate.
-      --dont-ignore-host-cn                                       Certificate subject's Common Name should matches the
-                                                                  hostname. Common Name field is now largely unused in
-                                                                  modern web, with Subject Alternative Name fields
-                                                                  taking their place when present. It is ignored by
-                                                                  default, use this flag to enable it.
-      --ignore-san                                                Skip checking Subject Alternative Names against the
+      --check-cn                                                  Subject Common Name of leaf certificate can be
+                                                                  checked to match hostname exactly. Common Name field
+                                                                  is now largely unused in modern web, with Subject
+                                                                  Alternative Name fields being more prelavent and used
+                                                                  instead of Common Name when present. It is not
+                                                                  checked by default, use this flag to enable it.
+      --check-san                                                 Subject Alternative Names can be checked against the
                                                                   hostname. SANs contain the hostnames and IP addresses
-                                                                  this certificate is valid for.
+                                                                  this certificate is valid for. They are ignored if
+                                                                  the certificate is a Certificate Authority type,
+                                                                  meaning they are used to sign other certificates and
+                                                                  not for proving security for a hostname. It is not
+                                                                  checked by default, use this flag to enable it.
       --ignore-not-after                                          Certificates are invalid after the timestamp in their
                                                                   NotAfter has passed. This field can be ignored with
                                                                   this flag.
