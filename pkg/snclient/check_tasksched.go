@@ -10,10 +10,18 @@ func init() {
 	AvailableChecks["check_tasksched"] = CheckEntry{"check_tasksched", NewCheckTasksched}
 }
 
-type CheckTasksched struct{}
+type CheckTasksched struct {
+	TaskTitle string
+}
+
+const (
+	CheckTaskschedDefaultTaskTitle string = "*"
+)
 
 func NewCheckTasksched() CheckHandler {
-	return &CheckTasksched{}
+	return &CheckTasksched{
+		TaskTitle: CheckTaskschedDefaultTaskTitle,
+	}
 }
 
 func (l *CheckTasksched) Build() *CheckData {
@@ -26,6 +34,7 @@ func (l *CheckTasksched) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
+			"title":    {value: &l.TaskTitle, description: "Sets the task to check. This corresonds to the title of the task, used when iteratating over tasks."},
 		},
 		defaultFilter:   "enabled = true",
 		defaultCritical: "exit_code < 0",

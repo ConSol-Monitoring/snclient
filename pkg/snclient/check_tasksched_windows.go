@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"fmt"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,7 +18,11 @@ import (
 var scheduledTasksPS1 string
 
 func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckData) error {
-	cmd := powerShellCmd(ctx, scheduledTasksPS1)
+	script := scheduledTasksPS1
+	if l.TaskTitle != CheckTaskschedDefaultTaskTitle {
+		script = "$title = '" + strings.ReplaceAll(l.TaskTitle, "'", "''") + "'; " + script
+	}
+	cmd := powerShellCmd(ctx, script)
 	output, stderr, exitCode, _, err := snc.runExternalCommand(ctx, cmd, snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return fmt.Errorf("getting scheduled tasks failed: %s\n%s", err.Error(), stderr)

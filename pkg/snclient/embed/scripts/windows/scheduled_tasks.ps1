@@ -1,11 +1,19 @@
 # list scheduled tasks in json format
-# usage: .\scheduled_tasks.ps1
+# usage: .\scheduled_tasks.ps1 [-title <pattern>]
 #
+
+if (!$title) { $title = $null }
 
 # ensure output is utf8
 $OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8
 
-Get-ScheduledTask | ForEach-Object {
+if ($title) {
+    $tasks = Get-ScheduledTask -TaskName ('*' + $title + '*')
+} else {
+    $tasks = Get-ScheduledTask
+}
+
+$tasks | ForEach-Object {
     $task = $_
     $taskInfo = Get-ScheduledTaskInfo -TaskName $task.TaskName -TaskPath $task.TaskPath
 
