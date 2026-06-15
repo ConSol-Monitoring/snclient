@@ -116,3 +116,13 @@ func TestCheckLogFileColumnN(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckLogFileFileExistsButHasNoLines(t *testing.T) {
+	snc := StartTestAgent(t, testLogfileConfig)
+
+	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "filter=line LIKE this-pattern-does-not-exist-in-the-test-files", "show-all"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No matching lines found in files ")
+
+	StopTestAgent(t, snc)
+}
