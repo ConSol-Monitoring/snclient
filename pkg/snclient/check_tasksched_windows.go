@@ -239,39 +239,39 @@ type ScheduledTaskPrincipal struct {
 }
 
 type ScheduledTaskTrigger struct {
-	DaysInterval       int64       `json:"DaysInterval"`
-	Enabled            bool        `json:"Enabled"`
-	EndBoundary        string      `json:"EndBoundary"`
-	ExecutionTimeLimit string      `json:"ExecutionTimeLimit"`
-	ID                 string      `json:"Id"`
-	RandomDelay        string      `json:"RandomDelay"`
-	Repetition         interface{} `json:"Repetition"`
-	StartBoundary      string      `json:"StartBoundary"`
+	DaysInterval       int64  `json:"DaysInterval"`
+	Enabled            bool   `json:"Enabled"`
+	EndBoundary        string `json:"EndBoundary"`
+	ExecutionTimeLimit string `json:"ExecutionTimeLimit"`
+	ID                 string `json:"Id"`
+	RandomDelay        string `json:"RandomDelay"`
+	Repetition         any    `json:"Repetition"`
+	StartBoundary      string `json:"StartBoundary"`
 }
 
 type ScheduledTaskSetting struct {
-	AllowDemandStart                bool        `json:"AllowDemandStart"`
-	AllowHardTerminate              bool        `json:"AllowHardTerminate"`
-	DeleteExpiredTaskAfter          string      `json:"DeleteExpiredTaskAfter"`
-	DisallowStartIfOnBatteries      bool        `json:"DisallowStartIfOnBatteries"`
-	DisallowStartOnRemoteAppSession bool        `json:"DisallowStartOnRemoteAppSession"`
-	Enabled                         bool        `json:"Enabled"`
-	ExecutionTimeLimit              string      `json:"ExecutionTimeLimit"`
-	Hidden                          bool        `json:"Hidden"`
-	IdleSettings                    interface{} `json:"IdleSettings"`
-	MaintenanceSettings             interface{} `json:"MaintenanceSettings"`
-	NetworkSettings                 interface{} `json:"NetworkSettings"`
-	Priority                        int64       `json:"Priority"`
-	PSComputerName                  string      `json:"PSComputerName"`
-	RestartCount                    int64       `json:"RestartCount"`
-	RestartInterval                 string      `json:"RestartInterval"`
-	RunOnlyIfIdle                   bool        `json:"RunOnlyIfIdle"`
-	RunOnlyIfNetworkAvailable       bool        `json:"RunOnlyIfNetworkAvailable"`
-	StartWhenAvailable              bool        `json:"StartWhenAvailable"`
-	StopIfGoingOnBatteries          bool        `json:"StopIfGoingOnBatteries"`
-	UseUnifiedSchedulingEngine      bool        `json:"UseUnifiedSchedulingEngine"`
-	Volatile                        bool        `json:"Volatile"`
-	WakeToRun                       bool        `json:"WakeToRun"`
+	AllowDemandStart                bool   `json:"AllowDemandStart"`
+	AllowHardTerminate              bool   `json:"AllowHardTerminate"`
+	DeleteExpiredTaskAfter          string `json:"DeleteExpiredTaskAfter"`
+	DisallowStartIfOnBatteries      bool   `json:"DisallowStartIfOnBatteries"`
+	DisallowStartOnRemoteAppSession bool   `json:"DisallowStartOnRemoteAppSession"`
+	Enabled                         bool   `json:"Enabled"`
+	ExecutionTimeLimit              string `json:"ExecutionTimeLimit"`
+	Hidden                          bool   `json:"Hidden"`
+	IdleSettings                    any    `json:"IdleSettings"`
+	MaintenanceSettings             any    `json:"MaintenanceSettings"`
+	NetworkSettings                 any    `json:"NetworkSettings"`
+	Priority                        int64  `json:"Priority"`
+	PSComputerName                  string `json:"PSComputerName"`
+	RestartCount                    int64  `json:"RestartCount"`
+	RestartInterval                 string `json:"RestartInterval"`
+	RunOnlyIfIdle                   bool   `json:"RunOnlyIfIdle"`
+	RunOnlyIfNetworkAvailable       bool   `json:"RunOnlyIfNetworkAvailable"`
+	StartWhenAvailable              bool   `json:"StartWhenAvailable"`
+	StopIfGoingOnBatteries          bool   `json:"StopIfGoingOnBatteries"`
+	UseUnifiedSchedulingEngine      bool   `json:"UseUnifiedSchedulingEngine"`
+	Volatile                        bool   `json:"Volatile"`
+	WakeToRun                       bool   `json:"WakeToRun"`
 }
 
 type ScheduledTaskAction struct {
