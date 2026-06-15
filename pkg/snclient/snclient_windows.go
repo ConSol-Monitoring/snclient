@@ -396,12 +396,39 @@ func shell() string {
 func powerShellCmd(ctx context.Context, command string) (cmd *exec.Cmd) {
 	cmd = exec.CommandContext(ctx, "powershell")
 	cmd.Args = nil
+	cmdLine := fmt.Sprintf(`%s -Command "%s"`, POWERSHELL, command) //nolint:gocritic // using %q just breaks the command from escaping newlines
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow: true,
-		CmdLine:    fmt.Sprintf(`%s -Command "%s"`, POWERSHELL, command), //nolint:gocritic // using %q just breaks the command from escaping newlines
+		CmdLine:    cmdLine,
 	}
 
 	return cmd
+}
+
+// this function finds where the powershell command body starts, and prepends a variable definition with a value.
+func powerShellCmdAddVariableDefinition(cmd *exec.Cmd, variableName, variableValue string) (err error) {
+	if cmd == nil {
+		return errors.New("powershell command that was passed is nil")
+	}
+	if cmd.SysProcAttr.CmdLine == "" {
+		return errors.New("powershell command has empty SysProcAttr.CmdLine. This function can only modify it when its present")
+	}
+
+	cmdline := cmd.SysProcAttr.CmdLine
+	cmdlinePrefix := fmt.Sprintf(`%s -Command "`, POWERSHELL)
+
+	if cut, cutOk := strings.CutPrefix(cmdline, cmdlinePrefix); cutOk {
+		newCmdline := cmdlinePrefix +
+			fmt.Sprintf(`$%s = '%s';`, variableName, strings.ReplaceAll(variableValue, "'", "''")) +
+			"\r\n" +
+			cut
+
+		cmd.SysProcAttr.CmdLine = newCmdline
+
+		return nil
+	} else {
+		return errors.New("powershell command does not start with the expected prefix")
+	}
 }
 
 func isBatchFile(path string) bool {
