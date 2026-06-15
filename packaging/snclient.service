@@ -8,7 +8,6 @@ User=snclient
 Group=snclient
 
 AmbientCapabilities=CAP_SETUID CAP_SETGID
-CapabilityBoundingSet=
 
 Restart=on-failure
 RestartSec=10
