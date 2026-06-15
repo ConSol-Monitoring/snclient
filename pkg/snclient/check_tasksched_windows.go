@@ -19,18 +19,25 @@ var scheduledTasksPS1 string
 func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckData) error {
 	script := scheduledTasksPS1
 	cmd := powerShellCmd(ctx, script)
-	if l.TaskTitle != CheckTaskschedDefaultTaskTitle {
-		err := powerShellCmdAddVariableDefinition(cmd, "title", l.TaskTitle)
-		if err != nil {
-			return err
-		}
+	err := powerShellCmdAddVariableDefinition(cmd, "title", l.TaskTitle)
+	if err != nil {
+		return err
 	}
+	err = powerShellCmdAddVariableDefinition(cmd, "folder", l.Folder)
+	if err != nil {
+		return err
+	}
+	err = powerShellCmdAddVariableDefinition(cmd, "recursive", strconv.FormatBool(l.Rerursive))
+	if err != nil {
+		return err
+	}
+
 	output, stderr, exitCode, _, err := snc.runExternalCommand(ctx, cmd, snc.getBuiltinCmdTimeout())
 	if err != nil {
-		return fmt.Errorf("getting scheduled tasks failed: %s\n%s", err.Error(), stderr)
+		return fmt.Errorf("getting scheduled tasks failed, error: %s\n%s", err.Error(), stderr)
 	}
 	if exitCode != 0 {
-		return fmt.Errorf("getting scheduled tasks failed: %s\n%s", output, stderr)
+		return fmt.Errorf("getting scheduled tasks failed, exitCode: %d\n%s", exitCode, stderr)
 	}
 
 	var taskList []ScheduledTask
@@ -50,18 +57,18 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 		entry := map[string]string{
 			"application":          task.Name,
 			"comment":              task.Description,
-			"creator":              task.Author,
+			"creator":              task.UserID,
 			"enabled":              fmt.Sprintf("%t", task.Enabled),
 			"exit_code":            fmt.Sprintf("%d", task.LastTaskResult.exitCode()),
 			"exit_string":          task.LastTaskResult.String(),
 			"folder":               task.Path,
 			"has_run":              fmt.Sprintf("%t", hasRun),
-			"max_run_time":         task.TimeLimit,
+			"max_run_time":         task.ExecutionTimeLimit,
 			"most_recent_run_time": fmt.Sprintf("%d", l.parseDate(task.LastRunTime).Unix()),
 			"priority":             fmt.Sprintf("%d", task.Priority),
 			"title":                task.Name,
 			"hidden":               fmt.Sprintf("%t", task.Hidden),
-			"missed_runs":          fmt.Sprintf("%d", task.MissedRuns),
+			"missed_runs":          fmt.Sprintf("%d", task.NumberOfMissedRuns),
 			"task_status":          task.State.String(),
 			"next_run_time":        fmt.Sprintf("%d", l.parseDate(task.NextRunTime).Unix()),
 			"parameters":           parameters,
@@ -200,23 +207,77 @@ func (t TaskState) String() string {
 }
 
 type ScheduledTask struct {
-	Name           string                `json:"TaskName"`
-	Path           string                `json:"TaskPath"`
-	Description    string                `json:"Description"`
-	LastRunTime    string                `json:"LastRunTime"`
-	State          TaskState             `json:"State"`
-	NextRunTime    string                `json:"NextRunTime"`
-	LastTaskResult TaskResult            `json:"LastTaskResult"`
-	MissedRuns     int64                 `json:"MissedRuns"`
-	Author         string                `json:"Author"`
-	Enabled        bool                  `json:"Enabled"`
-	Priority       int64                 `json:"Priority"`
-	Hidden         bool                  `json:"Hidden"`
-	TimeLimit      string                `json:"TimeLimit"`
-	Actions        []ScheduledTaskAction `json:"Actions"`
+	Name               string                 `json:"TaskName"`
+	Path               string                 `json:"TaskPath"`
+	Description        string                 `json:"Description"`
+	PSComputerName     string                 `json:"PSComputerName"`
+	URI                string                 `json:"URI"`
+	Version            string                 `json:"Version"`
+	LastRunTime        string                 `json:"LastRunTime"`
+	State              TaskState              `json:"State"`
+	NextRunTime        string                 `json:"NextRunTime"`
+	LastTaskResult     TaskResult             `json:"LastTaskResult"`
+	NumberOfMissedRuns int64                  `json:"NumberOfMissedRuns"`
+	UserID             string                 `json:"UserId"`
+	Enabled            bool                   `json:"Enabled"`
+	Priority           int64                  `json:"Priority"`
+	Hidden             bool                   `json:"Hidden"`
+	ExecutionTimeLimit string                 `json:"ExecutionTimeLimit"`
+	Principal          ScheduledTaskPrincipal `json:"Principal"`
+	Actions            []ScheduledTaskAction  `json:"Actions"`
+	Triggers           []ScheduledTaskTrigger `json:"Triggers"`
+	Settings           ScheduledTaskSetting   `json:"Settings"`
+}
+
+type ScheduledTaskPrincipal struct {
+	DisplayName       string   `json:"DisplayName"`
+	ID                string   `json:"Id"`
+	GroupID           string   `json:"GroupId"`
+	PSComputerName    string   `json:"PSComputerName"`
+	RequiredPrivilege []string `json:"RequiredPrivilege"`
+	UserID            string   `json:"UserId"`
+}
+
+type ScheduledTaskTrigger struct {
+	DaysInterval       int64       `json:"DaysInterval"`
+	Enabled            bool        `json:"Enabled"`
+	EndBoundary        string      `json:"EndBoundary"`
+	ExecutionTimeLimit string      `json:"ExecutionTimeLimit"`
+	ID                 string      `json:"Id"`
+	RandomDelay        string      `json:"RandomDelay"`
+	Repetition         interface{} `json:"Repetition"`
+	StartBoundary      string      `json:"StartBoundary"`
+}
+
+type ScheduledTaskSetting struct {
+	AllowDemandStart                bool        `json:"AllowDemandStart"`
+	AllowHardTerminate              bool        `json:"AllowHardTerminate"`
+	DeleteExpiredTaskAfter          string      `json:"DeleteExpiredTaskAfter"`
+	DisallowStartIfOnBatteries      bool        `json:"DisallowStartIfOnBatteries"`
+	DisallowStartOnRemoteAppSession bool        `json:"DisallowStartOnRemoteAppSession"`
+	Enabled                         bool        `json:"Enabled"`
+	ExecutionTimeLimit              string      `json:"ExecutionTimeLimit"`
+	Hidden                          bool        `json:"Hidden"`
+	IdleSettings                    interface{} `json:"IdleSettings"`
+	MaintenanceSettings             interface{} `json:"MaintenanceSettings"`
+	NetworkSettings                 interface{} `json:"NetworkSettings"`
+	Priority                        int64       `json:"Priority"`
+	PSComputerName                  string      `json:"PSComputerName"`
+	RestartCount                    int64       `json:"RestartCount"`
+	RestartInterval                 string      `json:"RestartInterval"`
+	RunOnlyIfIdle                   bool        `json:"RunOnlyIfIdle"`
+	RunOnlyIfNetworkAvailable       bool        `json:"RunOnlyIfNetworkAvailable"`
+	StartWhenAvailable              bool        `json:"StartWhenAvailable"`
+	StopIfGoingOnBatteries          bool        `json:"StopIfGoingOnBatteries"`
+	UseUnifiedSchedulingEngine      bool        `json:"UseUnifiedSchedulingEngine"`
+	Volatile                        bool        `json:"Volatile"`
+	WakeToRun                       bool        `json:"WakeToRun"`
 }
 
 type ScheduledTaskAction struct {
-	Execute   string `json:"Execute"`
-	Arguments string `json:"Arguments"`
+	Arguments        string `json:"Arguments"`
+	Execute          string `json:"Execute"`
+	ID               string `json:"Id"`
+	PSComputerName   string `json:"PSComputerName"`
+	WorkingDirectory string `json:"WorkingDirectory"`
 }
