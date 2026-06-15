@@ -426,9 +426,9 @@ func powerShellCmdAddVariableDefinition(cmd *exec.Cmd, variableName, variableVal
 		cmd.SysProcAttr.CmdLine = newCmdline
 
 		return nil
-	} else {
-		return errors.New("powershell command does not start with the expected prefix")
 	}
+
+	return errors.New("powershell command does not start with the expected prefix")
 }
 
 func isBatchFile(path string) bool {

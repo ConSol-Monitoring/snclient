@@ -54,9 +54,10 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument | Description                                                |
-| -------- | ---------------------------------------------------------- |
-| timezone | Sets the timezone for time metrics (default is local time) |
+| Argument | Description                                                                                         |
+| -------- | --------------------------------------------------------------------------------------------------- |
+| timezone | Sets the timezone for time metrics (default is local time)                                          |
+| title    | Sets the task to check. This corresonds to the title of the task, used when iteratating over tasks. |
 
 ## Attributes
 
