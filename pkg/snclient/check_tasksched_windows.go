@@ -27,7 +27,7 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 	if err != nil {
 		return err
 	}
-	err = powerShellCmdAddVariableDefinition(cmd, "recursive", strconv.FormatBool(l.Rerursive))
+	err = powerShellCmdAddVariableDefinition(cmd, "recursive", strconv.FormatBool(l.Recursive))
 	if err != nil {
 		return err
 	}

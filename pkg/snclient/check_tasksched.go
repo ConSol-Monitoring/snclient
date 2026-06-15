@@ -13,7 +13,7 @@ func init() {
 type CheckTasksched struct {
 	TaskTitle string
 	Folder    string
-	Rerursive bool
+	Recursive bool
 }
 
 const (
@@ -24,7 +24,7 @@ func NewCheckTasksched() CheckHandler {
 	return &CheckTasksched{
 		TaskTitle: CheckTaskschedDefaultTaskTitle,
 		Folder:    "\\",
-		Rerursive: false,
+		Recursive: true,
 	}
 }
 
@@ -40,7 +40,7 @@ func (l *CheckTasksched) Build() *CheckData {
 			"timezone":  {description: "Sets the timezone for time metrics (default is local time)"},
 			"title":     {value: &l.TaskTitle, description: "Sets the task to check. This corresonds to the title of the task, used when iteratating over tasks."},
 			"folder":    {value: &l.Folder, description: "The folder where the scheduled task is saved. This is used for exact matches, unless recurisive option is enabled."},
-			"recursive": {value: &l.Rerursive, description: "Include the subfolders of the specified folder as well when searching for scheduled tasks."},
+			"recursive": {value: &l.Recursive, description: "Include the subfolders of the specified folder as well when searching for scheduled tasks."},
 		},
 		defaultFilter:   "enabled = true",
 		defaultCritical: "exit_code < 0",
