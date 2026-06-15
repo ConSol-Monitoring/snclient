@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - fix running external scripts with sudo (#388)
+         - fix rpm installation not creating required snclient user during update (#380)
          - add semicolon to default nasty characters
          - check_service: fix typo in output
          - check_drivesize: allow specifying drive with trailing slash
