@@ -121,8 +121,18 @@ func TestCheckLogFileFileExistsButHasNoLines(t *testing.T) {
 	snc := StartTestAgent(t, testLogfileConfig)
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "filter=line LIKE this-pattern-does-not-exist-in-the-test-files", "show-all"})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No matching lines found in files ")
+	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No matching lines found in files")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckLogFileFileDoesNotExist(t *testing.T) {
+	snc := StartTestAgent(t, testLogfileConfig)
+
+	res := snc.RunCheck("check_logfile", []string{"files=./t/testfiledoesnotexist*"})
+	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No files found to search lines in")
 
 	StopTestAgent(t, snc)
 }

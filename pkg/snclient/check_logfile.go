@@ -67,7 +67,7 @@ func (c *CheckLogFile) Build() *CheckData {
 		okSyntax:     "%(status) - All %(count) / %(total) Lines OK",
 		topSyntax:    "%(status) - %(problem_count)/%(count) lines (%(count)) %(problem_list)",
 		emptySyntax:  "%(status) - No files found",
-		emptyState:   CheckExitUnknown,
+		emptyState:   CheckExitOK,
 		args: map[string]CheckArgument{
 			"file":         {value: &c.FilePathPatterns, description: "The file that should be checked"},
 			"files":        {value: &c.FilePathPatternsCS, description: "Comma separated list of files"},
@@ -166,8 +166,11 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		"file_counts": c.buildFileCountsDetailString(checkedFilesWithMatchedEntries),
 	}
 
-	if len(check.listData) == 0 {
+	if len(checkedFilesWithMatchedEntries) == 0 {
+		check.okSyntax = "%(status) - No files found to search lines in"
+	} else if len(check.listData) == 0 {
 		check.emptySyntax = fmt.Sprintf("%%(status) - No matching lines found in files (%s)", check.details["file_counts"])
+		check.emptyStateSet = true
 	}
 
 	return check.Finalize()
