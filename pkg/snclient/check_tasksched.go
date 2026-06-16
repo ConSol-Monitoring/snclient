@@ -47,7 +47,7 @@ func (l *CheckTasksched) Build() *CheckData {
 		defaultFilter:   "enabled = true",
 		defaultCritical: "exit_code < 0",
 		defaultWarning:  "exit_code != 0",
-		detailSyntax:    "${folder}/${title}: ${exit_code} != 0",
+		detailSyntax:    "${uri}: ${exit_code} != 0",
 		topSyntax:       "%(status) - ${problem_list}",
 		okSyntax:        "%(status) - All tasks are ok",
 		emptySyntax:     "%(status) - No tasks found",

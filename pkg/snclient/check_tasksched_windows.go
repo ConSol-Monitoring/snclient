@@ -76,6 +76,7 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 			"exit_code":            fmt.Sprintf("%d", task.LastTaskResult.exitCode()),
 			"exit_string":          task.LastTaskResult.String(),
 			"folder":               task.Path,
+			"uri":                  task.URI,
 			"has_run":              fmt.Sprintf("%t", hasRun),
 			"max_run_time":         task.ExecutionTimeLimit,
 			"most_recent_run_time": fmt.Sprintf("%d", l.parseDate(task.LastRunTime).Unix()),
