@@ -782,7 +782,7 @@ func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 // RunCheckWithContext calls check by name and returns the check result.
 // secCon configuration section will be used to check for nasty characters and allowed arguments.
 func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection, skipAlias bool) *CheckResult {
-	t1 := time.Now()
+	start := time.Now()
 	res, chk := snc.runCheck(ctx, name, args, timeoutOverride, transportConf, false, skipAlias)
 	if res.Raw == nil || res.Raw.showHelp == 0 {
 		if chk != nil {
@@ -791,7 +791,7 @@ func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []s
 			res.Finalize(nil)
 		}
 	}
-	log.Debugf("check %s took %s to finish", name, time.Since(t1))
+	log.Debugf("check %s took %s to finish", name, time.Since(start))
 
 	return res
 }
