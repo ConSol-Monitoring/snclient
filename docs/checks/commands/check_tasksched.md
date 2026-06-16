@@ -54,10 +54,12 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument | Description                                                                                         |
-| -------- | --------------------------------------------------------------------------------------------------- |
-| timezone | Sets the timezone for time metrics (default is local time)                                          |
-| title    | Sets the task to check. This corresonds to the title of the task, used when iteratating over tasks. |
+| Argument  | Description                                                                                               |
+| --------- | --------------------------------------------------------------------------------------------------------- |
+| folder    | The folder where the scheduled task is saved. This is used for exact matches, unless recurisive option is enabled. |
+| recursive | Include the subfolders of the specified folder as well when searching for scheduled tasks.                |
+| timezone  | Sets the timezone for time metrics (default is local time)                                                |
+| title     | Sets the task to check. This corresonds to the title of the task, used when iteratating over tasks.       |
 
 ## Attributes
 
