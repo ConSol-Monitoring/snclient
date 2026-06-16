@@ -18,19 +18,33 @@ var scheduledTasksPS1 string
 
 func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckData) error {
 	script := scheduledTasksPS1
-	cmd := powerShellCmd(ctx, script)
-	err := powerShellCmdAddVariableDefinition(cmd, "title", l.TaskTitle)
-	if err != nil {
-		return err
-	}
-	err = powerShellCmdAddVariableDefinition(cmd, "folder", l.Folder)
-	if err != nil {
-		return err
-	}
-	err = powerShellCmdAddVariableDefinition(cmd, "recursive", strconv.FormatBool(l.Recursive))
-	if err != nil {
-		return err
-	}
+
+	cmd := powerShellCmd(ctx, script,
+		PowerShellParameter{
+			name:                "title",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        CheckTaskschedDefaultTaskTitle,
+			specifyValue:        true,
+			specifiedValue:      l.TaskTitle,
+		},
+		PowerShellParameter{
+			name:                "folder",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        CheckTaskschedDefaultFolder,
+			specifyValue:        true,
+			specifiedValue:      l.Folder,
+		},
+		PowerShellParameter{
+			name:                "recursive",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        strconv.FormatBool(CheckTaskschedDefaultRecursive),
+			specifyValue:        true,
+			specifiedValue:      strconv.FormatBool(l.Recursive),
+		},
+	)
 
 	output, stderr, exitCode, _, err := snc.runExternalCommand(ctx, cmd, snc.getBuiltinCmdTimeout())
 	if err != nil {

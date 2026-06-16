@@ -18,13 +18,15 @@ type CheckTasksched struct {
 
 const (
 	CheckTaskschedDefaultTaskTitle string = "*"
+	CheckTaskschedDefaultFolder    string = "\\"
+	CheckTaskschedDefaultRecursive bool   = true
 )
 
 func NewCheckTasksched() CheckHandler {
 	return &CheckTasksched{
 		TaskTitle: CheckTaskschedDefaultTaskTitle,
-		Folder:    "\\",
-		Recursive: true,
+		Folder:    CheckTaskschedDefaultFolder,
+		Recursive: CheckTaskschedDefaultRecursive,
 	}
 }
 
@@ -38,7 +40,7 @@ func (l *CheckTasksched) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"timezone":  {description: "Sets the timezone for time metrics (default is local time)"},
-			"title":     {value: &l.TaskTitle, description: "Sets the task to check. This corresonds to the title of the task, used when iteratating over tasks."},
+			"title":     {value: &l.TaskTitle, description: "Sets the task to check. This corresonds to the title of the scheduled task, called TaskName in Powershell output."},
 			"folder":    {value: &l.Folder, description: "The folder where the scheduled task is saved. This is used for exact matches, unless recurisive option is enabled."},
 			"recursive": {value: &l.Recursive, description: "Include the subfolders of the specified folder as well when searching for scheduled tasks."},
 		},

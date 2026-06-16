@@ -393,42 +393,48 @@ func shell() string {
 	return shell
 }
 
-func powerShellCmd(ctx context.Context, command string) (cmd *exec.Cmd) {
+type PowerShellParameter struct {
+	name                string
+	parameterType       string
+	specifyDefaultValue bool
+	defaultValue        string
+	specifyValue        bool
+	specifiedValue      string
+}
+
+func powerShellCmd(ctx context.Context, command string, parameters ...PowerShellParameter) (cmd *exec.Cmd) {
 	cmd = exec.CommandContext(ctx, "powershell")
 	cmd.Args = nil
-	cmdLine := fmt.Sprintf(`%s -Command "%s"`, POWERSHELL, command) //nolint:gocritic // using %q just breaks the command from escaping newlines
+
+	// powershellInvocationArguments "& { param([string]$param1='defaultValue1', [string]$param2='defaultValue2') scriptContent }" -param1 "value1" -param2 "value2"
+
+	parameterDefinitions := make([]string, 0, len(parameters))
+	for _, para := range parameters {
+		def := fmt.Sprintf("[%s]$%s", para.parameterType, para.name)
+		if para.specifyDefaultValue {
+			def += fmt.Sprintf("='%s'", para.defaultValue)
+		}
+		parameterDefinitions = append(parameterDefinitions, def)
+	}
+	parameterDefinitionsCmdline := fmt.Sprintf("param(%s)", strings.Join(parameterDefinitions, ", "))
+
+	parameterSpecifications := make([]string, 0, len(parameters))
+	for _, para := range parameters {
+		if para.specifyValue {
+			spec := fmt.Sprintf(`-%s '%s'`, para.name, para.specifiedValue)
+			parameterSpecifications = append(parameterSpecifications, spec)
+		}
+	}
+	parameterSpecificationsCmdline := strings.Join(parameterSpecifications, "  ")
+
+	cmdLine := fmt.Sprintf(`%s -Command "& { %s  %s }" %s `, POWERSHELL, parameterDefinitionsCmdline, command, parameterSpecificationsCmdline)
+
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow: true,
 		CmdLine:    cmdLine,
 	}
 
 	return cmd
-}
-
-// this function finds where the powershell command body starts, and prepends a variable definition with a value.
-func powerShellCmdAddVariableDefinition(cmd *exec.Cmd, variableName, variableValue string) (err error) {
-	if cmd == nil {
-		return errors.New("powershell command that was passed is nil")
-	}
-	if cmd.SysProcAttr.CmdLine == "" {
-		return errors.New("powershell command has empty SysProcAttr.CmdLine. This function can only modify it when its present")
-	}
-
-	cmdline := cmd.SysProcAttr.CmdLine
-	cmdlinePrefix := fmt.Sprintf(`%s -Command "`, POWERSHELL)
-
-	if cut, cutOk := strings.CutPrefix(cmdline, cmdlinePrefix); cutOk {
-		newCmdline := cmdlinePrefix +
-			fmt.Sprintf(`$%s = '%s';`, variableName, strings.ReplaceAll(variableValue, "'", "''")) +
-			"\r\n" +
-			cut
-
-		cmd.SysProcAttr.CmdLine = newCmdline
-
-		return nil
-	}
-
-	return errors.New("powershell command does not start with the expected prefix")
 }
 
 func isBatchFile(path string) bool {
