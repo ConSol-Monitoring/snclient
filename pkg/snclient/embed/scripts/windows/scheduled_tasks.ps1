@@ -34,7 +34,7 @@ $OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8
 
 $params = @{}
 if ($title -ne '*') {
-    $params.TaskName = '*' + $title + '*'
+    $params.TaskName = $title
 }
 if ($recursive -eq 'true') {
     $params.TaskPath = $folder + '*'
