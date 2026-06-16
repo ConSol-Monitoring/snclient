@@ -19,7 +19,8 @@ var scheduledTasksPS1 string
 func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckData) error {
 	script := scheduledTasksPS1
 
-	cmd := powerShellCmd(ctx, script,
+	cmd := powerShellCmd(
+		ctx, script,
 		PowerShellParameter{
 			name:                "title",
 			parameterType:       "string",

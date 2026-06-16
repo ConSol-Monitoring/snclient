@@ -41,16 +41,16 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                            |
-| ------------- | ---------------------------------------- |
-| filter        | enabled = true                           |
-| warning       | exit_code != 0                           |
-| critical      | exit_code < 0                            |
-| empty-state   | 1 (WARNING)                              |
-| empty-syntax  | %(status) - No tasks found               |
-| top-syntax    | %(status) - \${problem_list}             |
-| ok-syntax     | %(status) - All tasks are ok             |
-| detail-syntax | \${folder}/\${title}: \${exit_code} != 0 |
+| Argument      | Default Value                |
+| ------------- | ---------------------------- |
+| filter        | enabled = true               |
+| warning       | exit_code != 0               |
+| critical      | exit_code < 0                |
+| empty-state   | 1 (WARNING)                  |
+| empty-syntax  | %(status) - No tasks found   |
+| top-syntax    | %(status) - \${problem_list} |
+| ok-syntax     | %(status) - All tasks are ok |
+| detail-syntax | \${uri}: \${exit_code} != 0  |
 
 ## Check Specific Arguments
 
@@ -59,7 +59,7 @@ Naemon Config
 | folder    | The folder where the scheduled task is saved. This is used for exact matches, unless recurisive option is enabled. |
 | recursive | Include the subfolders of the specified folder as well when searching for scheduled tasks.                |
 | timezone  | Sets the timezone for time metrics (default is local time)                                                |
-| title     | Sets the task to check. This corresonds to the title of the task, used when iteratating over tasks.       |
+| title     | Sets the task to check. This corresonds to the title of the scheduled task, called TaskName in Powershell output. |
 
 ## Attributes
 
