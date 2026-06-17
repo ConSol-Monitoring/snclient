@@ -17,6 +17,7 @@ import (
 //go:embed embed/scripts/windows/scheduled_tasks.ps1
 var scheduledTasksPS1 string
 
+//nolint:funlen // function is long, but is simple, should not be dismantled
 func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckData) error {
 	script := scheduledTasksPS1
 
