@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"fmt"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -78,6 +79,7 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 			"exit_string":          task.LastTaskResult.String(),
 			"folder":               task.Path,
 			"uri":                  task.URI,
+			"uri_clean":            parseURIClean(task.URI),
 			"has_run":              fmt.Sprintf("%t", hasRun),
 			"max_run_time":         task.ExecutionTimeLimit,
 			"most_recent_run_time": fmt.Sprintf("%d", l.parseDate(task.LastRunTime).Unix()),
@@ -92,7 +94,22 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 		check.listData = append(check.listData, entry)
 	}
 
+	if check.HasThreshold("title") || check.hasThresholdCond(check.filter, "title") || l.TaskTitle != CheckTaskschedDefaultTaskTitle {
+		check.emptyState = CheckExitUnknown
+		check.emptySyntax = "%(status) - No tasks found, check your arguments/filters/thresholds using title attribute."
+	}
+
 	return nil
+}
+
+func parseURIClean(uri string) string {
+	if strings.Count(uri, "\\") == 1 {
+		if cut, cutOk := strings.CutPrefix(uri, "\\"); cutOk {
+			return cut
+		}
+	}
+
+	return uri
 }
 
 func (l *CheckTasksched) parseDate(raw string) time.Time {
