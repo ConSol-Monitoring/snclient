@@ -406,7 +406,7 @@ func powerShellCmd(ctx context.Context, command string, parameters ...PowerShell
 	cmd = exec.CommandContext(ctx, "powershell")
 	cmd.Args = nil
 
-	checkQuoutes := func(str string) bool {
+	checkQuotes := func(str string) bool {
 		if strings.ContainsRune(str, '\'') || strings.ContainsRune(str, '"') {
 			return true
 		}
@@ -414,9 +414,9 @@ func powerShellCmd(ctx context.Context, command string, parameters ...PowerShell
 		return false
 	}
 	for _, para := range parameters {
-		if checkQuoutes(para.name) || checkQuoutes(para.parameterType) ||
-			checkQuoutes(para.defaultValue) || checkQuoutes(para.specifiedValue) {
-			return nil, errors.New("one of the parameters has its name/type or values contain single or double quoutes")
+		if checkQuotes(para.name) || checkQuotes(para.parameterType) ||
+			checkQuotes(para.defaultValue) || checkQuotes(para.specifiedValue) {
+			return nil, errors.New("one of the parameters has its name/type or values contain single or double quotes")
 		}
 	}
 

@@ -6,6 +6,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -36,8 +37,10 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 	}
 
 	if l.Folder != CheckTaskschedDefaultFolder {
-		if strings.ContainsFunc(l.Folder, func(r rune) bool { return !unicode.IsLetter(r) && r != '\\' }) {
-			return fmt.Errorf("custom specified folder should be all letters or backslashes, but it isnt: %s", l.Folder)
+		// NTFS characters are generally allowed, expect quotes
+		allowedRunes := []rune{' ', '-', '\\', '_', '(', ')', '[', ']', '.', ','}
+		if strings.ContainsFunc(l.Folder, func(r rune) bool { return !unicode.IsLetter(r) && !slices.Contains(allowedRunes, r) }) {
+			return fmt.Errorf("custom specified folder should be all letters or allowed runes: '%s', but it isnt: %s", string(allowedRunes), l.Folder)
 		}
 	}
 
