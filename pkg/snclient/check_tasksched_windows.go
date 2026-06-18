@@ -68,7 +68,6 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 			specifiedValue:      strconv.FormatBool(l.Recursive),
 		},
 	)
-
 	if err != nil {
 		return fmt.Errorf("error when building a powershell command: %s", err.Error())
 	}

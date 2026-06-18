@@ -87,4 +87,6 @@ these can be used in filters and thresholds (along with the default attributes):
 | missed_runs          | Number of times the registered task has missed a scheduled run                                 |
 | task_status          | Task status as string                                                                          |
 | next_run_time        | Time when the registered task is next scheduled to run                                         |
-| parameters           | Command line parameters for the task                                                           |
+| parameters           | Last actions command line parameters                                                           |
+| execute              | Last actions executed program                                                                  |
+| working_dir          | Last actions working directory                                                                 |
