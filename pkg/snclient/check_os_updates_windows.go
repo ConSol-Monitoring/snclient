@@ -41,7 +41,10 @@ func (l *CheckOSUpdates) addWindows(ctx context.Context, check *CheckData) (bool
 
 	// https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nf-wuapi-iupdatesearcher-search
 	// https://learn.microsoft.com/en-us/windows/win32/api/wuapi/nn-wuapi-iupdate
-	cmd := powerShellCmd(ctx, checkOSupdatesPS1)
+	cmd, err := powerShellCmd(ctx, checkOSupdatesPS1)
+	if err != nil {
+		return false, fmt.Errorf("error when building a powershell command: %s", err.Error())
+	}
 	if l.update {
 		cmd.Env = append(cmd.Env, "ONLINE_SEARCH=1")
 	}
