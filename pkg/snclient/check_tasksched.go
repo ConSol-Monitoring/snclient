@@ -71,7 +71,9 @@ func (l *CheckTasksched) Build() *CheckData {
 			{name: "missed_runs", description: "Number of times the registered task has missed a scheduled run"},
 			{name: "task_status", description: "Task status as string"},
 			{name: "next_run_time", description: "Time when the registered task is next scheduled to run", unit: UDate},
-			{name: "parameters", description: "Command line parameters for the task"},
+			{name: "parameters", description: "Last actions command line parameters"},
+			{name: "execute", description: "Last actions executed program"},
+			{name: "working_dir", description: "Last actions working directory"},
 		},
 		exampleDefault: `
     check_tasksched

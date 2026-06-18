@@ -402,10 +402,25 @@ type PowerShellParameter struct {
 	specifiedValue      string
 }
 
-func powerShellCmd(ctx context.Context, command string, parameters ...PowerShellParameter) (cmd *exec.Cmd) {
+func powerShellCmd(ctx context.Context, command string, parameters ...PowerShellParameter) (cmd *exec.Cmd, err error) {
 	cmd = exec.CommandContext(ctx, "powershell")
 	cmd.Args = nil
 
+	checkQuoutes := func(str string) bool {
+		if strings.ContainsRune(str, '\'') || strings.ContainsRune(str, '"') {
+			return true
+		}
+
+		return false
+	}
+	for _, para := range parameters {
+		if checkQuoutes(para.name) || checkQuoutes(para.parameterType) ||
+			checkQuoutes(para.defaultValue) || checkQuoutes(para.specifiedValue) {
+			return nil, errors.New("one of the parameters has its name/type or values contain single or double quoutes")
+		}
+	}
+
+	// the template looks like this:
 	// powershellInvocationArguments "& { param([string]$param1='defaultValue1', [string]$param2='defaultValue2') scriptContent }" -param1 "value1" -param2 "value2"
 
 	parameterDefinitions := make([]string, 0, len(parameters))
@@ -434,7 +449,7 @@ func powerShellCmd(ctx context.Context, command string, parameters ...PowerShell
 		CmdLine:    cmdLine,
 	}
 
-	return cmd
+	return cmd, nil
 }
 
 func isBatchFile(path string) bool {

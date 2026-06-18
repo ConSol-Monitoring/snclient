@@ -52,8 +52,11 @@ $results = @()
 foreach ($task in $tasks) {
     $taskInfo = Get-ScheduledTaskInfo -TaskName $task.TaskName -TaskPath $task.TaskPath
 
-    # Extract command line and arguments from the actions
+    # Get-ScheduledTask returns a nested object
+    # Subobjects are not fully serialized and sent, only some of their fields are specifically selected
+
     # Get-ScheduledTask -TaskName "XYZ" | Select-Object -ExpandProperty Actions | Get-Member -MemberType Property
+    # This one should be exported, as a complete object. It is an array, and only the last ones execute, parameters and working directory are picked
     $actions = @($task.Actions | ForEach-Object {
         [PSCustomObject]@{
             Arguments = $_.Arguments
@@ -65,54 +68,54 @@ foreach ($task in $tasks) {
     })
 
     # Get-ScheduledTask -TaskName "XYZ" | Select-Object -ExpandProperty Triggers | Get-Member -MemberType Property
-    $triggers = @($task.Triggers | ForEach-Object {
-        [PSCustomObject]@{
-            DaysInterval = $_.DaysInterval
-            Enabled = $_.Enabled
-            EndBoundary = $_.EndBoundary
-            ExecutionTimeLimit = $_.ExecutionTimeLimit
-            Id = $_.Id
-            RandomDelay = $_.RandomDelay
-            Repetition = $_.Repetition
-            StartBoundary = $_.StartBoundary
-        }
-    })
+    # $triggers = @($task.Triggers | ForEach-Object {
+    #     [PSCustomObject]@{
+    #         DaysInterval = $_.DaysInterval
+    #         Enabled = $_.Enabled
+    #         EndBoundary = $_.EndBoundary
+    #         ExecutionTimeLimit = $_.ExecutionTimeLimit
+    #         Id = $_.Id
+    #         RandomDelay = $_.RandomDelay
+    #         Repetition = $_.Repetition
+    #         StartBoundary = $_.StartBoundary
+    #     }
+    # })
 
     # Get-ScheduledTask -TaskName "XYZ" | Select-Object -ExpandProperty Settings | Get-Member -MemberType Property
-    $settings = [PSCustomObject]@{
-            AllowDemandStart = $task.Settings.AllowDemandStart
-            AllowHardTerminate = $task.Settings.AllowHardTerminate
-            DeleteExpiredTaskAfter = $task.Settings.DeleteExpiredTaskAfter
-            DisallowStartIfOnBatteries = $task.Settings.DisallowStartIfOnBatteries
-            DisallowStartOnRemoteAppSession = $task.Settings.DisallowStartOnRemoteAppSession
-            Enabled = $task.Settings.Enabled
-            ExecutionTimeLimit = $task.Settings.ExecutionTimeLimit
-            Hidden = $task.Settings.Hidden
-            IdleSettings = $task.Settings.IdleSettings
-            MaintenanceSettings = $task.Settings.MaintenanceSettings
-            NetworkSettings = $task.Settings.NetworkSettings
-            Priority = $task.Settings.Priority
-            PSComputerName = $task.Settings.PSComputerName
-            RestartCount = $task.Settings.RestartCount
-            RestartInterval = $task.Settings.RestartInterval
-            RunOnlyIfIdle = $task.Settings.RunOnlyIfIdle
-            RunOnlyIfNetworkAvailable = $task.Settings.RunOnlyIfNetworkAvailable
-            StartWhenAvailable = $task.Settings.StartWhenAvailable
-            StopIfGoingOnBatteries = $task.Settings.StopIfGoingOnBatteries
-            UseUnifiedSchedulingEngine = $task.Settings.UseUnifiedSchedulingEngine
-            Volatile = $task.Settings.Volatile
-            WakeToRun = $task.Settings.WakeToRun
-        }
+    # $settings = [PSCustomObject]@{
+    #         AllowDemandStart = $task.Settings.AllowDemandStart
+    #         AllowHardTerminate = $task.Settings.AllowHardTerminate
+    #         DeleteExpiredTaskAfter = $task.Settings.DeleteExpiredTaskAfter
+    #         DisallowStartIfOnBatteries = $task.Settings.DisallowStartIfOnBatteries
+    #         DisallowStartOnRemoteAppSession = $task.Settings.DisallowStartOnRemoteAppSession
+    #         Enabled = $task.Settings.Enabled
+    #         ExecutionTimeLimit = $task.Settings.ExecutionTimeLimit
+    #         Hidden = $task.Settings.Hidden
+    #         IdleSettings = $task.Settings.IdleSettings
+    #         MaintenanceSettings = $task.Settings.MaintenanceSettings
+    #         NetworkSettings = $task.Settings.NetworkSettings
+    #         Priority = $task.Settings.Priority
+    #         PSComputerName = $task.Settings.PSComputerName
+    #         RestartCount = $task.Settings.RestartCount
+    #         RestartInterval = $task.Settings.RestartInterval
+    #         RunOnlyIfIdle = $task.Settings.RunOnlyIfIdle
+    #         RunOnlyIfNetworkAvailable = $task.Settings.RunOnlyIfNetworkAvailable
+    #         StartWhenAvailable = $task.Settings.StartWhenAvailable
+    #         StopIfGoingOnBatteries = $task.Settings.StopIfGoingOnBatteries
+    #         UseUnifiedSchedulingEngine = $task.Settings.UseUnifiedSchedulingEngine
+    #         Volatile = $task.Settings.Volatile
+    #         WakeToRun = $task.Settings.WakeToRun
+    #     }
 
     # Get-ScheduledTask -TaskName "XYZ" | Select-Object -ExpandProperty Principal | Get-Member -MemberType Property
-    $principal = [PSCustomObject]@{
-            DisplayName = $task.Principal.DisplayName
-            Id = $task.Principal.Id
-            GroupId = $task.Principal.GroupId
-            PSComputerName = $task.Principal.PSComputerName
-            RequiredPrivilege = $task.Principal.RequiredPrivilege
-            UserId = $task.Principal.UserId
-        }
+    # $principal = [PSCustomObject]@{
+    #         DisplayName = $task.Principal.DisplayName
+    #         Id = $task.Principal.Id
+    #         GroupId = $task.Principal.GroupId
+    #         PSComputerName = $task.Principal.PSComputerName
+    #         RequiredPrivilege = $task.Principal.RequiredPrivilege
+    #         UserId = $task.Principal.UserId
+    #     }
 
     # Combine task properties with task info properties
     # Get-ScheduledTask -TaskName "XYZ" | Get-Member -MemberType Property
@@ -129,15 +132,12 @@ foreach ($task in $tasks) {
         LastTaskResult          = $taskInfo.LastTaskResult
         NextRunTime             = $taskInfo.NextRunTime
         NumberOfMissedRuns      = $taskInfo.NumberOfMissedRuns
-        UserId                  = $principal.UserId
-        Enabled                 = $settings.Enabled
-        Priority                = $settings.Priority
-        Hidden                  = $settings.Hidden
-        ExecutionTimeLimit      = $settings.ExecutionTimeLimit
-        Principal               = $principal
+        UserId                  = $task.Principal.UserId
+        Enabled                 = $task.Settings.Enabled
+        Priority                = $task.Settings.Priority
+        Hidden                  = $task.Settings.Hidden
+        ExecutionTimeLimit      = $task.Settings.ExecutionTimeLimit
         Actions                 = $actions
-        Triggers                = $triggers
-        Settings                = $settings
     }
 }
 
