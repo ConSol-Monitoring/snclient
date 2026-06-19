@@ -48,9 +48,18 @@ try {
     $tasks = @()
 }
 
-$results = @()
+$taskInfos = $tasks | Get-ScheduledTaskInfo -ErrorAction SilentlyContinue
+
+$infoMap = @{}
+
+foreach ($info in $taskInfos) {
+    $key = $info.TaskPath + $info.TaskName
+    $infoMap[$key] = $info
+}
+
+$results = [System.Collections.Generic.List[object]]::new()
 foreach ($task in $tasks) {
-    $taskInfo = Get-ScheduledTaskInfo -TaskName $task.TaskName -TaskPath $task.TaskPath
+    $taskInfo = $infoMap[$task.TaskPath + $task.TaskName]
 
     # Get-ScheduledTask returns a nested object
     # Subobjects are not fully serialized and sent, only some of their fields are specifically selected
@@ -120,25 +129,27 @@ foreach ($task in $tasks) {
     # Combine task properties with task info properties
     # Get-ScheduledTask -TaskName "XYZ" | Get-Member -MemberType Property
     # Get-ScheduledTaskInfo -TaskName "XYZ" | Get-Member -MemberType Property
-    $results += [PSCustomObject]@{
-        TaskName                = $task.TaskName
-        TaskPath                = $task.TaskPath
-        State                   = $task.State
-        Description             = $task.Description
-        PSComputerName          = $task.PSComputerName
-        URI                     = $task.URI
-        Version                 = $task.Version
-        LastRunTime             = $taskInfo.LastRunTime
-        LastTaskResult          = $taskInfo.LastTaskResult
-        NextRunTime             = $taskInfo.NextRunTime
-        NumberOfMissedRuns      = $taskInfo.NumberOfMissedRuns
-        UserId                  = $task.Principal.UserId
-        Enabled                 = $task.Settings.Enabled
-        Priority                = $task.Settings.Priority
-        Hidden                  = $task.Settings.Hidden
-        ExecutionTimeLimit      = $task.Settings.ExecutionTimeLimit
-        Actions                 = $actions
-    }
+    $results.Add(
+        [PSCustomObject]@{
+            TaskName                = $task.TaskName
+            TaskPath                = $task.TaskPath
+            State                   = $task.State
+            Description             = $task.Description
+            PSComputerName          = $task.PSComputerName
+            URI                     = $task.URI
+            Version                 = $task.Version
+            LastRunTime             = $taskInfo.LastRunTime
+            LastTaskResult          = $taskInfo.LastTaskResult
+            NextRunTime             = $taskInfo.NextRunTime
+            NumberOfMissedRuns      = $taskInfo.NumberOfMissedRuns
+            UserId                  = $task.Principal.UserId
+            Enabled                 = $task.Settings.Enabled
+            Priority                = $task.Settings.Priority
+            Hidden                  = $task.Settings.Hidden
+            ExecutionTimeLimit      = $task.Settings.ExecutionTimeLimit
+            Actions                 = $actions
+        }
+    )
 }
 
 if ($results.Count -gt 0) {
