@@ -445,8 +445,9 @@ func powerShellCmd(ctx context.Context, command string, parameters ...PowerShell
 	cmdLine := fmt.Sprintf(`%s -Command "& { %s  %s }" %s `, POWERSHELL, parameterDefinitionsCmdline, command, parameterSpecificationsCmdline)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow: true,
-		CmdLine:    cmdLine,
+		HideWindow:    true,
+		CmdLine:       cmdLine,
+		CreationFlags: windows.CREATE_NO_WINDOW,
 	}
 
 	return cmd, nil
