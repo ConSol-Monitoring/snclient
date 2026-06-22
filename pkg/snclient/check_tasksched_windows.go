@@ -11,7 +11,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"unicode"
 
 	"github.com/goccy/go-json"
 )
@@ -30,17 +29,18 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 		}
 	}
 
+	titleRuneBlacklist := []rune{'\\', '/', ':', '*', '?', '"', '<', '>', '|'}
 	if l.TaskTitle != CheckTaskschedDefaultTaskTitle {
-		if strings.ContainsFunc(l.TaskTitle, func(r rune) bool { return !unicode.IsLetter(r) }) {
-			return fmt.Errorf("custom specified title should be all letters, but it isnt: %s", l.TaskTitle)
+		if strings.ContainsFunc(l.TaskTitle, func(r rune) bool { return slices.Contains(titleRuneBlacklist, r) }) {
+			return fmt.Errorf("custom specified title: '%s' contains one of the blacklisted runes: '%s' ", l.TaskTitle, string(titleRuneBlacklist))
 		}
 	}
 
+	// allow backslashes when specifying folders, to specify nested paths
+	folderRuneBlacklist := []rune{'/', ':', '*', '?', '"', '<', '>', '|'}
 	if l.Folder != CheckTaskschedDefaultFolder {
-		// NTFS characters are generally allowed, expect quotes
-		allowedRunes := []rune{' ', '-', '\\', '_', '(', ')', '[', ']', '.', ','}
-		if strings.ContainsFunc(l.Folder, func(r rune) bool { return !unicode.IsLetter(r) && !slices.Contains(allowedRunes, r) }) {
-			return fmt.Errorf("custom specified folder should be all letters or allowed runes: '%s', but it isnt: %s", string(allowedRunes), l.Folder)
+		if strings.ContainsFunc(l.Folder, func(r rune) bool { return slices.Contains(folderRuneBlacklist, r) }) {
+			return fmt.Errorf("custom specified folder: '%s' contains one of the blacklisted runes: '%s' ", l.Folder, string(folderRuneBlacklist))
 		}
 	}
 
@@ -88,6 +88,7 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 	if err != nil {
 		return fmt.Errorf("could not unmarshal scheduled tasks: %s", err.Error())
 	}
+	log.Debugf("found %d scheduled task(s)", len(taskList))
 
 	for index := range taskList {
 		task := taskList[index]
