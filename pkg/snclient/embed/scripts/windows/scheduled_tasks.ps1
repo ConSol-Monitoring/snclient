@@ -32,6 +32,9 @@ if (!$recursive) { $recursive = 'false' }
 # ensure output is utf8
 $OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8
 
+# Print powershell version
+[Console]::Error.WriteLine(('Powershell version table: ' + ($PSVersionTable | ConvertTo-Json -Compress)))
+
 $params = @{}
 if ($title -ne '*') {
     $params.TaskName = $title
@@ -42,13 +45,19 @@ if ($recursive -eq 'true') {
     $params.TaskPath = $folder
 }
 
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
 try {
     $tasks = Get-ScheduledTask @params -ErrorAction Stop
 } catch {
     $tasks = @()
 }
+$sw.Stop()
+[Console]::Error.WriteLine(('Get-ScheduledTask took {0:F2} ms' -f $sw.Elapsed.TotalMilliseconds))
 
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
 $taskInfos = $tasks | Get-ScheduledTaskInfo -ErrorAction SilentlyContinue
+$sw.Stop()
+[Console]::Error.WriteLine(('Get-ScheduledTaskInfo took {0:F2} ms' -f $sw.Elapsed.TotalMilliseconds))
 
 $infoMap = @{}
 
@@ -57,6 +66,7 @@ foreach ($info in $taskInfos) {
     $infoMap[$key] = $info
 }
 
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
 $results = [System.Collections.Generic.List[object]]::new()
 foreach ($task in $tasks) {
     $taskInfo = $infoMap[$task.TaskPath + $task.TaskName]
@@ -151,9 +161,17 @@ foreach ($task in $tasks) {
         }
     )
 }
+$sw.Stop()
+[Console]::Error.WriteLine(('Populating results list took {0:F2} ms' -f $sw.Elapsed.TotalMilliseconds))
+[Console]::Error.WriteLine(('Results list has {0} elements' -f $results.Count))
 
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
 if ($results.Count -gt 0) {
     ConvertTo-Json -InputObject $results -Depth 4
 } else {
     '[]'
 }
+$sw.Stop()
+[Console]::Error.WriteLine(('Converting to JSON took {0:F2} ms' -f $sw.Elapsed.TotalMilliseconds))
+
+exit 0

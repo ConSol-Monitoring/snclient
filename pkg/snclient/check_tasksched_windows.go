@@ -88,6 +88,7 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 	if err != nil {
 		return fmt.Errorf("could not unmarshal scheduled tasks: %s", err.Error())
 	}
+	log.Debugf("found %d scheduled task(s)", len(taskList))
 
 	for index := range taskList {
 		task := taskList[index]
