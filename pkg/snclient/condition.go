@@ -841,7 +841,6 @@ func (c *Condition) expandUnitByType(str string) error {
 		c.unit = ""
 
 		return nil
-	default:
 	}
 
 	match := reConditionValueUnit.FindStringSubmatch(str)
@@ -887,8 +886,6 @@ func (c *Condition) expandUnitByType(str string) error {
 		c.unit = "s"
 
 		return nil
-	case UBool:
-		return nil // handled before the regex check
 	case UPercent:
 		return nil
 	case UNone:

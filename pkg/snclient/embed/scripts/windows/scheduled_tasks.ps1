@@ -36,7 +36,7 @@ if ($args) {
 if (!$title) { $title = '*' }
 if (!$folder) { $folder = '\' }
 if (!$recursive) { $recursive = 'true' }
-if (!$hidden) { $hidden = 'true' }
+if (!$hidden) { $hidden = 'false' }
 
 # debug the parameters/arguments
 [Console]::Error.WriteLine(('title: ' + $title ))

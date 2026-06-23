@@ -133,7 +133,7 @@ func ParseAndReplaceBoolAttributes(val string) (newVal, oldVal string, err error
 	})
 
 	if foundValues == 0 {
-		err = fmt.Errorf("ParseAndReplaceBoolAttributes: did not find any truthy or falsely values in boolean attribute value: '%s' , lowercase needs to be one of falsely: '%s' or truthy: '%s' values",
+		err = fmt.Errorf("ParseAndReplaceBoolAttributes: did not find any truthy or falsey values in boolean attribute value: '%s' , lowercase needs to be one of falsey: '%s' or truthy: '%s' values",
 			val, strings.Join(falseyValues, " "), strings.Join(truthyValues, " "))
 	}
 
