@@ -19,6 +19,11 @@ import (
 //go:embed embed/scripts/windows/scheduled_tasks.ps1
 var scheduledTasksPS1 string
 
+// if the task is not run, this date is reported
+// corresponds to 1999-11-30 00:00:00 CET
+// the number is unix miliseconds
+const notRunDate = "/Date(943916400000)/"
+
 func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckData) error {
 	l.cleanupArguments()
 
@@ -60,7 +65,7 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 	for index := range taskList {
 		task := taskList[index]
 		hasRun := false
-		if task.LastRunTime != "" {
+		if task.LastRunTime != notRunDate {
 			hasRun = true
 		}
 
