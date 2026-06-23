@@ -82,6 +82,7 @@ const (
 	UDate
 	UTimestamp
 	UPercent
+	UBool
 )
 
 type CheckAttribute struct {

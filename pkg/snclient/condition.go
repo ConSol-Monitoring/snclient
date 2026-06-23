@@ -16,6 +16,10 @@ import (
 )
 
 var (
+	// ^ and $ are used to capture the whole string
+	// (\-?\d+\.\d+|\-?\d+) -> capture group one, two options separated by | first is a decimal with dot , second is a direct number
+	// \s* -> any number of whitespace between the second group
+	// (\D+) -> capture group two, one or more non-digit characters
 	reConditionValueUnit = regexp.MustCompile(`^(\-?\d+\.\d+|\-?\d+)\s*(\D+)$`)
 	reCuddleKeyword      = regexp.MustCompile(`^([A-Za-z_]+)([!=><~]+)(.*)$`)
 	reCuddleOperator     = regexp.MustCompile(`^([!=><~]+)(.*?)$`)
@@ -819,10 +823,25 @@ func (c *Condition) expandDateKeyword(str string) bool {
 func (c *Condition) expandUnitByType(str string) error {
 	// valid units might be "today", "thisweek", "thismonth", "thisyear" and ":utc" variants
 	unit := c.getUnit(c.keyword)
-	if unit == UDate || unit == UTimestamp {
+
+	switch unit {
+	case UDate, UTimestamp:
 		if done := c.expandDateKeyword(str); done {
 			return nil
 		}
+	case UBool:
+		// boolean units are not in the form of '<number> <unit>'
+		// need to handle them before regex condition checks.
+		newVal, oldVal, err := utils.ParseAndReplaceBoolAttributes(str)
+		if err != nil {
+			return fmt.Errorf("invalid boolean value: %s", err.Error())
+		}
+		c.original = oldVal
+		c.value = newVal
+		c.unit = ""
+
+		return nil
+	default:
 	}
 
 	match := reConditionValueUnit.FindStringSubmatch(str)
@@ -868,6 +887,8 @@ func (c *Condition) expandUnitByType(str string) error {
 		c.unit = "s"
 
 		return nil
+	case UBool:
+		return nil // handled before the regex check
 	case UPercent:
 		return nil
 	case UNone:
