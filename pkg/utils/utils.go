@@ -81,8 +81,10 @@ func ExpandDuration(val string) (res float64, err error) {
 	return 0, fmt.Errorf("expandDuration: cannot parse duration, unknown format in %s", val)
 }
 
-var truthyValues = []string{"1", "true", "enabled", "yes", "y", "on", "t"}
-var falseyValues = []string{"0", "false", "disabled", "no", "n", "off", "f"}
+var (
+	truthyValues = []string{"1", "true", "enabled", "yes", "y", "on", "t"}
+	falseyValues = []string{"0", "false", "disabled", "no", "n", "off", "f"}
+)
 
 var (
 	truthyRegex, truthyReplacements = replacePatterns(truthyValues, "true")

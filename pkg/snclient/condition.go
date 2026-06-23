@@ -820,6 +820,7 @@ func (c *Condition) expandDateKeyword(str string) bool {
 	return false
 }
 
+//nolint:funlen // the function is long due to handling all unit types, but it is simple
 func (c *Condition) expandUnitByType(str string) error {
 	// valid units might be "today", "thisweek", "thismonth", "thisyear" and ":utc" variants
 	unit := c.getUnit(c.keyword)
@@ -841,6 +842,7 @@ func (c *Condition) expandUnitByType(str string) error {
 		c.unit = ""
 
 		return nil
+	default:
 	}
 
 	match := reConditionValueUnit.FindStringSubmatch(str)
@@ -888,6 +890,8 @@ func (c *Condition) expandUnitByType(str string) error {
 		return nil
 	case UPercent:
 		return nil
+	case UBool:
+		return nil // handled in the switch above
 	case UNone:
 		// best effort unit expansion
 		return c.expandUnitByName(str)
