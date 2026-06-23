@@ -58,7 +58,7 @@ Naemon Config
 
 | Argument      | Default Value                                                          |
 | ------------- | ---------------------------------------------------------------------- |
-| empty-state   | 0 (OK)                                                                 |
+| empty-state   | 3 (UNKNOWN)                                                            |
 | empty-syntax  | %(status) - No files found                                             |
 | top-syntax    | %(status) - %(problem_count)/%(count) lines (%(count)) %(problem_list) |
 | ok-syntax     | %(status) - All %(count) / %(total) Lines OK                           |
