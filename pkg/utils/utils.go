@@ -101,7 +101,7 @@ func replacePatterns(words []string, replacement string) (regex *regexp.Regexp, 
 		escaped[i] = regexp.QuoteMeta(lowercase)
 		replacementMap[lowercase] = replacement
 	}
-	pattern := `\b(` + strings.Join(escaped, "|") + `)\b`
+	pattern := `(?i)\b(` + strings.Join(escaped, "|") + `)\b`
 
 	return regexp.MustCompile(pattern), replacementMap
 }
