@@ -14,12 +14,14 @@ type CheckTasksched struct {
 	TaskTitle string
 	Folder    string
 	Recursive bool
+	Hidden    bool
 }
 
 const (
 	CheckTaskschedDefaultTaskTitle string = "*"
 	CheckTaskschedDefaultFolder    string = "\\"
 	CheckTaskschedDefaultRecursive bool   = true
+	CheckTaskschedDefaultHidden    bool   = false
 )
 
 func NewCheckTasksched() CheckHandler {
@@ -27,6 +29,7 @@ func NewCheckTasksched() CheckHandler {
 		TaskTitle: CheckTaskschedDefaultTaskTitle,
 		Folder:    CheckTaskschedDefaultFolder,
 		Recursive: CheckTaskschedDefaultRecursive,
+		Hidden:    CheckTaskschedDefaultHidden,
 	}
 }
 
@@ -43,6 +46,7 @@ func (l *CheckTasksched) Build() *CheckData {
 			"title":     {value: &l.TaskTitle, description: "Sets the task to check. This corresonds to the title of the scheduled task, called TaskName in Powershell output."},
 			"folder":    {value: &l.Folder, description: "The folder where the scheduled task is saved. This is used for exact matches, unless recurisive option is enabled."},
 			"recursive": {value: &l.Recursive, description: "Include the subfolders of the specified folder as well when searching for scheduled tasks."},
+			"hidden":    {value: &l.Hidden, description: "Include hidden tasks."},
 		},
 		defaultFilter:   "enabled = true",
 		defaultCritical: "exit_code < 0",
@@ -73,7 +77,7 @@ func (l *CheckTasksched) Build() *CheckData {
 			{name: "next_run_time", description: "Time when the registered task is next scheduled to run", unit: UDate},
 			{name: "parameters", description: "Last actions command line parameters"},
 			{name: "execute", description: "Last actions executed program"},
-			{name: "working_dir", description: "Last actions working directory"},
+			{name: "working_directory", description: "Last actions working directory"},
 		},
 		exampleDefault: `
     check_tasksched

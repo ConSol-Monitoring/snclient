@@ -29,6 +29,14 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 		}
 	}
 
+	// Remove backslash at the end of the folder path, if it is not exactly root: "\"
+	// "\Microsoft\" -> "\Microsoft"
+	if l.Folder != CheckTaskschedDefaultFolder && l.Folder != "\\" {
+		if cut, cutOk := strings.CutSuffix(l.Folder, "\\"); cutOk {
+			l.Folder = cut
+		}
+	}
+
 	titleRuneBlacklist := []rune{'\\', '/', ':', '*', '?', '"', '<', '>', '|'}
 	if l.TaskTitle != CheckTaskschedDefaultTaskTitle {
 		if strings.ContainsFunc(l.TaskTitle, func(r rune) bool { return slices.Contains(titleRuneBlacklist, r) }) {
@@ -69,6 +77,14 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 			defaultValue:        strconv.FormatBool(CheckTaskschedDefaultRecursive),
 			specifyValue:        true,
 			specifiedValue:      strconv.FormatBool(l.Recursive),
+		},
+		PowerShellParameter{
+			name:                "hidden",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        strconv.FormatBool(CheckTaskschedDefaultHidden),
+			specifyValue:        true,
+			specifiedValue:      strconv.FormatBool(l.Hidden),
 		},
 	)
 	if err != nil {
@@ -118,7 +134,7 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 			"next_run_time":        fmt.Sprintf("%d", l.parseDate(task.NextRunTime).Unix()),
 			"parameters":           l.parseParameters(task.Actions),
 			"execute":              l.parseExecuteCmd(task.Actions),
-			"working_dir":          l.parseWorkingDir(task.Actions),
+			"working_directory":    l.parseWorkingDir(task.Actions),
 		}
 		check.listData = append(check.listData, entry)
 	}

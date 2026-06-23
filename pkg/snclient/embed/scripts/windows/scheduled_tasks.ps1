@@ -24,6 +24,11 @@ if ($args) {
             $i++
             continue
         }
+        if ($args[$i] -eq '-hidden' -and $i + 1 -lt $args.Count) {
+            $hidden = $args[$i + 1]
+            $i++
+            continue
+        }
     }
 }
 
@@ -31,6 +36,13 @@ if ($args) {
 if (!$title) { $title = '*' }
 if (!$folder) { $folder = '\' }
 if (!$recursive) { $recursive = 'true' }
+if (!$hidden) { $hidden = 'true' }
+
+# debug the parameters/arguments
+[Console]::Error.WriteLine(('title: ' + $title ))
+[Console]::Error.WriteLine(('folder: ' + $folder ))
+[Console]::Error.WriteLine(('recursive: ' + $recursive ))
+[Console]::Error.WriteLine(('hidden: ' + $hidden ))
 
 # ensure output is utf8
 $OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8
@@ -54,7 +66,12 @@ try {
         $currentFolder = $folderQueue.Dequeue()
         # TASK_ENUM_HIDDEN = 1, include hidden tasks
         # Call GetTasks() using TASK_ENUM_HIDDEN
-        foreach ($t in $currentFolder.GetTasks(1)) {
+        if ($hidden -eq 'true'){
+            $getTasksArg = 1
+        } else {
+            $getTasksArg = 0
+        }
+        foreach ($t in $currentFolder.GetTasks($getTasksArg)) {
             $tasks.Add($t)
         }
         if ($recursive -eq 'true') {
