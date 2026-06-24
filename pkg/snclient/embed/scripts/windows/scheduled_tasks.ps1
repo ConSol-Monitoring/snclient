@@ -24,6 +24,11 @@ if ($args) {
             $i++
             continue
         }
+        if ($args[$i] -eq '-hidden' -and $i + 1 -lt $args.Count) {
+            $hidden = $args[$i + 1]
+            $i++
+            continue
+        }
     }
 }
 
@@ -31,20 +36,14 @@ if ($args) {
 if (!$title) { $title = '*' }
 if (!$folder) { $folder = '\' }
 if (!$recursive) { $recursive = 'true' }
+if (!$hidden) { $hidden = 'false' }
 
 # ensure output is utf8
 $OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8
 
-# Print powershell version
-[Console]::Error.WriteLine(('Powershell version table: ' + ($PSVersionTable | ConvertTo-Json -Compress)))
-
-$sw = [System.Diagnostics.Stopwatch]::StartNew()
 $scheduler = New-Object -ComObject Schedule.Service
 $scheduler.Connect()
-$sw.Stop()
-[Console]::Error.WriteLine(('COM Schedule.Service connect took {0:F2} ms' -f $sw.Elapsed.TotalMilliseconds))
 
-$sw = [System.Diagnostics.Stopwatch]::StartNew()
 $tasks = [System.Collections.Generic.List[object]]::new()
 try {
     $targetFolder = $scheduler.GetFolder($folder)
@@ -54,7 +53,12 @@ try {
         $currentFolder = $folderQueue.Dequeue()
         # TASK_ENUM_HIDDEN = 1, include hidden tasks
         # Call GetTasks() using TASK_ENUM_HIDDEN
-        foreach ($t in $currentFolder.GetTasks(1)) {
+        if ($hidden -eq 'true'){
+            $getTasksArg = 1
+        } else {
+            $getTasksArg = 0
+        }
+        foreach ($t in $currentFolder.GetTasks($getTasksArg)) {
             $tasks.Add($t)
         }
         if ($recursive -eq 'true') {
@@ -66,8 +70,6 @@ try {
 } catch {
     $tasks = [System.Collections.Generic.List[object]]::new()
 }
-$sw.Stop()
-[Console]::Error.WriteLine(('Task enumeration took {0:F2} ms' -f $sw.Elapsed.TotalMilliseconds))
 
 if ($title -ne '*') {
     $filtered = [System.Collections.Generic.List[object]]::new()
@@ -79,7 +81,6 @@ if ($title -ne '*') {
     $tasks = $filtered
 }
 
-$sw = [System.Diagnostics.Stopwatch]::StartNew()
 $results = [System.Collections.Generic.List[object]]::new()
 foreach ($task in $tasks) {
     $def = $task.Definition
@@ -123,17 +124,11 @@ foreach ($task in $tasks) {
         }
     )
 }
-$sw.Stop()
-[Console]::Error.WriteLine(('Populating results list took {0:F2} ms' -f $sw.Elapsed.TotalMilliseconds))
-[Console]::Error.WriteLine(('Results list has {0} elements' -f $results.Count))
 
-$sw = [System.Diagnostics.Stopwatch]::StartNew()
 if ($results.Count -gt 0) {
     ConvertTo-Json -InputObject $results -Depth 4
 } else {
     '[]'
 }
-$sw.Stop()
-[Console]::Error.WriteLine(('Converting to JSON took {0:F2} ms' -f $sw.Elapsed.TotalMilliseconds))
 
 exit 0

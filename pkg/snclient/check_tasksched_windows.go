@@ -6,6 +6,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"os/exec"
 	"slices"
 	"strconv"
 	"strings"
@@ -18,16 +19,13 @@ import (
 //go:embed embed/scripts/windows/scheduled_tasks.ps1
 var scheduledTasksPS1 string
 
-//nolint:funlen // function is long, but is simple, should not be dismantled
-func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckData) error {
-	script := scheduledTasksPS1
+// if the task is not run, this date is reported
+// corresponds to 1999-11-30 00:00:00 CET
+// the number is unix miliseconds
+const notRunDate = "/Date(943916400000)/"
 
-	// Add backslash to the beginning of the folder path if it does not exist
-	if l.Folder != CheckTaskschedDefaultFolder {
-		if !strings.HasPrefix(l.Folder, "\\") {
-			l.Folder = "\\" + l.Folder
-		}
-	}
+func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckData) error {
+	l.cleanupArguments()
 
 	titleRuneBlacklist := []rune{'\\', '/', ':', '*', '?', '"', '<', '>', '|'}
 	if l.TaskTitle != CheckTaskschedDefaultTaskTitle {
@@ -44,33 +42,7 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 		}
 	}
 
-	cmd, err := powerShellCmd(
-		ctx, script,
-		PowerShellParameter{
-			name:                "title",
-			parameterType:       "string",
-			specifyDefaultValue: true,
-			defaultValue:        CheckTaskschedDefaultTaskTitle,
-			specifyValue:        true,
-			specifiedValue:      l.TaskTitle,
-		},
-		PowerShellParameter{
-			name:                "folder",
-			parameterType:       "string",
-			specifyDefaultValue: true,
-			defaultValue:        CheckTaskschedDefaultFolder,
-			specifyValue:        true,
-			specifiedValue:      l.Folder,
-		},
-		PowerShellParameter{
-			name:                "recursive",
-			parameterType:       "string",
-			specifyDefaultValue: true,
-			defaultValue:        strconv.FormatBool(CheckTaskschedDefaultRecursive),
-			specifyValue:        true,
-			specifiedValue:      strconv.FormatBool(l.Recursive),
-		},
-	)
+	cmd, err := l.buildPowershellCmd(ctx)
 	if err != nil {
 		return fmt.Errorf("error when building a powershell command: %s", err.Error())
 	}
@@ -93,7 +65,7 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 	for index := range taskList {
 		task := taskList[index]
 		hasRun := false
-		if task.LastRunTime != "" {
+		if task.LastRunTime != notRunDate {
 			hasRun = true
 		}
 
@@ -118,7 +90,7 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 			"next_run_time":        fmt.Sprintf("%d", l.parseDate(task.NextRunTime).Unix()),
 			"parameters":           l.parseParameters(task.Actions),
 			"execute":              l.parseExecuteCmd(task.Actions),
-			"working_dir":          l.parseWorkingDir(task.Actions),
+			"working_directory":    l.parseWorkingDir(task.Actions),
 		}
 		check.listData = append(check.listData, entry)
 	}
@@ -129,6 +101,63 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 	}
 
 	return nil
+}
+
+func (l *CheckTasksched) cleanupArguments() {
+	// Add backslash to the beginning of the folder path if it does not exist
+	if l.Folder != CheckTaskschedDefaultFolder {
+		if !strings.HasPrefix(l.Folder, "\\") {
+			l.Folder = "\\" + l.Folder
+		}
+	}
+
+	// Remove backslash at the end of the folder path, if it is not exactly root: "\"
+	// "\Microsoft\" -> "\Microsoft"
+	if l.Folder != CheckTaskschedDefaultFolder && l.Folder != "\\" {
+		if cut, cutOk := strings.CutSuffix(l.Folder, "\\"); cutOk {
+			l.Folder = cut
+		}
+	}
+}
+
+func (l *CheckTasksched) buildPowershellCmd(ctx context.Context) (cmd *exec.Cmd, err error) {
+	cmd, err = powerShellCmd(
+		ctx, scheduledTasksPS1,
+		PowerShellParameter{
+			name:                "title",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        CheckTaskschedDefaultTaskTitle,
+			specifyValue:        true,
+			specifiedValue:      l.TaskTitle,
+		},
+		PowerShellParameter{
+			name:                "folder",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        CheckTaskschedDefaultFolder,
+			specifyValue:        true,
+			specifiedValue:      l.Folder,
+		},
+		PowerShellParameter{
+			name:                "recursive",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        strconv.FormatBool(CheckTaskschedDefaultRecursive),
+			specifyValue:        true,
+			specifiedValue:      strconv.FormatBool(l.Recursive),
+		},
+		PowerShellParameter{
+			name:                "hidden",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        strconv.FormatBool(CheckTaskschedDefaultHidden),
+			specifyValue:        true,
+			specifiedValue:      strconv.FormatBool(l.Hidden),
+		},
+	)
+
+	return cmd, err
 }
 
 func parseURIClean(uri string) string {

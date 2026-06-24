@@ -114,7 +114,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "drive_or_id", description: "Drive letter if present if not use id"},
 			{name: "drive_or_name", description: "Drive letter if present if not use name"},
 			{name: "fstype", description: "Filesystem type"},
-			{name: "mounted", description: "Flag whether drive is mounter (0/1)"},
+			{name: "mounted", description: "Flag whether drive is mounter (0/1)", unit: UBool},
 
 			{name: "free", description: "Free (human readable) bytes", unit: UByte},
 			{name: "free_bytes", description: "Number of free bytes", unit: UByte},
@@ -141,14 +141,14 @@ func (l *CheckDrivesize) Build() *CheckData {
 
 			{name: "media_type", description: "Windows only: numeric media type of drive"},
 			{name: "type", description: "Windows only: type of drive, ex.: fixed, cdrom, ramdisk, remote, removable, unknown"},
-			{name: "readable", description: "Windows only: flag drive is readable (0/1)"},
-			{name: "writable", description: "Windows only: flag drive is writable (0/1)"},
-			{name: "removable", description: "Windows only: flag drive is removable (0/1)"},
-			{name: "erasable", description: "Windows only: flag whether if drive is erasable (0/1)"},
-			{name: "hotplug", description: "Windows only: flag drive is hotplugable (0/1)"},
+			{name: "readable", description: "Windows only: flag drive is readable (0/1)", unit: UBool},
+			{name: "writable", description: "Windows only: flag drive is writable (0/1)", unit: UBool},
+			{name: "removable", description: "Windows only: flag drive is removable (0/1)", unit: UBool},
+			{name: "erasable", description: "Windows only: flag whether if drive is erasable (0/1)", unit: UBool},
+			{name: "hotplug", description: "Windows only: flag drive is hotplugable (0/1)", unit: UBool},
 
 			{name: "remote_name", description: "Windows only: the remote name of the drive, if it uses a network name"},
-			{name: "persistent", description: "Windows only: if the network drive is mounted as persistent (0/1)"},
+			{name: "persistent", description: "Windows only: if the network drive is mounted as persistent (0/1)", unit: UBool},
 			{name: "localised_remote_path", description: "Windows only: If the path is given as a remote path, and that remote path has an assigned logical drive," +
 				" this is the replaced path under that logical drive."},
 		},

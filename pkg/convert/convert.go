@@ -244,9 +244,9 @@ func BoolE(raw any) (bool, error) {
 		return val, nil
 	default:
 		switch strings.ToLower(fmt.Sprintf("%v", raw)) {
-		case "1", "enable", "enabled", "true", "yes", "on":
+		case "1", "enable", "enabled", "true", "t", "yes", "y", "on":
 			return true, nil
-		case "0", "disable", "disabled", "false", "no", "off":
+		case "0", "disable", "disabled", "false", "f", "no", "n", "off":
 			return false, nil
 		}
 	}
