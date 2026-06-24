@@ -22,14 +22,14 @@ func init() {
 var numReg = regexp.MustCompile(`\d+`)
 
 type CheckLogFile struct {
-	snc              *Agent
-	FilePath         []string
-	Paths            string
-	LineDelimiter    string
-	TimestampPattern string
-	ColumnDelimiter  string
-	LabelPattern     []string
-	Offset           string // Changed to string to detect if user provided it
+	snc                *Agent
+	FilePathPatterns   []string
+	FilePathPatternsCS string
+	LineDelimiter      string
+	TimestampPattern   string
+	ColumnDelimiter    string
+	LabelPattern       []string
+	Offset             string // Changed to string to detect if user provided it
 }
 
 type LogLine struct {
@@ -69,8 +69,8 @@ func (c *CheckLogFile) Build() *CheckData {
 		emptySyntax:  "%(status) - No files found",
 		emptyState:   CheckExitUnknown,
 		args: map[string]CheckArgument{
-			"file":         {value: &c.FilePath, description: "The file that should be checked"},
-			"files":        {value: &c.Paths, description: "Comma separated list of files"},
+			"file":         {value: &c.FilePathPatterns, description: "The file that should be checked", isFilter: true},
+			"files":        {value: &c.FilePathPatternsCS, description: "Comma separated list of files", isFilter: true},
 			"offset":       {value: &c.Offset, description: "Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset"},
 			"line-split":   {value: &c.LineDelimiter, description: "Character string used to split a file into several lines (default \\n)"},
 			"column-split": {value: &c.ColumnDelimiter, description: "Tab split default: \\t"},
@@ -104,8 +104,8 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		return nil, fmt.Errorf("module CheckLogFile is not enabled in /modules section")
 	}
 
-	c.FilePath = append(c.FilePath, strings.Split(c.Paths, ",")...)
-	if len(c.FilePath) == 0 {
+	c.FilePathPatterns = append(c.FilePathPatterns, strings.Split(c.FilePathPatternsCS, ",")...)
+	if len(c.FilePathPatterns) == 0 {
 		return nil, fmt.Errorf("no file defined")
 	}
 
@@ -122,47 +122,108 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		}
 	}
 
+	// patterns are for the file names/paths, not file contents!
 	allowedPattern := c.getAllowedPattern()
 
-	totalLineCount := 0
-	for _, fileName := range c.FilePath {
+	totalLineIndexedCount := 0
+	checkedFilesWithMatchedEntries := make(map[string]int, 0)
+
+	for _, fileName := range c.FilePathPatterns {
 		if fileName == "" {
 			continue
 		}
-		count := 0
+
+		lineIndexedInThisFilePattern := 0
 		files, err := filepath.Glob(fileName)
 		if err != nil {
 			return nil, fmt.Errorf("could not get files for pattern %s, error was: %s", fileName, err.Error())
 		}
+
 		for _, fileName := range files {
 			if !c.matchPattern(fileName, allowedPattern) {
+				log.Tracef("check_logfile rejecting file: %s as it does not any match patterns: %v ", fileName, allowedPattern)
+
 				return nil, fmt.Errorf("file %s does not match any allowed pattern", fileName)
 			}
-			tmpCount, err := c.addFile(fileName, check, patterns)
+
+			log.Debugf("check_logfile adding file: %s", fileName)
+			entries, lineIndex, err := c.addFile(fileName, check, patterns)
 			if err != nil {
 				return nil, fmt.Errorf("error for file %s, error was: %s", fileName, err.Error())
 			}
-			count += tmpCount
+			log.Debugf("check_logfile file: %s | returned entries: %v | lines indexed: %d", fileName, entries, lineIndex)
+
+			lineIndexedInThisFilePattern += lineIndex
+			check.listData = append(check.listData, entries...)
+			checkedFilesWithMatchedEntries[fileName] = len(entries)
 		}
-		totalLineCount += count
+
+		totalLineIndexedCount += lineIndexedInThisFilePattern
 	}
+
 	check.details = map[string]string{
-		"total": fmt.Sprintf("%d", totalLineCount),
+		"total":       fmt.Sprintf("%d", totalLineIndexedCount),
+		"file_counts": c.buildFileCountsDetailString(checkedFilesWithMatchedEntries),
+	}
+
+	if len(checkedFilesWithMatchedEntries) == 0 {
+		check.emptySyntax = fmt.Sprintf("%%(status) - No files found to search lines in, search paths: '%s' ", strings.Join(c.FilePathPatterns, ","))
+	} else if len(check.listData) == 0 {
+		check.emptyState = CheckExitOK
+		check.emptyStateSet = true
+		check.emptySyntax = fmt.Sprintf("%%(status) - No matching lines found in files (%s)", check.details["file_counts"])
 	}
 
 	return check.Finalize()
 }
 
-func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[string]*regexp.Regexp) (int, error) {
+func (c *CheckLogFile) buildFileCountsDetailString(checkedFilesWithMatchedEntries map[string]int) (fileCountDetails string) {
+	type kv struct {
+		file  string
+		count int
+	}
+	sorted := make([]kv, 0, len(checkedFilesWithMatchedEntries))
+	for file, count := range checkedFilesWithMatchedEntries {
+		sorted = append(sorted, kv{file, count})
+	}
+
+	slices.SortFunc(sorted, func(a, b kv) int {
+		if a.file < b.file {
+			return -1
+		}
+		if a.file > b.file {
+			return 1
+		}
+		if a.count < b.count {
+			return -1
+		}
+		if a.count > b.count {
+			return 1
+		}
+
+		return 0
+	})
+
+	detailParts := make([]string, 0, len(sorted))
+	for _, item := range sorted {
+		detailParts = append(detailParts, fmt.Sprintf("%s: %d", item.file, item.count))
+	}
+
+	fileCountDetails = strings.Join(detailParts, ", ")
+
+	return fileCountDetails
+}
+
+func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[string]*regexp.Regexp) (entries []map[string]string, lineIndex int, err error) {
 	file, err := os.Open(fileName)
 	if err != nil {
-		return 0, fmt.Errorf("could not open file: %s error was: %s", fileName, err.Error())
+		return entries, 0, fmt.Errorf("could not open file: %s error was: %s", fileName, err.Error())
 	}
 	defer file.Close()
 
 	info, err := file.Stat()
 	if err != nil {
-		return 0, fmt.Errorf("could not stat file %s: %s", fileName, err.Error())
+		return entries, 0, fmt.Errorf("could not stat file %s: %s", fileName, err.Error())
 	}
 
 	currentInode := getInode(fileName)
@@ -170,7 +231,7 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 
 	startOffset, err := c.getStartOffset(fileName, currentSize, currentInode)
 	if err != nil {
-		return 0, err
+		return entries, 0, err
 	}
 
 	saveState := true
@@ -188,25 +249,23 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 	// seek to start offset
 	if startOffset > 0 {
 		if startOffset > currentSize {
-			return 0, nil
+			return entries, 0, nil
 		}
 		_, err = file.Seek(startOffset, 0)
 		if err != nil {
 			saveState = false
 
-			return 0, fmt.Errorf("failed to seek to offset %d in %s: %w", startOffset, fileName, err)
+			return entries, 0, fmt.Errorf("failed to seek to offset %d in %s: %w", startOffset, fileName, err)
 		}
 	}
 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(c.getCustomSplitFunction())
-	okReset := len(check.okThreshold) > 0
+	okThresholdNotEmpty := len(check.okThreshold) > 0
 	lineStorage := make([]map[string]string, 0)
 
 	columnNumbers := c.getRequiredColumnNumbers(check)
 
-	// filter each line
-	var lineIndex int
 	for lineIndex = 0; scanner.Scan(); lineIndex++ {
 		line := scanner.Text()
 		entry := map[string]string{
@@ -230,9 +289,16 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 			}
 		}
 
+		if !check.MatchMapCondition(check.filter, entry, false) {
+			log.Tracef("file: %s , line : %s, did not match the filter set in the check, not ading to check.listData", fileName, line)
+
+			continue
+		}
+
 		lineStorage = append(lineStorage, entry)
-		// Do not check for OK with empty condition list, it would match all
-		if okReset && check.MatchMapCondition(check.okThreshold, entry, true) {
+
+		// Do not check for OK condition if the OK condition list is empty, it would match everything
+		if okThresholdNotEmpty && check.MatchMapCondition(check.okThreshold, entry, true) {
 			// add and empty entry with the current line count to the list data to keep track of line count
 			entry := map[string]string{
 				"_count": fmt.Sprintf("%d", len(lineStorage)),
@@ -241,9 +307,8 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 			lineStorage = make([]map[string]string, 0)
 		}
 	}
-	check.listData = append(check.listData, lineStorage...)
 
-	return lineIndex, nil
+	return lineStorage, lineIndex, nil
 }
 
 func (c *CheckLogFile) getStartOffset(fileName string, currentSize int64, currentInode uint64) (int64, error) {

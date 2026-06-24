@@ -52,7 +52,7 @@ func TestCheckLogFilePathWildCards(t *testing.T) {
 
 	res = snc.RunCheck("check_logfile", []string{"files=./t/test*", "warn=line LIKE WARNING"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - All 0 / 0")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No matching lines found in files ")
 
 	StopTestAgent(t, snc)
 }
@@ -113,6 +113,26 @@ func TestCheckLogFileColumnN(t *testing.T) {
 	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "crit=column1 LIKE DEBUG", "column-split=;", "show-all"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state CRITICAL")
 	assert.Contains(t, string(res.BuildPluginOutput()), "CRITICAL - ")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckLogFileFileExistsButHasNoLines(t *testing.T) {
+	snc := StartTestAgent(t, testLogfileConfig)
+
+	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "filter=line LIKE this-pattern-does-not-exist-in-the-test-files", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No matching lines found in files")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckLogFileFileDoesNotExist(t *testing.T) {
+	snc := StartTestAgent(t, testLogfileConfig)
+
+	res := snc.RunCheck("check_logfile", []string{"files=./t/testfiledoesnotexist*"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found to search lines in")
 
 	StopTestAgent(t, snc)
 }
