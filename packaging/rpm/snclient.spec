@@ -78,6 +78,8 @@ case "$*" in
     # Post upgrade permissions fix
     systemd-sysusers
     systemd-tmpfiles --create
+    # Fix ownership of log file
+    chown -h snclient:snclient /var/log/snclient/snclient.log 2>/dev/null || true
     # Upgrading
     if command -v setcap >/dev/null; then
         setcap "cap_setuid,cap_setgid+ep" /usr/bin/snclient || true
