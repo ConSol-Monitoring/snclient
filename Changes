@@ -11,6 +11,7 @@ next:
          - rpm: fix setup snclient during update from previous packages
          - update golang build chain to 1.26.4
          - check_tasksched: improve performance
+         - check_files: fix max-depth was ignored when using forward slashes or double backslashes
 
 0.43     Fri May 22 10:24:30 CEST 2026
          - *DEPRECATION NOTICE* linux agent runs now as unprivileged snclient user
