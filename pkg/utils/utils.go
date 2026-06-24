@@ -81,67 +81,6 @@ func ExpandDuration(val string) (res float64, err error) {
 	return 0, fmt.Errorf("expandDuration: cannot parse duration, unknown format in %s", val)
 }
 
-var (
-	truthyValues = []string{"1", "true", "enabled", "yes", "y", "on", "t"}
-	falseyValues = []string{"0", "false", "disabled", "no", "n", "off", "f"}
-)
-
-var (
-	truthyRegex, truthyReplacements = replacePatterns(truthyValues, "true")
-	falseyRegex, falseyReplacements = replacePatterns(falseyValues, "false")
-)
-
-// replacePatterns builds a regex that matches any of the given words as whole words,
-// and returns the pattern and a replacement map (lowercase match → replacement).
-func replacePatterns(words []string, replacement string) (regex *regexp.Regexp, replacements map[string]string) {
-	escaped := make([]string, len(words))
-	replacementMap := make(map[string]string)
-	for i, word := range words {
-		lowercase := strings.ToLower(word)
-		escaped[i] = regexp.QuoteMeta(lowercase)
-		replacementMap[lowercase] = replacement
-	}
-	pattern := `(?i)\b(` + strings.Join(escaped, "|") + `)\b`
-
-	return regexp.MustCompile(pattern), replacementMap
-}
-
-// ParseAndReplaceBoolAttributes replaces all known truthy/falsey tokens in val
-// with "true"/"false" (case‑insensitive whole‑word match).
-// Returns the modified string, the original string, and an error if any
-// unrecognized boolean‑like token is found (optional).
-func ParseAndReplaceBoolAttributes(val string) (newVal, oldVal string, err error) {
-	oldVal = val
-	foundValues := 0
-
-	newVal = truthyRegex.ReplaceAllStringFunc(val, func(match string) string {
-		if replacement, ok := truthyReplacements[strings.ToLower(match)]; ok {
-			foundValues++
-
-			return replacement
-		}
-
-		return ""
-	})
-
-	newVal = falseyRegex.ReplaceAllStringFunc(newVal, func(match string) string {
-		if replacement, ok := falseyReplacements[strings.ToLower(match)]; ok {
-			foundValues++
-
-			return replacement
-		}
-
-		return ""
-	})
-
-	if foundValues == 0 {
-		err = fmt.Errorf("attribute of type bool can not be parsed: '%s' needs to be one of '%s' or '%s'",
-			val, strings.Join(falseyValues, " "), strings.Join(truthyValues, " "))
-	}
-
-	return newVal, oldVal, err
-}
-
 // returns time/duration in target unit with given precision
 func TimeUnitF(num uint64, targetUnit string, precision int) float64 {
 	for _, factor := range TimeFactors {

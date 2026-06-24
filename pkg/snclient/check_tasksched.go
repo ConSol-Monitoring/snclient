@@ -45,11 +45,11 @@ func (l *CheckTasksched) Build() *CheckData {
 			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
 			"title": {
 				value:       &l.TaskTitle,
-				description: fmt.Sprintf("Sets the task to check. This corresonds to the title of the scheduled task. Default: '%s'", CheckTaskschedDefaultTaskTitle),
+				description: fmt.Sprintf("Sets the task to check. This corresponds to the title of the scheduled task. Default: '%s'", CheckTaskschedDefaultTaskTitle),
 			},
 			"folder": {
 				value: &l.Folder,
-				description: fmt.Sprintf("The folder where the scheduled task is saved. This is used for exact matches, unless recurisive option is enabled. Default: '%s'",
+				description: fmt.Sprintf("The folder where the scheduled task is saved. This is used for exact matches, unless recursive option is enabled. Default: '%s'",
 					CheckTaskschedDefaultFolder),
 			},
 			"recursive": {

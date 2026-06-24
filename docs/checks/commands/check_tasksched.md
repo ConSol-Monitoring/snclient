@@ -56,11 +56,11 @@ Naemon Config
 
 | Argument  | Description                                                                                               |
 | --------- | --------------------------------------------------------------------------------------------------------- |
-| folder    | The folder where the scheduled task is saved. This is used for exact matches, unless recurisive option is enabled. Default: '\' |
+| folder    | The folder where the scheduled task is saved. This is used for exact matches, unless recursive option is enabled. Default: '\' |
 | hidden    | Include hidden tasks. Default: 'false'                                                                    |
 | recursive | Include the subfolders of the specified folder as well when searching for scheduled tasks. Default: 'true' |
 | timezone  | Sets the timezone for time metrics (default is local time)                                                |
-| title     | Sets the task to check. This corresonds to the title of the scheduled task. Default: '\*'                 |
+| title     | Sets the task to check. This corresponds to the title of the scheduled task. Default: '\*'                |
 
 ## Attributes
 

@@ -16,10 +16,6 @@ import (
 )
 
 var (
-	// ^ and $ are used to capture the whole string
-	// (\-?\d+\.\d+|\-?\d+) -> capture group one, two options separated by | first is a decimal with dot , second is a direct number
-	// \s* -> any number of whitespace between the second group
-	// (\D+) -> capture group two, one or more non-digit characters
 	reConditionValueUnit = regexp.MustCompile(`^(\-?\d+\.\d+|\-?\d+)\s*(\D+)$`)
 	reCuddleKeyword      = regexp.MustCompile(`^([A-Za-z_]+)([!=><~]+)(.*)$`)
 	reCuddleOperator     = regexp.MustCompile(`^([!=><~]+)(.*?)$`)
@@ -466,6 +462,8 @@ func (c *Condition) compareEmpty() bool {
 // tries keyword_pct for % unit and keyword_bytes for B unit
 // returns value from keyword unless found already
 func (c *Condition) getVarValue(data map[string]string) (varStr string, ok bool) {
+	unit := c.getUnit(c.keyword)
+
 	switch {
 	case c.unit == "%":
 		varStr, ok = data[c.keyword+"_pct"]
@@ -485,6 +483,18 @@ func (c *Condition) getVarValue(data map[string]string) (varStr string, ok bool)
 	}
 
 	varStr, ok = data[c.keyword]
+
+	if ok && unit == UBool {
+		valBool, err := convert.BoolE(varStr)
+		if err != nil {
+			log.Errorf("condition based on non-bool value: %s", err.Error())
+		}
+		if valBool {
+			return "true", true
+		}
+
+		return "false", true
+	}
 
 	return varStr, ok
 }
@@ -833,13 +843,11 @@ func (c *Condition) expandUnitByType(str string) error {
 	case UBool:
 		// boolean units are not in the form of '<number> <unit>'
 		// need to handle them before regex condition checks.
-		newVal, oldVal, err := utils.ParseAndReplaceBoolAttributes(str)
+		newVal, err := convert.BoolE(str)
 		if err != nil {
 			return fmt.Errorf("invalid boolean value: %s", err.Error())
 		}
-		c.original = oldVal
 		c.value = newVal
-		c.unit = ""
 
 		return nil
 	default:
