@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"regexp"
 	"slices"
 	"strconv"
@@ -42,6 +43,9 @@ type Condition struct {
 
 	// back reference to check attributes (used to expand by unit)
 	attr *[]CheckAttribute
+
+	// back reference to check entries to skip
+	skipEntries [](*map[string]string)
 }
 
 // Operator defines a filter operator.
@@ -228,15 +232,6 @@ func NewCondition(input string, attr *[]CheckAttribute) (*Condition, error) {
 }
 
 func (c *Condition) String() string {
-	if c.original != "" {
-		// keyword might have been changed by a transform function, print it out separately if that is the case
-		if strings.Contains(c.original, c.keyword) {
-			return c.original
-		}
-
-		return fmt.Sprintf("(original: %s | keyword: %s)", c.original, c.keyword)
-	}
-
 	if len(c.group) > 0 {
 		groups := []string{}
 		for _, g := range c.group {
@@ -246,7 +241,7 @@ func (c *Condition) String() string {
 		return "(" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ")"
 	}
 
-	return fmt.Sprintf("%s %s %v%s", c.keyword, c.operator.String(), c.value, c.unit)
+	return fmt.Sprintf("Condition{kw: %q , op: %s , val: %v , un: %s , org: %s}", c.keyword, c.operator.String(), c.value, c.unit, c.original)
 }
 
 // Match checks if given map matches current condition
@@ -255,6 +250,16 @@ func (c *Condition) Match(data map[string]string) (res, ok bool) {
 	if c.isNone {
 		return false, true
 	}
+
+	for _, skipEntry := range c.skipEntries {
+		// need to use reflect Pointer() to compare
+		// 'data' argument is passed by value
+		if reflect.ValueOf(data).Pointer() == reflect.ValueOf(*skipEntry).Pointer() {
+			log.Tracef("Condition: %q , skipping entry due to it being in skip list", c.String())
+			return false, false
+		}
+	}
+
 	if len(c.group) > 0 {
 		finalOK := true
 		for i := range c.group {
@@ -510,6 +515,7 @@ func (c *Condition) Clone() *Condition {
 		group:         make(ConditionList, 0),
 		attr:          c.attr,
 		original:      c.original,
+		skipEntries:   slices.Clone(c.skipEntries),
 	}
 
 	for i := range c.group {
@@ -1039,19 +1045,20 @@ func conditionFixTokenOperator(token []string) []string {
 }
 
 // ThresholdString returns string used in warn/crit threshold performance data.
-func ThresholdString(name []string, conditions ConditionList, numberFormat func(any) string) string {
+// The name should be contained within the condition
+func ThresholdString(names []string, conditions ConditionList, numberFormat func(any) string) string {
 	// fetch warning conditions for name of metric
 	filtered := make(ConditionList, 0)
 	var group GroupOperator
 	for num := range conditions {
 		cond := conditions[num]
-		if slices.Contains(name, cond.keyword) {
+		if slices.Contains(names, cond.keyword) {
 			filtered = append(filtered, cond)
 		}
 		if cond.groupOperator == GroupOr {
 			group = cond.groupOperator
 			for i := range cond.group {
-				if slices.Contains(name, cond.group[i].keyword) {
+				if slices.Contains(names, cond.group[i].keyword) {
 					filtered = append(filtered, cond.group[i])
 				}
 			}
@@ -1059,7 +1066,7 @@ func ThresholdString(name []string, conditions ConditionList, numberFormat func(
 		if cond.groupOperator == GroupAnd {
 			group = cond.groupOperator
 			for i := range cond.group {
-				if slices.Contains(name, cond.group[i].keyword) {
+				if slices.Contains(names, cond.group[i].keyword) {
 					filtered = append(filtered, cond.group[i])
 				}
 			}
@@ -1105,7 +1112,7 @@ func ThresholdString(name []string, conditions ConditionList, numberFormat func(
 			return fmt.Sprintf("%s:%s", numberFormat(low), numberFormat(high))
 		}
 
-		// implicite And
+		// implicit And
 		return fmt.Sprintf("@%s:%s", numberFormat(low), numberFormat(high))
 	}
 
@@ -1169,4 +1176,20 @@ func replaceStrOp(input string) string {
 	}
 
 	return strings.Join(output, "")
+}
+
+// A condition list can contain some conditions that use a specialized keyword, and generallized keywords.
+// This function only does modifications if there are conditions using the specialized keyword
+// For all others that do not use the specizalied keyword, check if they are using a generallized keyword.
+// After these two rounds of filtering conditions, disable a entry from this condition.
+func (cl *ConditionList) disableGenerallizedConditionsForEntry(cd *CheckData, entry *map[string]string, specializedKeywords, generallizedKeywords []string) {
+	conditionsWithSpecializedKeyword := cd.filterThresholdConditionsUsingKeywords(*cl, specializedKeywords)
+	if len(conditionsWithSpecializedKeyword) > 0 {
+		conditionsWithoutSpecializedKeyword := utils.SubtractSlice(*cl, conditionsWithSpecializedKeyword)
+		conditionsWithoutSpecializedKeywordAndGenerallizedKeyword := cd.filterThresholdConditionsUsingKeywords(conditionsWithoutSpecializedKeyword, generallizedKeywords)
+		for _, cond := range conditionsWithoutSpecializedKeywordAndGenerallizedKeyword {
+			cond.skipEntries = append(cond.skipEntries, entry)
+			log.Tracef("Condition: %q is marked to skip an entry", cond.String())
+		}
+	}
 }

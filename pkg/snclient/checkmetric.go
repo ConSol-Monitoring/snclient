@@ -3,6 +3,7 @@ package snclient
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -23,7 +24,8 @@ type CheckMetric struct {
 	CriticalStr   *string       // set critical from string
 	Min           *float64
 	Max           *float64
-	PerfConfig    *PerfConfig // apply perf tweaks
+	PerfConfig    *PerfConfig        // apply perf tweaks
+	Entry         *map[string]string // entry that this metric is generated from
 }
 
 func (m *CheckMetric) String() string {
@@ -156,6 +158,7 @@ func (m *CheckMetric) tweakedNum(rawNum any) (num, unit string) {
 	return convert.Num2String(rawNum), m.Unit
 }
 
+// Generate a string to be used in perfdata about this threshold
 func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 	conv := func(rawNum any) string {
 		num, _ := m.tweakedNum(rawNum)
@@ -163,9 +166,26 @@ func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 		return num
 	}
 
-	if m.ThresholdName != "" {
-		return ThresholdString([]string{m.Name, m.ThresholdName}, conditions, conv)
+	conditionsToUseWhenBuildingPerfString := ConditionList{}
+
+	for _, cond := range conditions {
+		if m.Entry == nil {
+			conditionsToUseWhenBuildingPerfString = append(conditionsToUseWhenBuildingPerfString, cond)
+		}
+
+		if slices.Contains(cond.skipEntries, m.Entry) {
+			log.Tracef("condition: %q , skipping to add to list before generating threshold perf string", cond)
+			continue
+		}
+
+		conditionsToUseWhenBuildingPerfString = append(conditionsToUseWhenBuildingPerfString, cond)
 	}
 
-	return ThresholdString([]string{m.Name}, conditions, conv)
+	namesToUseWhenBuildingPerfString := []string{m.Name}
+
+	if m.ThresholdName != "" {
+		namesToUseWhenBuildingPerfString = append(namesToUseWhenBuildingPerfString, m.ThresholdName)
+	}
+
+	return ThresholdString(namesToUseWhenBuildingPerfString, conditionsToUseWhenBuildingPerfString, conv)
 }

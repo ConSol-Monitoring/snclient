@@ -158,7 +158,9 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	log.Debugf("condition critical: %s", cd.critThreshold.String())
 	log.Debugf("condition       ok: %s", cd.okThreshold.String())
 	// Run thresholds once on cd.details. This is done separately than metrics or entries
+	// details are of type map[string]string, like entries in cd.listData, but there is only one per check
 	// This can possibly set a value to cd.details[_state]
+	log.Tracef("checking warning, critical, and ok thresholds on check details")
 	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	log.Tracef("details:")
 	logTraceASCIIMap(cd.details)
@@ -210,6 +212,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 
 			// each entry in the list data is individually checked
 			// This may set "_state" of each entry
+			log.Tracef("checking warning, critical, and ok thresholds on a check entry")
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 		}
 
@@ -230,11 +233,12 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	}
 
 	cd.result.ApplyPerfSyntax(cd.perfSyntax, cd.timezone)
-
 	// Run a separate check on the macros
+	log.Tracef("checking warning, critical, and ok thresholds on check macros")
 	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	cd.setStateFromMaps(finalMacros)
 	// Metrics are checked last, which also sets the final state
+	log.Tracef("checking warning, critical, and ok thresholds on check metrics")
 	cd.CheckMetrics(cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 
 	switch {
@@ -458,21 +462,21 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond Co
 
 	for i := range warnCond {
 		if res, ok := warnCond[i].Match(data); res && ok {
-			log.Debugf("This data '%s' matched the WARNING Condition", warnCond[i].original)
+			log.Debugf("The given data matched the WARNING condition: '%s' ", warnCond[i].String())
 			data["_state"] = fmt.Sprintf("%d", CheckExitWarning)
 		}
 	}
 
 	for i := range critCond {
 		if res, ok := critCond[i].Match(data); res && ok {
-			log.Debugf("This data '%s' matched the CRITICAL Condition", critCond[i].original)
+			log.Debugf("This given data matched the CRITICAL condition: '%s' ", critCond[i].String())
 			data["_state"] = fmt.Sprintf("%d", CheckExitCritical)
 		}
 	}
 
 	for i := range okCond {
 		if res, ok := okCond[i].Match(data); res && ok {
-			log.Debugf("This data '%s' matched the OK Condition", okCond[i].original)
+			log.Debugf("This given data matched the OK condition: '%s' ", okCond[i].String())
 			data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 		}
 	}
@@ -1155,6 +1159,22 @@ func (cd *CheckData) hasThresholdCond(condList ConditionList, name string) bool 
 	}
 
 	return false
+}
+
+func (cd *CheckData) filterThresholdConditionsUsingKeywords(condList ConditionList, keywords []string) []*Condition {
+	ret := []*Condition{}
+	for _, cond := range condList {
+		if len(cond.group) > 0 {
+			groupRet := cd.filterThresholdConditionsUsingKeywords(cond.group, keywords)
+			ret = append(ret, groupRet...)
+		}
+
+		if slices.Contains(keywords, cond.keyword) {
+			ret = append(ret, cond)
+		}
+	}
+
+	return ret
 }
 
 // hasThresholdCond returns true is the given list of conditions uses the given name at least once.

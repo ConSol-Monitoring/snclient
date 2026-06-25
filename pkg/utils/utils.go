@@ -697,3 +697,21 @@ func ReplaceNumbersWithZeroPadded(s string, padding int) string {
 		return fmt.Sprintf(format, num)
 	})
 }
+
+// generic function to sutract all elements of op1 from op2
+// this does not modify op1 or op2
+func SubtractSlice[T comparable](op1 []T, op2 []T) (ret []T) {
+	toRemove := make(map[T]struct{}, len(op2))
+
+	for _, elem := range op2 {
+		toRemove[elem] = struct{}{}
+	}
+
+	op1Copy := make([]T, len(op1))
+	copy(op1Copy, op1)
+
+	return slices.DeleteFunc(op1Copy, func(elem T) bool {
+		_, exists := toRemove[elem]
+		return exists
+	})
+}
