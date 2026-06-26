@@ -331,7 +331,6 @@ func TestConditionStrOp(t *testing.T) {
 }
 
 func TestConditionSkipList(t *testing.T) {
-
 	cond, err := NewCondition("a > 5", nil)
 	require.NoErrorf(t, err, "ConditionParse should throw no error")
 
