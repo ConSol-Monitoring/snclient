@@ -43,8 +43,14 @@ type Condition struct {
 	// back reference to check attributes (used to expand by unit)
 	attr *[]CheckAttribute
 
-	// back reference to check entries to skip
-	skipEntries []map[string]string
+	// reference to data where this condition should NOT be evaluated
+	// can be any map[string]string, like check.details, or Entries in check.listData
+	blacklistData []map[string]string
+
+	// reference to data where this condition should ONLY be evaluated
+	// can be any map[string]string, like check.details, or Entries in check.listData
+	// this works only if its populated
+	whitelistData []map[string]string
 }
 
 // Operator defines a filter operator.
@@ -263,7 +269,27 @@ func (c *Condition) DetailedString() string {
 		return "(" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ")"
 	}
 
-	return fmt.Sprintf("Condition{kw: %q , op: %s , val: %v , un: %s , org: %s}", c.keyword, c.operator.String(), c.value, c.unit, c.original)
+	return fmt.Sprintf("Condition{kw: %s , op: %s , val: %v , un: %s , org: %s}", c.keyword, c.operator.String(), c.value, c.unit, c.original)
+}
+
+// checks if a data of type map[string]string is allowed through the whitelist and blacklist of the condition
+// returns true if its allowed beyond blacklist/whitelist
+func (c *Condition) BlacklistWhitelistCheck(data map[string]string) (allowed bool) {
+	if utils.ContainsMap(c.blacklistData, data) {
+		log.Tracef("Condition does not allow this data, it is in its black list, condition: %q , data: %q", c.DetailedString(), data)
+
+		return false
+	}
+
+	if len(c.whitelistData) > 0 {
+		if !utils.ContainsMap(c.whitelistData, data) {
+			log.Tracef("Condition does not allow this data, it is not in conditions populated white list, condition: %q , data: %q", c.DetailedString(), data)
+
+			return false
+		}
+	}
+
+	return true
 }
 
 // Match checks if given map matches current condition
@@ -273,9 +299,7 @@ func (c *Condition) Match(data map[string]string) (res, ok bool) {
 		return false, true
 	}
 
-	if utils.ContainsMap(c.skipEntries, data) {
-		log.Tracef("Skipping to match condition against the data, as it was in conditions skip list, condition: %q , entry: %q", c.DetailedString(), data)
-
+	if !c.BlacklistWhitelistCheck(data) {
 		return false, false
 	}
 
@@ -534,7 +558,8 @@ func (c *Condition) Clone() *Condition {
 		group:         make(ConditionList, 0),
 		attr:          c.attr,
 		original:      c.original,
-		skipEntries:   slices.Clone(c.skipEntries),
+		blacklistData: slices.Clone(c.blacklistData),
+		whitelistData: slices.Clone(c.whitelistData),
 	}
 
 	for i := range c.group {
@@ -963,6 +988,24 @@ func (c *Condition) TransformMultipleKeywords(srcKeywords []string, targetKeywor
 	return true
 }
 
+// recursively gets list of all keywords used in the condition
+func (c *Condition) GetListOfKeywords() (keywords []string, err error) {
+	addKeywordToList := func(c *Condition) (err error) {
+		keywords = append(keywords, c.keyword)
+
+		return nil
+	}
+
+	err = c.RunFuncRecursively(addKeywordToList)
+	if err != nil {
+		return nil, fmt.Errorf("error gathering keywords: %s", err.Error())
+	}
+
+	keywords = utils.Deduplicate(keywords)
+
+	return keywords, nil
+}
+
 // pass an argument as a function.
 // the function should have a pointer receiver type, no arguments and return an error.
 // the function will be applied to the current instance.
@@ -1207,8 +1250,8 @@ func (cl *ConditionList) disableGenerallizedConditionsForEntry(cd *CheckData, en
 		conditionsWithoutSpecializedKeyword := utils.SubtractSlice(*cl, conditionsWithSpecializedKeyword)
 		conditionsWithoutSpecializedKeywordAndGenerallizedKeyword := cd.filterThresholdConditionsUsingKeywords(conditionsWithoutSpecializedKeyword, generallizedKeywords)
 		for _, cond := range conditionsWithoutSpecializedKeywordAndGenerallizedKeyword {
-			cond.skipEntries = append(cond.skipEntries, entry)
-			log.Tracef("Adding an entry to conditions skip list as it has a generellized keyword, condition: %q , entry: %q", cond.DetailedString(), entry)
+			cond.blacklistData = append(cond.blacklistData, entry)
+			log.Tracef("Adding an entry to conditions blacklist as it has a generellized keyword, condition: %q , entry: %q", cond.DetailedString(), entry)
 		}
 	}
 }

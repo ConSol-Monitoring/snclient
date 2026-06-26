@@ -330,7 +330,7 @@ func TestConditionStrOp(t *testing.T) {
 	assert.Equal(t, input, output)
 }
 
-func TestConditionSkipList(t *testing.T) {
+func TestConditionBlacklist(t *testing.T) {
 	cond, err := NewCondition("a > 5", nil)
 	require.NoErrorf(t, err, "ConditionParse should throw no error")
 
@@ -348,21 +348,21 @@ func TestConditionSkipList(t *testing.T) {
 
 	res, ok := cond.Match(data1)
 
-	assert.True(t, res, "result of the check before adding to skip list should be true")
-	assert.True(t, ok, "result of the check before adding to skip list should be conclusive")
+	assert.True(t, res, "result of the check before adding to blacklist should be true")
+	assert.True(t, ok, "result of the check before adding to blacklist should be conclusive")
 
-	// add it to entry skip list
-	cond.skipEntries = append(cond.skipEntries, data1)
+	// add it to entry blacklist
+	cond.blacklistData = append(cond.blacklistData, data1)
 
 	res, ok = cond.Match(data1)
 
-	assert.False(t, res, "result of the check after adding to skip list should be false")
-	assert.False(t, ok, "result of the check after adding to skip list should be inconclusive")
+	assert.False(t, res, "result of the check after adding to blacklist should be false")
+	assert.False(t, ok, "result of the check after adding to blacklist should be inconclusive")
 
 	res, ok = cond.Match(data1copysamevalues)
 
-	assert.True(t, res, "result of the check using copy of data1 should be true, skip list only has data1")
-	assert.True(t, ok, "result of the check using copy of data1 should be conclusive, skip list only has data1")
+	assert.True(t, res, "result of the check using copy of data1 should be true, blacklist only has data1")
+	assert.True(t, ok, "result of the check using copy of data1 should be conclusive, blacklist only has data1")
 
 	res, ok = cond.Match(data1)
 	data1["d"] = "40"

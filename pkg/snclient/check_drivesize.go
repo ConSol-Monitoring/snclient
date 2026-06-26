@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -330,6 +331,7 @@ func (l *CheckDrivesize) addMetrics(drive map[string]string, check *CheckData, u
 		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct", "free_bytes"}, "free", check.critThreshold)
 		perfLabel := fmt.Sprintf("%s free", drive["drive"])
 		check.AddBytePercentMetrics("free", perfLabel, magic*float64(usage.Free), magic*float64(total))
+		l.filterDriveMetrics(check, drive, perfLabel)
 	}
 
 	driveUsagePctMetric := fmt.Sprintf("%s used %%", drive["drive"])
@@ -339,24 +341,85 @@ func (l *CheckDrivesize) addMetrics(drive map[string]string, check *CheckData, u
 		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes"}, "used", check.critThreshold)
 		perfLabel := fmt.Sprintf("%s used", drive["drive"])
 		check.AddBytePercentMetrics("used", perfLabel, magic*float64(usage.Used), magic*float64(total))
-		for _, m := range check.result.Metrics {
-			if strings.HasPrefix(m.Name, perfLabel) {
-				m.Entry = drive
-			}
-		}
+		l.filterDriveMetrics(check, drive, perfLabel)
 	}
 	if check.HasThreshold("inodes") || check.HasThreshold("inodes_used") || check.HasThreshold("inodes_used_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used"}, "inodes", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used"}, "inodes", check.critThreshold)
 		perfLabel := fmt.Sprintf("%s inodes", drive["drive"])
 		check.AddPercentMetrics("inodes", perfLabel, float64(usage.InodesUsed), float64(usage.InodesTotal))
+		l.filterDriveMetrics(check, drive, perfLabel)
 	}
 	if check.HasThreshold("inodes_free") || check.HasThreshold("inodes_free_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct"}, "inodes_free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct"}, "inodes_free", check.critThreshold)
 		perfLabel := fmt.Sprintf("%s inodes free", drive["drive"])
 		check.AddPercentMetrics("inodes_free", perfLabel, float64(usage.InodesFree), float64(usage.InodesTotal))
+		l.filterDriveMetrics(check, drive, perfLabel)
 	}
+}
+
+// filterDriveMetrics sets the Entry reference and filters Warning/Critical condition lists on metrics that belong to the given drive (matched by perfLabel prefix).
+func (l *CheckDrivesize) filterDriveMetrics(check *CheckData, drive map[string]string, perfLabel string) {
+	for _, metric := range check.result.Metrics {
+		if !strings.HasPrefix(metric.Name, perfLabel) {
+			continue
+		}
+		metric.Entry = drive
+		metric.Warning = l.filterConditionsForDrive(check, metric.Warning, drive)
+		metric.Critical = l.filterConditionsForDrive(check, metric.Critical, drive)
+	}
+}
+
+// filterConditionsForDrive returns a new ConditionList containing only the conditions that should apply to the given drive entry.
+// If a condition has a "drive" keyword somewhere, and no other condition has a "drive" keyword matching the entry , it is added
+// If a condition has a "drive" keyword somewhere, "drive" keyword and at least one drive sub-condition matches this entry , it is added
+func (l *CheckDrivesize) filterConditionsForDrive(check *CheckData, conditions ConditionList, driveEntry map[string]string) ConditionList {
+	driveKeywordPresentAndMatchesEntry := false
+	for _, cond := range conditions {
+		keywords, _ := cond.GetListOfKeywords()
+		if !slices.Contains(keywords, "drive") {
+			continue
+		}
+		driveConds := check.filterThresholdConditionsUsingKeywords(ConditionList{cond}, []string{"drive"})
+		for _, dc := range driveConds {
+			if match, ok := dc.Match(driveEntry); match && ok {
+				driveKeywordPresentAndMatchesEntry = true
+
+				break
+			}
+		}
+		if driveKeywordPresentAndMatchesEntry {
+			break
+		}
+	}
+
+	result := make(ConditionList, 0, len(conditions))
+	for _, cond := range conditions {
+		keywords, _ := cond.GetListOfKeywords()
+		// drive keyword is not present
+		if !slices.Contains(keywords, "drive") {
+			if !driveKeywordPresentAndMatchesEntry {
+				// there is no specific condition matching this entry, which means
+				// add generic entry
+				result = append(result, cond.Clone())
+			}
+
+			continue
+		}
+
+		// has "drive" keyword — include only if at least one drive sub-condition matches this entry
+		driveConds := check.filterThresholdConditionsUsingKeywords(ConditionList{cond}, []string{"drive"})
+		for _, dc := range driveConds {
+			if match, ok := dc.Match(driveEntry); match && ok {
+				result = append(result, cond.Clone())
+
+				break
+			}
+		}
+	}
+
+	return result
 }
 
 func (l *CheckDrivesize) addTotal(check *CheckData) {

@@ -739,3 +739,17 @@ func ContainsMap(slice []map[string]string, target map[string]string) bool {
 
 	return false
 }
+
+// Deduplicate removes duplicate values from a slice, preserving order.
+func Deduplicate[T comparable](slice []T) []T {
+	seen := make(map[T]struct{}, len(slice))
+	result := make([]T, 0, len(slice))
+	for _, v := range slice {
+		if _, exists := seen[v]; !exists {
+			seen[v] = struct{}{}
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
