@@ -299,13 +299,15 @@ func (l *CheckDrivesize) isExcluded(drive map[string]string, excludes []string) 
 }
 
 func (l *CheckDrivesize) handleDriveUsagePctThresholds(driveName string, check *CheckData, driveEntry *map[string]string) {
-	// convert '<drive> used_pct' keywords in conditions to '<drive> used %' as that matches the metric name
+	// '<drive> used_pct' is a drive specific usage keyword that can be used in Condition
+	// '<drive> used %' is a metric name
+	// convert '<drive> used_pct' keywords in conditions to '<drive> used %'
+	// They can then be checked during metric checking
 	convertDriveUsagePctMetric1 := fmt.Sprintf("%s used_pct", driveName)
 
-	// metrics are normally added if the operand is simply 'used' , 'used_pct' , 'used_bytes' etc. and do not have a drive prefix
-	// detect conditions where the operand is named '<drive> used %', this is the default way snclient names percent usage metrics.
-	// if there is a condition using that as an operand, add usage metrics for that drive as well. during the metrics condition checking, they will take effect.
-	// this helps to check usage metrics specific to drives.
+	// metrics are normally added when Condition keywords are 'used' , 'used_pct' , 'used_bytes' etc. and do not have a drive prefix
+	// detect conditions where the operand is named '<drive> used %'
+	// if there is a condition using '<drive> used %' as an operand, add usage metrics for that drive as well. They do not need to use generic keywords like 'used' , 'used_pct' , 'used_bytes'
 	driveUsagePctMetric := fmt.Sprintf("%s used %%", driveName)
 
 	check.warnThreshold = check.TransformMultipleKeywords([]string{convertDriveUsagePctMetric1}, driveUsagePctMetric, check.warnThreshold)
@@ -330,7 +332,7 @@ func (l *CheckDrivesize) addMetrics(drive *map[string]string, check *CheckData, 
 		check.AddBytePercentMetrics("free", perfLabel, magic*float64(usage.Free), magic*float64(total))
 	}
 
-	driveUsagePctMetric := fmt.Sprintf("%s used %%", drive)
+	driveUsagePctMetric := fmt.Sprintf("%s used %%", (*drive)["drive"])
 
 	if check.HasThreshold(driveUsagePctMetric) || check.HasThreshold("used") || check.HasThreshold("used_pct") || check.HasThreshold("used_bytes") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes"}, "used", check.warnThreshold)
