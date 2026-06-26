@@ -329,3 +329,44 @@ func TestConditionStrOp(t *testing.T) {
 	output = replaceStrOp(input)
 	assert.Equal(t, input, output)
 }
+
+func TestConditionSkipList(t *testing.T) {
+
+	cond, err := NewCondition("a > 5", nil)
+	require.NoErrorf(t, err, "ConditionParse should throw no error")
+
+	data1 := map[string]string{
+		"a": "10",
+		"b": "20",
+		"c": "30",
+	}
+
+	data1copysamevalues := map[string]string{
+		"a": "10",
+		"b": "20",
+		"c": "30",
+	}
+
+	res, ok := cond.Match(data1)
+
+	assert.True(t, res, "result of the check before adding to skip list should be true")
+	assert.True(t, ok, "result of the check before adding to skip list should be conclusive")
+
+	// add it to entry skip list
+	cond.skipEntries = append(cond.skipEntries, data1)
+
+	res, ok = cond.Match(data1)
+
+	assert.False(t, res, "result of the check after adding to skip list should be false")
+	assert.False(t, ok, "result of the check after adding to skip list should be inconclusive")
+
+	res, ok = cond.Match(data1copysamevalues)
+
+	assert.True(t, res, "result of the check using copy of data1 should be true, skip list only has data1")
+	assert.True(t, ok, "result of the check using copy of data1 should be conclusive, skip list only has data1")
+
+	res, ok = cond.Match(data1)
+	data1["d"] = "40"
+	assert.False(t, res, "result of the check after modifying data1 should still be false")
+	assert.False(t, ok, "result of the check after modifying data1 should still be inconclusive")
+}
