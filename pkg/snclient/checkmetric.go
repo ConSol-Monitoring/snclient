@@ -158,7 +158,8 @@ func (m *CheckMetric) tweakedNum(rawNum any) (num, unit string) {
 	return convert.Num2String(rawNum), m.Unit
 }
 
-// Generate a string to be used in perfdata about this threshold
+// Generate a string to be used in naemon like perfdata output about this threshold
+// if a metric has a reference to its originating entry, the conditions will check if it is in their skip list
 func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 	conv := func(rawNum any) string {
 		num, _ := m.tweakedNum(rawNum)
@@ -171,10 +172,13 @@ func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 	for _, cond := range conditions {
 		if m.Entry == nil {
 			conditionsToUseWhenBuildingPerfString = append(conditionsToUseWhenBuildingPerfString, cond)
+
+			continue
 		}
 
 		if slices.Contains(cond.skipEntries, m.Entry) {
 			log.Tracef("condition: %q , skipping to add to list before generating threshold perf string", cond)
+
 			continue
 		}
 
