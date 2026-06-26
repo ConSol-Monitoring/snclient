@@ -232,9 +232,9 @@ func NewCondition(input string, attr *[]CheckAttribute) (*Condition, error) {
 
 func (c *Condition) String() string {
 	if len(c.group) > 0 {
-		groups := []string{}
-		for _, g := range c.group {
-			groups = append(groups, g.String())
+		groups := make([]string, len(c.group))
+		for i, g := range c.group {
+			groups[i] = g.String()
 		}
 
 		return "(" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ")"
