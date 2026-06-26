@@ -177,7 +177,7 @@ func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 
 		if !cond.BlacklistWhitelistCheck(m.Entry) {
 			log.Tracef("metric knows which entry it was generated from, the condition does not allow this entry, skipping the condition for generating perf string, "+
-				" condition: %q , entry: %q", cond.DetailedString(), m.Entry)
+				" name: %q , condition: %q , entry: %q", m.Name, cond.DetailedString(), m.Entry)
 
 			continue
 		}

@@ -419,6 +419,8 @@ func (l *CheckDrivesize) filterConditionsForDrive(check *CheckData, conditions C
 		}
 	}
 
+	log.Tracef("Filtered these conditions for drive entry: %q , result: %v ", driveEntry, result)
+
 	return result
 }
 
