@@ -231,10 +231,33 @@ func NewCondition(input string, attr *[]CheckAttribute) (*Condition, error) {
 }
 
 func (c *Condition) String() string {
+	if c.original != "" {
+		// keyword might have been changed by a transform function, print it out separately if that is the case
+		if strings.Contains(c.original, c.keyword) {
+			return c.original
+		}
+
+		return fmt.Sprintf("(original: %s | keyword: %s)", c.original, c.keyword)
+	}
+
+	if len(c.group) > 0 {
+		groups := []string{}
+		for _, g := range c.group {
+			groups = append(groups, g.String())
+		}
+
+		return "(" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ")"
+	}
+
+	return fmt.Sprintf("%s %s %v%s", c.keyword, c.operator.String(), c.value, c.unit)
+}
+
+// use this function to see more detail about a condition, including its original, unit and keyword
+func (c *Condition) DetailedString() string {
 	if len(c.group) > 0 {
 		groups := make([]string, len(c.group))
 		for i, g := range c.group {
-			groups[i] = g.String()
+			groups[i] = g.DetailedString()
 		}
 
 		return "(" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ")"
@@ -252,7 +275,7 @@ func (c *Condition) Match(data map[string]string) (res, ok bool) {
 
 	for _, skipEntry := range c.skipEntries {
 		if utils.MapsEqual(data, skipEntry) {
-			log.Tracef("Condition: %q , skipping entry due to it being in skip list", c.String())
+			log.Tracef("Condition: %q , skipping entry due to it being in skip list", c.DetailedString())
 
 			return false, false
 		}
@@ -1187,7 +1210,7 @@ func (cl *ConditionList) disableGenerallizedConditionsForEntry(cd *CheckData, en
 		conditionsWithoutSpecializedKeywordAndGenerallizedKeyword := cd.filterThresholdConditionsUsingKeywords(conditionsWithoutSpecializedKeyword, generallizedKeywords)
 		for _, cond := range conditionsWithoutSpecializedKeywordAndGenerallizedKeyword {
 			cond.skipEntries = append(cond.skipEntries, entry)
-			log.Tracef("Condition: %q is marked to skip an entry", cond.String())
+			log.Tracef("Condition: %q is marked to skip an entry", cond.DetailedString())
 		}
 	}
 }

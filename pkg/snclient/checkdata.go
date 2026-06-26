@@ -463,21 +463,21 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond Co
 
 	for i := range warnCond {
 		if res, ok := warnCond[i].Match(data); res && ok {
-			log.Debugf("The given data matched the WARNING condition: '%s' ", warnCond[i].String())
+			log.Debugf("The given data matched the WARNING condition: '%s' ", warnCond[i].DetailedString())
 			data["_state"] = fmt.Sprintf("%d", CheckExitWarning)
 		}
 	}
 
 	for i := range critCond {
 		if res, ok := critCond[i].Match(data); res && ok {
-			log.Debugf("This given data matched the CRITICAL condition: '%s' ", critCond[i].String())
+			log.Debugf("This given data matched the CRITICAL condition: '%s' ", critCond[i].DetailedString())
 			data["_state"] = fmt.Sprintf("%d", CheckExitCritical)
 		}
 	}
 
 	for i := range okCond {
 		if res, ok := okCond[i].Match(data); res && ok {
-			log.Debugf("This given data matched the OK condition: '%s' ", okCond[i].String())
+			log.Debugf("This given data matched the OK condition: '%s' ", okCond[i].DetailedString())
 			data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 		}
 	}
