@@ -365,7 +365,200 @@ func TestConditionBlacklist(t *testing.T) {
 	assert.True(t, ok, "result of the check using copy of data1 should be conclusive, blacklist only has data1")
 
 	res, ok = cond.Match(data1)
+	assert.False(t, res, "result after adding to blacklist should be false")
+	assert.False(t, ok, "result after adding to blacklist should be inconclusive")
 	data1["d"] = "40"
-	assert.False(t, res, "result of the check after modifying data1 should still be false")
+	res, ok = cond.Match(data1)
+	assert.False(t, res, "result after modifying data1 should still be false")
 	assert.False(t, ok, "result of the check after modifying data1 should still be inconclusive")
+}
+
+func TestConditionBlacklistMultipleEntries(t *testing.T) {
+	cond, err := NewCondition("a > 5", nil)
+	require.NoErrorf(t, err, "ConditionParse should throw no error")
+
+	data1 := map[string]string{"a": "10"}
+	data2 := map[string]string{"a": "8"}
+	data3 := map[string]string{"a": "6"}
+
+	cond.blacklistData = append(cond.blacklistData, data1, data2)
+
+	res, ok := cond.Match(data1)
+	assert.False(t, res, "data1 is blacklisted")
+	assert.False(t, ok, "data1 inconclusive")
+
+	res, ok = cond.Match(data2)
+	assert.False(t, res, "data2 is blacklisted")
+	assert.False(t, ok, "data2 inconclusive")
+
+	res, ok = cond.Match(data3)
+	assert.True(t, res, "data3 is not blacklisted and matches the condition")
+	assert.True(t, ok, "data3 conclusive")
+}
+
+func TestConditionBlacklistEmptyAllowsAll(t *testing.T) {
+	cond, err := NewCondition("a > 5", nil)
+	require.NoErrorf(t, err, "ConditionParse should throw no error")
+
+	data1 := map[string]string{"a": "10"}
+	data2 := map[string]string{"a": "3"}
+
+	// empty blacklist — all data passes through to normal matching
+	res, ok := cond.Match(data1)
+	assert.True(t, res, "data1 matches, blacklist empty")
+	assert.True(t, ok, "data1 conclusive")
+
+	res, ok = cond.Match(data2)
+	assert.False(t, res, "data2 does not match condition, blacklist empty")
+	assert.True(t, ok, "data2 conclusive, only blocked by condition itself")
+}
+
+func TestConditionBlacklistClone(t *testing.T) {
+	cond, err := NewCondition("a > 5", nil)
+	require.NoErrorf(t, err, "ConditionParse should throw no error")
+
+	data1 := map[string]string{"a": "10"}
+
+	cond.blacklistData = append(cond.blacklistData, data1)
+
+	cloned := cond.Clone()
+
+	res, ok := cloned.Match(data1)
+	assert.False(t, res, "cloned condition has blacklist data from original")
+	assert.False(t, ok, "inconclusive")
+
+	// different underlying map with same values — not in blacklist
+	data2 := map[string]string{"a": "10"}
+	res, ok = cloned.Match(data2)
+	assert.True(t, res, "data2 has same values but different map, not in cloned blacklist")
+	assert.True(t, ok, "conclusive")
+}
+
+func TestConditionWhitelist(t *testing.T) {
+	cond, err := NewCondition("a > 5", nil)
+	require.NoErrorf(t, err, "ConditionParse should throw no error")
+
+	data1 := map[string]string{
+		"a": "10",
+		"b": "20",
+		"c": "30",
+	}
+
+	data2 := map[string]string{
+		"a": "10",
+		"b": "20",
+		"c": "30",
+	}
+
+	data3 := map[string]string{
+		"a": "3",
+	}
+
+	// before whitelist: matching data passes, non-matching fails
+	res, ok := cond.Match(data1)
+	assert.True(t, res, "data1 matches before whitelist is populated")
+	assert.True(t, ok, "data1 conclusive before whitelist is populated")
+
+	res, ok = cond.Match(data3)
+	assert.False(t, res, "data3 does not match before whitelist is populated")
+	assert.True(t, ok, "data3 conclusive before whitelist is populated")
+
+	// add data1 to whitelist — only data1 should be allowed through
+	cond.whitelistData = append(cond.whitelistData, data1)
+
+	res, ok = cond.Match(data1)
+	assert.True(t, res, "data1 matches when it is in the whitelist")
+	assert.True(t, ok, "data1 conclusive when in the whitelist")
+
+	// data2 has same values but different underlying map — whitelist uses map identity
+	res, ok = cond.Match(data2)
+	assert.False(t, res, "data2 does not match even with same values, not in whitelist")
+	assert.False(t, ok, "data2 inconclusive, not in whitelist")
+
+	// data3: not in whitelist (even though it wouldn't match the condition anyway)
+	res, ok = cond.Match(data3)
+	assert.False(t, res, "data3 does not match, not in whitelist")
+	assert.False(t, ok, "data3 inconclusive, not in whitelist")
+
+	// modifying whitelisted entry does not break identity
+	data1["d"] = "40"
+	res, ok = cond.Match(data1)
+	assert.True(t, res, "data1 still matches after modification, same underlying map")
+	assert.True(t, ok, "data1 still conclusive after modification")
+}
+
+func TestConditionWhitelistOverridesBlacklist(t *testing.T) {
+	cond, err := NewCondition("a > 5", nil)
+	require.NoErrorf(t, err, "ConditionParse should throw no error")
+
+	data1 := map[string]string{"a": "10"}
+
+	// both blacklisted and whitelisted — blacklist takes precedence
+	cond.blacklistData = append(cond.blacklistData, data1)
+	cond.whitelistData = append(cond.whitelistData, data1)
+
+	res, ok := cond.Match(data1)
+	assert.False(t, res, "blacklist takes precedence over whitelist")
+	assert.False(t, ok, "inconclusive due to blacklist")
+}
+
+func TestConditionWhitelistMultipleEntries(t *testing.T) {
+	cond, err := NewCondition("a > 5", nil)
+	require.NoErrorf(t, err, "ConditionParse should throw no error")
+
+	data1 := map[string]string{"a": "10"}
+	data2 := map[string]string{"a": "8"}
+	data3 := map[string]string{"a": "3"}
+
+	cond.whitelistData = append(cond.whitelistData, data1, data2)
+
+	res, ok := cond.Match(data1)
+	assert.True(t, res, "data1 is in whitelist and matches the condition")
+	assert.True(t, ok, "data1 conclusive")
+
+	res, ok = cond.Match(data2)
+	assert.True(t, res, "data2 is in whitelist and matches the condition")
+	assert.True(t, ok, "data2 conclusive")
+
+	res, ok = cond.Match(data3)
+	assert.False(t, res, "data3 is not in whitelist")
+	assert.False(t, ok, "data3 inconclusive, blocked by whitelist")
+}
+
+func TestConditionWhitelistEmptyAllowsAll(t *testing.T) {
+	// empty whitelist means no whitelist restriction (all non-blacklisted data passes)
+	cond, err := NewCondition("a > 5", nil)
+	require.NoErrorf(t, err, "ConditionParse should throw no error")
+
+	data1 := map[string]string{"a": "10"}
+	data2 := map[string]string{"a": "3"}
+
+	res, ok := cond.Match(data1)
+	assert.True(t, res, "data1 matches, whitelist empty")
+	assert.True(t, ok, "data1 conclusive")
+
+	res, ok = cond.Match(data2)
+	assert.False(t, res, "data2 does not match condition, whitelist empty")
+	assert.True(t, ok, "data2 conclusive, only blocked by condition itself")
+}
+
+func TestConditionWhitelistClone(t *testing.T) {
+	cond, err := NewCondition("a > 5", nil)
+	require.NoErrorf(t, err, "ConditionParse should throw no error")
+
+	data1 := map[string]string{"a": "10"}
+
+	cond.whitelistData = append(cond.whitelistData, data1)
+
+	cloned := cond.Clone()
+
+	res, ok := cloned.Match(data1)
+	assert.True(t, res, "cloned condition has whitelist data from original")
+	assert.True(t, ok, "conclusive")
+
+	// different underlying map with same values
+	data2 := map[string]string{"a": "10"}
+	res, ok = cloned.Match(data2)
+	assert.False(t, res, "data2 not in cloned whitelist")
+	assert.False(t, ok, "inconclusive")
 }
