@@ -158,8 +158,9 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	log.Debugf("condition critical: %s", cd.critThreshold.String())
 	log.Debugf("condition       ok: %s", cd.okThreshold.String())
 	// Run thresholds once on cd.details. This is done separately than metrics or entries
-	// details are of type map[string]string, like entries in cd.listData, but there is only one per check
-	// This can possibly set a value to cd.details[_state]
+	// cd.details are of type map[string]string,
+	// same as elements of the slice cd.listData, but there is only one per check
+	// This can possibly set a value to cd.details[_state] , influencing check state
 	log.Tracef("checking warning, critical, and ok thresholds on check details")
 	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	log.Tracef("details:")
@@ -211,7 +212,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 			}
 
 			// each entry in the list data is individually checked
-			// This may set "_state" of each entry
+			// This can possibly set "_state" of each entry, influencing the final state
 			log.Tracef("checking warning, critical, and ok thresholds on a check entry")
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 		}
@@ -1161,6 +1162,7 @@ func (cd *CheckData) hasThresholdCond(condList ConditionList, name string) bool 
 	return false
 }
 
+// this function does not create new conditions, only filters to existing conditions of checkdata
 func (cd *CheckData) filterThresholdConditionsUsingKeywords(condList ConditionList, keywords []string) []*Condition {
 	ret := []*Condition{}
 	for _, cond := range condList {
