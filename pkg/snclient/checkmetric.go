@@ -3,7 +3,6 @@ package snclient
 import (
 	"bytes"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -24,8 +23,8 @@ type CheckMetric struct {
 	CriticalStr   *string       // set critical from string
 	Min           *float64
 	Max           *float64
-	PerfConfig    *PerfConfig        // apply perf tweaks
-	Entry         *map[string]string // entry that this metric is generated from
+	PerfConfig    *PerfConfig       // apply perf tweaks
+	Entry         map[string]string // entry that this metric is generated from
 }
 
 func (m *CheckMetric) String() string {
@@ -176,7 +175,7 @@ func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 			continue
 		}
 
-		if slices.Contains(cond.skipEntries, m.Entry) {
+		if utils.ContainsMap(cond.skipEntries, m.Entry) {
 			log.Tracef("condition: %q , skipping to add to list before generating threshold perf string", cond)
 
 			continue

@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"slices"
@@ -698,9 +699,9 @@ func ReplaceNumbersWithZeroPadded(s string, padding int) string {
 	})
 }
 
-// generic function to sutract all elements of op1 from op2
+// generic function to subtract all elements of op2 from op1
 // this does not modify op1 or op2
-func SubtractSlice[T comparable](op1 []T, op2 []T) (ret []T) {
+func SubtractSlice[T comparable](op1, op2 []T) (ret []T) {
 	toRemove := make(map[T]struct{}, len(op2))
 
 	for _, elem := range op2 {
@@ -712,6 +713,29 @@ func SubtractSlice[T comparable](op1 []T, op2 []T) (ret []T) {
 
 	return slices.DeleteFunc(op1Copy, func(elem T) bool {
 		_, exists := toRemove[elem]
+
 		return exists
 	})
+}
+
+// MapsEqual returns true if two map[string]string values refer to the same underlying hash table.
+// In Go, maps are reference types — copying a map copies the header (a pointer to the internal hmap struct),
+// so all copies of the same map share the same underlying data and the same hmap address.
+// Go does not move heap objects (no compacting GC), so the hmap pointer is stable for the map's lifetime.
+// Maps are not directly == comparable, so reflect is used to extract and compare the internal pointer.
+// This is useful for checking whether two maps represent the same logical entry (e.g. skip-list lookups).
+func MapsEqual(a, b map[string]string) bool {
+	return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer()
+}
+
+// ContainsMap returns true if a map in the slice shares the same underlying hash table as target.
+// See MapsEqual for details on the comparison mechanism.
+func ContainsMap(slice []map[string]string, target map[string]string) bool {
+	for _, m := range slice {
+		if MapsEqual(m, target) {
+			return true
+		}
+	}
+
+	return false
 }

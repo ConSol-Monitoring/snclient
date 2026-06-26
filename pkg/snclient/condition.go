@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"reflect"
 	"regexp"
 	"slices"
 	"strconv"
@@ -45,7 +44,7 @@ type Condition struct {
 	attr *[]CheckAttribute
 
 	// back reference to check entries to skip
-	skipEntries [](*map[string]string)
+	skipEntries []map[string]string
 }
 
 // Operator defines a filter operator.
@@ -252,10 +251,9 @@ func (c *Condition) Match(data map[string]string) (res, ok bool) {
 	}
 
 	for _, skipEntry := range c.skipEntries {
-		// need to use reflect Pointer() to compare
-		// 'data' argument is passed by value
-		if reflect.ValueOf(data).Pointer() == reflect.ValueOf(*skipEntry).Pointer() {
+		if utils.MapsEqual(data, skipEntry) {
 			log.Tracef("Condition: %q , skipping entry due to it being in skip list", c.String())
+
 			return false, false
 		}
 	}
@@ -1182,7 +1180,7 @@ func replaceStrOp(input string) string {
 // This function only does modifications if there are conditions using the specialized keyword
 // For all others that do not use the specizalied keyword, check if they are using a generallized keyword.
 // After these two rounds of filtering conditions, disable a entry from this condition.
-func (cl *ConditionList) disableGenerallizedConditionsForEntry(cd *CheckData, entry *map[string]string, specializedKeywords, generallizedKeywords []string) {
+func (cl *ConditionList) disableGenerallizedConditionsForEntry(cd *CheckData, entry map[string]string, specializedKeywords, generallizedKeywords []string) {
 	conditionsWithSpecializedKeyword := cd.filterThresholdConditionsUsingKeywords(*cl, specializedKeywords)
 	if len(conditionsWithSpecializedKeyword) > 0 {
 		conditionsWithoutSpecializedKeyword := utils.SubtractSlice(*cl, conditionsWithSpecializedKeyword)
