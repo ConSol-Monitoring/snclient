@@ -273,12 +273,10 @@ func (c *Condition) Match(data map[string]string) (res, ok bool) {
 		return false, true
 	}
 
-	for _, skipEntry := range c.skipEntries {
-		if utils.MapsEqual(data, skipEntry) {
-			log.Tracef("Condition: %q , skipping entry due to it being in skip list", c.DetailedString())
+	if utils.ContainsMap(c.skipEntries, data) {
+		log.Tracef("Skipping to match condition against the data, as it was in conditions skip list, condition: %q , entry: %q", c.DetailedString(), data)
 
-			return false, false
-		}
+		return false, false
 	}
 
 	if len(c.group) > 0 {
@@ -1210,7 +1208,7 @@ func (cl *ConditionList) disableGenerallizedConditionsForEntry(cd *CheckData, en
 		conditionsWithoutSpecializedKeywordAndGenerallizedKeyword := cd.filterThresholdConditionsUsingKeywords(conditionsWithoutSpecializedKeyword, generallizedKeywords)
 		for _, cond := range conditionsWithoutSpecializedKeywordAndGenerallizedKeyword {
 			cond.skipEntries = append(cond.skipEntries, entry)
-			log.Tracef("Condition: %q is marked to skip an entry", cond.DetailedString())
+			log.Tracef("Adding an entry to conditions skip list as it has a generellized keyword, condition: %q , entry: %q", cond.DetailedString(), entry)
 		}
 	}
 }

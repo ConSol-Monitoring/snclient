@@ -176,7 +176,7 @@ func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 		}
 
 		if utils.ContainsMap(cond.skipEntries, m.Entry) {
-			log.Tracef("condition: %q , skipping to add to list before generating threshold perf string", cond)
+			log.Tracef("metric knows which entry it was genereated from, its conditions skip list has that entry, skipping this condition in perf string, condition: %q , entry: %q", cond, m.Entry)
 
 			continue
 		}
