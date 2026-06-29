@@ -1244,14 +1244,100 @@ func replaceStrOp(input string) string {
 // This function only does modifications if there are conditions using the specialized keyword
 // For all others that do not use the specizalied keyword, check if they are using a generallized keyword.
 // After these two rounds of filtering conditions, disable a entry from this condition.
-func (cl *ConditionList) disableGenerallizedConditionsForEntry(cd *CheckData, entry map[string]string, specializedKeywords, generallizedKeywords []string) {
-	conditionsWithSpecializedKeyword := cd.filterThresholdConditionsUsingKeywords(*cl, specializedKeywords)
+func (cl *ConditionList) disableGenerallizedConditionsForEntry(entry map[string]string, specializedKeywords, generallizedKeywords []string) {
+	conditionsWithSpecializedKeyword := cl.filterConditionsUsingKeywords(specializedKeywords)
 	if len(conditionsWithSpecializedKeyword) > 0 {
 		conditionsWithoutSpecializedKeyword := utils.SubtractSlice(*cl, conditionsWithSpecializedKeyword)
-		conditionsWithoutSpecializedKeywordAndGenerallizedKeyword := cd.filterThresholdConditionsUsingKeywords(conditionsWithoutSpecializedKeyword, generallizedKeywords)
+		cl2 := ConditionList(conditionsWithoutSpecializedKeyword)
+		conditionsWithoutSpecializedKeywordAndGenerallizedKeyword := cl2.filterConditionsUsingKeywords(generallizedKeywords)
 		for _, cond := range conditionsWithoutSpecializedKeywordAndGenerallizedKeyword {
 			cond.blacklistData = append(cond.blacklistData, entry)
-			log.Tracef("Adding an entry to conditions blacklist as it has a generellized keyword, condition: %q , entry: %q", cond.DetailedString(), entry)
+			log.Tracef("Adding an entry to conditions blacklist, specialized keywords: %q , generallized keywords: %q , condition: %q , entry: %q",
+				specializedKeywords, generallizedKeywords, cond.DetailedString(), entry)
 		}
 	}
+}
+
+// this function does not create new conditions, only filters existing conditions of ConditionList
+func (cl *ConditionList) filterConditionsUsingKeywords(keywords []string) (ret []*Condition) {
+	for _, condition := range *cl {
+		if len(condition.group) > 0 {
+			groupRet := condition.group.filterConditionsUsingKeywords(keywords)
+			ret = append(ret, groupRet...)
+		}
+
+		if slices.Contains(keywords, condition.keyword) {
+			ret = append(ret, condition)
+		}
+	}
+
+	return ret
+}
+
+// The match does not have to return true, it can return false
+// The important point is that it is conclusive. This means it is permitted to match against the entry
+func (cl *ConditionList) ifKeywordIsPresentAndPermitsEntry(keyword string, entry map[string]string) (result bool) {
+	result = false
+
+	for _, condition := range *cl {
+		keywords, _ := condition.GetListOfKeywords()
+		if !slices.Contains(keywords, keyword) {
+			continue
+		}
+
+		cl := ConditionList{condition}
+		subconditionsWithKeyword := cl.filterConditionsUsingKeywords([]string{keyword})
+		for _, subcondition := range subconditionsWithKeyword {
+			if match, ok := subcondition.Match(entry); match && ok {
+				result = true
+
+				break
+			}
+		}
+
+		if result {
+			break
+		}
+	}
+
+	return result
+}
+
+// If a specialized condition, i.e a condition using the keyword, exists in this condition list, filter to specialized condition
+// If a specialized condition does not exist, every condition is generallized. Keep every generallized condition.
+func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[string]string) (result ConditionList) {
+	// If the condition has this keyword, and permits an entry, the condition is specific to this entry
+	// It is specialized in terms of this keyword, it is not generallized
+	keywordIsPresentAndPermitsEntry := cl.ifKeywordIsPresentAndPermitsEntry(keyword, entry)
+
+	for _, condition := range *cl {
+		keywords, _ := condition.GetListOfKeywords()
+
+		// keyword is not present
+		if !slices.Contains(keywords, keyword) {
+			// add generic condition in terms of keyword
+			if !keywordIsPresentAndPermitsEntry {
+				result = append(result, condition.Clone())
+			}
+
+			continue
+		}
+
+		// has keyword — include only if at least one drive sub-condition permits this entry
+		subconditionsUsingKeyword := cl.filterConditionsUsingKeywords([]string{keyword})
+		for _, dc := range subconditionsUsingKeyword {
+			if match, ok := dc.Match(entry); match && ok {
+				result = append(result, condition.Clone())
+
+				break
+			}
+		}
+	}
+
+	if len(result) > 0 {
+		log.Tracef("From this condition list: %v , filtering to this specialized keyword: %s and entry: %v , special keyword exists and permits entry: %t , result: %v ",
+			*cl, keyword, entry, keywordIsPresentAndPermitsEntry, result)
+	}
+
+	return result
 }

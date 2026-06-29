@@ -1162,23 +1162,6 @@ func (cd *CheckData) hasThresholdCond(condList ConditionList, name string) bool 
 	return false
 }
 
-// this function does not create new conditions, only filters to existing conditions of checkdata
-func (cd *CheckData) filterThresholdConditionsUsingKeywords(condList ConditionList, keywords []string) []*Condition {
-	ret := []*Condition{}
-	for _, cond := range condList {
-		if len(cond.group) > 0 {
-			groupRet := cd.filterThresholdConditionsUsingKeywords(cond.group, keywords)
-			ret = append(ret, groupRet...)
-		}
-
-		if slices.Contains(keywords, cond.keyword) {
-			ret = append(ret, cond)
-		}
-	}
-
-	return ret
-}
-
 // hasThresholdCond returns true is the given list of conditions uses the given name at least once.
 func (cd *CheckData) getAllThresholdKeywords(condList ConditionList) []string {
 	keywords := []string{}
@@ -1315,7 +1298,7 @@ func (cd *CheckData) ExpandMetricMacros(srcThreshold ConditionList, data map[str
 	return replaced
 }
 
-func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, total float64) {
+func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, total float64, entry map[string]string) {
 	percent := float64(0)
 	if threshold == "used" {
 		percent = 100
@@ -1334,6 +1317,7 @@ func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, tot
 			Critical: cd.TransformThreshold(cd.critThreshold, threshold, perfLabel, "%", "B", total),
 			Min:      &Zero,
 			Max:      &total,
+			Entry:    entry,
 		},
 		&CheckMetric{
 			Name:     pctName,
@@ -1343,11 +1327,12 @@ func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, tot
 			Critical: cd.TransformThreshold(cd.critThreshold, threshold, pctName, "B", "%", total),
 			Min:      &Zero,
 			Max:      &Hundred,
+			Entry:    entry,
 		},
 	)
 }
 
-func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total float64) {
+func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total float64, entry map[string]string) {
 	percent := float64(0)
 	if strings.Contains(threshold, "used") {
 		percent = 100
@@ -1368,8 +1353,62 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 			Critical:      cd.critThreshold,
 			Min:           &Zero,
 			Max:           &Hundred,
+			Entry:         entry,
 		},
 	)
+}
+
+// processMetricsWithSpecializedKeyword sets the Entry reference and filters Warning/Critical thresholds of the Metric object
+// the thresholds will be filtered using the special keyword. refer to that function for more details, as it uses a heurisic to determine how to filter
+//
+//nolint:unparam // this is only used in check_drivesize for now, so keyword is always "drive"
+func (cd *CheckData) processMetricsWithSpecializedKeyword(keyword, metricName string, entry map[string]string) {
+	for _, metric := range cd.result.Metrics {
+		if !strings.HasPrefix(metric.Name, metricName) {
+			continue
+		}
+		metric.Entry = entry
+		metric.Warning = metric.Warning.filterForSpecializedKeyword(keyword, entry)
+		metric.Critical = metric.Critical.filterForSpecializedKeyword(keyword, entry)
+	}
+}
+
+// transforms keywords of ok/warn/crit thresholds, using a source keyword and target keyword
+// attribute.name of the CheckData.attributes is fed into the formats as the first argument
+// formatArgs are fed as following arguments
+func (cd *CheckData) transformKeywordsUsingAttributes(keywordSourceFormat, keywordTargetFormat string, attributeNames []string, formatArgs ...any) {
+	for _, attributeName := range attributeNames {
+		args := make([]any, len(formatArgs)+1)
+		args[0] = attributeName
+		copy(args[1:], formatArgs)
+
+		keywordSource := fmt.Sprintf(keywordSourceFormat, args...)
+		keywordTarget := fmt.Sprintf(keywordTargetFormat, args...)
+
+		log.Tracef("Transforming threshold keywords, soruceKeywords: %v , targetKeyword: %s", keywordSource, keywordTarget)
+
+		cd.warnThreshold = cd.TransformMultipleKeywords([]string{keywordSource}, keywordTarget, cd.warnThreshold)
+		cd.critThreshold = cd.TransformMultipleKeywords([]string{keywordSource}, keywordTarget, cd.critThreshold)
+		cd.okThreshold = cd.TransformMultipleKeywords([]string{keywordSource}, keywordTarget, cd.okThreshold)
+	}
+}
+
+// for a given entry, looks through the ok/warn/crit thresholds, disables conditions using generallized keywords if specialized keywords is present
+// attribute.name of the CheckData.attributes is fed into the formats as the first argument
+// formatArgs are fed as following arguments
+func (cd *CheckData) disableGenerallizedConditionsUsingAttributes(entry map[string]string, specializedKeywordFormat, generallizedKeywordFormat string, attributeNames []string, formatArgs ...any) {
+	for _, attributeName := range attributeNames {
+		args := make([]any, len(formatArgs)+1)
+		args[0] = attributeName
+		copy(args[1:], formatArgs)
+
+		specializedKeyword := fmt.Sprintf(specializedKeywordFormat, args)
+		generallizedKeyword := fmt.Sprintf(generallizedKeywordFormat, args)
+
+		cd.warnThreshold.disableGenerallizedConditionsForEntry(entry, []string{specializedKeyword}, []string{generallizedKeyword})
+		cd.critThreshold.disableGenerallizedConditionsForEntry(entry, []string{specializedKeyword}, []string{generallizedKeyword})
+		cd.okThreshold.disableGenerallizedConditionsForEntry(entry, []string{specializedKeyword}, []string{generallizedKeyword})
+	}
 }
 
 // expand arg definitions separated by pipe symbol
