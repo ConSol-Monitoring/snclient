@@ -1402,8 +1402,8 @@ func (cd *CheckData) disableGenerallizedConditionsUsingAttributes(entry map[stri
 		args[0] = attributeName
 		copy(args[1:], formatArgs)
 
-		specializedKeyword := fmt.Sprintf(specializedKeywordFormat, args)
-		generallizedKeyword := fmt.Sprintf(generallizedKeywordFormat, args)
+		specializedKeyword := fmt.Sprintf(specializedKeywordFormat, args...)
+		generallizedKeyword := fmt.Sprintf(generallizedKeywordFormat, args...)
 
 		cd.warnThreshold.disableGenerallizedConditionsForEntry(entry, []string{specializedKeyword}, []string{generallizedKeyword})
 		cd.critThreshold.disableGenerallizedConditionsForEntry(entry, []string{specializedKeyword}, []string{generallizedKeyword})
