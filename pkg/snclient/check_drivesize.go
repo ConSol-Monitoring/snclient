@@ -338,6 +338,9 @@ func (l *CheckDrivesize) disableGenerallizedConditionsForDrive(driveName string,
 
 		// specialized: <drive> <cut> %    generalized: <attribute_name> %
 		check.disableGenerallizedConditionsUsingAttributes(entry, `%[2]s %[3]s %%`, `%[1]s %%`, []string{attribute.name}, driveName, cut)
+
+		// specialized: <drive> <cut> %    generalized: <cut>
+		check.disableGenerallizedConditionsUsingAttributes(entry, `%[2]s %[3]s %%`, `%[3]s`, []string{attribute.name}, driveName, cut)
 	}
 }
 
