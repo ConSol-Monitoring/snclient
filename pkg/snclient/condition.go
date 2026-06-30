@@ -42,6 +42,15 @@ type Condition struct {
 
 	// back reference to check attributes (used to expand by unit)
 	attr *[]CheckAttribute
+
+	// reference to data where this condition should NOT be evaluated
+	// can be any map[string]string, like check.details, or Entries in check.listData
+	blacklistData []map[string]string
+
+	// reference to data where this condition should ONLY be evaluated
+	// can be any map[string]string, like check.details, or Entries in check.listData
+	// this works only if its populated
+	whitelistData []map[string]string
 }
 
 // Operator defines a filter operator.
@@ -249,12 +258,51 @@ func (c *Condition) String() string {
 	return fmt.Sprintf("%s %s %v%s", c.keyword, c.operator.String(), c.value, c.unit)
 }
 
+// use this function to see more detail about a condition, including its original, unit and keyword
+func (c *Condition) DetailedString() string {
+	if len(c.group) > 0 {
+		groups := make([]string, len(c.group))
+		for i, g := range c.group {
+			groups[i] = g.DetailedString()
+		}
+
+		return "(" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ")"
+	}
+
+	return fmt.Sprintf("Condition{kw: %s , op: %s , val: %v , un: %s , org: %s}", c.keyword, c.operator.String(), c.value, c.unit, c.original)
+}
+
+// checks if a data of type map[string]string is allowed through the whitelist and blacklist of the condition
+// returns true if its allowed beyond blacklist/whitelist
+func (c *Condition) BlacklistWhitelistCheck(data map[string]string) (allowed bool) {
+	if utils.ContainsMap(c.blacklistData, data) {
+		log.Tracef("Condition does not allow this data, it is in its black list, condition: %q , data: %q", c.DetailedString(), data)
+
+		return false
+	}
+
+	if len(c.whitelistData) > 0 {
+		if !utils.ContainsMap(c.whitelistData, data) {
+			log.Tracef("Condition does not allow this data, it is not in conditions populated white list, condition: %q , data: %q", c.DetailedString(), data)
+
+			return false
+		}
+	}
+
+	return true
+}
+
 // Match checks if given map matches current condition
 // returns either the result or not ok if the result cannot be determined because of none-existing values
 func (c *Condition) Match(data map[string]string) (res, ok bool) {
 	if c.isNone {
 		return false, true
 	}
+
+	if !c.BlacklistWhitelistCheck(data) {
+		return false, false
+	}
+
 	if len(c.group) > 0 {
 		finalOK := true
 		for i := range c.group {
@@ -510,6 +558,8 @@ func (c *Condition) Clone() *Condition {
 		group:         make(ConditionList, 0),
 		attr:          c.attr,
 		original:      c.original,
+		blacklistData: slices.Clone(c.blacklistData),
+		whitelistData: slices.Clone(c.whitelistData),
 	}
 
 	for i := range c.group {
@@ -938,6 +988,24 @@ func (c *Condition) TransformMultipleKeywords(srcKeywords []string, targetKeywor
 	return true
 }
 
+// recursively gets list of all keywords used in the condition
+func (c *Condition) GetListOfKeywords() (keywords []string, err error) {
+	addKeywordToList := func(c *Condition) (err error) {
+		keywords = append(keywords, c.keyword)
+
+		return nil
+	}
+
+	err = c.RunFuncRecursively(addKeywordToList)
+	if err != nil {
+		return nil, fmt.Errorf("error gathering keywords: %s", err.Error())
+	}
+
+	keywords = utils.Deduplicate(keywords)
+
+	return keywords, nil
+}
+
 // pass an argument as a function.
 // the function should have a pointer receiver type, no arguments and return an error.
 // the function will be applied to the current instance.
@@ -1039,19 +1107,20 @@ func conditionFixTokenOperator(token []string) []string {
 }
 
 // ThresholdString returns string used in warn/crit threshold performance data.
-func ThresholdString(name []string, conditions ConditionList, numberFormat func(any) string) string {
+// The name should be contained within the condition
+func ThresholdString(names []string, conditions ConditionList, numberFormat func(any) string) string {
 	// fetch warning conditions for name of metric
 	filtered := make(ConditionList, 0)
 	var group GroupOperator
 	for num := range conditions {
 		cond := conditions[num]
-		if slices.Contains(name, cond.keyword) {
+		if slices.Contains(names, cond.keyword) {
 			filtered = append(filtered, cond)
 		}
 		if cond.groupOperator == GroupOr {
 			group = cond.groupOperator
 			for i := range cond.group {
-				if slices.Contains(name, cond.group[i].keyword) {
+				if slices.Contains(names, cond.group[i].keyword) {
 					filtered = append(filtered, cond.group[i])
 				}
 			}
@@ -1059,7 +1128,7 @@ func ThresholdString(name []string, conditions ConditionList, numberFormat func(
 		if cond.groupOperator == GroupAnd {
 			group = cond.groupOperator
 			for i := range cond.group {
-				if slices.Contains(name, cond.group[i].keyword) {
+				if slices.Contains(names, cond.group[i].keyword) {
 					filtered = append(filtered, cond.group[i])
 				}
 			}
@@ -1105,7 +1174,7 @@ func ThresholdString(name []string, conditions ConditionList, numberFormat func(
 			return fmt.Sprintf("%s:%s", numberFormat(low), numberFormat(high))
 		}
 
-		// implicite And
+		// implicit And
 		return fmt.Sprintf("@%s:%s", numberFormat(low), numberFormat(high))
 	}
 
@@ -1169,4 +1238,106 @@ func replaceStrOp(input string) string {
 	}
 
 	return strings.Join(output, "")
+}
+
+// A condition list can contain some conditions that use a specialized keyword, and generallized keywords.
+// This function only does modifications if there are conditions using the specialized keyword
+// For all others that do not use the specizalied keyword, check if they are using a generallized keyword.
+// After these two rounds of filtering conditions, disable a entry from this condition.
+func (cl *ConditionList) disableGenerallizedConditionsForEntry(entry map[string]string, specializedKeywords, generallizedKeywords []string) {
+	conditionsWithSpecializedKeyword := cl.filterConditionsUsingKeywords(specializedKeywords)
+	if len(conditionsWithSpecializedKeyword) > 0 {
+		conditionsWithoutSpecializedKeyword := utils.SubtractSlice(*cl, conditionsWithSpecializedKeyword)
+		cl2 := ConditionList(conditionsWithoutSpecializedKeyword)
+		conditionsWithoutSpecializedKeywordAndGenerallizedKeyword := cl2.filterConditionsUsingKeywords(generallizedKeywords)
+		for _, cond := range conditionsWithoutSpecializedKeywordAndGenerallizedKeyword {
+			cond.blacklistData = append(cond.blacklistData, entry)
+			log.Tracef("Adding an entry to conditions blacklist, specialized keywords: %q , generallized keywords: %q , condition: %q , entry: %q",
+				specializedKeywords, generallizedKeywords, cond.DetailedString(), entry)
+		}
+	}
+}
+
+// this function does not create new conditions, only filters existing conditions of ConditionList
+func (cl *ConditionList) filterConditionsUsingKeywords(keywords []string) (ret []*Condition) {
+	for _, condition := range *cl {
+		if len(condition.group) > 0 {
+			groupRet := condition.group.filterConditionsUsingKeywords(keywords)
+			ret = append(ret, groupRet...)
+		}
+
+		if slices.Contains(keywords, condition.keyword) {
+			ret = append(ret, condition)
+		}
+	}
+
+	return ret
+}
+
+// The match does not have to return true, it can return false
+// The important point is that it is conclusive. This means it is permitted to match against the entry
+func (cl *ConditionList) ifKeywordIsPresentAndPermitsEntry(keyword string, entry map[string]string) (result bool) {
+	result = false
+
+	for _, condition := range *cl {
+		keywords, _ := condition.GetListOfKeywords()
+		if !slices.Contains(keywords, keyword) {
+			continue
+		}
+
+		cl := ConditionList{condition}
+		subconditionsWithKeyword := cl.filterConditionsUsingKeywords([]string{keyword})
+		for _, subcondition := range subconditionsWithKeyword {
+			if match, ok := subcondition.Match(entry); match && ok {
+				result = true
+
+				break
+			}
+		}
+
+		if result {
+			break
+		}
+	}
+
+	return result
+}
+
+// If a specialized condition, i.e a condition using the keyword, exists in this condition list, filter to specialized condition
+// If a specialized condition does not exist, every condition is generallized. Keep every generallized condition.
+func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[string]string) (result ConditionList) {
+	// If the condition has this keyword, and permits an entry, the condition is specific to this entry
+	// It is specialized in terms of this keyword, it is not generallized
+	keywordIsPresentAndPermitsEntry := cl.ifKeywordIsPresentAndPermitsEntry(keyword, entry)
+
+	for _, condition := range *cl {
+		keywords, _ := condition.GetListOfKeywords()
+
+		// keyword is not present
+		if !slices.Contains(keywords, keyword) {
+			// add generic condition in terms of keyword
+			if !keywordIsPresentAndPermitsEntry {
+				result = append(result, condition.Clone())
+			}
+
+			continue
+		}
+
+		// has keyword — include only if at least one drive sub-condition permits this entry
+		subconditionsUsingKeyword := cl.filterConditionsUsingKeywords([]string{keyword})
+		for _, dc := range subconditionsUsingKeyword {
+			if match, ok := dc.Match(entry); match && ok {
+				result = append(result, condition.Clone())
+
+				break
+			}
+		}
+	}
+
+	if len(result) > 0 {
+		log.Tracef("From this condition list: %v , filtering to this specialized keyword: %s and entry: %v , special keyword exists and permits entry: %t , result: %v ",
+			*cl, keyword, entry, keywordIsPresentAndPermitsEntry, result)
+	}
+
+	return result
 }

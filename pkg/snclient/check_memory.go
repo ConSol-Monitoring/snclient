@@ -168,11 +168,11 @@ func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, tota
 	if check.HasThreshold("free") || check.HasThreshold("free_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.critThreshold)
-		check.AddBytePercentMetrics("free", name+"_free", float64(free), float64(total))
+		check.AddBytePercentMetrics("free", name+"_free", float64(free), float64(total), entry)
 	}
 	if check.HasThreshold("used") || check.HasThreshold("used_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.critThreshold)
-		check.AddBytePercentMetrics("used", name, float64(used), float64(total))
+		check.AddBytePercentMetrics("used", name, float64(used), float64(total), entry)
 	}
 }

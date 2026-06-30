@@ -298,43 +298,92 @@ func (l *CheckDrivesize) isExcluded(drive map[string]string, excludes []string) 
 	return false
 }
 
-func (l *CheckDrivesize) addMetrics(drive string, check *CheckData, usage *disk.UsageStat, magic float64) {
+// The keyword after transformation matches the metric label added for that attribute
+// So for single conditions without a group, these keywords will be translated
+// They will then be processed during metric evaluation phase and possibly raise warning/critical/unknown.
+func (l *CheckDrivesize) transformDrivePctMetrics(driveName string, check *CheckData) {
+	for _, attribute := range check.attributes {
+		if !strings.HasSuffix(attribute.name, "_pct") {
+			continue
+		}
+
+		if attribute.unit != UPercent {
+			continue
+		}
+
+		cut, _ := strings.CutSuffix(attribute.name, "_pct")
+
+		// From:      <drive> <attribute_name>
+		// To:        <drive> <cut> %
+		check.transformKeywordsUsingAttributes(`%[2]s %[1]s`, `%[2]s %[3]s %%`, []string{attribute.name}, driveName, cut)
+	}
+}
+
+// If a condition akin to metric label is added, specialized for that drive
+// Go through the conditions again, and disable generic versions of these
+func (l *CheckDrivesize) disableGenerallizedConditionsForDrive(driveName string, entry map[string]string, check *CheckData) {
+	for _, attribute := range check.attributes {
+		if !strings.HasSuffix(attribute.name, "_pct") {
+			continue
+		}
+
+		if attribute.unit != UPercent {
+			continue
+		}
+
+		cut, _ := strings.CutSuffix(attribute.name, "_pct")
+
+		// specialized: <drive> <cut> %    generalized: <attribute_name>
+		check.disableGenerallizedConditionsUsingAttributes(entry, `%[2]s %[3]s %%`, `%[1]s`, []string{attribute.name}, driveName, cut)
+
+		// specialized: <drive> <cut> %    generalized: <attribute_name> %
+		check.disableGenerallizedConditionsUsingAttributes(entry, `%[2]s %[3]s %%`, `%[1]s %%`, []string{attribute.name}, driveName, cut)
+
+		// specialized: <drive> <cut> %    generalized: <cut>
+		check.disableGenerallizedConditionsUsingAttributes(entry, `%[2]s %[3]s %%`, `%[3]s`, []string{attribute.name}, driveName, cut)
+	}
+}
+
+func (l *CheckDrivesize) addMetrics(drive map[string]string, check *CheckData, usage *disk.UsageStat, magic float64) {
 	total := usage.Total
 	if !l.freespaceIgnoreReserved {
 		total = usage.Used + usage.Free // use this total instead of usage.Total to account in the root reserved space
 	}
 
-	if check.HasThreshold("free") || check.HasThreshold("free_pct") || check.HasThreshold("free_bytes") {
+	driveFreeMetricLabel := fmt.Sprintf("%s free %%", drive["drive"])
+	if check.HasThreshold(driveFreeMetricLabel) || check.HasThreshold("free") || check.HasThreshold("free_pct") || check.HasThreshold("free_bytes") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct", "free_bytes"}, "free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct", "free_bytes"}, "free", check.critThreshold)
-		check.AddBytePercentMetrics("free", drive+" free", magic*float64(usage.Free), magic*float64(total))
+		perfLabel := fmt.Sprintf("%s free", drive["drive"])
+		check.AddBytePercentMetrics("free", perfLabel, magic*float64(usage.Free), magic*float64(total), drive)
+		check.processMetricsWithSpecializedKeyword("drive", perfLabel, drive)
 	}
 
-	// convert '<drive> used_pct' keywords in conditions to '<drive> used %' as that matches the metric name
-	convertDriveUsagePctMetric1 := fmt.Sprintf("%s used_pct", drive)
-	// metrics are normally added if the operand is simply 'used' , 'used_pct' , 'used_bytes' etc. and do not have a drive prefix
-	// detect conditions where the operand is named '<drive> used %', this is the default way snclient names percent usage metrics.
-	// if there is a condition using that as an operand, add usage metrics for that drive as well. during the metrics condition checking, they will take effect.
-	// this helps to check usage metrics specific to drives.
-	driveUsagePctMetric := fmt.Sprintf("%s used %%", drive)
-
-	check.warnThreshold = check.TransformMultipleKeywords([]string{convertDriveUsagePctMetric1}, driveUsagePctMetric, check.warnThreshold)
-	check.critThreshold = check.TransformMultipleKeywords([]string{convertDriveUsagePctMetric1}, driveUsagePctMetric, check.critThreshold)
-
-	if check.HasThreshold(driveUsagePctMetric) || check.HasThreshold("used") || check.HasThreshold("used_pct") || check.HasThreshold("used_bytes") {
+	driveUsagePctMetricLabel := fmt.Sprintf("%s used %%", drive["drive"])
+	if check.HasThreshold(driveUsagePctMetricLabel) || check.HasThreshold("used") || check.HasThreshold("used_pct") || check.HasThreshold("used_bytes") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes"}, "used", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes"}, "used", check.critThreshold)
-		check.AddBytePercentMetrics("used", drive+" used", magic*float64(usage.Used), magic*float64(total))
+		perfLabel := fmt.Sprintf("%s used", drive["drive"])
+		check.AddBytePercentMetrics("used", perfLabel, magic*float64(usage.Used), magic*float64(total), drive)
+		check.processMetricsWithSpecializedKeyword("drive", perfLabel, drive)
 	}
-	if check.HasThreshold("inodes") || check.HasThreshold("inodes_used") || check.HasThreshold("inodes_used_pct") {
-		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used"}, "inodes", check.warnThreshold)
-		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used"}, "inodes", check.critThreshold)
-		check.AddPercentMetrics("inodes", drive+" inodes", float64(usage.InodesUsed), float64(usage.InodesTotal))
+
+	driveInodesUsedPctMetricLabel := fmt.Sprintf("%s inodes_used %%", drive["drive"])
+	if check.HasThreshold(driveInodesUsedPctMetricLabel) || check.HasThreshold("inodes") || check.HasThreshold("inodes_used") || check.HasThreshold("inodes_used_pct") {
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct"}, "inodes_used", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct"}, "inodes_used", check.critThreshold)
+		perfLabel := fmt.Sprintf("%s inodes_used", drive["drive"])
+		check.AddPercentMetrics("inodes_used", perfLabel, float64(usage.InodesUsed), float64(usage.InodesTotal), drive)
+		check.processMetricsWithSpecializedKeyword("drive", perfLabel, drive)
 	}
-	if check.HasThreshold("inodes_free") || check.HasThreshold("inodes_free_pct") {
+
+	driveInodesFreePctMetricLabel := fmt.Sprintf("%s inodes_free %%", drive["drive"])
+	if check.HasThreshold(driveInodesFreePctMetricLabel) || check.HasThreshold("inodes_free") || check.HasThreshold("inodes_free_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct"}, "inodes_free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct"}, "inodes_free", check.critThreshold)
-		check.AddPercentMetrics("inodes_free", drive+" inodes free", float64(usage.InodesFree), float64(usage.InodesTotal))
+		perfLabel := fmt.Sprintf("%s inodes_free", drive["drive"])
+		check.AddPercentMetrics("inodes_free", perfLabel, float64(usage.InodesFree), float64(usage.InodesTotal), drive)
+		check.processMetricsWithSpecializedKeyword("drive", perfLabel, drive)
 	}
 }
 
@@ -392,10 +441,10 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 	}
 
 	if check.HasThreshold("free") || check.HasThreshold("free_bytes") {
-		check.AddBytePercentMetrics("free", drive["drive"]+" free", float64(free), float64(total))
+		check.AddBytePercentMetrics("free", drive["drive"]+" free", float64(free), float64(total), map[string]string{})
 	}
 	if check.HasThreshold("used") || check.HasThreshold("used_bytes") {
-		check.AddBytePercentMetrics("used", drive["drive"]+" used", float64(used), float64(total))
+		check.AddBytePercentMetrics("used", drive["drive"]+" used", float64(used), float64(total), map[string]string{})
 	}
 }
 
@@ -452,7 +501,11 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 		return
 	}
 
-	l.addMetrics(drive["drive"], check, usage, magic)
+	l.transformDrivePctMetrics(drive["drive"], check)
+
+	l.disableGenerallizedConditionsForDrive(drive["drive"], drive, check)
+
+	l.addMetrics(drive, check, usage, magic)
 }
 
 func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
