@@ -348,6 +348,16 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	if drive["drive_or_name"] == "" {
 		drive["drive_or_name"] = driveOrName
 	}
+
+	// volumes without an assigned drive letter have empty drive["drive"]
+	// use the volume name or id as fallback
+	if drive["drive"] == "" {
+		if drive["name"] != "" {
+			drive["drive"] = drive["name"]
+		} else {
+			drive["drive"] = drive["drive_or_id"]
+		}
+	}
 }
 
 // gopsutil disk.Partition had an issue with Bitlocker, but a fix was upstreamed
