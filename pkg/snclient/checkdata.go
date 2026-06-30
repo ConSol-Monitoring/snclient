@@ -1342,10 +1342,11 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 	if total > 0 {
 		percent = val * 100 / total
 	}
+	pctName := perfLabel + " %"
 	cd.result.Metrics = append(
 		cd.result.Metrics,
 		&CheckMetric{
-			Name:          perfLabel,
+			Name:          pctName,
 			ThresholdName: threshold,
 			Unit:          "%",
 			Value:         utils.ToPrecision(percent, 1),

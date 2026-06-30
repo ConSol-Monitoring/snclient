@@ -368,12 +368,12 @@ func (l *CheckDrivesize) addMetrics(drive map[string]string, check *CheckData, u
 		check.processMetricsWithSpecializedKeyword("drive", perfLabel, drive)
 	}
 
-	driveInodesPctMetricLabel := fmt.Sprintf("%s inodes_used %%", drive["drive"])
-	if check.HasThreshold(driveInodesPctMetricLabel) || check.HasThreshold("inodes") || check.HasThreshold("inodes_used") || check.HasThreshold("inodes_used_pct") {
-		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used"}, "inodes", check.warnThreshold)
-		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used"}, "inodes", check.critThreshold)
-		perfLabel := fmt.Sprintf("%s inodes", drive["drive"])
-		check.AddPercentMetrics("inodes", perfLabel, float64(usage.InodesUsed), float64(usage.InodesTotal), drive)
+	driveInodesUsedPctMetricLabel := fmt.Sprintf("%s inodes_used %%", drive["drive"])
+	if check.HasThreshold(driveInodesUsedPctMetricLabel) || check.HasThreshold("inodes") || check.HasThreshold("inodes_used") || check.HasThreshold("inodes_used_pct") {
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct"}, "inodes_used", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct"}, "inodes_used", check.critThreshold)
+		perfLabel := fmt.Sprintf("%s inodes_used", drive["drive"])
+		check.AddPercentMetrics("inodes_used", perfLabel, float64(usage.InodesUsed), float64(usage.InodesTotal), drive)
 		check.processMetricsWithSpecializedKeyword("drive", perfLabel, drive)
 	}
 
@@ -381,7 +381,7 @@ func (l *CheckDrivesize) addMetrics(drive map[string]string, check *CheckData, u
 	if check.HasThreshold(driveInodesFreePctMetricLabel) || check.HasThreshold("inodes_free") || check.HasThreshold("inodes_free_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct"}, "inodes_free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct"}, "inodes_free", check.critThreshold)
-		perfLabel := fmt.Sprintf("%s inodes free", drive["drive"])
+		perfLabel := fmt.Sprintf("%s inodes_free", drive["drive"])
 		check.AddPercentMetrics("inodes_free", perfLabel, float64(usage.InodesFree), float64(usage.InodesTotal), drive)
 		check.processMetricsWithSpecializedKeyword("drive", perfLabel, drive)
 	}
