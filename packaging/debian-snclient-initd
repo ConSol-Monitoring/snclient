@@ -1,0 +1,83 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          snclient
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Should-Start:      $network $syslog
+# Should-Stop:       $network $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: SNClient monitoring agent
+# Description:       SNClient monitoring agent
+### END INIT INFO
+
+test -f /usr/bin/snclient || exit 0
+
+. /lib/lsb/init-functions
+
+DAEMON=/usr/bin/snclient
+PIDFILE=/run/snclient/snclient.pid
+NAME=snclient
+DESC="SNClient monitoring agent"
+
+DAEMON_ARGS="--config ${SNCLIENT_CONFIG_FILE:-/etc/snclient/snclient.ini} daemon --pidfile $PIDFILE"
+
+START_STOP_ARGS="--pidfile $PIDFILE --exec $DAEMON"
+START_ARGS="--chuid ${SNCLIENT_USER:-snclient}"
+
+RELOAD_SIGNAL=HUP
+
+export LC_ALL=C
+export LC_LANG=C
+
+check_config() {
+	snclient config check -q || exit 1
+}
+
+do_start() {
+	mkdir -p /run/snclient
+	chown snclient /run/snclient
+	start-stop-daemon --start --oknodo --quiet $START_STOP_ARGS $START_ARGS -- $DAEMON_ARGS >/dev/null
+}
+
+case "$1" in
+	start)
+		echo -n "Starting $DESC: "
+		check_config
+		do_start
+		echo "$NAME."
+		;;
+	stop)
+		echo -n "Stopping $DESC: "
+		start-stop-daemon --stop --oknodo --quiet $START_STOP_ARGS
+		echo "$NAME."
+		;;
+	restart|force-reload)
+		echo -n "Restarting $DESC: "
+		check_config
+		start-stop-daemon --stop --oknodo --quiet $START_STOP_ARGS
+		sleep 1
+		do_start
+		echo "$NAME."
+		;;
+	reload)
+		echo -n "Reloading $DESC: "
+		check_config
+		start-stop-daemon --stop --signal $RELOAD_SIGNAL --quiet $START_STOP_ARGS
+		echo "$NAME."
+		;;
+	status)
+		status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
+		;;
+	*)
+		N=/etc/init.d/$NAME
+		echo "Usage: $N {start|stop|restart|reload|force-reload|status}" >&2
+		exit 1
+		;;
+esac
+
+exit 0
+		
+		
+	

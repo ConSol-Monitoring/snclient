@@ -1,3 +1,7 @@
 #!/bin/sh
 set -e
-deb-systemd-invoke stop snclient || :
+if [ -x "/usr/bin/deb-systemd-invoke" ] && [ -x "/usr/bin/systemctl" ] ; then
+	deb-systemd-invoke stop snclient || :
+elif [ -x "/usr/sbin/rc-service" ] ; then
+	rc-service -q snclient stop || :
+fi
