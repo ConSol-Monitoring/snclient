@@ -473,6 +473,7 @@ deb: | dist
 		build-deb/usr/lib/systemd/system \
 		build-deb/usr/lib/sysusers.d \
 		build-deb/usr/lib/tmpfiles.d \
+		build-deb/etc/init.d \
 		build-deb/etc/logrotate.d \
 		build-deb/usr/share/doc/snclient \
 		build-deb/usr/share/doc/snclient \
@@ -493,6 +494,7 @@ deb: | dist
 	cp ./packaging/snclient.service build-deb/usr/lib/systemd/system/
 	cp ./packaging/snclient.sysusers build-deb/usr/lib/sysusers.d/snclient.conf
 	cp ./packaging/snclient.tmpfiles build-deb/usr/lib/tmpfiles.d/snclient.conf
+	cp ./packaging/debian-snclient-initd build-deb/etc/init.d/snclient
 	cp ./packaging/snclient.logrotate build-deb/etc/logrotate.d/snclient
 	cp Changes build-deb/usr/share/doc/snclient/Changes
 	dch --empty --create --newversion "$(VERSION)" --package "snclient" -D "UNRELEASED" --urgency "low" -c build-deb/usr/share/doc/snclient/changelog "new upstream release"
