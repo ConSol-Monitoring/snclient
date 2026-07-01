@@ -3,7 +3,8 @@ Version: UNSET
 Section: net
 Priority: optional
 Architecture: UNSET
-Depends: logrotate, systemd
+Pre-Depends: init-system-helpers (>= 1.54~)
+Depends: logrotate, adduser
 Standards-Version: 3.9.8
 Suggests: monitoring-plugins-basic
 Maintainer: Sven Nierlein <sven@consol.de>

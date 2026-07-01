@@ -2,4 +2,5 @@
 /etc/snclient/server.crt
 /etc/snclient/server.key
 /etc/snclient/cacert.pem
+/etc/init.d/snclient
 /etc/logrotate.d/snclient
