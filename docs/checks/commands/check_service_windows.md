@@ -76,10 +76,10 @@ these can be used in filters and thresholds (along with the default attributes):
 
 | Attribute      | Description                                                                                          |
 | -------------- | ---------------------------------------------------------------------------------------------------- |
-| name           | The name of the service                                                                              |
-| service        | Alias for name                                                                                       |
-| display        | Display name of the service                                                                          |
-| desc           | Alias for display (not a typo)                                                                       |
+| name           | The name of the service. When used as filter, looks in name and display.                             |
+| service        | Alias for name. When used as filter only looks in name.                                              |
+| display        | Display name of the service. When used as filter, looks in name and display.                         |
+| desc           | Alias for display (not a typo). When used as filter, looks only in display.                          |
 | description    | Description of the service                                                                           |
 | state          | The state of the service, one of: stopped, starting, stopping, running, continuing, pausing, paused or unknown |
 | pid            | The pid of the service                                                                               |
