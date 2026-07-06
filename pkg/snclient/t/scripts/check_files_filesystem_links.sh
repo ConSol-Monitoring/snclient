@@ -24,27 +24,27 @@ mkdir -p "${TESTING_DIR}"
     done
 
     # Symbolic link to folder
-    ln --symbolic "dir1" "dir1_symbolic1"
+    ln -s "dir1" "dir1_symbolic1"
 
     # Symbolic link to file
-    ln --symbolic "dir1/file1.txt" "file1_symbolic1.txt"
+    ln -s "dir1/file1.txt" "file1_symbolic1.txt"
 
     # Relative link to folder
-    ln --symbolic --relative "dir1" "dir1_relative1"
+    ln -s "dir1" "dir1_relative1"
 
     # Relative link to file
-    ln --symbolic --relative "dir1/file1.txt" "file1_relative1.txt"
+    ln -s "dir1/file1.txt" "file1_relative1.txt"
 
     # Physical links to directories are not allowed
-    # ln --physical "dir1" "dir1_physical1"
+    # ln "dir1" "dir1_physical1"
 
     # Physical link to file
-    ln --physical "dir1/file1.txt" "file1_physical1.txt"
+    ln "dir1/file1.txt" "file1_physical1.txt"
 
-    FILE_COUNT=$(find "${TESTING_DIR}" -type f -printf "." | wc -c)
+    FILE_COUNT=$(find "${TESTING_DIR}" -type f | wc -l)
     echo "ok - Generated ${FILE_COUNT} files for testing"
 
-    DIRECTORY_COUNT=$(find "${TESTING_DIR}" -type d -printf "." | wc -c)
+    DIRECTORY_COUNT=$(find "${TESTING_DIR}" -type d | wc -l)
     echo "ok - Generated $(( DIRECTORY_COUNT - 1 )) directories for testing"
 
     if command -v tree >/dev/null 2>&1; then
