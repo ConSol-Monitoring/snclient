@@ -30,10 +30,11 @@ func isLink(fi fs.FileInfo) bool {
 	return fi.Mode()&fs.ModeSymlink != 0
 }
 
-func getHardLinkCount(fi fs.FileInfo) uint32 {
-	if stat, ok := fi.Sys().(*syscall.Stat_t); ok {
-		return uint32(stat.Nlink)
+func getFileInode(fi fs.FileInfo) (uint64, bool) {
+	stat, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, false
 	}
 
-	return 0
+	return stat.Ino, true
 }

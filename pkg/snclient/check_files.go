@@ -128,7 +128,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		checkPath = l.normalizePath(checkPath)
 		log.Tracef("normalized checkPath: %s", checkPath)
 
-		walker := &fileWalker{cf: l, check: check, checkPath: checkPath}
+		walker := &fileWalker{cf: l, check: check, checkPath: checkPath, seenInodes: make(map[uint64]bool)}
 
 		realRoot := checkPath
 		rootIsSymlink := false
@@ -178,10 +178,11 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 // it registers new paths under the checkPath, even if the links take it outside of it
 // the depth is calculated with the checkpath being the root
 type fileWalker struct {
-	cf        *CheckFiles
-	check     *CheckData
-	checkPath string   // original check path this walk started from
-	visited   []string // real directories already walked , normally or via a symlink
+	cf         *CheckFiles
+	check      *CheckData
+	checkPath  string          // original check path this walk started from
+	visited    []string        // real directories already walked , normally or via a symlink
+	seenInodes map[uint64]bool // track inodes to skip hard links
 }
 
 // walk walks realRoot on disk but registers paths under displayRoot
@@ -197,7 +198,7 @@ func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error 
 			displayPath = filepath.Join(displayRoot, rel)
 		}
 
-		if w.cf.followSymlinks && dirEntry.IsDir() {
+		if w.cf.followSymlinks && dirEntry != nil && dirEntry.IsDir() {
 			log.Tracef("adding into walked paths of the filewalker: %s", path)
 			w.visited = append(w.visited, path)
 		}
@@ -222,7 +223,7 @@ func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error 
 		}
 
 		if err != nil {
-			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, usedSymlink, isSymlink, err)
+			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, err, w.seenInodes)
 		}
 
 		if entryIsLink {
@@ -234,10 +235,10 @@ func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error 
 			}
 
 			// always add links, but only follow them if followSymlinks is on
-			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, usedSymlink, isSymlink, nil)
+			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, nil, w.seenInodes)
 		}
 
-		return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, usedSymlink, isSymlink, err)
+		return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, err, w.seenInodes)
 	})
 }
 
@@ -264,11 +265,11 @@ func (w *fileWalker) followSymlink(linkPath, displayPath string) error {
 	info, err := os.Stat(linkPath)
 	if err != nil {
 		// broken symlink (dangling target, loop, ...): record it as an errored file
-		return w.cf.addFile(w.check, displayPath, w.checkPath, nil, true, true, err)
+		return w.cf.addFile(w.check, displayPath, w.checkPath, nil, true, err, w.seenInodes)
 	}
 
 	if !info.IsDir() {
-		return w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, true, nil)
+		return w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, nil, w.seenInodes)
 	}
 
 	resolvedSymlink, err := resolveLink(linkPath)
@@ -277,7 +278,7 @@ func (w *fileWalker) followSymlink(linkPath, displayPath string) error {
 		resolvedSymlink, err = filepath.EvalSymlinks(linkPath)
 	}
 	if err != nil {
-		return w.cf.addFile(w.check, displayPath, w.checkPath, nil, true, true, err)
+		return w.cf.addFile(w.check, displayPath, w.checkPath, nil, true, err, w.seenInodes)
 	}
 
 	if slices.Contains(w.visited, resolvedSymlink) {
@@ -287,7 +288,7 @@ func (w *fileWalker) followSymlink(linkPath, displayPath string) error {
 	}
 
 	// record the symlink/junction itself, let WalkDir descend into it naturally
-	addErr := w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, true, nil)
+	addErr := w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, nil, w.seenInodes)
 	if addErr != nil && !errors.Is(addErr, filepath.SkipDir) {
 		return addErr
 	}
@@ -295,7 +296,8 @@ func (w *fileWalker) followSymlink(linkPath, displayPath string) error {
 	return nil
 }
 
-func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, _, isSymlink bool, err error) error {
+//nolint:gocyclo // need to perform a lot of checks before adding a file
+func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, isSymlink bool, err error, seenInodes map[uint64]bool) error {
 	// if the search path is a directory e.g '/usr/bin' , the program assumes you are looking for files/subdirectories under it
 	// therefore it does not add the search path directory to the entry list
 	// if it is a file like /usr/bin/bash however, it will add that
@@ -368,15 +370,34 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 	}
 
 	// check filter and pattern before doing more expensive things
-	// pattern matching is only done on files, directories are always added
+	// pattern matching is only done on files and to their filenames, directories are always added
 	// directories that do not have any matched files under them are later removed
 	if match, _ := filepath.Match(l.pattern, entry["filename"]); entry["type"] == "file" && !match {
 		log.Tracef("filename: %s did not match the pattern: %s , skipping", entry["filename"], l.pattern)
 
 		return nil
 	}
+	// check if it passes through the check filter
 	if !check.MatchMapCondition(check.filter, entry, true) {
 		return nil
+	}
+
+	var fileInfo fs.FileInfo
+	var fileInfoErr error
+
+	if dirEntry != nil {
+		fileInfo, fileInfoErr = dirEntry.Info()
+	}
+
+	if dirEntry != nil && entry["type"] == "file" && !isSymlink && fileInfo != nil && fileInfoErr == nil {
+		if inode, ok := getFileInode(fileInfo); ok && inode > 0 {
+			if seenInodes[inode] {
+				log.Tracef("skipping hard link (inode %d already seen): %s", inode, path)
+
+				return nil
+			}
+			seenInodes[inode] = true
+		}
 	}
 
 	defer matchAndAdd()
@@ -388,12 +409,11 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		return nil
 	}
 
-	fileInfo, err := dirEntry.Info()
-	if err != nil {
+	if fileInfoErr != nil {
 		if dirEntry != nil && dirEntry.IsDir() {
 			return fs.SkipDir
 		}
-		l.setError(entry, err)
+		l.setError(entry, fileInfoErr)
 
 		return nil
 	}

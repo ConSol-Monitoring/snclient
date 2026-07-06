@@ -39,6 +39,6 @@ func isLink(fi fs.FileInfo) bool {
 	return fi.Mode()&fs.ModeSymlink != 0
 }
 
-func getHardLinkCount(_ fs.FileInfo) uint32 {
-	return 0
+func getFileInode(_ fs.FileInfo) (uint64, bool) {
+	return 0, false
 }
