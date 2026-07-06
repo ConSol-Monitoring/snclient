@@ -133,10 +133,12 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		realRoot := checkPath
 		rootIsSymlink := false
 		if l.followSymlinks {
-			if lstat, lerr := os.Lstat(checkPath); lerr == nil && lstat.Mode()&fs.ModeSymlink != 0 {
+			if lstat, lerr := os.Lstat(checkPath); lerr == nil && isLink(lstat) {
 				rootIsSymlink = true
 			}
-			if resolved, evalErr := filepath.EvalSymlinks(checkPath); evalErr == nil {
+			if resolved, evalErr := resolveLink(checkPath); evalErr == nil {
+				realRoot = resolved
+			} else if resolved, evalErr := filepath.EvalSymlinks(checkPath); evalErr == nil {
 				realRoot = resolved
 			}
 		}
@@ -195,43 +197,67 @@ func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error 
 			displayPath = filepath.Join(displayRoot, rel)
 		}
 
+		if w.cf.followSymlinks && dirEntry.IsDir() {
+			log.Tracef("adding into walked paths of the filewalker: %s", path)
+			w.visited = append(w.visited, path)
+		}
+
 		// at the real root, isSymlink is not determined through recursion.
 		// it is passed as usedSymlink before calling walk() for the first time
 		isSymlink := false
+		entryIsLink := false
+
 		if path == realRoot {
 			isSymlink = usedSymlink
-		} else if dirEntry != nil && dirEntry.Type()&fs.ModeSymlink != 0 {
-			isSymlink = true
+			// when entered via a symlink, the link itself was already
+			// recorded by followSymlink, skip re-adding the root
+			if usedSymlink {
+				return nil
+			}
+		} else if dirEntry != nil {
+			if fi, fie := dirEntry.Info(); fie == nil && isLink(fi) {
+				isSymlink = true
+				entryIsLink = true
+			}
 		}
 
 		if err != nil {
 			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, usedSymlink, isSymlink, err)
 		}
 
-		// filepath.WalkDir does not follow symlinks, handle it manually
-		if dirEntry.Type()&fs.ModeSymlink != 0 {
+		if entryIsLink {
 			if w.cf.followSymlinks {
-				return w.followSymlink(path, displayPath)
+				linkDepth := w.cf.getDepth(displayPath, w.checkPath)
+				if w.cf.maxDepth == -1 || linkDepth < w.cf.maxDepth {
+					return w.followSymlink(path, displayPath)
+				}
 			}
 
-			// if we do not follow symlinks, record the symlink as a plain entry, but do not proceed
+			// always add links, but only follow them if followSymlinks is on
 			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, usedSymlink, isSymlink, nil)
-		}
-
-		// remember every real directory we walk into.
-		// a symlink that later resolves back into already walked territory is recoded as well
-		// this prevents loops and duplicated subtrees.
-		if w.cf.followSymlinks && dirEntry.IsDir() {
-			w.visited = append(w.visited, path)
 		}
 
 		return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, usedSymlink, isSymlink, err)
 	})
 }
 
+// resolveLink resolves a symlink or junction to its canonical target path.
+// This resolves junctions on Windows, filepath.EvalSymlinks can fail to do so
+func resolveLink(linkPath string) (string, error) {
+	target, err := os.Readlink(linkPath)
+	if err != nil {
+		return "", fmt.Errorf("error when reading link details for path: %s , error: %w", linkPath, err)
+	}
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(filepath.Dir(linkPath), target)
+	}
+
+	return filepath.Clean(target), nil
+}
+
 // followSymlink resolves the symlink at linkPath
 // if its a file, add it as a file entry
-// if its a directory, descend into it and continue the search
+// if its a directory, record it and let WalkDir descend normally
 // keep a list of visited directories to prevent infinite recursion
 func (w *fileWalker) followSymlink(linkPath, displayPath string) error {
 	// os.Stat follows the link and therefore also resolves relative targets correctly
@@ -245,21 +271,28 @@ func (w *fileWalker) followSymlink(linkPath, displayPath string) error {
 		return w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, true, nil)
 	}
 
-	// resolve to the canonical real path to detect loops
-	resolvedSymlink, err := filepath.EvalSymlinks(linkPath)
+	resolvedSymlink, err := resolveLink(linkPath)
+	if err != nil {
+		// fallback to filepath.EvalSymlinks
+		resolvedSymlink, err = filepath.EvalSymlinks(linkPath)
+	}
 	if err != nil {
 		return w.cf.addFile(w.check, displayPath, w.checkPath, nil, true, true, err)
 	}
 
 	if slices.Contains(w.visited, resolvedSymlink) {
 		log.Tracef("not descending into symlink %s, target %s already visited", linkPath, resolvedSymlink)
-
-		// record the symlink itself, but do not walk into it
-		return w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, true, nil)
+	} else {
+		w.visited = append(w.visited, resolvedSymlink)
 	}
 
-	// the resolved target is registered by walkFollowingLinks once it is entered
-	return w.walk(resolvedSymlink, displayPath, true)
+	// record the symlink/junction itself, let WalkDir descend into it naturally
+	addErr := w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, true, nil)
+	if addErr != nil && !errors.Is(addErr, filepath.SkipDir) {
+		return addErr
+	}
+
+	return nil
 }
 
 func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, _, isSymlink bool, err error) error {
@@ -365,6 +398,18 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		return nil
 	}
 
+	if err := l.populateEntryDetails(check, entry, fileInfo, path); err != nil {
+		return err
+	}
+
+	if err := checkSlowFileOperations(check, entry, path); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *CheckFiles) populateEntryDetails(check *CheckData, entry map[string]string, fileInfo fs.FileInfo, path string) error {
 	fileInfoSys, err := getCheckFileTimes(fileInfo)
 	if err != nil {
 		return fmt.Errorf("type assertion for fileInfo.Sys() failed")
@@ -384,10 +429,6 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 			log.Debugf("%s", err.Error())
 		}
 		entry["version"] = version
-	}
-
-	if err := checkSlowFileOperations(check, entry, path); err != nil {
-		return err
 	}
 
 	return nil

@@ -25,3 +25,15 @@ func getCheckFileTimes(fileInfo fs.FileInfo) (*FileInfoUnified, error) {
 func getFileVersion(path string) (string, error) {
 	return "0.0.0.0", fmt.Errorf("file version not supported: %s", path)
 }
+
+func isLink(fi fs.FileInfo) bool {
+	return fi.Mode()&fs.ModeSymlink != 0
+}
+
+func getHardLinkCount(fi fs.FileInfo) uint32 {
+	if stat, ok := fi.Sys().(*syscall.Stat_t); ok {
+		return uint32(stat.Nlink)
+	}
+
+	return 0
+}

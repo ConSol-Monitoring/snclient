@@ -30,3 +30,15 @@ func getFileVersion(path string) (string, error) {
 
 	return f.FixedInfo().FileVersion.String(), nil
 }
+
+func isLink(fi fs.FileInfo) bool {
+	if data, ok := fi.Sys().(*syscall.Win32FileAttributeData); ok {
+		return data.FileAttributes&syscall.FILE_ATTRIBUTE_REPARSE_POINT != 0
+	}
+
+	return fi.Mode()&fs.ModeSymlink != 0
+}
+
+func getHardLinkCount(_ fs.FileInfo) uint32 {
+	return 0
+}

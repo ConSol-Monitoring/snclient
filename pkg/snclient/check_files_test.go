@@ -523,3 +523,95 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckFilesFilesystemLinks(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	scriptName := "check_files_filesystem_links"
+	scriptFilename := scriptName
+
+	switch runtime.GOOS {
+	case "windows":
+		scriptFilename += ".ps1"
+	case "linux":
+		scriptFilename += ".sh"
+	case "darwin":
+		// t.Skip("Skipping on darwin as it does not 'date' command does not work in the script")
+		scriptFilename += ".sh"
+	default:
+		t.Skipf("Test is not intended to be run on %s", runtime.GOOS)
+	}
+
+	config := checkFilesTestConfigWithScript(t, scriptsDir, scriptName, scriptFilename)
+	snc := StartTestAgent(t, config)
+
+	geneartionDirectory := t.TempDir()
+
+	res := snc.RunCheck(scriptName, []string{geneartionDirectory})
+	assert.Equalf(t, CheckExitOK, res.State, "script return state check is correct")
+	outputString := string(res.BuildPluginOutput())
+
+	assert.Containsf(t, outputString, "ok - Generated 3 files for testing", "output matches")
+	assert.Containsf(t, outputString, "ok - Generated 3 directories for testing", "output matches")
+
+	// check_files_filesystem_links script generates a structure using the filesystem links
+
+	// On Windows it looks like this
+	// tree /f 'C:\Users\sorus\repositories\snclient\pkg\snclient\t\link_test'
+	// C:\USERS\SORUS\REPOSITORIES\SNCLIENT\PKG\SNCLIENT\T\LINK_TEST
+	// │   file1_hardlink1.txt
+	// │   file1_symlink1.txt
+	// │
+	// ├───dir1
+	// │       file1.txt
+	// │
+	// ├───dir1_junction1
+	// │       file1.txt
+	// │
+	// └───dir1_symlink1
+	// 		file1.txt
+
+	switch runtime.GOOS {
+	case "windows":
+		assert.Containsf(t, outputString, `symbolic link created for dir1_symlink1 <<===>> dir1`, "output matches")
+		assert.Containsf(t, outputString, `symbolic link created for file1_symlink1.txt <<===>> dir1\file1.txt`, "output matches")
+		assert.Containsf(t, outputString, `Hardlink created for file1_hardlink1.txt <<===>> dir1\file1.txt`, "output matches")
+		assert.Containsf(t, outputString, `Junction created for dir1_junction1 <<===>> dir1`, "output matches")
+	case "linux":
+	case "darwin":
+	}
+
+	// On Windows, junctions are reported as files
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "file1.txt", "output has file")
+	assert.Containsf(t, outputString, "file1_symlink1.txt", "output does have symlink file")
+	assert.Containsf(t, outputString, "file1_hardlink1.txt", "output does have hardlink file")
+	assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
+	assert.NotContainsf(t, outputString, "dir1_junction1", "output does not have junction directory")
+
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file and is_symlink eq true", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "file1_symlink1.txt", "output does have symlink file")
+	assert.NotContainsf(t, outputString, "file1_hardlink1.txt", "output does not have hardlink file")
+	assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
+	assert.NotContainsf(t, outputString, "dir1_junction1", "output does not have junction directory")
+
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq dir", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "dir1", "output has directory")
+	assert.Containsf(t, outputString, "dir1_junction1", "output has directory")
+	assert.Containsf(t, outputString, "dir1_symlink1", "output has directory")
+
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq dir and is_symlink eq true", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "dir1_junction1", "output has directory")
+	assert.Containsf(t, outputString, "dir1_symlink1", "output has directory")
+	assert.NotContainsf(t, strings.FieldsFunc(outputString, func(r rune) bool { return r == ' ' || r == ',' }), "dir1", "output does not have directory")
+
+	StopTestAgent(t, snc)
+}
