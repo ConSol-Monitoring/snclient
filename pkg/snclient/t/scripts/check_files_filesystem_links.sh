@@ -41,10 +41,10 @@ mkdir -p "${TESTING_DIR}"
     # Physical link to file
     ln "dir1/file1.txt" "file1_physical1.txt"
 
-    FILE_COUNT=$(find "${TESTING_DIR}" -type f | wc -l)
+    FILE_COUNT=$(find "${TESTING_DIR}" -type f | wc -l | tr -d ' ')
     echo "ok - Generated ${FILE_COUNT} files for testing"
 
-    DIRECTORY_COUNT=$(find "${TESTING_DIR}" -type d | wc -l)
+    DIRECTORY_COUNT=$(find "${TESTING_DIR}" -type d | wc -l | tr -d ' ')
     echo "ok - Generated $(( DIRECTORY_COUNT - 1 )) directories for testing"
 
     if command -v tree >/dev/null 2>&1; then
