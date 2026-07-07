@@ -1363,7 +1363,7 @@ func (cd *CheckData) processMetricsWithSpecializedKeyword(keyword, metricName st
 }
 
 // transforms keywords of ok/warn/crit thresholds, using a source keyword and target keyword
-// attribute.name of the CheckData.attributes is fed into the formats as the first argument
+// attributeNames are fed into the formats as the first argument
 // formatArgs are fed as following arguments
 func (cd *CheckData) transformKeywordsUsingAttributes(keywordSourceFormat, keywordTargetFormat string, attributeNames []string, formatArgs ...any) {
 	for _, attributeName := range attributeNames {
@@ -1383,7 +1383,7 @@ func (cd *CheckData) transformKeywordsUsingAttributes(keywordSourceFormat, keywo
 }
 
 // for a given entry, looks through the ok/warn/crit thresholds, disables conditions using generallized keywords if specialized keywords is present
-// attribute.name of the CheckData.attributes is fed into the formats as the first argument
+// attributeNmaes are fed into formats as the first argument
 // formatArgs are fed as following arguments
 func (cd *CheckData) disableGenerallizedConditionsUsingAttributes(entry map[string]string, specializedKeywordFormat, generallizedKeywordFormat string, attributeNames []string, formatArgs ...any) {
 	for _, attributeName := range attributeNames {
