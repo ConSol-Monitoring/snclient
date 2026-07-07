@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mackerelio/checkers"
 	"github.com/miekg/dns"
@@ -36,6 +38,8 @@ type dnsOpts struct {
 	QueryType      string   `short:"q" long:"querytype" default:"A" description:"DNS record query type"`
 	Norec          bool     `long:"norec" description:"Set not recursive mode"`
 	ExpectedString []string `short:"e" long:"expected-string" description:"IP-ADDRESS string you expect the DNS server to return. If multiple IP-ADDRESS are returned at once, you have to specify whole string"`
+	SearchPaths    []string `long:"search-path" description:"Search paths is added to the domains before sending a DNS query. This can be specified multiple times."`
+	ResolvConfFile string   `long:"resolv-conf-file" default:"/etc/resolv.conf" description:"Path to the resolv.conf file to use. Is not used in Windows. Default is /etc/resolv.conf"`
 }
 
 func parseArgs(args []string) (*dnsOpts, error) {
@@ -47,17 +51,51 @@ func parseArgs(args []string) (*dnsOpts, error) {
 }
 
 func (opts *dnsOpts) run() *checkers.Checker {
-	var nameserver string
+
 	var err error
+	var clientConfig *dns.ClientConfig
+
+	switch runtime.GOOS {
+	case "linux", "dawrin", "bsd":
+		clientConfig, err = dns.ClientConfigFromFile(opts.ResolvConfFile)
+		if err != nil {
+			return checkers.Critical(err.Error())
+		}
+	default:
+	}
+
+	var nameservers []string
 	if opts.Server != "" {
-		nameserver = opts.Server
+		nameservers = []string{opts.Server}
 	} else {
-		nameserver, err = adapterAddress()
+		nameservers, err = adapterAddress(clientConfig)
 		if err != nil {
 			return checkers.Critical(err.Error())
 		}
 	}
-	nameserver = net.JoinHostPort(nameserver, strconv.Itoa(opts.Port))
+	for i, _ := range nameservers {
+		nameservers[i] = net.JoinHostPort(nameservers[i], strconv.Itoa(opts.Port))
+	}
+
+	var searchPaths []string
+	if len(opts.SearchPaths) > 0 {
+		searchPaths = opts.SearchPaths
+	} else {
+		searchPaths = getSearchPaths(clientConfig)
+	}
+
+	var hostCandidates []string
+	originalHost := opts.Host
+	if dns.IsFqdn(originalHost) {
+		hostCandidates = append(hostCandidates, dns.Fqdn(originalHost))
+	} else {
+		for _, searchPath := range searchPaths {
+			candidate := dns.Fqdn(originalHost + "." + searchPath)
+			hostCandidates = append(hostCandidates, candidate)
+		}
+		// try the bare host as FQDN as well without a searchPath
+		hostCandidates = append(hostCandidates, dns.Fqdn(originalHost))
+	}
 
 	queryType, ok := dns.StringToType[strings.ToUpper(opts.QueryType)]
 	if !ok {
@@ -65,18 +103,54 @@ func (opts *dnsOpts) run() *checkers.Checker {
 	}
 
 	c := new(dns.Client)
-	m := &dns.Msg{
-		MsgHdr: dns.MsgHdr{
-			RecursionDesired: !opts.Norec,
-			Opcode:           dns.OpcodeQuery,
-		},
-		Question: []dns.Question{{Name: dns.Fqdn(opts.Host), Qtype: queryType, Qclass: dns.StringToClass["IN"]}},
-	}
-	m.Id = dns.Id()
 
-	r, _, err := c.Exchange(m, nameserver)
-	if err != nil {
-		return checkers.Critical(err.Error())
+	var lastErr error
+	var r *dns.Msg
+	var duration time.Duration
+
+	var successfulNameserver string // the server that answered successfully
+	var successfulDuration time.Duration
+	var successfulHost string
+
+	for _, hostCandidate := range hostCandidates {
+		for _, nameserver := range nameservers {
+			message := &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					RecursionDesired: !opts.Norec,
+					Opcode:           dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   hostCandidate,
+						Qtype:  queryType,
+						Qclass: dns.StringToClass["IN"],
+					},
+				},
+			}
+			message.Id = dns.Id()
+
+			r, duration, err = c.Exchange(message, nameserver)
+
+			if err == nil {
+				successfulNameserver = nameserver
+				successfulHost = hostCandidate
+				successfulDuration = duration
+
+				break
+			}
+
+			lastErr = err
+		}
+
+		if r != nil {
+			break
+		}
+	}
+
+	if r == nil {
+		return checkers.Critical(fmt.Sprintf("all attempts failed, last error: %v", lastErr))
+	} else {
+
 	}
 
 	checkSt := checkers.OK
@@ -135,7 +209,7 @@ func (opts *dnsOpts) run() *checkers.Checker {
 			msg = fmt.Sprintf("%s returns %s (%s)\n", opts.Host, res, dnsType)
 		}
 	} else {
-		msg = fmt.Sprintf("%s (%s) returns no answer from %s\n", opts.Host, opts.QueryType, nameserver)
+		msg = fmt.Sprintf("%s (%s) returns no answer from %s\n", opts.Host, opts.QueryType, successfulNameserver)
 	}
 	msg += fmt.Sprintf("HEADER-> %s\n", r.MsgHdr.String())
 	for _, answer := range r.Answer {

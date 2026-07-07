@@ -15,7 +15,9 @@ import (
 )
 
 // ref: https://go.dev/src/net/interface_windows.go
-func adapterAddress() (string, error) {
+// windows does not use a resolv.config file i.e dns.ClientConfig
+// this function is defined for consistency across platforms
+func adapterAddress(_ *dns.ClientConfig) (nameservers []string, err error) {
 	var b []byte
 	l := uint32(15000) // recommended initial size
 	for {
@@ -23,15 +25,15 @@ func adapterAddress() (string, error) {
 		err := windows.GetAdaptersAddresses(syscall.AF_UNSPEC, windows.GAA_FLAG_INCLUDE_PREFIX, 0, (*windows.IpAdapterAddresses)(unsafe.Pointer(&b[0])), &l)
 		if err == nil {
 			if l == 0 {
-				return "", nil
+				return nameservers, nil
 			}
 			break
 		}
 		if err.(syscall.Errno) != syscall.ERROR_BUFFER_OVERFLOW {
-			return "", os.NewSyscallError("syscall failed: GetAdaptersAddresses", err)
+			return nameservers, os.NewSyscallError("syscall failed: GetAdaptersAddresses", err)
 		}
 		if l <= uint32(len(b)) {
-			return "", os.NewSyscallError("syscall failed: GetAdaptersAddresses", err)
+			return nameservers, os.NewSyscallError("syscall failed: GetAdaptersAddresses", err)
 		}
 	}
 	var aas []*windows.IpAdapterAddresses
@@ -39,7 +41,7 @@ func adapterAddress() (string, error) {
 		aas = append(aas, aa)
 	}
 	if len(aas) == 0 {
-		return "", fmt.Errorf("no valid nameserver found")
+		return nameservers, fmt.Errorf("no valid nameserver found")
 	}
 	nameserver := aas[0].FirstDnsServerAddress.Address.IP().String()
 	// ref: https://github.com/miekg/exdns/blob/d851fa434ad51cb84500b3e18b8aa7d3bead2c51/q/q.go#L154-L158
@@ -47,7 +49,17 @@ func adapterAddress() (string, error) {
 		nameserver = dns.Fqdn(nameserver)
 	}
 	if net.ParseIP(nameserver) == nil {
-		return "", fmt.Errorf("invalid nameserver: %s", nameserver)
+		return nameservers, fmt.Errorf("invalid nameserver: %s", nameserver)
 	}
-	return nameserver, nil
+	return []string{nameserver}, nil
+}
+
+// windows does not use a resolv.config file i.e dns.ClientConfig
+// this function is defined for consistency across platforms
+func AppendSearchPathsIfExists(host string, _ *dns.ClientConfig) string {
+	return host
+}
+
+func getSearchPaths(_ *dns.ClientConfig) []string {
+	return []string{}
 }
