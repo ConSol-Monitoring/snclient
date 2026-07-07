@@ -1111,72 +1111,92 @@ func conditionFixTokenOperator(token []string) []string {
 // The name should be contained within the condition
 func ThresholdString(names []string, conditions ConditionList, numberFormat func(any) string) string {
 	// fetch warning conditions for name of metric
-	filtered := make(ConditionList, 0)
-	var group GroupOperator
-	for num := range conditions {
-		cond := conditions[num]
-		if slices.Contains(names, cond.keyword) {
-			filtered = append(filtered, cond)
-		}
-		if cond.groupOperator == GroupOr {
-			group = cond.groupOperator
-			for i := range cond.group {
-				if slices.Contains(names, cond.group[i].keyword) {
-					filtered = append(filtered, cond.group[i])
-				}
+	filtered := conditions.filterConditionsUsingKeywords(names)
+
+	// https://www.monitoring-plugins.org/doc/guidelines.html#THRESHOLDFORMAT
+	// default lowerLimit is taken as 0
+
+	// condition will trigger if value is lower than this
+	maximumLowerValue := math.Inf(-1)
+	maximumLowerValueSpecified := false
+	// condition will trigger if value is greater than this
+	minimumGreaterValue := math.Inf(1)
+	minimumGreaterValueSpecified := false
+	processCondition := func(cond *Condition) {
+		switch cond.operator {
+		case Lower:
+			val, err := convert.Float64E(cond.value)
+			if err != nil {
+				maximumLowerValue = max(maximumLowerValue, val)
 			}
-		}
-		if cond.groupOperator == GroupAnd {
-			group = cond.groupOperator
-			for i := range cond.group {
-				if slices.Contains(names, cond.group[i].keyword) {
-					filtered = append(filtered, cond.group[i])
-				}
+			maximumLowerValueSpecified = true
+		case LowerEqual:
+			val, err := convert.Float64E(cond.value)
+			ceil := math.Ceil(val)
+			if val == ceil {
+				val++
 			}
+			if err != nil {
+				maximumLowerValue = max(maximumLowerValue, val)
+			}
+			maximumLowerValueSpecified = true
+		case Greater:
+			val, err := convert.Float64E(cond.value)
+			if err != nil {
+				minimumGreaterValue = min(minimumGreaterValue, val)
+			}
+			minimumGreaterValueSpecified = true
+		case GreaterEqual:
+			val, err := convert.Float64E(cond.value)
+			floor := math.Floor(val)
+			if val == floor {
+				val--
+			}
+			if err != nil {
+				minimumGreaterValue = min(minimumGreaterValue, val)
+			}
+			minimumGreaterValueSpecified = true
+		default:
 		}
 	}
 
-	if len(filtered) == 0 {
+	for _, cond := range filtered {
+		processCondition(cond)
+	}
+
+	if !maximumLowerValueSpecified && !minimumGreaterValueSpecified {
 		return ""
 	}
 
-	if len(filtered) == 1 {
-		//exhaustive:ignore // only the lower conditions get a trailing ":"
-		switch filtered[0].operator {
-		case Lower:
-			return numberFormat(filtered[0].value) + ":"
-		case LowerEqual:
-			thisNumber, _ := convert.Float64E(filtered[0].value)
-			nextNumber := math.Ceil(thisNumber)
-			if thisNumber == nextNumber {
-				nextNumber++
-			}
-
-			return numberFormat(nextNumber) + ":"
-		default:
-			return numberFormat(filtered[0].value)
-		}
+	if maximumLowerValueSpecified && !minimumGreaterValueSpecified {
+		return numberFormat(maximumLowerValue) + ":"
 	}
 
-	if len(filtered) == 2 {
-		low := filtered[0].value
-		high := filtered[1].value
-		num1, err1 := convert.Float64E(low)
-		num2, err2 := convert.Float64E(high)
-		if err1 != nil || err2 != nil {
-			return ""
-		}
-		// switch numbers
-		if num1 > num2 {
-			low = filtered[1].value
-			high = filtered[0].value
-		}
-		if group == GroupOr {
-			return fmt.Sprintf("%s:%s", numberFormat(low), numberFormat(high))
+	if !maximumLowerValueSpecified && minimumGreaterValueSpecified {
+		return "~:" + numberFormat(minimumGreaterValue)
+	}
+
+	if maximumLowerValueSpecified && minimumGreaterValueSpecified {
+		if maximumLowerValue == 0 {
+			return numberFormat(minimumGreaterValue)
 		}
 
-		// implicit And
-		return fmt.Sprintf("@%s:%s", numberFormat(low), numberFormat(high))
+		// condition will altert if X, dont if .
+		// -------- maxLower ---------- minGreater ----------
+		// XXXXXXXX          ..........            XXXXXXXXXX
+		if maximumLowerValue <= minimumGreaterValue {
+			return numberFormat(maximumLowerValue) + ":" + numberFormat(minimumGreaterValue)
+		}
+
+		// THIS IS ASSUMPTION BASED
+		// HERE WE ASSUME WITHOUT VERIFYING THAT THESE TWO CONDITIONS ARE JOINED USING AN OR CASE
+
+		// condition will altert if X, dont if .
+		// -------- minGreater ---------- maxLower ----------
+		// ........            XXXXXXXXXX          ..........
+		if minimumGreaterValue < maximumLowerValue {
+			return "@" + numberFormat(minimumGreaterValue) + ":" + numberFormat(maximumLowerValue)
+		}
 	}
 
 	return ""

@@ -3,6 +3,7 @@ package snclient
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 
@@ -172,10 +173,10 @@ func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 	// only the conclusive ones are important / i.e effective for this
 	_, _, conclusiveConditions, _ := conditions.performMatches(m.BuildCheckData(), false)
 
-	namesToUseWhenBuildingPerfString := []string{m.Name}
+	namesToUseWhenBuildingPerfString := []string{}
 
-	if m.ThresholdName != "" {
-		namesToUseWhenBuildingPerfString = append(namesToUseWhenBuildingPerfString, m.ThresholdName)
+	for name := range maps.Keys(m.BuildCheckData()) {
+		namesToUseWhenBuildingPerfString = append(namesToUseWhenBuildingPerfString, name)
 	}
 
 	return ThresholdString(namesToUseWhenBuildingPerfString, conclusiveConditions, conv)
