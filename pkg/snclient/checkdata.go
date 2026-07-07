@@ -488,29 +488,17 @@ func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond ConditionList) {
 	// each metric is ran through conditions individually
 	for _, metric := range cd.result.Metrics {
 		state := CheckExitOK
-		// build up a data map[string]string as condition.Match function requires it as an argument
-		data := map[string]string{
-			metric.Name: fmt.Sprintf("%v", metric.Value),
-		}
-		if metric.ThresholdName != "" {
-			data[metric.ThresholdName] = fmt.Sprintf("%v", metric.Value)
-		}
-		for i := range warnCond {
-			if res, ok := warnCond[i].Match(data); res && ok {
-				state = CheckExitWarning
-			}
+
+		if metric.CheckForThresholds(&warnCond) {
+			state = CheckExitWarning
 		}
 
-		for i := range critCond {
-			if res, ok := critCond[i].Match(data); res && ok {
-				state = CheckExitCritical
-			}
+		if metric.CheckForThresholds(&critCond) {
+			state = CheckExitCritical
 		}
 
-		for i := range okCond {
-			if res, ok := okCond[i].Match(data); res && ok {
-				state = CheckExitOK
-			}
+		if metric.CheckForThresholds(&okCond) {
+			state = CheckExitOK
 		}
 
 		if state > CheckExitOK {

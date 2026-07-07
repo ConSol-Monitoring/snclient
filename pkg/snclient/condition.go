@@ -1355,3 +1355,35 @@ func (cl *ConditionList) applyFuncToConditions(_func func(c *Condition) error) e
 
 	return nil
 }
+
+// applies a series of matches to the condition list based on data
+// appends every condition based on its correct/false and conclusive/inconclusive result to a list
+// turn returnOnFirstMatch to skip processing the whole list after the first correct result
+func (cl *ConditionList) performMatches(data map[string]string, returnOnFirstMatch bool) (correctConditions, falseConditions, conclusiveConditions, inconclusiveConditions ConditionList) {
+	correctConditions = make(ConditionList, 0)
+	falseConditions = make(ConditionList, 0)
+	conclusiveConditions = make(ConditionList, 0)
+	inconclusiveConditions = make(ConditionList, 0)
+
+	for _, condition := range *cl {
+		result, conclusive := condition.Match(data)
+
+		if result {
+			correctConditions = append(correctConditions, condition)
+		} else {
+			falseConditions = append(falseConditions, condition)
+		}
+
+		if conclusive {
+			conclusiveConditions = append(conclusiveConditions, condition)
+		} else {
+			inconclusiveConditions = append(inconclusiveConditions, condition)
+		}
+
+		if result && returnOnFirstMatch {
+			break
+		}
+	}
+
+	return correctConditions, falseConditions, conclusiveConditions, inconclusiveConditions
+}

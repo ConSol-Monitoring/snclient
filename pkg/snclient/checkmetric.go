@@ -16,7 +16,7 @@ type CheckMetric struct {
 	Name          string        // Name as used in the perf data string
 	Unit          string        // Unit of the value
 	Value         any           // Current value
-	ThresholdName string        // if set, use this name instead of Name to extract thresholds from conditions
+	ThresholdName string        // if set, this will be added to the data before checking a conditions
 	Warning       ConditionList // threshold used for warnings
 	WarningStr    *string       // set warnings from string
 	Critical      ConditionList // threshold used for critical
@@ -27,6 +27,7 @@ type CheckMetric struct {
 	Entry         map[string]string // entry that this metric is generated from
 }
 
+// generates a naemon like string, including the perfdata
 func (m *CheckMetric) String() string {
 	var res bytes.Buffer
 
@@ -159,6 +160,8 @@ func (m *CheckMetric) tweakedNum(rawNum any) (num, unit string) {
 
 // Generate a string to be used in naemon like perfdata output about this threshold
 // if a metric has a reference to its originating entry, the conditions will check if it is in their skip list
+//
+//nolint:dogsled // only need conclusive list here
 func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 	conv := func(rawNum any) string {
 		num, _ := m.tweakedNum(rawNum)
@@ -166,24 +169,8 @@ func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 		return num
 	}
 
-	conditionsToUseWhenBuildingPerfString := ConditionList{}
-
-	for _, cond := range conditions {
-		if m.Entry == nil {
-			conditionsToUseWhenBuildingPerfString = append(conditionsToUseWhenBuildingPerfString, cond)
-
-			continue
-		}
-
-		if !cond.BlacklistWhitelistCheck(m.Entry) {
-			log.Tracef("metric knows which entry it was generated from, the condition does not allow this entry, skipping the condition for generating perf string, "+
-				" name: %q , condition: %q , entry: %q", m.Name, cond.DetailedString(), m.Entry)
-
-			continue
-		}
-
-		conditionsToUseWhenBuildingPerfString = append(conditionsToUseWhenBuildingPerfString, cond)
-	}
+	// only the conclusive ones are important / i.e effective for this
+	_, _, conclusiveConditions, _ := conditions.performMatches(m.BuildCheckData(), false)
 
 	namesToUseWhenBuildingPerfString := []string{m.Name}
 
@@ -191,5 +178,30 @@ func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 		namesToUseWhenBuildingPerfString = append(namesToUseWhenBuildingPerfString, m.ThresholdName)
 	}
 
-	return ThresholdString(namesToUseWhenBuildingPerfString, conditionsToUseWhenBuildingPerfString, conv)
+	return ThresholdString(namesToUseWhenBuildingPerfString, conclusiveConditions, conv)
+}
+
+// When performing checks against conditions, a data map of type map[string]string is required
+// Metric objects build their data using their Name and if specified, threshold value
+func (m *CheckMetric) BuildCheckData() (data map[string]string) {
+	// build up a data map[string]string as condition.Match function requires it as an argument
+	data = map[string]string{
+		m.Name: fmt.Sprintf("%v", m.Value),
+	}
+	if m.ThresholdName != "" {
+		data[m.ThresholdName] = fmt.Sprintf("%v", m.Value)
+	}
+
+	return data
+}
+
+// Metrics have a defined way for specifying key / values
+//
+//nolint:dogsled // only need corrects list here
+func (m *CheckMetric) CheckForThresholds(conditionList *ConditionList) (result bool) {
+	data := m.BuildCheckData()
+
+	corrects, _, _, _ := conditionList.performMatches(data, true)
+
+	return len(corrects) > 1
 }
