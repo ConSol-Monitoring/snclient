@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -223,6 +224,8 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
+
+	l.tidyThresholdDriveValues(check)
 
 	for _, k := range keys {
 		drive := requiredDisks[k]
@@ -524,6 +527,25 @@ func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
 	}
 
 	return flags
+}
+
+func (l *CheckDrivesize) tidyThresholdDriveValues(check *CheckData) {
+	removeTrailingSlashFromDriveValue := func(cond *Condition) (err error) {
+		if cond.keyword == "drive" && runtime.GOOS != "windows" {
+			if val, castOK := cond.value.(string); castOK {
+				// Example: '/tmp/' -> '/tmp'
+				if cut, cutOK := strings.CutSuffix(val, "/"); cutOK {
+					cond.value = cut
+				}
+			}
+		}
+
+		return nil
+	}
+
+	_ = check.warnThreshold.applyFuncToConditions(removeTrailingSlashFromDriveValue)
+	_ = check.critThreshold.applyFuncToConditions(removeTrailingSlashFromDriveValue)
+	_ = check.okThreshold.applyFuncToConditions(removeTrailingSlashFromDriveValue)
 }
 
 // have to define the error variables here, this file builds on all platforms

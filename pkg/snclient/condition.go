@@ -1341,3 +1341,17 @@ func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[s
 
 	return result
 }
+
+// returns at first encounter of error
+// calls c.RunFuncRecursively to the conditions in ConditionList
+func (cl *ConditionList) applyFuncToConditions(_func func(c *Condition) error) error {
+	for _, cond := range *cl {
+		err := cond.RunFuncRecursively(_func)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
