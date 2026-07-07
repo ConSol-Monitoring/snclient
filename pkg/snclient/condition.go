@@ -259,6 +259,7 @@ func (c *Condition) String() string {
 }
 
 // use this function to see more detail about a condition, including its original, unit and keyword
+// useful for debugging output
 func (c *Condition) DetailedString() string {
 	if len(c.group) > 0 {
 		groups := make([]string, len(c.group))
@@ -1184,6 +1185,7 @@ func ThresholdString(names []string, conditions ConditionList, numberFormat func
 // list of conditions
 type ConditionList []*Condition
 
+// ConditionList.String() joins the conditions using " or " when building a string
 func (cl *ConditionList) String() string {
 	if len(*cl) == 0 {
 		return "none"
@@ -1200,6 +1202,24 @@ func (cl *ConditionList) String() string {
 
 	// top level conditions are joined as OR
 	return strings.Join(res, " or ")
+}
+
+// useful for debugging output
+func (cl *ConditionList) DetailedString() string {
+	if len(*cl) == 0 {
+		return "none"
+	}
+
+	if len(*cl) == 1 {
+		return (*cl)[0].DetailedString()
+	}
+
+	res := []string{}
+	for _, c := range *cl {
+		res = append(res, c.DetailedString())
+	}
+
+	return strings.Join(res, " , ")
 }
 
 func replaceStrOp(input string) string {
@@ -1274,41 +1294,46 @@ func (cl *ConditionList) filterConditionsUsingKeywords(keywords []string) (ret [
 	return ret
 }
 
-// The match does not have to return true, it can return false
-// The important point is that it is conclusive. This means it is permitted to match against the entry
-func (cl *ConditionList) ifKeywordIsPresentAndPermitsEntry(keyword string, entry map[string]string) (result bool) {
-	result = false
+// when filtering for a specialized condition, it is required to see if the condition list should be filtered at all
+// if all conditions are generic and do not use the keyword, there is no need for filtering
+// additionally, if there is a condition that uses the keyword, it might have blacklisted/whitelisted the entry and is not applicable
+// need to find at least one condition that uses this keyword and permits it, that is the specialized condition for that keyword
+// if such a keyword exists, then we can filter out the non-specialized i.e generic conditions
+func (cl *ConditionList) ifKeywordIsPresentAndPermitsEntry(keyword string, entry map[string]string) (keywordPresent, keywordPresentAndPermitsEntry bool, conditionThatPermitsEntry *Condition) {
+	keywordPresent = false
+	keywordPresentAndPermitsEntry = false
+	conditionThatPermitsEntry = nil
 
 	for _, condition := range *cl {
-		keywords, _ := condition.GetListOfKeywords()
-		if !slices.Contains(keywords, keyword) {
-			continue
-		}
-
 		cl := ConditionList{condition}
 		subconditionsWithKeyword := cl.filterConditionsUsingKeywords([]string{keyword})
+
 		for _, subcondition := range subconditionsWithKeyword {
+			keywordPresent = true
+
 			if match, ok := subcondition.Match(entry); match && ok {
-				result = true
+				keywordPresentAndPermitsEntry = true
+				conditionThatPermitsEntry = subcondition
 
 				break
 			}
 		}
 
-		if result {
+		if keywordPresent && keywordPresentAndPermitsEntry {
 			break
 		}
 	}
 
-	return result
+	return keywordPresent, keywordPresentAndPermitsEntry, conditionThatPermitsEntry
 }
 
 // If a specialized condition, i.e a condition using the keyword, exists in this condition list, filter to specialized condition
 // If a specialized condition does not exist, every condition is generallized. Keep every generallized condition.
-func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[string]string) (result ConditionList) {
+// metric can be passed as well, this will print out the name of the metric in the trace output
+func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[string]string, metric *CheckMetric) (result ConditionList) {
 	// If the condition has this keyword, and permits an entry, the condition is specific to this entry
 	// It is specialized in terms of this keyword, it is not generallized
-	keywordIsPresentAndPermitsEntry := cl.ifKeywordIsPresentAndPermitsEntry(keyword, entry)
+	keywordPresent, keywordPresentAndPermitsEntry, conditionThatPermitsEntry := cl.ifKeywordIsPresentAndPermitsEntry(keyword, entry)
 
 	for _, condition := range *cl {
 		keywords, _ := condition.GetListOfKeywords()
@@ -1316,7 +1341,7 @@ func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[s
 		// keyword is not present
 		if !slices.Contains(keywords, keyword) {
 			// add generic condition in terms of keyword
-			if !keywordIsPresentAndPermitsEntry {
+			if !keywordPresentAndPermitsEntry {
 				result = append(result, condition.Clone())
 			}
 
@@ -1334,9 +1359,19 @@ func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[s
 		}
 	}
 
+	var metricMessage string
+	if metric != nil {
+		metricMessage = fmt.Sprintf("Processing for metric with name: '%s' and threshold name: '%s' \n", metric.Name, metric.ThresholdName)
+	}
+	var conditionMessage string
+	if conditionThatPermitsEntry != nil {
+		conditionMessage = fmt.Sprintf("Condition that has keyword and permits entry: %s \n", conditionThatPermitsEntry.DetailedString())
+	}
+
 	if len(result) > 0 {
-		log.Tracef("From this condition list: %v , filtering to this specialized keyword: %s and entry: %v , special keyword exists and permits entry: %t , result: %v ",
-			*cl, keyword, entry, keywordIsPresentAndPermitsEntry, result)
+		log.Tracef("%sInput condition list: %s (Length %d) \nProcessing for specialized keyword: '%s' \nEntry: %v "+
+			"\nSpecial keyword exists: %t \nCondition with special keyword permits entry exists: %t \n%sResult Condition List: %s (Length %d) ",
+			metricMessage, cl.DetailedString(), len(*cl), keyword, entry, keywordPresent, keywordPresentAndPermitsEntry, conditionMessage, result.DetailedString(), len(result))
 	}
 
 	return result

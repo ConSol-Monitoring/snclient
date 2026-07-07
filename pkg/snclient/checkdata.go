@@ -1357,8 +1357,8 @@ func (cd *CheckData) processMetricsWithSpecializedKeyword(keyword, metricName st
 			continue
 		}
 		metric.Entry = entry
-		metric.Warning = metric.Warning.filterForSpecializedKeyword(keyword, entry)
-		metric.Critical = metric.Critical.filterForSpecializedKeyword(keyword, entry)
+		metric.Warning = metric.Warning.filterForSpecializedKeyword(keyword, entry, metric)
+		metric.Critical = metric.Critical.filterForSpecializedKeyword(keyword, entry, metric)
 	}
 }
 
