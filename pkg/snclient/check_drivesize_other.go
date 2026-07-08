@@ -81,7 +81,7 @@ func (l *CheckDrivesize) setDisks(requiredDisks map[string]map[string]string) (e
 		entry["drive"] = drive
 		entry["drive_or_id"] = drive
 		entry["drive_or_name"] = drive
-		drive["drive_or_name_or_id"] = drive
+		entry["drive_or_name_or_id"] = drive
 		entry["fstype"] = partition.Fstype
 		requiredDisks[drive] = entry
 	}
