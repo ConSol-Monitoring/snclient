@@ -325,10 +325,24 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	}
 
 	name := syscall.UTF16ToString(volumeName)
+	drive["name"] = name
+
 	driveOrName := drive["drive"]
 	if driveOrName == "" {
 		driveOrName = name
 	}
+	if drive["drive_or_name"] == "" {
+		drive["drive_or_name"] = driveOrName
+	}
+
+	driveOrNameOrID := driveOrName
+	if driveOrNameOrID == "" {
+		driveOrNameOrID = drive["drive_or_id"]
+	}
+	if drive["drive_or_name_or_id"] == "" {
+		drive["drive_or_name_or_id"] = driveOrNameOrID
+	}
+
 	drive["readable"] = "1"
 	if fileSystemFlags&volumeOptReadOnly == 0 {
 		drive["writable"] = "1"
@@ -339,24 +353,10 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	if fileSystemFlags&volumeCompressed == 0 {
 		opts = append(opts, "compress")
 	}
-
 	drive["opts"] = strings.Join(opts, ",")
-	drive["name"] = name
+
 	if drive["fstype"] == "" {
 		drive["fstype"] = syscall.UTF16ToString(fileSystemName)
-	}
-	if drive["drive_or_name"] == "" {
-		drive["drive_or_name"] = driveOrName
-	}
-
-	// volumes without an assigned drive letter have empty drive["drive"]
-	// use the volume name or id as fallback
-	if drive["drive"] == "" {
-		if drive["name"] != "" {
-			drive["drive"] = drive["name"]
-		} else {
-			drive["drive"] = drive["drive_or_id"]
-		}
 	}
 }
 
