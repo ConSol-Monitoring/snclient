@@ -536,6 +536,7 @@ func (l *CheckDrivesize) tidyThresholdDriveValues(check *CheckData) {
 				// Example: '/tmp/' -> '/tmp'
 				if cut, cutOK := strings.CutSuffix(val, "/"); cutOK {
 					cond.value = cut
+					log.Tracef("Removed trailing slash condition drive value: '%s' , new Condition: %s ", val, cond.DetailedString())
 				}
 			}
 		}
