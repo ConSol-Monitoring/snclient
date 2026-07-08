@@ -1110,96 +1110,187 @@ func conditionFixTokenOperator(token []string) []string {
 // ThresholdString returns string used in warn/crit threshold performance data.
 // The name should be contained within the condition
 func ThresholdString(names []string, conditions ConditionList, numberFormat func(any) string) string {
-	// fetch warning conditions for name of metric
-	filtered := conditions.filterConditionsUsingKeywords(names)
-
-	// https://www.monitoring-plugins.org/doc/guidelines.html#THRESHOLDFORMAT
-	// default lowerLimit is taken as 0
-
-	// condition will trigger if value is lower than this
-	maximumLowerValue := math.Inf(-1)
-	maximumLowerValueSpecified := false
-	// condition will trigger if value is greater than this
-	minimumGreaterValue := math.Inf(1)
-	minimumGreaterValueSpecified := false
-	processCondition := func(cond *Condition) {
-		switch cond.operator {
-		case Lower:
-			val, err := convert.Float64E(cond.value)
-			if err != nil {
-				maximumLowerValue = max(maximumLowerValue, val)
-			}
-			maximumLowerValueSpecified = true
-		case LowerEqual:
-			val, err := convert.Float64E(cond.value)
-			ceil := math.Ceil(val)
-			if val == ceil {
-				val++
-			}
-			if err != nil {
-				maximumLowerValue = max(maximumLowerValue, val)
-			}
-			maximumLowerValueSpecified = true
-		case Greater:
-			val, err := convert.Float64E(cond.value)
-			if err != nil {
-				minimumGreaterValue = min(minimumGreaterValue, val)
-			}
-			minimumGreaterValueSpecified = true
-		case GreaterEqual:
-			val, err := convert.Float64E(cond.value)
-			floor := math.Floor(val)
-			if val == floor {
-				val--
-			}
-			if err != nil {
-				minimumGreaterValue = min(minimumGreaterValue, val)
-			}
-			minimumGreaterValueSpecified = true
-		default:
-		}
-	}
-
-	for _, cond := range filtered {
-		processCondition(cond)
-	}
-
-	if !maximumLowerValueSpecified && !minimumGreaterValueSpecified {
+	bounds := computeThresholdBounds(names, conditions)
+	if !bounds.found {
 		return ""
 	}
 
-	if maximumLowerValueSpecified && !minimumGreaterValueSpecified {
-		return numberFormat(maximumLowerValue) + ":"
-	}
+	// https://www.monitoring-plugins.org/doc/guidelines.html#THRESHOLDFORMAT
 
-	if !maximumLowerValueSpecified && minimumGreaterValueSpecified {
-		return "~:" + numberFormat(minimumGreaterValue)
-	}
-
-	if maximumLowerValueSpecified && minimumGreaterValueSpecified {
-		if maximumLowerValue == 0 {
-			return numberFormat(minimumGreaterValue)
+	switch {
+	case bounds.hasLower && !bounds.hasGreater:
+		return numberFormat(bounds.lowerBound) + ":"
+	case !bounds.hasLower && bounds.hasGreater:
+		return numberFormat(bounds.greaterBound)
+	case bounds.hasLower && bounds.hasGreater:
+		if bounds.lowerBound == 0 {
+			return numberFormat(bounds.greaterBound)
 		}
 
-		// condition will altert if X, dont if .
-		// -------- maxLower ---------- minGreater ----------
-		// XXXXXXXX          ..........            XXXXXXXXXX
-		if maximumLowerValue <= minimumGreaterValue {
-			return numberFormat(maximumLowerValue) + ":" + numberFormat(minimumGreaterValue)
+		// Assumes that the conditions for lowerBound and greaterBound are joined using logical OR
+		// Alert triggered on range specified by X
+		// XXXXXXXX lowerBound -------- greaterBound XXXXXXXXXXXXX
+		if bounds.lowerBound <= bounds.greaterBound {
+			return numberFormat(bounds.lowerBound) + ":" + numberFormat(bounds.greaterBound)
 		}
 
-		// THIS IS ASSUMPTION BASED
-		// HERE WE ASSUME WITHOUT VERIFYING THAT THESE TWO CONDITIONS ARE JOINED USING AN OR CASE
-
-		// condition will altert if X, dont if .
-		// -------- minGreater ---------- maxLower ----------
-		// ........            XXXXXXXXXX          ..........
-		if minimumGreaterValue < maximumLowerValue {
-			return "@" + numberFormat(minimumGreaterValue) + ":" + numberFormat(maximumLowerValue)
+		// Assumes that the conditions for lowerBound and greaterBound are joined using logical AND
+		// Alert triggered on range specified by X
+		// --------- greaterBound XXXXXXXXXX lowerBound -------------
+		if bounds.greaterBound < bounds.lowerBound {
+			return "@" + numberFormat(bounds.greaterBound) + ":" + numberFormat(bounds.lowerBound)
 		}
 	}
 
 	return ""
+}
+
+// thresholdBounds tracks the boundaries computed while walking
+// through a condition including its subconditions.
+type thresholdBounds struct {
+	// greaterBound is effective "x > N" condition that triggers an alert
+	greaterBound float64
+	hasGreater   bool
+	// lowerBound is effective "x < N" condition that triggers an alert
+	lowerBound float64
+	hasLower   bool
+	found      bool
+}
+
+// computeThresholdBounds computes the bounds for a conditionList.
+// the conditionList is joined using OR between its conditions.
+func computeThresholdBounds(names []string, conditions ConditionList) thresholdBounds {
+	result := thresholdBounds{}
+	for _, cond := range conditions {
+		child := conditionToBounds(names, cond)
+		if child.found {
+			result = mergeThresholdBounds(result, child, GroupOr)
+		}
+	}
+
+	return result
+}
+
+// conditionToBounds recursively walks a condition tree node, filtering by
+// keyword and producing numeric threshold bounds.
+func conditionToBounds(names []string, cond *Condition) thresholdBounds {
+	if len(cond.group) > 0 {
+		result := thresholdBounds{}
+		for _, child := range cond.group {
+			childBounds := conditionToBounds(names, child)
+			if childBounds.found {
+				result = mergeThresholdBounds(result, childBounds, cond.groupOperator)
+			}
+		}
+
+		return result
+	}
+
+	if !slices.Contains(names, cond.keyword) {
+		return thresholdBounds{}
+	}
+
+	return leafThresholdBounds(cond)
+}
+
+// leafThresholdBounds extracts bounds from a single leaf numeric condition.
+func leafThresholdBounds(cond *Condition) thresholdBounds {
+	switch cond.operator {
+	case Greater:
+		val, err := convert.Float64E(cond.value)
+		if err == nil {
+			return thresholdBounds{greaterBound: val, hasGreater: true, found: true}
+		}
+	case GreaterEqual:
+		val, err := convert.Float64E(cond.value)
+		if err == nil {
+			floor := math.Floor(val)
+			// do not put it bellow 0, the old code was inadvertedly doing something similar
+			if val == floor && val > 0 {
+				val--
+			}
+
+			return thresholdBounds{greaterBound: val, hasGreater: true, found: true}
+		}
+	case Lower:
+		val, err := convert.Float64E(cond.value)
+		if err == nil {
+			return thresholdBounds{lowerBound: val, hasLower: true, found: true}
+		}
+	case LowerEqual:
+		val, err := convert.Float64E(cond.value)
+		if err == nil {
+			ceil := math.Ceil(val)
+			if val == ceil {
+				val++
+			}
+
+			return thresholdBounds{lowerBound: val, hasLower: true, found: true}
+		}
+	case Equal, Unequal:
+		val, err := convert.Float64E(cond.value)
+		if err == nil {
+			return thresholdBounds{greaterBound: val, hasGreater: true, found: true}
+		}
+	default:
+	}
+
+	return thresholdBounds{}
+}
+
+// mergeThresholdBounds merges two bounds according to the group boolean logic operator
+func mergeThresholdBounds(a, b thresholdBounds, groupOp GroupOperator) thresholdBounds {
+	if !a.found && !b.found {
+		return thresholdBounds{}
+	}
+	if !a.found {
+		return b
+	}
+	if !b.found {
+		return a
+	}
+
+	// AND tightens the bounds. For the parent condition to pass, both conditions have to be true
+	// take the more restrive bound out of its children, it includes the relaxed one
+	// greaterBound is the minimal "x > N" , take the maximum of two children
+	// lowerBound is the maximal "x < N" , take the minimum of two children
+
+	// OR loosens the bounds. For the parent condition to pass, either one of them have to pass
+	// take the relaxed bound out of its children, the more restrictive one is unnecessary
+	// greaterBound is the minimal "x > N" , take the minimum of two children
+	// lowerBound is the maximal "x < N" , take the maximum of two children
+
+	result := thresholdBounds{found: true}
+
+	switch {
+	case a.hasGreater && b.hasGreater:
+		if groupOp == GroupAnd {
+			result.greaterBound = math.Max(a.greaterBound, b.greaterBound)
+		} else {
+			result.greaterBound = math.Min(a.greaterBound, b.greaterBound)
+		}
+		result.hasGreater = true
+	case a.hasGreater:
+		result.greaterBound, result.hasGreater = a.greaterBound, true
+	case b.hasGreater:
+		result.greaterBound, result.hasGreater = b.greaterBound, true
+	}
+
+	switch {
+	case a.hasLower && b.hasLower:
+		if groupOp == GroupAnd {
+			result.lowerBound = math.Min(a.lowerBound, b.lowerBound)
+		} else {
+			result.lowerBound = math.Max(a.lowerBound, b.lowerBound)
+		}
+		result.hasLower = true
+	case a.hasLower:
+		result.lowerBound, result.hasLower = a.lowerBound, true
+	case b.hasLower:
+		result.lowerBound, result.hasLower = b.lowerBound, true
+	}
+
+	return result
 }
 
 // list of conditions
@@ -1402,7 +1493,6 @@ func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[s
 func (cl *ConditionList) applyFuncToConditions(_func func(c *Condition) error) error {
 	for _, cond := range *cl {
 		err := cond.RunFuncRecursively(_func)
-
 		if err != nil {
 			return err
 		}

@@ -234,6 +234,125 @@ func TestConditionThresholdString(t *testing.T) {
 	}
 }
 
+// thresholdString runs ThresholdString on a single parsed condition for a given name.
+func thresholdString(t *testing.T, condStr, name string) string {
+	t.Helper()
+	cond, err := NewCondition(condStr, nil)
+	require.NoError(t, err, "parsed threshold")
+
+	return ThresholdString([]string{name}, ConditionList{cond}, convert.Num2String)
+}
+
+func TestThresholdStringBasic(t *testing.T) {
+	// single numeric operators
+	for _, thresholdStringTest := range []struct {
+		threshold, name, expect string
+	}{
+		// greater
+		{"x > 5", "x", "5"},
+		{"x > 0", "x", "0"},
+		// lower
+		{"x < 10", "x", "10:"},
+		// greater-or-equal (floor-adjusts integer boundaries to exclusive)
+		{"x >= 5", "x", "4"},
+		// lower-or-equal (ceil-adjusts integer boundaries)
+		{"x <= 10", "x", "11:"},
+		// non-numeric operators produce nothing
+		{"x = 5", "x", "5"},
+		{"x != 5", "x", "5"},
+		{"x like 5", "x", ""},
+		// no keyword match
+		{"y > 5", "x", ""},
+		// condition with wrong keyword in group
+		{"(y > 5)", "x", ""},
+	} {
+		got := thresholdString(t, thresholdStringTest.threshold, thresholdStringTest.name)
+		assert.Equalf(t, thresholdStringTest.expect, got, "%s -> %q, expected %q", thresholdStringTest.threshold, got, thresholdStringTest.expect)
+	}
+}
+
+func TestThresholdStringSameDirection(t *testing.T) {
+	// multiple conditions pointing in the same direction:
+	// AND picks the tighter bound, OR picks the looser
+	for _, thresholdStringTest := range []struct {
+		threshold, name, expect string
+	}{
+		// two greater: AND takes the larger (tighter), OR takes the smaller (looser)
+		{"x > 5 and x > 10", "x", "10"}, // must be >10 and >5 → >10 wins
+		{"x > 5 or x > 10", "x", "5"},   // either >5 or >10 → >5 covers both
+		// two lower: AND takes the smaller (tighter), OR takes the larger (looser)
+		{"x < 10 and x < 5", "x", "5:"}, // must be <10 and <5 → <5 wins
+		{"x < 10 or x < 5", "x", "10:"}, // either <10 or <5 → <10 covers both
+		// inclusive variants
+		{"x >= 5 and x >= 10", "x", "9"}, // >=10 is tighter than >=5
+		{"x >= 5 or x >= 10", "x", "4"},  // >=5 is looser (adjusted to >4)
+	} {
+		got := thresholdString(t, thresholdStringTest.threshold, thresholdStringTest.name)
+		assert.Equalf(t, thresholdStringTest.expect, got, "%s -> %q, expected %q", thresholdStringTest.threshold, got, thresholdStringTest.expect)
+	}
+}
+
+func TestThresholdStringOppositeDirection(t *testing.T) {
+	// one greater + one lower bound
+	for _, thresholdStringTest := range []struct {
+		threshold, name, expect string
+	}{
+		// AND of greater and lower that cross → inside range
+		{"x > 10 and x < 20", "x", "@10:20"},
+		{"x < 20 and x > 10", "x", "@10:20"},
+		// OR of greater and lower that don't cross → outside range
+		{"x > 20 or x < 10", "x", "10:20"},
+		{"x < 10 or x > 20", "x", "10:20"},
+		// OR where the regions overlap (cover everything) → degenerate inside
+		// this is a pathological case; Nagios perfdata format cannot represent "always alert"
+		{"x > 5 or x < 10", "x", "@5:10"},
+	} {
+		got := thresholdString(t, thresholdStringTest.threshold, thresholdStringTest.name)
+		assert.Equalf(t, thresholdStringTest.expect, got, "%s -> %q, expected %q", thresholdStringTest.threshold, got, thresholdStringTest.expect)
+	}
+}
+
+func TestThresholdStringNestedGroups(t *testing.T) {
+	// conditions nested with parentheses across multiple levels.
+	//
+	// mixing "inside" and "outside" ranges under OR or AND is not perfect and gives approximations
+	// a single Nagios perfdata range can only represent one contiguous number range OR its complement
+	// it is not capable of representing unions of disjoint intervals.
+	for _, thresholdStringTest := range []struct {
+		threshold, name, expect string
+	}{
+		// nested AND inside OR → inside+outside mix, inside branch dominates
+		{"(x > 20 and x < 30) or x < 10", "x", "@20:30"},
+		// nested OR inside AND → outside range tightens imprecisely
+		{"x > 10 and (x < 5 or x > 25)", "x", "5:25"},
+		// OR of two inside ranges → convex-hull approximation (gap included)
+		{"(x > 5 and x < 10) or (x > 20 and x < 30)", "x", "@5:30"},
+		// three levels: AND of (OR of two inside ranges) and a greater
+		{"( (x > 5 and x < 10) or (x > 15 and x < 25) ) and x > 7", "x", "@7:25"},
+		// keyword filtering inside a group: non-matching children are ignored
+		{"(x > 5 and y < 10)", "x", "5"},
+		{"(x > 5 or y < 10)", "x", "5"},
+		{"(y > 5 or x < 10) and x > 3", "x", "@3:10"},
+	} {
+		got := thresholdString(t, thresholdStringTest.threshold, thresholdStringTest.name)
+		assert.Equalf(t, thresholdStringTest.expect, got, "%s -> %q, expected %q", thresholdStringTest.threshold, got, thresholdStringTest.expect)
+	}
+}
+
+func TestThresholdStringNoMatch(t *testing.T) {
+	// no numeric conditions targeting this name
+	for _, thresholdStringTest := range []struct {
+		threshold, name string
+	}{
+		{"y > 5", "x"},
+		{"(y > 5 and y < 10)", "x"},
+		{"(y > 5 or z < 10)", "x"},
+	} {
+		got := thresholdString(t, thresholdStringTest.threshold, thresholdStringTest.name)
+		assert.Emptyf(t, got, "%s -> %q, expected empty", thresholdStringTest.threshold, got)
+	}
+}
+
 func TestConditionPreCheck(t *testing.T) {
 	filterStr := `( name = 'xinetd' or name like 'other' ) and state = 'running'`
 

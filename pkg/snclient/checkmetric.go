@@ -161,8 +161,6 @@ func (m *CheckMetric) tweakedNum(rawNum any) (num, unit string) {
 
 // Generate a string to be used in naemon like perfdata output about this threshold
 // if a metric has a reference to its originating entry, the conditions will check if it is in their skip list
-//
-//nolint:dogsled // only need conclusive list here
 func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 	conv := func(rawNum any) string {
 		num, _ := m.tweakedNum(rawNum)
@@ -170,16 +168,13 @@ func (m *CheckMetric) ThresholdString(conditions ConditionList) string {
 		return num
 	}
 
-	// only the conclusive ones are important / i.e effective for this
-	_, _, conclusiveConditions, _ := conditions.performMatches(m.BuildCheckData(), false)
-
 	namesToUseWhenBuildingPerfString := []string{}
 
 	for name := range maps.Keys(m.BuildCheckData()) {
 		namesToUseWhenBuildingPerfString = append(namesToUseWhenBuildingPerfString, name)
 	}
 
-	return ThresholdString(namesToUseWhenBuildingPerfString, conclusiveConditions, conv)
+	return ThresholdString(namesToUseWhenBuildingPerfString, conditions, conv)
 }
 
 // When performing checks against conditions, a data map of type map[string]string is required
