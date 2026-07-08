@@ -24,6 +24,15 @@ func TestCheckLogFileDisabled(t *testing.T) {
 	StopTestAgent(t, snc)
 }
 
+func TestCheckLogFileNoArguments(t *testing.T) {
+	snc := StartTestAgent(t, testLogfileConfig)
+	res := snc.RunCheck("check_logfile", []string{})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - no file defined")
+
+	StopTestAgent(t, snc)
+}
+
 func TestCheckLogFile(t *testing.T) {
 	snc := StartTestAgent(t, testLogfileConfig)
 	res := snc.RunCheck("check_logfile", []string{"file=./t/test.log"})
@@ -133,6 +142,16 @@ func TestCheckLogFileFileDoesNotExist(t *testing.T) {
 	res := snc.RunCheck("check_logfile", []string{"files=./t/testfiledoesnotexist*"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
 	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found to search lines in")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckLogFileLineExistsOnTheFirstFile(t *testing.T) {
+	snc := StartTestAgent(t, testLogfileConfig)
+
+	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "filter='line LIKE testUser2'"})
+	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - All 1 / 16 Lines OK (t/test.log: 0, t/test2.log: 1)")
 
 	StopTestAgent(t, snc)
 }

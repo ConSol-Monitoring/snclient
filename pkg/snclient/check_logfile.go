@@ -39,8 +39,10 @@ type LogLine struct {
 
 func NewCheckLogFile() CheckHandler {
 	return &CheckLogFile{
-		LineDelimiter:   "\n",
-		ColumnDelimiter: "\t",
+		LineDelimiter:      "\n",
+		ColumnDelimiter:    "\t",
+		FilePathPatterns:   make([]string, 0),
+		FilePathPatternsCS: "",
 	}
 }
 
@@ -99,31 +101,10 @@ Alert if there are errors in the snclient log file:
 func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	c.snc = snc
 
-	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckLogFile")
-	if !enabled {
-		return nil, fmt.Errorf("module CheckLogFile is not enabled in /modules section")
+	patterns, allowedPattern, err := c.processArguments()
+	if err != nil {
+		return nil, err
 	}
-
-	c.FilePathPatterns = append(c.FilePathPatterns, strings.Split(c.FilePathPatternsCS, ",")...)
-	if len(c.FilePathPatterns) == 0 {
-		return nil, fmt.Errorf("no file defined")
-	}
-
-	patterns := make(map[string]*regexp.Regexp, len(c.LabelPattern))
-	for _, labelPattern := range c.LabelPattern {
-		parts := strings.SplitN(labelPattern, ":", 2)
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("the label pattern is in the wrong format")
-		}
-		var err error
-		patterns[parts[0]], err = regexp.Compile(parts[1])
-		if err != nil {
-			return nil, fmt.Errorf("could not compile regex from pattern: %s", err.Error())
-		}
-	}
-
-	// patterns are for the file names/paths, not file contents!
-	allowedPattern := c.getAllowedPattern()
 
 	totalLineIndexedCount := 0
 	checkedFilesWithMatchedEntries := make(map[string]int, 0)
@@ -166,15 +147,49 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		"file_counts": c.buildFileCountsDetailString(checkedFilesWithMatchedEntries),
 	}
 
-	if len(checkedFilesWithMatchedEntries) == 0 {
-		check.emptySyntax = fmt.Sprintf("%%(status) - No files found to search lines in, search paths: '%s' ", strings.Join(c.FilePathPatterns, ","))
-	} else if len(check.listData) == 0 {
+	switch {
+	case len(checkedFilesWithMatchedEntries) == 0:
+		check.emptySyntax = fmt.Sprintf("%%(status) - No files found to search lines in, search paths: '%s' ", strings.Join(c.FilePathPatterns, " , "))
+	case len(check.listData) == 0:
 		check.emptyState = CheckExitOK
 		check.emptyStateSet = true
 		check.emptySyntax = fmt.Sprintf("%%(status) - No matching lines found in files (%s)", check.details["file_counts"])
+	default:
+		check.okSyntax = fmt.Sprintf("%%(status) - All %%(count) / %%(total) Lines OK (%s)", check.details["file_counts"])
 	}
 
 	return check.Finalize()
+}
+
+func (c *CheckLogFile) processArguments() (patterns map[string]*regexp.Regexp, allowedPattern []string, err error) {
+	enabled, _, _ := c.snc.config.Section("/modules").GetBool("CheckLogFile")
+	if !enabled {
+		return nil, nil, fmt.Errorf("module CheckLogFile is not enabled in /modules section")
+	}
+
+	if c.FilePathPatternsCS != "" {
+		c.FilePathPatterns = append(c.FilePathPatterns, strings.Split(c.FilePathPatternsCS, ",")...)
+	}
+	if len(c.FilePathPatterns) == 0 {
+		return nil, nil, fmt.Errorf("no file defined, specify some file path patterns")
+	}
+
+	patterns = make(map[string]*regexp.Regexp, len(c.LabelPattern))
+	for _, labelPattern := range c.LabelPattern {
+		parts := strings.SplitN(labelPattern, ":", 2)
+		if len(parts) != 2 {
+			return nil, nil, fmt.Errorf("the label pattern is in the wrong format")
+		}
+		var err error
+		patterns[parts[0]], err = regexp.Compile(parts[1])
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not compile regex from pattern: %s", err.Error())
+		}
+	}
+
+	allowedPattern = c.getAllowedPattern()
+
+	return patterns, allowedPattern, nil
 }
 
 func (c *CheckLogFile) buildFileCountsDetailString(checkedFilesWithMatchedEntries map[string]int) (fileCountDetails string) {
@@ -290,7 +305,7 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 		}
 
 		if !check.MatchMapCondition(check.filter, entry, false) {
-			log.Tracef("file: %s , line : %s, did not match the filter set in the check, not ading to check.listData", fileName, line)
+			log.Tracef("file: %s , line : %s, did not match the filter set in the check, not adding to check.listData", fileName, line)
 
 			continue
 		}
