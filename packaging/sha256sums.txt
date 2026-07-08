@@ -6,3 +6,4 @@ e987428618362c2d2540a68b722bd982ef1486c9961631298f20ea8fd57d3be4  node_exporter-
 4df4ec0dca5bc061c59181cfedcd8887cb5df9c710db3c4038bc51923414bc5d  node_exporter-1.11.1.linux-386.tar.gz
 9f5ea48e5bc7b656f8a91a32e7d7deb89f70f73dabd0d974418aca15f37d6810  node_exporter-1.11.1.linux-amd64.tar.gz
 ba1886efbd76cb96b0087c695ea8d1b9cb6e8aa946c996d744e9ee16c8e3591a  node_exporter-1.11.1.linux-arm64.tar.gz
+661c662e566d5c68950d63f7dfd1ec46ba28858f91aeba220c32baa1d3ad7b33  node_exporter-1.11.1.linux-armv7.tar.gz

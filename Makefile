@@ -47,10 +47,17 @@ endif
 ifeq ($(GOARCH),aarch64)
 	export GOARCH := arm64
 endif
+ifeq ($(GOARCH),armv7l)
+	export GOARCH := arm
+	export GOARM := 7
+endif
 
 DEB_ARCH:=$(GOARCH)
 ifeq ($(DEB_ARCH),386)
 	DEB_ARCH := i386
+endif
+ifeq ($(DEB_ARCH),arm)
+	DEB_ARCH := armhf
 endif
 DEBFILE ?= snclient-$(VERSION)-$(RPM_ARCH).deb
 
@@ -58,8 +65,13 @@ GITBASE=github.com/consol-monitoring/snclient
 BUILD_FLAGS=-ldflags "-s -w -X $(GITBASE)/pkg/snclient.Build=$(BUILD) -X $(GITBASE)/pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
+NODE_EXPORTER_ARCH:=$(GOARCH)
+ifeq ($(NODE_EXPORTER_ARCH),arm)
+	NODE_EXPORTER_ARCH := armv7
+endif
+
 NODE_EXPORTER_VERSION=1.11.1
-NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(GOARCH).tar.gz
+NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(NODE_EXPORTER_ARCH).tar.gz
 NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)
 
 # last i386 exe is the 0.24.0
@@ -472,8 +484,8 @@ deb: | dist
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter build-deb/usr/lib/snclient/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)/node_exporter build-deb/usr/lib/snclient/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)
 
 	rm -rf ./build-deb/DEBIAN
 	cp -r ./packaging/debian ./build-deb/DEBIAN
@@ -523,8 +535,8 @@ rpm: | dist
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter snclient-$(VERSION)/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)/node_exporter snclient-$(VERSION)/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)
 
 	chmod 755 \
 		snclient-$(VERSION)/snclient \
@@ -560,8 +572,8 @@ apk: | dist
 
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter snclient-$(VERSION)/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)/node_exporter snclient-$(VERSION)/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)
 
 	chmod 755 \
 		snclient-$(VERSION)/snclient \
@@ -589,9 +601,9 @@ osx: | dist
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(GOARCH)/node_exporter build-pkg/usr/local/bin/node_exporter
+	mv node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(NODE_EXPORTER_ARCH)/node_exporter build-pkg/usr/local/bin/node_exporter
 	chmod 755 build-pkg/usr/local/bin/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(GOARCH)
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(NODE_EXPORTER_ARCH)
 
 	cp packaging/osx/com.snclient.snclient.plist build-pkg/Library/LaunchDaemons/
 
