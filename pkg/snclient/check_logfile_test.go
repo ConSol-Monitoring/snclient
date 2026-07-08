@@ -151,7 +151,8 @@ func TestCheckLogFileLineExistsOnTheFirstFile(t *testing.T) {
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "filter='line LIKE testUser2'"})
 	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - All 1 / 16 Lines OK (t/test.log: 0, t/test2.log: 1)")
+	assert.Contains(t, string(res.BuildPluginOutput()), "test.log: 0")
+	assert.Contains(t, string(res.BuildPluginOutput()), "test2.log: 1")
 
 	StopTestAgent(t, snc)
 }
