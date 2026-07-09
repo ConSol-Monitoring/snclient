@@ -147,6 +147,11 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		"file_counts": c.buildFileCountsDetailString(checkedFilesWithMatchedEntries),
 	}
 
+	if check.HasThreshold("count") {
+		check.addCountMetrics = true
+		check.addCountMetricsToFront = true
+	}
+
 	switch {
 	case len(checkedFilesWithMatchedEntries) == 0:
 		check.emptySyntax = fmt.Sprintf("%%(status) - No files found to search lines in, search paths: '%s' ", strings.Join(c.FilePathPatterns, " , "))
