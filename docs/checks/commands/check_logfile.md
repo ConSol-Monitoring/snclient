@@ -56,13 +56,13 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                          |
-| ------------- | ---------------------------------------------------------------------- |
-| empty-state   | 3 (UNKNOWN)                                                            |
-| empty-syntax  | %(status) - No files found                                             |
-| top-syntax    | %(status) - %(problem_count)/%(count) lines (%(count)) %(problem_list) |
-| ok-syntax     | %(status) - All %(count) / %(total) Lines OK                           |
-| detail-syntax | %(line \| chomp \| cut=200)                                            |
+| Argument      | Default Value                                       |
+| ------------- | --------------------------------------------------- |
+| empty-state   | 3 (UNKNOWN)                                         |
+| empty-syntax  | %(status) - No files found                          |
+| top-syntax    | %(status) - %(problem_count)/%(count) line(s) found |
+| ok-syntax     | %(status) - %(count) line(s) found                  |
+| detail-syntax | %(line \| chomp \| cut=200)                         |
 
 ## Check Specific Arguments
 

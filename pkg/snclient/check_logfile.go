@@ -66,8 +66,8 @@ func (c *CheckLogFile) Build() *CheckData {
 `,
 		detailSyntax: "%(line | chomp | cut=200)", // cut after 200 chars
 		listCombine:  "\n",
-		okSyntax:     "%(status) - All %(count) / %(total) Lines OK",
-		topSyntax:    "%(status) - %(problem_count)/%(count) lines (%(count)) %(problem_list)",
+		okSyntax:     "%(status) - %(count) line(s) found",
+		topSyntax:    "%(status) - %(problem_count)/%(count) line(s) found",
 		emptySyntax:  "%(status) - No files found",
 		emptyState:   CheckExitUnknown,
 		args: map[string]CheckArgument{
@@ -160,7 +160,7 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		check.emptyStateSet = true
 		check.emptySyntax = fmt.Sprintf("%%(status) - No matching lines found in files (%s)", check.details["file_counts"])
 	default:
-		check.okSyntax = fmt.Sprintf("%%(status) - All %%(count) / %%(total) Lines OK (%s)", check.details["file_counts"])
+		check.okSyntax = fmt.Sprintf("%%(status) - All %%(count) lines found")
 	}
 
 	return check.Finalize()
