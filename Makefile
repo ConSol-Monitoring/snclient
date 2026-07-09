@@ -8,7 +8,7 @@ GOVERSION:=$(shell \
     awk -F'go| ' '{ split($$5, a, /\./); printf ("%04d%04d", a[1], a[2]); exit; }' \
 )
 # also update other go.mod files when changing minimum version
-# find . -name go.mod (run make gomods afterwards)
+# find . -name go.mod
 MINGOVERSION:=00010026
 MINGOVERSIONSTR:=1.26
 BUILD:=$(shell git rev-parse --short HEAD)
@@ -146,9 +146,6 @@ go.work:
 	$(GO) work use \
 		. \
 		buildtools/. \
-
-gomods:
-	find . -name go.mod -exec sed -i {} -e "s/^go .*/go $(MINGOVERSIONSTR).0/" \;
 
 build: vendor
 	set -e; for CMD in $(CMDS); do \
