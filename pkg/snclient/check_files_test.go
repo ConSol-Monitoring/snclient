@@ -687,13 +687,31 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 		// the powershell script generates a filetree that looks like this
 		// link_test_2/
 		// ├── A
-		// │   ├── file.txt
-		// │   └── toB -> /mnt/c/Users/sorus/repositories/snclient/pkg/snclient/t/link_test_2/B
+		// │   ├── file.txt
+		// │   └── toB -> .../B
 		// └── B
-		//     └── toA -> /mnt/c/Users/sorus/repositories/snclient/pkg/snclient/t/link_test_2/A
+		//     └── toA -> .../A
 
 		assert.Containsf(t, outputString, `ok - Generated 1 files for testing`, "output matches")
 		assert.Containsf(t, outputString, `ok - Generated 4 directories for testing`, "output matches")
+
+		// with add-files-only-once=true, it must not cause an infinite loop
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=true", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "cyclic symlinks with add-files-only-once=true should complete OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, `A - false`, `folder A should be found`)
+		assert.Containsf(t, outputString, `A\file.txt - false`, `file A\file.txt should be found`)
+		assert.Containsf(t, outputString, `A\toB - true`, `symlink A\toB should be found`)
+		assert.Containsf(t, outputString, `A\toB\toA - true`, `symlink A\toB\toA should be found`)
+		assert.Containsf(t, outputString, `B\toA - true`, `symlink B\toA should be found`)
+
+		// with add-files-only-once=false (default), the cyclic symlinks cause an infinite loop
+		// this is the expected behavior
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, `toA\toB\toA\file.txt - false`, "file file.txt should be accessible over many symlinks")
 
 	default:
 	}

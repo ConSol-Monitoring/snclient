@@ -32,6 +32,7 @@ type FileInfoUnified struct {
 const (
 	CheckFilesDefaultFollowSymlinks   = true
 	CheckFilesDefaultAddFilesOnlyOnce = false
+	CheckFilesFollowSymlinkMaxDepth   = 50
 )
 
 type CheckFiles struct {
@@ -74,7 +75,7 @@ func (l *CheckFiles) Build() *CheckData {
 			"follow-symlinks": {value: &l.followSymlinks, description: fmt.Sprintf("Follow symlinks of files and subdirectories while traversing. "+
 				"The file paths will be registered originating from search path. Default: %t", CheckFilesDefaultFollowSymlinks)},
 			"add-files-only-once": {value: &l.addFilesOnlyOnce, description: fmt.Sprintf("When following symlinks, same file can be added multiple times. "+
-				" Enable this to track added files and stop adding them twice. Default: %t", CheckFilesDefaultAddFilesOnlyOnce)},
+				" Enable this to track added files and stop adding them twice. Files will be added using the first path they were encountered with. Default: %t", CheckFilesDefaultAddFilesOnlyOnce)},
 			"calculate-subdirectory-sizes": {value: &l.calculateSubdirectorySizes, description: "For subdirectories that are found under the search paths, " +
 				"calculate the subdirectory sizes based on found files. This calculation may be expensive. Default: false"},
 		},
@@ -127,6 +128,13 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 	l.paths = append(l.paths, l.pathList...)
 	if len(l.paths) == 0 {
 		return nil, fmt.Errorf("no path specified")
+	}
+
+	if l.followSymlinks && !l.addFilesOnlyOnce {
+		oldMaxDepth := l.maxDepth
+		newMaxDepth := max(l.maxDepth, CheckFilesFollowSymlinkMaxDepth)
+		l.maxDepth = newMaxDepth
+		log.Debugf("adjusting max depth, since symlinks are followed and files are allowed to be add multiple times, oldMaxDepth: %d , newMaxDepth: %d", oldMaxDepth, newMaxDepth)
 	}
 
 	for _, checkPath := range l.paths {
@@ -241,9 +249,14 @@ func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error 
 			}
 		}
 
+		// skip the real root of a recursive symlink walk, it was already added by handleSymlink
+		if path == realRoot && usedSymlink {
+			return nil
+		}
+
 		isSymlink := false
 
-		if path == realRoot && w.cf.addFilesOnlyOnce {
+		if path == realRoot && w.cf.followSymlinks {
 			// at the real root, isSymlink is not determined through recursion.
 			// it is passed as usedSymlink before calling walk() for the first time
 			isSymlink = usedSymlink
@@ -321,23 +334,27 @@ func (w *fileWalker) handleSymlink(linkPath, displayPath string) error {
 
 	// the resolved path of the symlink might be added already
 	if w.cf.followSymlinks && w.cf.addFilesOnlyOnce {
-		if val, ok := w.visited[resolvedSymlink]; ok && val {
+		if w.visited[resolvedSymlink] {
 			log.Tracef("skipping symlink with link path: %s, target %s already visited", linkPath, resolvedSymlink)
-		} else {
-			w.visited[resolvedSymlink] = true
+
+			return w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, nil)
 		}
 	}
 
-	// record the symlink/junction itself, let WalkDir descend into it naturally
+	// record the symlink/junction itself
 	addErr := w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, nil)
-	if addErr != nil && !errors.Is(addErr, filepath.SkipDir) {
+	if addErr != nil {
+		if errors.Is(addErr, filepath.SkipDir) {
+			return nil
+		}
+
 		return addErr
 	}
 
-	return nil
+	// recursively walk into the symlink target directory
+	return w.walk(resolvedSymlink, displayPath, true)
 }
 
-//nolint:gocyclo // need to perform a lot of checks before adding a file
 func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, isSymlink bool, err error) error {
 	// if the search path is a directory e.g '/usr/bin' , the program assumes you are looking for files/subdirectories under it
 	// therefore it does not add the search path directory to the entry list
