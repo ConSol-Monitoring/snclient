@@ -60,10 +60,11 @@ Naemon Config
 
 | Argument                     | Description                                                                            |
 | ---------------------------- | -------------------------------------------------------------------------------------- |
+| add-files-only-once          | When following symlinks, same file can be added multiple times.  Enable this to track added files and stop adding them twice. Files will be added using the first path they were encountered with. Default: false |
 | calculate-subdirectory-sizes | For subdirectories that are found under the search paths, calculate the subdirectory sizes based on found files. This calculation may be expensive. Default: false |
 | file                         | Alias for path                                                                         |
 | follow-symlinks              | Follow symlinks of files and subdirectories while traversing. The file paths will be registered originating from search path. Default: true |
-| max-depth                    | Maximum recursion depth. Default: no limit. '0' and '1' disable recursion and only include files/directories directly under path., '2' starts to include files/directories of subdirectories with given depth.  |
+| max-depth                    | Maximum recursion depth. '0' and '1' disable recursion into subfolders and only include files/directories directly under path., '2' starts to include files/directories of subdirectories with given depth. '-1' enables recursion into folders. Default: -1  |
 | path                         | Path in which to search for files                                                      |
 | paths                        | A comma separated list of paths                                                        |
 | pattern                      | Pattern of files to search for                                                         |

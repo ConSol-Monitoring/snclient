@@ -623,12 +623,12 @@ func TestCheckFilesFilesystemLinks(t *testing.T) {
 		assert.Containsf(t, outputString, "file1.txt", "output has file")
 		assert.Containsf(t, outputString, "file1_symbolic1.txt", "output does have symlink file")
 		assert.Containsf(t, outputString, "file1_relative1.txt", "output does have relative symlink file")
-		assert.NotContainsf(t, outputString, "file1_physical1.txt", "output does not have hardlink file")
+		assert.Containsf(t, outputString, "file1_physical1.txt", "output does have hardlink file")
 		assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
 
 		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
-		assert.Containsf(t, string(res.BuildPluginOutput()), "All 3 files are ok", "should count 3 files (excluding hard link)")
+		assert.Containsf(t, string(res.BuildPluginOutput()), "All 6 files are ok", "should count 6 files")
 
 		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file and is_symlink eq true", "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
