@@ -47,7 +47,7 @@ endif
 ifeq ($(GOARCH),aarch64)
 	export GOARCH := arm64
 endif
-ifeq ($(GOARCH),armv7l)
+ifeq ($(GOARCH),armv7)
 	export GOARCH := arm
 	export GOARM := 7
 endif
@@ -65,10 +65,8 @@ GITBASE=github.com/consol-monitoring/snclient
 BUILD_FLAGS=-ldflags "-s -w -X $(GITBASE)/pkg/snclient.Build=$(BUILD) -X $(GITBASE)/pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
-NODE_EXPORTER_ARCH:=$(GOARCH)
-ifeq ($(NODE_EXPORTER_ARCH),arm)
-	NODE_EXPORTER_ARCH := armv7
-endif
+# node_exporter expects armv7, not arm
+NODE_EXPORTER_ARCH=$(GOARCH:arm=armv7)
 
 NODE_EXPORTER_VERSION=1.11.1
 NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(NODE_EXPORTER_ARCH).tar.gz
@@ -847,5 +845,6 @@ updatenodeexportersums:
 	grep linux-386.tar.gz    sha256sums_node_exporter.txt >> sha256sums.txt
 	grep linux-amd64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
 	grep linux-arm64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
+	grep linux-armv7.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
 	mv sha256sums.txt packaging/sha256sums.txt
 	rm -f sha256sums_node_exporter.txt

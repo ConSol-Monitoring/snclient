@@ -118,10 +118,10 @@ jobs:
       fail-fast: false
       matrix:
         go-os: [linux, freebsd]
-        go-arch: [i386, x86_64, aarch64, armv7l]
+        go-arch: [i386, x86_64, aarch64, armv7]
         exclude:
           - go-os: freebsd
-            go-arch: armv7l
+            go-arch: armv7
     needs: [get-version]
     runs-on: ubuntu-latest
     env:
@@ -378,7 +378,7 @@ jobs:
       fail-fast: false
       matrix:
         go-os: [linux]
-        go-arch: [i386, x86_64, aarch64, armv7l]
+        go-arch: [i386, x86_64, aarch64, armv7]
     runs-on: ubuntu-latest
     needs: [get-version, build, dist-linux-osx]
     env:
@@ -611,7 +611,7 @@ jobs:
       fail-fast: false
       matrix:
         go-os: [linux]
-        go-arch: [i386, x86_64, aarch64, armv7l]
+        go-arch: [i386, x86_64, aarch64, armv7]
     runs-on: ubuntu-latest
     needs: [get-version,pkg-rpm,pkg-deb]
     env:
@@ -782,7 +782,7 @@ jobs:
       fail-fast: false
       matrix:
         go-os: [linux]
-        go-arch: [i386, x86_64, aarch64, armv7l]
+        go-arch: [i386, x86_64, aarch64, armv7]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
     permissions:
