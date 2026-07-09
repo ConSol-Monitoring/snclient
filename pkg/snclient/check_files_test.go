@@ -656,3 +656,47 @@ func TestCheckFilesFilesystemLinks(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckFilesFilesystemLinks2(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	scriptName := "check_files_filesystem_links_2"
+	scriptFilename := scriptName
+
+	switch runtime.GOOS {
+	case "windows":
+		scriptFilename += ".ps1"
+	default:
+		t.Skipf("Test is not intended to be run on %s", runtime.GOOS)
+	}
+
+	config := checkFilesTestConfigWithScript(t, scriptsDir, scriptName, scriptFilename)
+	snc := StartTestAgent(t, config)
+
+	geneartionDirectory := t.TempDir()
+
+	res := snc.RunCheck(scriptName, []string{geneartionDirectory})
+	assert.Equalf(t, CheckExitOK, res.State, "script return state check is correct")
+	outputString := string(res.BuildPluginOutput())
+
+	// check_files_filesystem_links_2 script generates a structure using the filesystem links with recursion
+
+	switch runtime.GOOS {
+	case "windows":
+
+		// the powershell script generates a filetree that looks like this
+		// link_test_2/
+		// ├── A
+		// │   ├── file.txt
+		// │   └── toB -> /mnt/c/Users/sorus/repositories/snclient/pkg/snclient/t/link_test_2/B
+		// └── B
+		//     └── toA -> /mnt/c/Users/sorus/repositories/snclient/pkg/snclient/t/link_test_2/A
+
+		assert.Containsf(t, outputString, `ok - Generated 1 files for testing`, "output matches")
+		assert.Containsf(t, outputString, `ok - Generated 4 directories for testing`, "output matches")
+
+	default:
+	}
+
+	StopTestAgent(t, snc)
+}

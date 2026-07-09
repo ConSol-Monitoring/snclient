@@ -30,7 +30,8 @@ type FileInfoUnified struct {
 }
 
 const (
-	CheckFilesDefaultFollowSymlinks = true
+	CheckFilesDefaultFollowSymlinks   = true
+	CheckFilesDefaultAddFilesOnlyOnce = false
 )
 
 type CheckFiles struct {
@@ -39,7 +40,8 @@ type CheckFiles struct {
 	pattern                    string // constructor NewCheckFiles sets this as '*'
 	maxDepth                   int64  // constructor NewCheckFiles sets this as -1
 	calculateSubdirectorySizes bool   // constructor NewCheckFiles sets this as false
-	followSymlinks             bool   // constructor NewCheckFiles sets this as true
+	followSymlinks             bool
+	addFilesOnlyOnce           bool
 }
 
 func NewCheckFiles() CheckHandler {
@@ -49,6 +51,7 @@ func NewCheckFiles() CheckHandler {
 		maxDepth:                   int64(-1),
 		calculateSubdirectorySizes: false,
 		followSymlinks:             CheckFilesDefaultFollowSymlinks,
+		addFilesOnlyOnce:           CheckFilesDefaultAddFilesOnlyOnce,
 	}
 }
 
@@ -70,6 +73,8 @@ func (l *CheckFiles) Build() *CheckData {
 			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
 			"follow-symlinks": {value: &l.followSymlinks, description: fmt.Sprintf("Follow symlinks of files and subdirectories while traversing. "+
 				"The file paths will be registered originating from search path. Default: %t", CheckFilesDefaultFollowSymlinks)},
+			"add-files-only-once": {value: &l.addFilesOnlyOnce, description: fmt.Sprintf("When following symlinks, same file can be added multiple times. "+
+				" Enable this to track added files and stop adding them twice. Default: %t", CheckFilesDefaultAddFilesOnlyOnce)},
 			"calculate-subdirectory-sizes": {value: &l.calculateSubdirectorySizes, description: "For subdirectories that are found under the search paths, " +
 				"calculate the subdirectory sizes based on found files. This calculation may be expensive. Default: false"},
 		},
@@ -128,7 +133,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		checkPath = l.normalizePath(checkPath)
 		log.Tracef("normalized checkPath: %s", checkPath)
 
-		walker := &fileWalker{cf: l, check: check, checkPath: checkPath, seenInodes: make(map[uint64]bool)}
+		walker := &fileWalker{cf: l, check: check, checkPath: checkPath, visited: make(map[string]bool), seenInodes: make(map[uint64]bool)}
 
 		realRoot := checkPath
 		rootIsSymlink := false
@@ -181,64 +186,95 @@ type fileWalker struct {
 	cf         *CheckFiles
 	check      *CheckData
 	checkPath  string          // original check path this walk started from
-	visited    []string        // real directories already walked , normally or via a symlink
-	seenInodes map[uint64]bool // track inodes to skip hard links
+	visited    map[string]bool // real directories already walked , normally or via a symlink
+	seenInodes map[uint64]bool // track inodes to skip hard links, unix only
 }
 
-// walk walks realRoot on disk but registers paths under displayRoot
 // realRoot is the canonical path on the filesystem
+// displayRoot is what the check was started with
 // isSymlink marks whether realRoot was reached via a symlink.
+// walk uses realRoot on disk but the paths are registered as if they are under displayRoot
 //
 //nolint:wrapcheck // filepath walker functions need to return an error, wrapping and appending a header to each call would return a large error message
 func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error {
+	// start a walk from realRoot
+	// filepath.WalkDir then calls the passed function with arguments:
+	// path is the current path of the file
 	return filepath.WalkDir(realRoot, func(path string, dirEntry fs.DirEntry, err error) error {
+		entryType := "file"
+		if dirEntry != nil && dirEntry.Type().IsDir() {
+			entryType = "dir"
+		}
+
+		var fileInfo fs.FileInfo
+		var fileInfoErr error
+		if dirEntry != nil {
+			fileInfo, fileInfoErr = dirEntry.Info()
+		}
+
 		// map the current root under display root
 		displayPath := path
 		if rel, relErr := filepath.Rel(realRoot, path); relErr == nil {
 			displayPath = filepath.Join(displayRoot, rel)
 		}
 
-		if w.cf.followSymlinks && dirEntry != nil && dirEntry.IsDir() {
-			log.Tracef("adding into walked paths of the filewalker: %s", path)
-			w.visited = append(w.visited, path)
-		}
+		// check visited paths
+		if w.cf.followSymlinks && w.cf.addFilesOnlyOnce && dirEntry != nil && dirEntry.IsDir() {
+			log.Tracef("adding path: %s , type: %s in seen paths", path, entryType)
+			if w.visited[path] {
+				log.Tracef("skipping entry on path: %s , type: %s, already visited", path, entryType)
 
-		// at the real root, isSymlink is not determined through recursion.
-		// it is passed as usedSymlink before calling walk() for the first time
-		isSymlink := false
-		entryIsLink := false
-
-		if path == realRoot {
-			isSymlink = usedSymlink
-			// when entered via a symlink, the link itself was already
-			// recorded by followSymlink, skip re-adding the root
-			if usedSymlink {
 				return nil
 			}
-		} else if dirEntry != nil {
-			if fi, fie := dirEntry.Info(); fie == nil && isLink(fi) {
-				isSymlink = true
-				entryIsLink = true
+			w.visited[path] = true
+		}
+
+		// check visited inodes
+		if w.cf.followSymlinks && w.cf.addFilesOnlyOnce && dirEntry != nil && fileInfo != nil && fileInfoErr == nil && entryType == "file" {
+			if inode, inodeOK := getFileInode(fileInfo); inodeOK && inode > 0 {
+				if w.seenInodes[inode] {
+					log.Tracef("skipping entry on path: %s , type: %s, inode: %d already seen", path, entryType, inode)
+
+					return nil
+				}
+				w.seenInodes[inode] = true
 			}
 		}
 
-		if err != nil {
-			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, err, w.seenInodes)
+		isSymlink := false
+
+		if path == realRoot && w.cf.addFilesOnlyOnce {
+			// at the real root, isSymlink is not determined through recursion.
+			// it is passed as usedSymlink before calling walk() for the first time
+			isSymlink = usedSymlink
 		}
 
-		if entryIsLink {
+		if path != realRoot && dirEntry != nil {
+			if fi, fie := dirEntry.Info(); fie == nil && isLink(fi) {
+				isSymlink = true
+			}
+		}
+
+		// if there is an error somewhere during the walk, add the file with error
+		if err != nil {
+			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, err)
+		}
+
+		log.Tracef("enty on path: %s of type: %s symlink status: %t", path, entryType, isSymlink)
+
+		if isSymlink {
 			if w.cf.followSymlinks {
 				linkDepth := w.cf.getDepth(displayPath, w.checkPath)
 				if w.cf.maxDepth == -1 || linkDepth < w.cf.maxDepth {
-					return w.followSymlink(path, displayPath)
+					return w.handleSymlink(path, displayPath)
 				}
 			}
 
 			// always add links, but only follow them if followSymlinks is on
-			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, nil, w.seenInodes)
+			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, nil)
 		}
 
-		return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, err, w.seenInodes)
+		return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, err)
 	})
 }
 
@@ -256,20 +292,20 @@ func resolveLink(linkPath string) (string, error) {
 	return filepath.Clean(target), nil
 }
 
-// followSymlink resolves the symlink at linkPath
+// handleSymlink resolves the symlink at linkPath
 // if its a file, add it as a file entry
 // if its a directory, record it and let WalkDir descend normally
 // keep a list of visited directories to prevent infinite recursion
-func (w *fileWalker) followSymlink(linkPath, displayPath string) error {
+func (w *fileWalker) handleSymlink(linkPath, displayPath string) error {
 	// os.Stat follows the link and therefore also resolves relative targets correctly
 	info, err := os.Stat(linkPath)
 	if err != nil {
 		// broken symlink (dangling target, loop, ...): record it as an errored file
-		return w.cf.addFile(w.check, displayPath, w.checkPath, nil, true, err, w.seenInodes)
+		return w.cf.addFile(w.check, displayPath, w.checkPath, nil, true, err)
 	}
 
 	if !info.IsDir() {
-		return w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, nil, w.seenInodes)
+		return w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, nil)
 	}
 
 	resolvedSymlink, err := resolveLink(linkPath)
@@ -278,17 +314,22 @@ func (w *fileWalker) followSymlink(linkPath, displayPath string) error {
 		resolvedSymlink, err = filepath.EvalSymlinks(linkPath)
 	}
 	if err != nil {
-		return w.cf.addFile(w.check, displayPath, w.checkPath, nil, true, err, w.seenInodes)
+		return w.cf.addFile(w.check, displayPath, w.checkPath, nil, true, err)
 	}
 
-	if slices.Contains(w.visited, resolvedSymlink) {
-		log.Tracef("not descending into symlink %s, target %s already visited", linkPath, resolvedSymlink)
-	} else {
-		w.visited = append(w.visited, resolvedSymlink)
+	log.Tracef("symlink has link path: %s, resolvedPath: %s", linkPath, resolvedSymlink)
+
+	// the resolved path of the symlink might be added already
+	if w.cf.followSymlinks && w.cf.addFilesOnlyOnce {
+		if val, ok := w.visited[resolvedSymlink]; ok && val {
+			log.Tracef("skipping symlink with link path: %s, target %s already visited", linkPath, resolvedSymlink)
+		} else {
+			w.visited[resolvedSymlink] = true
+		}
 	}
 
 	// record the symlink/junction itself, let WalkDir descend into it naturally
-	addErr := w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, nil, w.seenInodes)
+	addErr := w.cf.addFile(w.check, displayPath, w.checkPath, fs.FileInfoToDirEntry(info), true, nil)
 	if addErr != nil && !errors.Is(addErr, filepath.SkipDir) {
 		return addErr
 	}
@@ -297,7 +338,7 @@ func (w *fileWalker) followSymlink(linkPath, displayPath string) error {
 }
 
 //nolint:gocyclo // need to perform a lot of checks before adding a file
-func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, isSymlink bool, err error, seenInodes map[uint64]bool) error {
+func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry fs.DirEntry, isSymlink bool, err error) error {
 	// if the search path is a directory e.g '/usr/bin' , the program assumes you are looking for files/subdirectories under it
 	// therefore it does not add the search path directory to the entry list
 	// if it is a file like /usr/bin/bash however, it will add that
@@ -387,17 +428,6 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 
 	if dirEntry != nil {
 		fileInfo, fileInfoErr = dirEntry.Info()
-	}
-
-	if dirEntry != nil && entry["type"] == "file" && !isSymlink && fileInfo != nil && fileInfoErr == nil {
-		if inode, ok := getFileInode(fileInfo); ok && inode > 0 {
-			if seenInodes[inode] {
-				log.Tracef("skipping hard link (inode %d already seen): %s", inode, path)
-
-				return nil
-			}
-			seenInodes[inode] = true
-		}
 	}
 
 	defer matchAndAdd()
