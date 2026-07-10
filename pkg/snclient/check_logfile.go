@@ -159,8 +159,6 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		check.emptyState = CheckExitOK
 		check.emptyStateSet = true
 		check.emptySyntax = fmt.Sprintf("%%(status) - No matching lines found in files (%s)", check.details["file_counts"])
-	default:
-		check.okSyntax = fmt.Sprintf("%%(status) - All %%(count) line(s) found")
 	}
 
 	return check.Finalize()
