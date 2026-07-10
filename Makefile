@@ -466,9 +466,9 @@ deb: | dist
 		build-deb/etc/snclient \
 		build-deb/usr/lib/snclient \
 		build-deb/usr/bin \
-		build-deb/lib/systemd/system \
-		build-deb/lib/sysusers.d \
-		build-deb/lib/tmpfiles.d \
+		build-deb/usr/lib/systemd/system \
+		build-deb/usr/lib/sysusers.d \
+		build-deb/usr/lib/tmpfiles.d \
 		build-deb/etc/logrotate.d \
 		build-deb/usr/share/doc/snclient \
 		build-deb/usr/share/doc/snclient \
@@ -486,9 +486,9 @@ deb: | dist
 	cp -r ./packaging/debian ./build-deb/DEBIAN
 	cp ./dist/snclient.ini ./dist/server.crt ./dist/server.key ./dist/cacert.pem ./build-deb/etc/snclient
 	cp -p ./dist/snclient build-deb/usr/bin/snclient
-	cp ./packaging/snclient.service build-deb/lib/systemd/system/
-	cp ./packaging/snclient.sysusers build-deb/lib/sysusers.d/snclient.conf
-	cp ./packaging/snclient.tmpfiles build-deb/lib/tmpfiles.d/snclient.conf
+	cp ./packaging/snclient.service build-deb/usr/lib/systemd/system/
+	cp ./packaging/snclient.sysusers build-deb/usr/lib/sysusers.d/snclient.conf
+	cp ./packaging/snclient.tmpfiles build-deb/usr/lib/tmpfiles.d/snclient.conf
 	cp ./packaging/snclient.logrotate build-deb/etc/logrotate.d/snclient
 	cp Changes build-deb/usr/share/doc/snclient/Changes
 	dch --empty --create --newversion "$(VERSION)" --package "snclient" -D "UNRELEASED" --urgency "low" -c build-deb/usr/share/doc/snclient/changelog "new upstream release"

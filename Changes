@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - update golang build chain to 1.26.5
+         - linux: merge lib into usr/lib
 
 0.44     Wed Jun 24 13:03:43 CEST 2026
          - fix running external scripts with sudo (#388)
