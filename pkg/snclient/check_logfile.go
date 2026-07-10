@@ -67,7 +67,7 @@ func (c *CheckLogFile) Build() *CheckData {
 		detailSyntax: "%(line | chomp | cut=200)", // cut after 200 chars
 		listCombine:  "\n",
 		okSyntax:     "%(status) - %(count) line(s) found",
-		topSyntax:    "%(status) - %(problem_count)/%(count) line(s) found",
+		topSyntax:    "%(status) - %(problem_count)/%(count) line(s) found \n%(problem_list)",
 		emptySyntax:  "%(status) - No files found",
 		emptyState:   CheckExitUnknown,
 		args: map[string]CheckArgument{
@@ -134,7 +134,13 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 			log.Debugf("check_logfile adding file: %s", fileName)
 			entries, lineIndex, err := c.addFile(fileName, check, patterns)
 			if err != nil {
-				return nil, fmt.Errorf("error for file %s, error was: %s", fileName, err.Error())
+				switch {
+				case os.IsPermission(err):
+					// permission errors already include the filename in them
+					return nil, fmt.Errorf("failed to add file: %s", err.Error())
+				default:
+					return nil, fmt.Errorf("failed to add file: %s , %s", fileName, err.Error())
+				}
 			}
 			log.Debugf("check_logfile file: %s | returned entries: %v | lines indexed: %d", fileName, entries, lineIndex)
 
@@ -162,7 +168,7 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	case len(check.listData) == 0:
 		check.emptyState = CheckExitOK
 		check.emptyStateSet = true
-		check.emptySyntax = fmt.Sprintf("%%(status) - No matching lines found in files (%s)", check.details["file_counts"])
+		check.emptySyntax = fmt.Sprintf("%%(status) - No matching lines found")
 	}
 
 	return check.Finalize()
@@ -178,7 +184,7 @@ func (c *CheckLogFile) processArguments() (patterns map[string]*regexp.Regexp, a
 		c.FilePathPatterns = append(c.FilePathPatterns, strings.Split(c.FilePathPatternsCS, ",")...)
 	}
 	if len(c.FilePathPatterns) == 0 {
-		return nil, nil, fmt.Errorf("no file defined, specify some file path patterns")
+		return nil, nil, fmt.Errorf("no file specified")
 	}
 
 	patterns = make(map[string]*regexp.Regexp, len(c.LabelPattern))
@@ -236,16 +242,17 @@ func (c *CheckLogFile) buildFileCountsDetailString(checkedFilesWithMatchedEntrie
 	return fileCountDetails
 }
 
+//nolint:wrapcheck // need to preserve the type of error that comes of from os.Open. The caller then checks the type. If we wrapped it, it would be a generic error out of fmt.Errorf
 func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[string]*regexp.Regexp) (entries []map[string]string, lineIndex int, err error) {
 	file, err := os.Open(fileName)
 	if err != nil {
-		return entries, 0, fmt.Errorf("could not open file: %s error was: %s", fileName, err.Error())
+		return entries, 0, err
 	}
 	defer file.Close()
 
 	info, err := file.Stat()
 	if err != nil {
-		return entries, 0, fmt.Errorf("could not stat file %s: %s", fileName, err.Error())
+		return entries, 0, fmt.Errorf("getting file stats failed with error: %s", err.Error())
 	}
 
 	currentInode := getInode(fileName)

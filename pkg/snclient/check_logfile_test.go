@@ -28,7 +28,7 @@ func TestCheckLogFileNoArguments(t *testing.T) {
 	snc := StartTestAgent(t, testLogfileConfig)
 	res := snc.RunCheck("check_logfile", []string{})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - no file defined")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - no file specified")
 
 	StopTestAgent(t, snc)
 }
@@ -61,7 +61,7 @@ func TestCheckLogFilePathWildCards(t *testing.T) {
 
 	res = snc.RunCheck("check_logfile", []string{"files=./t/test*", "warn=line LIKE WARNING"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No matching lines found in files ")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No matching lines found")
 
 	StopTestAgent(t, snc)
 }
@@ -131,7 +131,7 @@ func TestCheckLogFileFileExistsButHasNoLines(t *testing.T) {
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/test*", "filter=line LIKE this-pattern-does-not-exist-in-the-test-files", "show-all"})
 	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No matching lines found in files")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - No matching lines")
 
 	StopTestAgent(t, snc)
 }
