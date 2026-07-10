@@ -8,6 +8,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 type CheckBuiltin struct {
@@ -64,6 +66,8 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	case snc.flags.Verbose >= 1:
 		args = append(args, "-v")
 	}
+
+	ctx = utils.ContextWithLogger(ctx, log)
 
 	output := bytes.NewBuffer(nil)
 	rc := l.check(ctx, output, args)

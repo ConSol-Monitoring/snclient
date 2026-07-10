@@ -339,10 +339,6 @@ func logTraceASCIIMap(data any) {
 	}
 }
 
-func getSnclientLogger() *factorlog.FactorLog {
-	return log
-}
-
 // LogWriter implements the io.Writer interface and simply logs everything with given level.
 type LogWriter struct {
 	level string
