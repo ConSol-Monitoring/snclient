@@ -30,7 +30,8 @@ type FileInfoUnified struct {
 }
 
 const (
-	CheckFilesDefaultMaxDepth         = int64(-1)
+	CheckFilesDefaultMaxDepth         = int64(-2)
+	CheckFilesMaxDepthRecursion       = int64(-1) // sentinel value that enables depth-uncontrolled recursion into subfolders
 	CheckFilesDefaultFollowSymlinks   = true
 	CheckFilesDefaultAddFilesOnlyOnce = false
 	CheckFilesFollowSymlinkMaxDepth   = 50
@@ -71,7 +72,7 @@ func (l *CheckFiles) Build() *CheckData {
 			"paths":   {value: &l.pathList, description: "A comma separated list of paths", isFilter: true},
 			"pattern": {value: &l.pattern, description: "Pattern of files to search for", isFilter: true},
 			"max-depth": {value: &l.maxDepth, description: fmt.Sprintf("Maximum recursion depth. '0' and '1' disable recursion into subfolders and only include files/directories directly under path."+
-				", '2' starts to include files/directories of subdirectories with given depth. '-1' enables recursion into folders. Default: %d ", CheckFilesDefaultMaxDepth)},
+				", '2' starts to include files/directories of subdirectories with given depth. '%d' enables recursion into subfolders. Default: %d ", CheckFilesMaxDepthRecursion, CheckFilesMaxDepthRecursion)},
 			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
 			"follow-symlinks": {value: &l.followSymlinks, description: fmt.Sprintf("Follow symlinks of files and subdirectories while traversing. "+
 				"The file paths will be registered originating from search path. Default: %t", CheckFilesDefaultFollowSymlinks)},
@@ -279,7 +280,7 @@ func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error 
 		if isSymlink {
 			if w.cf.followSymlinks {
 				linkDepth := w.cf.getDepth(displayPath, w.checkPath)
-				if w.cf.maxDepth == -1 || linkDepth < w.cf.maxDepth {
+				if w.cf.maxDepth == getDepthNotAPrefix || linkDepth < w.cf.maxDepth {
 					return w.handleSymlink(path, displayPath)
 				}
 			}
@@ -401,7 +402,7 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 		}
 
 		// if recursion is disabled with maxDepth
-		if l.maxDepth != CheckFilesDefaultMaxDepth && pathDepth >= 2 {
+		if l.maxDepth != CheckFilesMaxDepthRecursion && pathDepth >= 2 {
 			switch {
 			case pathDepth < l.maxDepth:
 				log.Tracef("dir: %s, pathDepth: %d, maxDepth: %d, possible to add dir, deferring to add", path, pathDepth, l.maxDepth)
@@ -422,7 +423,7 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 	}
 
 	// if recursion is disabled with maxDepth
-	if l.maxDepth != CheckFilesDefaultMaxDepth && pathDepth >= 2 && pathDepth > l.maxDepth {
+	if l.maxDepth != CheckFilesMaxDepthRecursion && pathDepth >= 2 && pathDepth > l.maxDepth {
 		log.Tracef("skipping file: %s, pathDepth: %d, max-depth:%d is lower", path, pathDepth, l.maxDepth)
 
 		return nil
@@ -840,8 +841,12 @@ func (l *CheckFiles) normalizePath(path string) string {
 	return path
 }
 
+const (
+	getDepthNotAPrefix = int64(-1)
+)
+
 // getDepth returns path depth starting at 0 with for the basePath
-// if it is not a prefix, it returns -1
+// if basePath is not a prefix of path, it getDetphNotAPrefix
 func (l *CheckFiles) getDepth(path, basePath string) int64 {
 	// both the path and BasePath are normalized once according to CheckFiles.normalizePath()
 
@@ -858,7 +863,7 @@ func (l *CheckFiles) getDepth(path, basePath string) int64 {
 	if !strings.HasPrefix(path, basePath) {
 		log.Tracef("basePath: %s, is not a prefix of path: %s", basePath, path)
 
-		return -1
+		return getDepthNotAPrefix
 	}
 
 	subPath := strings.TrimPrefix(path, basePath)

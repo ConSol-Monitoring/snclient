@@ -64,7 +64,7 @@ Naemon Config
 | calculate-subdirectory-sizes | For subdirectories that are found under the search paths, calculate the subdirectory sizes based on found files. This calculation may be expensive. Default: false |
 | file                         | Alias for path                                                                         |
 | follow-symlinks              | Follow symlinks of files and subdirectories while traversing. The file paths will be registered originating from search path. Default: true |
-| max-depth                    | Maximum recursion depth. '0' and '1' disable recursion into subfolders and only include files/directories directly under path., '2' starts to include files/directories of subdirectories with given depth. '-1' enables recursion into folders. Default: -1  |
+| max-depth                    | Maximum recursion depth. '0' and '1' disable recursion into subfolders and only include files/directories directly under path., '2' starts to include files/directories of subdirectories with given depth. '-1' enables recursion into subfolders. Default: -1  |
 | path                         | Path in which to search for files                                                      |
 | paths                        | A comma separated list of paths                                                        |
 | pattern                      | Pattern of files to search for                                                         |
