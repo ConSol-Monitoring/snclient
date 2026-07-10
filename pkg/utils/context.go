@@ -8,6 +8,7 @@ import (
 
 type loggerCtxKey struct{}
 
+//nolint:ireturn // context helpers must return context.Context by convention
 func ContextWithLogger(ctx context.Context, log *factorlog.FactorLog) context.Context {
 	return context.WithValue(ctx, loggerCtxKey{}, log)
 }

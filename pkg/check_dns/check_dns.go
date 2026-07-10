@@ -54,14 +54,13 @@ func parseArgs(args []string) (*dnsOpts, error) {
 }
 
 func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
-
 	var err error
 	var clientConfig *dns.ClientConfig
 
 	logger := utils.LoggerFromContext(ctx)
 
 	switch runtime.GOOS {
-	case "linux", "dawrin", "bsd":
+	case "linux", "darwin", "freebsd":
 		clientConfig, err = dns.ClientConfigFromFile(opts.ResolvConfFile)
 		if err != nil {
 			return checkers.Critical(err.Error())
@@ -78,7 +77,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 			return checkers.Critical(err.Error())
 		}
 	}
-	for i, _ := range nameservers {
+	for i := range nameservers {
 		nameservers[i] = net.JoinHostPort(nameservers[i], strconv.Itoa(opts.Port))
 	}
 	if logger != nil && opts.Verbose {
@@ -126,6 +125,8 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 	var successfulDuration time.Duration
 	var successfulHost string
 
+	var gotAnswer bool
+
 	for _, hostCandidate := range hostCandidates {
 		for _, nameserver := range nameservers {
 			message := &dns.Msg{
@@ -158,6 +159,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 				successfulNameserver = nameserver
 				successfulHost = hostCandidate
 				successfulDuration = duration
+				gotAnswer = true
 
 				if logger != nil && opts.Verbose {
 					logger.Debugf("successfully queried DNS, host: %s, nameserver: %s, duration: %dms", successfulHost, successfulNameserver, successfulDuration.Milliseconds())
@@ -171,6 +173,10 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 			}
 
 			lastErr = err
+		}
+
+		if gotAnswer {
+			break
 		}
 	}
 
