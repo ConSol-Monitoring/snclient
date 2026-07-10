@@ -91,7 +91,11 @@ func (c *CheckLogFile) Build() *CheckData {
 Alert if there are errors in the snclient log file:
 
     check_files files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'"
-    OK - All 1787 / 1787 Lines OK
+    OK - 134 line(s) found
+
+Non-OK output example
+	check_files files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'"
+    CRITICAL - 23/548 line(s) found
 	`,
 		exampleArgs: `'files=/var/log/snclient/snclient.log' 'warn=line like Warn'`,
 	}
