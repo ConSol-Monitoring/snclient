@@ -100,4 +100,4 @@ these can be used in filters and thresholds (along with the default attributes):
 | sha256_checksum | SHA256 checksum of the file                                          |
 | sha384_checksum | SHA384 checksum of the file                                          |
 | sha512_checksum | SHA512 checksum of the file                                          |
-| is_symlink      | The file or its parent is a symlink                                  |
+| is_symlink      | The file/directory is a symlink                                      |

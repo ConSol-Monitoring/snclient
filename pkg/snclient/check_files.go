@@ -108,7 +108,7 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "sha256_checksum", description: "SHA256 checksum of the file"},
 			{name: "sha384_checksum", description: "SHA384 checksum of the file"},
 			{name: "sha512_checksum", description: "SHA512 checksum of the file"},
-			{name: "is_symlink", description: "The file or its parent is a symlink", unit: UBool},
+			{name: "is_symlink", description: "The file/directory is a symlink", unit: UBool},
 		},
 		exampleDefault: `
 Alert if there are logs older than 1 hour in /tmp:
