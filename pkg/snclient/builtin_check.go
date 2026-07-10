@@ -61,10 +61,13 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	switch {
 	case snc.flags.Verbose >= 3:
 		args = append(args, "-vvv")
+		log.Tracef("adding -vvv to the builtin check arguments")
 	case snc.flags.Verbose >= 2:
 		args = append(args, "-vv")
+		log.Tracef("adding -vv to the builtin check arguments")
 	case snc.flags.Verbose >= 1:
 		args = append(args, "-v")
+		log.Tracef("adding -v to the builtin check arguments")
 	}
 
 	ctx = utils.ContextWithLogger(ctx, log)
