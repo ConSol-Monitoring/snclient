@@ -273,10 +273,11 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 
 func (l *CheckDrivesize) driveEntry(drive string) map[string]string {
 	return map[string]string{
-		"id":            "",
-		"drive":         drive,
-		"drive_or_id":   drive,
-		"drive_or_name": drive,
+		"id":                  "",
+		"drive":               drive,
+		"drive_or_id":         drive,
+		"drive_or_name":       drive,
+		"drive_or_name_or_id": drive,
 	}
 }
 

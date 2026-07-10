@@ -135,6 +135,9 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 	if match != nil {
 		requiredDisks[path] = utils.CloneStringMap(*match)
 		requiredDisks[path]["drive"] = path
+		requiredDisks[path]["drive_or_id"] = path
+		requiredDisks[path]["drive_or_name"] = path
+		requiredDisks[path]["drive_or_name_or_id"] = path
 
 		return nil
 	}
