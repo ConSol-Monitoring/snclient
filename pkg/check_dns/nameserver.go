@@ -35,11 +35,11 @@ func adapterAddress(conf *dns.ClientConfig) (nameservers []string, err error) {
 		return nameserver, nil
 	}
 
-	parsedNameservers := make([]string, len(conf.Servers))
+	parsedNameservers := make([]string, 0, len(conf.Servers))
 	for _, nameserver := range conf.Servers {
 		parsedNameserver, err := parseNameserver(nameserver)
 
-		if err != nil {
+		if err == nil {
 			parsedNameservers = append(parsedNameservers, parsedNameserver)
 		}
 	}

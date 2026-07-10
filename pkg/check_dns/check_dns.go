@@ -7,10 +7,12 @@ import (
 	"io"
 	"net"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/mackerelio/checkers"
 	"github.com/miekg/dns"
 	"github.com/sni/go-flags"
@@ -23,7 +25,7 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 		return 2
 	}
 
-	ckr := opts.run()
+	ckr := opts.run(ctx)
 	fmt.Fprintf(output, "%s - %s", ckr.Status, strings.TrimSpace(ckr.Message))
 
 	return int(ckr.Status)
@@ -40,6 +42,7 @@ type dnsOpts struct {
 	ExpectedString []string `short:"e" long:"expected-string" description:"IP-ADDRESS string you expect the DNS server to return. If multiple IP-ADDRESS are returned at once, you have to specify whole string"`
 	SearchPaths    []string `long:"search-path" description:"Search paths is added to the domains before sending a DNS query. This can be specified multiple times."`
 	ResolvConfFile string   `long:"resolv-conf-file" default:"/etc/resolv.conf" description:"Path to the resolv.conf file to use. Is not used in Windows. Default is /etc/resolv.conf"`
+	Verbose        bool     `short:"v" long:"vv" long:"vvv" long:"verbose" description:"Show verbose output"`
 }
 
 func parseArgs(args []string) (*dnsOpts, error) {
@@ -50,10 +53,12 @@ func parseArgs(args []string) (*dnsOpts, error) {
 	return opts, err
 }
 
-func (opts *dnsOpts) run() *checkers.Checker {
+func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 	var err error
 	var clientConfig *dns.ClientConfig
+
+	logger := utils.LoggerFromContext(ctx)
 
 	switch runtime.GOOS {
 	case "linux", "dawrin", "bsd":
@@ -76,12 +81,18 @@ func (opts *dnsOpts) run() *checkers.Checker {
 	for i, _ := range nameservers {
 		nameservers[i] = net.JoinHostPort(nameservers[i], strconv.Itoa(opts.Port))
 	}
+	if logger != nil && opts.Verbose {
+		logger.Tracef("DNS nameservers: %v ", nameservers)
+	}
 
 	var searchPaths []string
 	if len(opts.SearchPaths) > 0 {
 		searchPaths = opts.SearchPaths
 	} else {
 		searchPaths = getSearchPaths(clientConfig)
+	}
+	if logger != nil && opts.Verbose {
+		logger.Tracef("DNS search paths: %v ", searchPaths)
 	}
 
 	var hostCandidates []string
@@ -96,6 +107,9 @@ func (opts *dnsOpts) run() *checkers.Checker {
 		// try the bare host as FQDN as well without a searchPath
 		hostCandidates = append(hostCandidates, dns.Fqdn(originalHost))
 	}
+	if logger != nil && opts.Verbose {
+		logger.Tracef("DNS host candidates: %v ", hostCandidates)
+	}
 
 	queryType, ok := dns.StringToType[strings.ToUpper(opts.QueryType)]
 	if !ok {
@@ -108,7 +122,7 @@ func (opts *dnsOpts) run() *checkers.Checker {
 	var r *dns.Msg
 	var duration time.Duration
 
-	var successfulNameserver string // the server that answered successfully
+	var successfulNameserver string
 	var successfulDuration time.Duration
 	var successfulHost string
 
@@ -132,28 +146,52 @@ func (opts *dnsOpts) run() *checkers.Checker {
 			r, duration, err = c.Exchange(message, nameserver)
 
 			if err == nil {
+
+				if len(r.Answer) == 0 {
+					if logger != nil && opts.Verbose {
+						logger.Tracef("DNS query returned empty result, continuing to next combination, host: %s, nameserver: %s, duration: %dms", hostCandidate, nameserver, duration.Milliseconds())
+					}
+
+					continue
+				}
+
 				successfulNameserver = nameserver
 				successfulHost = hostCandidate
 				successfulDuration = duration
 
+				if logger != nil && opts.Verbose {
+					logger.Debugf("successfully queried DNS, host: %s, nameserver: %s, duration: %dms", successfulHost, successfulNameserver, successfulDuration.Milliseconds())
+				}
+
 				break
 			}
 
-			lastErr = err
-		}
+			if logger != nil && opts.Verbose {
+				logger.Tracef("DNS query failed, host: %s, nameserver: %s, duration: %dms", hostCandidate, nameserver, duration.Milliseconds())
+			}
 
-		if r != nil {
-			break
+			lastErr = err
 		}
 	}
 
 	if r == nil {
 		return checkers.Critical(fmt.Sprintf("all attempts failed, last error: %v", lastErr))
-	} else {
-
 	}
 
 	checkSt := checkers.OK
+
+	answersWithoutHeaders := make([]string, 0)
+	answerTypes := make([]string, 0)
+	for _, answer := range r.Answer {
+		answerWithoutHeader, answerType, err := dnsAnswer(answer)
+		if err != nil {
+			return checkers.Critical(err.Error())
+		}
+		answersWithoutHeaders = append(answersWithoutHeaders, answerWithoutHeader)
+		answerTypes = append(answerTypes, answerType)
+	}
+
+	// Special handling of returned DNS addresses VS expected DNS addresses, with set comparisons
 	/**
 	  if DNS server return 1.1.1.1, 2.2.2.2
 		1: -e 1.1.1.1 -e 2.2.2.2            -> OK
@@ -169,30 +207,26 @@ func (opts *dnsOpts) run() *checkers.Checker {
 		if !ok {
 			return checkers.Critical(fmt.Sprintf("%s is not supported query type. Only A, AAAA, MX, CNAME are supported query types.", opts.QueryType))
 		}
-		match := 0
-		for _, expectedString := range opts.ExpectedString {
-			for _, answer := range r.Answer {
-				anserWithoutHeader, _, err := dnsAnswer(answer)
-				if err != nil {
-					return checkers.Critical(err.Error())
-				}
-				if anserWithoutHeader == expectedString {
-					match += 1
-				}
-			}
-		}
-		if match == len(r.Answer) {
-			if len(opts.ExpectedString) == len(r.Answer) { // case 1
-				checkSt = checkers.OK
-			} else { // case 2
-				checkSt = checkers.WARNING
-			}
-		} else {
-			if match > 0 { // case 3,4
-				checkSt = checkers.WARNING
-			} else { // case 5,6
-				checkSt = checkers.CRITICAL
-			}
+
+		expectedStringsContainOneAnswerAddress := slices.ContainsFunc(opts.ExpectedString, func(ex string) bool {
+			return slices.Contains(answersWithoutHeaders, ex)
+		})
+
+		answerCopy := slices.Clone(answersWithoutHeaders)
+		expectedCopy := slices.Clone(opts.ExpectedString)
+		slices.Sort(answerCopy)
+		slices.Sort(expectedCopy)
+		expectedStringsAndAnswersAreSame := slices.Equal(answerCopy, expectedCopy)
+
+		switch {
+		case expectedStringsAndAnswersAreSame:
+			checkSt = checkers.OK
+		case expectedStringsContainOneAnswerAddress:
+			checkSt = checkers.WARNING
+		case !expectedStringsContainOneAnswerAddress:
+			checkSt = checkers.CRITICAL
+		default:
+			checkSt = checkers.UNKNOWN
 		}
 	}
 
@@ -201,16 +235,12 @@ func (opts *dnsOpts) run() *checkers.Checker {
 	}
 
 	msg := ""
-	if len(r.Answer) > 0 {
-		res, dnsType, err := dnsAnswer(r.Answer[0])
-		if err != nil {
-			msg = err.Error()
-		} else {
-			msg = fmt.Sprintf("%s returns %s (%s)\n", opts.Host, res, dnsType)
-		}
+	if len(answersWithoutHeaders) > 0 && len(answerTypes) > 0 {
+		msg = fmt.Sprintf("%s returns %s (%s)\n", opts.Host, answersWithoutHeaders[0], answerTypes[0])
 	} else {
 		msg = fmt.Sprintf("%s (%s) returns no answer from %s\n", opts.Host, opts.QueryType, successfulNameserver)
 	}
+
 	msg += fmt.Sprintf("HEADER-> %s\n", r.MsgHdr.String())
 	for _, answer := range r.Answer {
 		msg += fmt.Sprintf("ANSWER-> %s\n", answer)
