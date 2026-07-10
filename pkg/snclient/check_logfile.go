@@ -121,7 +121,7 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		lineIndexedInThisFilePattern := 0
 		files, err := filepath.Glob(fileName)
 		if err != nil {
-			return nil, fmt.Errorf("could not get files for pattern %s, error was: %s", fileName, err.Error())
+			return nil, fmt.Errorf("could not get files for pattern %s, error was: %w", fileName, err)
 		}
 
 		for _, fileName := range files {
@@ -137,9 +137,9 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 				switch {
 				case os.IsPermission(err):
 					// permission errors already include the filename in them
-					return nil, fmt.Errorf("failed to add file: %s", err.Error())
+					return nil, fmt.Errorf("failed to add file: %w", err)
 				default:
-					return nil, fmt.Errorf("failed to add file: %s , %s", fileName, err.Error())
+					return nil, fmt.Errorf("failed to add file: %s , %w", fileName, err)
 				}
 			}
 			log.Debugf("check_logfile file: %s | returned entries: %v | lines indexed: %d", fileName, entries, lineIndex)
@@ -196,7 +196,7 @@ func (c *CheckLogFile) processArguments() (patterns map[string]*regexp.Regexp, a
 		var err error
 		patterns[parts[0]], err = regexp.Compile(parts[1])
 		if err != nil {
-			return nil, nil, fmt.Errorf("could not compile regex from pattern: %s", err.Error())
+			return nil, nil, fmt.Errorf("could not compile regex from pattern: %w", err)
 		}
 	}
 
@@ -252,7 +252,7 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 
 	info, err := file.Stat()
 	if err != nil {
-		return entries, 0, fmt.Errorf("getting file stats failed with error: %s", err.Error())
+		return entries, 0, fmt.Errorf("getting file stats failed with error: %w", err)
 	}
 
 	currentInode := getInode(fileName)
@@ -345,7 +345,7 @@ func (c *CheckLogFile) getStartOffset(fileName string, currentSize int64, curren
 		// user provided an offset string, attempt to parse it.
 		startOffset, err := convert.Int64E(c.Offset)
 		if err != nil {
-			return 0, fmt.Errorf("invalid offset value '%s' provided: %s", c.Offset, err.Error())
+			return 0, fmt.Errorf("invalid offset value '%s' provided: %w", c.Offset, err)
 		}
 		if startOffset < 0 {
 			return 0, fmt.Errorf("offset cannot be negative: %d", startOffset)
