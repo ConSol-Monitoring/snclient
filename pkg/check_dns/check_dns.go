@@ -142,7 +142,6 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 	queryDNSSuccessfull := false
 
 	queryDNS := func() {
-
 		gotAnswer := false
 
 		for _, hostCandidate := range hostCandidates {
