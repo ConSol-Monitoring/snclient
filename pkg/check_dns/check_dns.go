@@ -140,6 +140,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 	queryDNSChan := make(chan bool, 1)
 	queryDNSSuccessfull := false
+	dnsExchangeCount := 0
 
 	queryDNS := func() {
 		gotAnswer := false
@@ -162,6 +163,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 				message.Id = dns.Id()
 
 				r, duration, err = c.Exchange(message, nameserver)
+				dnsExchangeCount = dnsExchangeCount + 1
 
 				if err == nil {
 					if len(r.Answer) == 0 {
@@ -206,11 +208,11 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 	queryDuration := queryEndTimestamp.Sub(queryBeginTimestamp)
 
 	if !queryDNSSuccessfull {
-		return checkers.Critical(fmt.Sprintf("all attempts failed, last error: %v", lastErr))
+		return checkers.Critical(fmt.Sprintf("All %d DNS queries gave empty results or failed, last error: %v", dnsExchangeCount, lastErr))
 	}
 
 	if r == nil {
-		return checkers.Critical(fmt.Sprintf("all attempts failed, last error: %v", lastErr))
+		return checkers.Critical(fmt.Sprintf("All %d DNS queries gave empty results or failed, last error: %v", dnsExchangeCount, lastErr))
 	}
 
 	checkSt := checkers.OK
