@@ -1594,6 +1594,7 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	if !ok {
 		nastyChars = DefaultNastyCharacters
 	}
+	nastyChars = unescapeNastyCharacters(nastyChars)
 
 	if strings.ContainsAny(cmd, nastyChars) {
 		log.Debugf("command string contained nasty character: %s", cmd)
@@ -1611,6 +1612,38 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	}
 
 	return true
+}
+
+func unescapeNastyCharacters(value string) string {
+	var builder strings.Builder
+	builder.Grow(len(value))
+
+	for idx := 0; idx < len(value); idx++ {
+		if value[idx] != '\\' || idx+1 >= len(value) {
+			builder.WriteByte(value[idx])
+
+			continue
+		}
+
+		switch value[idx+1] {
+		case 'n':
+			builder.WriteByte('\n')
+			idx++
+		case 'r':
+			builder.WriteByte('\r')
+			idx++
+		case 't':
+			builder.WriteByte('\t')
+			idx++
+		case '\\':
+			builder.WriteByte('\\')
+			idx++
+		default:
+			builder.WriteByte('\\')
+		}
+	}
+
+	return builder.String()
 }
 
 func (snc *Agent) adjustMemoryAndGCLimits() {

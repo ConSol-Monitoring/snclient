@@ -20,6 +20,7 @@ func TestConfigPkgDefaults(t *testing.T) {
 
 	// verify default nasty characters
 	nastyChars, _ := cfg.Section("/settings/WEB/server").GetString("nasty characters")
+	nastyChars = unescapeNastyCharacters(nastyChars)
 	assert.Equalf(t, DefaultNastyCharacters, nastyChars, "default nasty characters")
 	assert.Containsf(t, nastyChars, "\\", "nasty characters contains backslash")
 	assert.Containsf(t, nastyChars, ";", "nasty characters contains semicolon")
