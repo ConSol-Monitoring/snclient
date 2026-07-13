@@ -92,6 +92,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | id                    | Drive or id of drive                                                                          |
 | drive_or_id           | Drive letter if present if not use id                                                         |
 | drive_or_name         | Drive letter if present if not use name                                                       |
+| drive_or_name_or_id   | Drive letter if present, if not use drive name, if not use the given ID. Useful for volumes without assigned letters on Windows. |
 | fstype                | Filesystem type                                                                               |
 | mounted               | Flag whether drive is mounter (0/1)                                                           |
 | free                  | Free (human readable) bytes                                                                   |

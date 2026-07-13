@@ -6,6 +6,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCheckNastyCharactersEscapes(t *testing.T) {
+	conf := &ConfigSection{
+		data: ConfigData{
+			"allow nasty characters": "false",
+			"nasty characters":       `\n\r`,
+		},
+	}
+
+	assert.False(t, checkNastyCharacters(conf, "safe", []string{"line1\nline2"}), "escaped newline must be treated as a nasty character")
+	assert.True(t, checkNastyCharacters(conf, "safe", []string{`line1\nline2`}), "literal backslash-n must stay literal")
+}
+
 func TestCheckAlias(t *testing.T) {
 	config := `
 [/modules]
