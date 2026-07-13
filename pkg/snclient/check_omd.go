@@ -100,7 +100,7 @@ func (l *CheckOMD) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 	}
 
 	for _, site := range sites {
-		if strings.ContainsAny(site, SystemCmdNastyCharacters) {
+		if containsNastyCharacters(site, SystemCmdNastyCharacters) {
 			return nil, fmt.Errorf("site name must not contain nasty characters")
 		}
 		l.addOmdSite(ctx, check, site)

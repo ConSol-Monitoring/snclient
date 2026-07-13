@@ -72,7 +72,7 @@ func (l *CheckPing) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 	if l.hostname == "" {
 		return nil, fmt.Errorf("host name is required")
 	}
-	if strings.ContainsAny(l.hostname, SystemCmdNastyCharacters) {
+	if containsNastyCharacters(l.hostname, SystemCmdNastyCharacters) {
 		return nil, fmt.Errorf("host name must not contain nasty characters")
 	}
 

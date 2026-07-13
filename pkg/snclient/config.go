@@ -35,7 +35,7 @@ const (
 	DefaultNastyCharacters = "$|`&><'\"\\[]{};\n\r"
 
 	// SystemCmdNastyCharacters is a list of nasty characters which are not allowed in host names, ex.: in check_ping
-	SystemCmdNastyCharacters = "$|`&><'\"\\{};"
+	SystemCmdNastyCharacters = "$|`&><'\"\\{};\n\r"
 )
 
 var DefaultConfig = map[string]ConfigData{

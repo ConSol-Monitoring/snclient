@@ -27,6 +27,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/consol-monitoring/snclient/pkg/counter"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
@@ -1578,6 +1579,22 @@ func checkAllowArguments(conf *ConfigSection, args []string) bool {
 	return len(args) == 0
 }
 
+// containsNastyCharacters checks for nasty characters in cmd and arguments. Returns true if found some.
+func containsNastyCharacters(val, nastyChars string) bool {
+	if strings.ContainsAny(val, nastyChars) {
+		return true
+	}
+
+	// check for control sequences
+	for _, r := range val {
+		if unicode.IsControl(r) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // checkNastyCharacters checks for nasty characters in cmd and arguments. Returns true if safe.
 func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	allowed, _, err := conf.GetBool("allow nasty characters")
@@ -1596,14 +1613,14 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 		nastyChars = DefaultNastyCharacters
 	}
 
-	if strings.ContainsAny(cmd, nastyChars) {
+	if containsNastyCharacters(cmd, nastyChars) {
 		log.Debugf("command string contained nasty character: %s", cmd)
 
 		return false
 	}
 
 	for i, arg := range args {
-		if strings.ContainsAny(arg, nastyChars) {
+		if containsNastyCharacters(arg, nastyChars) {
 			log.Debugf("cmd arg (#%d) contained nasty character", i)
 			log.Tracef("cmd arg (#%d) contained nasty character: '%s'", i, arg)
 
