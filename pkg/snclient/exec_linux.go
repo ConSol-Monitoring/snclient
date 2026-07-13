@@ -15,13 +15,16 @@ import (
 // if the process possesses CAP_SETUID and CAP_SETGID. If already root, it works identically.
 func (snc *Agent) execCommandAsRoot(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
 	cmd, err := snc.MakeCmd(ctx, command)
-	if err == nil {
-		if cmd.SysProcAttr == nil {
-			cmd.SysProcAttr = &syscall.SysProcAttr{}
-		}
-		cmd.SysProcAttr.Credential = &syscall.Credential{Uid: 0, Gid: 0}
-		stdout, stderr, exitCode, _, err = snc.runExternalCommand(ctx, cmd, timeout)
+	if err != nil {
+		return stdout, stderr, exitCode, err
 	}
+
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: 0, Gid: 0}
+
+	stdout, stderr, exitCode, _, err = snc.runExternalCommand(ctx, cmd, timeout)
 
 	return stdout, stderr, exitCode, err
 }

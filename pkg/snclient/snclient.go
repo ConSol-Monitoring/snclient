@@ -825,7 +825,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 		return snc.runHelp(ctx, chk, handler), chk
 	}
 	if !skipAllowedCheck {
-		err = snc.checkAllowed(name, chk, handler, parsedArgs, transportConf)
+		err = snc.checkAllowed(name, chk, handler, args, ArgumentList(parsedArgs).RawList(), transportConf)
 		if err != nil {
 			return &CheckResult{
 				State:  CheckExitUnknown,
@@ -853,8 +853,8 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 }
 
 // check allowed arguments and nasty characters settings.
-func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHandler, parsedArgs []Argument, transportConf *ConfigSection) error {
-	log.Tracef("check allowed: chk:%T cmd:%s: %#v // %#v", handler, command, parsedArgs, chk.rawArgs)
+func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHandler, fullArgs, parsedArgs []string, transportConf *ConfigSection) error {
+	log.Tracef("check allowed: chk:%T cmd:%s: %#v // %#v // %#v", handler, command, fullArgs, chk.rawArgs, parsedArgs)
 	var chkConfig *ConfigSection
 	switch hdl := handler.(type) {
 	case *CheckAlias:
@@ -887,9 +887,9 @@ func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHand
 		switch {
 		case !argsOk && !checkAllowArguments(transportConf, chk.rawArgs):
 			return fmt.Errorf("exception processing request: request contained arguments (check the allow arguments option)")
-		case !ctrlOk && !checkControlCharacters(transportConf, command, ArgumentList(parsedArgs).RawList()):
+		case !ctrlOk && !checkControlCharacters(transportConf, command, fullArgs):
 			return fmt.Errorf("exception processing request: request contained illegal control characters (check the allow control characters option)")
-		case !nastyOk && !checkNastyCharacters(transportConf, command, ArgumentList(parsedArgs).RawList()):
+		case !nastyOk && !checkNastyCharacters(transportConf, command, parsedArgs):
 			return fmt.Errorf("exception processing request: request contained illegal characters (check the allow nasty characters option)")
 		}
 	}
