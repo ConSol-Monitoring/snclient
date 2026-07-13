@@ -8,7 +8,7 @@ GOVERSION:=$(shell \
     awk -F'go| ' '{ split($$5, a, /\./); printf ("%04d%04d", a[1], a[2]); exit; }' \
 )
 # also update other go.mod files when changing minimum version
-# find . -name go.mod (run make gomods afterwards)
+# find . -name go.mod
 MINGOVERSION:=00010026
 MINGOVERSIONSTR:=1.26
 BUILD:=$(shell git rev-parse --short HEAD)
@@ -47,10 +47,17 @@ endif
 ifeq ($(GOARCH),aarch64)
 	export GOARCH := arm64
 endif
+ifeq ($(GOARCH),armv7)
+	export GOARCH := arm
+	export GOARM := 7
+endif
 
 DEB_ARCH:=$(GOARCH)
 ifeq ($(DEB_ARCH),386)
 	DEB_ARCH := i386
+endif
+ifeq ($(DEB_ARCH),arm)
+	DEB_ARCH := armhf
 endif
 DEBFILE ?= snclient-$(VERSION)-$(RPM_ARCH).deb
 
@@ -58,8 +65,11 @@ GITBASE=github.com/consol-monitoring/snclient
 BUILD_FLAGS=-ldflags "-s -w -X $(GITBASE)/pkg/snclient.Build=$(BUILD) -X $(GITBASE)/pkg/snclient.Revision=$(REVISION)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
-NODE_EXPORTER_VERSION=1.11.1
-NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(GOARCH).tar.gz
+# node_exporter expects armv7, not arm
+NODE_EXPORTER_ARCH=$(GOARCH:arm=armv7)
+
+NODE_EXPORTER_VERSION=1.12.0
+NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(NODE_EXPORTER_ARCH).tar.gz
 NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)
 
 # last i386 exe is the 0.24.0
@@ -136,9 +146,6 @@ go.work:
 	$(GO) work use \
 		. \
 		buildtools/. \
-
-gomods:
-	find . -name go.mod -exec sed -i {} -e "s/^go .*/go $(MINGOVERSIONSTR).0/" \;
 
 build: vendor
 	set -e; for CMD in $(CMDS); do \
@@ -459,9 +466,9 @@ deb: | dist
 		build-deb/etc/snclient \
 		build-deb/usr/lib/snclient \
 		build-deb/usr/bin \
-		build-deb/lib/systemd/system \
-		build-deb/lib/sysusers.d \
-		build-deb/lib/tmpfiles.d \
+		build-deb/usr/lib/systemd/system \
+		build-deb/usr/lib/sysusers.d \
+		build-deb/usr/lib/tmpfiles.d \
 		build-deb/etc/logrotate.d \
 		build-deb/usr/share/doc/snclient \
 		build-deb/usr/share/doc/snclient \
@@ -472,42 +479,45 @@ deb: | dist
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter build-deb/usr/lib/snclient/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)/node_exporter build-deb/usr/lib/snclient/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)
 
 	rm -rf ./build-deb/DEBIAN
 	cp -r ./packaging/debian ./build-deb/DEBIAN
 	cp ./dist/snclient.ini ./dist/server.crt ./dist/server.key ./dist/cacert.pem ./build-deb/etc/snclient
 	cp -p ./dist/snclient build-deb/usr/bin/snclient
-	cp ./packaging/snclient.service build-deb/lib/systemd/system/
-	cp ./packaging/snclient.sysusers build-deb/lib/sysusers.d/snclient.conf
-	cp ./packaging/snclient.tmpfiles build-deb/lib/tmpfiles.d/snclient.conf
+	cp ./packaging/snclient.service build-deb/usr/lib/systemd/system/
+	cp ./packaging/snclient.sysusers build-deb/usr/lib/sysusers.d/snclient.conf
+	cp ./packaging/snclient.tmpfiles build-deb/usr/lib/tmpfiles.d/snclient.conf
 	cp ./packaging/snclient.logrotate build-deb/etc/logrotate.d/snclient
 	cp Changes build-deb/usr/share/doc/snclient/Changes
 	dch --empty --create --newversion "$(VERSION)" --package "snclient" -D "UNRELEASED" --urgency "low" -c build-deb/usr/share/doc/snclient/changelog "new upstream release"
 	rm -f build-deb/usr/share/doc/snclient/changelog.gz
 	gzip -9 build-deb/usr/share/doc/snclient/changelog
 
-	cp ./dist/LICENSE build-deb//usr/share/doc/snclient/copyright
-	cp ./dist/README.md build-deb//usr/share/doc/snclient/README
+	cp ./dist/LICENSE build-deb/usr/share/doc/snclient/copyright
+	cp ./dist/README.md build-deb/usr/share/doc/snclient/README
 	mv ./build-deb/DEBIAN/snclient.lintian-overrides build-deb/usr/share/lintian/overrides/snclient
 
 	sed -i build-deb/DEBIAN/control -e 's|^Architecture: .*|Architecture: $(DEB_ARCH)|'
 	sed -i build-deb/DEBIAN/control -e 's|^Version: .*|Version: $(VERSION)|'
-
-	chmod 644 build-deb/etc/snclient/*
-	chmod 755 \
-		build-deb/usr/bin/snclient \
-		build-deb/usr/lib/snclient/node_exporter
 
 	cp -p dist/snclient.1 build-deb/usr/share/man/man1/snclient.1
 	gzip -n -9 build-deb/usr/share/man/man1/snclient.1
 	cp -p dist/snclient.8 build-deb/usr/share/man/man8/snclient.8
 	gzip -n -9 build-deb/usr/share/man/man8/snclient.8
 
+	# fix permissions
+	find ./build-deb -type d -exec chmod 755 {} \; || true
+	find ./build-deb -type f -exec chmod 644 {} \; || true
+	chmod 755 \
+		build-deb/usr/bin/snclient \
+		build-deb/usr/lib/snclient/node_exporter
+	chmod 755 ./build-deb/DEBIAN/{post,pre}*
+
 	dpkg-deb -Zxz --build --root-owner-group ./build-deb ./$(DEBFILE)
 	rm -rf ./build-deb
-	-( cd packaging && lintian ../$(DEBFILE) )
+	-( cd packaging && lintian --tag-display-limit 0 ../$(DEBFILE) )
 
 rpm: | dist
 	rm -rf snclient-$(VERSION)
@@ -523,8 +533,8 @@ rpm: | dist
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter snclient-$(VERSION)/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)/node_exporter snclient-$(VERSION)/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)
 
 	chmod 755 \
 		snclient-$(VERSION)/snclient \
@@ -560,8 +570,8 @@ apk: | dist
 
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)/node_exporter snclient-$(VERSION)/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(GOARCH)
+	mv node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)/node_exporter snclient-$(VERSION)/node_exporter
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).linux-$(NODE_EXPORTER_ARCH)
 
 	chmod 755 \
 		snclient-$(VERSION)/snclient \
@@ -589,9 +599,9 @@ osx: | dist
 	test -f $(NODE_EXPORTER_FILE) || curl -s -L -O $(NODE_EXPORTER_URL)/$(NODE_EXPORTER_FILE)
 	shasum --ignore-missing -c packaging/sha256sums.txt
 	tar zxvf $(NODE_EXPORTER_FILE)
-	mv node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(GOARCH)/node_exporter build-pkg/usr/local/bin/node_exporter
+	mv node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(NODE_EXPORTER_ARCH)/node_exporter build-pkg/usr/local/bin/node_exporter
 	chmod 755 build-pkg/usr/local/bin/node_exporter
-	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(GOARCH)
+	rm -rf node_exporter-$(NODE_EXPORTER_VERSION).darwin-$(NODE_EXPORTER_ARCH)
 
 	cp packaging/osx/com.snclient.snclient.plist build-pkg/Library/LaunchDaemons/
 
@@ -835,5 +845,6 @@ updatenodeexportersums:
 	grep linux-386.tar.gz    sha256sums_node_exporter.txt >> sha256sums.txt
 	grep linux-amd64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
 	grep linux-arm64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
+	grep linux-armv7.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
 	mv sha256sums.txt packaging/sha256sums.txt
 	rm -f sha256sums_node_exporter.txt

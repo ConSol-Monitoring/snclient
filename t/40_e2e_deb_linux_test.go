@@ -47,7 +47,7 @@ func TestDEBinstaller(t *testing.T) {
 		"/etc/snclient/cacert.pem",
 		"/etc/snclient/server.key",
 		"/etc/snclient/server.crt",
-		"/lib/systemd/system/snclient.service",
+		"/usr/lib/systemd/system/snclient.service",
 		"/etc/logrotate.d/snclient",
 	}
 	for _, file := range requiredFiles {
