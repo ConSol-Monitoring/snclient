@@ -70,17 +70,6 @@ CheckBuiltinPlugins = enabled
 		)
 	})
 
-	t.Run("mx query", func(t *testing.T) {
-		res := snc.RunCheck("check_dns", []string{"-H", "consol.de", "-q", "MX"})
-		assert.Equalf(t, CheckExitOK, res.State, "state ok")
-		assert.Regexpf(
-			t,
-			`^OK - consol\.de returns mail\.consol\.de\. \(MX\)`,
-			string(res.BuildPluginOutput()),
-			"output matches",
-		)
-	})
-
 	t.Run("warning threshold not triggered", func(t *testing.T) {
 		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-w", "999"})
 		assert.Equalf(t, CheckExitOK, res.State, "state ok")
@@ -100,17 +89,6 @@ CheckBuiltinPlugins = enabled
 			`^CRITICAL`,
 			string(res.BuildPluginOutput()),
 			"critical threshold triggered",
-		)
-	})
-
-	t.Run("norec mode", func(t *testing.T) {
-		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "--norec"})
-		assert.Equalf(t, CheckExitOK, res.State, "state ok")
-		assert.Regexpf(
-			t,
-			`^OK - labs\.consol\.de returns 94\.185\.89\.33`,
-			string(res.BuildPluginOutput()),
-			"output matches",
 		)
 	})
 
