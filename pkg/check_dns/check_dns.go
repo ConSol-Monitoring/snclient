@@ -300,7 +300,8 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 	msg := ""
 	if len(answersWithoutHeaders) > 0 && len(answerTypes) > 0 {
-		msg = fmt.Sprintf("%s returns %s (%s)\n", opts.Host, answersWithoutHeaders[0], answerTypes[0])
+		timeMetric := fmt.Sprintf("time=%fs;;", successfulDuration.Seconds())
+		msg = fmt.Sprintf("%s returns %s (%s) |%s\n", opts.Host, answersWithoutHeaders[0], answerTypes[0], timeMetric)
 	} else {
 		msg = fmt.Sprintf("%s (%s) returns no answer from %s\n", opts.Host, opts.QueryType, successfulNameserver)
 	}
