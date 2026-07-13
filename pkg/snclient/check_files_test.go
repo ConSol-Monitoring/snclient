@@ -666,6 +666,8 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 	switch runtime.GOOS {
 	case "windows":
 		scriptFilename += ".ps1"
+	case "linux", "darwin":
+		scriptFilename += ".sh"
 	default:
 		t.Skipf("Test is not intended to be run on %s", runtime.GOOS)
 	}
@@ -712,6 +714,55 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, `toA\toB\toA\file.txt - false`, "file file.txt should be accessible over many symlinks")
+
+	case "linux", "darwin":
+
+		// the bash script generates a filetree that looks like this
+		// link_test_2/
+		// ├── A
+		// │   ├── file.txt
+		// │   └── toB -> ../B
+		// └── B
+		//     └── toA -> ../A
+
+		assert.Containsf(t, outputString, `ok - Generated 1 files for testing`, "output matches")
+		assert.Containsf(t, outputString, `ok - Generated 4 directories for testing`, "output matches")
+
+		// with add-files-only-once=true, it must not cause an infinite loop
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=true", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "cyclic symlinks with add-files-only-once=true should complete OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, `A - false`, `folder A should be found`)
+		assert.Containsf(t, outputString, `A/file.txt - false`, `file A/file.txt should be found`)
+		assert.Containsf(t, outputString, `A/toB - true`, `symlink A/toB should be found`)
+		assert.Containsf(t, outputString, `A/toB/toA - true`, `symlink A/toB/toA should be found`)
+		assert.Containsf(t, outputString, `B/toA - true`, `symlink B/toA should be found`)
+
+		// with add-files-only-once=false (default), the cyclic symlinks cause an infinite loop
+		// this is the expected behavior.
+
+		// if max-depth is not specified, maximum of default max-depth and a ceiling max-depth with symlinks is set as max-depth
+		// this prevents unending recursion
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, `toA/toB/toA/file.txt - false`, "file file.txt should be accessible over many symlinks")
+
+		// if max-depth is specified, it is untouched
+
+		res = snc.RunCheck("check_files", []string{
+			"path=" + geneartionDirectory, "max-depth=5", "follow-symlinks=true",
+			"add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all",
+		})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, `A/toB/toA/file.txt - false`, "file A/toB/toA/file.txt should be accesible with max-depth 5")
+
+		// this is following symlinks, but goes beyond the max-depth of 5
+
+		assert.NotContainsf(t, outputString, `A/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/file.txt - false`,
+			"file A/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/file.txt should not be accessible with max-depth 5")
 
 	default:
 	}
