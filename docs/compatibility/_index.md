@@ -130,19 +130,19 @@ alias_test = check_cpu warn=load=80 crit=load=90
 
 ![Change](../icons/changed.png "this is different in SNClient")
 
-In addition to the existing characters, SNClient does not allow the `$` and the `;` character.
+In addition to the existing characters, SNClient does not allow the `$`, `;` and newline characters.
 
 The list of not allowed nasty characters is therefore:
 
 ```txt
-$|`&><'"\[]{};
+$|`&><'"\[]{};\n\r
 ```
 
 Change the list of nasty chars with the `nasty characters` configuration option.
 
 ```ini
 [/settings/default]
-nasty characters = $|`&><'"\[]{};
+nasty characters = $|`&><'"\\[]{};\n\r
 ```
 
 ## Allowed Hosts Handling
