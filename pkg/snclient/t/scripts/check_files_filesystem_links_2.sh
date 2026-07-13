@@ -26,8 +26,13 @@ mkdir -p "${TESTING_DIR}"
     FILE_COUNT=$(find "${TESTING_DIR}" -type f | wc -l | tr -d ' ')
     echo "ok - Generated ${FILE_COUNT} files for testing"
 
-    REAL_DIRS=$(find "${TESTING_DIR}" -mindepth 1 -type d | wc -l | tr -d ' ')
-    SYMLINK_DIRS=$(find "${TESTING_DIR}" -type l -xtype d | wc -l | tr -d ' ')
+    REAL_DIRS=$(find "${TESTING_DIR}" -type d | wc -l | tr -d ' ')
+    REAL_DIRS=$((REAL_DIRS - 1))
+
+    SYMLINK_DIRS=$(find "${TESTING_DIR}" -type l | while IFS= read -r link; do
+        [ -d "${link}" ] && echo 1
+    done | wc -l | tr -d ' ')
+
     DIRECTORY_COUNT=$((REAL_DIRS + SYMLINK_DIRS))
     echo "ok - Generated ${DIRECTORY_COUNT} directories for testing"
 
