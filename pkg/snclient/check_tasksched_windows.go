@@ -6,7 +6,10 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"os/exec"
+	"slices"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,14 +19,40 @@ import (
 //go:embed embed/scripts/windows/scheduled_tasks.ps1
 var scheduledTasksPS1 string
 
+// if the task is not run, this date is reported
+// corresponds to 1999-11-30 00:00:00 CET
+// the number is unix miliseconds
+const notRunDate = "/Date(943916400000)/"
+
 func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckData) error {
-	cmd := powerShellCmd(ctx, scheduledTasksPS1)
+	l.cleanupArguments()
+
+	titleRuneBlacklist := []rune{'\\', '/', ':', '*', '?', '"', '<', '>', '|'}
+	if l.TaskTitle != CheckTaskschedDefaultTaskTitle {
+		if strings.ContainsFunc(l.TaskTitle, func(r rune) bool { return slices.Contains(titleRuneBlacklist, r) }) {
+			return fmt.Errorf("custom specified title: '%s' contains one of the blacklisted runes: '%s' ", l.TaskTitle, string(titleRuneBlacklist))
+		}
+	}
+
+	// allow backslashes when specifying folders, to specify nested paths
+	folderRuneBlacklist := []rune{'/', ':', '*', '?', '"', '<', '>', '|'}
+	if l.Folder != CheckTaskschedDefaultFolder {
+		if strings.ContainsFunc(l.Folder, func(r rune) bool { return slices.Contains(folderRuneBlacklist, r) }) {
+			return fmt.Errorf("custom specified folder: '%s' contains one of the blacklisted runes: '%s' ", l.Folder, string(folderRuneBlacklist))
+		}
+	}
+
+	cmd, err := l.buildPowershellCmd(ctx)
+	if err != nil {
+		return fmt.Errorf("error when building a powershell command: %s", err.Error())
+	}
+
 	output, stderr, exitCode, _, err := snc.runExternalCommand(ctx, cmd, snc.getBuiltinCmdTimeout())
 	if err != nil {
-		return fmt.Errorf("getting scheduled tasks failed: %s\n%s", err.Error(), stderr)
+		return fmt.Errorf("getting scheduled tasks failed, error: %s\n%s", err.Error(), stderr)
 	}
 	if exitCode != 0 {
-		return fmt.Errorf("getting scheduled tasks failed: %s\n%s", output, stderr)
+		return fmt.Errorf("getting scheduled tasks failed, exitCode: %d, output: %s\n%s", exitCode, output, stderr)
 	}
 
 	var taskList []ScheduledTask
@@ -31,38 +60,114 @@ func (l *CheckTasksched) addTasks(ctx context.Context, snc *Agent, check *CheckD
 	if err != nil {
 		return fmt.Errorf("could not unmarshal scheduled tasks: %s", err.Error())
 	}
+	log.Debugf("found %d scheduled task(s)", len(taskList))
 
 	for index := range taskList {
 		task := taskList[index]
 		hasRun := false
-		if task.LastRunTime != "" {
+		if task.LastRunTime != notRunDate {
 			hasRun = true
 		}
-		parameters := ""
 
 		entry := map[string]string{
 			"application":          task.Name,
 			"comment":              task.Description,
-			"creator":              task.Author,
+			"creator":              task.UserID,
 			"enabled":              fmt.Sprintf("%t", task.Enabled),
 			"exit_code":            fmt.Sprintf("%d", task.LastTaskResult.exitCode()),
 			"exit_string":          task.LastTaskResult.String(),
 			"folder":               task.Path,
+			"uri":                  task.URI,
+			"uri_clean":            parseURIClean(task.URI),
 			"has_run":              fmt.Sprintf("%t", hasRun),
-			"max_run_time":         task.TimeLimit,
+			"max_run_time":         task.ExecutionTimeLimit,
 			"most_recent_run_time": fmt.Sprintf("%d", l.parseDate(task.LastRunTime).Unix()),
 			"priority":             fmt.Sprintf("%d", task.Priority),
 			"title":                task.Name,
 			"hidden":               fmt.Sprintf("%t", task.Hidden),
-			"missed_runs":          fmt.Sprintf("%d", task.MissedRuns),
+			"missed_runs":          fmt.Sprintf("%d", task.NumberOfMissedRuns),
 			"task_status":          task.State.String(),
 			"next_run_time":        fmt.Sprintf("%d", l.parseDate(task.NextRunTime).Unix()),
-			"parameters":           parameters,
+			"parameters":           l.parseParameters(task.Actions),
+			"execute":              l.parseExecuteCmd(task.Actions),
+			"working_directory":    l.parseWorkingDir(task.Actions),
 		}
 		check.listData = append(check.listData, entry)
 	}
 
+	if check.HasThreshold("title") || check.hasThresholdCond(check.filter, "title") || l.TaskTitle != CheckTaskschedDefaultTaskTitle {
+		check.emptyState = CheckExitUnknown
+		check.emptySyntax = "%(status) - No tasks found, check your arguments/filters/thresholds using title attribute."
+	}
+
 	return nil
+}
+
+func (l *CheckTasksched) cleanupArguments() {
+	// Add backslash to the beginning of the folder path if it does not exist
+	if l.Folder != CheckTaskschedDefaultFolder {
+		if !strings.HasPrefix(l.Folder, "\\") {
+			l.Folder = "\\" + l.Folder
+		}
+	}
+
+	// Remove backslash at the end of the folder path, if it is not exactly root: "\"
+	// "\Microsoft\" -> "\Microsoft"
+	if l.Folder != CheckTaskschedDefaultFolder && l.Folder != "\\" {
+		if cut, cutOk := strings.CutSuffix(l.Folder, "\\"); cutOk {
+			l.Folder = cut
+		}
+	}
+}
+
+func (l *CheckTasksched) buildPowershellCmd(ctx context.Context) (cmd *exec.Cmd, err error) {
+	cmd, err = powerShellCmd(
+		ctx, scheduledTasksPS1,
+		PowerShellParameter{
+			name:                "title",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        CheckTaskschedDefaultTaskTitle,
+			specifyValue:        true,
+			specifiedValue:      l.TaskTitle,
+		},
+		PowerShellParameter{
+			name:                "folder",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        CheckTaskschedDefaultFolder,
+			specifyValue:        true,
+			specifiedValue:      l.Folder,
+		},
+		PowerShellParameter{
+			name:                "recursive",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        strconv.FormatBool(CheckTaskschedDefaultRecursive),
+			specifyValue:        true,
+			specifiedValue:      strconv.FormatBool(l.Recursive),
+		},
+		PowerShellParameter{
+			name:                "hidden",
+			parameterType:       "string",
+			specifyDefaultValue: true,
+			defaultValue:        strconv.FormatBool(CheckTaskschedDefaultHidden),
+			specifyValue:        true,
+			specifiedValue:      strconv.FormatBool(l.Hidden),
+		},
+	)
+
+	return cmd, err
+}
+
+func parseURIClean(uri string) string {
+	if strings.Count(uri, "\\") == 1 {
+		if cut, cutOk := strings.CutPrefix(uri, "\\"); cutOk {
+			return cut
+		}
+	}
+
+	return uri
 }
 
 func (l *CheckTasksched) parseDate(raw string) time.Time {
@@ -75,6 +180,30 @@ func (l *CheckTasksched) parseDate(raw string) time.Time {
 	}
 
 	return time.Time{}
+}
+
+func (l *CheckTasksched) parseParameters(actions []ScheduledTaskAction) string {
+	if len(actions) == 0 {
+		return ""
+	}
+
+	return actions[len(actions)-1].Arguments
+}
+
+func (l *CheckTasksched) parseExecuteCmd(actions []ScheduledTaskAction) string {
+	if len(actions) == 0 {
+		return ""
+	}
+
+	return actions[len(actions)-1].Execute
+}
+
+func (l *CheckTasksched) parseWorkingDir(actions []ScheduledTaskAction) string {
+	if len(actions) == 0 {
+		return ""
+	}
+
+	return actions[len(actions)-1].WorkingDirectory
 }
 
 type TaskResult uint32
@@ -192,24 +321,87 @@ func (t TaskState) String() string {
 	}
 }
 
+// The script does not export everything it discovers to JSON for snclient to parse
+// When needed, modify the script and uncomment these lines
+
 type ScheduledTask struct {
-	Name           string                `json:"TaskName"`
-	Path           string                `json:"TaskPath"`
-	Description    string                `json:"Description"`
-	LastRunTime    string                `json:"LastRunTime"`
-	State          TaskState             `json:"State"`
-	NextRunTime    string                `json:"NextRunTime"`
-	LastTaskResult TaskResult            `json:"LastTaskResult"`
-	MissedRuns     int64                 `json:"MissedRuns"`
-	Author         string                `json:"Author"`
-	Enabled        bool                  `json:"Enabled"`
-	Priority       int64                 `json:"Priority"`
-	Hidden         bool                  `json:"Hidden"`
-	TimeLimit      string                `json:"TimeLimit"`
-	Actions        []ScheduledTaskAction `json:"Actions"`
+	Name               string                `json:"TaskName"`
+	Path               string                `json:"TaskPath"`
+	Description        string                `json:"Description"`
+	PSComputerName     string                `json:"PSComputerName"`
+	URI                string                `json:"URI"`
+	Version            string                `json:"Version"`
+	LastRunTime        string                `json:"LastRunTime"`
+	State              TaskState             `json:"State"`
+	NextRunTime        string                `json:"NextRunTime"`
+	LastTaskResult     TaskResult            `json:"LastTaskResult"`
+	NumberOfMissedRuns int64                 `json:"NumberOfMissedRuns"`
+	UserID             string                `json:"UserId"`
+	Enabled            bool                  `json:"Enabled"`
+	Priority           int64                 `json:"Priority"`
+	Hidden             bool                  `json:"Hidden"`
+	ExecutionTimeLimit string                `json:"ExecutionTimeLimit"`
+	Actions            []ScheduledTaskAction `json:"Actions"`
+	// Principal          ScheduledTaskPrincipal `json:"Principal"`
+	// Triggers           []ScheduledTaskTrigger `json:"Triggers"`
+	// Settings           ScheduledTaskSetting   `json:"Settings"`
 }
 
 type ScheduledTaskAction struct {
-	Execute   string `json:"Execute"`
-	Arguments string `json:"Arguments"`
+	Arguments        string `json:"Arguments"`
+	Execute          string `json:"Execute"`
+	ID               string `json:"Id"`
+	PSComputerName   string `json:"PSComputerName"`
+	WorkingDirectory string `json:"WorkingDirectory"`
 }
+
+// The script does not export everything it discovers to JSON for snclient to parse
+// When needed, modify the script and uncomment these lines
+// type ScheduledTaskPrincipal struct {
+// 	DisplayName       string   `json:"DisplayName"`
+// 	ID                string   `json:"Id"`
+// 	GroupID           string   `json:"GroupId"`
+// 	PSComputerName    string   `json:"PSComputerName"`
+// 	RequiredPrivilege []string `json:"RequiredPrivilege"`
+// 	UserID            string   `json:"UserId"`
+// }
+
+// The script does not export everything it discovers to JSON for snclient to parse
+// When needed, modify the script and uncomment these lines
+// type ScheduledTaskTrigger struct {
+// 	DaysInterval       int64  `json:"DaysInterval"`
+// 	Enabled            bool   `json:"Enabled"`
+// 	EndBoundary        string `json:"EndBoundary"`
+// 	ExecutionTimeLimit string `json:"ExecutionTimeLimit"`
+// 	ID                 string `json:"Id"`
+// 	RandomDelay        string `json:"RandomDelay"`
+// 	Repetition         any    `json:"Repetition"`
+// 	StartBoundary      string `json:"StartBoundary"`
+// }
+
+// The script does not export everything it discovers to JSON for snclient to parse
+// When needed, modify the script and uncomment these lines
+// type ScheduledTaskSetting struct {
+// 	AllowDemandStart                bool   `json:"AllowDemandStart"`
+// 	AllowHardTerminate              bool   `json:"AllowHardTerminate"`
+// 	DeleteExpiredTaskAfter          string `json:"DeleteExpiredTaskAfter"`
+// 	DisallowStartIfOnBatteries      bool   `json:"DisallowStartIfOnBatteries"`
+// 	DisallowStartOnRemoteAppSession bool   `json:"DisallowStartOnRemoteAppSession"`
+// 	Enabled                         bool   `json:"Enabled"`
+// 	ExecutionTimeLimit              string `json:"ExecutionTimeLimit"`
+// 	Hidden                          bool   `json:"Hidden"`
+// 	IdleSettings                    any    `json:"IdleSettings"`
+// 	MaintenanceSettings             any    `json:"MaintenanceSettings"`
+// 	NetworkSettings                 any    `json:"NetworkSettings"`
+// 	Priority                        int64  `json:"Priority"`
+// 	PSComputerName                  string `json:"PSComputerName"`
+// 	RestartCount                    int64  `json:"RestartCount"`
+// 	RestartInterval                 string `json:"RestartInterval"`
+// 	RunOnlyIfIdle                   bool   `json:"RunOnlyIfIdle"`
+// 	RunOnlyIfNetworkAvailable       bool   `json:"RunOnlyIfNetworkAvailable"`
+// 	StartWhenAvailable              bool   `json:"StartWhenAvailable"`
+// 	StopIfGoingOnBatteries          bool   `json:"StopIfGoingOnBatteries"`
+// 	UseUnifiedSchedulingEngine      bool   `json:"UseUnifiedSchedulingEngine"`
+// 	Volatile                        bool   `json:"Volatile"`
+// 	WakeToRun                       bool   `json:"WakeToRun"`
+// }

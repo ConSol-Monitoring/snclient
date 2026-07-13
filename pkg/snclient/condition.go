@@ -462,6 +462,8 @@ func (c *Condition) compareEmpty() bool {
 // tries keyword_pct for % unit and keyword_bytes for B unit
 // returns value from keyword unless found already
 func (c *Condition) getVarValue(data map[string]string) (varStr string, ok bool) {
+	unit := c.getUnit(c.keyword)
+
 	switch {
 	case c.unit == "%":
 		varStr, ok = data[c.keyword+"_pct"]
@@ -481,6 +483,18 @@ func (c *Condition) getVarValue(data map[string]string) (varStr string, ok bool)
 	}
 
 	varStr, ok = data[c.keyword]
+
+	if ok && unit == UBool {
+		valBool, err := convert.BoolE(varStr)
+		if err != nil {
+			log.Errorf("condition based on non-bool value: %s", err.Error())
+		}
+		if valBool {
+			return "true", true
+		}
+
+		return "false", true
+	}
 
 	return varStr, ok
 }
@@ -816,13 +830,27 @@ func (c *Condition) expandDateKeyword(str string) bool {
 	return false
 }
 
+//nolint:funlen // the function is long due to handling all unit types, but it is simple
 func (c *Condition) expandUnitByType(str string) error {
 	// valid units might be "today", "thisweek", "thismonth", "thisyear" and ":utc" variants
 	unit := c.getUnit(c.keyword)
-	if unit == UDate || unit == UTimestamp {
+
+	switch unit {
+	case UDate, UTimestamp:
 		if done := c.expandDateKeyword(str); done {
 			return nil
 		}
+	case UBool:
+		// boolean units are not in the form of '<number> <unit>'
+		// need to handle them before regex condition checks.
+		newVal, err := convert.BoolE(str)
+		if err != nil {
+			return fmt.Errorf("invalid boolean value: %s", err.Error())
+		}
+		c.value = newVal
+
+		return nil
+	default:
 	}
 
 	match := reConditionValueUnit.FindStringSubmatch(str)
@@ -870,6 +898,8 @@ func (c *Condition) expandUnitByType(str string) error {
 		return nil
 	case UPercent:
 		return nil
+	case UBool:
+		return nil // handled in the switch above
 	case UNone:
 		// best effort unit expansion
 		return c.expandUnitByName(str)

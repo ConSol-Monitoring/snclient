@@ -393,15 +393,64 @@ func shell() string {
 	return shell
 }
 
-func powerShellCmd(ctx context.Context, command string) (cmd *exec.Cmd) {
+type PowerShellParameter struct {
+	name                string
+	parameterType       string
+	specifyDefaultValue bool
+	defaultValue        string
+	specifyValue        bool
+	specifiedValue      string
+}
+
+func powerShellCmd(ctx context.Context, command string, parameters ...PowerShellParameter) (cmd *exec.Cmd, err error) {
 	cmd = exec.CommandContext(ctx, "powershell")
 	cmd.Args = nil
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow: true,
-		CmdLine:    fmt.Sprintf(`%s -Command "%s"`, POWERSHELL, command), //nolint:gocritic // using %q just breaks the command from escaping newlines
+
+	checkQuotes := func(str string) bool {
+		if strings.ContainsRune(str, '\'') || strings.ContainsRune(str, '"') {
+			return true
+		}
+
+		return false
+	}
+	for _, para := range parameters {
+		if checkQuotes(para.name) || checkQuotes(para.parameterType) ||
+			checkQuotes(para.defaultValue) || checkQuotes(para.specifiedValue) {
+			return nil, errors.New("one of the parameters has its name/type or values contain single or double quotes")
+		}
 	}
 
-	return cmd
+	// the template looks like this:
+	// powershellInvocationArguments "& { param([string]$param1='defaultValue1', [string]$param2='defaultValue2') scriptContent }" -param1 "value1" -param2 "value2"
+
+	parameterDefinitions := make([]string, 0, len(parameters))
+	for _, para := range parameters {
+		def := fmt.Sprintf("[%s]$%s", para.parameterType, para.name)
+		if para.specifyDefaultValue {
+			def += fmt.Sprintf("='%s'", para.defaultValue)
+		}
+		parameterDefinitions = append(parameterDefinitions, def)
+	}
+	parameterDefinitionsCmdline := fmt.Sprintf("param(%s)", strings.Join(parameterDefinitions, ", "))
+
+	parameterSpecifications := make([]string, 0, len(parameters))
+	for _, para := range parameters {
+		if para.specifyValue {
+			spec := fmt.Sprintf(`-%s '%s'`, para.name, para.specifiedValue)
+			parameterSpecifications = append(parameterSpecifications, spec)
+		}
+	}
+	parameterSpecificationsCmdline := strings.Join(parameterSpecifications, "  ")
+
+	cmdLine := fmt.Sprintf(`%s -Command "& { %s  %s }" %s `, POWERSHELL, parameterDefinitionsCmdline, command, parameterSpecificationsCmdline)
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow:    true,
+		CmdLine:       cmdLine,
+		CreationFlags: windows.CREATE_NO_WINDOW,
+	}
+
+	return cmd, nil
 }
 
 func isBatchFile(path string) bool {

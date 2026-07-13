@@ -91,6 +91,31 @@ func TestConditionStrings(t *testing.T) {
 	}
 }
 
+func TestConditionBool(t *testing.T) {
+	for _, check := range []struct {
+		key           string
+		value         string
+		condition     string
+		expect        bool
+		deterministic bool
+	}{
+		{"mounted", "1", "mounted = 1", true, true},
+		{"mounted", "0", "mounted = 1", false, true},
+		{"mounted", "0", "mounted = 0", true, true},
+		{"mounted", "1", "mounted = true", true, true},
+		{"mounted", "0", "mounted = true", false, true},
+		{"mounted", "0", "mounted = false", true, true},
+	} {
+		cond, err := NewCondition(check.condition, &[]CheckAttribute{{name: "mounted", unit: UBool}})
+		require.NoError(t, err)
+
+		compare := map[string]string{check.key: check.value}
+		res, ok := cond.Match(compare)
+		assert.Equalf(t, check.expect, res, "Compare(%s) -> (%v) %v", check.condition, check.value, check.expect)
+		assert.Equalf(t, check.deterministic, ok, "Compare(%s) -> determined: (%v) %v", check.condition, check.value, check.deterministic)
+	}
+}
+
 func TestConditionParseErrors(t *testing.T) {
 	for _, check := range []struct {
 		threshold string

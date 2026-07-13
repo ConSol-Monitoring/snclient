@@ -41,22 +41,26 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                            |
-| ------------- | ---------------------------------------- |
-| filter        | enabled = true                           |
-| warning       | exit_code != 0                           |
-| critical      | exit_code < 0                            |
-| empty-state   | 1 (WARNING)                              |
-| empty-syntax  | %(status) - No tasks found               |
-| top-syntax    | %(status) - \${problem_list}             |
-| ok-syntax     | %(status) - All tasks are ok             |
-| detail-syntax | \${folder}/\${title}: \${exit_code} != 0 |
+| Argument      | Default Value                                                          |
+| ------------- | ---------------------------------------------------------------------- |
+| filter        | enabled = true                                                         |
+| warning       | exit_code != 0                                                         |
+| critical      | exit_code < 0                                                          |
+| empty-state   | 3 (UNKNOWN)                                                            |
+| empty-syntax  | %(status) - No tasks found                                             |
+| top-syntax    | %(status) - \${problem_list}                                           |
+| ok-syntax     | %(status) - All tasks are ok                                           |
+| detail-syntax | \${uri_clean} (%{most_recent_run_time:date}) exited with \${exit_code} |
 
 ## Check Specific Arguments
 
-| Argument | Description                                                |
-| -------- | ---------------------------------------------------------- |
-| timezone | Sets the timezone for time metrics (default is local time) |
+| Argument  | Description                                                                                               |
+| --------- | --------------------------------------------------------------------------------------------------------- |
+| folder    | The folder where the scheduled task is saved. This is used for exact matches, unless recursive option is enabled. Default: '\' |
+| hidden    | Include hidden tasks. Default: 'false'                                                                    |
+| recursive | Include the subfolders of the specified folder as well when searching for scheduled tasks. Default: 'true' |
+| timezone  | Sets the timezone for time metrics (default is local time)                                                |
+| title     | Sets the task to check. This corresponds to the title of the scheduled task. Default: '\*'                |
 
 ## Attributes
 
@@ -64,22 +68,26 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute            | Description                                                        |
-| -------------------- | ------------------------------------------------------------------ |
-| application          | Name of the application that the task is associated with           |
-| comment              | Comment or description for the work item                           |
-| creator              | Creator of the work item                                           |
-| enabled              | Flag whether this job is enabled (true/false)                      |
-| exit_code            | The last jobs exit code                                            |
-| exit_string          | The last jobs exit code as string                                  |
-| folder               | Task folder                                                        |
-| has_run              | True if this task has ever been executed                           |
-| max_run_time         | Maximum length of time the task can run                            |
-| most_recent_run_time | Most recent time the work item began running                       |
-| priority             | Task priority                                                      |
-| title                | Task title                                                         |
-| hidden               | Indicates that the task will not be visible in the UI (true/false) |
-| missed_runs          | Number of times the registered task has missed a scheduled run     |
-| task_status          | Task status as string                                              |
-| next_run_time        | Time when the registered task is next scheduled to run             |
-| parameters           | Command line parameters for the task                               |
+| Attribute            | Description                                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| application          | Name of the application that the task is associated with                                       |
+| comment              | Comment or description for the work item                                                       |
+| creator              | Creator of the work item                                                                       |
+| enabled              | Flag whether this job is enabled (true/false)                                                  |
+| exit_code            | The last jobs exit code                                                                        |
+| exit_string          | The last jobs exit code as string                                                              |
+| folder               | Task folder                                                                                    |
+| uri                  | Fully qualified path to the task, includes folder and the task title                           |
+| uri_clean            | Remove the leading backslash from the URI, only for tasks directly saved at root and not for ones saved inside folders. |
+| has_run              | True if this task has ever been executed                                                       |
+| max_run_time         | Maximum length of time the task can run                                                        |
+| most_recent_run_time | Most recent time the work item began running                                                   |
+| priority             | Task priority                                                                                  |
+| title                | Task title                                                                                     |
+| hidden               | Indicates that the task will not be visible in the UI (true/false)                             |
+| missed_runs          | Number of times the registered task has missed a scheduled run                                 |
+| task_status          | Task status as string                                                                          |
+| next_run_time        | Time when the registered task is next scheduled to run                                         |
+| parameters           | Last actions command line parameters                                                           |
+| execute              | Last actions executed program                                                                  |
+| working_directory    | Last actions working directory                                                                 |

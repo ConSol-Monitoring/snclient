@@ -113,8 +113,9 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "id", description: "Drive or id of drive"},
 			{name: "drive_or_id", description: "Drive letter if present if not use id"},
 			{name: "drive_or_name", description: "Drive letter if present if not use name"},
+			{name: "drive_or_name_or_id", description: "Drive letter if present, if not use drive name, if not use the given ID. Useful for volumes without assigned letters on Windows."},
 			{name: "fstype", description: "Filesystem type"},
-			{name: "mounted", description: "Flag whether drive is mounter (0/1)"},
+			{name: "mounted", description: "Flag whether drive is mounter (0/1)", unit: UBool},
 
 			{name: "free", description: "Free (human readable) bytes", unit: UByte},
 			{name: "free_bytes", description: "Number of free bytes", unit: UByte},
@@ -141,14 +142,14 @@ func (l *CheckDrivesize) Build() *CheckData {
 
 			{name: "media_type", description: "Windows only: numeric media type of drive"},
 			{name: "type", description: "Windows only: type of drive, ex.: fixed, cdrom, ramdisk, remote, removable, unknown"},
-			{name: "readable", description: "Windows only: flag drive is readable (0/1)"},
-			{name: "writable", description: "Windows only: flag drive is writable (0/1)"},
-			{name: "removable", description: "Windows only: flag drive is removable (0/1)"},
-			{name: "erasable", description: "Windows only: flag whether if drive is erasable (0/1)"},
-			{name: "hotplug", description: "Windows only: flag drive is hotplugable (0/1)"},
+			{name: "readable", description: "Windows only: flag drive is readable (0/1)", unit: UBool},
+			{name: "writable", description: "Windows only: flag drive is writable (0/1)", unit: UBool},
+			{name: "removable", description: "Windows only: flag drive is removable (0/1)", unit: UBool},
+			{name: "erasable", description: "Windows only: flag whether if drive is erasable (0/1)", unit: UBool},
+			{name: "hotplug", description: "Windows only: flag drive is hotplugable (0/1)", unit: UBool},
 
 			{name: "remote_name", description: "Windows only: the remote name of the drive, if it uses a network name"},
-			{name: "persistent", description: "Windows only: if the network drive is mounted as persistent (0/1)"},
+			{name: "persistent", description: "Windows only: if the network drive is mounted as persistent (0/1)", unit: UBool},
 			{name: "localised_remote_path", description: "Windows only: If the path is given as a remote path, and that remote path has an assigned logical drive," +
 				" this is the replaced path under that logical drive."},
 		},
@@ -272,10 +273,11 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 
 func (l *CheckDrivesize) driveEntry(drive string) map[string]string {
 	return map[string]string{
-		"id":            "",
-		"drive":         drive,
-		"drive_or_id":   drive,
-		"drive_or_name": drive,
+		"id":                  "",
+		"drive":               drive,
+		"drive_or_id":         drive,
+		"drive_or_name":       drive,
+		"drive_or_name_or_id": drive,
 	}
 }
 
@@ -298,7 +300,7 @@ func (l *CheckDrivesize) isExcluded(drive map[string]string, excludes []string) 
 	return false
 }
 
-func (l *CheckDrivesize) addMetrics(drive string, check *CheckData, usage *disk.UsageStat, magic float64) {
+func (l *CheckDrivesize) addMetrics(metricPrefix string, check *CheckData, usage *disk.UsageStat, magic float64) {
 	total := usage.Total
 	if !l.freespaceIgnoreReserved {
 		total = usage.Used + usage.Free // use this total instead of usage.Total to account in the root reserved space
@@ -307,16 +309,16 @@ func (l *CheckDrivesize) addMetrics(drive string, check *CheckData, usage *disk.
 	if check.HasThreshold("free") || check.HasThreshold("free_pct") || check.HasThreshold("free_bytes") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct", "free_bytes"}, "free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct", "free_bytes"}, "free", check.critThreshold)
-		check.AddBytePercentMetrics("free", drive+" free", magic*float64(usage.Free), magic*float64(total))
+		check.AddBytePercentMetrics("free", metricPrefix+" free", magic*float64(usage.Free), magic*float64(total))
 	}
 
 	// convert '<drive> used_pct' keywords in conditions to '<drive> used %' as that matches the metric name
-	convertDriveUsagePctMetric1 := fmt.Sprintf("%s used_pct", drive)
+	convertDriveUsagePctMetric1 := fmt.Sprintf("%s used_pct", metricPrefix)
 	// metrics are normally added if the operand is simply 'used' , 'used_pct' , 'used_bytes' etc. and do not have a drive prefix
 	// detect conditions where the operand is named '<drive> used %', this is the default way snclient names percent usage metrics.
 	// if there is a condition using that as an operand, add usage metrics for that drive as well. during the metrics condition checking, they will take effect.
 	// this helps to check usage metrics specific to drives.
-	driveUsagePctMetric := fmt.Sprintf("%s used %%", drive)
+	driveUsagePctMetric := fmt.Sprintf("%s used %%", metricPrefix)
 
 	check.warnThreshold = check.TransformMultipleKeywords([]string{convertDriveUsagePctMetric1}, driveUsagePctMetric, check.warnThreshold)
 	check.critThreshold = check.TransformMultipleKeywords([]string{convertDriveUsagePctMetric1}, driveUsagePctMetric, check.critThreshold)
@@ -324,17 +326,17 @@ func (l *CheckDrivesize) addMetrics(drive string, check *CheckData, usage *disk.
 	if check.HasThreshold(driveUsagePctMetric) || check.HasThreshold("used") || check.HasThreshold("used_pct") || check.HasThreshold("used_bytes") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes"}, "used", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes"}, "used", check.critThreshold)
-		check.AddBytePercentMetrics("used", drive+" used", magic*float64(usage.Used), magic*float64(total))
+		check.AddBytePercentMetrics("used", metricPrefix+" used", magic*float64(usage.Used), magic*float64(total))
 	}
 	if check.HasThreshold("inodes") || check.HasThreshold("inodes_used") || check.HasThreshold("inodes_used_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used"}, "inodes", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used"}, "inodes", check.critThreshold)
-		check.AddPercentMetrics("inodes", drive+" inodes", float64(usage.InodesUsed), float64(usage.InodesTotal))
+		check.AddPercentMetrics("inodes", metricPrefix+" inodes", float64(usage.InodesUsed), float64(usage.InodesTotal))
 	}
 	if check.HasThreshold("inodes_free") || check.HasThreshold("inodes_free_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct"}, "inodes_free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct"}, "inodes_free", check.critThreshold)
-		check.AddPercentMetrics("inodes_free", drive+" inodes free", float64(usage.InodesFree), float64(usage.InodesTotal))
+		check.AddPercentMetrics("inodes_free", metricPrefix+" inodes free", float64(usage.InodesFree), float64(usage.InodesTotal))
 	}
 }
 
@@ -452,7 +454,9 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 		return
 	}
 
-	l.addMetrics(drive["drive"], check, usage, magic)
+	// volumes without an assigned drive letter have empty drive["drive"]
+	// use the volume name or id as fallback
+	l.addMetrics(drive["drive_or_name_or_id"], check, usage, magic)
 }
 
 func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
