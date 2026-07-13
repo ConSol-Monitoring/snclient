@@ -10,7 +10,7 @@ func TestCheckNastyCharactersEscapes(t *testing.T) {
 	conf := &ConfigSection{
 		data: ConfigData{
 			"allow nasty characters": "false",
-			"nasty characters":       `\n\r`,
+			"nasty characters":       "\n\r",
 		},
 	}
 

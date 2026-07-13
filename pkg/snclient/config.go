@@ -768,12 +768,14 @@ func (cs *ConfigSection) String() string {
 		val := cs.data[key]
 		raw := cs.raw[key]
 		switch len(raw) {
+		// none-multiline entries
 		case 0, 1:
 			if val == "" {
 				data = append(data, fmt.Sprintf("%s =", key))
 			} else {
-				data = append(data, fmt.Sprintf("%s = %s", key, cs.data[key]))
+				data = append(data, fmt.Sprintf("%s = %s", key, strings.Join(raw, "")))
 			}
+		// multiline entries
 		default:
 			for i, line := range raw {
 				if i == 0 {
@@ -821,6 +823,11 @@ func (cs *ConfigSection) SetRaw(key, value string) error {
 		}
 	}
 
+	// nasty characters will contain escape sequences
+	if key == "nasty characters" {
+		value = unescapeNastyCharacters(value)
+	}
+
 	if !cs.HasKey(key) {
 		cs.keys = append(cs.keys, key)
 	}
@@ -842,12 +849,12 @@ func (cs *ConfigSection) Set(key, value string) {
 }
 
 // Insert is just like Set but tries to find the key in comments first and will uncomment that one
-func (cs *ConfigSection) Insert(key, value string) {
+func (cs *ConfigSection) Insert(key, value string) error {
 	if cs.HasKey(key) {
 		cs.data[key] = value
 		cs.raw[key] = []string{value}
 
-		return
+		return nil
 	}
 
 	// search in comments
@@ -881,15 +888,21 @@ func (cs *ConfigSection) Insert(key, value string) {
 		cs.data = tmpSection.data
 		cs.keys = tmpSection.keys
 		cs.comments = tmpSection.comments
+		cs.raw[key] = []string{value}
 	} else {
 		// append normally
-		cs.Set(key, value)
+		err := cs.SetRaw(key, value)
+		if err != nil {
+			return err
+		}
 		// migrate existing comments from the end to this option so the new option appears last
 		if com, ok := cs.comments["_END"]; ok {
 			cs.comments[key] = com
 			delete(cs.comments, "_END")
 		}
 	}
+
+	return nil
 }
 
 // Remove removes a single key.
@@ -1132,13 +1145,16 @@ func MergeIniFile(srcFile, mergeFile string, snc *Agent) *Config {
 
 	for name, section := range tmpConfig.SectionsByPrefix("/") {
 		targetSection := targetConfig.Section(name)
-		handleMergeSection(section, targetSection)
+		err = handleMergeSection(section, targetSection)
+		if err != nil {
+			log.Errorf("failed to merge section %s from %s : %s", name, mergeFile, err.Error())
+		}
 	}
 
 	return targetConfig
 }
 
-func handleMergeSection(section, targetSection *ConfigSection) {
+func handleMergeSection(section, targetSection *ConfigSection) (err error) {
 	for _, key := range section.Keys() {
 		switch key {
 		case "password":
@@ -1150,22 +1166,24 @@ func handleMergeSection(section, targetSection *ConfigSection) {
 			if val != "" {
 				val = toPassword(val)
 			}
-			targetSection.Insert(key, val)
+			err = targetSection.Insert(key, val)
 		case "use ssl", "WEBServer", "NRPEServer", "PrometheusServer":
 			val, _ := section.GetString(key)
-			targetSection.Insert(key, toBool(val))
+			err = targetSection.Insert(key, toBool(val))
 		case "port", "allowed hosts":
 			val, _ := section.GetString(key)
-			targetSection.Insert(key, val)
+			err = targetSection.Insert(key, val)
 		case "installer":
 			val, _ := section.GetString(key)
 			if val != "" {
-				targetSection.Insert(key, val)
+				err = targetSection.Insert(key, val)
 			}
 		default:
 			log.Fatalf("unhandled merge ini key: %s", key)
 		}
 	}
+
+	return err
 }
 
 func toPassword(val string) string {

@@ -1578,6 +1578,7 @@ func checkAllowArguments(conf *ConfigSection, args []string) bool {
 	return len(args) == 0
 }
 
+// checkNastyCharacters checks for nasty characters in cmd and arguments. Returns true if safe.
 func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	allowed, _, err := conf.GetBool("allow nasty characters")
 	if err != nil {
@@ -1594,7 +1595,6 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	if !ok {
 		nastyChars = DefaultNastyCharacters
 	}
-	nastyChars = unescapeNastyCharacters(nastyChars)
 
 	if strings.ContainsAny(cmd, nastyChars) {
 		log.Debugf("command string contained nasty character: %s", cmd)
