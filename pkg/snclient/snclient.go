@@ -866,12 +866,16 @@ func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHand
 	// this is the config section from ex.: the script or command alias config
 	argsOk := false
 	nastyOk := false
+	ctrlOk := false
 	if chkConfig != nil {
 		_, argsOk, _ = chkConfig.GetBool("allow arguments")
 		_, nastyOk, _ = chkConfig.GetBool("allow nasty characters")
+		_, ctrlOk, _ = chkConfig.GetBool("allow control characters")
 		switch {
 		case !checkAllowArguments(chkConfig, chk.rawArgs):
 			return fmt.Errorf("exception processing request: request contained arguments (check the allow arguments option)")
+		case !checkControlCharacters(chkConfig, "", chk.rawArgs):
+			return fmt.Errorf("exception processing request: request contained illegal control characters (check the allow control characters option)")
 		case !checkNastyCharacters(chkConfig, "", chk.rawArgs):
 			return fmt.Errorf("exception processing request: request contained illegal characters (check the allow nasty characters option)")
 		}
@@ -883,6 +887,8 @@ func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHand
 		switch {
 		case !argsOk && !checkAllowArguments(transportConf, chk.rawArgs):
 			return fmt.Errorf("exception processing request: request contained arguments (check the allow arguments option)")
+		case !ctrlOk && !checkControlCharacters(transportConf, command, ArgumentList(parsedArgs).RawList()):
+			return fmt.Errorf("exception processing request: request contained illegal control characters (check the allow control characters option)")
 		case !nastyOk && !checkNastyCharacters(transportConf, command, ArgumentList(parsedArgs).RawList()):
 			return fmt.Errorf("exception processing request: request contained illegal characters (check the allow nasty characters option)")
 		}
@@ -1579,12 +1585,8 @@ func checkAllowArguments(conf *ConfigSection, args []string) bool {
 	return len(args) == 0
 }
 
-// containsNastyCharacters checks for nasty characters in cmd and arguments. Returns true if found some.
-func containsNastyCharacters(val, nastyChars string) bool {
-	if strings.ContainsAny(val, nastyChars) {
-		return true
-	}
-
+// containsControlCharacters checks for ascii control characters in cmd and arguments. Returns true if found some.
+func containsControlCharacters(val string) bool {
 	// check for control sequences
 	for _, r := range val {
 		if unicode.IsControl(r) {
@@ -1593,6 +1595,11 @@ func containsNastyCharacters(val, nastyChars string) bool {
 	}
 
 	return false
+}
+
+// containsNastyCharacters checks for nasty characters in cmd and arguments. Returns true if found some.
+func containsNastyCharacters(val, nastyChars string) bool {
+	return strings.ContainsAny(val, nastyChars)
 }
 
 // checkNastyCharacters checks for nasty characters in cmd and arguments. Returns true if safe.
@@ -1621,6 +1628,37 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 
 	for i, arg := range args {
 		if containsNastyCharacters(arg, nastyChars) {
+			log.Debugf("cmd arg (#%d) contained nasty character", i)
+			log.Tracef("cmd arg (#%d) contained nasty character: '%s'", i, arg)
+
+			return false
+		}
+	}
+
+	return true
+}
+
+// checkControlCharacters checks for ascii control characters in cmd and arguments. Returns true if safe.
+func checkControlCharacters(conf *ConfigSection, cmd string, args []string) bool {
+	allowed, _, err := conf.GetBool("allow control characters")
+	if err != nil {
+		log.Errorf("config error: %s", err.Error())
+
+		return false
+	}
+
+	if allowed {
+		return true
+	}
+
+	if containsControlCharacters(cmd) {
+		log.Debugf("command string contained ascii control character: %s", cmd)
+
+		return false
+	}
+
+	for i, arg := range args {
+		if containsControlCharacters(arg) {
 			log.Debugf("cmd arg (#%d) contained nasty character", i)
 			log.Tracef("cmd arg (#%d) contained nasty character: '%s'", i, arg)
 

@@ -66,12 +66,13 @@ var DefaultConfig = map[string]ConfigData{
 		"dev":    "https://api.github.com/repos/ConSol-monitoring/snclient/actions/artifacts",
 	},
 	"/settings/external scripts": {
-		"timeout":                "60",
-		"script root":            "${scripts}", // root path of all scripts
-		"script path":            "",           // load scripts from this folder automatically
-		"allow arguments":        "false",
-		"allow nasty characters": "false",
-		"ignore perfdata":        "false",
+		"timeout":                  "60",
+		"script root":              "${scripts}", // root path of all scripts
+		"script path":              "",           // load scripts from this folder automatically
+		"allow arguments":          "false",
+		"allow nasty characters":   "false",
+		"allow control characters": "false",
+		"ignore perfdata":          "false",
 	},
 	"/settings/external scripts/wrappings": {
 		"bat": `${scripts}\%SCRIPT% %ARGS%`,

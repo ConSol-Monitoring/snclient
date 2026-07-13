@@ -168,10 +168,13 @@ password = SHA256:9f86d081...
 
 ### Allow Nasty Characters
 
-It is recommended to **not** enable `allow nasty characters` as this allows
-to exploit existing commands.
+It is recommended to **not** enable `allow nasty characters` or `allow control
+characters` as this allows to exploit existing commands.
+
+Removing some of the `nasty characters` is also not a good idea.
 
 ```ini
 [/settings/default]
 allow nasty characters = false
+allow control characters = false
 ```

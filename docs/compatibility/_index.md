@@ -145,6 +145,19 @@ Change the list of nasty chars with the `nasty characters` configuration option.
 nasty characters = $|`&><'"\\[]{};\n\r
 ```
 
+## Allow Control Characters Handling
+
+![Feature](../icons/feature.png "this is a new thing in SNClient")
+
+In addition to the existing nasty characters, SNClient does not allow ascii control characters.
+
+Change the default value with the `allow control characters` configuration option if you need to.
+
+```ini
+[/settings/default]
+allow control characters = false
+```
+
 ## Allowed Hosts Handling
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
