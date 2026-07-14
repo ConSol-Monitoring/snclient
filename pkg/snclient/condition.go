@@ -992,7 +992,9 @@ func (c *Condition) TransformMultipleKeywords(srcKeywords []string, targetKeywor
 // recursively gets list of all keywords used in the condition
 func (c *Condition) GetListOfKeywords() (keywords []string, err error) {
 	addKeywordToList := func(c *Condition) (err error) {
-		keywords = append(keywords, c.keyword)
+		if c.keyword != "" {
+			keywords = append(keywords, c.keyword)
+		}
 
 		return nil
 	}
@@ -1531,4 +1533,21 @@ func (cl *ConditionList) performMatches(data map[string]string, returnOnFirstMat
 	}
 
 	return correctConditions, falseConditions, conclusiveConditions, inconclusiveConditions
+}
+
+func (cl *ConditionList) GetListOfKeywords() (keywords []string, err error) {
+	keywords = make([]string, 0)
+
+	for _, cond := range *cl {
+		condKeywords, err := cond.GetListOfKeywords()
+		if err != nil {
+			return nil, fmt.Errorf("error gathering keywords: %s", err.Error())
+		}
+
+		keywords = append(keywords, condKeywords...)
+	}
+
+	keywords = utils.Deduplicate(keywords)
+
+	return keywords, nil
 }

@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"regexp"
 	"slices"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
@@ -48,6 +49,12 @@ func (l *CheckOSUpdates) Build() *CheckData {
 			{name: "package", description: "package name"},
 			{name: "security", description: "is this a security update: 0 / 1"},
 			{name: "version", description: "version string of package"},
+		},
+		extraFilterAttributes: []*regexp.Regexp{
+			regexp.MustCompile(`^old_version$`),
+			regexp.MustCompile(`^repository$`),
+			regexp.MustCompile(`^arch$`),
+			regexp.MustCompile(`^prefix$`),
 		},
 		exampleDefault: `
     check_os_updates

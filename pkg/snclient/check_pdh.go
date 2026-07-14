@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"context"
+	"regexp"
 )
 
 func init() {
@@ -47,6 +48,9 @@ func (c *CheckPDH) Build() *CheckData {
 		attributes: []CheckAttribute{
 			{name: "count ", description: "Number of items matching the filter. Common option for all checks."},
 			{name: "value ", description: "The counter value (either float or int)"},
+		},
+		extraFilterAttributes: []*regexp.Regexp{
+			regexp.MustCompile(`^name$`),
 		},
 		exampleDefault: `
 		check_pdh "counter=foo" "warn=value > 80" "crit=value > 90"

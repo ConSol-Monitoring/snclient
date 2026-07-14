@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"runtime"
 
 	"github.com/consol-monitoring/snclient/pkg/humanize"
@@ -75,6 +76,12 @@ read more on windows virtual address space:
 			{name: "free_pct", description: "Free memory in percent", unit: UPercent},
 			{name: "size", description: "Total memory in human readable bytes (IEC)", unit: UByte},
 			{name: "size_bytes", description: "Total memory in bytes (IEC)", unit: UByte},
+		},
+		extraFilterAttributes: []*regexp.Regexp{
+			regexp.MustCompile(`^(?i)physical$`),
+			regexp.MustCompile(`^(?i)swap$`),
+			regexp.MustCompile(`^(?i)committed$`),
+			regexp.MustCompile(`^(?i)virtual$`),
 		},
 		exampleDefault: `
     check_memory

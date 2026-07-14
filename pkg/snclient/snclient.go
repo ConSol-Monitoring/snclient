@@ -841,12 +841,24 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 	if chk.showHelp > 0 {
 		return snc.runHelp(ctx, chk, handler), chk
 	}
+
 	if !skipAllowedCheck {
 		err = snc.checkAllowed(name, chk, handler, args, ArgumentList(parsedArgs).RawList(), transportConf)
 		if err != nil {
 			return &CheckResult{
 				State:  CheckExitUnknown,
 				Output: err.Error(),
+			}, chk
+		}
+	}
+
+	if !chk.argsPassthrough {
+		chk.checkThresholdKeywordsAgainstAttributeNames()
+		err = chk.checkFilterKeywordsAgainstAttributeNames()
+		if err != nil {
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: fmt.Sprintf("${status} - %s", err.Error()),
 			}, chk
 		}
 	}

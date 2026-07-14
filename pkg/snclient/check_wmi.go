@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -49,6 +50,9 @@ func (l *CheckWMI) Build() *CheckData {
 		hasArgsFilter: true, // otherwise empty-syntax won't be applied
 		topSyntax:     "${list}",
 		detailSyntax:  "%(line)",
+		extraFilterAttributes: []*regexp.Regexp{
+			regexp.MustCompile(`.*`),
+		},
 		exampleDefault: `
     check_wmi "query=select DeviceID, FreeSpace FROM Win32_LogicalDisk WHERE DeviceID = 'C:'"
     C:, 27955118080
