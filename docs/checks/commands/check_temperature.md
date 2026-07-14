@@ -69,12 +69,13 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute | Description                                    |
-| --------- | ---------------------------------------------- |
-| sensor    | full name of this sensor, ex.: coretemp_core_0 |
-| name      | name of this sensor, ex.: coretemp             |
-| label     | label for this sensor, ex.: core 0             |
-| value     | current temperature                            |
-| crit      | critical value supplied from sensor            |
-| max       | max value supplied from sensor                 |
-| min       | min value supplied from sensor                 |
+| Attribute   | Description                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------- |
+| sensor      | full name of this sensor, ex.: coretemp_core_0                                                          |
+| name        | name of this sensor, ex.: coretemp                                                                      |
+| label       | label for this sensor, ex.: core 0                                                                      |
+| value       | current temperature                                                                                     |
+| crit        | critical value supplied from sensor                                                                     |
+| max         | max value supplied from sensor                                                                          |
+| min         | min value supplied from sensor                                                                          |
+| temperature | raw temperature value. this can be a wrong/misleading value like 0 or 1 if sensor is disabled. use 'value' attribute instead. |

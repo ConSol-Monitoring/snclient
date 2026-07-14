@@ -57,6 +57,8 @@ func (l *CheckTemperature) Build() *CheckData {
 			{name: "crit", description: "critical value supplied from sensor"},
 			{name: "max", description: "max value supplied from sensor"},
 			{name: "min", description: "min value supplied from sensor"},
+			{name: "temperature", description: "raw temperature value." +
+				" this can be a wrong/misleading value like 0 or 1 if sensor is disabled. use 'value' attribute instead."},
 		},
 		listSorted: []string{"label"},
 		exampleDefault: `
