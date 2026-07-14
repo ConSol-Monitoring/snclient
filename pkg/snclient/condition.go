@@ -42,6 +42,15 @@ type Condition struct {
 
 	// back reference to check attributes (used to expand by unit)
 	attr *[]CheckAttribute
+
+	// reference to data where this condition should NOT be evaluated
+	// can be any map[string]string, like check.details, or Entries in check.listData
+	blacklistData []map[string]string
+
+	// reference to data where this condition should ONLY be evaluated
+	// can be any map[string]string, like check.details, or Entries in check.listData
+	// this works only if its populated
+	whitelistData []map[string]string
 }
 
 // Operator defines a filter operator.
@@ -249,12 +258,52 @@ func (c *Condition) String() string {
 	return fmt.Sprintf("%s %s %v%s", c.keyword, c.operator.String(), c.value, c.unit)
 }
 
+// use this function to see more detail about a condition, including its original, unit and keyword
+// useful for debugging output
+func (c *Condition) DetailedString() string {
+	if len(c.group) > 0 {
+		groups := make([]string, len(c.group))
+		for i, g := range c.group {
+			groups[i] = g.DetailedString()
+		}
+
+		return "(" + strings.Join(groups, " "+c.groupOperator.String()+" ") + ")"
+	}
+
+	return fmt.Sprintf("Condition{kw: %s , op: %s , val: %v , un: %s , org: %s}", c.keyword, c.operator.String(), c.value, c.unit, c.original)
+}
+
+// checks if a data of type map[string]string is allowed through the whitelist and blacklist of the condition
+// returns true if its allowed beyond blacklist/whitelist
+func (c *Condition) BlacklistWhitelistCheck(data map[string]string) (allowed bool) {
+	if utils.ContainsMap(c.blacklistData, data) {
+		log.Tracef("Condition does not allow this data, it is in its black list, condition: %q , data: %q", c.DetailedString(), data)
+
+		return false
+	}
+
+	if len(c.whitelistData) > 0 {
+		if !utils.ContainsMap(c.whitelistData, data) {
+			log.Tracef("Condition does not allow this data, it is not in conditions populated white list, condition: %q , data: %q", c.DetailedString(), data)
+
+			return false
+		}
+	}
+
+	return true
+}
+
 // Match checks if given map matches current condition
 // returns either the result or not ok if the result cannot be determined because of none-existing values
 func (c *Condition) Match(data map[string]string) (res, ok bool) {
 	if c.isNone {
 		return false, true
 	}
+
+	if !c.BlacklistWhitelistCheck(data) {
+		return false, false
+	}
+
 	if len(c.group) > 0 {
 		finalOK := true
 		for i := range c.group {
@@ -510,6 +559,8 @@ func (c *Condition) Clone() *Condition {
 		group:         make(ConditionList, 0),
 		attr:          c.attr,
 		original:      c.original,
+		blacklistData: slices.Clone(c.blacklistData),
+		whitelistData: slices.Clone(c.whitelistData),
 	}
 
 	for i := range c.group {
@@ -938,6 +989,24 @@ func (c *Condition) TransformMultipleKeywords(srcKeywords []string, targetKeywor
 	return true
 }
 
+// recursively gets list of all keywords used in the condition
+func (c *Condition) GetListOfKeywords() (keywords []string, err error) {
+	addKeywordToList := func(c *Condition) (err error) {
+		keywords = append(keywords, c.keyword)
+
+		return nil
+	}
+
+	err = c.RunFuncRecursively(addKeywordToList)
+	if err != nil {
+		return nil, fmt.Errorf("error gathering keywords: %s", err.Error())
+	}
+
+	keywords = utils.Deduplicate(keywords)
+
+	return keywords, nil
+}
+
 // pass an argument as a function.
 // the function should have a pointer receiver type, no arguments and return an error.
 // the function will be applied to the current instance.
@@ -1039,82 +1108,195 @@ func conditionFixTokenOperator(token []string) []string {
 }
 
 // ThresholdString returns string used in warn/crit threshold performance data.
-func ThresholdString(name []string, conditions ConditionList, numberFormat func(any) string) string {
-	// fetch warning conditions for name of metric
-	filtered := make(ConditionList, 0)
-	var group GroupOperator
-	for num := range conditions {
-		cond := conditions[num]
-		if slices.Contains(name, cond.keyword) {
-			filtered = append(filtered, cond)
-		}
-		if cond.groupOperator == GroupOr {
-			group = cond.groupOperator
-			for i := range cond.group {
-				if slices.Contains(name, cond.group[i].keyword) {
-					filtered = append(filtered, cond.group[i])
-				}
-			}
-		}
-		if cond.groupOperator == GroupAnd {
-			group = cond.groupOperator
-			for i := range cond.group {
-				if slices.Contains(name, cond.group[i].keyword) {
-					filtered = append(filtered, cond.group[i])
-				}
-			}
-		}
-	}
-
-	if len(filtered) == 0 {
+// The name should be contained within the condition
+func ThresholdString(names []string, conditions ConditionList, numberFormat func(any) string) string {
+	bounds := computeThresholdBounds(names, conditions)
+	if !bounds.found {
 		return ""
 	}
 
-	if len(filtered) == 1 {
-		//exhaustive:ignore // only the lower conditions get a trailing ":"
-		switch filtered[0].operator {
-		case Lower:
-			return numberFormat(filtered[0].value) + ":"
-		case LowerEqual:
-			thisNumber, _ := convert.Float64E(filtered[0].value)
-			nextNumber := math.Ceil(thisNumber)
-			if thisNumber == nextNumber {
-				nextNumber++
-			}
+	// https://www.monitoring-plugins.org/doc/guidelines.html#THRESHOLDFORMAT
 
-			return numberFormat(nextNumber) + ":"
-		default:
-			return numberFormat(filtered[0].value)
-		}
-	}
-
-	if len(filtered) == 2 {
-		low := filtered[0].value
-		high := filtered[1].value
-		num1, err1 := convert.Float64E(low)
-		num2, err2 := convert.Float64E(high)
-		if err1 != nil || err2 != nil {
-			return ""
-		}
-		// switch numbers
-		if num1 > num2 {
-			low = filtered[1].value
-			high = filtered[0].value
-		}
-		if group == GroupOr {
-			return fmt.Sprintf("%s:%s", numberFormat(low), numberFormat(high))
+	switch {
+	case bounds.hasLower && !bounds.hasGreater:
+		return numberFormat(bounds.lowerBound) + ":"
+	case !bounds.hasLower && bounds.hasGreater:
+		return numberFormat(bounds.greaterBound)
+	case bounds.hasLower && bounds.hasGreater:
+		if bounds.lowerBound == 0 {
+			return numberFormat(bounds.greaterBound)
 		}
 
-		// implicite And
-		return fmt.Sprintf("@%s:%s", numberFormat(low), numberFormat(high))
+		// Assumes that the conditions for lowerBound and greaterBound are joined using logical OR
+		// Alert triggered on range specified by X
+		// XXXXXXXX lowerBound -------- greaterBound XXXXXXXXXXXXX
+		if bounds.lowerBound <= bounds.greaterBound {
+			return numberFormat(bounds.lowerBound) + ":" + numberFormat(bounds.greaterBound)
+		}
+
+		// Assumes that the conditions for lowerBound and greaterBound are joined using logical AND
+		// Alert triggered on range specified by X
+		// --------- greaterBound XXXXXXXXXX lowerBound -------------
+		if bounds.greaterBound < bounds.lowerBound {
+			return "@" + numberFormat(bounds.greaterBound) + ":" + numberFormat(bounds.lowerBound)
+		}
 	}
 
 	return ""
 }
 
+// thresholdBounds tracks the boundaries computed while walking
+// through a condition including its subconditions.
+type thresholdBounds struct {
+	// greaterBound is effective "x > N" condition that triggers an alert
+	greaterBound float64
+	hasGreater   bool
+	// lowerBound is effective "x < N" condition that triggers an alert
+	lowerBound float64
+	hasLower   bool
+	found      bool
+}
+
+// computeThresholdBounds computes the bounds for a conditionList.
+// the conditionList is joined using OR between its conditions.
+func computeThresholdBounds(names []string, conditions ConditionList) thresholdBounds {
+	result := thresholdBounds{}
+	for _, cond := range conditions {
+		child := conditionToBounds(names, cond)
+		if child.found {
+			result = mergeThresholdBounds(result, child, GroupOr)
+		}
+	}
+
+	return result
+}
+
+// conditionToBounds recursively walks a condition tree node, filtering by
+// keyword and producing numeric threshold bounds.
+func conditionToBounds(names []string, cond *Condition) thresholdBounds {
+	if len(cond.group) > 0 {
+		result := thresholdBounds{}
+		for _, child := range cond.group {
+			childBounds := conditionToBounds(names, child)
+			if childBounds.found {
+				result = mergeThresholdBounds(result, childBounds, cond.groupOperator)
+			}
+		}
+
+		return result
+	}
+
+	if !slices.Contains(names, cond.keyword) {
+		return thresholdBounds{}
+	}
+
+	return leafThresholdBounds(cond)
+}
+
+// leafThresholdBounds extracts bounds from a single leaf numeric condition.
+func leafThresholdBounds(cond *Condition) thresholdBounds {
+	switch cond.operator {
+	case Greater:
+		val, err := convert.Float64E(cond.value)
+		if err == nil {
+			return thresholdBounds{greaterBound: val, hasGreater: true, found: true}
+		}
+	case GreaterEqual:
+		val, err := convert.Float64E(cond.value)
+		if err == nil {
+			floor := math.Floor(val)
+			// do not put it bellow 0, the old code was inadvertedly doing something similar
+			if val == floor && val > 0 {
+				val--
+			}
+
+			return thresholdBounds{greaterBound: val, hasGreater: true, found: true}
+		}
+	case Lower:
+		val, err := convert.Float64E(cond.value)
+		if err == nil {
+			return thresholdBounds{lowerBound: val, hasLower: true, found: true}
+		}
+	case LowerEqual:
+		val, err := convert.Float64E(cond.value)
+		if err == nil {
+			ceil := math.Ceil(val)
+			if val == ceil {
+				val++
+			}
+
+			return thresholdBounds{lowerBound: val, hasLower: true, found: true}
+		}
+	case Equal, Unequal:
+		val, err := convert.Float64E(cond.value)
+		if err == nil {
+			return thresholdBounds{greaterBound: val, hasGreater: true, found: true}
+		}
+	default:
+	}
+
+	return thresholdBounds{}
+}
+
+// mergeThresholdBounds merges two bounds according to the group boolean logic operator
+func mergeThresholdBounds(a, b thresholdBounds, groupOp GroupOperator) thresholdBounds {
+	if !a.found && !b.found {
+		return thresholdBounds{}
+	}
+	if !a.found {
+		return b
+	}
+	if !b.found {
+		return a
+	}
+
+	// AND tightens the bounds. For the parent condition to pass, both conditions have to be true
+	// take the more restrive bound out of its children, it includes the relaxed one
+	// greaterBound is the minimal "x > N" , take the maximum of two children
+	// lowerBound is the maximal "x < N" , take the minimum of two children
+
+	// OR loosens the bounds. For the parent condition to pass, either one of them have to pass
+	// take the relaxed bound out of its children, the more restrictive one is unnecessary
+	// greaterBound is the minimal "x > N" , take the minimum of two children
+	// lowerBound is the maximal "x < N" , take the maximum of two children
+
+	result := thresholdBounds{found: true}
+
+	switch {
+	case a.hasGreater && b.hasGreater:
+		if groupOp == GroupAnd {
+			result.greaterBound = math.Max(a.greaterBound, b.greaterBound)
+		} else {
+			result.greaterBound = math.Min(a.greaterBound, b.greaterBound)
+		}
+		result.hasGreater = true
+	case a.hasGreater:
+		result.greaterBound, result.hasGreater = a.greaterBound, true
+	case b.hasGreater:
+		result.greaterBound, result.hasGreater = b.greaterBound, true
+	}
+
+	switch {
+	case a.hasLower && b.hasLower:
+		if groupOp == GroupAnd {
+			result.lowerBound = math.Min(a.lowerBound, b.lowerBound)
+		} else {
+			result.lowerBound = math.Max(a.lowerBound, b.lowerBound)
+		}
+		result.hasLower = true
+	case a.hasLower:
+		result.lowerBound, result.hasLower = a.lowerBound, true
+	case b.hasLower:
+		result.lowerBound, result.hasLower = b.lowerBound, true
+	}
+
+	return result
+}
+
 // list of conditions
 type ConditionList []*Condition
 
+// ConditionList.String() joins the conditions using " or " when building a string
 func (cl *ConditionList) String() string {
 	if len(*cl) == 0 {
 		return "none"
@@ -1131,6 +1313,24 @@ func (cl *ConditionList) String() string {
 
 	// top level conditions are joined as OR
 	return strings.Join(res, " or ")
+}
+
+// useful for debugging output
+func (cl *ConditionList) DetailedString() string {
+	if len(*cl) == 0 {
+		return "none"
+	}
+
+	if len(*cl) == 1 {
+		return (*cl)[0].DetailedString()
+	}
+
+	res := []string{}
+	for _, c := range *cl {
+		res = append(res, c.DetailedString())
+	}
+
+	return strings.Join(res, " , ")
 }
 
 func replaceStrOp(input string) string {
@@ -1169,4 +1369,166 @@ func replaceStrOp(input string) string {
 	}
 
 	return strings.Join(output, "")
+}
+
+// A condition list can contain some conditions that use a specialized keyword, and generallized keywords.
+// This function only does modifications if there are conditions using the specialized keyword
+// For all others that do not use the specizalied keyword, check if they are using a generallized keyword.
+// After these two rounds of filtering conditions, disable a entry from this condition.
+func (cl *ConditionList) disableGenerallizedConditionsForEntry(entry map[string]string, specializedKeywords, generallizedKeywords []string) {
+	conditionsWithSpecializedKeyword := cl.filterConditionsUsingKeywords(specializedKeywords)
+	if len(conditionsWithSpecializedKeyword) > 0 {
+		conditionsWithoutSpecializedKeyword := utils.SubtractSlice(*cl, conditionsWithSpecializedKeyword)
+		cl2 := ConditionList(conditionsWithoutSpecializedKeyword)
+		conditionsWithoutSpecializedKeywordAndGenerallizedKeyword := cl2.filterConditionsUsingKeywords(generallizedKeywords)
+		for _, cond := range conditionsWithoutSpecializedKeywordAndGenerallizedKeyword {
+			cond.blacklistData = append(cond.blacklistData, entry)
+			log.Tracef("Adding an entry to conditions blacklist, specialized keywords: %q , generallized keywords: %q , condition: %q , entry: %q",
+				specializedKeywords, generallizedKeywords, cond.DetailedString(), entry)
+		}
+	}
+}
+
+// this function does not create new conditions, only filters existing conditions of ConditionList
+func (cl *ConditionList) filterConditionsUsingKeywords(keywords []string) (ret []*Condition) {
+	for _, condition := range *cl {
+		if len(condition.group) > 0 {
+			groupRet := condition.group.filterConditionsUsingKeywords(keywords)
+			ret = append(ret, groupRet...)
+		}
+
+		if slices.Contains(keywords, condition.keyword) {
+			ret = append(ret, condition)
+		}
+	}
+
+	return ret
+}
+
+// when filtering for a specialized condition, it is required to see if the condition list should be filtered at all
+// if all conditions are generic and do not use the keyword, there is no need for filtering
+// additionally, if there is a condition that uses the keyword, it might have blacklisted/whitelisted the entry and is not applicable
+// need to find at least one condition that uses this keyword and permits it, that is the specialized condition for that keyword
+// if such a keyword exists, then we can filter out the non-specialized i.e generic conditions
+func (cl *ConditionList) ifKeywordIsPresentAndPermitsEntry(keyword string, entry map[string]string) (keywordPresent, keywordPresentAndPermitsEntry bool, conditionThatPermitsEntry *Condition) {
+	keywordPresent = false
+	keywordPresentAndPermitsEntry = false
+	conditionThatPermitsEntry = nil
+
+	for _, condition := range *cl {
+		cl := ConditionList{condition}
+		subconditionsWithKeyword := cl.filterConditionsUsingKeywords([]string{keyword})
+
+		for _, subcondition := range subconditionsWithKeyword {
+			keywordPresent = true
+
+			if match, ok := subcondition.Match(entry); match && ok {
+				keywordPresentAndPermitsEntry = true
+				conditionThatPermitsEntry = subcondition
+
+				break
+			}
+		}
+
+		if keywordPresent && keywordPresentAndPermitsEntry {
+			break
+		}
+	}
+
+	return keywordPresent, keywordPresentAndPermitsEntry, conditionThatPermitsEntry
+}
+
+// If a specialized condition, i.e a condition using the keyword, exists in this condition list, filter to specialized condition
+// If a specialized condition does not exist, every condition is generallized. Keep every generallized condition.
+// metric can be passed as well, this will print out the name of the metric in the trace output
+func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[string]string, metric *CheckMetric) (result ConditionList) {
+	// If the condition has this keyword, and permits an entry, the condition is specific to this entry
+	// It is specialized in terms of this keyword, it is not generallized
+	keywordPresent, keywordPresentAndPermitsEntry, conditionThatPermitsEntry := cl.ifKeywordIsPresentAndPermitsEntry(keyword, entry)
+
+	for _, condition := range *cl {
+		keywords, _ := condition.GetListOfKeywords()
+
+		// keyword is not present
+		if !slices.Contains(keywords, keyword) {
+			// add generic condition in terms of keyword
+			if !keywordPresentAndPermitsEntry {
+				result = append(result, condition.Clone())
+			}
+
+			continue
+		}
+
+		// has keyword — include only if at least one drive sub-condition permits this entry
+		subconditionsUsingKeyword := cl.filterConditionsUsingKeywords([]string{keyword})
+		for _, dc := range subconditionsUsingKeyword {
+			if match, ok := dc.Match(entry); match && ok {
+				result = append(result, condition.Clone())
+
+				break
+			}
+		}
+	}
+
+	var metricMessage string
+	if metric != nil {
+		metricMessage = fmt.Sprintf("Processing for metric with name: '%s' and threshold name: '%s' \n", metric.Name, metric.ThresholdName)
+	}
+	var conditionMessage string
+	if conditionThatPermitsEntry != nil {
+		conditionMessage = fmt.Sprintf("Condition that has keyword and permits entry: %s \n", conditionThatPermitsEntry.DetailedString())
+	}
+
+	if len(result) > 0 {
+		log.Tracef("%sInput condition list: %s (Length %d) \nProcessing for specialized keyword: '%s' \nEntry: %v "+
+			"\nSpecial keyword exists: %t \nCondition with special keyword permits entry exists: %t \n%sResult Condition List: %s (Length %d) ",
+			metricMessage, cl.DetailedString(), len(*cl), keyword, entry, keywordPresent, keywordPresentAndPermitsEntry, conditionMessage, result.DetailedString(), len(result))
+	}
+
+	return result
+}
+
+// returns at first encounter of error
+// calls c.RunFuncRecursively to the conditions in ConditionList
+func (cl *ConditionList) applyFuncToConditions(_func func(c *Condition) error) error {
+	for _, cond := range *cl {
+		err := cond.RunFuncRecursively(_func)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// applies a series of matches to the condition list based on data
+// appends every condition based on its correct/false and conclusive/inconclusive result to a list
+// turn returnOnFirstMatch to skip processing the whole list after the first correct result
+func (cl *ConditionList) performMatches(data map[string]string, returnOnFirstMatch bool) (correctConditions, falseConditions, conclusiveConditions, inconclusiveConditions ConditionList) {
+	correctConditions = make(ConditionList, 0)
+	falseConditions = make(ConditionList, 0)
+	conclusiveConditions = make(ConditionList, 0)
+	inconclusiveConditions = make(ConditionList, 0)
+
+	for _, condition := range *cl {
+		result, conclusive := condition.Match(data)
+
+		if result {
+			correctConditions = append(correctConditions, condition)
+		} else {
+			falseConditions = append(falseConditions, condition)
+		}
+
+		if conclusive {
+			conclusiveConditions = append(conclusiveConditions, condition)
+		} else {
+			inconclusiveConditions = append(inconclusiveConditions, condition)
+		}
+
+		if result && returnOnFirstMatch {
+			break
+		}
+	}
+
+	return correctConditions, falseConditions, conclusiveConditions, inconclusiveConditions
 }

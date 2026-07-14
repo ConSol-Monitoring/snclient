@@ -158,7 +158,10 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	log.Debugf("condition critical: %s", cd.critThreshold.String())
 	log.Debugf("condition       ok: %s", cd.okThreshold.String())
 	// Run thresholds once on cd.details. This is done separately than metrics or entries
-	// This can possibly set a value to cd.details[_state]
+	// cd.details are of type map[string]string,
+	// same as elements of the slice cd.listData, but there is only one per check
+	// This can possibly set a value to cd.details[_state] , influencing check state
+	log.Tracef("checking warning, critical, and ok thresholds on check details")
 	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	log.Tracef("details:")
 	logTraceASCIIMap(cd.details)
@@ -209,7 +212,8 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 			}
 
 			// each entry in the list data is individually checked
-			// This may set "_state" of each entry
+			// This can possibly set "_state" of each entry, influencing the final state
+			log.Tracef("checking warning, critical, and ok thresholds on a check entry")
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 		}
 
@@ -230,11 +234,12 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	}
 
 	cd.result.ApplyPerfSyntax(cd.perfSyntax, cd.timezone)
-
 	// Run a separate check on the macros
+	log.Tracef("checking warning, critical, and ok thresholds on check macros")
 	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	cd.setStateFromMaps(finalMacros)
 	// Metrics are checked last, which also sets the final state
+	log.Tracef("checking warning, critical, and ok thresholds on check metrics")
 	cd.CheckMetrics(cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 
 	switch {
@@ -458,21 +463,21 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond Co
 
 	for i := range warnCond {
 		if res, ok := warnCond[i].Match(data); res && ok {
-			log.Debugf("This data '%s' matched the WARNING Condition", warnCond[i].original)
+			log.Debugf("The given data matched the WARNING condition: '%s' ", warnCond[i].DetailedString())
 			data["_state"] = fmt.Sprintf("%d", CheckExitWarning)
 		}
 	}
 
 	for i := range critCond {
 		if res, ok := critCond[i].Match(data); res && ok {
-			log.Debugf("This data '%s' matched the CRITICAL Condition", critCond[i].original)
+			log.Debugf("This given data matched the CRITICAL condition: '%s' ", critCond[i].DetailedString())
 			data["_state"] = fmt.Sprintf("%d", CheckExitCritical)
 		}
 	}
 
 	for i := range okCond {
 		if res, ok := okCond[i].Match(data); res && ok {
-			log.Debugf("This data '%s' matched the OK Condition", okCond[i].original)
+			log.Debugf("This given data matched the OK condition: '%s' ", okCond[i].DetailedString())
 			data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 		}
 	}
@@ -483,29 +488,17 @@ func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond ConditionList) {
 	// each metric is ran through conditions individually
 	for _, metric := range cd.result.Metrics {
 		state := CheckExitOK
-		// build up a data map[string]string as condition.Match function requires it as an argument
-		data := map[string]string{
-			metric.Name: fmt.Sprintf("%v", metric.Value),
-		}
-		if metric.ThresholdName != "" {
-			data[metric.ThresholdName] = fmt.Sprintf("%v", metric.Value)
-		}
-		for i := range warnCond {
-			if res, ok := warnCond[i].Match(data); res && ok {
-				state = CheckExitWarning
-			}
+
+		if metric.CheckForThresholds(&warnCond) {
+			state = CheckExitWarning
 		}
 
-		for i := range critCond {
-			if res, ok := critCond[i].Match(data); res && ok {
-				state = CheckExitCritical
-			}
+		if metric.CheckForThresholds(&critCond) {
+			state = CheckExitCritical
 		}
 
-		for i := range okCond {
-			if res, ok := okCond[i].Match(data); res && ok {
-				state = CheckExitOK
-			}
+		if metric.CheckForThresholds(&okCond) {
+			state = CheckExitOK
 		}
 
 		if state > CheckExitOK {
@@ -1293,7 +1286,7 @@ func (cd *CheckData) ExpandMetricMacros(srcThreshold ConditionList, data map[str
 	return replaced
 }
 
-func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, total float64) {
+func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, total float64, entry map[string]string) {
 	percent := float64(0)
 	if threshold == "used" {
 		percent = 100
@@ -1312,6 +1305,7 @@ func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, tot
 			Critical: cd.TransformThreshold(cd.critThreshold, threshold, perfLabel, "%", "B", total),
 			Min:      &Zero,
 			Max:      &total,
+			Entry:    entry,
 		},
 		&CheckMetric{
 			Name:     pctName,
@@ -1321,11 +1315,12 @@ func (cd *CheckData) AddBytePercentMetrics(threshold, perfLabel string, val, tot
 			Critical: cd.TransformThreshold(cd.critThreshold, threshold, pctName, "B", "%", total),
 			Min:      &Zero,
 			Max:      &Hundred,
+			Entry:    entry,
 		},
 	)
 }
 
-func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total float64) {
+func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total float64, entry map[string]string) {
 	percent := float64(0)
 	if strings.Contains(threshold, "used") {
 		percent = 100
@@ -1335,10 +1330,11 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 	if total > 0 {
 		percent = val * 100 / total
 	}
+	pctName := perfLabel + " %"
 	cd.result.Metrics = append(
 		cd.result.Metrics,
 		&CheckMetric{
-			Name:          perfLabel,
+			Name:          pctName,
 			ThresholdName: threshold,
 			Unit:          "%",
 			Value:         utils.ToPrecision(percent, 1),
@@ -1346,8 +1342,62 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 			Critical:      cd.critThreshold,
 			Min:           &Zero,
 			Max:           &Hundred,
+			Entry:         entry,
 		},
 	)
+}
+
+// processMetricsWithSpecializedKeyword sets the Entry reference and filters Warning/Critical thresholds of the Metric object
+// the thresholds will be filtered using the special keyword. refer to that function for more details, as it uses a heurisic to determine how to filter
+//
+//nolint:unparam // this is only used in check_drivesize for now, so keyword is always "drive"
+func (cd *CheckData) processMetricsWithSpecializedKeyword(keyword, metricName string, entry map[string]string) {
+	for _, metric := range cd.result.Metrics {
+		if !strings.HasPrefix(metric.Name, metricName) {
+			continue
+		}
+		metric.Entry = entry
+		metric.Warning = metric.Warning.filterForSpecializedKeyword(keyword, entry, metric)
+		metric.Critical = metric.Critical.filterForSpecializedKeyword(keyword, entry, metric)
+	}
+}
+
+// transforms keywords of ok/warn/crit thresholds, using a source keyword and target keyword
+// attributeNames are fed into the formats as the first argument
+// formatArgs are fed as following arguments
+func (cd *CheckData) transformKeywordsUsingAttributes(keywordSourceFormat, keywordTargetFormat string, attributeNames []string, formatArgs ...any) {
+	for _, attributeName := range attributeNames {
+		args := make([]any, len(formatArgs)+1)
+		args[0] = attributeName
+		copy(args[1:], formatArgs)
+
+		keywordSource := fmt.Sprintf(keywordSourceFormat, args...)
+		keywordTarget := fmt.Sprintf(keywordTargetFormat, args...)
+
+		log.Tracef("Transforming threshold keywords, soruceKeywords: %v , targetKeyword: %s", keywordSource, keywordTarget)
+
+		cd.warnThreshold = cd.TransformMultipleKeywords([]string{keywordSource}, keywordTarget, cd.warnThreshold)
+		cd.critThreshold = cd.TransformMultipleKeywords([]string{keywordSource}, keywordTarget, cd.critThreshold)
+		cd.okThreshold = cd.TransformMultipleKeywords([]string{keywordSource}, keywordTarget, cd.okThreshold)
+	}
+}
+
+// for a given entry, looks through the ok/warn/crit thresholds, disables conditions using generallized keywords if specialized keywords is present
+// attributeNmaes are fed into formats as the first argument
+// formatArgs are fed as following arguments
+func (cd *CheckData) disableGenerallizedConditionsUsingAttributes(entry map[string]string, specializedKeywordFormat, generallizedKeywordFormat string, attributeNames []string, formatArgs ...any) {
+	for _, attributeName := range attributeNames {
+		args := make([]any, len(formatArgs)+1)
+		args[0] = attributeName
+		copy(args[1:], formatArgs)
+
+		specializedKeyword := fmt.Sprintf(specializedKeywordFormat, args...)
+		generallizedKeyword := fmt.Sprintf(generallizedKeywordFormat, args...)
+
+		cd.warnThreshold.disableGenerallizedConditionsForEntry(entry, []string{specializedKeyword}, []string{generallizedKeyword})
+		cd.critThreshold.disableGenerallizedConditionsForEntry(entry, []string{specializedKeyword}, []string{generallizedKeyword})
+		cd.okThreshold.disableGenerallizedConditionsForEntry(entry, []string{specializedKeyword}, []string{generallizedKeyword})
+	}
 }
 
 // expand arg definitions separated by pipe symbol
