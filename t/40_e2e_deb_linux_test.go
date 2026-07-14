@@ -185,12 +185,12 @@ func localContainerTests(t *testing.T, bin string) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "nosudo_id"},
-		Like: []string{"uid=9\\*\\(snclient\\)"},
+		Like: []string{"uid=\\d*\\(snclient\\)"},
 	})
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "capsh"},
-		Like: []string{"Current:\\s*$"},
+		Like: []string{"Current: ="},
 	})
 	runCmd(t, &cmd{
 		Cmd:  bin,
@@ -200,6 +200,20 @@ func localContainerTests(t *testing.T, bin string) {
 	runCmd(t, &cmd{
 		Cmd:  bin,
 		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_service", "service='snc\ntest'"},
+		Like: []string{"request contained illegal control characters"},
+		Exit: 3,
+	})
+	// check if check_omd still works
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_omd"},
+		Like: []string{"UNKNOWN - failed to fetch omd sites"},
+		Exit: 3,
+	})
+	// but not like this
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_omd", "site='te\rst'"},
 		Like: []string{"request contained illegal control characters"},
 		Exit: 3,
 	})

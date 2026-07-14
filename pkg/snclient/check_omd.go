@@ -121,7 +121,7 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 	check.listData = append(check.listData, details)
 
 	// check requires root permission or capabilities
-	if os.Geteuid() != 0 && !l.snc.HasCapabilities() {
+	if os.Geteuid() != 0 && !HasCapabilities() {
 		details["_error"] = "check_omd requires root permissions or cap_setuid/cap_setgid"
 
 		return

@@ -1,24 +1,42 @@
 package snclient
 
 import (
-	"context"
-	"os"
-	"os/exec"
-	"syscall"
+	"fmt"
+
+	"golang.org/x/sys/unix"
 )
 
-func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error) {
-	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", command) // #nosec G204
-	// prevent child from receiving signals meant for the agent only
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid:     true,
-		Pgid:        0,
-		AmbientCaps: []uintptr{}, // do not inherit ambient capabilities by default
+func init() {
+	if HasCapabilities() {
+		err := clearInheritableCaps()
+		if err != nil {
+			panic("failed to drop capabilities: " + err.Error())
+		}
+	}
+}
+
+func clearInheritableCaps() error {
+	hdr := unix.CapUserHeader{
+		Version: unix.LINUX_CAPABILITY_VERSION_3,
+		Pid:     0, // current process
 	}
 
-	// add scripts path to PATH env
-	scriptsPath, _ := snc.config.Section("/paths").GetString("scripts")
-	cmd.Env = append(os.Environ(), "PATH="+scriptsPath+":"+os.Getenv("PATH"))
+	// Version 3 supports 64 capabilities split across two uint32 values.
+	caps := [2]unix.CapUserData{}
 
-	return cmd, nil
+	// Read current capability state.
+	if err := unix.Capget(&hdr, &caps[0]); err != nil {
+		return fmt.Errorf("capget: %w", err)
+	}
+
+	// Clear only the inheritable set.
+	caps[0].Inheritable = 0
+	caps[1].Inheritable = 0
+
+	// Write capabilities back.
+	if err := unix.Capset(&hdr, &caps[0]); err != nil {
+		return fmt.Errorf("capset: %w", err)
+	}
+
+	return nil
 }
