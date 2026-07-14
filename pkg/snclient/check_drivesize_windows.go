@@ -513,17 +513,55 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 		}
 	}
 
-	// match a drive, ex: "c" or "c:"
+	// organize the custom path, so that if it refers to a drive it matches the results from disk discovery
+	// the form to use looks like this:    C:\
+	var possibleDrivePath = path
+	checkAsDrive := true
 	switch len(path) {
-	case 1, 2:
-		path = strings.TrimSuffix(path, ":") + ":"
+	case 1:
+		if !unicode.IsLetter(rune(path[0])) {
+			log.Tracef("Custom path has length 1 and likely refers to a drive, but first rune is not a letter, path: '%s' ", path)
+			checkAsDrive = false
+		}
+		possibleDrivePath = strings.ToUpper(path) + ":" + "\\"
+		path += ":" // add a colon to the path, similarly to the nsclient
+	case 2:
+		if !unicode.IsLetter(rune(path[0])) {
+			log.Tracef("Custom path has length 2 and likely refers to a drive, but first rune is not a letter, path: '%s' ", path)
+			checkAsDrive = false
+		}
+		if path[1] != ':' {
+			log.Tracef("Custom path has length 2 and likely refers to a drive, but second rune is not colon, path: '%s' ", path)
+			checkAsDrive = false
+		}
+		possibleDrivePath = strings.ToUpper(path) + "\\"
+	case 3:
+		if !unicode.IsLetter(rune(path[0])) {
+			log.Tracef("Custom path has length 3 and likely refers to a drive, but first rune is not a letter, path: '%s' ", path)
+			checkAsDrive = false
+		}
+		if path[1] != ':' {
+			log.Tracef("Custom path has length 3 and likely refers to a drive, but second rune is not colon, path: '%s' ", path)
+			checkAsDrive = false
+		}
+		if path[2] != '\\' {
+			log.Tracef("Custom path has length 3 and likely refers to a drive, but third rune is not backslash, path: '%s' ", path)
+			checkAsDrive = false
+		}
+		possibleDrivePath = strings.ToUpper(path)
+	}
+
+	if checkAsDrive {
+		log.Tracef("Custom path likely refers to a drive, checking drives, path: '%s' , possibleDrivePath: '%s' ", path, possibleDrivePath)
+
 		availDisks := map[string]map[string]string{}
 		err = l.setDrives(availDisks)
 		for driveOrID := range availDisks {
-			if strings.EqualFold(driveOrID, path+"\\") {
+			if strings.EqualFold(driveOrID, possibleDrivePath) {
 				requiredDisks[path] = utils.CloneStringMap(availDisks[driveOrID])
 				requiredDisks[path]["drive"] = path         // use name from attributes
 				requiredDisks[path]["drive_or_name"] = path // used in default detail syntax
+				requiredDisks[path]["drive_or_name_or_id"] = path
 
 				return nil
 			}
@@ -536,7 +574,9 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 		}
 	}
 
-	// make sure path exists
+	// at this point, the path is checked if its a drive or a network path.
+	// if its neither of those, try to open the file/directory
+	// check for volumes that include the path in their drive
 	_, err = os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
 		log.Debugf("%s: %s", path, err.Error())
@@ -575,6 +615,8 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 	if match != nil {
 		requiredDisks[path] = utils.CloneStringMap(*match)
 		requiredDisks[path]["drive"] = path
+		requiredDisks[path]["drive_or_name"] = path
+		requiredDisks[path]["drive_or_name_or_id"] = path
 
 		return nil
 	}
