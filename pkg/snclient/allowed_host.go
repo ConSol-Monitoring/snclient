@@ -44,6 +44,8 @@ func NewAllowedHostConfig(conf *ConfigSection) (*AllowedHostConfig, error) {
 	return ahc, nil
 }
 
+// Checks if remoteAddr is in allowed hosts
+// Accepts both IPv4 and IPv6
 func (ahc *AllowedHostConfig) Check(ctx context.Context, remoteAddr string) bool {
 	if len(ahc.Allowed) == 0 {
 		return true
@@ -88,6 +90,7 @@ func (ahc *AllowedHostConfig) Debug() {
 	}
 }
 
+// Represents an item in the allowed hosts list, can be an hostname, IP or IP prefix
 type AllowedHost struct {
 	Prefix       *netip.Prefix
 	IP           *netip.Addr
@@ -143,13 +146,16 @@ func (a *AllowedHost) Contains(ctx context.Context, addr netip.Addr, useCaching 
 	case a.IP != nil:
 		return a.IP.Compare(addr) == 0
 	case a.HostName != nil:
-		resolved := a.ResolveCache
+		var resolved []netip.Addr
 
-		if useCaching || len(a.ResolveCache) == 0 {
+		if !useCaching || len(a.ResolveCache) == 0 {
 			resolved = a.resolveCache(ctx)
+
 			if useCaching {
 				a.ResolveCache = resolved
 			}
+		} else {
+			resolved = a.ResolveCache
 		}
 
 		for _, i := range resolved {
