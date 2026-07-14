@@ -14,16 +14,6 @@ clean:
 	rm -f snclient.exe
 	rm -rf dist
 
-# just skip unknown make targets
-.DEFAULT:
-	@if [[ "$(MAKECMDGOALS)" =~ ^testf ]]; then \
-		: ; \
-	else \
-		echo "unknown make target(s): $(MAKECMDGOALS)"; \
-		exit 1; \
-	fi
-
-
 testca:
 	mkdir -p ./dist
 	openssl genrsa -out dist/ca.key 4096
@@ -35,3 +25,13 @@ testca:
 
 clean-testca:
 	rm -rf dist
+
+# just skip unknown make targets
+.DEFAULT:
+	@if [[ "$(MAKECMDGOALS)" =~ ^testf ]]; then \
+		: ; \
+	else \
+		echo "unknown make target(s): $(MAKECMDGOALS)"; \
+		exit 1; \
+	fi
+
