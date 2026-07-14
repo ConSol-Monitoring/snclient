@@ -902,7 +902,7 @@ func (cd *CheckData) checkFilterKeywordsAgainstAttributeNames() (err error) {
 	if err == nil && len(filterKeywords) > 0 {
 		filterKeywordsExtra := utils.SubtractSlice(filterKeywords, attributeNames)
 		if len(filterKeywordsExtra) > 0 {
-			return fmt.Errorf("filter condition uses keyword(s) not present in the attributes: %s", strings.Join(filterKeywordsExtra, ", "))
+			return fmt.Errorf("filter condition uses keyword(s) not present in the attributes, run with --help to get a list of attributes, extra keywords: %s", strings.Join(filterKeywordsExtra, ", "))
 		}
 	}
 
