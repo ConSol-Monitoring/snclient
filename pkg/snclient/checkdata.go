@@ -858,6 +858,67 @@ func (cd *CheckData) preParseArgs(args []string) (sanitized []Argument, defaultW
 	return sanitized, defaultWarning, defaultCritical, applyDefaultFilter, nil
 }
 
+// Threshold keywords do not necessarily have to match an attribute name.
+// They can be written to match perfdata metric names
+// They can also be match to check details, but that is less common
+// Therefore, this function does not return an error
+func (cd *CheckData) checkThresholdKeywordsAgainstAttributeNames() {
+	attributeNames := cd.getAttributeNames()
+
+	warningKeywords, err := cd.warnThreshold.GetListOfKeywords()
+	if err == nil && len(warningKeywords) > 0 {
+		warningKeywordsExtra := utils.SubtractSlice(warningKeywords, attributeNames)
+		if len(warningKeywordsExtra) > 0 {
+			log.Tracef("Warning condition uses keyword(s) not present in the attributes, run with --help to get a list of attributes, extra keywords: %v", warningKeywordsExtra)
+		}
+	}
+
+	critKeywords, err := cd.critThreshold.GetListOfKeywords()
+	if err == nil && len(critKeywords) > 0 {
+		critKeywordsExtra := utils.SubtractSlice(critKeywords, attributeNames)
+		if len(critKeywordsExtra) > 0 {
+			log.Tracef("Crit condition uses keyword(s) not present in the attributes, run with --help to get a list of attributes, extra keywords: %v", critKeywordsExtra)
+		}
+	}
+
+	okKeywords, err := cd.okThreshold.GetListOfKeywords()
+	if err == nil && len(okKeywords) > 0 {
+		okKeywordsExtra := utils.SubtractSlice(okKeywords, attributeNames)
+		if len(okKeywordsExtra) > 0 {
+			log.Tracef("Ok condition uses keyword(s) not present in the attributes, run with --help to get a list of attributes, extra keywords: %v", okKeywordsExtra)
+		}
+	}
+}
+
+// Filter keywords should match attribute filters.
+// They are used to filter entries added to the check. Entries use attributes.
+// They are not compared with perfdata metric names.
+// They are not compared with check details.
+// Not matching an attribute name means the condition has no effect, and is likely wrong
+func (cd *CheckData) checkFilterKeywordsAgainstAttributeNames() (err error) {
+	attributeNames := cd.getAttributeNames()
+
+	filterKeywords, err := cd.filter.GetListOfKeywords()
+	if err == nil && len(filterKeywords) > 0 {
+		filterKeywordsExtra := utils.SubtractSlice(filterKeywords, attributeNames)
+		if len(filterKeywordsExtra) > 0 {
+			return fmt.Errorf("filter condition uses keyword(s) not present in the attributes: %s", strings.Join(filterKeywordsExtra, ", "))
+		}
+	}
+
+	return nil
+}
+
+func (cd *CheckData) getAttributeNames() (attributeNames []string) {
+	attributeNames = make([]string, 0, len(cd.attributes))
+
+	for _, attribute := range cd.attributes {
+		attributeNames = append(attributeNames, attribute.name)
+	}
+
+	return attributeNames
+}
+
 func (cd *CheckData) fetchNextArg(args, split []string, keyword string, idx, numArgs int) (argVal string, newIdx int, err error) {
 	if len(split) == 2 {
 		return split[1], idx, nil
@@ -1122,15 +1183,18 @@ func (cd *CheckData) HasThreshold(name string) bool {
 
 // GetAllThresholdKeywords returns a list of all keywords used in warn/crit/ok thresholds.
 func (cd *CheckData) GetAllThresholdKeywords() []string {
-	keywords := []string{}
+	keywords := make([]string, 0, len(cd.warnThreshold)+len(cd.critThreshold)+len(cd.okThreshold))
 
-	keywords = append(keywords, cd.getAllThresholdKeywords(cd.warnThreshold)...)
-	keywords = append(keywords, cd.getAllThresholdKeywords(cd.critThreshold)...)
-	keywords = append(keywords, cd.getAllThresholdKeywords(cd.okThreshold)...)
+	warnThresholdKeywords, _ := cd.warnThreshold.GetListOfKeywords()
+	critThresholdKeywords, _ := cd.critThreshold.GetListOfKeywords()
+	okThresholdKeywords, _ := cd.okThreshold.GetListOfKeywords()
 
-	// make list unique
+	keywords = append(keywords, warnThresholdKeywords...)
+	keywords = append(keywords, critThresholdKeywords...)
+	keywords = append(keywords, okThresholdKeywords...)
+
+	utils.Deduplicate(keywords)
 	slices.Sort(keywords)
-	keywords = slices.Compact(keywords)
 
 	return keywords
 }
@@ -1148,21 +1212,6 @@ func (cd *CheckData) hasThresholdCond(condList ConditionList, name string) bool 
 	}
 
 	return false
-}
-
-// hasThresholdCond returns true is the given list of conditions uses the given name at least once.
-func (cd *CheckData) getAllThresholdKeywords(condList ConditionList) []string {
-	keywords := []string{}
-
-	for _, cond := range condList {
-		if len(cond.group) > 0 {
-			keywords = append(keywords, cd.getAllThresholdKeywords(cond.group)...)
-		}
-
-		keywords = append(keywords, cond.keyword)
-	}
-
-	return keywords
 }
 
 // SetDefaultThresholdUnit sets default unit for all threshold conditions matching
