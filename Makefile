@@ -68,7 +68,7 @@ TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 # node_exporter expects armv7, not arm
 NODE_EXPORTER_ARCH=$(GOARCH:arm=armv7)
 
-NODE_EXPORTER_VERSION=1.12.0
+NODE_EXPORTER_VERSION=1.12.1
 NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(NODE_EXPORTER_ARCH).tar.gz
 NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)
 
