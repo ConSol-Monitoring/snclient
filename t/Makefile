@@ -1,10 +1,24 @@
 #!/usr/bin/make -f
 
-MAKE:=make
-SHELL:=bash
+MAKE    := make
+SHELL   := bash
+COMPOSE := docker compose
 
 test:
 	go test -v
+
+container-start:
+	$(COMPOSE) --progress=quiet --ansi=never up -d --build --wait --no-color --no-recreate --quiet-pull
+
+container-test: container-start snclient.deb
+	$(COMPOSE) exec debian make -C t test
+
+container-bash: container-start
+	$(COMPOSE) exec debian bash
+
+snclient.deb:
+	make -C .. snclient.deb
+	cp ../snclient.deb .
 
 testf: vendor
 	go test -v -run "$(filter-out $@,$(MAKECMDGOALS))" 2>&1 | grep -v "no test files" | grep -v "no tests to run" | grep -v "^PASS"
@@ -13,6 +27,10 @@ clean:
 	rm -f snclient
 	rm -f snclient.exe
 	rm -rf dist
+	$(COMPOSE) down --rmi all
+	$(COMPOSE) kill -s INT
+	$(COMPOSE) kill
+	$(COMPOSE) rm -f
 
 testca:
 	mkdir -p ./dist
@@ -34,4 +52,3 @@ clean-testca:
 		echo "unknown make target(s): $(MAKECMDGOALS)"; \
 		exit 1; \
 	fi
-

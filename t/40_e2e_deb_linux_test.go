@@ -25,7 +25,7 @@ func TestDEBinstaller(t *testing.T) {
 		return
 	}
 
-	bin := getBinary()
+	bin := "/usr/bin/snclient"
 	require.FileExistsf(t, "snclient.deb", "snclient.deb binary must exist")
 
 	// install deb file
@@ -119,6 +119,11 @@ func TestDEBinstaller(t *testing.T) {
 		Like: []string{"OK - CPU load is ok."},
 	})
 
+	// do some extra check when in defined test environment
+	if os.Getenv("SNCLIENT_TEST_SETUP") == "container" {
+		localContainerTests(t, bin)
+	}
+
 	// make logfolder and logfile readable and check for errors
 	runCmd(t, &cmd{
 		Cmd:  "sudo",
@@ -152,4 +157,50 @@ func TestDEBinstaller(t *testing.T) {
 
 	// remove remaining files
 	os.Remove("snclient.ini")
+}
+
+func localContainerTests(t *testing.T, bin string) {
+	t.Helper()
+
+	// extend configuration
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"systemctl", "restart", "dbus"},
+	})
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"cp", "/var/tmp/snclient_local_docker.ini", "/etc/snclient/"},
+	})
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"systemctl", "restart", "snclient"},
+	})
+	waitUntilResponse(t, bin)
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "sudo_id"},
+		Like: []string{"uid=0\\(root\\)"},
+	})
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "nosudo_id"},
+		Like: []string{"uid=9\\*\\(snclient\\)"},
+	})
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "capsh"},
+		Like: []string{"Current:\\s*$"},
+	})
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_service", "service=snclient"},
+		Like: []string{"OK - All 1 service\\(s\\) are ok.*snclient"},
+	})
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_service", "service='snc\ntest'"},
+		Like: []string{"request contained illegal control characters"},
+		Exit: 3,
+	})
 }

@@ -1,0 +1,1 @@
+snclient ALL=(ALL) NOPASSWD: /usr/bin/id -a
