@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/netip"
 	"strings"
+	"sync"
 )
 
 type AllowedHostConfig struct {
@@ -92,10 +93,11 @@ func (ahc *AllowedHostConfig) Debug() {
 
 // Represents an item in the allowed hosts list, can be an hostname, IP or IP prefix
 type AllowedHost struct {
-	Prefix       *netip.Prefix
-	IP           *netip.Addr
-	HostName     *string
-	ResolveCache []netip.Addr
+	Prefix            *netip.Prefix
+	IP                *netip.Addr
+	HostName          *string
+	ResolveCacheMutex *sync.RWMutex
+	ResolveCache      []netip.Addr
 }
 
 func NewAllowedHost(name string) AllowedHost {
@@ -122,6 +124,7 @@ func NewAllowedHost(name string) AllowedHost {
 	}
 
 	allowed.HostName = &name
+	allowed.ResolveCacheMutex = &sync.RWMutex{}
 
 	return allowed
 }
@@ -148,14 +151,19 @@ func (a *AllowedHost) Contains(ctx context.Context, addr netip.Addr, useCaching 
 	case a.HostName != nil:
 		var resolved []netip.Addr
 
+		a.ResolveCacheMutex.RLock()
 		if !useCaching || len(a.ResolveCache) == 0 {
+			a.ResolveCacheMutex.RUnlock()
 			resolved = a.resolveCache(ctx)
 
 			if useCaching {
+				a.ResolveCacheMutex.Lock()
 				a.ResolveCache = resolved
+				a.ResolveCacheMutex.Unlock()
 			}
 		} else {
 			resolved = a.ResolveCache
+			a.ResolveCacheMutex.RUnlock()
 		}
 
 		for _, i := range resolved {
