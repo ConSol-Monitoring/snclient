@@ -99,7 +99,7 @@
         <SetProperty Id="CustomUnInstallerAction" Sequence="execute" Before="CustomUnInstallerAction" Value="&quot;[INSTALLDIR]snclient.exe&quot; uninstall pkg &quot;INSTALLDIR=[INSTALLDIR]; WIX_UPGRADE_DETECTED=[WIX_UPGRADE_DETECTED]; REMOVE=[REMOVE]; UPGRADINGPRODUCTCODE=[UPGRADINGPRODUCTCODE]&quot;" />
         <CustomAction Id="CustomUnInstallerAction" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <InstallExecuteSequence>
-            <Custom Action="CustomPreUpdateAction" After="InstallInitialize" Before="RemoveExistingProducts"></Custom>
+            <Custom Action="CustomPreUpdateAction" Before="RemoveExistingProducts"></Custom>
             <Custom Action="CustomUnInstallerAction" Before="RemoveFiles"><![CDATA[REMOVE ~= "ALL" AND (NOT UPGRADINGPRODUCTCODE)]]></Custom>
             <Custom Action="CustomInstallerAction" Before="InstallFinalize"></Custom>
         </InstallExecuteSequence>
