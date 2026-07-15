@@ -7,6 +7,7 @@ next:
          - add newlines to default nasty characters
          - always add control characters as nasty characters
          - add new option allow control characters which prevents using ascii control characters in arguments
+         - add rss watcher task which kills the agent in case of memory leaks
 
 0.44     Wed Jun 24 13:03:43 CEST 2026
          - fix running external scripts with sudo (#388)
