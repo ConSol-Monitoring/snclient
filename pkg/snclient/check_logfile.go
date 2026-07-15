@@ -86,7 +86,7 @@ func (c *CheckLogFile) Build() *CheckData {
 			{name: "columnN", description: "Match the content of the N-th column only if enough columns exists"},
 		},
 		extraFilterAttributes: []*regexp.Regexp{
-			regexp.MustCompile(`column.*`),
+			regexp.MustCompile(`^column.*`),
 		},
 		exampleDefault: `
 Alert if there are errors in the snclient log file:
