@@ -1105,6 +1105,11 @@ func (cd *CheckData) applyConditionAliasList(condList ConditionList) {
 	}
 }
 
+// HasFilter returns true is the filter use at least one condition with the given name.
+func (cd *CheckData) HasFilter(name string) bool {
+	return cd.hasThresholdCond(cd.filter, name)
+}
+
 // HasThreshold returns true is the warn/crit threshold use at least one condition with the given name.
 func (cd *CheckData) HasThreshold(name string) bool {
 	if cd.hasThresholdCond(cd.warnThreshold, name) {

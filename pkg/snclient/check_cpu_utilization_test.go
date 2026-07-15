@@ -11,6 +11,7 @@ func TestCheckCPUUtilization(t *testing.T) {
 
 	res := snc.RunCheck("check_cpu_utilization", []string{"warn=none", "crit=none", "range=1m"})
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK - user:", "output matches")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "'cores'=", "output matches")
 
 	res = snc.RunCheck("check_cpu_utilization", []string{"warn=none", "crit=none", "range=1m", "-n", "10", "--show-args"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
