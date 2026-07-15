@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"unicode"
@@ -52,10 +53,11 @@ func (l *CheckDrivesize) getExample() string {
 // Volume: A logical abstraction of a storage, formatted with a file system. It can be a virtual file, a RAID disk or one partition -> \\?\Volume{GUID}\
 // Drive: This term is not defined well. Here, it means a logical access point with an assigned drive letter.
 
-// For a given path, it may correspond to a mounted disk, like a \\SERVER\SHARENAME being added as K: drive
+// For a given path, it may correspond to a mounted disk, like a normal C:\ drive
+// Or it could be a network drive like \\SERVER\SHARENAME being mounted to K:\ drive
 // Checks the given path, resolves the alias and calls the corresponding function that adds the details
 func (l *CheckDrivesize) getRequiredDrives(paths []string, parentFallback bool) (requiredDrives map[string]map[string]string, err error) {
-	// create map of required disks/volmes/network_shares with "drive_or_id" as primary key
+	// create map of required disks/volmes/network_shares with "drive_or_name_or_id" as primary key
 
 	requiredDrives = map[string]map[string]string{}
 
@@ -265,7 +267,7 @@ func (l *CheckDrivesize) setMediaType(drive map[string]string) error {
 func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	driveType, err := GetDriveType(drive["drive_or_id"])
 	if err != nil {
-		log.Warnf("Error when getting the drive type of drive %s: %s", drive["drive_or_id"], err.Error())
+		log.Warnf("Error when getting the drive type of drive, drive: '%s' , error: %s", drive["drive_or_id"], err.Error())
 
 		return
 	}
@@ -377,8 +379,10 @@ func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) 
 			entry = make(map[string]string)
 		}
 		entry["drive"] = logicalDrive
+		entry["name"] = logicalDrive
 		entry["drive_or_id"] = logicalDrive
 		entry["drive_or_name"] = logicalDrive
+		entry["drive_or_name_or_id"] = logicalDrive
 		entry["letter"] = fmt.Sprintf("%c", logicalDrive[0])
 		entry["fstype"] = partition.Fstype
 		requiredDrives[logicalDrive] = entry
@@ -389,6 +393,7 @@ func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) 
 
 // adds all logical volumes to the requiredDisks
 // network shares are not listed in volumes
+// this function populates requiredDrives map
 func (l *CheckDrivesize) setVolumes(requiredDrives map[string]map[string]string) {
 	volumeGUIDPaths := []string{}
 	bufLen, err := convert.UInt32E(windows.MAX_PATH + 1)
@@ -414,12 +419,14 @@ func (l *CheckDrivesize) setVolumes(requiredDrives map[string]map[string]string)
 	for {
 		err := windows.FindNextVolume(hndl, &volumeGUIDPathBuffer[0], bufLen)
 		if err != nil {
-			log.Tracef("FindNextVolume: %s", err.Error())
+			log.Tracef("FindNextVolume error, likely iterated every volume, error: %s", err.Error())
 
 			break
 		}
 		volumeGUIDPaths = append(volumeGUIDPaths, syscall.UTF16ToString(volumeGUIDPathBuffer))
 	}
+
+	log.Tracef("Found volume GUID paths: %s", strings.Join(volumeGUIDPaths, ", "))
 
 	// Windows syscall findFirstVolume, findNextVolume... give GUID paths to volumes e.g:
 	// "\\\\?\\Volume{a6b8f57e-dac6-4bac-8dc2-fac22cd740cf}\\"
@@ -430,8 +437,9 @@ func (l *CheckDrivesize) setVolumes(requiredDrives map[string]map[string]string)
 	}
 }
 
-// this function is used to further process the volume GUID path returned from API call
-// takes a GUID path of a volume, finds its path name. it may or may not be mounted directly on a drive letter
+// this function is used to further process the volume GUID path returned from Windows API calls
+// takes a GUID path of a volume, then finds its path name.
+// it may or may not be mounted directly on a drive letter
 func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, volumeGUIDPath string, buffer []uint16) {
 	volPtr, err := syscall.UTF16PtrFromString(volumeGUIDPath)
 	if err != nil {
@@ -440,44 +448,169 @@ func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, v
 		return
 	}
 	returnLen := uint32(0)
+
 	bufferLen, err := convert.UInt32E(len(buffer))
 	if err != nil {
 		log.Warnf("convert.UInt32E: %s", err.Error())
 
 		return
 	}
+
 	// https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumepathnamesforvolumenamew
 	// SMB does not support volume management functions
 	// uses GetVolumePathNamesForVolumeNameW
 	err = windows.GetVolumePathNamesForVolumeName(volPtr, &buffer[0], bufferLen, &returnLen)
 	if err != nil {
-		log.Warnf("Error when calling GetVolumePathNamesForVolumeName: %s: %s", volumeGUIDPath, err.Error())
+		log.Warnf("Error when calling GetVolumePathNamesForVolumeName, volumeGUIDPath: '%s' , error: %s", volumeGUIDPath, err.Error())
 
 		return
 	}
-	names := syscall.UTF16ToString(buffer)
-	// The path name is given with uppercase, convert it.
-	// names = strings.ToLower(names)
-	driveOrID := names
-	if driveOrID == "" {
-		driveOrID = volumeGUIDPath
+	volumePathName := syscall.UTF16ToString(buffer)
+
+	if volumePathName == "" {
+		volumePathName = volumeGUIDPath // if there is no name attached to it, use this as name
 	}
-	// only add it if it does not exists
-	entry, ok := requiredDisks[driveOrID]
-	if !ok {
+
+	// entry attributes
+	volumeID := volumeGUIDPath
+
+	name := volumePathName
+
+	drive, isDrive, _ := cleanupPathString(volumePathName)
+	if !isDrive {
+		drive = ""
+	}
+
+	driveOrID := drive
+	if driveOrID == "" {
+		driveOrID = volumeID
+	}
+
+	driveOrName := drive
+	if driveOrName == "" {
+		driveOrName = name
+	}
+
+	driveOrNameOrID := driveOrName
+	if driveOrNameOrID == "" {
+		driveOrNameOrID = volumeID
+	}
+
+	letter := ""
+	if drive != "" {
+		letter = fmt.Sprintf("%c", drive[0])
+	}
+
+	mounted := "0"
+	if letter != "" {
+		mounted = "1"
+	}
+
+	skip := "0"
+	if mounted == "0" {
+		skip = "1"
+	}
+
+	// skip unmounted volumes
+	// these are generally weird types of items shown in Explorer, some examples:
+	// RDP session shared folder
+	// UPnP/DLNA media server
+	if skip == "1" {
+		return
+	}
+
+	// check if there exists an entry
+	// this prevents adding the same drive multiple times
+	entry, idAlreadyAdded := requiredDisks[volumeID]
+	if !idAlreadyAdded {
 		entry = make(map[string]string)
 	}
-	entry["id"] = volumeGUIDPath
-	entry["drive"] = names
+
+	entry["id"] = volumeID
+	entry["drive"] = drive
+	entry["name"] = name
 	entry["drive_or_id"] = driveOrID
-	entry["drive_or_name"] = names
-	entry["letter"] = ""
-	if names != "" {
-		entry["letter"] = fmt.Sprintf("%c", names[0])
-	} else {
-		entry["mounted"] = "0"
+	entry["drive_or_name"] = driveOrName
+	entry["drive_or_name_or_id"] = driveOrNameOrID
+	entry["letter"] = letter
+	entry["mounted"] = mounted
+	entry["skip"] = skip
+
+	requiredDisks[volumeID] = entry
+}
+
+// The perflabel prefix situation it complicated due to compatibility reasons
+func getPerflabelPrefix(path string) (perflabelPrefix string, err error) {
+	if path == "" {
+		return "", fmt.Errorf("path to get perflabel for is empty")
 	}
-	requiredDisks[driveOrID] = entry
+
+	perflabelPrefix = filepath.FromSlash(path)
+
+	sep := string(os.PathSeparator)
+	for strings.Contains(perflabelPrefix, sep+sep) {
+		perflabelPrefix = strings.ReplaceAll(perflabelPrefix, sep+sep, sep)
+	}
+
+	if len(perflabelPrefix) == 1 {
+		perflabelPrefix += ":"
+	}
+
+	return perflabelPrefix, nil
+}
+
+// cleans up an absolute path
+// changes all slashes to be backwards
+// compacts slashes that come one after another
+// changes the drive letter to be uppercase, if present
+// adds a colon after the drive letter if its not present
+// adds a backward slash after colon if not present
+func cleanupPathString(path string) (cleanedPath string, isDrive bool, err error) {
+	if path == "" {
+		return "", false, fmt.Errorf("path to cleanup is empty")
+	}
+
+	cleanedPath = filepath.FromSlash(path)
+	isDrive = true
+
+	sep := string(os.PathSeparator)
+	for strings.Contains(cleanedPath, sep+sep) {
+		cleanedPath = strings.ReplaceAll(cleanedPath, sep+sep, sep)
+	}
+
+	if len(cleanedPath) >= 1 && !unicode.IsLetter(rune(path[0])) {
+		log.Tracef("Custom path has length 1 and likely refers to a drive, but first rune is not a letter, path: '%s' ", path)
+		isDrive = false
+	}
+
+	if len(cleanedPath) >= 1 && unicode.IsLetter(rune(path[0])) {
+		cleanedPath = strings.ToUpper(string(cleanedPath[0])) + cleanedPath[1:]
+	}
+
+	if len(cleanedPath) == 1 {
+		cleanedPath += ":"
+	}
+
+	if len(cleanedPath) >= 2 && cleanedPath[1] != ':' {
+		log.Tracef("Custom path has length 2 and likely refers to a drive, but second rune is not colon, path: '%s' ", path)
+		isDrive = false
+	}
+
+	if len(cleanedPath) == 2 {
+		cleanedPath += "\\"
+	}
+
+	if len(cleanedPath) >= 3 && cleanedPath[2] != '\\' {
+		log.Tracef("Custom path has length 3 and likely refers to a drive, but third rune is not backslash, path: '%s' ", path)
+		isDrive = false
+	}
+
+	if len(cleanedPath) != 3 || (len(cleanedPath) >= 1 && !unicode.IsLetter(rune(path[0]))) ||
+		(len(cleanedPath) >= 2 && cleanedPath[1] != ':') || (len(cleanedPath) >= 3 && cleanedPath[2] != '\\') {
+		isDrive = false
+	}
+
+	return cleanedPath, isDrive, nil
 }
 
 // This function is called when a custom path needs to be added
@@ -486,7 +619,8 @@ func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, v
 //
 //nolint:funlen,gocyclo // can not split this function up, it has to check if its network drive, normal drive, a custom path under a volume etc.
 func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
-	path = strings.ReplaceAll(path, "/", "\\")
+	// --------- Option 1 : Network share path
+
 	// if its a network share path, discover existing shares and match it with a drive[remote_path]
 	// then we replace path argument in-place, replacing the network path with the logical drive it is assigned to
 	if isNetworkSharePath(path) {
@@ -494,16 +628,16 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 		l.setShares(discoveredNetworkShares)
 
 		for key := range discoveredNetworkShares {
-			drive := discoveredNetworkShares[key]
-			remoteName, hasRemoteName := drive["remote_name"]
+			networkShare := discoveredNetworkShares[key]
+			remoteName, hasRemoteName := networkShare["remote_name"]
 			if hasRemoteName && strings.HasPrefix(path, remoteName) {
 				requiredDisks[key] = utils.CloneStringMap(discoveredNetworkShares[key])
+
 				// drive["remote_name"] = \\SERVER\SHARENAME
 				// drive["drive"] = x:
 				// pathExample1 = \\SERVER\SHARENAME -> x:
 				// pathExample2 = \\SERVER\SHARENAME\FOO\BAR -> x:\FOO\BAR
-				pathReplaced := strings.Replace(path, drive["remote_name"], drive["drive"], 1)
-				requiredDisks[key]["drive"] = pathReplaced
+				pathReplaced := strings.Replace(path, networkShare["remote_name"], networkShare["drive"], 1)
 				// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
 				// requiredDisks[key]["drive_or_name"] = fmt.Sprintf("%s - (%s)", path, pathReplaced)
 				requiredDisks[key]["localised_remote_path"] = pathReplaced
@@ -513,104 +647,80 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 		}
 	}
 
-	// organize the custom path, so that if it refers to a drive it matches the results from disk discovery
-	// the form to use looks like this:    C:\
-	possibleDrivePath := path
-	checkAsDrive := true
-	switch len(path) {
-	case 1:
-		if !unicode.IsLetter(rune(path[0])) {
-			log.Tracef("Custom path has length 1 and likely refers to a drive, but first rune is not a letter, path: '%s' ", path)
-			checkAsDrive = false
-		}
-		possibleDrivePath = strings.ToUpper(path) + ":" + "\\"
-		path += ":" // add a colon to the path, similarly to the nsclient
-	case 2:
-		if !unicode.IsLetter(rune(path[0])) {
-			log.Tracef("Custom path has length 2 and likely refers to a drive, but first rune is not a letter, path: '%s' ", path)
-			checkAsDrive = false
-		}
-		if path[1] != ':' {
-			log.Tracef("Custom path has length 2 and likely refers to a drive, but second rune is not colon, path: '%s' ", path)
-			checkAsDrive = false
-		}
-		possibleDrivePath = strings.ToUpper(path) + "\\"
-	case 3:
-		if !unicode.IsLetter(rune(path[0])) {
-			log.Tracef("Custom path has length 3 and likely refers to a drive, but first rune is not a letter, path: '%s' ", path)
-			checkAsDrive = false
-		}
-		if path[1] != ':' {
-			log.Tracef("Custom path has length 3 and likely refers to a drive, but second rune is not colon, path: '%s' ", path)
-			checkAsDrive = false
-		}
-		if path[2] != '\\' {
-			log.Tracef("Custom path has length 3 and likely refers to a drive, but third rune is not backslash, path: '%s' ", path)
-			checkAsDrive = false
-		}
-		possibleDrivePath = strings.ToUpper(path)
+	// Important: UNC network paths have slashes next to each other e.g: \\ServerName\SharedFolder\ResourcePath
+	// This gets cleaned up using cleanupPathString , as it is meant for absolute paths inside a drive.
+	// Not cleaning up the path beforehand is intentional
+	cleanedPath, isDrivePath, err := cleanupPathString(path)
+	if err != nil {
+		return fmt.Errorf("error when cleaning up path: %w", err)
 	}
 
-	if checkAsDrive {
-		log.Tracef("Custom path likely refers to a drive, checking drives, path: '%s' , possibleDrivePath: '%s' ", path, possibleDrivePath)
+	// --------- Option 2 : Drive path
+	if isDrivePath {
+		log.Tracef("Custom path likely refers to a drive, checking drives, path: '%s', cleanedPath: '%s' ", path, cleanedPath)
 
 		availDisks := map[string]map[string]string{}
 		err = l.setDrives(availDisks)
-		for driveOrID := range availDisks {
-			if !strings.EqualFold(driveOrID, possibleDrivePath) {
+		if err != nil {
+			// if setDisks had a problem (e.g. bitlocker locked drive) and did not return
+			// the required drive, then pass any possible error on to the caller.
+			return err
+		}
+
+		for key := range availDisks {
+			if !strings.EqualFold(key, cleanedPath) {
 				continue
 			}
 
-			requiredDisks[path] = utils.CloneStringMap(availDisks[driveOrID])
-			requiredDisks[path]["drive"] = path // use name from attributes
-			requiredDisks[path]["drive_or_name"] = path
-			requiredDisks[path]["drive_or_name_or_id"] = path
+			requiredDisks[path] = utils.CloneStringMap(availDisks[key])
+			requiredDisks[path]["id"] = key
+			requiredDisks[path]["drive"] = cleanedPath
+			requiredDisks[path]["drive_or_id"] = cleanedPath
+			requiredDisks[path]["drive_or_name"] = cleanedPath
+			requiredDisks[path]["drive_or_name_or_id"] = cleanedPath
+			requiredDisks[path]["perflabel_prefix"], _ = getPerflabelPrefix(path)
 
 			return nil
 		}
-
-		if err != nil {
-			// if setDisks had a problem (e.g. bitlocker locked drive) and did not return
-			// the required drive, then pass any possible error on to the caller. otherwise
-			// we got what we want and already returned nil above.
-			return err
-		}
 	}
 
+	// --------- Option 3: Path under a volume
 	// at this point, the path is checked if its a drive or a network path.
 	// if its neither of those, try to open the file/directory
 	// check for volumes that include the path in their drive
-	_, err = os.Stat(path)
-	if err != nil && os.IsNotExist(err) {
-		log.Debugf("%s: %s", path, err.Error())
 
-		return &PartitionNotFoundError{Path: path, err: err}
+	_, err = os.Stat(cleanedPath)
+	if err != nil && os.IsNotExist(err) {
+		log.Debugf("%s: %s", cleanedPath, err.Error())
+
+		return &PartitionNotFoundError{Path: cleanedPath, err: err}
 	}
 
-	// try to find closes matching volume
+	// try to find closest matching volume
 	availVolumes := map[string]map[string]string{}
 	l.setVolumes(availVolumes)
-	testDrive := strings.TrimSuffix(path, "\\")
+
+	testPath := strings.TrimSuffix(cleanedPath, "\\") + "\\"
 	// make first character uppercase because drives are uppercase in the volume list
-	switch {
-	case len(testDrive) > 1:
-		r := []rune(testDrive)
-		testDrive = string(append([]rune{unicode.ToUpper(r[0])}, r[1:]...))
-	case len(testDrive) == 1:
-		r := []rune(testDrive)
-		testDrive = string(unicode.ToUpper(r[0]))
+	if len(testPath) > 1 {
+		testPath = strings.ToUpper(testPath[0:1]) + testPath[1:]
 	}
+
 	var match *map[string]string
 
 	for i := range availVolumes {
-		vol := availVolumes[i]
-		if parentFallback && vol["drive"] != "" && strings.HasPrefix(strings.ToUpper(testDrive+"\\"), strings.ToUpper(vol["drive"])) {
-			if match == nil || len((*match)["drive"]) < len(vol["drive"]) {
-				match = &vol
+		volume := availVolumes[i]
+
+		// parent fallback means parent folders of a drive are valid as well
+		if parentFallback && volume["drive"] != "" &&
+			strings.HasPrefix(strings.ToUpper(testPath), strings.ToUpper(volume["drive"])) {
+			if match == nil || len((*match)["drive"]) < len(volume["drive"]) {
+				match = &volume
 			}
 		}
-		if strings.EqualFold(testDrive+"\\", vol["drive"]) {
-			match = &vol
+
+		if strings.EqualFold(testPath, volume["drive"]) {
+			match = &volume
 
 			break
 		}
@@ -618,6 +728,7 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 	if match != nil {
 		requiredDisks[path] = utils.CloneStringMap(*match)
 		requiredDisks[path]["drive"] = path
+		requiredDisks[path]["name"] = path
 		requiredDisks[path]["drive_or_name"] = path
 		requiredDisks[path]["drive_or_name_or_id"] = path
 
@@ -651,6 +762,7 @@ func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 
 			continue
 		}
+
 		if driveType == DriveRemote {
 			remoteName, err := NetGetConnection(logicalDrive[0 : len(logicalDrive)-1])
 			if err != nil {
@@ -668,8 +780,9 @@ func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 			drive["id"] = remoteName
 			drive["drive"] = logicalDrive
 			drive["drive_or_id"] = logicalDrive
-			// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
 			drive["drive_or_name"] = logicalDrive
+			drive["drive_or_name_or_id"] = logicalDrive
+
 			drive["letter"] = fmt.Sprintf("%c", logicalDrive[0])
 			drive["remote_name"] = remoteName
 			if isNetworkDrivePersistent(logicalDrive) {
