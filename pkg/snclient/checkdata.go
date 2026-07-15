@@ -3,6 +3,7 @@ package snclient
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -137,6 +138,7 @@ type CheckData struct {
 	output                        OutputMode
 	implemented                   Implemented
 	attributes                    []CheckAttribute
+	extraFilterAttributes         []*regexp.Regexp
 	listSorted                    []string // sort result list by this keys
 	exampleDefault                string
 	exampleArgs                   string
@@ -897,13 +899,29 @@ func (cd *CheckData) checkThresholdKeywordsAgainstAttributeNames() {
 // Not matching an attribute name means the condition has no effect, and is likely wrong
 func (cd *CheckData) checkFilterKeywordsAgainstAttributeNames() (err error) {
 	attributeNames := cd.getAttributeNames()
+	regexes := make([]*regexp.Regexp, 0, len(attributeNames)+len(cd.extraFilterAttributes))
+
+	for _, attributeName := range attributeNames {
+		regexes = append(regexes, regexp.MustCompile(regexp.QuoteMeta(attributeName)))
+	}
+
+	regexes = append(regexes, cd.extraFilterAttributes...)
 
 	filterKeywords, err := cd.filter.GetListOfKeywords()
+
+	filterKeywordsUnmatched := []string{}
 	if err == nil && len(filterKeywords) > 0 {
-		filterKeywordsExtra := utils.SubtractSlice(filterKeywords, attributeNames)
-		if len(filterKeywordsExtra) > 0 {
-			return fmt.Errorf("filter condition uses keyword(s) not present in the attributes, run with --help to get a list of attributes, extra keywords: %s", strings.Join(filterKeywordsExtra, ", "))
+		for _, filterKeyword := range filterKeywords {
+			if !slices.ContainsFunc(regexes, func(r *regexp.Regexp) bool { return r.MatchString(filterKeyword) }) {
+				filterKeywordsUnmatched = append(filterKeywordsUnmatched, filterKeyword)
+			}
 		}
+	}
+
+	if len(filterKeywordsUnmatched) > 0 {
+		log.Warnf("Filter condition uses keyword(s) not present in the attribute, filter condition: '%s' , extra keywords: '%s' ", cd.filter.String(), strings.Join(filterKeywordsUnmatched, ", "))
+
+		return fmt.Errorf("filter condition uses unknown attribute '%s', run with --help to get a list of attributes", filterKeywordsUnmatched[0])
 	}
 
 	return nil
