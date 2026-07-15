@@ -66,11 +66,11 @@ func (l *CheckDrivesize) getRequiredDrives(paths []string, parentFallback bool) 
 	for _, drive := range paths {
 		switch drive {
 		case "*", "all":
-			l.setVolumes(requiredDrives)
 			err := l.setDrives(requiredDrives)
 			if err != nil {
 				return nil, err
 			}
+			l.setVolumes(requiredDrives)
 			l.setShares(requiredDrives)
 		case "all-drives":
 			err := l.setDrives(requiredDrives)
@@ -521,8 +521,14 @@ func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, 
 		return
 	}
 
+	for _, existingDrive := range requiredDrives {
+		if existingDrive["drive"] == drive {
+			// drive already added
+			return
+		}
+	}
+
 	// check if there exists an entry
-	// this prevents adding the same drive multiple times
 	entry, idAlreadyAdded := requiredDrives[volumeID]
 	if !idAlreadyAdded {
 		entry = make(map[string]string)
