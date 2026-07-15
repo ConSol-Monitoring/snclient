@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -245,6 +246,14 @@ func (l *HandlerManagedExporter) procMainLoop() {
 			}
 		}
 
+		// capabilities are bound to threads, so make sure we are on the same thread when we drop them and execute the command
+		runtime.LockOSThread()
+		if cErr := clearInheritableCaps(); cErr != nil {
+			log.Errorf("agent startup error: %s", cErr)
+
+			return
+		}
+
 		// make sure no previous exporter are running
 		if l.killOrphaned {
 			l.killOrphanedExporters(l.agentPath, args)
@@ -258,10 +267,12 @@ func (l *HandlerManagedExporter) procMainLoop() {
 		if err != nil {
 			err = fmt.Errorf("failed to start %s agent: %s", l.Type(), err.Error())
 			log.Errorf("agent startup error: %s", err)
+			runtime.UnlockOSThread()
 
 			return
 		}
 
+		runtime.UnlockOSThread()
 		l.pid = cmd.Process.Pid
 		l.cmd = cmd
 
