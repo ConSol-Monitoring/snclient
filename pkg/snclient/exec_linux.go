@@ -4,10 +4,8 @@ package snclient
 
 import (
 	"context"
-	"os"
 	"syscall"
 
-	"github.com/consol-monitoring/snclient/pkg/convert"
 	"golang.org/x/sys/unix"
 )
 
@@ -30,10 +28,10 @@ func (snc *Agent) execCommandAsRoot(ctx context.Context, command string, timeout
 }
 
 // HasCapabilities returns true if the process possesses CAP_SETUID and CAP_SETGID.
-func (snc *Agent) HasCapabilities() bool {
+func HasCapabilities() bool {
 	header := unix.CapUserHeader{
 		Version: unix.LINUX_CAPABILITY_VERSION_3,
-		Pid:     convert.Int32(os.Getpid()),
+		Pid:     0, // current process
 	}
 	var data [2]unix.CapUserData
 	err := unix.Capget(&header, &data[0])
