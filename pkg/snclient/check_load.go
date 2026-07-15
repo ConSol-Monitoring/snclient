@@ -73,11 +73,16 @@ func (l *CheckLoad) Build() *CheckData {
 }
 
 func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	numCPU, err := cpuinfo.CountsWithContext(ctx, true)
+	if err != nil {
+		log.Warnf("cpuinfo.Counts: %s", err.Error())
+	}
+
 	loadStat, err := load.AvgWithContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("load.Avg(): %s", err.Error())
 	}
-	l.addLoadStats(check, "total", loadStat)
+	l.addLoadStats(check, "total", loadStat, numCPU)
 
 	//nolint:nestif // Anything less nested would be more complex to read?
 	if !l.perCPU {
@@ -96,10 +101,6 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 
 		// Scaled values are not added to the list data, no need to add them as metrics with null values
 	} else {
-		numCPU, err2 := cpuinfo.CountsWithContext(ctx, true)
-		if err2 != nil {
-			return nil, fmt.Errorf("cpuinfo: %s", err2.Error())
-		}
 		if numCPU == 0 {
 			return nil, fmt.Errorf("cpu count is zero")
 		}
@@ -109,7 +110,7 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 			Load15: loadStat.Load15 / float64(numCPU),
 		}
 		// Add scaled load values to the list data
-		l.addLoadStats(check, "scaled", scaledLoadStat)
+		l.addLoadStats(check, "scaled", scaledLoadStat, numCPU)
 
 		// In the percpu mode, thresholds are added only for the scaled load values
 		warningThresholdTransformationError := l.transformPluginThresholds(l.warning, "W", "scaled", &check.warnThreshold)
@@ -161,24 +162,32 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 		}
 	}
 
-	cores, err := cpuinfo.CountsWithContext(ctx, true)
-	if err != nil {
-		log.Warnf("cpuinfo.Counts: %s", err.Error())
+	if check.HasThreshold("cores") || check.HasFilter("cores") {
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:          "cores",
+			ThresholdName: "cores",
+			Unit:          "",
+			Value:         numCPU,
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+			Min:           &Zero,
+		})
 	}
 	check.details = map[string]string{
-		"cores": fmt.Sprintf("%d", cores),
+		"cores": fmt.Sprintf("%d", numCPU),
 	}
 
 	return check.Finalize()
 }
 
-func (l *CheckLoad) addLoadStats(check *CheckData, typename string, loadAvg *load.AvgStat) {
+func (l *CheckLoad) addLoadStats(check *CheckData, typename string, loadAvg *load.AvgStat, cores int) {
 	check.listData = append(check.listData, map[string]string{
 		"type":   typename,
 		"load":   fmt.Sprintf("%.2f", utils.ToPrecision(max(loadAvg.Load1, loadAvg.Load5, loadAvg.Load15), 2)),
 		"load1":  fmt.Sprintf("%.2f", utils.ToPrecision(loadAvg.Load1, 2)),
 		"load5":  fmt.Sprintf("%.2f", utils.ToPrecision(loadAvg.Load5, 2)),
 		"load15": fmt.Sprintf("%.2f", utils.ToPrecision(loadAvg.Load15, 2)),
+		"cores":  fmt.Sprintf("%d", cores),
 	})
 }
 

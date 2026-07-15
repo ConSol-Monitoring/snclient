@@ -95,14 +95,18 @@ func (l *CheckCPUUtilization) Check(ctx context.Context, snc *Agent, check *Chec
 			return nil, fmt.Errorf("procs: %s", err.Error())
 		}
 	}
+	cores, err := cpuinfo.CountsWithContext(ctx, true)
+	if err != nil {
+		log.Warnf("cpuinfo.Counts: %s", err.Error())
+	}
 
-	l.addCPUUtilizationMetrics(check, scanLookBack)
+	l.addCPUUtilizationMetrics(check, scanLookBack, cores)
 
 	return check.Finalize()
 }
 
 //nolint:funlen // The function is simple enough, the length comes from many fields to add.
-func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLookBack uint64) {
+func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLookBack uint64, cores int) {
 	entry := map[string]string{
 		"total":  "0",
 		"user":   "0",
@@ -111,6 +115,7 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLoo
 		"steal":  "0",
 		"guest":  "0",
 		"idle":   "0",
+		"cores":  fmt.Sprintf("%d", cores),
 	}
 	check.listData = append(check.listData, entry)
 
@@ -186,6 +191,20 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLoo
 			Min:      &Zero,
 		},
 	)
+
+	log.Errorf("1")
+	if check.HasThreshold("cores") || check.HasFilter("cores") {
+		log.Errorf("2")
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:          "cores",
+			ThresholdName: "cores",
+			Unit:          "",
+			Value:         cores,
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+			Min:           &Zero,
+		})
+	}
 }
 
 //nolint:funlen // moving these statements to new helper functions would be illogical
