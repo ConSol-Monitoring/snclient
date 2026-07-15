@@ -484,7 +484,7 @@ func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, v
 // This is used if folders are given
 // c:/, d:/volume, f:/folder/with/slash
 //
-//nolint:funlen // can not split this function up
+//nolint:funlen,gocyclo // can not split this function up, it has to check if its network drive, normal drive, a custom path under a volume etc.
 func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
 	path = strings.ReplaceAll(path, "/", "\\")
 	// if its a network share path, discover existing shares and match it with a drive[remote_path]
@@ -515,7 +515,7 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 
 	// organize the custom path, so that if it refers to a drive it matches the results from disk discovery
 	// the form to use looks like this:    C:\
-	var possibleDrivePath = path
+	possibleDrivePath := path
 	checkAsDrive := true
 	switch len(path) {
 	case 1:
@@ -557,15 +557,18 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 		availDisks := map[string]map[string]string{}
 		err = l.setDrives(availDisks)
 		for driveOrID := range availDisks {
-			if strings.EqualFold(driveOrID, possibleDrivePath) {
-				requiredDisks[path] = utils.CloneStringMap(availDisks[driveOrID])
-				requiredDisks[path]["drive"] = path         // use name from attributes
-				requiredDisks[path]["drive_or_name"] = path // used in default detail syntax
-				requiredDisks[path]["drive_or_name_or_id"] = path
-
-				return nil
+			if !strings.EqualFold(driveOrID, possibleDrivePath) {
+				continue
 			}
+
+			requiredDisks[path] = utils.CloneStringMap(availDisks[driveOrID])
+			requiredDisks[path]["drive"] = path // use name from attributes
+			requiredDisks[path]["drive_or_name"] = path
+			requiredDisks[path]["drive_or_name_or_id"] = path
+
+			return nil
 		}
+
 		if err != nil {
 			// if setDisks had a problem (e.g. bitlocker locked drive) and did not return
 			// the required drive, then pass any possible error on to the caller. otherwise
