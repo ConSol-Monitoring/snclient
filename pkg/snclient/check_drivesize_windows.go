@@ -57,8 +57,8 @@ func (l *CheckDrivesize) getExample() string {
 // Or it could be a network drive like \\SERVER\SHARENAME being mounted to K:\ drive
 // Checks the given path, resolves the alias and calls the corresponding function that adds the details
 func (l *CheckDrivesize) getRequiredDrives(paths []string, parentFallback bool) (requiredDrives map[string]map[string]string, err error) {
-	// create map of required disks/volmes/network_shares with "drive_or_name_or_id" as primary key
-
+	// create map of required disks/volmes/network_shares
+	// this map will be populated piece by piece
 	requiredDrives = map[string]map[string]string{}
 
 	// if there are multiple drive= arguments, these functions may be called multiple times.
@@ -391,7 +391,7 @@ func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) 
 	return nil
 }
 
-// adds all logical volumes to the requiredDisks
+// adds all logical volumes to the requiredDrives
 // network shares are not listed in volumes
 // this function populates requiredDrives map
 func (l *CheckDrivesize) setVolumes(requiredDrives map[string]map[string]string) {
@@ -442,7 +442,7 @@ func (l *CheckDrivesize) setVolumes(requiredDrives map[string]map[string]string)
 // it may or may not be mounted directly on a drive letter
 //
 //nolint:funlen // there are a lot of entry attributes
-func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, volumeGUIDPath string, buffer []uint16) {
+func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, volumeGUIDPath string, buffer []uint16) {
 	volPtr, err := syscall.UTF16PtrFromString(volumeGUIDPath)
 	if err != nil {
 		log.Warnf("stringPtr: %s: %s", volumeGUIDPath, err.Error())
@@ -523,7 +523,7 @@ func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, v
 
 	// check if there exists an entry
 	// this prevents adding the same drive multiple times
-	entry, idAlreadyAdded := requiredDisks[volumeID]
+	entry, idAlreadyAdded := requiredDrives[volumeID]
 	if !idAlreadyAdded {
 		entry = make(map[string]string)
 	}
@@ -538,7 +538,7 @@ func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, v
 	entry["mounted"] = mounted
 	entry["skip"] = skip
 
-	requiredDisks[volumeID] = entry
+	requiredDrives[volumeID] = entry
 }
 
 // The perflabel prefix situation it complicated due to compatibility reasons
@@ -581,7 +581,7 @@ func cleanupPathString(path string) (cleanedPath string, isDrive bool, err error
 	}
 
 	if len(cleanedPath) >= 1 && !unicode.IsLetter(rune(path[0])) {
-		log.Tracef("Custom path has length 1 and likely refers to a drive, but first rune is not a letter, path: '%s' ", path)
+		log.Tracef("Cleaned paths first rune is not a letter, cannot be a drive, path: '%s' ", path)
 		isDrive = false
 	}
 
@@ -594,7 +594,7 @@ func cleanupPathString(path string) (cleanedPath string, isDrive bool, err error
 	}
 
 	if len(cleanedPath) >= 2 && cleanedPath[1] != ':' {
-		log.Tracef("Custom path has length 2 and likely refers to a drive, but second rune is not colon, path: '%s' ", path)
+		log.Tracef("Cleaned paths second rune is not colon, cannot be a drive, path: '%s' ", path)
 		isDrive = false
 	}
 
@@ -603,7 +603,7 @@ func cleanupPathString(path string) (cleanedPath string, isDrive bool, err error
 	}
 
 	if len(cleanedPath) >= 3 && cleanedPath[2] != '\\' {
-		log.Tracef("Custom path has length 3 and likely refers to a drive, but third rune is not backslash, path: '%s' ", path)
+		log.Tracef("Cleaned paths third rune is not backslash, cannot be a drive, path: '%s' ", path)
 		isDrive = false
 	}
 
@@ -620,7 +620,7 @@ func cleanupPathString(path string) (cleanedPath string, isDrive bool, err error
 // c:/, d:/volume, f:/folder/with/slash
 //
 //nolint:funlen // can not split this function up, it has to check if its network drive, normal drive, a custom path under a volume etc.
-func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
+func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]map[string]string, parentFallback bool) (err error) {
 	// --------- Option 1 : Network share path
 
 	// if its a network share path, discover existing shares and match it with a drive[remote_path]
@@ -633,7 +633,7 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 			networkShare := discoveredNetworkShares[key]
 			remoteName, hasRemoteName := networkShare["remote_name"]
 			if hasRemoteName && strings.HasPrefix(path, remoteName) {
-				requiredDisks[key] = utils.CloneStringMap(discoveredNetworkShares[key])
+				requiredDrives[key] = utils.CloneStringMap(discoveredNetworkShares[key])
 
 				// drive["remote_name"] = \\SERVER\SHARENAME
 				// drive["drive"] = x:
@@ -641,8 +641,8 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 				// pathExample2 = \\SERVER\SHARENAME\FOO\BAR -> x:\FOO\BAR
 				pathReplaced := strings.Replace(path, networkShare["remote_name"], networkShare["drive"], 1)
 				// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
-				// requiredDisks[key]["drive_or_name"] = fmt.Sprintf("%s - (%s)", path, pathReplaced)
-				requiredDisks[key]["localised_remote_path"] = pathReplaced
+				// requiredDrives[key]["drive_or_name"] = fmt.Sprintf("%s - (%s)", path, pathReplaced)
+				requiredDrives[key]["localised_remote_path"] = pathReplaced
 
 				return nil
 			}
@@ -674,13 +674,13 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 				continue
 			}
 
-			requiredDisks[path] = utils.CloneStringMap(availDisks[key])
-			requiredDisks[path]["id"] = key
-			requiredDisks[path]["drive"] = cleanedPath
-			requiredDisks[path]["drive_or_id"] = cleanedPath
-			requiredDisks[path]["drive_or_name"] = cleanedPath
-			requiredDisks[path]["drive_or_name_or_id"] = cleanedPath
-			requiredDisks[path]["perflabel_prefix"], _ = getPerflabelPrefix(path)
+			requiredDrives[path] = utils.CloneStringMap(availDisks[key])
+			requiredDrives[path]["id"] = key
+			requiredDrives[path]["drive"] = cleanedPath
+			requiredDrives[path]["drive_or_id"] = cleanedPath
+			requiredDrives[path]["drive_or_name"] = cleanedPath
+			requiredDrives[path]["drive_or_name_or_id"] = cleanedPath
+			requiredDrives[path]["perflabel_prefix"], _ = getPerflabelPrefix(path)
 
 			return nil
 		}
@@ -728,11 +728,11 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 		}
 	}
 	if match != nil {
-		requiredDisks[path] = utils.CloneStringMap(*match)
-		requiredDisks[path]["drive"] = path
-		requiredDisks[path]["name"] = path
-		requiredDisks[path]["drive_or_name"] = path
-		requiredDisks[path]["drive_or_name_or_id"] = path
+		requiredDrives[path] = utils.CloneStringMap(*match)
+		requiredDrives[path]["drive"] = path
+		requiredDrives[path]["name"] = path
+		requiredDrives[path]["drive_or_name"] = path
+		requiredDrives[path]["drive_or_name_or_id"] = path
 
 		return nil
 	}
@@ -740,13 +740,13 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map
 	// add anyway to generate an error later with more default values filled in
 	entry := l.driveEntry(path)
 	entry["_error"] = fmt.Sprintf("%s not mounted", path)
-	requiredDisks[path] = entry
+	requiredDrives[path] = entry
 
 	return nil
 }
 
-// adds all network shares to requiredDisks
-func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
+// adds all network shares to requiredDrives
+func (l *CheckDrivesize) setShares(requiredDrives map[string]map[string]string) {
 	partitions, err := disk.Partitions(true)
 	if err != nil {
 		log.Debugf("Error when discovering partitions: %s", err.Error())
@@ -775,7 +775,7 @@ func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 			log.Debugf("Logical Drive: %s, Drive Type: %d, Remote name: %s", logicalDrive, driveType, remoteName)
 			// modify existing drive if its there
 			// if its not, add it new
-			drive, ok := requiredDisks[logicalDrive]
+			drive, ok := requiredDrives[logicalDrive]
 			if !ok {
 				drive = make(map[string]string)
 			}
@@ -792,7 +792,7 @@ func (l *CheckDrivesize) setShares(requiredDisks map[string]map[string]string) {
 			} else {
 				drive["persistent"] = "0"
 			}
-			requiredDisks[logicalDrive] = drive
+			requiredDrives[logicalDrive] = drive
 		}
 	}
 }
