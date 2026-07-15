@@ -13,6 +13,6 @@ func (snc *Agent) execCommandAsRoot(ctx context.Context, command string, timeout
 }
 
 // HasCapabilities returns false on non-Linux OSes.
-func (snc *Agent) HasCapabilities() bool {
+func HasCapabilities() bool {
 	return false
 }

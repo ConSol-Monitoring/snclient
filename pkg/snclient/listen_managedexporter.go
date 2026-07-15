@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -218,22 +219,12 @@ func (l *HandlerManagedExporter) keepRunning() bool {
 func (l *HandlerManagedExporter) procMainLoop() {
 	log.Tracef("starting watcher for %s agent", l.Type())
 	for l.keepRunning() {
-		args := utils.Tokenize(l.agentArgs)
-		if len(args) == 1 && args[0] == "" {
-			args = []string{}
-		}
-		if l.agentExtraArgs != "" {
-			extra := ReplaceMacros(l.agentExtraArgs, nil, l.conf.data)
-			args = append(args, extra)
-		}
-		args, err := utils.TrimQuotesList(args)
+		cmd, args, err := l.buildCmd()
 		if err != nil {
-			log.Errorf("export startup error: %s", err)
+			log.Errorf("agent startup error: %s", err)
 
 			return
 		}
-		cmd := exec.CommandContext(context.TODO(), l.agentPath, args...) //nolint:gosec // input source is the config file
-		cmd.Env = append(os.Environ(), environmentMarker)
 
 		// drop privileges when started as root
 		if l.agentUser != "" && os.Geteuid() == 0 {
@@ -243,6 +234,14 @@ func (l *HandlerManagedExporter) procMainLoop() {
 
 				return
 			}
+		}
+
+		// capabilities are bound to threads, so make sure we are on the same thread when we drop them and execute the command
+		runtime.LockOSThread()
+		if cErr := clearInheritableCaps(); cErr != nil {
+			log.Errorf("agent startup error: %s", cErr)
+
+			return
 		}
 
 		// make sure no previous exporter are running
@@ -258,10 +257,12 @@ func (l *HandlerManagedExporter) procMainLoop() {
 		if err != nil {
 			err = fmt.Errorf("failed to start %s agent: %s", l.Type(), err.Error())
 			log.Errorf("agent startup error: %s", err)
+			runtime.UnlockOSThread()
 
 			return
 		}
 
+		runtime.UnlockOSThread()
 		l.pid = cmd.Process.Pid
 		l.cmd = cmd
 
@@ -284,6 +285,25 @@ func (l *HandlerManagedExporter) procMainLoop() {
 		}
 	}
 	log.Tracef("watcher for %s agent finished", l.Type())
+}
+
+func (l *HandlerManagedExporter) buildCmd() (*exec.Cmd, []string, error) {
+	args := utils.Tokenize(l.agentArgs)
+	if len(args) == 1 && args[0] == "" {
+		args = []string{}
+	}
+	if l.agentExtraArgs != "" {
+		extra := ReplaceMacros(l.agentExtraArgs, nil, l.conf.data)
+		args = append(args, extra)
+	}
+	args, err := utils.TrimQuotesList(args)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to trim quotes from arguments: %s", err.Error())
+	}
+	cmd := exec.CommandContext(context.TODO(), l.agentPath, args...) //nolint:gosec // input source is the config file
+	cmd.Env = append(os.Environ(), environmentMarker)
+
+	return cmd, args, nil
 }
 
 func (l *HandlerManagedExporter) procMemWatcher() {

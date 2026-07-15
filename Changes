@@ -1,12 +1,13 @@
 This file documents the revision history for the SNClient agent.
 
 next:
-         - update node exporter to 1.12.0
+         - update node exporter to 1.12.1
          - update golang build chain to 1.26.5
          - linux: merge lib into usr/lib
          - add newlines to default nasty characters
          - always add control characters as nasty characters
          - add new option allow control characters which prevents using ascii control characters in arguments
+         - add rss watcher task which kills the agent in case of memory leaks
 
 0.44     Wed Jun 24 13:03:43 CEST 2026
          - fix running external scripts with sudo (#388)

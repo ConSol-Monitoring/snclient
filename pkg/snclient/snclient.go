@@ -1224,10 +1224,22 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("invalid shared-path %s: %s", workDir, err.Error())
 	}
 	cmd.Dir = workDir
+
+	// capabilities are bound to threads, so make sure we are on the same thread when we drop them and execute the command
+	runtime.LockOSThread()
+	if cErr := clearInheritableCaps(); cErr != nil {
+		log.Errorf("command error: %s", cErr)
+
+		return "", "", ExitCodeUnknown, nil, cErr
+	}
+
 	err = cmd.Start()
 	if err != nil && cmd.ProcessState == nil {
+		runtime.UnlockOSThread()
+
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %w", err)
 	}
+	runtime.UnlockOSThread()
 
 	// https://github.com/golang/go/issues/18874
 	// timeout does not work for child processes and/or if file handles are still open

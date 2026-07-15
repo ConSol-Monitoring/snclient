@@ -41,6 +41,7 @@ const (
 var DefaultConfig = map[string]ConfigData{
 	"/modules": {
 		"Logrotate":            "enabled",
+		"ProcessMemoryWatcher": "enabled",
 		"CheckSystem":          "enabled",
 		"CheckSystemUnix":      "enabled",
 		"CheckAlias":           "enabled",
