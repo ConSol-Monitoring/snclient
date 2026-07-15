@@ -440,6 +440,8 @@ func (l *CheckDrivesize) setVolumes(requiredDrives map[string]map[string]string)
 // this function is used to further process the volume GUID path returned from Windows API calls
 // takes a GUID path of a volume, then finds its path name.
 // it may or may not be mounted directly on a drive letter
+//
+//nolint:funlen // there are a lot of entry attributes
 func (l *CheckDrivesize) setVolume(requiredDisks map[string]map[string]string, volumeGUIDPath string, buffer []uint16) {
 	volPtr, err := syscall.UTF16PtrFromString(volumeGUIDPath)
 	if err != nil {
@@ -617,7 +619,7 @@ func cleanupPathString(path string) (cleanedPath string, isDrive bool, err error
 // This is used if folders are given
 // c:/, d:/volume, f:/folder/with/slash
 //
-//nolint:funlen,gocyclo // can not split this function up, it has to check if its network drive, normal drive, a custom path under a volume etc.
+//nolint:funlen // can not split this function up, it has to check if its network drive, normal drive, a custom path under a volume etc.
 func (l *CheckDrivesize) setCustomPath(path string, requiredDisks map[string]map[string]string, parentFallback bool) (err error) {
 	// --------- Option 1 : Network share path
 
