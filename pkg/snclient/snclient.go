@@ -1230,12 +1230,13 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 	if cErr := clearInheritableCaps(); cErr != nil {
 		log.Errorf("command error: %s", cErr)
 
-		return
+		return "", "", ExitCodeUnknown, nil, cErr
 	}
 
 	err = cmd.Start()
 	if err != nil && cmd.ProcessState == nil {
 		runtime.UnlockOSThread()
+
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %w", err)
 	}
 	runtime.UnlockOSThread()
