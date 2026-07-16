@@ -116,3 +116,29 @@ func TestCheckLogFileColumnN(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckLogFileLineSplit(t *testing.T) {
+	snc := StartTestAgent(t, testLogfileConfig)
+
+	res := snc.RunCheck("check_logfile", []string{"files=./t/test.log", "offset=0"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - All 8 / 8 Lines OK")
+
+	res2 := snc.RunCheck("check_logfile", []string{"files=./t/test.log", "offset=0", "line-split='\\n'"})
+	assert.Equalf(t, CheckExitOK, res2.State, "state OK")
+	assert.Contains(t, string(res2.BuildPluginOutput()), "OK - All 8 / 8 Lines OK")
+
+	res3 := snc.RunCheck("check_logfile", []string{"files=./t/test.log", "offset=0", "line-split='\\r\\n'"})
+	assert.Equalf(t, CheckExitOK, res3.State, "state OK")
+	assert.Contains(t, string(res3.BuildPluginOutput()), "OK - All 8 / 8 Lines OK")
+
+	res3 = snc.RunCheck("check_logfile", []string{"files=./t/test.log", "line-split='\\r\\n'"})
+	assert.Equalf(t, CheckExitOK, res3.State, "state OK")
+	assert.Contains(t, string(res3.BuildPluginOutput()), "OK - All 0 / 0 Lines OK")
+
+	res3 = snc.RunCheck("check_logfile", []string{"files=./t/test.log", "offset=0", "line-split='INFO'"})
+	assert.Equalf(t, CheckExitOK, res3.State, "state OK")
+	assert.Contains(t, string(res3.BuildPluginOutput()), "OK - All 5 / 5 Lines OK")
+
+	StopTestAgent(t, snc)
+}

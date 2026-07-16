@@ -104,6 +104,8 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		return nil, fmt.Errorf("module CheckLogFile is not enabled in /modules section")
 	}
 
+	c.LineDelimiter = unescapeNastyCharacters(c.LineDelimiter)
+
 	c.FilePath = append(c.FilePath, strings.Split(c.Paths, ",")...)
 	if len(c.FilePath) == 0 {
 		return nil, fmt.Errorf("no file defined")
@@ -290,20 +292,26 @@ func (c *CheckLogFile) getStartOffset(fileName string, currentSize int64, curren
 }
 
 func (c *CheckLogFile) getCustomSplitFunction() bufio.SplitFunc {
+	if c.LineDelimiter == "\n" || c.LineDelimiter == "\r\n" || c.LineDelimiter == "" {
+		return bufio.ScanLines
+	}
+
+	delim := []byte(c.LineDelimiter)
+
 	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		if c.LineDelimiter == "\n" || c.LineDelimiter == "" {
-			return bufio.ScanLines(data, atEOF)
-		}
 		if atEOF && len(data) == 0 {
 			return 0, nil, nil
 		}
-		if i := bytes.IndexAny(data, c.LineDelimiter); i >= 0 {
-			return i, data[0:i], nil
+		if i := bytes.Index(data, delim); i >= 0 {
+			return i + 1, data[0:i], nil
 		}
+
+		// If we're at EOF, we have a final, non-terminated line. Return it.
 		if atEOF {
 			return len(data), data, nil
 		}
 
+		// Request more data.
 		return 0, nil, nil
 	}
 }
