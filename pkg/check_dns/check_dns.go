@@ -296,8 +296,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 	if r.MsgHdr.Rcode != dns.RcodeSuccess {
 		tryLogTrace("DNS does not have success return code, raising status to critical")
-		checkSt = checkers.CRITICAL
-		escalateStatus(checkers.UNKNOWN)
+		escalateStatus(checkers.CRITICAL)
 	}
 
 	msg := ""
