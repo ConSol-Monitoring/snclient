@@ -141,7 +141,17 @@ func TestCheckLogFileFileDoesNotExist(t *testing.T) {
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/testfiledoesnotexist*"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found to search lines in")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found to search lines in, search paths: './t/testfiledoesnotexist*'")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckLogFileFileDoesNotExist2(t *testing.T) {
+	snc := StartTestAgent(t, testLogfileConfig)
+
+	res := snc.RunCheck("check_logfile", []string{"file=./t/testfiledoesnotexist1", "files=./t/testfiledoesnotexist2,./t/testfiledoesnotexist3"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found to search lines in, search paths: './t/testfiledoesnotexist1 , ./t/testfiledoesnotexist2 , ./t/testfiledoesnotexist3'")
 
 	StopTestAgent(t, snc)
 }
