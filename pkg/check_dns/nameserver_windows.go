@@ -54,12 +54,6 @@ func adapterAddress(_ *dns.ClientConfig) (nameservers []string, err error) {
 	return []string{nameserver}, nil
 }
 
-// windows does not use a resolv.config file i.e dns.ClientConfig
-// this function is defined for consistency across platforms
-func AppendSearchPathsIfExists(host string, _ *dns.ClientConfig) string {
-	return host
-}
-
 func getSearchPaths(_ *dns.ClientConfig) []string {
 	return []string{}
 }

@@ -51,14 +51,6 @@ func adapterAddress(conf *dns.ClientConfig) (nameservers []string, err error) {
 	return parsedNameservers, nil
 }
 
-func AppendSearchPathsIfExists(host string, conf *dns.ClientConfig) string {
-	if len(conf.Search) > 0 {
-		return host + "." + conf.Search[0]
-	}
-
-	return host
-}
-
 func getSearchPaths(conf *dns.ClientConfig) []string {
 	return conf.Search
 }
