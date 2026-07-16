@@ -68,7 +68,7 @@ func (c *CheckLogFile) Build() *CheckData {
 		listCombine:  "\n",
 		okSyntax:     "%(status) - %(count) line(s) found",
 		topSyntax:    "%(status) - %(problem_count)/%(count) line(s) found \n%(problem_list)",
-		emptySyntax:  "%(status) - No files found",
+		emptySyntax:  "%(status) - No files found to search lines in, search paths: '%(file_search_paths)'",
 		emptyState:   CheckExitUnknown,
 		args: map[string]CheckArgument{
 			"file":         {value: &c.FilePathPatterns, description: "The file that should be checked", isFilter: true},
@@ -153,8 +153,9 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	}
 
 	check.details = map[string]string{
-		"total":       fmt.Sprintf("%d", totalLineIndexedCount),
-		"file_counts": c.buildFileCountsDetailString(checkedFilesWithMatchedEntries),
+		"total":             fmt.Sprintf("%d", totalLineIndexedCount),
+		"file_counts":       c.buildFileCountsDetailString(checkedFilesWithMatchedEntries),
+		"file_search_paths": strings.Join(c.FilePathPatterns, " , "),
 	}
 
 	if check.HasThreshold("count") {
@@ -162,10 +163,7 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		check.addCountMetricsToFront = true
 	}
 
-	switch {
-	case len(checkedFilesWithMatchedEntries) == 0:
-		check.emptySyntax = fmt.Sprintf("%%(status) - No files found to search lines in, search paths: '%s' ", strings.Join(c.FilePathPatterns, " , "))
-	case len(check.listData) == 0:
+	if len(checkedFilesWithMatchedEntries) > 0 && len(check.listData) == 0 {
 		check.emptyState = CheckExitOK
 		check.emptyStateSet = true
 		check.emptySyntax = fmt.Sprintf("%%(status) - No matching lines found")
