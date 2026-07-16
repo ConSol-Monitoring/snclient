@@ -37,6 +37,9 @@ func TestProcessMemoryWatcherStartDisabledOnZeroLimit(t *testing.T) {
 }
 
 func TestProcessMemoryWatcherExceedsLimitPanics(t *testing.T) {
+	disableLogsTemporarily()
+	defer restoreLogLevel()
+
 	handler := &ProcessMemoryWatcherHandler{
 		memoryLimit:   1,
 		checkInterval: 100 * time.Millisecond,
