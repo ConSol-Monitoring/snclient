@@ -100,7 +100,7 @@ func (l *CheckOMD) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 	}
 
 	for _, site := range sites {
-		if strings.ContainsAny(site, SystemCmdNastyCharacters) {
+		if containsNastyCharacters(site, SystemCmdNastyCharacters) {
 			return nil, fmt.Errorf("site name must not contain nasty characters")
 		}
 		l.addOmdSite(ctx, check, site)
@@ -121,7 +121,7 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 	check.listData = append(check.listData, details)
 
 	// check requires root permission or capabilities
-	if os.Geteuid() != 0 && !l.snc.HasCapabilities() {
+	if os.Geteuid() != 0 && !HasCapabilities() {
 		details["_error"] = "check_omd requires root permissions or cap_setuid/cap_setgid"
 
 		return
@@ -131,7 +131,7 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 		return
 	}
 
-	statusRaw, stderr, _, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("omd -b status '%s'", site), l.snc.getBuiltinCmdTimeout())
+	statusRaw, stderr, _, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("%s -b status '%s'", OMDbin, site), l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		log.Warnf("omd status: %s%s", statusRaw, stderr)
 		details["_error"] = err.Error()

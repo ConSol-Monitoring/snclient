@@ -27,6 +27,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/consol-monitoring/snclient/pkg/counter"
 	"github.com/consol-monitoring/snclient/pkg/humanize"
@@ -824,7 +825,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 		return snc.runHelp(ctx, chk, handler), chk
 	}
 	if !skipAllowedCheck {
-		err = snc.checkAllowed(name, chk, handler, parsedArgs, transportConf)
+		err = snc.checkAllowed(name, chk, handler, args, ArgumentList(parsedArgs).RawList(), transportConf)
 		if err != nil {
 			return &CheckResult{
 				State:  CheckExitUnknown,
@@ -852,8 +853,8 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 }
 
 // check allowed arguments and nasty characters settings.
-func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHandler, parsedArgs []Argument, transportConf *ConfigSection) error {
-	log.Tracef("check allowed: chk:%T cmd:%s: %#v // %#v", handler, command, parsedArgs, chk.rawArgs)
+func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHandler, fullArgs, parsedArgs []string, transportConf *ConfigSection) error {
+	log.Tracef("check allowed: chk:%T cmd:%s: %#v // %#v // %#v", handler, command, fullArgs, chk.rawArgs, parsedArgs)
 	var chkConfig *ConfigSection
 	switch hdl := handler.(type) {
 	case *CheckAlias:
@@ -865,12 +866,16 @@ func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHand
 	// this is the config section from ex.: the script or command alias config
 	argsOk := false
 	nastyOk := false
+	ctrlOk := false
 	if chkConfig != nil {
 		_, argsOk, _ = chkConfig.GetBool("allow arguments")
 		_, nastyOk, _ = chkConfig.GetBool("allow nasty characters")
+		_, ctrlOk, _ = chkConfig.GetBool("allow control characters")
 		switch {
 		case !checkAllowArguments(chkConfig, chk.rawArgs):
 			return fmt.Errorf("exception processing request: request contained arguments (check the allow arguments option)")
+		case !checkControlCharacters(chkConfig, "", chk.rawArgs):
+			return fmt.Errorf("exception processing request: request contained illegal control characters (check the allow control characters option)")
 		case !checkNastyCharacters(chkConfig, "", chk.rawArgs):
 			return fmt.Errorf("exception processing request: request contained illegal characters (check the allow nasty characters option)")
 		}
@@ -882,7 +887,9 @@ func (snc *Agent) checkAllowed(command string, chk *CheckData, handler CheckHand
 		switch {
 		case !argsOk && !checkAllowArguments(transportConf, chk.rawArgs):
 			return fmt.Errorf("exception processing request: request contained arguments (check the allow arguments option)")
-		case !nastyOk && !checkNastyCharacters(transportConf, command, ArgumentList(parsedArgs).RawList()):
+		case !ctrlOk && !checkControlCharacters(transportConf, command, fullArgs):
+			return fmt.Errorf("exception processing request: request contained illegal control characters (check the allow control characters option)")
+		case !nastyOk && !checkNastyCharacters(transportConf, command, parsedArgs):
 			return fmt.Errorf("exception processing request: request contained illegal characters (check the allow nasty characters option)")
 		}
 	}
@@ -1217,10 +1224,22 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("invalid shared-path %s: %s", workDir, err.Error())
 	}
 	cmd.Dir = workDir
+
+	// capabilities are bound to threads, so make sure we are on the same thread when we drop them and execute the command
+	runtime.LockOSThread()
+	if cErr := clearInheritableCaps(); cErr != nil {
+		log.Errorf("command error: %s", cErr)
+
+		return "", "", ExitCodeUnknown, nil, cErr
+	}
+
 	err = cmd.Start()
 	if err != nil && cmd.ProcessState == nil {
+		runtime.UnlockOSThread()
+
 		return "", "", ExitCodeUnknown, nil, fmt.Errorf("proc: %w", err)
 	}
+	runtime.UnlockOSThread()
 
 	// https://github.com/golang/go/issues/18874
 	// timeout does not work for child processes and/or if file handles are still open
@@ -1578,6 +1597,24 @@ func checkAllowArguments(conf *ConfigSection, args []string) bool {
 	return len(args) == 0
 }
 
+// containsControlCharacters checks for ascii control characters in cmd and arguments. Returns true if found some.
+func containsControlCharacters(val string) bool {
+	// check for control sequences
+	for _, r := range val {
+		if unicode.IsControl(r) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// containsNastyCharacters checks for nasty characters in cmd and arguments. Returns true if found some.
+func containsNastyCharacters(val, nastyChars string) bool {
+	return strings.ContainsAny(val, nastyChars)
+}
+
+// checkNastyCharacters checks for nasty characters in cmd and arguments. Returns true if safe.
 func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	allowed, _, err := conf.GetBool("allow nasty characters")
 	if err != nil {
@@ -1594,16 +1631,46 @@ func checkNastyCharacters(conf *ConfigSection, cmd string, args []string) bool {
 	if !ok {
 		nastyChars = DefaultNastyCharacters
 	}
-	nastyChars = unescapeNastyCharacters(nastyChars)
 
-	if strings.ContainsAny(cmd, nastyChars) {
+	if containsNastyCharacters(cmd, nastyChars) {
 		log.Debugf("command string contained nasty character: %s", cmd)
 
 		return false
 	}
 
 	for i, arg := range args {
-		if strings.ContainsAny(arg, nastyChars) {
+		if containsNastyCharacters(arg, nastyChars) {
+			log.Debugf("cmd arg (#%d) contained nasty character", i)
+			log.Tracef("cmd arg (#%d) contained nasty character: '%s'", i, arg)
+
+			return false
+		}
+	}
+
+	return true
+}
+
+// checkControlCharacters checks for ascii control characters in cmd and arguments. Returns true if safe.
+func checkControlCharacters(conf *ConfigSection, cmd string, args []string) bool {
+	allowed, _, err := conf.GetBool("allow control characters")
+	if err != nil {
+		log.Errorf("config error: %s", err.Error())
+
+		return false
+	}
+
+	if allowed {
+		return true
+	}
+
+	if containsControlCharacters(cmd) {
+		log.Debugf("command string contained ascii control character: %s", cmd)
+
+		return false
+	}
+
+	for i, arg := range args {
+		if containsControlCharacters(arg) {
 			log.Debugf("cmd arg (#%d) contained nasty character", i)
 			log.Tracef("cmd arg (#%d) contained nasty character: '%s'", i, arg)
 

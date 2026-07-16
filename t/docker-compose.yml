@@ -1,0 +1,13 @@
+services:
+  debian:
+    build:
+      context: .
+      dockerfile: debian/Dockerfile
+    privileged: true
+    environment:
+      container: docker
+      DEBIAN_FRONTEND: noninteractive
+      SNCLIENT_INSTALL_TEST: 1
+    volumes:
+      - ..:/src
+    working_dir: /src

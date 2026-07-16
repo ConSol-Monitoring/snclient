@@ -64,13 +64,15 @@ Below, you'll find a reference section for configuring the External Script Integ
 #### External Script Integration Settings
 
 - **allow arguments**: Allow or disallow script arguments when executing external scripts. Default is `false`.
-- **allow nasty characters**: Permit or restrict certain potentially dangerous characters (```|`&><'"\[]{}```) in arguments. Default is `false`.
+- **allow nasty characters**: Permit or restrict certain characters (```|`&><'"\[]{}...```) in arguments. Default is `false`.
+- **allow control characters**: Permit or restrict ascii control characters in arguments. Default is `false`.
 - **timeout**: Set the maximum execution time for commands (in seconds). This applies to external commands only, not internal ones.
 
 ```ini
 [/settings/external scripts]
 allow arguments = false
 allow nasty characters = false
+allow control characters = false
 timeout = 60
 ```
 

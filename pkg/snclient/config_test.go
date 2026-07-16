@@ -20,7 +20,6 @@ func TestConfigPkgDefaults(t *testing.T) {
 
 	// verify default nasty characters
 	nastyChars, _ := cfg.Section("/settings/WEB/server").GetString("nasty characters")
-	nastyChars = unescapeNastyCharacters(nastyChars)
 	assert.Equalf(t, DefaultNastyCharacters, nastyChars, "default nasty characters")
 	assert.Containsf(t, nastyChars, "\\", "nasty characters contains backslash")
 	assert.Containsf(t, nastyChars, ";", "nasty characters contains semicolon")
@@ -312,9 +311,14 @@ test = ./test.ini
 		changedConfig = strings.ReplaceAll(changedConfig, "\n", "\r\n")
 	}
 
-	cfg.Section("/settings/WEB/server").Insert("port", "1234")
-	cfg.Section("/settings/WEB/server").Insert("use ssl", "enabled")
-	cfg.Section("/includes").Insert("test", "./test.ini")
+	err = cfg.Section("/settings/WEB/server").Insert("port", "1234")
+	require.NoError(t, err)
+
+	err = cfg.Section("/settings/WEB/server").Insert("use ssl", "enabled")
+	require.NoError(t, err)
+
+	err = cfg.Section("/includes").Insert("test", "./test.ini")
+	require.NoError(t, err)
 
 	assert.Equalf(t, strings.TrimSpace(changedConfig), strings.TrimSpace(cfg.ToString()), "config changed correctly")
 }

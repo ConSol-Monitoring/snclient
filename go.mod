@@ -8,7 +8,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/consol-monitoring/check_nsc_web v0.7.6
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/go-chi/chi/v5 v5.3.0
+	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-ole/go-ole v1.3.0
 	github.com/goccy/go-json v0.10.6
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
@@ -29,8 +29,8 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/subuk/csrtool v0.0.0-20250413213651-887255723652
 	github.com/yusufpapurcu/wmi v1.2.4
-	golang.org/x/sys v0.46.0
-	golang.org/x/term v0.44.0
+	golang.org/x/sys v0.47.0
+	golang.org/x/term v0.45.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

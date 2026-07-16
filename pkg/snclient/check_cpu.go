@@ -71,6 +71,11 @@ Checking **each core** by adding filter=none (disabling the filter):
 }
 
 func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	numCPU, err := cpuinfo.CountsWithContext(ctx, true)
+	if err != nil {
+		log.Warnf("cpuinfo.Counts: %s", err.Error())
+	}
+
 	if len(snc.Counter.Keys("cpu")) == 0 {
 		return nil, fmt.Errorf("no cpu counter available, make sure CheckSystem / CheckSystemUnix in /modules config is enabled")
 	}
@@ -96,6 +101,7 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 				"core":    name,
 				"core_id": name,
 				"load":    fmt.Sprintf("%.0f", utils.ToPrecision(avg, 0)),
+				"cores":   fmt.Sprintf("%d", numCPU),
 			})
 			check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 				ThresholdName: "load",
@@ -115,13 +121,23 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 		}
 	}
 
-	cores, err := cpuinfo.CountsWithContext(ctx, true)
-	if err != nil {
-		log.Warnf("cpuinfo.Counts: %s", err.Error())
-	}
+	// Use the previously obtained numCPU instead of querying again
 	check.details = map[string]string{
 		"total":    fmt.Sprintf("%f", total),
-		"core_num": fmt.Sprintf("%d", cores),
+		"core_num": fmt.Sprintf("%d", numCPU),
+		"cores":    fmt.Sprintf("%d", numCPU),
+	}
+
+	if check.HasThreshold("cores") || check.HasFilter("cores") {
+		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+			Name:          "cores",
+			ThresholdName: "cores",
+			Unit:          "",
+			Value:         numCPU,
+			Warning:       check.warnThreshold,
+			Critical:      check.critThreshold,
+			Min:           &Zero,
+		})
 	}
 
 	return check.Finalize()

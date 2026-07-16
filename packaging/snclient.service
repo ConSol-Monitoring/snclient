@@ -9,6 +9,16 @@ Group=snclient
 
 AmbientCapabilities=CAP_SETUID CAP_SETGID
 
+# Last-resort protection for the complete service cgroup, including child
+# processes. The in-process 512 MiB RSS watcher remains the primary safeguard.
+MemoryAccounting=yes
+MemoryHigh=1536M
+MemoryMax=2G
+
+# Treat a cgroup OOM as a failure of the complete service and restart cleanly.
+OOMPolicy=kill
+KillMode=control-group
+
 Restart=on-failure
 RestartSec=10
 

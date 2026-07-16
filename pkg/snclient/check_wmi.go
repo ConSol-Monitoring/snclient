@@ -84,8 +84,9 @@ func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Ar
 		return nil, fmt.Errorf("wmi query required")
 	}
 
+	//nolint:staticcheck,nolintlint // error is always true, but only when not on a windows system
 	queryData, err := wmi.RawQuery(l.query)
-	if err != nil {
+	if err != nil { //nolint:staticcheck,nolintlint // error is always true, but only when not on a windows system
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}
 

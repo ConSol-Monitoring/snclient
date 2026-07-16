@@ -8,7 +8,7 @@ GOVERSION:=$(shell \
     awk -F'go| ' '{ split($$5, a, /\./); printf ("%04d%04d", a[1], a[2]); exit; }' \
 )
 # also update other go.mod files when changing minimum version
-# find . -name go.mod
+# find . -name go.mod -o -name Dockerfile
 MINGOVERSION:=00010026
 MINGOVERSIONSTR:=1.26
 BUILD:=$(shell git rev-parse --short HEAD)
@@ -68,7 +68,7 @@ TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 # node_exporter expects armv7, not arm
 NODE_EXPORTER_ARCH=$(GOARCH:arm=armv7)
 
-NODE_EXPORTER_VERSION=1.12.0
+NODE_EXPORTER_VERSION=1.12.1
 NODE_EXPORTER_FILE=node_exporter-$(NODE_EXPORTER_VERSION).$(GOOS)-$(NODE_EXPORTER_ARCH).tar.gz
 NODE_EXPORTER_URL=https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)
 
@@ -461,6 +461,10 @@ server.crt: | dist
 server.key: | dist
 	cp dist/server.key .
 
+snclient.deb:
+	$(MAKE) deb
+	cp $(DEBFILE) snclient.deb
+
 deb: | dist
 	mkdir -p \
 		build-deb/etc/snclient \
@@ -493,7 +497,7 @@ deb: | dist
 	cp Changes build-deb/usr/share/doc/snclient/Changes
 	dch --empty --create --newversion "$(VERSION)" --package "snclient" -D "UNRELEASED" --urgency "low" -c build-deb/usr/share/doc/snclient/changelog "new upstream release"
 	rm -f build-deb/usr/share/doc/snclient/changelog.gz
-	gzip -9 build-deb/usr/share/doc/snclient/changelog
+	gzip -n -9 build-deb/usr/share/doc/snclient/changelog
 
 	cp ./dist/LICENSE build-deb/usr/share/doc/snclient/copyright
 	cp ./dist/README.md build-deb/usr/share/doc/snclient/README

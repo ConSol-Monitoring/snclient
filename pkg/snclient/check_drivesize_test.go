@@ -49,7 +49,7 @@ func TestCheckDrivesize(t *testing.T) {
 	res = snc.RunCheck("check_drivesize", []string{"warn=inodes>100%", "crit=inodes>100%", "folder=" + tmpFolder})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), `OK - All 1 drive`, "output matches")
-	assert.Contains(t, string(res.BuildPluginOutput()), `'`+tmpFolder+` inodes'=`, "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), `'`+tmpFolder+` inodes_used %'=`, "output matches")
 
 	StopTestAgent(t, snc)
 }
