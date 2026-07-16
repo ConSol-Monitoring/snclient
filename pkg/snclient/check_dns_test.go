@@ -151,5 +151,115 @@ CheckBuiltinPlugins = enabled
 		)
 	})
 
+	t.Run("missing host argument", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - .*host.*`,
+			string(res.BuildPluginOutput()),
+			"missing host argument",
+		)
+	})
+
+	t.Run("empty host argument", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", ""})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - host must not be empty`,
+			string(res.BuildPluginOutput()),
+			"empty host argument",
+		)
+	})
+
+	t.Run("empty query type", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-q", " "})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - query type must not be empty`,
+			string(res.BuildPluginOutput()),
+			"empty query type",
+		)
+	})
+
+	t.Run("invalid port", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-p", "70000"})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - port must be between 1 and 65535, got: 70000`,
+			string(res.BuildPluginOutput()),
+			"invalid port",
+		)
+	})
+
+	t.Run("zero timeout", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-t", "0"})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - timeout must be a positive number of seconds, got: 0`,
+			string(res.BuildPluginOutput()),
+			"zero timeout",
+		)
+	})
+
+	t.Run("negative timeout", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-t", "-5"})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - timeout must be a positive number of seconds, got: -5`,
+			string(res.BuildPluginOutput()),
+			"negative timeout",
+		)
+	})
+
+	t.Run("negative warning threshold", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-w", "-1"})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - warning threshold must not be negative, got: -1`,
+			string(res.BuildPluginOutput()),
+			"negative warning threshold",
+		)
+	})
+
+	t.Run("negative critical threshold", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-c", "-1"})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - critical threshold must not be negative, got: -1`,
+			string(res.BuildPluginOutput()),
+			"negative critical threshold",
+		)
+	})
+
+	t.Run("warning threshold higher than critical", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-w", "10", "-c", "5"})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - warning threshold \(10\) must not be higher than the critical threshold \(5\)`,
+			string(res.BuildPluginOutput()),
+			"warning threshold higher than critical",
+		)
+	})
+
+	t.Run("empty expected string", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-e", ""})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - expected string must not be empty`,
+			string(res.BuildPluginOutput()),
+			"empty expected string",
+		)
+	})
+
 	StopTestAgent(t, snc)
 }

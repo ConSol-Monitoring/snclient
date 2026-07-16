@@ -53,7 +53,42 @@ func parseArgs(args []string) (*dnsOpts, error) {
 	psr := flags.NewParser(opts, flags.HelpFlag|flags.PassDoubleDash) // default flags without flags.PrintErrors
 	psr.Name = "check_dns"
 	_, err := psr.ParseArgs(args)
-	return opts, err
+	if err != nil {
+		return opts, err
+	}
+
+	return opts, opts.validate()
+}
+
+func (opts *dnsOpts) validate() error {
+	if strings.TrimSpace(opts.Host) == "" {
+		return fmt.Errorf("host must not be empty")
+	}
+	if strings.TrimSpace(opts.QueryType) == "" {
+		return fmt.Errorf("query type must not be empty")
+	}
+	if opts.Port < 1 || opts.Port > 65535 {
+		return fmt.Errorf("port must be between 1 and 65535, got: %d", opts.Port)
+	}
+	if opts.Timeout <= 0 {
+		return fmt.Errorf("timeout must be a positive number of seconds, got: %d", opts.Timeout)
+	}
+	if opts.WarningTimeout != nil && *opts.WarningTimeout < 0 {
+		return fmt.Errorf("warning threshold must not be negative, got: %d", *opts.WarningTimeout)
+	}
+	if opts.CriticalTimeout != nil && *opts.CriticalTimeout < 0 {
+		return fmt.Errorf("critical threshold must not be negative, got: %d", *opts.CriticalTimeout)
+	}
+	if opts.WarningTimeout != nil && opts.CriticalTimeout != nil && *opts.WarningTimeout > *opts.CriticalTimeout {
+		return fmt.Errorf("warning threshold (%d) must not be higher than the critical threshold (%d)", *opts.WarningTimeout, *opts.CriticalTimeout)
+	}
+	for _, expected := range opts.ExpectedString {
+		if strings.TrimSpace(expected) == "" {
+			return fmt.Errorf("expected string must not be empty")
+		}
+	}
+
+	return nil
 }
 
 func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
