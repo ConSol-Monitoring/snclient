@@ -131,7 +131,7 @@ func (l *CheckOMD) addOmdSite(ctx context.Context, check *CheckData, site string
 		return
 	}
 
-	statusRaw, stderr, _, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("omd -b status '%s'", site), l.snc.getBuiltinCmdTimeout())
+	statusRaw, stderr, _, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("%s -b status '%s'", OMDbin, site), l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		log.Warnf("omd status: %s%s", statusRaw, stderr)
 		details["_error"] = err.Error()
