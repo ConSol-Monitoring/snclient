@@ -1,0 +1,36 @@
+name: Sign update package
+description: Create a detached ECDSA signature with OpenSSL
+
+inputs:
+  artifact:
+    description: Package file to sign
+    required: true
+  private-key-pem:
+    description: PEM-encoded ECDSA private key
+    required: true
+  public-key-sha256:
+    description: Expected SHA-256 fingerprint of the PKIX DER public key
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        ARTIFACT: ${{ inputs.artifact }}
+        EXPECTED_PUBLIC_KEY_SHA256: ${{ inputs.public-key-sha256 }}
+        UPDATE_SIGNING_KEY_PEM: ${{ inputs.private-key-pem }}
+      run: |
+        set -euo pipefail
+        umask 077
+        key="${RUNNER_TEMP}/snclient-update-signing-key.pem"
+        public_key="${RUNNER_TEMP}/snclient-update-public-key.der"
+        trap 'rm -f "${key}" "${public_key}"' EXIT
+        printf '%s\n' "${UPDATE_SIGNING_KEY_PEM}" > "${key}"
+        openssl pkey -in "${key}" -pubout -outform DER -out "${public_key}"
+        actual_fingerprint="$(sha256sum "${public_key}" | cut -d' ' -f1)"
+        if [[ "${actual_fingerprint}" != "${EXPECTED_PUBLIC_KEY_SHA256}" ]]; then
+          echo "::error::Update signing key does not match the built-in public key"
+          exit 1
+        fi
+        openssl dgst -sha256 -sign "${key}" -out "${ARTIFACT}.sig" "${ARTIFACT}"

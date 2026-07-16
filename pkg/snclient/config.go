@@ -60,7 +60,8 @@ var DefaultConfig = map[string]ConfigData{
 		"nasty characters": DefaultNastyCharacters,
 	},
 	"/settings/updates": {
-		"channel": "stable",
+		"channel":          "stable",
+		"verify signature": "true",
 	},
 	"/settings/updates/channel": {
 		"stable": "https://api.github.com/repos/ConSol-monitoring/snclient/releases",
