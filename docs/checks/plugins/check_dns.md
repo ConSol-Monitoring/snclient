@@ -48,7 +48,7 @@ Naemon Config
 
 ## Usage
 
-```Usage:
+```UNKNOWN - Usage:
   check_dns [OPTIONS]
 
 Application Options:
@@ -56,20 +56,20 @@ Application Options:
   -s, --server=           DNS server you want to use for the lookup
   -p, --port=             Port number you want to use (default: 53)
   -q, --querytype=        DNS record query type (default: A)
-      --norec             Set not recursive mode
+      --norec             Clears the Recursion Desired flag, makes DNS server answer only from its authoritative data
+                          or cache and not ask other nameservers.
   -e, --expected-string=  IP-ADDRESS string you expect the DNS server to return. If multiple IP-ADDRESS are returned at
                           once, you have to specify whole string
-      --search-path=      Search paths is added to the domains before sending a DNS query. This can be specified
-                          multiple times.
-      --resolv-conf-file= Path to the resolv.conf file to use. Is not used in Windows. Default is /etc/resolv.conf .
-                          (default: /etc/resolv.conf)
+      --search-path=      Search paths to add to domains before sending a DNS query. This can be specified multiple
+                          times.
+      --resolv-conf-file= Path to the resolv.conf file to use. Is not used in Windows. (default: /etc/resolv.conf)
   -v, --verbose           Show verbose output.
-  -w, --warning=          Warning timeout in seconds, if getting a successfull DNS query takes longer than specified,
-                          set return status to warning.
-  -c, --critical=         Critical timeout in seconds, if getting a successfull DNS query takes longer than specified,
-                          set return status to critical.
-  -t, --timeout=          If the program cannot get a successfull DNS response until the specified timeout in seconds,
-                          it exits with critical status. (default: 10)
+  -w, --warning=          Return warning if elapsed time to get a successful DNS query exceeds this value in seconds.
+                          Default is off.
+  -c, --critical=         Return critical if elapsed time to get a successful DNS query exceeds this value in seconds.
+                          Default ist off.
+  -t, --timeout=          Exit early and return unknown if elapsed time to get a successful DNS query exceeds this
+                          value in seconds. (default: 10)
 
 Help Options:
   -h, --help              Show this help message

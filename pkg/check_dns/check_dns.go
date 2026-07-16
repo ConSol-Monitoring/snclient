@@ -21,8 +21,8 @@ import (
 func Check(ctx context.Context, output io.Writer, args []string) int {
 	opts, err := parseArgs(args)
 	if err != nil {
-		fmt.Fprintf(output, "%s", err.Error())
-		return 2
+		fmt.Fprintf(output, "UNKNOWN - %s", err.Error())
+		return int(checkers.UNKNOWN)
 	}
 
 	ckr := opts.run(ctx)
@@ -38,14 +38,14 @@ type dnsOpts struct {
 	Server          string   `short:"s" long:"server" description:"DNS server you want to use for the lookup"`
 	Port            int      `short:"p" long:"port" default:"53" description:"Port number you want to use"`
 	QueryType       string   `short:"q" long:"querytype" default:"A" description:"DNS record query type"`
-	Norec           bool     `long:"norec" description:"Set not recursive mode"`
+	Norec           bool     `long:"norec" description:"Clears the Recursion Desired flag, makes DNS server answer only from its authoritative data or cache and not ask other nameservers."`
 	ExpectedString  []string `short:"e" long:"expected-string" description:"IP-ADDRESS string you expect the DNS server to return. If multiple IP-ADDRESS are returned at once, you have to specify whole string"`
-	SearchPaths     []string `long:"search-path" description:"Search paths is added to the domains before sending a DNS query. This can be specified multiple times."`
-	ResolvConfFile  string   `long:"resolv-conf-file" default:"/etc/resolv.conf" description:"Path to the resolv.conf file to use. Is not used in Windows. Default is /etc/resolv.conf ."`
+	SearchPaths     []string `long:"search-path" description:"Search paths to add to domains before sending a DNS query. This can be specified multiple times."`
+	ResolvConfFile  string   `long:"resolv-conf-file" default:"/etc/resolv.conf" description:"Path to the resolv.conf file to use. Is not used in Windows."`
 	Verbose         bool     `short:"v" long:"vv" long:"vvv" long:"verbose" description:"Show verbose output."`
-	WarningTimeout  *int     `short:"w" long:"warning" description:"Warning timeout in seconds, if getting a successfull DNS query takes longer than specified, set return status to warning."`
-	CriticalTimeout *int     `short:"c" long:"critical" description:"Critical timeout in seconds, if getting a successfull DNS query takes longer than specified, set return status to critical."`
-	Timeout         int      `short:"t" long:"timeout" default:"10" description:"If the program cannot get a successfull DNS response until the specified timeout in seconds, it exits with critical status."`
+	WarningTimeout  *int     `short:"w" long:"warning" description:"Return warning if elapsed time to get a successful DNS query exceeds this value in seconds. Default is off."`
+	CriticalTimeout *int     `short:"c" long:"critical" description:"Return critical if elapsed time to get a successful DNS query exceeds this value in seconds. Default ist off."`
+	Timeout         int      `short:"t" long:"timeout" default:"10" description:"Exit early and return unknown if elapsed time to get a successful DNS query exceeds this value in seconds."`
 }
 
 func parseArgs(args []string) (*dnsOpts, error) {
@@ -125,7 +125,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 	queryType, ok := dns.StringToType[strings.ToUpper(opts.QueryType)]
 	if !ok {
-		return checkers.Critical(fmt.Sprintf("%s is invalid query type", opts.QueryType))
+		return checkers.Critical(fmt.Sprintf("%s is an invalid query type", opts.QueryType))
 	}
 
 	c := new(dns.Client)
@@ -139,7 +139,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 	var successfulHost string
 
 	queryDNSChan := make(chan bool, 1)
-	queryDNSSuccessfull := false
+	queryDNSSuccessful := false
 	dnsExchangeCount := 0
 
 	queryDNS := func() {
@@ -163,7 +163,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 				message.Id = dns.Id()
 
 				r, duration, err = c.Exchange(message, nameserver)
-				dnsExchangeCount = dnsExchangeCount + 1
+				dnsExchangeCount++
 
 				if err == nil {
 					if len(r.Answer) == 0 {
@@ -200,14 +200,13 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 	select {
 	case <-time.After(time.Duration(opts.Timeout) * time.Second):
-		return checkers.Critical(fmt.Sprintf("Did not get a successfull DNS query in timeout: %d seconds", opts.Timeout))
-	case queryDNSSuccessfull = <-queryDNSChan:
-		break
+		return checkers.Unknown(fmt.Sprintf("Failed to get a result after %d seconds", opts.Timeout))
+	case queryDNSSuccessful = <-queryDNSChan:
 	}
 	queryEndTimestamp := time.Now()
 	queryDuration := queryEndTimestamp.Sub(queryBeginTimestamp)
 
-	if !queryDNSSuccessfull {
+	if !queryDNSSuccessful {
 		return checkers.Critical(fmt.Sprintf("All %d DNS queries gave empty results or failed, last error: %v", dnsExchangeCount, lastErr))
 	}
 
@@ -226,10 +225,10 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 	switch {
 	case opts.CriticalTimeout != nil && queryDuration.Seconds() > float64(*opts.CriticalTimeout):
-		tryLogTrace(fmt.Sprintf("DNS query took %f seconds, which is higher than the critical threshold: %d", queryDuration.Seconds(), opts.CriticalTimeout))
+		tryLogTrace(fmt.Sprintf("DNS query took %f seconds, which is higher than the critical threshold: %d", queryDuration.Seconds(), *opts.CriticalTimeout))
 		escalateStatus(checkers.CRITICAL)
 	case opts.WarningTimeout != nil && queryDuration.Seconds() > float64(*opts.WarningTimeout):
-		tryLogTrace(fmt.Sprintf("DNS query took %f seconds, which is higher than the warning threshold: %d", queryDuration.Seconds(), opts.WarningTimeout))
+		tryLogTrace(fmt.Sprintf("DNS query took %f seconds, which is higher than the warning threshold: %d", queryDuration.Seconds(), *opts.WarningTimeout))
 		escalateStatus(checkers.WARNING)
 	default:
 		tryLogTrace(fmt.Sprintf("DNS query took %f seconds, and it is lower than (if specified) warning threshold: %v and critical threshold: %v",
@@ -261,7 +260,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 		supportedQueryType := map[string]int{"A": 1, "AAAA": 1, "MX": 1, "CNAME": 1}
 		_, ok := supportedQueryType[strings.ToUpper(opts.QueryType)]
 		if !ok {
-			return checkers.Critical(fmt.Sprintf("%s is not supported query type. Only A, AAAA, MX, CNAME are supported query types.", opts.QueryType))
+			return checkers.Critical(fmt.Sprintf("%s is not a supported query type. Only A, AAAA, MX, CNAME are supported query types.", opts.QueryType))
 		}
 
 		expectedStringsContainOneAnswerAddress := slices.ContainsFunc(opts.ExpectedString, func(ex string) bool {
@@ -287,10 +286,6 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 			tryLogTrace(fmt.Sprintf("Expected strings: %v does not contain one of the strings from the DNS answer: %v , raising status to critical",
 				opts.ExpectedString, answerCopy))
 			escalateStatus(checkers.CRITICAL)
-		default:
-			tryLogTrace(fmt.Sprintf("Could not comapre expected strings: %v with the strings from the DNS answer: %v , raising status to unknown",
-				opts.ExpectedString, answerCopy))
-			escalateStatus(checkers.UNKNOWN)
 		}
 	}
 
@@ -326,6 +321,6 @@ func dnsAnswer(answer dns.RR) (string, string, error) {
 	case *dns.CNAME:
 		return t.Target, "CNAME", nil
 	default:
-		return "", "", fmt.Errorf("%T is not supported query type. Only A, AAAA, MX, CNAME is supported for expectation.", t)
+		return "", "", fmt.Errorf("%T is not a supported query type. Only A, AAAA, MX, CNAME are supported for expectation.", t)
 	}
 }
