@@ -43,9 +43,9 @@ type dnsOpts struct {
 	SearchPaths     []string `long:"search-path" description:"Search paths is added to the domains before sending a DNS query. This can be specified multiple times."`
 	ResolvConfFile  string   `long:"resolv-conf-file" default:"/etc/resolv.conf" description:"Path to the resolv.conf file to use. Is not used in Windows. Default is /etc/resolv.conf ."`
 	Verbose         bool     `short:"v" long:"vv" long:"vvv" long:"verbose" description:"Show verbose output."`
-	WarningTimeout  *int     `short:"w" long:"warning" description:"Warning timeout, if getting a successfull DNS query takes longer than specified, set return status to warning."`
-	CriticalTimeout *int     `short:"c" long:"critical" description:"Critical timeout, if getting a successfull DNS query takes longer than specified, set return status to critical."`
-	Timeout         int      `short:"t" long:"timeout" default:"10" description:"If the program cannot get a successfull DNS response until the specified timeout, it exit with critical status."`
+	WarningTimeout  *int     `short:"w" long:"warning" description:"Warning timeout in seconds, if getting a successfull DNS query takes longer than specified, set return status to warning."`
+	CriticalTimeout *int     `short:"c" long:"critical" description:"Critical timeout in seconds, if getting a successfull DNS query takes longer than specified, set return status to critical."`
+	Timeout         int      `short:"t" long:"timeout" default:"10" description:"If the program cannot get a successfull DNS response until the specified timeout in seconds, it exits with critical status."`
 }
 
 func parseArgs(args []string) (*dnsOpts, error) {

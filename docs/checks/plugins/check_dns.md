@@ -64,12 +64,12 @@ Application Options:
       --resolv-conf-file= Path to the resolv.conf file to use. Is not used in Windows. Default is /etc/resolv.conf .
                           (default: /etc/resolv.conf)
   -v, --verbose           Show verbose output.
-  -w, --warning=          Warning timeout, if getting a successfull DNS query takes longer than specified, set return
-                          status to warning.
-  -c, --critical=         Critical timeout, if getting a successfull DNS query takes longer than specified, set return
-                          status to critical.
-  -t, --timeout=          If the program cannot get a successfull DNS response until the specified timeout, it exit
-                          with critical status. (default: 10)
+  -w, --warning=          Warning timeout in seconds, if getting a successfull DNS query takes longer than specified,
+                          set return status to warning.
+  -c, --critical=         Critical timeout in seconds, if getting a successfull DNS query takes longer than specified,
+                          set return status to critical.
+  -t, --timeout=          If the program cannot get a successfull DNS response until the specified timeout in seconds,
+                          it exits with critical status. (default: 10)
 
 Help Options:
   -h, --help              Show this help message
