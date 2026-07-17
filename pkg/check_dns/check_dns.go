@@ -230,7 +230,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 		queryDNSChan <- gotAnswer
 	}
 
-	queryBeginTimestamp := time.Now()
+	queriesBeginTimestamp := time.Now()
 	go queryDNS()
 
 	select {
@@ -238,8 +238,8 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 		return checkers.Unknown(fmt.Sprintf("Failed to get a result after %d seconds", opts.Timeout))
 	case queryDNSSuccessful = <-queryDNSChan:
 	}
-	queryEndTimestamp := time.Now()
-	queryDuration := queryEndTimestamp.Sub(queryBeginTimestamp)
+	queriesEndTimestamp := time.Now()
+	queriesDuration := queriesEndTimestamp.Sub(queriesBeginTimestamp)
 
 	if !queryDNSSuccessful {
 		return checkers.Critical(fmt.Sprintf("All %d DNS queries gave empty results or failed, last error: %v", dnsExchangeCount, lastErr))
@@ -259,15 +259,15 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 	}
 
 	switch {
-	case opts.CriticalTimeout != nil && queryDuration.Seconds() > float64(*opts.CriticalTimeout):
-		tryLogTrace(fmt.Sprintf("DNS query took %f seconds, which is higher than the critical threshold: %d", queryDuration.Seconds(), *opts.CriticalTimeout))
+	case opts.CriticalTimeout != nil && queriesDuration.Seconds() > float64(*opts.CriticalTimeout):
+		tryLogTrace(fmt.Sprintf("DNS query took %f seconds, which is higher than the critical threshold: %d", queriesDuration.Seconds(), *opts.CriticalTimeout))
 		escalateStatus(checkers.CRITICAL)
-	case opts.WarningTimeout != nil && queryDuration.Seconds() > float64(*opts.WarningTimeout):
-		tryLogTrace(fmt.Sprintf("DNS query took %f seconds, which is higher than the warning threshold: %d", queryDuration.Seconds(), *opts.WarningTimeout))
+	case opts.WarningTimeout != nil && queriesDuration.Seconds() > float64(*opts.WarningTimeout):
+		tryLogTrace(fmt.Sprintf("DNS query took %f seconds, which is higher than the warning threshold: %d", queriesDuration.Seconds(), *opts.WarningTimeout))
 		escalateStatus(checkers.WARNING)
 	default:
 		tryLogTrace(fmt.Sprintf("DNS query took %f seconds, and it is lower than (if specified) warning threshold: %v and critical threshold: %v",
-			queryDuration.Seconds(), opts.WarningTimeout, opts.CriticalTimeout))
+			queriesDuration.Seconds(), opts.WarningTimeout, opts.CriticalTimeout))
 	}
 
 	answersWithoutHeaders := make([]string, 0)
@@ -329,9 +329,23 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 		escalateStatus(checkers.CRITICAL)
 	}
 
+	timeMetric := fmt.Sprintf("time=%fs;%s;%s", queriesDuration.Seconds(),
+		func() string {
+			if opts.WarningTimeout != nil {
+				return fmt.Sprintf("%d", *opts.WarningTimeout)
+			}
+			return ""
+		}(),
+		func() string {
+			if opts.CriticalTimeout != nil {
+				return fmt.Sprintf("%d", *opts.CriticalTimeout)
+			}
+			return ""
+		}(),
+	)
+
 	msg := ""
 	if len(answersWithoutHeaders) > 0 && len(answerTypes) > 0 {
-		timeMetric := fmt.Sprintf("time=%fs;;", successfulDuration.Seconds())
 		msg = fmt.Sprintf("%s returns %s (%s) |%s\n", opts.Host, answersWithoutHeaders[0], answerTypes[0], timeMetric)
 	} else {
 		msg = fmt.Sprintf("%s (%s) returns no answer from %s\n", opts.Host, opts.QueryType, successfulNameserver)
