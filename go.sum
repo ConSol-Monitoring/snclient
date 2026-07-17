@@ -83,8 +83,6 @@ github.com/prometheus/common v0.68.1 h1:omjRRl4QP4komogpXuhfeOiisQg7xdy8VM1UY+pS
 github.com/prometheus/common v0.68.1/go.mod h1:ZzL3f6u94qUxh9p+tJTrF+FvBS1XXbbRAZCQkytAL0Y=
 github.com/prometheus/procfs v0.20.1 h1:XwbrGOIplXW/AU3YhIhLODXMJYyC1isLFfYCsTEycfc=
 github.com/prometheus/procfs v0.20.1/go.mod h1:o9EMBZGRyvDrSPH1RqdxhojkuXstoe4UlK79eF5TGGo=
-github.com/pytimer/win-netstat v0.0.0-20180710031115-efa1aff6aafc h1:NJabarGmZw//DrC1ixmeUOZgmrGnbXL8/IN4CHOeckM=
-github.com/pytimer/win-netstat v0.0.0-20180710031115-efa1aff6aafc/go.mod h1:XrlGxma7SaoqMKNMYaUpU3l24A/5Lytk6243pea+K/4=
 github.com/reeflective/readline v1.3.0 h1:uh9c2SEmyoy7A/auequfXZjvK0NP5HVEAJFcL9Uf7qE=
 github.com/reeflective/readline v1.3.0/go.mod h1:bOpqx2/VqGlIoobyWR1Vgt/p5FiMfIHj4OicPuw6RfU=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=

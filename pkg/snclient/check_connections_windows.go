@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	winnetstat "github.com/pytimer/win-netstat"
+	"github.com/shirou/gopsutil/v4/net"
 )
 
-// get open tcp connections from the windows iphlpapi via win-netstat library
-func (l *CheckConnections) addIPV4(_ context.Context, check *CheckData) error {
-	counter, err := l.getNetstat("tcp4")
+// get open tcp connections from the windows iphlpapi via gopsutil library
+func (l *CheckConnections) addIPV4(ctx context.Context, check *CheckData) error {
+	counter, err := l.getNetstat(ctx, "tcp4")
 	if err != nil {
 		return err
 	}
@@ -18,8 +18,8 @@ func (l *CheckConnections) addIPV4(_ context.Context, check *CheckData) error {
 	return nil
 }
 
-func (l *CheckConnections) addIPV6(_ context.Context, check *CheckData) error {
-	counter, err := l.getNetstat("tcp6")
+func (l *CheckConnections) addIPV6(ctx context.Context, check *CheckData) error {
+	counter, err := l.getNetstat(ctx, "tcp6")
 	if err != nil {
 		return err
 	}
@@ -28,8 +28,8 @@ func (l *CheckConnections) addIPV6(_ context.Context, check *CheckData) error {
 	return nil
 }
 
-func (l *CheckConnections) getNetstat(kind string) ([]uint64, error) {
-	connections, err := winnetstat.Connections(kind)
+func (l *CheckConnections) getNetstat(ctx context.Context, kind string) ([]uint64, error) {
+	connections, err := net.ConnectionsWithContext(ctx, kind)
 	if err != nil {
 		return nil, fmt.Errorf("fetching %s connections failed with error: %s", kind, err.Error())
 	}
@@ -38,8 +38,8 @@ func (l *CheckConnections) getNetstat(kind string) ([]uint64, error) {
 
 	for idx := range connections {
 		// available states: https://learn.microsoft.com/en-us/windows/win32/api/tcpmib/ne-tcpmib-mib_tcp_state
-		// State object is saved as english string, converted in win-netstat\common.go
-		switch connections[idx].State {
+		// Status is a fixed english string, converted from the numeric tcp state in gopsutil net_windows.go
+		switch connections[idx].Status {
 		case "CLOSE_WAIT":
 			counter[tcpCloseWait]++
 		// Deleted counts as closed as well
@@ -64,7 +64,7 @@ func (l *CheckConnections) getNetstat(kind string) ([]uint64, error) {
 		case "TIME_WAIT":
 			counter[tcpTimeWait]++
 		default:
-			log.Tracef("unknown tcp state: %s", connections[idx].State)
+			log.Tracef("unknown tcp state: %s", connections[idx].Status)
 		}
 		counter[tcpTotal]++
 	}

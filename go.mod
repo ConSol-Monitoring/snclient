@@ -16,7 +16,6 @@ require (
 	github.com/miekg/dns v1.1.72
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
-	github.com/pytimer/win-netstat v0.0.0-20180710031115-efa1aff6aafc
 	github.com/reeflective/readline v1.3.0
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/sassoftware/go-rpmutils v0.4.0
