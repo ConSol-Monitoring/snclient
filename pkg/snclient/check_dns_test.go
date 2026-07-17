@@ -20,11 +20,11 @@ import (
 func startTestDNSServerHandler(t *testing.T, listenAddr string, handler dns.Handler) string {
 	t.Helper()
 
-	pc, err := net.ListenPacket("udp", listenAddr)
+	packetConnection, err := net.ListenPacket("udp", listenAddr)
 	require.NoError(t, err)
 
 	srv := &dns.Server{
-		PacketConn: pc,
+		PacketConn: packetConnection,
 		Handler:    handler,
 	}
 	go func() {
@@ -34,7 +34,7 @@ func startTestDNSServerHandler(t *testing.T, listenAddr string, handler dns.Hand
 		_ = srv.Shutdown()
 	})
 
-	udpAddr, ok := pc.LocalAddr().(*net.UDPAddr)
+	udpAddr, ok := packetConnection.LocalAddr().(*net.UDPAddr)
 	require.True(t, ok, "local addr is a udp addr")
 
 	return strconv.Itoa(udpAddr.Port)
@@ -59,13 +59,13 @@ func startTestDNSServer(t *testing.T, listenAddr string, rcode int) string {
 func startSilentDNSServer(t *testing.T, listenAddr string) string {
 	t.Helper()
 
-	pc, err := net.ListenPacket("udp", listenAddr)
+	packetConnection, err := net.ListenPacket("udp", listenAddr)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_ = pc.Close()
+		_ = packetConnection.Close()
 	})
 
-	udpAddr, ok := pc.LocalAddr().(*net.UDPAddr)
+	udpAddr, ok := packetConnection.LocalAddr().(*net.UDPAddr)
 	require.True(t, ok, "local addr is a udp addr")
 
 	return strconv.Itoa(udpAddr.Port)
@@ -88,6 +88,16 @@ CheckBuiltinPlugins = enabled
 			"output matches",
 		)
 	})
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckDNSExpectedString(t *testing.T) {
+	config := `
+[/modules]
+CheckBuiltinPlugins = enabled
+	`
+	snc := StartTestAgent(t, config)
 
 	t.Run("expected string all match", func(t *testing.T) {
 		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-e", "94.185.89.33"})
@@ -133,6 +143,16 @@ CheckBuiltinPlugins = enabled
 		)
 	})
 
+	StopTestAgent(t, snc)
+}
+
+func TestCheckDNSThresholds(t *testing.T) {
+	config := `
+[/modules]
+CheckBuiltinPlugins = enabled
+	`
+	snc := StartTestAgent(t, config)
+
 	t.Run("warning threshold not triggered", func(t *testing.T) {
 		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-w", "999"})
 		assert.Equalf(t, CheckExitOK, res.State, "state ok")
@@ -154,6 +174,16 @@ CheckBuiltinPlugins = enabled
 			"critical threshold triggered",
 		)
 	})
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckDNSExpectedString2(t *testing.T) {
+	config := `
+[/modules]
+CheckBuiltinPlugins = enabled
+	`
+	snc := StartTestAgent(t, config)
 
 	t.Run("aaaa lookup", func(t *testing.T) {
 		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-q", "AAAA"})
@@ -213,6 +243,16 @@ CheckBuiltinPlugins = enabled
 			"output matches",
 		)
 	})
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckDNSNameserverErrors(t *testing.T) {
+	config := `
+[/modules]
+CheckBuiltinPlugins = enabled
+	`
+	snc := StartTestAgent(t, config)
 
 	t.Run("nxdomain rcode", func(t *testing.T) {
 		port := startTestDNSServer(t, "127.0.0.1:0", dns.RcodeNameError)
@@ -294,6 +334,16 @@ CheckBuiltinPlugins = enabled
 		assert.Containsf(t, output, "127.0.0.2:"+port+": NXDOMAIN", "second nameserver gets its own line")
 	})
 
+	StopTestAgent(t, snc)
+}
+
+func TestCheckDNSTimeouts(t *testing.T) {
+	config := `
+[/modules]
+CheckBuiltinPlugins = enabled
+	`
+	snc := StartTestAgent(t, config)
+
 	t.Run("query timeout on all nameservers", func(t *testing.T) {
 		port := startSilentDNSServer(t, "127.0.0.1:0")
 		res := snc.RunCheck("check_dns", []string{"-H", "silent.example.com.", "-s", "127.0.0.1", "-p", port, "-T", "1"})
@@ -313,14 +363,14 @@ CheckBuiltinPlugins = enabled
 			t.Skipf("cannot listen on 127.0.0.2: %s", err)
 		}
 		_ = pc.Close()
-		startTestDNSServerHandler(t, "127.0.0.2:"+port, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
+		startTestDNSServerHandler(t, "127.0.0.2:"+port, dns.HandlerFunc(func(writer dns.ResponseWriter, req *dns.Msg) {
 			reply := new(dns.Msg)
 			reply.SetReply(req)
 			rr, rrErr := dns.NewRR(req.Question[0].Name + " 60 IN A 1.2.3.4")
 			if rrErr == nil {
 				reply.Answer = append(reply.Answer, rr)
 			}
-			_ = w.WriteMsg(reply)
+			_ = writer.WriteMsg(reply)
 		}))
 
 		res := snc.RunCheck("check_dns", []string{
@@ -337,6 +387,16 @@ CheckBuiltinPlugins = enabled
 			"output matches",
 		)
 	})
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckDNSArgumentvalidation(t *testing.T) {
+	config := `
+[/modules]
+CheckBuiltinPlugins = enabled
+	`
+	snc := StartTestAgent(t, config)
 
 	t.Run("missing host argument", func(t *testing.T) {
 		res := snc.RunCheck("check_dns", []string{})

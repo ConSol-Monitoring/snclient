@@ -338,7 +338,8 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 		escalateStatus(checkers.CRITICAL)
 	}
 
-	timeMetric := fmt.Sprintf("time=%fs;%s;%s", queriesDuration.Seconds(),
+	timeMetric := fmt.Sprintf(
+		"time=%fs;%s;%s", queriesDuration.Seconds(),
 		func() string {
 			if opts.WarningTimeout != nil {
 				return fmt.Sprintf("%d", *opts.WarningTimeout)
