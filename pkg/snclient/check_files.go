@@ -168,7 +168,9 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 
 	// Cleanup the listData if a filter is used
 	if l.pattern != "*" {
-		l.removeDirectoriesWithoutFilesUnder(check)
+		// l.removeDirectoriesWithoutFilesUnder(check)
+
+		l.removeDirectories(check)
 	}
 
 	if l.calculateSubdirectorySizes {
@@ -556,6 +558,18 @@ func checkSlowFileOperations(check *CheckData, entry map[string]string, path str
 	}
 
 	return nil
+}
+
+func (l *CheckFiles) removeDirectories(check *CheckData) {
+	newListData := make([]map[string]string, 0)
+
+	for _, data := range check.listData {
+		if data["type"] != "dir" {
+			newListData = append(newListData, data)
+		}
+	}
+
+	check.listData = newListData
 }
 
 // The WalkDir normally adds every directory and files under the search path.
