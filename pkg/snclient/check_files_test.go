@@ -493,7 +493,7 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	// The second pass should remove the "a" folder where files with "a" extension is found
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size > 100MiB'"})
 	outputString = string(res.BuildPluginOutput())
-	assert.Containsf(t, outputString, "OK - All 6 files are ok", "output matches")
+	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size > 100MiB'", "filter=' type == file'"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
@@ -517,9 +517,19 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	// When using a pattern and calculate subdirectory sizes is enabled, it will add the subdirectory sizes as metrics
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*_3.*", "crit='size > 0Mib'", "calculate-subdirectory-sizes=true"})
 	outputString = string(res.BuildPluginOutput())
-	assert.Containsf(t, outputString, "CRITICAL - 6/6 files (3.50 MiB) critical", "output matches")
-	assert.Containsf(t, outputString, "'a size'=1048576B", "should calculate the size of the subfolder a")
-	assert.Containsf(t, outputString, "'b size'=1048576B", "should calculate the size of the subfolder b")
+	assert.Containsf(t, outputString, "CRITICAL - 4/4 files (3.50 MiB) critical", "output matches")
+	assert.NotContainsf(t, outputString, "'a size'=1048576B", "should calculate the size of the subfolder a, as it does not match pattern")
+	assert.NotContainsf(t, outputString, "'b size'=1048576B", "should calculate the size of the subfolder b, as it does not match pattern")
+
+	// only matches the directory "a" itself
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=a"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "OK - All 1 files are ok: (0 B)", "output matches")
+
+	// matches the four files inside directory "a": file_1024kb_1.a , file_1024kb_2.a , file_1024kb_3.a , file_1024kb_4.a
+	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.a"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "OK - All 4 files are ok: (4.00 MiB)", "output matches")
 
 	StopTestAgent(t, snc)
 }

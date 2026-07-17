@@ -166,12 +166,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		}
 	}
 
-	// Cleanup the listData if a filter is used
-	if l.pattern != "*" {
-		// l.removeDirectoriesWithoutFilesUnder(check)
-
-		l.removeDirectories(check)
-	}
+	l.removeDirectoriesThatDontMatchPattern(check)
 
 	if l.calculateSubdirectorySizes {
 		l.addSubdirectorySizes(check)
@@ -560,22 +555,31 @@ func checkSlowFileOperations(check *CheckData, entry map[string]string, path str
 	return nil
 }
 
-func (l *CheckFiles) removeDirectories(check *CheckData) {
-	newListData := make([]map[string]string, 0)
-
-	for _, data := range check.listData {
-		if data["type"] != "dir" {
-			newListData = append(newListData, data)
-		}
+func (l *CheckFiles) removeDirectoriesThatDontMatchPattern(check *CheckData) {
+	if l.pattern == "*" {
+		return
 	}
 
-	check.listData = newListData
+	newListdata := make([]map[string]string, 0)
+
+	for _, data := range check.listData {
+		if data["type"] == "dir" {
+			if match, _ := filepath.Match(l.pattern, data["filename"]); !match {
+				continue
+			}
+		}
+		newListdata = append(newListdata, data)
+	}
+
+	check.listData = newListdata
 }
 
 // The WalkDir normally adds every directory and files under the search path.
-// If a pattern is specified, this prevents files that dont match the pattern to be skipped.
+// If a pattern/filter is specified, this prevents files that dont match the pattern/filter to be skipped.
 // This can lead to some directories being in the listData, while not having any matched files under them.
 // This function cleans those directories up.
+//
+//nolint:unused // this function was called if pattern was specified, in previous versions. still keeping it for possible future use with filters.
 func (l *CheckFiles) removeDirectoriesWithoutFilesUnder(check *CheckData) {
 	fileFilepaths := make([]string, 0)
 
