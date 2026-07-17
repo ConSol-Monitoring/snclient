@@ -53,7 +53,7 @@ Naemon Config
 
 Application Options:
   -H, --host=             The name or address you want to query
-  -s, --server=           DNS server you want to use for the lookup
+  -s, --server=           DNS servers to use for the lookup. This can be specified multiple times.
   -p, --port=             Port number you want to use (default: 53)
   -q, --querytype=        DNS record query type (default: A)
       --norec             Clears the Recursion Desired flag, DNS server answers only from its authoritative data or
@@ -68,8 +68,10 @@ Application Options:
                           Default is off.
   -c, --critical=         Return critical if elapsed time to get a successful DNS query exceeds this value in seconds.
                           Default ist off.
-  -t, --timeout=          Exit early and return unknown if elapsed time to get a successful DNS query exceeds this
-                          value in seconds. (default: 10)
+  -t, --timeout=          Global timeout in seconds. Exit early and return unknown if elapsed time to get a successful
+                          DNS query exceeds this value. (default: 30)
+  -T, --query-timeout=    Timeout for each single DNS query in seconds. If exceeded, the next query is tried instead of
+                          exiting. (default: 5)
 
 Help Options:
   -h, --help              Show this help message

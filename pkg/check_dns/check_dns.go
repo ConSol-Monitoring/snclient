@@ -46,7 +46,8 @@ type dnsOpts struct {
 	Verbose         bool     `short:"v" long:"vv" long:"vvv" long:"verbose" description:"Show verbose output."`
 	WarningTimeout  *int     `short:"w" long:"warning" description:"Return warning if elapsed time to get a successful DNS query exceeds this value in seconds. Default is off."`
 	CriticalTimeout *int     `short:"c" long:"critical" description:"Return critical if elapsed time to get a successful DNS query exceeds this value in seconds. Default ist off."`
-	Timeout         int      `short:"t" long:"timeout" default:"10" description:"Exit early and return unknown if elapsed time to get a successful DNS query exceeds this value in seconds."`
+	Timeout         int      `short:"t" long:"timeout" default:"30" description:"Global timeout in seconds. Exit early and return unknown if elapsed time to get a successful DNS query exceeds this value."`
+	QueryTimeout    int      `short:"T" long:"query-timeout" default:"5" description:"Timeout for each single DNS query in seconds. If exceeded, the next query is tried instead of exiting."`
 }
 
 func parseArgs(args []string) (*dnsOpts, error) {
@@ -73,6 +74,9 @@ func (opts *dnsOpts) validate() error {
 	}
 	if opts.Timeout <= 0 {
 		return fmt.Errorf("timeout must be a positive number of seconds, got: %d", opts.Timeout)
+	}
+	if opts.QueryTimeout <= 0 {
+		return fmt.Errorf("query timeout must be a positive number of seconds, got: %d", opts.QueryTimeout)
 	}
 	if opts.WarningTimeout != nil && *opts.WarningTimeout < 0 {
 		return fmt.Errorf("warning threshold must not be negative, got: %d", *opts.WarningTimeout)
@@ -164,7 +168,8 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 		return checkers.Critical(fmt.Sprintf("%s is an invalid query type", opts.QueryType))
 	}
 
-	c := new(dns.Client)
+	// Timeout is a builtin cumulative timeout for dial, write and read, it is applied to every single Exchange i.e. DNS query.
+	c := &dns.Client{Timeout: time.Duration(opts.QueryTimeout) * time.Second}
 
 	var r *dns.Msg
 	var duration time.Duration

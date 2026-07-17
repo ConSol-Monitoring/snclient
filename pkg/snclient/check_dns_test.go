@@ -14,10 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// startTestDNSServer starts a local DNS server on the given address
-// it answers every query with the given rcode and no answer records.
-// It returns the port the port it has started on as string
-func startTestDNSServer(t *testing.T, listenAddr string, rcode int) string {
+// startTestDNSServerHandler starts a local DNS server on the given address
+// using the given handler.
+// It returns the port it has started on as string
+func startTestDNSServerHandler(t *testing.T, listenAddr string, handler dns.Handler) string {
 	t.Helper()
 
 	pc, err := net.ListenPacket("udp", listenAddr)
@@ -25,17 +25,44 @@ func startTestDNSServer(t *testing.T, listenAddr string, rcode int) string {
 
 	srv := &dns.Server{
 		PacketConn: pc,
-		Handler: dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
-			reply := new(dns.Msg)
-			reply.SetRcode(req, rcode)
-			_ = w.WriteMsg(reply)
-		}),
+		Handler:    handler,
 	}
 	go func() {
 		_ = srv.ActivateAndServe()
 	}()
 	t.Cleanup(func() {
 		_ = srv.Shutdown()
+	})
+
+	udpAddr, ok := pc.LocalAddr().(*net.UDPAddr)
+	require.True(t, ok, "local addr is a udp addr")
+
+	return strconv.Itoa(udpAddr.Port)
+}
+
+// startTestDNSServer starts a local DNS server on the given address
+// it answers every query with the given rcode and no answer records.
+// It returns the port the port it has started on as string
+func startTestDNSServer(t *testing.T, listenAddr string, rcode int) string {
+	t.Helper()
+
+	return startTestDNSServerHandler(t, listenAddr, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
+		reply := new(dns.Msg)
+		reply.SetRcode(req, rcode)
+		_ = w.WriteMsg(reply)
+	}))
+}
+
+// startSilentDNSServer opens a udp listener on the given address which never
+// responds, causing DNS query timeouts.
+// It returns the port it has started on as string
+func startSilentDNSServer(t *testing.T, listenAddr string) string {
+	t.Helper()
+
+	pc, err := net.ListenPacket("udp", listenAddr)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = pc.Close()
 	})
 
 	udpAddr, ok := pc.LocalAddr().(*net.UDPAddr)
@@ -267,6 +294,50 @@ CheckBuiltinPlugins = enabled
 		assert.Containsf(t, output, "127.0.0.2:"+port+": NXDOMAIN", "second nameserver gets its own line")
 	})
 
+	t.Run("query timeout on all nameservers", func(t *testing.T) {
+		port := startSilentDNSServer(t, "127.0.0.1:0")
+		res := snc.RunCheck("check_dns", []string{"-H", "silent.example.com.", "-s", "127.0.0.1", "-p", port, "-T", "1"})
+		assert.Equalf(t, CheckExitCritical, res.State, "state critical")
+		assert.Regexpf(
+			t,
+			`^CRITICAL - dns lookup failed for host 'silent\.example\.com':\n127\.0\.0\.1:`+port+`: query failed: timeout$`,
+			string(res.BuildPluginOutput()),
+			"output matches",
+		)
+	})
+
+	t.Run("query timeout continues with next nameserver", func(t *testing.T) {
+		port := startSilentDNSServer(t, "127.0.0.1:0")
+		pc, err := net.ListenPacket("udp", "127.0.0.2:"+port)
+		if err != nil {
+			t.Skipf("cannot listen on 127.0.0.2: %s", err)
+		}
+		_ = pc.Close()
+		startTestDNSServerHandler(t, "127.0.0.2:"+port, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
+			reply := new(dns.Msg)
+			reply.SetReply(req)
+			rr, rrErr := dns.NewRR(req.Question[0].Name + " 60 IN A 1.2.3.4")
+			if rrErr == nil {
+				reply.Answer = append(reply.Answer, rr)
+			}
+			_ = w.WriteMsg(reply)
+		}))
+
+		res := snc.RunCheck("check_dns", []string{
+			"-H", "slow.example.com.",
+			"-s", "127.0.0.1", "-s", "127.0.0.2",
+			"-p", port,
+			"-T", "1",
+		})
+		assert.Equalf(t, CheckExitOK, res.State, "state ok")
+		assert.Regexpf(
+			t,
+			`^OK - slow\.example\.com\. returns 1\.2\.3\.4 \(A\)`,
+			string(res.BuildPluginOutput()),
+			"output matches",
+		)
+	})
+
 	t.Run("missing host argument", func(t *testing.T) {
 		res := snc.RunCheck("check_dns", []string{})
 		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
@@ -330,6 +401,17 @@ CheckBuiltinPlugins = enabled
 			`^UNKNOWN - timeout must be a positive number of seconds, got: -5`,
 			string(res.BuildPluginOutput()),
 			"negative timeout",
+		)
+	})
+
+	t.Run("zero query timeout", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "-T", "0"})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Regexpf(
+			t,
+			`^UNKNOWN - query timeout must be a positive number of seconds, got: 0`,
+			string(res.BuildPluginOutput()),
+			"zero query timeout",
 		)
 	})
 
