@@ -3,6 +3,7 @@ package check_dns
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -35,7 +36,7 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 // Apache-2.0 license
 type dnsOpts struct {
 	Host            string   `short:"H" long:"host" required:"true" description:"The name or address you want to query"`
-	Server          string   `short:"s" long:"server" description:"DNS server you want to use for the lookup"`
+	Servers         []string `short:"s" long:"server" description:"DNS servers to use for the lookup. This can be specified multiple times."`
 	Port            int      `short:"p" long:"port" default:"53" description:"Port number you want to use"`
 	QueryType       string   `short:"q" long:"querytype" default:"A" description:"DNS record query type"`
 	Norec           bool     `long:"norec" description:"Clears the Recursion Desired flag, DNS server answers only from its authoritative data or cache, does not ask other nameservers."`
@@ -117,8 +118,8 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 	}
 
 	var nameservers []string
-	if opts.Server != "" {
-		nameservers = []string{opts.Server}
+	if len(opts.Servers) > 0 {
+		nameservers = opts.Servers
 	} else {
 		nameservers, err = adapterAddress(clientConfig)
 		if err != nil {
@@ -165,7 +166,6 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 	c := new(dns.Client)
 
-	var lastErr error
 	var r *dns.Msg
 	var duration time.Duration
 
@@ -175,7 +175,15 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 	queryDNSChan := make(chan bool, 1)
 	queryDNSSuccessful := false
-	dnsExchangeCount := 0
+
+	emptyResults := make([]emptyResult, 0)
+	recordEmptyResult := func(hostCandidate, nameserver, reason string) {
+		emptyResults = append(emptyResults, emptyResult{
+			host:       hostCandidate,
+			nameserver: nameserver,
+			reason:     reason,
+		})
+	}
 
 	queryDNS := func() {
 		gotAnswer := false
@@ -198,12 +206,13 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 				message.Id = dns.Id()
 
 				r, duration, err = c.Exchange(message, nameserver)
-				dnsExchangeCount++
 
 				if err == nil {
 					if len(r.Answer) == 0 {
-						tryLogTrace(fmt.Sprintf("DNS query returned empty result, continuing to next combination, host: %s, nameserver: %s, duration: %dms",
-							hostCandidate, nameserver, duration.Milliseconds()))
+						reason := emptyResultReason(r.Rcode)
+						recordEmptyResult(hostCandidate, nameserver, reason)
+						tryLogTrace(fmt.Sprintf("DNS query returned empty result (%s), continuing to next combination, host: %s, nameserver: %s, duration: %dms",
+							reason, hostCandidate, nameserver, duration.Milliseconds()))
 
 						continue
 					}
@@ -217,9 +226,8 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 					break
 				}
 
-				tryLogTrace(fmt.Sprintf("DNS query failed, host: %s, nameserver: %s, duration: %dms", hostCandidate, nameserver, duration.Milliseconds()))
-
-				lastErr = err
+				recordEmptyResult(hostCandidate, nameserver, queryFailedReason(err))
+				tryLogTrace(fmt.Sprintf("DNS query failed, host: %s, nameserver: %s, duration: %dms, error: %v", hostCandidate, nameserver, duration.Milliseconds(), err))
 			}
 
 			if gotAnswer {
@@ -241,12 +249,8 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 	queriesEndTimestamp := time.Now()
 	queriesDuration := queriesEndTimestamp.Sub(queriesBeginTimestamp)
 
-	if !queryDNSSuccessful {
-		return checkers.Critical(fmt.Sprintf("All %d DNS queries gave empty results or failed, last error: %v", dnsExchangeCount, lastErr))
-	}
-
-	if r == nil {
-		return checkers.Critical(fmt.Sprintf("All %d DNS queries gave empty results or failed, last error: %v", dnsExchangeCount, lastErr))
+	if !queryDNSSuccessful || r == nil {
+		return checkers.Critical(emptyResultsMessage(originalHost, nameservers, emptyResults))
 	}
 
 	checkSt := checkers.OK
@@ -371,5 +375,67 @@ func dnsAnswer(answer dns.RR) (string, string, error) {
 		return t.Target, "CNAME", nil
 	default:
 		return "", "", fmt.Errorf("%T is not a supported query type. Only A, AAAA, MX, CNAME are supported for expectation.", t)
+	}
+}
+
+// emptyResult keeps track of why a single DNS query combination did not return any answer
+// the reason is either the rcode or the query error.
+type emptyResult struct {
+	host       string
+	nameserver string
+	reason     string
+}
+
+// emptyResultsMessage builds a message from the reasons (rcodes or errors) why the DNS queries returned no answer.
+// The first line contains the unique reasons from the first nameserver, each further nameserver gets a line with its own unique reasons.
+func emptyResultsMessage(host string, nameservers []string, results []emptyResult) string {
+	lines := make([]string, 0, len(nameservers))
+	for _, nameserver := range nameservers {
+		reasons := make([]string, 0)
+		for _, result := range results {
+			if result.nameserver == nameserver && !slices.Contains(reasons, result.reason) {
+				reasons = append(reasons, result.reason)
+			}
+		}
+		if len(reasons) == 0 {
+			continue
+		}
+		if len(lines) == 0 {
+			lines = append(lines, fmt.Sprintf("dns lookup failed for host '%s':", strings.TrimSuffix(host, ".")))
+		}
+		lines = append(lines, fmt.Sprintf("%s: %s", nameserver, strings.Join(reasons, ", ")))
+	}
+	if len(lines) == 0 {
+		return "all DNS queries gave empty results or failed"
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func emptyResultReason(rcode int) string {
+	rcodeStr, ok := dns.RcodeToString[rcode]
+	if !ok {
+		rcodeStr = fmt.Sprintf("RCODE %d", rcode)
+	}
+	if rcode == dns.RcodeSuccess {
+		return fmt.Sprintf("no answer (%s)", rcodeStr)
+	}
+
+	return rcodeStr
+}
+
+func queryFailedReason(err error) string {
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return "query failed: timeout"
+	}
+
+	// unwrap to the innermost error to keep the reason short and free of nameserver addresses
+	for {
+		unwrapped := errors.Unwrap(err)
+		if unwrapped == nil {
+			return "query failed: " + err.Error()
+		}
+		err = unwrapped
 	}
 }
