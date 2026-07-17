@@ -55,6 +55,7 @@ var (
 	log               = factorlog.New(os.Stdout, BuildFormatter(DateTimeLogFormat+LogFormat))
 	targetWriter      io.Writer
 	restoreLevel      string
+	restoreTarget     io.Writer
 	LogFileHandle     *os.File
 	LogFilePath       string
 
@@ -152,6 +153,19 @@ func disableLogsTemporarily() {
 
 func restoreLogLevel() {
 	setLogLevel(restoreLevel)
+}
+
+// disableLogsTemporarilyToBuffer replaces log target with a temporary buffer.
+// target should be restored afterwards by restoreLogTarget()
+func disableLogsTemporarilyToBuffer(buf *bytes.Buffer) {
+	prev := targetWriter
+	targetWriter = buf
+	log.SetOutput(targetWriter)
+	restoreTarget = prev
+}
+
+func restoreLogTarget() {
+	log.SetOutput(restoreTarget)
 }
 
 func setLogFile(snc *Agent, conf *ConfigSection) {

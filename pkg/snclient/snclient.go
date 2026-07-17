@@ -445,6 +445,20 @@ func (snc *Agent) startModules(initSet *AgentRunSet) {
 	snc.runSet = initSet
 }
 
+func (snc *Agent) StartTask(name string) error {
+	tsk := snc.Tasks.Get(name)
+	if tsk == nil {
+		return fmt.Errorf("no such task: %s", name)
+	}
+
+	err := tsk.Start()
+	if err != nil {
+		return fmt.Errorf("failed to start task: %s: %w", name, err)
+	}
+
+	return nil
+}
+
 func (snc *Agent) FindConfigFiles() (files, defaultLocations ConfigFiles) {
 	files = ConfigFiles(snc.flags.ConfigFiles)
 
