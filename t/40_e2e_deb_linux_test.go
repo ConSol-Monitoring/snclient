@@ -69,8 +69,16 @@ func TestDEBinstaller(t *testing.T) {
 
 	runCmd(t, &cmd{
 		Cmd:  "systemctl",
-		Args: []string{"status", "snclient"},
-		Like: []string{`/usr/bin/snclient`, `running`},
+		Args: []string{"is-active", "--quiet", "snclient"},
+	})
+
+	// Check the configured command separately. The process tree in the
+	// human-readable status output may temporarily contain only the process
+	// name while the service is starting.
+	runCmd(t, &cmd{
+		Cmd:  "systemctl",
+		Args: []string{"show", "--property=ExecStart", "--value", "snclient"},
+		Like: []string{`/usr/bin/snclient`},
 	})
 
 	// add custom .ini with correct ownership for snclient user
