@@ -38,7 +38,7 @@ type dnsOpts struct {
 	Server          string   `short:"s" long:"server" description:"DNS server you want to use for the lookup"`
 	Port            int      `short:"p" long:"port" default:"53" description:"Port number you want to use"`
 	QueryType       string   `short:"q" long:"querytype" default:"A" description:"DNS record query type"`
-	Norec           bool     `long:"norec" description:"Clears the Recursion Desired flag, makes DNS server answer only from its authoritative data or cache and not ask other nameservers."`
+	Norec           bool     `long:"norec" description:"Clears the Recursion Desired flag, DNS server answers only from its authoritative data or cache, does not ask other nameservers."`
 	ExpectedString  []string `short:"e" long:"expected-string" description:"IP-ADDRESS string you expect the DNS server to return. If multiple IP-ADDRESS are returned at once, you have to specify whole string"`
 	SearchPaths     []string `long:"search-path" description:"Search paths to add to domains before sending a DNS query. This can be specified multiple times."`
 	ResolvConfFile  string   `long:"resolv-conf-file" default:"/etc/resolv.conf" description:"Path to the resolv.conf file to use. Is not used in Windows."`

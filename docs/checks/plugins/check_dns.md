@@ -56,8 +56,8 @@ Application Options:
   -s, --server=           DNS server you want to use for the lookup
   -p, --port=             Port number you want to use (default: 53)
   -q, --querytype=        DNS record query type (default: A)
-      --norec             Clears the Recursion Desired flag, makes DNS server answer only from its authoritative data
-                          or cache and not ask other nameservers.
+      --norec             Clears the Recursion Desired flag, DNS server answers only from its authoritative data or
+                          cache, does not ask other nameservers.
   -e, --expected-string=  IP-ADDRESS string you expect the DNS server to return. If multiple IP-ADDRESS are returned at
                           once, you have to specify whole string
       --search-path=      Search paths to add to domains before sending a DNS query. This can be specified multiple
