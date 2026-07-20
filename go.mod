@@ -19,7 +19,7 @@ require (
 	github.com/reeflective/readline v1.3.0
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/sassoftware/go-rpmutils v0.4.0
-	github.com/sevlyar/go-daemon v0.1.6
+	github.com/sevlyar/go-daemon v0.1.7
 	github.com/shirou/gopsutil/v4 v4.26.6
 	github.com/sni/check_http_go v0.0.0-20260610084415-f9915b4a720f
 	github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9
