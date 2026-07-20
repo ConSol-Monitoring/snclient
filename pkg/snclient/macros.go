@@ -503,8 +503,10 @@ func splitToken(input string, token map[string]string) (splitted []string, err e
 func fillEmptyArgMacros(macros map[string]string) {
 	for x := range 32 {
 		key := fmt.Sprintf("ARG%d", x)
+		keyq := fmt.Sprintf("ARG%d\"", x)
 		if _, ok := macros[key]; !ok {
 			macros[key] = ""
+			macros[keyq] = ""
 		}
 	}
 }
