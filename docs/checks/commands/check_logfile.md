@@ -68,11 +68,12 @@ Naemon Config
 
 | Argument     | Description                                                                                           |
 | ------------ | ----------------------------------------------------------------------------------------------------- |
-| column-split | Tab split default: \t                                                                                 |
+| column-split | Tab split (default: \t)                                                                               |
 | file         | The file that should be checked                                                                       |
 | files        | Comma separated list of files                                                                         |
 | label        | label:pattern => If the pattern is matched in a line the line will have the label set as detail       |
-| line-split   | Character string used to split a file into several lines (default \n)                                 |
+| line-split   | Character string used to split a file into several lines (default: \n)                                |
+| max-lines    | Maximum number of lines to read from each file (default: 10000)                                       |
 | offset       | Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset |
 
 ## Attributes

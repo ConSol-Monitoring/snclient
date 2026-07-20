@@ -1855,3 +1855,31 @@ func buildExeAndFilename(ctx context.Context, proc *process.Process, cmdLine str
 
 	return exe, filename
 }
+
+// returns the cache folder, ex.: used for https includes
+func (snc *Agent) getCacheFolder() string {
+	cacheDir := os.Getenv("CACHE_DIRECTORY")
+	if cacheDir != "" {
+		return cacheDir
+	}
+
+	cacheDir, ok := snc.config.Section("/paths").GetString("cache-path")
+	if cacheDir == "" || !ok {
+		cacheDir = os.TempDir()
+	}
+
+	uid := os.Geteuid()
+	if uid == -1 {
+		// usually on windows, so take the user name and make it a sha256
+		userNameSHA, err := getCurrentUserHASH()
+		if err != nil {
+			cacheDir = filepath.Join(cacheDir, "snclient")
+		} else {
+			cacheDir = filepath.Join(cacheDir, fmt.Sprintf("snclient-%s", userNameSHA))
+		}
+	} else {
+		cacheDir = filepath.Join(cacheDir, fmt.Sprintf("snclient-%d", uid))
+	}
+
+	return cacheDir
+}
