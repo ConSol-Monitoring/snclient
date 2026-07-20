@@ -319,10 +319,10 @@ func TestCheckFilesRecursiveArguments(t *testing.T) {
 	config := checkFilesTestConfigWithScript(t, scriptsDir, scriptName, scriptFilename)
 	snc := StartTestAgent(t, config)
 
-	// capture this since t.TempDir() is dyanic
-	geneartionDirectory := t.TempDir()
+	// capture this since t.TempDir() is dynamic
+	generationDirectory := t.TempDir()
 
-	res := snc.RunCheck(scriptName, []string{geneartionDirectory})
+	res := snc.RunCheck(scriptName, []string{generationDirectory})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
 
 	assert.Containsf(t, string(res.BuildPluginOutput()), "ok - Generated 11 files for testing", "output matches")
@@ -350,7 +350,7 @@ func TestCheckFilesRecursiveArguments(t *testing.T) {
 
 	// No arguments: Recursion enabled. Should find everything under the folder.
 	// 11 files and 6 folders => Reports 17 files
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 17 files are ok", "output matches")
 
 	// Max-depth=0
@@ -358,36 +358,36 @@ func TestCheckFilesRecursiveArguments(t *testing.T) {
 	// So only the path itself is going to have depth 0. Anything under it requires an appended /
 	// But the check will always include files directly under it
 	// file1.txt , file2 , directory1 , directory2
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "max-depth=0"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "max-depth=0"})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 4 files are ok", "output matches")
 
 	// Max-depth=1
 	// These items fit the depth condition, as they require one more separator to type after the base path
 	// file1.txt , file2 , directory1 , directory2
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "max-depth=1"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "max-depth=1"})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 4 files are ok", "output matches")
 
 	// Max-depth=2
 	// file1.txt , file2 , directory1 , directory1-file3.txt, directory1-file4 , directory1-directory2, directory4,
 	// directory4-file9.exe , directory4-file10.html , directory4-directory5 , directory4-directory6
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "max-depth=2"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "max-depth=2"})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 11 files are ok", "output matches")
 
 	// Max-depth=3
 	// Adds 5 more: directory1-directory2-directory3, directory1-directory2-file5 , directory1-directory2-file6, directory1-directory2-file7, directory4-directory5-file11
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "max-depth=3"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "max-depth=3"})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 16 files are ok", "output matches")
 
 	// Max-depth=4
 	// Adds the last file: directory1-directory2-directory3-file8
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "max-depth=4"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "max-depth=4"})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 17 files are ok", "output matches")
 
 	// File and directory type checks
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter='type=file'"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter='type=file'"})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 11 files are ok", "output matches")
 
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter='type=dir'"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter='type=dir'"})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 6 files are ok", "output matches")
 
 	StopTestAgent(t, snc)
@@ -414,9 +414,9 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	snc := StartTestAgent(t, config)
 
 	// capture this since t.TempDir() is dyanic
-	geneartionDirectory := t.TempDir()
+	generationDirectory := t.TempDir()
 
-	res := snc.RunCheck("check_files_perfdata_generate_files", []string{geneartionDirectory})
+	res := snc.RunCheck("check_files_perfdata_generate_files", []string{generationDirectory})
 	assert.Equalf(t, CheckExitOK, res.State, "state matches")
 	outputString := string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "ok - Generated 16 files for testing", "output matches")
@@ -447,12 +447,12 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	// 3 directories, 16 files
 
 	// Total size should be exactly 14 mb
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='total_size > 100Mb'"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "crit='total_size > 100Mb'"})
 	outputString = string(res.BuildPluginOutput())
 	// This check includes the directories as well
 	assert.Containsf(t, outputString, "OK - All 18 files are ok", "output matches")
 
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='total_size > 100Mb'", "filter='type == file'"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "crit='total_size > 100Mb'", "filter='type == file'"})
 	outputString = string(res.BuildPluginOutput())
 	// This filters out the two directories
 	assert.Containsf(t, outputString, "OK - All 16 files are ok", "output matches")
@@ -466,13 +466,13 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	// file_512kb_2.root
 	// file_512kb_3.root
 	// file_512kb_4.root
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "max-depth=0", "crit='total_size > 100Mb'", "filter='type == file'"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "max-depth=0", "crit='total_size > 100Mb'", "filter='type == file'"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "OK - All 7 files are ok", "output matches")
 	assert.Contains(t, outputString, "'total_size'=5242880B")
 
 	// only match the root files, but return critical if size is above 512kb
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "max-depth=0", "crit='size > 512Kb'", "filter='type == file'"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "max-depth=0", "crit='size > 512Kb'", "filter='type == file'"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "CRITICAL - 3/7 files (5.00 MiB)", "output matches")
 	assert.Containsf(t, outputString, "file_1024kb_1.root size'=1048576B", "Should include metrics named '<filename> size' for all files")
@@ -481,7 +481,7 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	// "file_1024kb_1.root",
 	// "a/file_1024kb_1.a",
 	// "b/file_1024kb_1.b",
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=file_*_1.*", "crit='total_size != 3670016'", "filter='type == file'"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "pattern=file_*_1.*", "crit='total_size != 3670016'", "filter='type == file'"})
 	outputString = string(res.BuildPluginOutput())
 	// the metric check for 'total_size' sets the status to critical
 	// files do not have a 'total_size' attribute, so they do not result towards setting the status
@@ -490,23 +490,23 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 
 	// Search on the root, but use pattern that only matches files with "b" extension
 	// The pattern matching should remove the files and folders with "root" and "a" extensions
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size > 100MiB'"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "pattern=*.b", "crit='size > 100MiB'"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size > 100MiB'", "filter=' type == file'"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "pattern=*.b", "crit='size > 100MiB'", "filter=' type == file'"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
 
 	// check if the search_path attribute is being populated
-	aDirectory := filepath.Join(geneartionDirectory, "a")
-	bDirectory := filepath.Join(geneartionDirectory, "b")
+	aDirectory := filepath.Join(generationDirectory, "a")
+	bDirectory := filepath.Join(generationDirectory, "b")
 	res = snc.RunCheck("check_files", []string{"paths=" + aDirectory + "," + bDirectory, "critical='check_path != " + aDirectory + " '"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "CRITICAL - 5/9 files", "output matches")
 	assert.NotContainsf(t, outputString, "file_1024kb_1.a", "file_1024kb_1.a is not deemed critical, should not be in output")
 
 	// check if calculate-subdirectory-sizes works
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='size > 4Mib'", "calculate-subdirectory-sizes=true"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "crit='size > 4Mib'", "calculate-subdirectory-sizes=true"})
 	outputString = string(res.BuildPluginOutput())
 	// files themselves are all 512 Kib or 1 Mib
 	// directory 'a' contains four 1 MiB files,
@@ -514,19 +514,19 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	assert.Containsf(t, outputString, "CRITICAL - 1/18 files (14.00 MiB) critical(b)", "output matches")
 
 	// When using a pattern and calculate subdirectory sizes is enabled, it will add the subdirectory sizes as metrics
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*_3.*", "crit='size > 0Mib'", "calculate-subdirectory-sizes=true"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "pattern=*_3.*", "crit='size > 0Mib'", "calculate-subdirectory-sizes=true"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "CRITICAL - 4/4 files (3.50 MiB) critical", "output matches")
-	assert.NotContainsf(t, outputString, "'a size'=1048576B", "should not calculate the size of the subfolder a, as it does not match pattern")
-	assert.NotContainsf(t, outputString, "'b size'=1048576B", "should not calculate the size of the subfolder b, as it does not match pattern")
+	assert.NotContainsf(t, outputString, "'a size'", "should not calculate the size of the subfolder a, as it does not match pattern")
+	assert.NotContainsf(t, outputString, "'b size'", "should not calculate the size of the subfolder b, as it does not match pattern")
 
 	// only matches the directory "a" itself
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=a"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "pattern=a"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "OK - All 1 files are ok: (0 B)", "output matches")
 
 	// matches the four files inside directory "a": file_1024kb_1.a , file_1024kb_2.a , file_1024kb_3.a , file_1024kb_4.a
-	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.a"})
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "pattern=*.a"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "OK - All 4 files are ok: (4.00 MiB)", "output matches")
 
@@ -553,9 +553,9 @@ func TestCheckFilesFilesystemLinks(t *testing.T) {
 	config := checkFilesTestConfigWithScript(t, scriptsDir, scriptName, scriptFilename)
 	snc := StartTestAgent(t, config)
 
-	geneartionDirectory := t.TempDir()
+	generationDirectory := t.TempDir()
 
-	res := snc.RunCheck(scriptName, []string{geneartionDirectory})
+	res := snc.RunCheck(scriptName, []string{generationDirectory})
 	assert.Equalf(t, CheckExitOK, res.State, "script return state check is correct")
 	outputString := string(res.BuildPluginOutput())
 
@@ -580,7 +580,7 @@ func TestCheckFilesFilesystemLinks(t *testing.T) {
 		assert.Containsf(t, outputString, `Hardlink created for file1_hardlink1.txt <<===>> dir1\file1.txt`, "output matches")
 		assert.Containsf(t, outputString, `Junction created for dir1_junction1 <<===>> dir1`, "output matches")
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file", "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter=type eq file", "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, "file1.txt", "output has file")
@@ -589,7 +589,7 @@ func TestCheckFilesFilesystemLinks(t *testing.T) {
 		assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
 		assert.NotContainsf(t, outputString, "dir1_junction1", "output does not have junction directory")
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file and is_symlink eq true", "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter=type eq file and is_symlink eq true", "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, "file1_symlink1.txt", "output does have symlink file")
@@ -597,14 +597,14 @@ func TestCheckFilesFilesystemLinks(t *testing.T) {
 		assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
 		assert.NotContainsf(t, outputString, "dir1_junction1", "output does not have junction directory")
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq dir", "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter=type eq dir", "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, "dir1", "output has directory")
 		assert.Containsf(t, outputString, "dir1_junction1", "output has directory")
 		assert.Containsf(t, outputString, "dir1_symlink1", "output has directory")
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq dir and is_symlink eq true", "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter=type eq dir and is_symlink eq true", "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, "dir1_junction1", "output has directory")
@@ -626,7 +626,7 @@ func TestCheckFilesFilesystemLinks(t *testing.T) {
 		assert.Containsf(t, outputString, "ok - Generated 2 files for testing", "output matches")
 		assert.Containsf(t, outputString, "ok - Generated 1 directories for testing", "output matches")
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file", "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter=type eq file", "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, "file1.txt", "output has file")
@@ -635,11 +635,11 @@ func TestCheckFilesFilesystemLinks(t *testing.T) {
 		assert.Containsf(t, outputString, "file1_physical1.txt", "output does have hardlink file")
 		assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter=type eq file"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		assert.Containsf(t, string(res.BuildPluginOutput()), "All 6 files are ok", "should count 6 files")
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file and is_symlink eq true", "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter=type eq file and is_symlink eq true", "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, "file1_symbolic1.txt", "output does have symlink file")
@@ -648,14 +648,14 @@ func TestCheckFilesFilesystemLinks(t *testing.T) {
 		assert.NotContainsf(t, outputString, "file1.txt", "output does not have regular file")
 		assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq dir", "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter=type eq dir", "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, "dir1", "output has directory")
 		assert.Containsf(t, outputString, "dir1_symbolic1", "output has symlink directory")
 		assert.Containsf(t, outputString, "dir1_relative1", "output has relative symlink directory")
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq dir and is_symlink eq true", "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter=type eq dir and is_symlink eq true", "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, "dir1_symbolic1", "output has symlink directory")
@@ -684,9 +684,9 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 	config := checkFilesTestConfigWithScript(t, scriptsDir, scriptName, scriptFilename)
 	snc := StartTestAgent(t, config)
 
-	geneartionDirectory := t.TempDir()
+	generationDirectory := t.TempDir()
 
-	res := snc.RunCheck(scriptName, []string{geneartionDirectory})
+	res := snc.RunCheck(scriptName, []string{generationDirectory})
 	assert.Equalf(t, CheckExitOK, res.State, "script return state check is correct")
 	outputString := string(res.BuildPluginOutput())
 
@@ -707,7 +707,7 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 		assert.Containsf(t, outputString, `ok - Generated 4 directories for testing`, "output matches")
 
 		// with add-files-only-once=true, it must not cause an infinite loop
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=true", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "follow-symlinks=true", "add-files-only-once=true", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "cyclic symlinks with add-files-only-once=true should complete OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, `A - false`, `folder A should be found`)
@@ -719,7 +719,7 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 		// with add-files-only-once=false (default), the cyclic symlinks cause an infinite loop
 		// this is the expected behavior
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "follow-symlinks=true", "add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, `toA\toB\toA\file.txt - false`, "file file.txt should be accessible over many symlinks")
@@ -738,7 +738,7 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 		assert.Containsf(t, outputString, `ok - Generated 4 directories for testing`, "output matches")
 
 		// with add-files-only-once=true, it must not cause an infinite loop
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=true", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "follow-symlinks=true", "add-files-only-once=true", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "cyclic symlinks with add-files-only-once=true should complete OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, `A - false`, `folder A should be found`)
@@ -753,7 +753,7 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 		// if max-depth is not specified, maximum of default max-depth and a ceiling max-depth with symlinks is set as max-depth
 		// this prevents unending recursion
 
-		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "follow-symlinks=true", "add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
 		outputString = string(res.BuildPluginOutput())
 		assert.Containsf(t, outputString, `toA/toB/toA/file.txt - false`, "file file.txt should be accessible over many symlinks")
@@ -761,7 +761,7 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 		// if max-depth is specified, it is untouched
 
 		res = snc.RunCheck("check_files", []string{
-			"path=" + geneartionDirectory, "max-depth=5", "follow-symlinks=true",
+			"path=" + generationDirectory, "max-depth=5", "follow-symlinks=true",
 			"add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all",
 		})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")

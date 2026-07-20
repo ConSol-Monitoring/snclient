@@ -25,8 +25,8 @@ func init() {
 
 type FileInfoUnified struct {
 	Atime time.Time // Access time
-	Mtime time.Time // Modify time
-	Ctime time.Time // Create time
+	Mtime time.Time // Modify time i.e last file content change time
+	Ctime time.Time // On Windows creation time , Unix last metadata/inode change
 }
 
 const (
@@ -166,7 +166,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		}
 	}
 
-	l.removeDirectoriesThatDontMatchPattern(check)
+	l.removeDirectoriesNotMatchingPattern(check)
 
 	if l.calculateSubdirectorySizes {
 		l.addSubdirectorySizes(check)
@@ -275,7 +275,7 @@ func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error 
 			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, err)
 		}
 
-		log.Tracef("enty on path: %s of type: %s symlink status: %t", path, entryType, isSymlink)
+		log.Tracef("entry on path: %s of type: %s symlink status: %t", path, entryType, isSymlink)
 
 		if isSymlink {
 			if w.cf.followSymlinks {
@@ -555,7 +555,7 @@ func checkSlowFileOperations(check *CheckData, entry map[string]string, path str
 	return nil
 }
 
-func (l *CheckFiles) removeDirectoriesThatDontMatchPattern(check *CheckData) {
+func (l *CheckFiles) removeDirectoriesNotMatchingPattern(check *CheckData) {
 	if l.pattern == "*" {
 		return
 	}
@@ -623,7 +623,7 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 	}
 
 	if check.HasThreshold("size") {
-		log.Warn("check_files - Using 'size' in a threshold argument meant to mean \"summation of all found files sizes\" is wrong. " +
+		log.Warn("check_files - Using 'size' in a threshold argument to mean \"summation of all found files sizes\" is wrong. " +
 			"This collides with each file entry 'size' attribute during checks. Using 'size' in a condition will check each files 'size' attribute. " +
 			"If you want to check for the sum of sizes, use 'total_size' in your condition instead. ")
 	}
