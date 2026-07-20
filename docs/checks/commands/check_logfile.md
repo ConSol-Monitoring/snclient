@@ -60,25 +60,26 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                                       |
-| ------------- | ----------------------------------------------------------------------------------- |
-| empty-state   | 3 (UNKNOWN)                                                                         |
-| empty-syntax  | %(status) - No files found to search lines in, search paths: '%(file_search_paths)' |
-| top-syntax    | %(status) - %(problem_count)/%(count) line(s) found \n%(problem_list)               |
-| ok-syntax     | %(status) - %(count) line(s) found                                                  |
-| detail-syntax | %(line \| chomp \| cut=200)                                                         |
+| Argument      | Default Value                                                         |
+| ------------- | --------------------------------------------------------------------- |
+| empty-state   | 0 (OK)                                                                |
+| empty-syntax  | %(status) - No matching lines found                                   |
+| top-syntax    | %(status) - %(problem_count)/%(count) line(s) found \n%(problem_list) |
+| ok-syntax     | %(status) - %(count) line(s) found                                    |
+| detail-syntax | %(line \| chomp \| cut=200)                                           |
 
 ## Check Specific Arguments
 
-| Argument     | Description                                                                                           |
-| ------------ | ----------------------------------------------------------------------------------------------------- |
-| column-split | Tab split (default: \t)                                                                               |
-| file         | The file that should be checked                                                                       |
-| files        | Comma separated list of files                                                                         |
-| label        | label:pattern => If the pattern is matched in a line the line will have the label set as detail       |
-| line-split   | Character string used to split a file into several lines (default: \n)                                |
-| max-lines    | Maximum number of lines to read from each file (default: 10000)                                       |
-| offset       | Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset |
+| Argument       | Description                                                                                          |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| column-split   | Tab split (default: \t)                                                                              |
+| file           | The file pattern that should be checked                                                              |
+| files          | Comma separated list of file patterns                                                                |
+| ignore-missing | Ignore the error if file pattern does not match any file                                             |
+| label          | label:pattern => If the pattern is matched in a line the line will have the label set as detail      |
+| line-split     | Character string used to split a file into several lines (default: \n)                               |
+| max-lines      | Maximum number of lines to read from each file (default: 10000)                                      |
+| offset         | Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset |
 
 ## Attributes
 

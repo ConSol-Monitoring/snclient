@@ -32,13 +32,14 @@ var numReg = regexp.MustCompile(`\d+`)
 type CheckLogFile struct {
 	snc                *Agent
 	FilePathPatterns   []string
-	FilePathPatternsCS string // Comma seperated patterns
+	FilePathPatternsCS string // Comma separated patterns
 	LineDelimiter      string
 	TimestampPattern   string
 	ColumnDelimiter    string
 	LabelPattern       []string
 	Offset             string // Changed to string to detect if user provided i
 	MaxLinesPerFile    int64
+	IgnoreMissing      bool
 }
 
 type LogLine struct {
@@ -53,6 +54,7 @@ func NewCheckLogFile() CheckHandler {
 		FilePathPatterns:   make([]string, 0),
 		FilePathPatternsCS: "",
 		MaxLinesPerFile:    defaultMaxLinesPerFile,
+		IgnoreMissing:      false,
 	}
 }
 
@@ -78,16 +80,17 @@ func (c *CheckLogFile) Build() *CheckData {
 		listCombine:  "\n",
 		okSyntax:     "%(status) - %(count) line(s) found",
 		topSyntax:    "%(status) - %(problem_count)/%(count) line(s) found \n%(problem_list)",
-		emptySyntax:  "%(status) - No files found to search lines in, search paths: '%(file_search_paths)'",
-		emptyState:   CheckExitUnknown,
+		emptySyntax:  "%(status) - No matching lines found",
+		emptyState:   CheckExitOK,
 		args: map[string]CheckArgument{
-			"file":         {value: &c.FilePathPatterns, description: "The file that should be checked", isFilter: true},
-			"files":        {value: &c.FilePathPatternsCS, description: "Comma separated list of files", isFilter: true},
-			"offset":       {value: &c.Offset, description: "Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset"},
-			"line-split":   {value: &c.LineDelimiter, description: "Character string used to split a file into several lines (default: \\n)"},
-			"column-split": {value: &c.ColumnDelimiter, description: "Tab split (default: \\t)"},
-			"label":        {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
-			"max-lines":    {value: &c.MaxLinesPerFile, description: fmt.Sprintf("Maximum number of lines to read from each file (default: %d)", defaultMaxLinesPerFile)},
+			"file":           {value: &c.FilePathPatterns, description: "The file pattern that should be checked", isFilter: true},
+			"files":          {value: &c.FilePathPatternsCS, description: "Comma separated list of file patterns", isFilter: true},
+			"offset":         {value: &c.Offset, description: "Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset"},
+			"line-split":     {value: &c.LineDelimiter, description: "Character string used to split a file into several lines (default: \\n)"},
+			"column-split":   {value: &c.ColumnDelimiter, description: "Tab split (default: \\t)"},
+			"label":          {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
+			"max-lines":      {value: &c.MaxLinesPerFile, description: fmt.Sprintf("Maximum number of lines to read from each file (default: %d)", defaultMaxLinesPerFile)},
+			"ignore-missing": {value: &c.IgnoreMissing, description: "Ignore the error if file pattern does not match any file"},
 		},
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -135,27 +138,25 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		return nil, fmt.Errorf("max-lines must be greater than 0")
 	}
 
-	c.FilePathPatterns = append(c.FilePathPatterns, strings.Split(c.FilePathPatternsCS, ",")...)
-	if len(c.FilePathPatterns) == 0 {
-		return nil, fmt.Errorf("no file patterns defined")
-	}
-
-	for _, fileName := range c.FilePathPatterns {
-		if fileName == "" {
+	for _, filePattern := range c.FilePathPatterns {
+		if filePattern == "" {
 			continue
 		}
 
 		lineIndexedInThisFilePattern := 0
-		files, err := filepath.Glob(fileName)
+		filesMatchingPattern, err := filepath.Glob(filePattern)
+
 		if err != nil {
-			return nil, fmt.Errorf("could not get files for pattern %s, error was: %w", fileName, err)
+			return nil, fmt.Errorf("could not get files for pattern %s, error was: %w", filePattern, err)
 		}
 
-		for _, fileName := range files {
+		if len(filesMatchingPattern) == 0 && !c.IgnoreMissing {
+			return nil, fmt.Errorf("no files found for search pattern: '%s'", filePattern)
+		}
+
+		for _, fileName := range filesMatchingPattern {
 			if !c.matchPattern(fileName, allowedPattern) {
 				log.Tracef("allowed pattern check failed for file: %s (pattern: %#v)", fileName, allowedPattern)
-
-				return nil, fmt.Errorf("file %s does not match any allowed pattern", fileName)
 			}
 
 			log.Debugf("check_logfile adding file: %s", fileName)
@@ -188,12 +189,6 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	if check.HasThreshold("count") {
 		check.addCountMetrics = true
 		check.addCountMetricsToFront = true
-	}
-
-	if len(checkedFilesWithMatchedEntries) > 0 && len(check.listData) == 0 {
-		check.emptyState = CheckExitOK
-		check.emptyStateSet = true
-		check.emptySyntax = fmt.Sprintf("%%(status) - No matching lines found")
 	}
 
 	return check.Finalize()
