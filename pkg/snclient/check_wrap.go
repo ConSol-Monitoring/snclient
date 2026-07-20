@@ -43,6 +43,7 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 	macros := map[string]string{}
 	for i := range check.rawArgs {
 		macros[fmt.Sprintf("ARG%d", i+1)] = check.rawArgs[i]
+		macros[fmt.Sprintf("ARG%d\"", i+1)] = fmt.Sprintf("%q", check.rawArgs[i])
 	}
 	fillEmptyArgMacros(macros)
 
