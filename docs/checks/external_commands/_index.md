@@ -56,6 +56,10 @@ Arguments are available in macros:
 - `$ARGS$` contains all macros space separated **without** quotes.
 - `$ARGS"$` contains all macros space separated **with quotes**.
 - `$ARGSn$` contains the value of the argument at position `n`.
+- `$ARGSn"$` contains the value of the argument at position `n` **with quotes**.
+
+Using arguments is not recommend for security reasons. Using unquoted arguments almost always
+leads to a command injection vulnerability.
 
 ### Configuration Reference
 

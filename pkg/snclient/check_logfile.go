@@ -19,6 +19,14 @@ func init() {
 	AvailableChecks["check_logfile"] = CheckEntry{"check_logfile", NewCheckLogFile}
 }
 
+const (
+	// defaultMaxLinesPerFile sets the default maximum number of lines per file
+	defaultMaxLinesPerFile = 10000
+
+	// maxLinesPerFileMax sets the upper limit a user can request by args (can be increased from the config)
+	maxLinesPerFileMax = 100000
+)
+
 var numReg = regexp.MustCompile(`\d+`)
 
 type CheckLogFile struct {
@@ -30,6 +38,7 @@ type CheckLogFile struct {
 	ColumnDelimiter  string
 	LabelPattern     []string
 	Offset           string // Changed to string to detect if user provided it
+	MaxLinesPerFile  int64
 }
 
 type LogLine struct {
@@ -41,6 +50,7 @@ func NewCheckLogFile() CheckHandler {
 	return &CheckLogFile{
 		LineDelimiter:   "\n",
 		ColumnDelimiter: "\t",
+		MaxLinesPerFile: defaultMaxLinesPerFile,
 	}
 }
 
@@ -72,9 +82,10 @@ func (c *CheckLogFile) Build() *CheckData {
 			"file":         {value: &c.FilePath, description: "The file that should be checked"},
 			"files":        {value: &c.Paths, description: "Comma separated list of files"},
 			"offset":       {value: &c.Offset, description: "Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset"},
-			"line-split":   {value: &c.LineDelimiter, description: "Character string used to split a file into several lines (default \\n)"},
-			"column-split": {value: &c.ColumnDelimiter, description: "Tab split default: \\t"},
+			"line-split":   {value: &c.LineDelimiter, description: "Character string used to split a file into several lines (default: \\n)"},
+			"column-split": {value: &c.ColumnDelimiter, description: "Tab split (default: \\t)"},
 			"label":        {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
+			"max-lines":    {value: &c.MaxLinesPerFile, description: fmt.Sprintf("Maximum number of lines to read from each file (default: %d)", defaultMaxLinesPerFile)},
 		},
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -105,6 +116,16 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	}
 
 	c.LineDelimiter = unescapeNastyCharacters(c.LineDelimiter)
+
+	// set maximum number of lines per file
+	maxLinesPerFileLimit, ok, err := c.snc.config.Section("/settings/check/logfile").GetInt("max lines per file limit")
+	if err != nil || !ok {
+		maxLinesPerFileLimit = maxLinesPerFileMax
+	}
+	c.MaxLinesPerFile = min(c.MaxLinesPerFile, maxLinesPerFileLimit)
+	if c.MaxLinesPerFile <= 0 {
+		return nil, fmt.Errorf("max-lines must be greater than 0")
+	}
 
 	c.FilePath = append(c.FilePath, strings.Split(c.Paths, ",")...)
 	if len(c.FilePath) == 0 {
@@ -138,6 +159,8 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		}
 		for _, fileName := range files {
 			if !c.matchPattern(fileName, allowedPattern) {
+				log.Tracef("allowed pattern check failed for file: %s (pattern: %#v)", fileName, allowedPattern)
+
 				return nil, fmt.Errorf("file %s does not match any allowed pattern", fileName)
 			}
 			tmpCount, err := c.addFile(fileName, check, patterns)
@@ -211,6 +234,11 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 	var lineIndex int
 	for lineIndex = 0; scanner.Scan(); lineIndex++ {
 		line := scanner.Text()
+
+		if int64(lineIndex) > c.MaxLinesPerFile {
+			return 0, fmt.Errorf("max lines per file limit (%d) reached for %s", c.MaxLinesPerFile, fileName)
+		}
+
 		entry := map[string]string{
 			"filename": fileName,
 			"line":     line,
@@ -244,6 +272,11 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 		}
 	}
 	check.listData = append(check.listData, lineStorage...)
+
+	err = scanner.Err()
+	if err != nil {
+		return 0, fmt.Errorf("error reading file %s: %w", fileName, err)
+	}
 
 	return lineIndex, nil
 }

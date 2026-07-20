@@ -9,6 +9,9 @@ Group=snclient
 
 AmbientCapabilities=CAP_SETUID CAP_SETGID
 
+CacheDirectory=snclient
+CacheDirectoryMode=0750
+
 # Last-resort protection for the complete service cgroup, including child
 # processes. The in-process 512 MiB RSS watcher remains the primary safeguard.
 MemoryAccounting=yes

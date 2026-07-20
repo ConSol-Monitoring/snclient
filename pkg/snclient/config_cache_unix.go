@@ -8,9 +8,10 @@ import (
 	"syscall"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
-func validateHTTPIncludeCacheFileOwner(stat os.FileInfo) error {
+func validateHTTPIncludeCacheFileOwner(_ string, stat os.FileInfo) error {
 	fileInfoSys, ok := stat.Sys().(*syscall.Stat_t)
 	if !ok {
 		return fmt.Errorf("cannot inspect cache file owner")
@@ -25,4 +26,13 @@ func validateHTTPIncludeCacheFileOwner(stat os.FileInfo) error {
 	}
 
 	return nil
+}
+
+func getCurrentUserHASH() (hash string, err error) {
+	hash, err = utils.Sha256Sum(fmt.Sprintf("%d", os.Geteuid()))
+	if err != nil {
+		return "", fmt.Errorf("failed to build hash sum: %w", err)
+	}
+
+	return hash, nil
 }

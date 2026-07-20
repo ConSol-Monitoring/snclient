@@ -11,6 +11,7 @@ There is a OS specific installation documentation available for:
 - [Windows](windows)
 - [RHEL/Rocky/Alma](rhel)
 - [Debian/Ubuntu](debian)
+- [Arch Linux](archlinux)
 - [Mac OSX](osx)
 
 ## Using Binary Packages

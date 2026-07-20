@@ -192,9 +192,7 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLoo
 		},
 	)
 
-	log.Errorf("1")
 	if check.HasThreshold("cores") || check.HasFilter("cores") {
-		log.Errorf("2")
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:          "cores",
 			ThresholdName: "cores",
