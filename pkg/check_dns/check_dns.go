@@ -399,7 +399,7 @@ type emptyResult struct {
 // emptyResultsMessage builds a message from the reasons (rcodes or errors) why the DNS queries returned no answer.
 // The first line contains the unique reasons from the first nameserver, each further nameserver gets a line with its own unique reasons.
 func emptyResultsMessage(host string, nameservers []string, results []emptyResult) string {
-	lines := make([]string, 0, len(nameservers))
+	nameserverLines := make(map[string]string, 0)
 	for _, nameserver := range nameservers {
 		reasons := make([]string, 0)
 		for _, result := range results {
@@ -410,16 +410,30 @@ func emptyResultsMessage(host string, nameservers []string, results []emptyResul
 		if len(reasons) == 0 {
 			continue
 		}
-		if len(lines) == 0 {
-			lines = append(lines, fmt.Sprintf("dns lookup failed for host '%s':", strings.TrimSuffix(host, ".")))
-		}
-		lines = append(lines, fmt.Sprintf("%s: %s", nameserver, strings.Join(reasons, ", ")))
-	}
-	if len(lines) == 0 {
-		return "all DNS queries gave empty results or failed"
+
+		nameserverLines[nameserver] = fmt.Sprintf("%s: %s", nameserver, strings.Join(reasons, ", "))
 	}
 
-	return strings.Join(lines, "\n")
+	switch {
+	case len(nameserverLines) == 0:
+		return "all DNS queries gave empty results or failed"
+	case len(nameserverLines) == 1:
+		nameserverLine := ""
+		for _, line := range nameserverLines {
+			nameserverLine = line
+		}
+
+		return fmt.Sprintf("DNS lookup failed for host '%s': %s", strings.TrimSuffix(host, "."), nameserverLine)
+	default:
+		sortedKeys := utils.SortedKeys(nameserverLines)
+		lines := make([]string, 0, len(nameserverLines))
+		for _, key := range sortedKeys {
+			lines = append(lines, nameserverLines[key])
+		}
+
+		return fmt.Sprintf("DNS lookup failed for host '%s':\n%s", strings.TrimSuffix(host, "."), strings.Join(lines, "\n"))
+	}
+
 }
 
 func emptyResultReason(rcode int) string {

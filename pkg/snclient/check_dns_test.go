@@ -260,7 +260,7 @@ CheckBuiltinPlugins = enabled
 		assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 		assert.Regexpf(
 			t,
-			`^CRITICAL - dns lookup failed for host 'nxdomain\.example\.com':\n127\.0\.0\.1:`+port+`: NXDOMAIN$`,
+			`^CRITICAL - DNS lookup failed for host 'nxdomain\.example\.com': 127\.0\.0\.1:`+port+`: NXDOMAIN$`,
 			string(res.BuildPluginOutput()),
 			"output matches",
 		)
@@ -272,7 +272,7 @@ CheckBuiltinPlugins = enabled
 		assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 		assert.Regexpf(
 			t,
-			`^CRITICAL - dns lookup failed for host 'servfail\.example\.com':\n127\.0\.0\.1:`+port+`: SERVFAIL$`,
+			`^CRITICAL - DNS lookup failed for host 'servfail\.example\.com': 127\.0\.0\.1:`+port+`: SERVFAIL$`,
 			string(res.BuildPluginOutput()),
 			"output matches",
 		)
@@ -284,7 +284,7 @@ CheckBuiltinPlugins = enabled
 		assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 		assert.Regexpf(
 			t,
-			`^CRITICAL - dns lookup failed for host 'nodata\.example\.com':\n127\.0\.0\.1:`+port+`: no answer \(NOERROR\)$`,
+			`^CRITICAL - DNS lookup failed for host 'nodata\.example\.com': 127\.0\.0\.1:`+port+`: no answer \(NOERROR\)$`,
 			string(res.BuildPluginOutput()),
 			"output matches",
 		)
@@ -300,7 +300,7 @@ CheckBuiltinPlugins = enabled
 		assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 		assert.Regexpf(
 			t,
-			`^CRITICAL - dns lookup failed for host 'myhost':\n127\.0\.0\.1:`+port+`: NXDOMAIN$`,
+			`^CRITICAL - DNS lookup failed for host 'myhost': 127\.0\.0\.1:`+port+`: NXDOMAIN$`,
 			string(res.BuildPluginOutput()),
 			"output matches",
 		)
@@ -327,7 +327,7 @@ CheckBuiltinPlugins = enabled
 		output := string(res.BuildPluginOutput())
 		assert.Regexpf(
 			t,
-			`^CRITICAL - dns lookup failed for host 'multi\.example\.com':\n127\.0\.0\.1:`+port+`: SERVFAIL`,
+			`^CRITICAL - DNS lookup failed for host 'multi\.example\.com':\n127\.0\.0\.1:`+port+`: SERVFAIL`,
 			output,
 			"first nameserver gets its own line",
 		)
@@ -350,7 +350,7 @@ CheckBuiltinPlugins = enabled
 		assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 		assert.Regexpf(
 			t,
-			`^CRITICAL - dns lookup failed for host 'silent\.example\.com':\n127\.0\.0\.1:`+port+`: query failed: timeout$`,
+			`^CRITICAL - DNS lookup failed for host 'silent\.example\.com': 127\.0\.0\.1:`+port+`: query failed: timeout$`,
 			string(res.BuildPluginOutput()),
 			"output matches",
 		)
