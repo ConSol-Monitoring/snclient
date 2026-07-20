@@ -145,7 +145,6 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 		lineIndexedInThisFilePattern := 0
 		filesMatchingPattern, err := filepath.Glob(filePattern)
-
 		if err != nil {
 			return nil, fmt.Errorf("could not get files for pattern %s, error was: %w", filePattern, err)
 		}
@@ -363,7 +362,6 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 	}
 
 	err = scanner.Err()
-
 	if err != nil {
 		return lineStorage, 0, fmt.Errorf("error reading file %s: %w", fileName, err)
 	}

@@ -141,7 +141,7 @@ func TestCheckLogFileFileDoesNotExist(t *testing.T) {
 
 	res := snc.RunCheck("check_logfile", []string{"files=./t/testfiledoesnotexist*"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found for search pattern: './t/testfiledoesnotexist*'")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - no files found for search pattern: './t/testfiledoesnotexist*'")
 
 	StopTestAgent(t, snc)
 }
@@ -151,7 +151,7 @@ func TestCheckLogFileFileDoesNotExist2(t *testing.T) {
 
 	res := snc.RunCheck("check_logfile", []string{"file=./t/testfiledoesnotexist1", "files=./t/testfiledoesnotexist2,./t/testfiledoesnotexist3"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found for search pattern: './t/testfiledoesnotexist1'")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - no files found for search pattern: './t/testfiledoesnotexist1'")
 
 	StopTestAgent(t, snc)
 }
@@ -196,23 +196,25 @@ func TestCheckLogFileErrorOnEmptySearchPathResults(t *testing.T) {
 
 	res := snc.RunCheck("check_logfile", []string{"file=./t/testfiledoesnotexist.log"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found for search pattern: './t/testfiledoesnotexist.log'")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - no files found for search pattern: './t/testfiledoesnotexist.log'")
 
 	res = snc.RunCheck("check_logfile", []string{"file=./t/patterndoesnotmatchanything*"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found for search pattern: './t/patterndoesnotmatchanything*'")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - no files found for search pattern: './t/patterndoesnotmatchanything*'")
 
 	res = snc.RunCheck("check_logfile", []string{"files=./t/testfiledoesnotexist.log"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found for search pattern: './t/testfiledoesnotexist.log'")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - no files found for search pattern: './t/testfiledoesnotexist.log'")
 
 	res = snc.RunCheck("check_logfile", []string{"files=./t/test.log,./t/testfiledoesnotexist.log"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found for search pattern: './t/testfiledoesnotexist.log'")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - no files found for search pattern: './t/testfiledoesnotexist.log'")
 
 	res = snc.RunCheck("check_logfile", []string{"files=./t/test.log,./t/test2.log,./t/patterndoesnotmatchanything*"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state should be UNKNOWN")
-	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - No files found for search pattern: './t/patterndoesnotmatchanything*'")
+	assert.Contains(t, string(res.BuildPluginOutput()), "UNKNOWN - no files found for search pattern: './t/patterndoesnotmatchanything*'")
+
+	StopTestAgent(t, snc)
 }
 
 func TestCheckLogFileErrorOnEmptySearchPathResults2(t *testing.T) {
@@ -238,4 +240,6 @@ func TestCheckLogFileErrorOnEmptySearchPathResults2(t *testing.T) {
 	res = snc.RunCheck("check_logfile", []string{"files=./t/test.log,./t/test2.log,./t/patterndoesnotmatchanything*", "ignore-missing=1", "offset=0"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK - 16 line(s) found")
+
+	StopTestAgent(t, snc)
 }
