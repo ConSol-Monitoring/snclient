@@ -489,8 +489,7 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	assert.Contains(t, outputString, "total_size'=3670016")
 
 	// Search on the root, but use pattern that only matches files with "b" extension
-	// The pattern matching should remove the files with "root" and "a" extensions
-	// The second pass should remove the "a" folder where files with "a" extension is found
+	// The pattern matching should remove the files and folders with "root" and "a" extensions
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*.b", "crit='size > 100MiB'"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "OK - All 5 files are ok", "output matches")
@@ -504,7 +503,7 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	res = snc.RunCheck("check_files", []string{"paths=" + aDirectory + "," + bDirectory, "critical='check_path != " + aDirectory + " '"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "CRITICAL - 5/9 files", "output matches")
-	assert.NotContainsf(t, outputString, "file_1024kb_1.a", "output matches")
+	assert.NotContainsf(t, outputString, "file_1024kb_1.a", "file_1024kb_1.a is not deemed critical, should not be in output")
 
 	// check if calculate-subdirectory-sizes works
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "crit='size > 4Mib'", "calculate-subdirectory-sizes=true"})
@@ -518,8 +517,8 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=*_3.*", "crit='size > 0Mib'", "calculate-subdirectory-sizes=true"})
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "CRITICAL - 4/4 files (3.50 MiB) critical", "output matches")
-	assert.NotContainsf(t, outputString, "'a size'=1048576B", "should calculate the size of the subfolder a, as it does not match pattern")
-	assert.NotContainsf(t, outputString, "'b size'=1048576B", "should calculate the size of the subfolder b, as it does not match pattern")
+	assert.NotContainsf(t, outputString, "'a size'=1048576B", "should not calculate the size of the subfolder a, as it does not match pattern")
+	assert.NotContainsf(t, outputString, "'b size'=1048576B", "should not calculate the size of the subfolder b, as it does not match pattern")
 
 	// only matches the directory "a" itself
 	res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "pattern=a"})
