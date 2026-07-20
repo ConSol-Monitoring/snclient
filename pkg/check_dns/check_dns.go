@@ -22,6 +22,10 @@ import (
 func Check(ctx context.Context, output io.Writer, args []string) int {
 	opts, err := parseArgs(args)
 	if err != nil {
+		if e, ok := err.(*flags.Error); ok && e.Type == flags.ErrHelp {
+			fmt.Fprint(output, err.Error())
+			return int(checkers.OK)
+		}
 		fmt.Fprintf(output, "UNKNOWN - %s", err.Error())
 		return int(checkers.UNKNOWN)
 	}

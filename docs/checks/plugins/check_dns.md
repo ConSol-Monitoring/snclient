@@ -48,7 +48,7 @@ Naemon Config
 
 ## Usage
 
-```UNKNOWN - Usage:
+```Usage:
   check_dns [OPTIONS]
 
 Application Options:
