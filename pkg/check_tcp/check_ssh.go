@@ -7,7 +7,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/mackerelio/checkers"
 	"github.com/sni/go-flags"
 )
 
@@ -18,11 +17,11 @@ func CheckSSH(_ context.Context, output io.Writer, args []string, sendString str
 		if errors.As(err, &flagsErr) && flagsErr.Type == flags.ErrHelp {
 			fmt.Fprint(output, err.Error())
 
-			return int(checkers.UNKNOWN)
+			return int(3)
 		}
 		fmt.Fprintf(output, "UNKNOWN - %s", err.Error())
 
-		return int(checkers.UNKNOWN)
+		return int(3)
 	}
 
 	if opts.Port == 0 {
