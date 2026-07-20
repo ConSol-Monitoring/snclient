@@ -45,6 +45,10 @@ RedHat:
 
 - RHEL >= 7
 
+Arch Linux:
+
+- Current rolling release
+
 Others will quite likely work as well, but haven't been tested yet.
 
 ## Mac OSX / Darwin
