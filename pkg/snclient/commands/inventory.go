@@ -26,6 +26,7 @@ snclient inventory mounts
 			agentFlags.Mode = snclient.ModeOneShot
 			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
+			_ = snc.StartTask("ProcessMemoryWatcher")
 
 			inventory := snc.GetInventory(context.Background(), args)
 			encoder := json.NewEncoder(rootCmd.OutOrStdout())

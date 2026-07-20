@@ -50,6 +50,7 @@ snclient do check_files path=/tmp crit='count > 100'
 			agentFlags.Mode = snclient.ModeOneShot
 			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
+			_ = snc.StartTask("ProcessMemoryWatcher")
 
 			if len(args) == 0 {
 				if cmd.CalledAs() != "test" {

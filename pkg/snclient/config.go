@@ -439,7 +439,10 @@ func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigS
 	// check if fetch is required (file not found, oneshotmode, ..., reload?)
 	fetch := true
 	exists := false
-	if stat, err2 := os.Stat(cacheFile); err2 == nil {
+	if stat, err2 := os.Lstat(cacheFile); err2 == nil {
+		if err = validateHTTPIncludeCacheFile(stat); err != nil {
+			return fmt.Errorf("refusing unsafe http include cache file %s: %s", cacheFile, err.Error())
+		}
 		exists = true
 		if snc.flags.Mode == ModeOneShot {
 			fetch = false
@@ -476,6 +479,14 @@ func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigS
 	}
 
 	return nil
+}
+
+func validateHTTPIncludeCacheFile(stat os.FileInfo) error {
+	if !stat.Mode().IsRegular() {
+		return fmt.Errorf("cache file is not a regular file")
+	}
+
+	return validateHTTPIncludeCacheFileOwner(stat)
 }
 
 func (config *Config) fetchHTTPInclude(inclURL, cacheFile string, section *ConfigSection, snc *Agent) error {

@@ -63,6 +63,7 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 		Like: []string{"dist"},
 	})
 
+	os.Remove("test.key.tmp") // make sure leftover tmp files don't break the test
 	commandResult := runCmd(t, &cmd{
 		Cmd:  "curl",
 		Args: []string{"-s", "-u", "user:" + localDaemonAdminPassword, "-k", "-s", "-d", string(postData), baseURL + "/api/v1/admin/csr"},
@@ -151,6 +152,8 @@ func TestErrorBetweenSavingAndSigning(t *testing.T) {
 		Args: []string{"req", "-in", "test.csr", "-noout", "-text"},
 		Like: []string{"challengePassword", "test123", "sha256WithRSAEncryption"},
 	})
+
+	os.Remove("test.key.tmp")
 }
 
 func TestHSTSHeaderEnabled(t *testing.T) {
