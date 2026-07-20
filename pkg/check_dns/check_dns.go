@@ -24,7 +24,7 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 	if err != nil {
 		if e, ok := err.(*flags.Error); ok && e.Type == flags.ErrHelp {
 			fmt.Fprint(output, err.Error())
-			return int(checkers.OK)
+			return int(checkers.UNKNOWN)
 		}
 		fmt.Fprintf(output, "UNKNOWN - %s", err.Error())
 		return int(checkers.UNKNOWN)
