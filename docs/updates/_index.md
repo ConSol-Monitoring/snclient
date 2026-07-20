@@ -28,6 +28,7 @@ Create or edit `/etc/snclient/snclient_local.ini` (on windows: `C:\Program Files
 [/settings/updates]
 automatic updates = enabled
 automatic restart = enabled
+verify signature = true
 ```
 
 This will update SNClient to the latest stable release.
@@ -39,6 +40,7 @@ add the dev channel as well.
 [/settings/updates]
 automatic updates = enabled
 automatic restart = enabled
+verify signature = true
 channel = stable,dev
 
 [/settings/updates/channel/dev]
@@ -49,6 +51,43 @@ github token = GITHUB-TOKEN...
 In order to use the dev channel, you need to create a github token here: [github.com/settings/tokens](https://github.com/settings/tokens)
 
 Unfortunately it is not possible to download the build artifacts without a token.
+
+Update signatures are verified by default with the public key built into
+SNClient. Missing or invalid signatures abort the update. For manual recovery
+from an unsigned source, verification can be explicitly disabled with
+`verify signature = false` in `/settings/updates`.
+
+The release workflow expects the same PEM-encoded ECDSA P-256 private key in both
+GitHub environments:
+
+- `SNCLIENT_UPDATE_PRIVATE_KEY_PEM` in the `update-stable` environment
+- `SNCLIENT_UPDATE_PRIVATE_KEY_PEM` in the `update-dev` environment
+
+The stable workflow signs the final RPM, MSI and PKG release assets. Development
+signatures are created only for package artifacts built from a push to the
+`main` branch. OpenSSL generates each binary `.sig` sidecar as an ASN.1/DER ECDSA
+signature over the SHA-256 digest of the exact package bytes.
+
+Generate the signing key once outside the repository:
+
+```sh
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out update-private.pem
+openssl pkey -in update-private.pem -pubout -out update-public.pem
+```
+
+Store the full private PEM as the secret in both environments. The client
+stores the public key as base64-encoded PKIX DER in `update_signature.go`:
+
+```sh
+openssl pkey -in update-private.pem -pubout -outform DER | base64 -w0
+```
+
+The workflow also pins the SHA-256 fingerprint of the same DER public key and
+fails before signing if the configured secret does not match:
+
+```sh
+openssl pkey -in update-private.pem -pubout -outform DER | sha256sum
+```
 
 ### Debian / Ubuntu
 

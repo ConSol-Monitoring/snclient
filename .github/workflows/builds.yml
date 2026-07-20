@@ -17,6 +17,9 @@ on:
 permissions:
   contents: read
 
+env:
+  UPDATE_PUBLIC_KEY_SHA256: "f74bfbce4461efa8d357d4a639ba8b1f74668385dcd3a85cd238accc05fdb2c0"
+
 jobs:
   get-version:
     runs-on: ubuntu-latest
@@ -605,6 +608,59 @@ jobs:
             name: "${{ env.BIN }}"
 
 
+  sign-dev-update-assets:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - asset_os: windows
+            go-arch: i386
+            extension: msi
+          - asset_os: windows
+            go-arch: x86_64
+            extension: msi
+          - asset_os: windows
+            go-arch: aarch64
+            extension: msi
+          - asset_os: linux
+            go-arch: i386
+            extension: rpm
+          - asset_os: linux
+            go-arch: x86_64
+            extension: rpm
+          - asset_os: linux
+            go-arch: aarch64
+            extension: rpm
+          - asset_os: osx
+            go-arch: x86_64
+            extension: pkg
+          - asset_os: osx
+            go-arch: aarch64
+            extension: pkg
+    needs: [get-version, pkg-msi, pkg-rpm, pkg-osx]
+    runs-on: ubuntu-latest
+    environment: update-dev
+    env:
+      ASSET: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.asset_os }}-${{ matrix.go-arch }}.${{ matrix.extension }}"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: "${{ env.ASSET }}"
+      - uses: ./.github/actions/sign-update
+        with:
+          artifact: ${{ env.ASSET }}
+          private-key-pem: ${{ secrets.SNCLIENT_UPDATE_PRIVATE_KEY_PEM }}
+          public-key-sha256: ${{ env.UPDATE_PUBLIC_KEY_SHA256 }}
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: "${{ env.ASSET }}.sig"
+          path: "${{ env.ASSET }}.sig"
+          if-no-files-found: error
+          archive: false
+
+
   # remove those artifacts which have been converted to .deb or .rpm files
   clean-tmp-files:
     strategy:
@@ -784,6 +840,7 @@ jobs:
         go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
+    environment: update-stable
     permissions:
       contents: write
     env:
@@ -794,7 +851,12 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: "${{ env.BIN }}.msi"
-      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.msi
+      - uses: ./.github/actions/sign-update
+        with:
+          artifact: ${{ env.BIN }}.msi
+          private-key-pem: ${{ secrets.SNCLIENT_UPDATE_PRIVATE_KEY_PEM }}
+          public-key-sha256: ${{ env.UPDATE_PUBLIC_KEY_SHA256 }}
+      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.msi ${{ env.BIN }}.msi.sig
 
 
   upload-linux-deb-assets:
@@ -828,6 +890,7 @@ jobs:
         go-arch: [i386, x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
+    environment: update-stable
     permissions:
       contents: write
     env:
@@ -838,7 +901,12 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: "${{ env.BIN }}.rpm"
-      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.rpm
+      - uses: ./.github/actions/sign-update
+        with:
+          artifact: ${{ env.BIN }}.rpm
+          private-key-pem: ${{ secrets.SNCLIENT_UPDATE_PRIVATE_KEY_PEM }}
+          public-key-sha256: ${{ env.UPDATE_PUBLIC_KEY_SHA256 }}
+      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.rpm ${{ env.BIN }}.rpm.sig
 
 
   upload-linux-apk-assets:
@@ -872,6 +940,7 @@ jobs:
         go-arch: [x86_64, aarch64]
     runs-on: ubuntu-latest
     needs: [get-version,make-release]
+    environment: update-stable
     permissions:
       contents: write
     env:
@@ -882,7 +951,12 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: "${{ env.BIN }}.pkg"
-      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.pkg
+      - uses: ./.github/actions/sign-update
+        with:
+          artifact: ${{ env.BIN }}.pkg
+          private-key-pem: ${{ secrets.SNCLIENT_UPDATE_PRIVATE_KEY_PEM }}
+          public-key-sha256: ${{ env.UPDATE_PUBLIC_KEY_SHA256 }}
+      - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.pkg ${{ env.BIN }}.pkg.sig
 
 
   upload-binary-release-assets:

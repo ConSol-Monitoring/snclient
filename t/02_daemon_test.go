@@ -46,6 +46,9 @@ check_echo_win      = cmd /c echo '%ARG1%'
 check_echo_args     = echo '%ARGS%'
 check_echo_args_win = cmd /c echo '%ARGS%'
 
+[/settings/updates]
+verify signature = false
+
 [/settings/updates/channel]
 local = file://./tmpupdates/snclient${file-ext}
 `

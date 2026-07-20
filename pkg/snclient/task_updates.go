@@ -34,7 +34,8 @@ const (
 	UpdateCheckIntervalRegular = 55 * time.Second
 
 	// Maximum file size for updates (prevent tar bombs)
-	UpdateFileMaxSize = 100e6
+	UpdateFileMaxSize             = 100e6
+	updateSignatureArchiveMaxSize = 1e6
 
 	// MainBranch sets the github main branch, only artifacts from that branch will be considered
 	MainBranch = "main"
@@ -54,6 +55,7 @@ func init() {
 				"automatic restart": "disabled",
 				"channel":           "stable",
 				"pre release":       "false",
+				"verify signature":  "true",
 				"update interval":   "1h",
 				"update hours":      "0-24",
 				"update days":       "mon-sun",
@@ -75,6 +77,7 @@ type UpdateHandler struct {
 	automaticRestart bool
 	channel          string
 	preRelease       bool
+	verifySignature  bool
 	updateInterval   float64
 	updateHours      []UpdateHours
 	updateDays       []UpdateDays
@@ -85,10 +88,26 @@ type UpdateHandler struct {
 }
 
 type updatesAvailable struct {
-	channel string
-	url     string
-	version string
-	header  map[string]string
+	channel          string
+	url              string
+	signatureURL     string
+	version          string
+	header           map[string]string
+	artifactArchives bool
+}
+
+type githubArtifact struct {
+	URL         string `json:"archive_download_url"`
+	Name        string `json:"name"`
+	Expired     bool   `json:"expired"`
+	WorkflowRun struct {
+		ID     int64  `json:"id"`
+		Branch string `json:"head_branch"`
+	} `json:"workflow_run"`
+}
+
+type githubActions struct {
+	Artifacts []githubArtifact `json:"artifacts"`
 }
 
 type cachedURLVersion struct {
@@ -98,7 +117,8 @@ type cachedURLVersion struct {
 
 func NewUpdateHandler() Module {
 	return &UpdateHandler{
-		urlCache: make(map[string]cachedURLVersion),
+		verifySignature: true,
+		urlCache:        make(map[string]cachedURLVersion),
 	}
 }
 
@@ -128,6 +148,14 @@ func (u *UpdateHandler) setConfig(section *ConfigSection) error {
 		return fmt.Errorf("pre release: %s", err.Error())
 	case ok:
 		u.preRelease = preRelease
+	}
+
+	verifySignature, ok, err := section.GetBool("verify signature")
+	switch {
+	case err != nil:
+		return fmt.Errorf("verify signature: %s", err.Error())
+	case ok:
+		u.verifySignature = verifySignature
 	}
 
 	autoUpdate, ok, err := section.GetBool("automatic updates")
@@ -398,9 +426,9 @@ func (u *UpdateHandler) checkUpdate(ctx context.Context, url string, preRelease 
 	} else if ok, _ := regexp.MatchString(`^https://api\.github\.com/repos/.*/actions/artifacts`, url); ok {
 		updates, err = u.checkUpdateGithubActions(ctx, url, channel)
 	} else if ok, _ := regexp.MatchString(`^file:`, url); ok {
-		updates, err = u.checkUpdateFile(ctx, url)
+		updates, err = u.checkUpdateFile(ctx, url, channel)
 	} else {
-		updates, err = u.checkUpdateCustomURL(ctx, url)
+		updates, err = u.checkUpdateCustomURL(ctx, url, channel)
 	}
 
 	if err != nil {
@@ -471,11 +499,20 @@ func (u *UpdateHandler) checkUpdateGithubRelease(ctx context.Context, url, chann
 			continue
 		}
 
+		assetURLs := make(map[string]string, len(release.Assets))
+		for _, asset := range release.Assets {
+			assetURLs[asset.Name] = asset.URL
+		}
+
 		log.Debugf("checking assets for release: %s", release.TagName)
 		foundOne := false
 		for _, asset := range release.Assets {
 			if u.isUsableGithubAsset(strings.ToLower(asset.Name)) {
-				updates = append(updates, updatesAvailable{url: asset.URL, version: release.TagName})
+				updates = append(updates, updatesAvailable{
+					url:          asset.URL,
+					signatureURL: assetURLs[asset.Name+".sig"],
+					version:      release.TagName,
+				})
 				foundOne = true
 			}
 		}
@@ -507,18 +544,7 @@ func (u *UpdateHandler) checkUpdateGithubActions(ctx context.Context, url, chann
 
 	logHTTPResponse(resp)
 
-	type GithubArtifact struct {
-		URL         string `json:"archive_download_url"`
-		Name        string `json:"name"`
-		WorkflowRun struct {
-			Banch string `json:"head_branch"`
-		} `json:"workflow_run"`
-	}
-
-	type GithubActions struct {
-		Artifacts []GithubArtifact `json:"artifacts"`
-	}
-	var artifacts GithubActions
+	var artifacts githubActions
 	err = json.NewDecoder(resp.Body).Decode(&artifacts)
 	if err != nil {
 		return nil, fmt.Errorf("json: %s", err.Error())
@@ -530,11 +556,24 @@ func (u *UpdateHandler) checkUpdateGithubActions(ctx context.Context, url, chann
 	}
 
 	reActionVersion := regexp.MustCompile(`^snclient\-(.*?)\-\w+-\w+\.\w+`)
+	artifactsByRunAndName := make(map[string]githubArtifact, len(artifacts.Artifacts))
+	for _, artifact := range artifacts.Artifacts {
+		if artifact.Expired || artifact.WorkflowRun.Branch != MainBranch {
+			continue
+		}
+		key := fmt.Sprintf("%d:%s", artifact.WorkflowRun.ID, artifact.Name)
+		artifactsByRunAndName[key] = artifact
+	}
 
 	for i := range artifacts.Artifacts {
 		artifact := artifacts.Artifacts[i]
-		if artifact.WorkflowRun.Banch != MainBranch {
-			log.Debugf("[update] skipped artifact from none-main branch: %s", artifact.WorkflowRun.Banch)
+		if artifact.Expired {
+			log.Debugf("[update] skipped expired artifact: %s", artifact.Name)
+
+			continue
+		}
+		if artifact.WorkflowRun.Branch != MainBranch {
+			log.Debugf("[update] skipped artifact from none-main branch: %s", artifact.WorkflowRun.Branch)
 
 			continue
 		}
@@ -542,7 +581,15 @@ func (u *UpdateHandler) checkUpdateGithubActions(ctx context.Context, url, chann
 			matches := reActionVersion.FindStringSubmatch(artifact.Name)
 			if len(matches) > 1 {
 				version := matches[1]
-				updates = append(updates, updatesAvailable{url: artifact.URL, version: version, header: header})
+				signatureKey := fmt.Sprintf("%d:%s.sig", artifact.WorkflowRun.ID, artifact.Name)
+				signatureArtifact := artifactsByRunAndName[signatureKey]
+				updates = append(updates, updatesAvailable{
+					url:              artifact.URL,
+					signatureURL:     signatureArtifact.URL,
+					version:          version,
+					header:           header,
+					artifactArchives: true,
+				})
 			}
 		}
 	}
@@ -555,7 +602,7 @@ func (u *UpdateHandler) checkUpdateGithubActions(ctx context.Context, url, chann
 }
 
 // check available update from any url
-func (u *UpdateHandler) checkUpdateCustomURL(ctx context.Context, url string) (updates []updatesAvailable, err error) {
+func (u *UpdateHandler) checkUpdateCustomURL(ctx context.Context, url, channel string) (updates []updatesAvailable, err error) {
 	log.Tracef("[update] checking custom url at: %s", url)
 	resp, err := u.snc.httpDo(ctx, u.httpOptions, "HEAD", url, nil)
 	if err != nil {
@@ -576,7 +623,7 @@ func (u *UpdateHandler) checkUpdateCustomURL(ctx context.Context, url string) (u
 	if resp.ContentLength > 0 && resp.ContentLength == stat.Size() {
 		log.Tracef("[update] content size matches %s: %d vs. %s: %d", url, resp.ContentLength, executable, stat.Size())
 
-		return []updatesAvailable{{url: url, version: u.snc.Version()}}, nil
+		return []updatesAvailable{{url: url, signatureURL: url + ".sig", version: u.snc.Version()}}, nil
 	}
 
 	refresh := false
@@ -610,11 +657,11 @@ func (u *UpdateHandler) checkUpdateCustomURL(ctx context.Context, url string) (u
 	if !refresh {
 		log.Tracef("[update] using cached entry for %s", url)
 
-		return []updatesAvailable{{url: url, version: cacheEntry.version}}, nil
+		return []updatesAvailable{{url: url, signatureURL: url + ".sig", version: cacheEntry.version}}, nil
 	}
 
 	log.Tracef("[update] need to refresh cache for %s", url)
-	version, err := u.getVersionFromURL(ctx, url)
+	version, err := u.getVersionFromURL(ctx, url, channel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch version: %s", err.Error())
 	}
@@ -624,11 +671,11 @@ func (u *UpdateHandler) checkUpdateCustomURL(ctx context.Context, url string) (u
 		responseSize: resp.ContentLength,
 	}
 
-	return []updatesAvailable{{url: url, version: version}}, nil
+	return []updatesAvailable{{url: url, signatureURL: url + ".sig", version: version}}, nil
 }
 
 // check available update from local or remote filesystem
-func (u *UpdateHandler) checkUpdateFile(ctx context.Context, url string) (updates []updatesAvailable, err error) {
+func (u *UpdateHandler) checkUpdateFile(ctx context.Context, url, channel string) (updates []updatesAvailable, err error) {
 	localPath := strings.TrimPrefix(url, "file://")
 	log.Tracef("[update] checking local file at: %s", localPath)
 	_, err = os.Stat(localPath)
@@ -636,72 +683,122 @@ func (u *UpdateHandler) checkUpdateFile(ctx context.Context, url string) (update
 		return nil, fmt.Errorf("could not find update file: %s", err.Error())
 	}
 
-	// copy to tmp location
-	tempUpdate := filepath.Join(os.TempDir(), "snclient-tmpupdate") + GlobalMacros["file-ext"]
-	os.Remove(tempUpdate) // remove if it already exists for some reason
-	err = utils.CopyFile(localPath, tempUpdate)
-	if err != nil {
-		return nil, fmt.Errorf("copy update file failed: %s", err.Error())
-	}
-
-	err = u.extractUpdate(ctx, tempUpdate)
-	if err != nil {
-		return nil, fmt.Errorf("extracting update failed: %s", err.Error())
-	}
-
-	// get version from that executable
-	version, err := u.verifyUpdate(ctx, tempUpdate)
+	version, err := u.getVersionFromURL(ctx, url, channel)
 	if err != nil {
 		return nil, err
 	}
 
-	return []updatesAvailable{{url: url, version: version}}, nil
+	return []updatesAvailable{{url: url, signatureURL: url + ".sig", version: version}}, nil
 }
 
 // fetch update file into tmp file
 func (u *UpdateHandler) downloadUpdate(ctx context.Context, update *updatesAvailable) (binPath string, err error) {
-	url := update.url
-	var src io.ReadCloser
-	if localPath, ok := strings.CutPrefix(url, "file://"); ok {
-		log.Tracef("[update] fetching update from %s", localPath)
-		file, err2 := os.Open(localPath)
-		if err2 != nil {
-			return "", fmt.Errorf("open failed %s: %s", localPath, err2.Error())
-		}
-		src = file
-	} else {
-		log.Tracef("[update] downloading update from %s", url)
-		resp, err2 := u.snc.httpDo(ctx, u.httpOptions, "GET", url, update.header)
-		if err2 != nil {
-			return "", fmt.Errorf("fetching update failed %s: %s", url, err2.Error())
-		}
-		defer resp.Body.Close()
-		src = resp.Body
-	}
-
 	executable := GlobalMacros["exe-full"]
 	updateFile := u.snc.buildUpdateFile(executable)
-	saveFile, err := os.Create(updateFile)
-	if err != nil {
-		return "", fmt.Errorf("open: %s", err.Error())
+	defer func() {
+		if err != nil {
+			LogError(os.Remove(updateFile))
+		}
+	}()
+	if downloadErr := u.downloadResource(ctx, update.url, update.header, updateFile, UpdateFileMaxSize); downloadErr != nil {
+		return "", downloadErr
+	}
+	if update.artifactArchives {
+		if extractErr := u.extractZip(updateFile); extractErr != nil {
+			return "", fmt.Errorf("extracting github update artifact: %s", extractErr.Error())
+		}
 	}
 
-	log.Tracef("[update] saving to %s", saveFile.Name())
-
-	_, err = io.Copy(saveFile, src)
-	if err != nil {
-		saveFile.Close()
-
-		return "", fmt.Errorf("read: %s", err.Error())
+	if u.verifySignature {
+		if update.signatureURL == "" {
+			return "", fmt.Errorf("update signature is missing for %s channel", update.channel)
+		}
+		if signatureErr := u.downloadAndVerifySignature(ctx, update, updateFile); signatureErr != nil {
+			return "", signatureErr
+		}
+	} else {
+		log.Warnf("[update] update signature verification is disabled")
 	}
-	saveFile.Close()
 
-	err = u.extractUpdate(ctx, updateFile)
-	if err != nil {
-		return "", err
+	if extractErr := u.extractUpdate(ctx, updateFile); extractErr != nil {
+		return "", extractErr
 	}
 
 	return updateFile, nil
+}
+
+func (u *UpdateHandler) downloadAndVerifySignature(ctx context.Context, update *updatesAvailable, updateFile string) error {
+	signatureFile, err := os.CreateTemp("", "snclient-update-signature")
+	if err != nil {
+		return fmt.Errorf("creating update signature file: %s", err.Error())
+	}
+	signaturePath := signatureFile.Name()
+	defer os.Remove(signaturePath)
+	if closeErr := signatureFile.Close(); closeErr != nil {
+		return fmt.Errorf("closing update signature file: %s", closeErr.Error())
+	}
+
+	if downloadErr := u.downloadResource(ctx, update.signatureURL, update.header, signaturePath, updateSignatureArchiveMaxSize); downloadErr != nil {
+		return fmt.Errorf("fetching update signature: %s", downloadErr.Error())
+	}
+	if update.artifactArchives {
+		if extractErr := u.extractZipWithMaxSize(signaturePath, updateSignatureMaxSize); extractErr != nil {
+			return fmt.Errorf("extracting github signature artifact: %s", extractErr.Error())
+		}
+	}
+
+	if verifyErr := verifyUpdateSignature(updateFile, signaturePath); verifyErr != nil {
+		return verifyErr
+	}
+	log.Debugf("[update] verified %s update signature", update.channel)
+
+	return nil
+}
+
+func (u *UpdateHandler) downloadResource(
+	ctx context.Context,
+	url string,
+	header map[string]string,
+	destination string,
+	maxSize int64,
+) error {
+	var src io.ReadCloser
+	if localPath, ok := strings.CutPrefix(url, "file://"); ok {
+		log.Tracef("[update] fetching update resource from %s", localPath)
+		file, err := os.Open(localPath)
+		if err != nil {
+			return fmt.Errorf("open failed %s: %s", localPath, err.Error())
+		}
+		src = file
+		defer file.Close()
+	} else {
+		log.Tracef("[update] downloading update resource from %s", url)
+		resp, err := u.snc.httpDo(ctx, u.httpOptions, "GET", url, header)
+		if err != nil {
+			return fmt.Errorf("fetching update failed %s: %s", url, err.Error())
+		}
+		src = resp.Body
+		defer resp.Body.Close()
+	}
+
+	saveFile, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("open: %s", err.Error())
+	}
+
+	log.Tracef("[update] saving to %s", saveFile.Name())
+	written, copyErr := io.Copy(saveFile, io.LimitReader(src, maxSize+1))
+	closeErr := saveFile.Close()
+	switch {
+	case copyErr != nil:
+		return fmt.Errorf("read: %s", copyErr.Error())
+	case closeErr != nil:
+		return fmt.Errorf("close: %s", closeErr.Error())
+	case written > maxSize:
+		return fmt.Errorf("update resource exceeds maximum size of %d bytes", maxSize)
+	}
+
+	return nil
 }
 
 func (u *UpdateHandler) extractUpdate(ctx context.Context, updateFile string) (err error) {
@@ -782,9 +879,13 @@ func (u *UpdateHandler) verifyUpdate(ctx context.Context, newBinPath string) (ve
 	return version, nil
 }
 
-func (u *UpdateHandler) getVersionFromURL(ctx context.Context, url string) (version string, err error) {
+func (u *UpdateHandler) getVersionFromURL(ctx context.Context, url, channel string) (version string, err error) {
 	log.Tracef("[update] trying to determine version for url %s", url)
-	filePath, err := u.downloadUpdate(ctx, &updatesAvailable{url: url})
+	filePath, err := u.downloadUpdate(ctx, &updatesAvailable{
+		channel:      channel,
+		url:          url,
+		signatureURL: url + ".sig",
+	})
 	if err != nil {
 		return "", err
 	}
@@ -911,6 +1012,10 @@ func (u *UpdateHandler) updatePreChecks() bool {
 }
 
 func (u *UpdateHandler) extractZip(fileName string) error {
+	return u.extractZipWithMaxSize(fileName, UpdateFileMaxSize)
+}
+
+func (u *UpdateHandler) extractZipWithMaxSize(fileName string, maxSize int64) error {
 	zipHandle, err := zip.OpenReader(fileName)
 	if err != nil {
 		return fmt.Errorf("zip: %s", err.Error())
@@ -919,6 +1024,9 @@ func (u *UpdateHandler) extractZip(fileName string) error {
 
 	if len(zipHandle.File) != 1 {
 		return fmt.Errorf("expect zip must contain exactly one file, have: %d", len(zipHandle.File))
+	}
+	if zipHandle.File[0].UncompressedSize64 > uint64(maxSize) { //nolint:gosec // maxSize is a positive internal limit.
+		return fmt.Errorf("zip content exceeds maximum size of %d bytes", maxSize)
 	}
 
 	tempFile, err := os.CreateTemp("", "snclient-unzip")
@@ -932,11 +1040,16 @@ func (u *UpdateHandler) extractZip(fileName string) error {
 	}
 	defer src.Close()
 
-	_, err = io.Copy(tempFile, src)
+	written, err := io.Copy(tempFile, io.LimitReader(src, maxSize+1))
 	if err != nil {
 		tempFile.Close()
 
 		return fmt.Errorf("read: %s", err.Error())
+	}
+	if written > maxSize {
+		tempFile.Close()
+
+		return fmt.Errorf("zip content exceeds maximum size of %d bytes", maxSize)
 	}
 	tempFile.Close()
 	defer os.Remove(tempFile.Name())
@@ -1182,6 +1295,10 @@ func (u *UpdateHandler) extractXar(ctx context.Context, fileName string) error {
 }
 
 func (u *UpdateHandler) isUsableGithubAsset(name string) bool {
+	if strings.HasSuffix(name, ".sig") {
+		return false
+	}
+
 	archVariants := []string{pkgArch(runtime.GOARCH), runtime.GOARCH}
 
 	osVariants := []string{runtime.GOOS}
@@ -1223,8 +1340,9 @@ func (u *UpdateHandler) sanitizeChannel(flag string) (channel, updateFile string
 	if _, err := os.ReadFile(channel); err == nil {
 		updateFile = channel
 		best = &updatesAvailable{
-			channel: "file",
-			url:     "file://" + updateFile,
+			channel:      "file",
+			url:          "file://" + updateFile,
+			signatureURL: "file://" + updateFile + ".sig",
 		}
 	}
 
