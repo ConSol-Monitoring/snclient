@@ -37,7 +37,7 @@ type CheckLogFile struct {
 	TimestampPattern   string
 	ColumnDelimiter    string
 	LabelPattern       []string
-	Offset             string // Changed to string to detect if user provided i
+	Offset             string // Changed to string to detect if user provided it
 	MaxLinesPerFile    int64
 	IgnoreMissing      bool
 }
