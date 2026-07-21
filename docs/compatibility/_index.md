@@ -126,6 +126,9 @@ Ex.: this works, even with `allow arguments` disabled.
 alias_test = check_cpu warn=load=80 crit=load=90
 ```
 
+When enabling arguments, make sure using quoted arguments like `$ARGS"$`. Using unquoted
+arguments leads to command injection vulnerabilities.
+
 ## Allow Nasty Characters Handling
 
 ![Change](../icons/changed.png "this is different in SNClient")
@@ -144,6 +147,9 @@ Change the list of nasty chars with the `nasty characters` configuration option.
 [/settings/default]
 nasty characters = $|`&><'"\\[]{};\n\r
 ```
+
+It is not advised to remove any of the default characters. Each of them is there
+for a reason and removing might lead to command injection vulnerabilities.
 
 ## Allow Control Characters Handling
 
