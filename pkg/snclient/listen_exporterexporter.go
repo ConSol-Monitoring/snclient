@@ -226,7 +226,14 @@ type HandlerWebExporterExporter struct {
 }
 
 func (l *HandlerWebExporterExporter) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	switch req.URL.Path {
+	if !strings.HasPrefix(req.URL.Path, l.Handler.urlPrefix) {
+		res.WriteHeader(http.StatusBadRequest)
+		LogError2(res.Write([]byte("400 - missing url prefix\n")))
+
+		return
+	}
+	path := strings.TrimPrefix(req.URL.Path, l.Handler.urlPrefix)
+	switch path {
 	case "/list":
 		l.Handler.listModules(res, req)
 	case "/proxy":
