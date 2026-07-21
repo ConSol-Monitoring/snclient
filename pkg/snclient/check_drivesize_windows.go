@@ -509,10 +509,12 @@ func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, 
 		mounted = "1"
 	}
 
-	for _, existingDrive := range requiredDrives {
-		if existingDrive["drive"] == drive {
-			// drive already added
-			return
+	if drive != "" {
+		for _, existingDrive := range requiredDrives {
+			if existingDrive["drive"] == drive {
+				// drive already added
+				return
+			}
 		}
 	}
 
