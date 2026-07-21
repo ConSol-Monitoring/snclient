@@ -158,7 +158,7 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 				log.Tracef("allowed pattern check failed for file: %s (pattern: %#v)", fileName, allowedPattern)
 			}
 
-			log.Debugf("check_logfile adding file: %s", fileName)
+			log.Debugf("adding file: %s", fileName)
 			entries, lineIndex, err := c.addFile(fileName, check, patterns)
 			if err != nil {
 				switch {
@@ -169,7 +169,7 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 					return nil, fmt.Errorf("failed to add file: %s , %w", fileName, err)
 				}
 			}
-			log.Debugf("check_logfile file: %s | returned entries: %v | lines indexed: %d", fileName, entries, lineIndex)
+			log.Debugf("file: %s | returned entries: %v | lines indexed: %d", fileName, entries, lineIndex)
 
 			lineIndexedInThisFilePattern += lineIndex
 			check.listData = append(check.listData, entries...)
