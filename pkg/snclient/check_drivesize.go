@@ -506,13 +506,16 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 		return
 	}
 
-	// volumes without an assigned drive letter have empty drive["drive"]
-	// use the volume name or id as fallback
 	l.transformDrivePctMetrics(drive["drive_or_name_or_id"], check)
 
 	l.disableGenerallizedConditionsForDrive(drive["drive_or_name_or_id"], drive, check)
 
-	l.addMetrics(drive["drive_or_name_or_id"], drive, check, usage, magic)
+	metricPrefix := drive["drive_or_name_or_id"]
+	if perfdataPrefix, perfdataPrefixOk := drive["perflabel_prefix"]; perfdataPrefixOk {
+		metricPrefix = perfdataPrefix
+	}
+
+	l.addMetrics(metricPrefix, drive, check, usage, magic)
 }
 
 func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
@@ -536,7 +539,7 @@ func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
 func (l *CheckDrivesize) tidyThresholdDriveValues(check *CheckData) {
 	removeTrailingSlashFromDriveValue := func(cond *Condition) (err error) {
 		if cond.keyword == "drive" && runtime.GOOS != "windows" {
-			if val, castOK := cond.value.(string); castOK {
+			if val, castOK := cond.value.(string); castOK && val != "/" {
 				// Example: '/tmp/' -> '/tmp'
 				if cut, cutOK := strings.CutSuffix(val, "/"); cutOK {
 					cond.value = cut
