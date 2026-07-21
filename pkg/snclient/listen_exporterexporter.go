@@ -140,6 +140,8 @@ func (l *HandlerExporterExporter) GetMappings(*Agent) []URLMapping {
 	}
 }
 
+// adds ExporterExporter module config files found in the module directory
+// does not return errors if config files could not be correctly added
 func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map[string]*exporterModuleConfig, error) {
 	modules := map[string]*exporterModuleConfig{}
 
@@ -157,6 +159,8 @@ func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map
 		".yml":  true,
 		".yaml": true,
 	}
+	mfsWithoutErrorsCount := 0
+	mfsWithErrorsCount := 0
 	for _, entry := range mfs {
 		fullpath := filepath.Join(moduleDir, entry.Name())
 		if entry.IsDir() || !yamlSuffixes[filepath.Ext(entry.Name())] {
@@ -166,9 +170,16 @@ func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map
 		}
 
 		if err := modulesAdd(snc, modules, entry, fullpath); err != nil {
-			return nil, err
+			mfsWithErrorsCount++
+
+			continue
 		}
+
+		mfsWithoutErrorsCount++
 	}
+
+	log.Tracef("In the ExporterExporter config directory: '%s' , %d config files were added without errors, %d config files had errors",
+		moduleDir, mfsWithoutErrorsCount, mfsWithErrorsCount)
 
 	return modules, nil
 }
@@ -193,6 +204,7 @@ func (l *HandlerExporterExporter) JSON() []map[string]string {
 	return list
 }
 
+// tries adding a module from a given a filesystem entry and path
 func modulesAdd(snc *Agent, modules map[string]*exporterModuleConfig, entry fs.DirEntry, fullpath string) error {
 	moduleName := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 	if _, ok := modules[moduleName]; ok {
@@ -206,6 +218,8 @@ func modulesAdd(snc *Agent, modules map[string]*exporterModuleConfig, entry fs.D
 
 	mcfg, err := readModuleConfig(moduleName, file)
 	if err != nil {
+		log.Errorf("failed reading configs %s, %s", fullpath, err.Error())
+
 		return fmt.Errorf("failed reading configs %s, %w", fullpath, err)
 	}
 	mcfg.snc = snc
@@ -343,6 +357,7 @@ type exporterFileConfig struct {
 	mcfg *exporterModuleConfig
 }
 
+// reads, parses and verifies an individual ExporterExporter config file
 func readModuleConfig(name string, r io.Reader) (*exporterModuleConfig, error) {
 	buf := bytes.Buffer{}
 	if _, err := io.Copy(&buf, r); err != nil {
