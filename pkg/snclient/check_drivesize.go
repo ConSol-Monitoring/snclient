@@ -90,7 +90,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"drive":   {value: &l.drives, isFilter: true, description: "The drives to check, ex.: c: or /"},
+			"drive":   {value: &l.drives, isFilter: true, description: "The drives to check, e.g. C:\\ or /"},
 			"folder":  {value: &l.folders, isFilter: true, description: "The folders to check (parent mountpoint)"},
 			"exclude": {value: &l.excludes, description: "List of drives to exclude from check"},
 			"total":   {value: &l.total, description: "Include the total of all matching drives"},
@@ -98,7 +98,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 				"Note there is also a more generic magic factor in the perf-config option."},
 			"mounted":                   {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
 			"ignore-unreadable":         {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
-			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "Don't account root-reserved blocks into freespace, default: true"},
+			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the total size. Default: true"},
 		},
 		defaultFilter:   l.getDefaultFilter(),
 		defaultWarning:  "used_pct > 80",
@@ -116,7 +116,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "drive_or_name", description: "Drive letter if present if not use name"},
 			{name: "drive_or_name_or_id", description: "Drive letter if present, if not use drive name, if not use the given ID. Useful for volumes without assigned letters on Windows."},
 			{name: "fstype", description: "Filesystem type"},
-			{name: "mounted", description: "Flag whether drive is mounter (0/1)", unit: UBool},
+			{name: "mounted", description: "Flag whether drive is mounted (0/1)", unit: UBool},
 
 			{name: "free", description: "Free (human readable) bytes", unit: UByte},
 			{name: "free_bytes", description: "Number of free bytes", unit: UByte},
@@ -142,7 +142,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "inodes_used_pct", description: "Number of used inodes in percent", unit: UPercent},
 
 			{name: "media_type", description: "Windows only: numeric media type of drive"},
-			{name: "type", description: "Windows only: type of drive, ex.: fixed, cdrom, ramdisk, remote, removable, unknown"},
+			{name: "type", description: "Windows only: type of drive, e.g. fixed, cdrom, ramdisk, remote, removable, unknown"},
 			{name: "readable", description: "Windows only: flag drive is readable (0/1)", unit: UBool},
 			{name: "writable", description: "Windows only: flag drive is writable (0/1)", unit: UBool},
 			{name: "removable", description: "Windows only: flag drive is removable (0/1)", unit: UBool},
@@ -506,13 +506,16 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 		return
 	}
 
-	// volumes without an assigned drive letter have empty drive["drive"]
-	// use the volume name or id as fallback
 	l.transformDrivePctMetrics(drive["drive_or_name_or_id"], check)
 
 	l.disableGenerallizedConditionsForDrive(drive["drive_or_name_or_id"], drive, check)
 
-	l.addMetrics(drive["drive_or_name_or_id"], drive, check, usage, magic)
+	metricPrefix := drive["drive_or_name_or_id"]
+	if perfdataPrefix, perfdataPrefixOk := drive["perflabel_prefix"]; perfdataPrefixOk {
+		metricPrefix = perfdataPrefix
+	}
+
+	l.addMetrics(metricPrefix, drive, check, usage, magic)
 }
 
 func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
@@ -536,7 +539,7 @@ func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
 func (l *CheckDrivesize) tidyThresholdDriveValues(check *CheckData) {
 	removeTrailingSlashFromDriveValue := func(cond *Condition) (err error) {
 		if cond.keyword == "drive" && runtime.GOOS != "windows" {
-			if val, castOK := cond.value.(string); castOK {
+			if val, castOK := cond.value.(string); castOK && val != "/" {
 				// Example: '/tmp/' -> '/tmp'
 				if cut, cutOK := strings.CutSuffix(val, "/"); cutOK {
 					cond.value = cut

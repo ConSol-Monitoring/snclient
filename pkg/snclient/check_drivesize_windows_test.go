@@ -1,3 +1,5 @@
+//go:build windows
+
 package snclient
 
 import (
@@ -16,7 +18,7 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 	assert.Regexpf(
 		t,
-		`^CRITICAL - c: .*?\/.*? \(\d+\.\d+%\) \|'c: free'=.*?B;0;0;0;.*? 'c: free %'=.*?%;0;0;0;100`,
+		`^CRITICAL - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'c: free'=.*?B;0;0;0;.*? 'c: free %'=.*?%;0;0;0;100`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -43,12 +45,59 @@ func TestCheckDrivesize(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), ";99;99.5;0;100", "output matches")
 
 	// test all variants of drive names
-	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c"})
+
+	// rules for status line and perfdata label:
+	// use the string user gave as drive, do not change uppercase and lowercase,
+	// add a colon if its missing
+	// flip the slash to be a backwards slash
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c", "show-all"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:"})
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'c: used'=.*?B;(\d+);(\d+);0;(\d+) 'c: used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:", "show-all"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
-	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:\\"})
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'c: used'=.*?B;(\d+);(\d+);0;(\d+) 'c: used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:\\", "show-all"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'c:\\ used'=.*?B;(\d+);(\d+);0;(\d+) 'c:\\ used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:\\\\\\", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'c:\\ used'=.*?B;(\d+);(\d+);0;(\d+) 'c:\\ used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:/", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'c:\\ used'=.*?B;(\d+);(\d+);0;(\d+) 'c:\\ used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:///////", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'c:\\ used'=.*?B;(\d+);(\d+);0;(\d+) 'c:\\ used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=C", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'C: used'=.*?B;(\d+);(\d+);0;(\d+) 'C: used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=C:", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'C: used'=.*?B;(\d+);(\d+);0;(\d+) 'C: used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=C:\\", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'C:\\ used'=.*?B;(\d+);(\d+);0;(\d+) 'C:\\ used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=C:\\\\\\", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'C:\\ used'=.*?B;(\d+);(\d+);0;(\d+) 'C:\\ used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=C:/", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'C:\\ used'=.*?B;(\d+);(\d+);0;(\d+) 'C:\\ used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=C:///", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	assert.Regexpf(t, `^OK - C:\\ .*?\/.*? \(\d+\.\d+%\) \|'C:\\ used'=.*?B;(\d+);(\d+);0;(\d+) 'C:\\ used %'=.*?%;100;100;0;100`, string(res.BuildPluginOutput()), "output matches")
 
 	// must not match
 	res = snc.RunCheck("check_drivesize", []string{"warn=used>100%", "crit=used>100%", "drive=c:\\Windows"})

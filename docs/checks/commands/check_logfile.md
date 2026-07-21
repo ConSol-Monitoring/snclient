@@ -36,7 +36,11 @@ Checks logfiles or any other text format file for errors or other general patter
 Alert if there are errors in the snclient log file:
 
     check_files files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'"
-    OK - All 1787 / 1787 Lines OK
+    OK - 134 line(s) found
+
+Non-OK output example
+	check_files files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'"
+    CRITICAL - 23/548 line(s) found
 
 ### Example using NRPE and Naemon
 
@@ -56,25 +60,26 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                          |
-| ------------- | ---------------------------------------------------------------------- |
-| empty-state   | 3 (UNKNOWN)                                                            |
-| empty-syntax  | %(status) - No files found                                             |
-| top-syntax    | %(status) - %(problem_count)/%(count) lines (%(count)) %(problem_list) |
-| ok-syntax     | %(status) - All %(count) / %(total) Lines OK                           |
-| detail-syntax | %(line \| chomp \| cut=200)                                            |
+| Argument      | Default Value                                                         |
+| ------------- | --------------------------------------------------------------------- |
+| empty-state   | 0 (OK)                                                                |
+| empty-syntax  | %(status) - No matching lines found                                   |
+| top-syntax    | %(status) - %(problem_count)/%(count) line(s) found \n%(problem_list) |
+| ok-syntax     | %(status) - %(count) line(s) found                                    |
+| detail-syntax | %(line \| chomp \| cut=200)                                           |
 
 ## Check Specific Arguments
 
-| Argument     | Description                                                                                           |
-| ------------ | ----------------------------------------------------------------------------------------------------- |
-| column-split | Tab split (default: \t)                                                                               |
-| file         | The file that should be checked                                                                       |
-| files        | Comma separated list of files                                                                         |
-| label        | label:pattern => If the pattern is matched in a line the line will have the label set as detail       |
-| line-split   | Character string used to split a file into several lines (default: \n)                                |
-| max-lines    | Maximum number of lines to read from each file (default: 10000)                                       |
-| offset       | Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset |
+| Argument       | Description                                                                                          |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| column-split   | Tab split (default: \t)                                                                              |
+| file           | The file pattern that should be checked                                                              |
+| files          | Comma separated list of file patterns                                                                |
+| ignore-missing | Ignore the error if file pattern does not match any file                                             |
+| label          | label:pattern => If the pattern is matched in a line the line will have the label set as detail      |
+| line-split     | Character string used to split a file into several lines (default: \n)                               |
+| max-lines      | Maximum number of lines to read from each file (default: 10000)                                      |
+| offset         | Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset |
 
 ## Attributes
 

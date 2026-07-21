@@ -132,7 +132,7 @@ func NetGetConnection(lpLocalName string) (lpRemoteName string, err error) {
 }
 
 func handleWNetError(errorCode uintptr, winnetwkDll *windows.LazyDLL) (err error) {
-	wNetGetLastErrorAFunc := winnetwkDll.NewProc("WNetGetLastErrorA ")
+	wNetGetLastErrorAFunc := winnetwkDll.NewProc("WNetGetLastErrorA")
 	const lpErrorBufLength = uint32(1024)
 	lpErrorBuf := make([]byte, lpErrorBufLength)
 	const lpNameBufLength = uint32(256)
