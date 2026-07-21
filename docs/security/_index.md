@@ -166,15 +166,37 @@ in the ini files. Use `snclient hash` to generate a new password hash.
 password = SHA256:9f86d081...
 ```
 
+### External Commands
+
+Using external commands is safe under certain conditions.
+
+- [allow arguments](#allow-arguments) is disabled
+- [allow nasty characters](#allow-nasty-characters) is unchanged
+
+Changing nasty characters is almost always a bad idea. Allowing arguments can
+be necessary in certain scenarios, read more in the [allow arguments](#allow-arguments) section.
+
 ### Allow Nasty Characters
 
 It is recommended to **not** enable `allow nasty characters` or `allow control
 characters` as this allows to exploit existing commands.
 
-Removing some of the `nasty characters` is also not a good idea.
+Removing some of the `nasty characters` is also not a good idea. Each of them
+is there for a reason and removing any of them probably allows command injection
+vulnerabilities.
 
 ```ini
 [/settings/default]
 allow nasty characters = false
 allow control characters = false
 ```
+
+### Allow Arguments
+
+Normally arguments for external commands are not allowed because they are forwarded
+to the shell which makes them easy to exploit.
+
+When enabling arguments, make sure using quoted arguments like `$ARGS"$`. Using unquoted
+arguments leads to command injection vulnerabilities.
+
+A better approach would be to use aliased commands.

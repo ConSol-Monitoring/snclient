@@ -15,7 +15,7 @@ import (
 )
 
 // ref: https://go.dev/src/net/interface_windows.go
-// windows does not use a resolv.config file i.e dns.ClientConfig
+// windows does not use a resolv.conf file i.e. dns.ClientConfig
 // this function is defined for consistency across platforms
 func adapterAddress(_ *dns.ClientConfig) (nameservers []string, err error) {
 	var b []byte

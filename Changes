@@ -12,6 +12,8 @@ next:
          - check_logfile: fix crash when using line-sep
          - check_logfile: add max line limit when reading log files
          - http includes: verify ownership of temp files
+         - nrpe: prevent too large data packages
+         - prometheus: fix potential high cardinality for unknown paths
 
 0.44     Wed Jun 24 13:03:43 CEST 2026
          - fix running external scripts with sudo (#388)
