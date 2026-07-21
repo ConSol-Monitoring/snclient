@@ -96,9 +96,10 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"total":   {value: &l.total, description: "Include the total of all matching drives"},
 			"magic": {value: &l.magic, description: "Magic number for use with scaling drive sizes. " +
 				"Note there is also a more generic magic factor in the perf-config option."},
-			"mounted":                   {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
-			"ignore-unreadable":         {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
-			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the total size, ensuring used and free percentages add up to 100%. default: true"},
+			"mounted":           {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
+			"ignore-unreadable": {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
+			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the " +
+				"total size, ensuring used and free percentages add up to 100%. Default: true"},
 		},
 		defaultFilter:   l.getDefaultFilter(),
 		defaultWarning:  "used_pct > 80",
