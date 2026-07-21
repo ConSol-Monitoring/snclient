@@ -73,7 +73,7 @@ Naemon Config
 | drive                     | The drives to check, e.g. C:\ or /                                                        |
 | exclude                   | List of drives to exclude from check                                                      |
 | folder                    | The folders to check (parent mountpoint)                                                  |
-| freespace-ignore-reserved | When false, root-reserved space is subtracted from the total size, ensuring used and free percentages add up to 100%. Default: true |
+| freespace-ignore-reserved | When false, root-reserved space is subtracted from the total size. Default: true          |
 | ignore-unreadable         | Deprecated, use filter instead                                                            |
 | magic                     | Magic number for use with scaling drive sizes. Note there is also a more generic magic factor in the perf-config option. |
 | mounted                   | Deprecated, use filter instead                                                            |
