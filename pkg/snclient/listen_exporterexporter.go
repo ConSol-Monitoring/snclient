@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
+
 	"github.com/goccy/go-json"
 	"gopkg.in/yaml.v3"
 )
@@ -42,16 +44,19 @@ func init() {
 }
 
 type HandlerExporterExporter struct {
-	noCopy          noCopy
-	handler         http.Handler
-	listener        *Listener
-	urlPrefix       string
-	password        string
-	requirePassword bool
-	defaultModule   string
-	snc             *Agent
-	modules         map[string]*exporterModuleConfig
-	allowedHosts    *AllowedHostConfig
+	noCopy           noCopy
+	handler          http.Handler
+	listener         *Listener
+	urlPrefix        string
+	password         string
+	requirePassword  bool
+	defaultModule    string
+	snc              *Agent
+	conf             *ConfigSection
+	runSet           *AgentRunSet
+	modules          map[string]*exporterModuleConfig
+	allowedHosts     *AllowedHostConfig
+	moduleDirWatcher *fsnotify.Watcher
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -84,11 +89,44 @@ func (l *HandlerExporterExporter) Start() error {
 }
 
 func (l *HandlerExporterExporter) Stop() {
+	if l.moduleDirWatcher != nil {
+		LogError2(nil, l.moduleDirWatcher.Close())
+	}
 	l.listener.Stop()
+}
+
+// This function is intended to be called to reinitialize after changes in the config directory
+func (l *HandlerExporterExporter) stopAndReinitialize() {
+	restartPeriod := time.Second * 5
+
+	log.Tracef("exporter_exporter stopping and reinitializing")
+
+	stopAndReinitializeFunc := func() {
+		l.Stop()
+		l.listener = nil
+
+		time.Sleep(restartPeriod)
+
+		err := l.Init(l.snc, l.conf, nil, l.runSet)
+		if err != nil {
+			log.Tracef("exporter_exporter reinitialize failed: %s", err.Error())
+		}
+
+		// time.Sleep(restartPeriod)
+
+		err = l.Start()
+		if err != nil {
+			log.Tracef("exporter_exporter start failed: %s", err.Error())
+		}
+	}
+
+	go stopAndReinitializeFunc()
 }
 
 func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
+	l.conf = conf
+	l.runSet = runSet
 
 	err := setListenerAuthInit(&l.password, &l.requirePassword, conf)
 	if err != nil {
@@ -180,6 +218,8 @@ func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map
 
 	log.Tracef("In the ExporterExporter config directory: '%s' , %d config files were added without errors, %d config files had errors",
 		moduleDir, mfsWithoutErrorsCount, mfsWithErrorsCount)
+
+	l.WatchConfigDirectory(moduleDir)
 
 	return modules, nil
 }
@@ -620,4 +660,64 @@ func (m exporterExecConfig) ServeHTTP(res http.ResponseWriter, req *http.Request
 	res.WriteHeader(http.StatusOK)
 	LogError2(res.Write([]byte(stdout)))
 	LogError2(res.Write([]byte("\n")))
+}
+
+func (l *HandlerExporterExporter) WatchConfigDirectory(moduleDir string) {
+	watcher, err := fsnotify.NewWatcher()
+
+	if err != nil {
+		log.Errorf("error creating file watcher: %s", err)
+
+		return
+	}
+	l.moduleDirWatcher = watcher
+
+	absDir, err := filepath.Abs(moduleDir)
+	if err != nil {
+		log.Errorf("error resolving absolute path for file watcher: %s", err)
+
+		return
+	}
+
+	err = watcher.Add(absDir)
+	if err != nil {
+		log.Errorf("error adding path to the file watcher: %s", err)
+
+		return
+	}
+
+	log.Debugf("Starting file watcher on path: %s", absDir)
+	go l.WatcherFunc(watcher)
+}
+
+func (l *HandlerExporterExporter) WatcherFunc(watcher *fsnotify.Watcher) {
+	debounceDuration := time.Second * 5
+	lastSignificantEvent := time.Now() // starting counts as an event
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+
+			if event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) ||
+				event.Has(fsnotify.Rename) || event.Has(fsnotify.Write) {
+
+				now := time.Now()
+				if now.Sub(lastSignificantEvent) <= debounceDuration {
+					return
+				}
+				lastSignificantEvent = now
+
+				log.Tracef("file watcher event, reinitializing due to operation: %s , %s", event.Op.String(), event.Name)
+				l.stopAndReinitialize()
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			log.Tracef("file watcher error: %s", err.Error())
+		}
+	}
 }
