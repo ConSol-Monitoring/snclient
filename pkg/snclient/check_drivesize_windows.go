@@ -470,7 +470,8 @@ func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, 
 	volumePathName := syscall.UTF16ToString(buffer)
 
 	if volumePathName == "" {
-		volumePathName = volumeGUIDPath // if there is no name attached to it, use this as name
+		log.Tracef("volume has no path name, using GUID path as path: %s", volumeGUIDPath)
+		volumePathName = volumeGUIDPath
 	}
 
 	// entry attributes
@@ -508,19 +509,6 @@ func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, 
 		mounted = "1"
 	}
 
-	skip := "0"
-	if mounted == "0" {
-		skip = "1"
-	}
-
-	// skip unmounted volumes
-	// these are generally weird types of items shown in Explorer, some examples:
-	// RDP session shared folder
-	// UPnP/DLNA media server
-	if skip == "1" {
-		return
-	}
-
 	for _, existingDrive := range requiredDrives {
 		if existingDrive["drive"] == drive {
 			// drive already added
@@ -542,7 +530,6 @@ func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, 
 	entry["drive_or_name_or_id"] = driveOrNameOrID
 	entry["letter"] = letter
 	entry["mounted"] = mounted
-	entry["skip"] = skip
 
 	requiredDrives[volumeID] = entry
 }
