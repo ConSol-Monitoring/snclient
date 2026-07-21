@@ -25,8 +25,8 @@ func init() {
 
 type FileInfoUnified struct {
 	Atime time.Time // Access time
-	Mtime time.Time // Modify time
-	Ctime time.Time // Create time
+	Mtime time.Time // Modify time i.e last file content change time
+	Ctime time.Time // On Windows creation time , Unix last metadata/inode change
 }
 
 const (
@@ -166,10 +166,7 @@ func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Ar
 		}
 	}
 
-	// Cleanup the listData if a filter is used
-	if l.pattern != "*" {
-		l.removeDirectoriesWithoutFilesUnder(check)
-	}
+	l.removeDirectoriesNotMatchingPattern(check)
 
 	if l.calculateSubdirectorySizes {
 		l.addSubdirectorySizes(check)
@@ -278,7 +275,7 @@ func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error 
 			return w.cf.addFile(w.check, displayPath, w.checkPath, dirEntry, isSymlink, err)
 		}
 
-		log.Tracef("enty on path: %s of type: %s symlink status: %t", path, entryType, isSymlink)
+		log.Tracef("entry on path: %s of type: %s symlink status: %t", path, entryType, isSymlink)
 
 		if isSymlink {
 			if w.cf.followSymlinks {
@@ -558,45 +555,23 @@ func checkSlowFileOperations(check *CheckData, entry map[string]string, path str
 	return nil
 }
 
-// The WalkDir normally adds every directory and files under the search path.
-// If a pattern is specified, this prevents files that dont match the pattern to be skipped.
-// This can lead to some directories being in the listData, while not having any matched files under them.
-// This function cleans those directories up.
-func (l *CheckFiles) removeDirectoriesWithoutFilesUnder(check *CheckData) {
-	fileFilepaths := make([]string, 0)
-
-	for _, data := range check.listData {
-		if data["type"] == "file" {
-			fileFilepaths = append(fileFilepaths, data["fullname"])
-		}
+func (l *CheckFiles) removeDirectoriesNotMatchingPattern(check *CheckData) {
+	if l.pattern == "*" {
+		return
 	}
 
-	newListData := make([]map[string]string, 0)
+	newListdata := make([]map[string]string, 0)
 
 	for _, data := range check.listData {
-		// only filter the directories, files are automatically added
 		if data["type"] == "dir" {
-			hasFilesUnder := false
-			for _, fileFilepath := range fileFilepaths {
-				prefixToMatch := fmt.Sprintf("%s%c", data["fullname"], os.PathSeparator)
-				rest, found := strings.CutPrefix(fileFilepath, prefixToMatch)
-				if found && rest != "" {
-					hasFilesUnder = true
-
-					break
-				}
+			if match, _ := filepath.Match(l.pattern, data["filename"]); !match {
+				continue
 			}
-			if hasFilesUnder {
-				newListData = append(newListData, data)
-			} else {
-				log.Debugf("Skipping directory from the new listData, as it does not have any files found under it: %s", data["fullname"])
-			}
-		} else {
-			newListData = append(newListData, data)
 		}
+		newListdata = append(newListdata, data)
 	}
 
-	check.listData = newListData
+	check.listData = newListdata
 }
 
 // Files are checked by their individual attributes, with directories we have to count and size them up
@@ -648,7 +623,7 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 	}
 
 	if check.HasThreshold("size") {
-		log.Warn("check_files - Using 'size' in a threshold argument meant to mean \"summation of all found files sizes\" is wrong. " +
+		log.Warn("check_files - Using 'size' in a threshold argument to mean \"summation of all found files sizes\" is wrong. " +
 			"This collides with each file entry 'size' attribute during checks. Using 'size' in a condition will check each files 'size' attribute. " +
 			"If you want to check for the sum of sizes, use 'total_size' in your condition instead. ")
 	}
