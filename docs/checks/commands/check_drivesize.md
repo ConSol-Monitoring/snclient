@@ -70,7 +70,7 @@ Naemon Config
 
 | Argument                  | Description                                                                               |
 | ------------------------- | ----------------------------------------------------------------------------------------- |
-| drive                     | The drives to check, ex.: c: or /                                                         |
+| drive                     | The drives to check, e.g. C:\ or /                                                        |
 | exclude                   | List of drives to exclude from check                                                      |
 | folder                    | The folders to check (parent mountpoint)                                                  |
 | freespace-ignore-reserved | When false, root-reserved space is subtracted from the total size, ensuring used and free percentages add up to 100%. Default: true |
@@ -94,7 +94,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | drive_or_name         | Drive letter if present if not use name                                                       |
 | drive_or_name_or_id   | Drive letter if present, if not use drive name, if not use the given ID. Useful for volumes without assigned letters on Windows. |
 | fstype                | Filesystem type                                                                               |
-| mounted               | Flag whether drive is mounter (0/1)                                                           |
+| mounted               | Flag whether drive is mounted (0/1)                                                           |
 | free                  | Free (human readable) bytes                                                                   |
 | free_bytes            | Number of free bytes                                                                          |
 | free_pct              | Free bytes in percent                                                                         |
@@ -117,7 +117,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | inodes_used           | Number of used inodes                                                                         |
 | inodes_used_pct       | Number of used inodes in percent                                                              |
 | media_type            | Windows only: numeric media type of drive                                                     |
-| type                  | Windows only: type of drive, ex.: fixed, cdrom, ramdisk, remote, removable, unknown           |
+| type                  | Windows only: type of drive, e.g. fixed, cdrom, ramdisk, remote, removable, unknown           |
 | readable              | Windows only: flag drive is readable (0/1)                                                    |
 | writable              | Windows only: flag drive is writable (0/1)                                                    |
 | removable             | Windows only: flag drive is removable (0/1)                                                   |

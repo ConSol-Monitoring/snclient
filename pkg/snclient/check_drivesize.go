@@ -90,7 +90,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"drive":   {value: &l.drives, isFilter: true, description: "The drives to check, ex.: c: or /"},
+			"drive":   {value: &l.drives, isFilter: true, description: "The drives to check, e.g. C:\\ or /"},
 			"folder":  {value: &l.folders, isFilter: true, description: "The folders to check (parent mountpoint)"},
 			"exclude": {value: &l.excludes, description: "List of drives to exclude from check"},
 			"total":   {value: &l.total, description: "Include the total of all matching drives"},
@@ -117,7 +117,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "drive_or_name", description: "Drive letter if present if not use name"},
 			{name: "drive_or_name_or_id", description: "Drive letter if present, if not use drive name, if not use the given ID. Useful for volumes without assigned letters on Windows."},
 			{name: "fstype", description: "Filesystem type"},
-			{name: "mounted", description: "Flag whether drive is mounter (0/1)", unit: UBool},
+			{name: "mounted", description: "Flag whether drive is mounted (0/1)", unit: UBool},
 
 			{name: "free", description: "Free (human readable) bytes", unit: UByte},
 			{name: "free_bytes", description: "Number of free bytes", unit: UByte},
@@ -143,7 +143,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "inodes_used_pct", description: "Number of used inodes in percent", unit: UPercent},
 
 			{name: "media_type", description: "Windows only: numeric media type of drive"},
-			{name: "type", description: "Windows only: type of drive, ex.: fixed, cdrom, ramdisk, remote, removable, unknown"},
+			{name: "type", description: "Windows only: type of drive, e.g. fixed, cdrom, ramdisk, remote, removable, unknown"},
 			{name: "readable", description: "Windows only: flag drive is readable (0/1)", unit: UBool},
 			{name: "writable", description: "Windows only: flag drive is writable (0/1)", unit: UBool},
 			{name: "removable", description: "Windows only: flag drive is removable (0/1)", unit: UBool},
