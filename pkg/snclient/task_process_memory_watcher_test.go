@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 	"time"
@@ -37,6 +38,10 @@ func TestProcessMemoryWatcherStartDisabledOnZeroLimit(t *testing.T) {
 }
 
 func TestProcessMemoryWatcherExceedsLimitPanics(t *testing.T) {
+	logBuffer := bytes.Buffer{}
+	disableLogsTemporarilyToBuffer(&logBuffer)
+	defer restoreLogTarget()
+
 	handler := &ProcessMemoryWatcherHandler{
 		memoryLimit:   1,
 		checkInterval: 100 * time.Millisecond,
@@ -47,6 +52,11 @@ func TestProcessMemoryWatcherExceedsLimitPanics(t *testing.T) {
 		recovered := recover()
 		require.NotNil(t, recovered)
 		assert.Contains(t, fmt.Sprint(recovered), "process memory limit exceeded")
+
+		logOutput := logBuffer.String()
+		assert.Contains(t, logOutput, "ThreadDump:")
+		assert.Contains(t, logOutput, "ProcessMemoryWatcherHandler")
+		assert.Contains(t, logOutput, "process memory limit exceeded")
 	}()
 
 	handler.mainLoop()

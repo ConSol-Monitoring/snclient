@@ -445,6 +445,20 @@ func (snc *Agent) startModules(initSet *AgentRunSet) {
 	snc.runSet = initSet
 }
 
+func (snc *Agent) StartTask(name string) error {
+	tsk := snc.Tasks.Get(name)
+	if tsk == nil {
+		return fmt.Errorf("no such task: %s", name)
+	}
+
+	err := tsk.Start()
+	if err != nil {
+		return fmt.Errorf("failed to start task: %s: %w", name, err)
+	}
+
+	return nil
+}
+
 func (snc *Agent) FindConfigFiles() (files, defaultLocations ConfigFiles) {
 	files = ConfigFiles(snc.flags.ConfigFiles)
 
@@ -1840,4 +1854,32 @@ func buildExeAndFilename(ctx context.Context, proc *process.Process, cmdLine str
 	}
 
 	return exe, filename
+}
+
+// returns the cache folder, ex.: used for https includes
+func (snc *Agent) getCacheFolder() string {
+	cacheDir := os.Getenv("CACHE_DIRECTORY")
+	if cacheDir != "" {
+		return cacheDir
+	}
+
+	cacheDir, ok := snc.config.Section("/paths").GetString("cache-path")
+	if cacheDir == "" || !ok {
+		cacheDir = os.TempDir()
+	}
+
+	uid := os.Geteuid()
+	if uid == -1 {
+		// usually on windows, so take the user name and make it a sha256
+		userNameSHA, err := getCurrentUserHASH()
+		if err != nil {
+			cacheDir = filepath.Join(cacheDir, "snclient")
+		} else {
+			cacheDir = filepath.Join(cacheDir, fmt.Sprintf("snclient-%s", userNameSHA))
+		}
+	} else {
+		cacheDir = filepath.Join(cacheDir, fmt.Sprintf("snclient-%d", uid))
+	}
+
+	return cacheDir
 }

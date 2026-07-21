@@ -523,3 +523,249 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestCheckFilesFilesystemLinks(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	scriptName := "check_files_filesystem_links"
+	scriptFilename := scriptName
+
+	switch runtime.GOOS {
+	case "windows":
+		scriptFilename += ".ps1"
+	case "linux":
+		scriptFilename += ".sh"
+	case "darwin":
+		scriptFilename += ".sh"
+	default:
+		t.Skipf("Test is not intended to be run on %s", runtime.GOOS)
+	}
+
+	config := checkFilesTestConfigWithScript(t, scriptsDir, scriptName, scriptFilename)
+	snc := StartTestAgent(t, config)
+
+	geneartionDirectory := t.TempDir()
+
+	res := snc.RunCheck(scriptName, []string{geneartionDirectory})
+	assert.Equalf(t, CheckExitOK, res.State, "script return state check is correct")
+	outputString := string(res.BuildPluginOutput())
+
+	// check_files_filesystem_links script generates a structure using the filesystem links
+
+	switch runtime.GOOS {
+	case "windows":
+
+		// the powershell script generates a filetree that looks like this
+		// \link_test
+		// │   file1_hardlink1.txt
+		// │   file1_symlink1.txt
+		// ├───dir1
+		// │       file1.txt
+		// ├───dir1_junction1
+		// │       file1.txt
+		// ├───dir1_symlink1
+		// └───file1.txt
+
+		assert.Containsf(t, outputString, `symbolic link created for dir1_symlink1 <<===>> dir1`, "output matches")
+		assert.Containsf(t, outputString, `symbolic link created for file1_symlink1.txt <<===>> dir1\file1.txt`, "output matches")
+		assert.Containsf(t, outputString, `Hardlink created for file1_hardlink1.txt <<===>> dir1\file1.txt`, "output matches")
+		assert.Containsf(t, outputString, `Junction created for dir1_junction1 <<===>> dir1`, "output matches")
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file", "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, "file1.txt", "output has file")
+		assert.Containsf(t, outputString, "file1_symlink1.txt", "output does have symlink file")
+		assert.Containsf(t, outputString, "file1_hardlink1.txt", "output does have hardlink file")
+		assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
+		assert.NotContainsf(t, outputString, "dir1_junction1", "output does not have junction directory")
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file and is_symlink eq true", "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, "file1_symlink1.txt", "output does have symlink file")
+		assert.NotContainsf(t, outputString, "file1_hardlink1.txt", "output does not have hardlink file")
+		assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
+		assert.NotContainsf(t, outputString, "dir1_junction1", "output does not have junction directory")
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq dir", "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, "dir1", "output has directory")
+		assert.Containsf(t, outputString, "dir1_junction1", "output has directory")
+		assert.Containsf(t, outputString, "dir1_symlink1", "output has directory")
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq dir and is_symlink eq true", "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, "dir1_junction1", "output has directory")
+		assert.Containsf(t, outputString, "dir1_symlink1", "output has directory")
+		assert.NotContainsf(t, strings.FieldsFunc(outputString, func(r rune) bool { return r == ' ' || r == ',' }), "dir1", "output does not have directory")
+
+	case "linux", "darwin":
+
+		// bash script generates a filetree that looks like this
+		// /link_test
+		// ├── dir1
+		// │   └── file1.txt
+		// ├── dir1_relative1 -> dir1
+		// ├── dir1_symbolic1 -> dir1
+		// ├── file1_physical1.txt
+		// ├── file1_relative1.txt -> dir1/file1.txt
+		// └── file1_symbolic1.txt -> dir1/file1.txt
+
+		assert.Containsf(t, outputString, "ok - Generated 2 files for testing", "output matches")
+		assert.Containsf(t, outputString, "ok - Generated 1 directories for testing", "output matches")
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file", "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, "file1.txt", "output has file")
+		assert.Containsf(t, outputString, "file1_symbolic1.txt", "output does have symlink file")
+		assert.Containsf(t, outputString, "file1_relative1.txt", "output does have relative symlink file")
+		assert.Containsf(t, outputString, "file1_physical1.txt", "output does have hardlink file")
+		assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		assert.Containsf(t, string(res.BuildPluginOutput()), "All 6 files are ok", "should count 6 files")
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq file and is_symlink eq true", "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, "file1_symbolic1.txt", "output does have symlink file")
+		assert.Containsf(t, outputString, "file1_relative1.txt", "output does have relative symlink file")
+		assert.NotContainsf(t, outputString, "file1_physical1.txt", "output does not have hardlink file")
+		assert.NotContainsf(t, outputString, "file1.txt", "output does not have regular file")
+		assert.NotContainsf(t, outputString, "dir1", "output does not have directory")
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq dir", "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, "dir1", "output has directory")
+		assert.Containsf(t, outputString, "dir1_symbolic1", "output has symlink directory")
+		assert.Containsf(t, outputString, "dir1_relative1", "output has relative symlink directory")
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "filter=type eq dir and is_symlink eq true", "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, "dir1_symbolic1", "output has symlink directory")
+		assert.Containsf(t, outputString, "dir1_relative1", "output has relative symlink directory")
+		assert.NotContainsf(t, strings.FieldsFunc(outputString, func(r rune) bool { return r == ' ' || r == ',' }), "dir1", "output does not have regular directory")
+	}
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckFilesFilesystemLinks2(t *testing.T) {
+	testDir, _ := os.Getwd()
+	scriptsDir := filepath.Join(testDir, "t", "scripts")
+	scriptName := "check_files_filesystem_links_2"
+	scriptFilename := scriptName
+
+	switch runtime.GOOS {
+	case "windows":
+		scriptFilename += ".ps1"
+	case "linux", "darwin":
+		scriptFilename += ".sh"
+	default:
+		t.Skipf("Test is not intended to be run on %s", runtime.GOOS)
+	}
+
+	config := checkFilesTestConfigWithScript(t, scriptsDir, scriptName, scriptFilename)
+	snc := StartTestAgent(t, config)
+
+	geneartionDirectory := t.TempDir()
+
+	res := snc.RunCheck(scriptName, []string{geneartionDirectory})
+	assert.Equalf(t, CheckExitOK, res.State, "script return state check is correct")
+	outputString := string(res.BuildPluginOutput())
+
+	// check_files_filesystem_links_2 script generates a structure using the filesystem links with recursion
+
+	switch runtime.GOOS {
+	case "windows":
+
+		// the powershell script generates a filetree that looks like this
+		// link_test_2/
+		// ├── A
+		// │   ├── file.txt
+		// │   └── toB -> .../B
+		// └── B
+		//     └── toA -> .../A
+
+		assert.Containsf(t, outputString, `ok - Generated 1 files for testing`, "output matches")
+		assert.Containsf(t, outputString, `ok - Generated 4 directories for testing`, "output matches")
+
+		// with add-files-only-once=true, it must not cause an infinite loop
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=true", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "cyclic symlinks with add-files-only-once=true should complete OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, `A - false`, `folder A should be found`)
+		assert.Containsf(t, outputString, `A\file.txt - false`, `file A\file.txt should be found`)
+		assert.Containsf(t, outputString, `A\toB - true`, `symlink A\toB should be found`)
+		assert.Containsf(t, outputString, `A\toB\toA - true`, `symlink A\toB\toA should be found`)
+		assert.Containsf(t, outputString, `B\toA - true`, `symlink B\toA should be found`)
+
+		// with add-files-only-once=false (default), the cyclic symlinks cause an infinite loop
+		// this is the expected behavior
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, `toA\toB\toA\file.txt - false`, "file file.txt should be accessible over many symlinks")
+
+	case "linux", "darwin":
+
+		// the bash script generates a filetree that looks like this
+		// link_test_2/
+		// ├── A
+		// │   ├── file.txt
+		// │   └── toB -> ../B
+		// └── B
+		//     └── toA -> ../A
+
+		assert.Containsf(t, outputString, `ok - Generated 1 files for testing`, "output matches")
+		assert.Containsf(t, outputString, `ok - Generated 4 directories for testing`, "output matches")
+
+		// with add-files-only-once=true, it must not cause an infinite loop
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=true", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "cyclic symlinks with add-files-only-once=true should complete OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, `A - false`, `folder A should be found`)
+		assert.Containsf(t, outputString, `A/file.txt - false`, `file A/file.txt should be found`)
+		assert.Containsf(t, outputString, `A/toB - true`, `symlink A/toB should be found`)
+		assert.Containsf(t, outputString, `A/toB/toA - true`, `symlink A/toB/toA should be found`)
+		assert.Containsf(t, outputString, `B/toA - true`, `symlink B/toA should be found`)
+
+		// with add-files-only-once=false (default), the cyclic symlinks cause an infinite loop
+		// this is the expected behavior.
+
+		// if max-depth is not specified, maximum of default max-depth and a ceiling max-depth with symlinks is set as max-depth
+		// this prevents unending recursion
+
+		res = snc.RunCheck("check_files", []string{"path=" + geneartionDirectory, "follow-symlinks=true", "add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all"})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, `toA/toB/toA/file.txt - false`, "file file.txt should be accessible over many symlinks")
+
+		// if max-depth is specified, it is untouched
+
+		res = snc.RunCheck("check_files", []string{
+			"path=" + geneartionDirectory, "max-depth=5", "follow-symlinks=true",
+			"add-files-only-once=false", `detail-syntax="(%(fullname) - %(is_symlink))`, "show-all",
+		})
+		assert.Equalf(t, CheckExitOK, res.State, "state OK")
+		outputString = string(res.BuildPluginOutput())
+		assert.Containsf(t, outputString, `A/toB/toA/file.txt - false`, "file A/toB/toA/file.txt should be accesible with max-depth 5")
+
+		// this is following symlinks, but goes beyond the max-depth of 5
+
+		assert.NotContainsf(t, outputString, `A/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/file.txt - false`,
+			"file A/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/toB/toA/file.txt should not be accessible with max-depth 5")
+
+	default:
+	}
+
+	StopTestAgent(t, snc)
+}

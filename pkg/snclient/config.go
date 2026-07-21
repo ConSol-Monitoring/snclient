@@ -36,6 +36,9 @@ const (
 
 	// SystemCmdNastyCharacters is a list of nasty characters which are not allowed in host names, ex.: in check_ping
 	SystemCmdNastyCharacters = "$|`&><'\"\\{};\n\r"
+
+	// CacheFileMOde sets the mode to create cache folder
+	CacheFileMOde = 0o750
 )
 
 var DefaultConfig = map[string]ConfigData{
@@ -433,13 +436,23 @@ func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigS
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %s", err.Error())
 	}
-	cacheFile := filepath.Clean(filepath.Join(os.TempDir(), fmt.Sprintf("snclient-%s.ini", sum)))
+
+	cacheDir := snc.getCacheFolder()
+	err = os.MkdirAll(cacheDir, CacheFileMOde)
+	if err != nil {
+		return fmt.Errorf("failed to create cache folder %s: %s", cacheDir, err.Error())
+	}
+
+	cacheFile := filepath.Clean(filepath.Join(cacheDir, fmt.Sprintf("snclient-%s.ini", sum)))
 	config.alreadyIncluded[inclURL] = srcPath
 
 	// check if fetch is required (file not found, oneshotmode, ..., reload?)
 	fetch := true
 	exists := false
-	if stat, err2 := os.Stat(cacheFile); err2 == nil {
+	if stat, err2 := os.Lstat(cacheFile); err2 == nil {
+		if err = validateHTTPIncludeCacheFile(cacheFile, stat); err != nil {
+			return fmt.Errorf("refusing unsafe http include cache file %s: %s", cacheFile, err.Error())
+		}
 		exists = true
 		if snc.flags.Mode == ModeOneShot {
 			fetch = false
@@ -476,6 +489,14 @@ func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigS
 	}
 
 	return nil
+}
+
+func validateHTTPIncludeCacheFile(fileName string, stat os.FileInfo) error {
+	if !stat.Mode().IsRegular() {
+		return fmt.Errorf("cache file is not a regular file")
+	}
+
+	return validateHTTPIncludeCacheFileOwner(fileName, stat)
 }
 
 func (config *Config) fetchHTTPInclude(inclURL, cacheFile string, section *ConfigSection, snc *Agent) error {

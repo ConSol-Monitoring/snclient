@@ -4,6 +4,7 @@ package check_tcp
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -36,8 +37,15 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 
 	opts, err := parseArgs(args)
 	if err != nil {
-		fmt.Fprintf(output, "%s", err.Error())
-		return 2
+		var flagsErr *flags.Error
+		if errors.As(err, &flagsErr) && flagsErr.Type == flags.ErrHelp {
+			fmt.Fprint(output, err.Error())
+
+			return int(checkers.UNKNOWN)
+		}
+		fmt.Fprintf(output, "UNKNOWN - %s", err.Error())
+
+		return int(checkers.UNKNOWN)
 	}
 
 	ckr := opts.run(output)

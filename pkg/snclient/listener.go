@@ -447,8 +447,11 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 	logHTTPRequest(req)
 
 	if !utf8.ValidString(req.URL.Path) {
+		promHTTPRequestsTotal.WithLabelValues(fmt.Sprintf("%d", http.StatusBadRequest), "(invalid)").Add(1)
+		promHTTPDuration.WithLabelValues(fmt.Sprintf("%d", http.StatusBadRequest), "(invalid)").Observe(time.Since(startTime).Seconds())
+
 		http.Error(res, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		log.Warnf("http(s) request contains invald path from: %-20s | %s %s", req.RemoteAddr, req.Method, req.URL.Path)
+		log.Warnf("http(s) request contains invalid path from: %-20s | %s %s", req.RemoteAddr, req.Method, req.URL.Path)
 
 		return
 	}
@@ -467,8 +470,12 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 	}
 
 	duration := time.Since(startTime)
-	promHTTPRequestsTotal.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), req.URL.Path).Add(1)
-	promHTTPDuration.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), req.URL.Path).Observe(duration.Seconds())
+	promReqURL := req.URL.Path
+	if resCapture.statusCode >= 400 && resCapture.statusCode <= 499 {
+		promReqURL = "(invalid)"
+	}
+	promHTTPRequestsTotal.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), promReqURL).Add(1)
+	promHTTPDuration.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), promReqURL).Observe(duration.Seconds())
 
 	log.Debugf(
 		"http(s) request finished from: %-20s | duration: %12s | code: %3d | %s %s",

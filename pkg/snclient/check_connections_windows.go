@@ -3,12 +3,13 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"strings"
+
+	"github.com/shirou/gopsutil/v4/net"
 )
 
-// get open tcp connections from netstat.exe
+// get open tcp connections from the windows iphlpapi via gopsutil library
 func (l *CheckConnections) addIPV4(ctx context.Context, check *CheckData) error {
-	counter, err := l.getNetstat(ctx, "TCP")
+	counter, err := l.getNetstat(ctx, "tcp4")
 	if err != nil {
 		return err
 	}
@@ -18,7 +19,7 @@ func (l *CheckConnections) addIPV4(ctx context.Context, check *CheckData) error 
 }
 
 func (l *CheckConnections) addIPV6(ctx context.Context, check *CheckData) error {
-	counter, err := l.getNetstat(ctx, "TCPv6")
+	counter, err := l.getNetstat(ctx, "tcp6")
 	if err != nil {
 		return err
 	}
@@ -27,32 +28,25 @@ func (l *CheckConnections) addIPV6(ctx context.Context, check *CheckData) error 
 	return nil
 }
 
-func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]uint64, error) {
-	output, stderr, rc, err := l.snc.execCommand(ctx, "netstat.exe /a /n /p "+name, l.snc.getBuiltinCmdTimeout())
+func (l *CheckConnections) getNetstat(ctx context.Context, kind string) ([]uint64, error) {
+	connections, err := net.ConnectionsWithContext(ctx, kind)
 	if err != nil {
-		return nil, fmt.Errorf("netstat.exe failed: %s\n%s", err.Error(), stderr)
-	}
-	if rc != 0 {
-		return nil, fmt.Errorf("netstat.exe failed: %s\n%s", output, stderr)
+		return nil, fmt.Errorf("fetching %s connections failed with error: %s", kind, err.Error())
 	}
 
 	counter := make([]uint64, tcpStateMAX-1)
 
-	for line := range strings.SplitSeq(output, "\n") {
-		cols := strings.Fields(line)
-		if len(cols) < 4 {
-			continue
-		}
-		if cols[0] != "TCP" {
-			continue
-		}
-
-		// available states: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netstat#remarks
-		switch cols[3] {
+	for idx := range connections {
+		// available states: https://learn.microsoft.com/en-us/windows/win32/api/tcpmib/ne-tcpmib-mib_tcp_state
+		// Status is a fixed english string, converted from the numeric tcp state in gopsutil net_windows.go
+		switch connections[idx].Status {
 		case "CLOSE_WAIT":
 			counter[tcpCloseWait]++
-		case "CLOSED":
+		// Deleted counts as closed as well
+		case "CLOSED", "DELETE":
 			counter[tcpClose]++
+		case "CLOSING":
+			counter[tcpClosing]++
 		case "ESTABLISHED":
 			counter[tcpEstablished]++
 		case "FIN_WAIT_1":
@@ -61,16 +55,16 @@ func (l *CheckConnections) getNetstat(ctx context.Context, name string) ([]uint6
 			counter[tcpFinWait2]++
 		case "LAST_ACK":
 			counter[tcpLastAck]++
-		case "LISTEN", "LISTENING":
+		case "LISTEN":
 			counter[tcpListen]++
 		case "SYN_RECEIVED":
 			counter[tcpSynRecv]++
 		case "SYN_SENT":
 			counter[tcpSynSent]++
-		case "TIMED_WAIT", "TIME_WAIT":
+		case "TIME_WAIT":
 			counter[tcpTimeWait]++
 		default:
-			log.Errorf("unhandled tcp state: %s", cols[3])
+			log.Tracef("unknown tcp state: %s", connections[idx].Status)
 		}
 		counter[tcpTotal]++
 	}

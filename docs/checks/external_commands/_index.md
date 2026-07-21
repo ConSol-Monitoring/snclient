@@ -40,11 +40,14 @@ my_check1 = check_custom.bat
 my_check2 = myscripts\check_custom.bat
 ```
 
-Both formats achieve the same outcome by adding two new commands, `my_check1` and `my_check2`, which execute the `check_custom.bat` script. Usually you use the short format, but if you want to provide individual options to a command, the long format is the way to go.
+Both formats achieve the same outcome by adding two new commands, `my_check1` and `my_check2`, which execute
+the `check_custom.bat` script. Usually you use the short format, but if you want to provide individual options
+to a command, the long format is the way to go.
 
 ### Handling Script Arguments
 
-You can manage script arguments in two ways: embedding them directly into the command or allowing for argument pass-through. To enable argument pass-through, update the configuration as follows:
+You can manage script arguments in two ways: embedding them directly into the command or allowing for argument pass-through.
+To enable argument pass-through, update the configuration as follows:
 
 ```ini
 [/settings/external scripts]
@@ -56,6 +59,11 @@ Arguments are available in macros:
 - `$ARGS$` contains all macros space separated **without** quotes.
 - `$ARGS"$` contains all macros space separated **with quotes**.
 - `$ARGSn$` contains the value of the argument at position `n`.
+- `$ARGSn"$` contains the value of the argument at position `n` **with quotes**.
+
+Using arguments is not recommend for security reasons. If arguments are required, at least
+make sure to use quoted arguments as in `$ARGS"$`. Using unquoted arguments almost always
+leads to a command injection vulnerability.
 
 ### Configuration Reference
 

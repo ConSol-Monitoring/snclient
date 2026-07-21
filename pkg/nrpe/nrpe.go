@@ -188,6 +188,9 @@ func ReadNrpePacket(conn io.Reader) (*Packet, error) {
 		packet.data = packet.all[10 : NrpeV2PacketLength-2]
 	case NrpeV3PacketVersion, NrpeV4PacketVersion:
 		dataLength := binary.BigEndian.Uint32(packet.dataLength)
+		if dataLength > NrpeV4MaxPacketDataLength {
+			return nil, fmt.Errorf("nrpe: data size too large")
+		}
 		// 1020 bytes is the amount which comes with reading the first 1036 bytes - header (16 bytes)
 		remaining := int64(dataLength) - (NrpeV2PacketLength - NrpeV4HeaderLength)
 		if remaining <= 0 {

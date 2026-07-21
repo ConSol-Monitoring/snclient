@@ -2,17 +2,26 @@ package check_tcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/sni/go-flags"
 )
 
 func CheckSSH(_ context.Context, output io.Writer, args []string, sendString string) int {
 	opts, err := parseArgs(args)
 	if err != nil {
-		fmt.Fprintf(output, "%s", err.Error())
+		var flagsErr *flags.Error
+		if errors.As(err, &flagsErr) && flagsErr.Type == flags.ErrHelp {
+			fmt.Fprint(output, err.Error())
 
-		return 2
+			return 3
+		}
+		fmt.Fprintf(output, "UNKNOWN - %s", err.Error())
+
+		return 3
 	}
 
 	if opts.Port == 0 {
