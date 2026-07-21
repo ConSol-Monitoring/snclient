@@ -98,7 +98,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 				"Note there is also a more generic magic factor in the perf-config option."},
 			"mounted":                   {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
 			"ignore-unreadable":         {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
-			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "Don't account root-reserved blocks into freespace, default: true"},
+			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the total size, ensuring used and free percentages add up to 100%. default: true"},
 		},
 		defaultFilter:   l.getDefaultFilter(),
 		defaultWarning:  "used_pct > 80",
