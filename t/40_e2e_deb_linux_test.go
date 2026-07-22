@@ -181,6 +181,14 @@ func localContainerTests(t *testing.T, bin string) {
 	})
 	runCmd(t, &cmd{
 		Cmd:  "sudo",
+		Args: []string{"cp", "/usr/bin/snclient", "/var/www/html/snclient.linux"},
+	})
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"systemctl", "restart", "apache2"},
+	})
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
 		Args: []string{"systemctl", "restart", "snclient"},
 	})
 	waitUntilResponse(t, bin)
@@ -224,5 +232,74 @@ func localContainerTests(t *testing.T, bin string) {
 		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_omd", "site='te\rst'"},
 		Like: []string{"request contained illegal control characters"},
 		Exit: 3,
+	})
+
+	// test admin api
+	runCmd(t, &cmd{
+		Cmd:  "curl",
+		Args: []string{"-s", "-k", "--header", "password:admin", "-d", "''", "https://localhost:8443/api/v1/admin/reload"},
+		Like: []string{`{"success":true}`},
+		Exit: 0,
+	})
+	waitUntilResponse(t, bin)
+
+	// increase log level
+	runCmd(t, &cmd{
+		Cmd:  "curl",
+		Args: []string{"-s", "-k", "--header", "password:admin", "-d", `{"level":"debug", "duration": 600}`, "https://localhost:8443/api/v1/admin/log/level"},
+		Like: []string{`{.*"success":true.*}`},
+		Exit: 0,
+	})
+
+	// test admin api local update
+	runCmd(t, &cmd{
+		Cmd:  "curl",
+		Args: []string{"-s", "-k", "--header", "password:admin", "-d", `{"channel":"local_file", "force": true}`, "https://localhost:8443/api/v1/admin/updates/install"},
+		Like: []string{`^$`},
+		Exit: 56, // cannot return useful result when updating
+	})
+	waitUntilResponse(t, bin)
+	runCmd(t, &cmd{
+		Cmd:  "bash",
+		Args: []string{"-c", `ls -la /proc/$(pidof snclient)/exe`},
+		Like: []string{`/var/cache/snclient/snclient`},
+		Exit: 0,
+	})
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"systemctl", "restart", "snclient"},
+	})
+	waitUntilResponse(t, bin)
+	runCmd(t, &cmd{
+		Cmd:  "bash",
+		Args: []string{"-c", `ls -la /proc/$(pidof snclient)/exe`},
+		Like: []string{`/var/cache/snclient/snclient`},
+		Exit: 0,
+	})
+
+	// test admin api http update
+	runCmd(t, &cmd{
+		Cmd:  "curl",
+		Args: []string{"-s", "-k", "--header", "password:admin", "-d", `{"channel":"local_file", "force": true}`, "https://localhost:8443/api/v1/admin/updates/install"},
+		Like: []string{`^$`},
+		Exit: 56, // cannot return useful result when updating
+	})
+	waitUntilResponse(t, bin)
+	runCmd(t, &cmd{
+		Cmd:  "bash",
+		Args: []string{"-c", `ls -la /proc/$(pidof snclient)/exe`},
+		Like: []string{`/var/cache/snclient/snclient`},
+		Exit: 0,
+	})
+	runCmd(t, &cmd{
+		Cmd:  "sudo",
+		Args: []string{"systemctl", "restart", "snclient"},
+	})
+	waitUntilResponse(t, bin)
+	runCmd(t, &cmd{
+		Cmd:  "bash",
+		Args: []string{"-c", `ls -la /proc/$(pidof snclient)/exe`},
+		Like: []string{`/var/cache/snclient/snclient`},
+		Exit: 0,
 	})
 }

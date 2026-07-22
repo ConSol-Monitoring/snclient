@@ -682,6 +682,29 @@ func IsFile(path string) error {
 	return nil
 }
 
+// IsWritable returns true if given folder is writable
+func IsWritable(path string) bool {
+	path = filepath.Join(path, ".")
+	stat, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	if err != nil {
+		return false
+	}
+	if !stat.IsDir() {
+		return false
+	}
+
+	fd, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0o755) //nolint:mnd // no need to define a constant for one-use default file mode
+	if err != nil {
+		return false
+	}
+	fd.Close()
+
+	return true
+}
+
 func ReplaceCommonPasswordPattern(str string) string {
 	str = reMountPassword.ReplaceAllString(str, "//...@")
 

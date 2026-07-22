@@ -1036,25 +1036,34 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 
 // CheckUpdateBinary checks if we run as snclient.update.exe and if so, move that file in place and restart
 func (snc *Agent) CheckUpdateBinary(mode string) {
-	executable := GlobalMacros["exe-full"]
-	updateFile := snc.buildUpdateFile(executable)
+	tmpUpdateFile, executable := snc.buildUpdateFile(GlobalMacros["exe-full"])
 
-	if !strings.Contains(executable, ".update") {
+	if utils.IsFile(tmpUpdateFile) != nil {
+		// tmp update file does not exist, but the target update file does
+		if runtime.GOOS != "windows" && utils.IsFile(executable) == nil && executable != GlobalMacros["exe-full"] {
+			// exec into the updated file when started with the previous version
+			log.Debugf("re-exec into updated version: %s", executable)
+			snc.stop()
+			snc.finishUpdate(executable, mode)
+		}
+
+		// tmp update file does not exist, do nothing
+		return
+	}
+
+	if GlobalMacros["exe-full"] == executable {
 		// remove update files, we might have started into that right now
-		os.Remove(updateFile)
+		os.Remove(tmpUpdateFile)
 
 		return
 	}
 
-	binPath := strings.TrimSuffix(executable, GlobalMacros["file-ext"])
-	binPath = strings.TrimSuffix(binPath, ".update")
-	binPath += GlobalMacros["file-ext"]
-	log.Debugf("started as %s, moving updated file to %s", executable, binPath)
+	log.Debugf("started as %s, moving updated file %s to %s", GlobalMacros["exe-full"], tmpUpdateFile, executable)
 
 	// create a copy of our update file which will be moved later
-	tmpPath := binPath + ".tmp"
+	tmpPath := executable + ".tmp"
 	defer os.Remove(tmpPath)
-	err := utils.CopyFile(executable, tmpPath)
+	err := utils.CopyFile(tmpUpdateFile, tmpPath)
 	if err != nil {
 		log.Errorf("copy: %s", err.Error())
 
@@ -1072,7 +1081,7 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 	}
 
 	// move the file in place
-	err = os.Rename(tmpPath, binPath)
+	err = os.Rename(tmpPath, executable)
 	if err != nil {
 		log.Errorf("move update failed: %s", err.Error())
 
@@ -1080,11 +1089,24 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 	}
 
 	snc.stop()
-	snc.finishUpdate(binPath, mode)
+	snc.finishUpdate(executable, mode)
 }
 
-func (snc *Agent) buildUpdateFile(executable string) string {
-	return strings.TrimSuffix(executable, GlobalMacros["file-ext"]) + ".update" + GlobalMacros["file-ext"]
+func (snc *Agent) buildUpdateFile(executable string) (tmpUpdateFile, updateFile string) {
+	executable = strings.TrimSuffix(strings.TrimSuffix(executable, GlobalMacros["file-ext"]), ".update")
+	updateFile = executable
+	tmpUpdateFile = executable + ".update" + GlobalMacros["file-ext"]
+
+	// check if path is writable, if not, use the temp folder
+	dir := filepath.Dir(tmpUpdateFile)
+	if !utils.IsWritable(dir) {
+		tmpDir := snc.getCacheFolder()
+		tmpUpdateFile = filepath.Join(tmpDir, filepath.Base(tmpUpdateFile))
+		log.Tracef("update file path %s is not writable, using cache folder file %s", dir, tmpUpdateFile)
+		updateFile = filepath.Join(tmpDir, filepath.Base(updateFile))
+	}
+
+	return tmpUpdateFile, updateFile
 }
 
 func (snc *Agent) restartWatcherCb(restartCb func()) {

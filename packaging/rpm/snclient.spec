@@ -60,6 +60,9 @@ gzip -n -9 %{buildroot}/usr/share/man/man8/snclient.8
 
 
 %post
+# remove previous auto updates
+%{__rm} -rf /var/cache/snclient/snclient.update
+%{__rm} -rf /var/cache/snclient/snclient
 case "$*" in
   1)
     # First installation

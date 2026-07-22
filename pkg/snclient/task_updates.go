@@ -637,12 +637,20 @@ func (u *UpdateHandler) checkUpdateFile(ctx context.Context, url string) (update
 	}
 
 	// copy to tmp location
-	tempUpdate := filepath.Join(os.TempDir(), "snclient-tmpupdate") + GlobalMacros["file-ext"]
+	cacheDir := u.snc.getCacheFolder()
+	err = os.MkdirAll(cacheDir, CacheFileMode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cache folder %s: %s", cacheDir, err.Error())
+	}
+	tempUpdate := filepath.Join(cacheDir, "snclient-tmpupdate") + GlobalMacros["file-ext"]
 	os.Remove(tempUpdate) // remove if it already exists for some reason
 	err = utils.CopyFile(localPath, tempUpdate)
 	if err != nil {
 		return nil, fmt.Errorf("copy update file failed: %s", err.Error())
 	}
+
+	// remove when finished extracting version
+	defer os.Remove(tempUpdate)
 
 	err = u.extractUpdate(ctx, tempUpdate)
 	if err != nil {
@@ -679,9 +687,8 @@ func (u *UpdateHandler) downloadUpdate(ctx context.Context, update *updatesAvail
 		src = resp.Body
 	}
 
-	executable := GlobalMacros["exe-full"]
-	updateFile := u.snc.buildUpdateFile(executable)
-	saveFile, err := os.Create(updateFile)
+	tmpUpdateFile, _ := u.snc.buildUpdateFile(GlobalMacros["exe-full"])
+	saveFile, err := os.Create(tmpUpdateFile)
 	if err != nil {
 		return "", fmt.Errorf("open: %s", err.Error())
 	}
@@ -696,12 +703,12 @@ func (u *UpdateHandler) downloadUpdate(ctx context.Context, update *updatesAvail
 	}
 	saveFile.Close()
 
-	err = u.extractUpdate(ctx, updateFile)
+	err = u.extractUpdate(ctx, tmpUpdateFile)
 	if err != nil {
 		return "", err
 	}
 
-	return updateFile, nil
+	return tmpUpdateFile, nil
 }
 
 func (u *UpdateHandler) extractUpdate(ctx context.Context, updateFile string) (err error) {

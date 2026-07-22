@@ -310,3 +310,5 @@ Returns
     "version": "v0.27.0024"
 }
 ```
+
+Note: this endpoint won't return a result if successful, because the daemon itself restarts during the request.

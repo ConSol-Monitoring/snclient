@@ -5,6 +5,7 @@ ENV container=docker
 ENV SNCLIENT_TEST_SETUP=container
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    apache2 \
     bash \
     libcap2-bin \
     ca-certificates \

@@ -21,6 +21,7 @@ next:
          - check_logfile: fix crash when using line-split
          - check_logfile: add max line limit when reading log files
          - check_logfile: improve output, better error handling when logfile is not readable
+         - fix auto updates when running as snclient user
 
 
 0.44     Wed Jun 24 13:03:43 CEST 2026

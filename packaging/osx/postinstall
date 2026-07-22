@@ -2,4 +2,7 @@
 mkdir -p /var/log/snclient
 /usr/libexec/ApplicationFirewall/socketfilterfw --add /usr/local/bin/snclient
 pkill -HUP socketfilterfw
+# remove previous auto updates
+rm -rf /tmp/snclient-*/snclient.update
+rm -rf /tmp/snclient-*/snclient
 launchctl load /Library/LaunchDaemons/com.snclient.snclient.plist

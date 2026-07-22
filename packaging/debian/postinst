@@ -5,6 +5,10 @@ if [[ ! -d /var/log/snclient ]]; then
   mkdir /var/log/snclient
 fi
 
+# remove previous auto updates
+rm -rf /var/cache/snclient/snclient.update
+rm -rf /var/cache/snclient/snclient
+
 case "$1" in
     configure|abort-upgrade)
       chmod 0600 \
