@@ -71,10 +71,13 @@ There is a specific [check_service for linux](../check_service_linux) as well.`,
 		defaultCritical: "state != 'running' && start_type = 'auto'",
 		defaultWarning:  "state != 'running' && start_type = 'delayed'",
 		detailSyntax:    "${name}=${state} (${start_type})",
-		topSyntax:       "%(status) - %(crit_list), delayed (%(warn_list))",
-		okSyntax:        "%(status) - All %(count) service(s) are ok.",
-		emptySyntax:     "%(status) - No services found",
-		emptyState:      CheckExitUnknown,
+		topSyntax: `%(status) - ` +
+			`%(crit_list){{ IF crit_list != '' and warn_list != '' }}, {{ END }}` +
+			`{{ IF warn_list != '' }}delayed (%(warn_list)){{ END }}` +
+			`{{ IF crit_list == '' and warn_list == '' }}found ${count} services{{ END }}`,
+		okSyntax:    "%(status) - All %(count) service(s) are ok.",
+		emptySyntax: "%(status) - No services found",
+		emptyState:  CheckExitUnknown,
 		attributes: []CheckAttribute{
 			{name: "name", description: "The name of the service. When used as filter, looks in name and display."},
 			{name: "service", description: "Alias for name. When used as filter only looks in name."},
