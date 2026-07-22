@@ -8,12 +8,20 @@ next:
          - always add control characters as nasty characters
          - add new option allow control characters which prevents using ascii control characters in arguments
          - add rss watcher task which kills the agent in case of memory leaks
-         - check_cpu/check_load: add cores metric when used in conditions
-         - check_logfile: fix crash when using line-sep
-         - check_logfile: add max line limit when reading log files
          - http includes: verify ownership of temp files
          - nrpe: prevent too large data packages
          - prometheus: fix potential high cardinality for unknown paths
+         - check_cpu/check_load: add cores metric when used in conditions
+         - check_dns: support multiple queries over given nameservers and search domains
+         - check_dns: add warning/critical thresholds and query/global timeout args
+         - check_drivesize: fixed an issue with network mounted drives
+         - check_files: add support for symlinks + junctions, added follow-symlinks option
+         - check_files: fixed an issue which incorrectly also matched the parent directory
+         - check_logfile: fix crash when using line-split
+         - check_logfile: add max line limit when reading log files
+         - check_logfile: improve output, better error handling when logfile is not readable 
+
+
 
 0.44     Wed Jun 24 13:03:43 CEST 2026
          - fix running external scripts with sudo (#388)

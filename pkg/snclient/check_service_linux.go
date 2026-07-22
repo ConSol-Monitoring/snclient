@@ -161,7 +161,7 @@ func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	if len(l.services) == 0 && !check.showAll {
 		check.addCountMetrics = true
 		check.addCountMetricsToFront = true
-		check.addProblemCountMetrics = true
+		check.addProblemCountMetrics = !check.hasThresholdCond(check.warnThreshold, "count") || !check.hasThresholdCond(check.critThreshold, "count")
 		check.addProblemCountMetricsToFront = true
 	}
 
