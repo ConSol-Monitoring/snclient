@@ -469,6 +469,79 @@ file:
 	assert.NotContainsf(t, string(body), "not_picked_up", "new module should NOT be listed when watcher is disabled")
 }
 
+func TestExporterExporterFileWatcherIgnoresNonYaml(t *testing.T) {
+	modulesDir := t.TempDir()
+
+	initialModule := `
+method: file
+file:
+  path: ` + filepath.Join(modulesDir, "first.prom") + `
+`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(modulesDir, "first.yaml"),
+		[]byte(initialModule), 0o600,
+	))
+
+	config := `
+[/modules]
+WEBServer = enabled
+ExporterExporterServer = enabled
+
+[/settings/WEB/server]
+port = 45678
+use ssl = false
+require password = false
+
+[/settings/ExporterExporter/server]
+port = ${/settings/WEB/server/port}
+use ssl = ${/settings/WEB/server/use ssl}
+url prefix = /
+modules dir = ` + modulesDir + `
+modules dir watcher = true
+require password = false
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := waitForStatusOK(t, "http://127.0.0.1:45678/list")
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	res.Body.Close()
+	assert.Containsf(t, string(body), "first", "initial yaml module should be listed")
+
+	time.Sleep(6 * time.Second)
+
+	yamlModule := `
+method: file
+file:
+  path: ` + filepath.Join(modulesDir, "picked_up.prom") + `
+`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(modulesDir, "picked_up.yml"),
+		[]byte(yamlModule), 0o600,
+	))
+
+	txtFile := `
+method: file
+file:
+  path: ` + filepath.Join(modulesDir, "ignored.prom") + `
+`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(modulesDir, "ignored.txt"),
+		[]byte(txtFile), 0o600,
+	))
+
+	time.Sleep(3 * time.Second)
+
+	res = waitForStatusOK(t, "http://127.0.0.1:45678/list")
+	body, err = io.ReadAll(res.Body)
+	require.NoError(t, err)
+	res.Body.Close()
+	assert.Containsf(t, string(body), "first", "original module should still be listed")
+	assert.Containsf(t, string(body), "picked_up", "yml file should be picked up by watcher")
+	assert.NotContainsf(t, string(body), "ignored", "non-yml/yaML file should be ignored by watcher")
+}
+
 func waitForStatusOK(t *testing.T, url string) *http.Response {
 	t.Helper()
 

@@ -732,6 +732,12 @@ func (l *HandlerExporterExporter) ModulesConfigDirectoryWatcherFunc(watcher *fsn
 				if now.Sub(lastSignificantEvent) <= debounceDuration {
 					continue
 				}
+
+				ext := filepath.Ext(event.Name)
+				if ext != ".yml" && ext != ".yaml" {
+					continue
+				}
+
 				lastSignificantEvent = now
 
 				log.Tracef("file watcher event, reinitializing due to operation: %s , %s", event.Op.String(), event.Name)
