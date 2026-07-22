@@ -433,7 +433,6 @@ func emptyResultsMessage(host string, nameservers []string, results []emptyResul
 
 		return fmt.Sprintf("DNS lookup failed for host '%s':\n%s", strings.TrimSuffix(host, "."), strings.Join(lines, "\n"))
 	}
-
 }
 
 func emptyResultReason(rcode int) string {
