@@ -308,12 +308,9 @@ func (l *HandlerExporterExporter) listModules(res http.ResponseWriter, req *http
 		log.Debugf("Listing modules in json")
 		modulesWithPrefix := make(map[string]*exporterModuleConfig, len(l.modules))
 		for name, mcfg := range l.modules {
-			if mcfg.HTTP.Path == "" {
-				continue
-			}
-
-			mcfg.HTTP.Path = l.urlPrefix + "/proxy?module=" + name
-			modulesWithPrefix[name] = mcfg
+			cp := *mcfg
+			cp.HTTP.Path = l.urlPrefix + "/proxy?module=" + name
+			modulesWithPrefix[name] = &cp
 		}
 		moduleJSON, err := json.Marshal(modulesWithPrefix)
 		if err != nil {
@@ -322,13 +319,13 @@ func (l *HandlerExporterExporter) listModules(res http.ResponseWriter, req *http
 
 			return
 		}
-		res.WriteHeader(http.StatusOK)
 		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusOK)
 		LogError2(res.Write(moduleJSON))
 	default:
 		log.Debugf("Listing modules in html")
-		res.WriteHeader(http.StatusOK)
 		res.Header().Set("Content-Type", "text/html; charset=utf-8")
+		res.WriteHeader(http.StatusOK)
 		LogError2(res.Write([]byte("<h2>Exporters:</h2>\n")))
 		LogError2(res.Write([]byte("<ul>\n")))
 		for name := range l.modules {
