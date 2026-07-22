@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -52,9 +53,9 @@ type HandlerExporterExporter struct {
 	requirePassword  bool
 	defaultModule    string
 	snc              *Agent
-	conf             *ConfigSection
-	runSet           *AgentRunSet
+	moduleDir        string
 	modules          map[string]*exporterModuleConfig
+	modulesLock      sync.RWMutex
 	allowedHosts     *AllowedHostConfig
 	moduleDirWatcher *fsnotify.Watcher
 }
@@ -95,38 +96,25 @@ func (l *HandlerExporterExporter) Stop() {
 	l.listener.Stop()
 }
 
-// This function is intended to be called to reinitialize after changes in the config directory
-func (l *HandlerExporterExporter) stopAndReinitialize() {
-	restartPeriod := time.Second * 5
+func (l *HandlerExporterExporter) reloadModules() {
+	log.Tracef("exporter_exporter reloading modules from %s", l.moduleDir)
 
-	log.Tracef("exporter_exporter stopping and reinitializing")
+	newModules, err := l.readModules(l.snc, l.moduleDir)
+	if err != nil {
+		log.Tracef("exporter_exporter reload failed: %s", err.Error())
 
-	stopAndReinitializeFunc := func() {
-		l.Stop()
-		l.listener = nil
-
-		time.Sleep(restartPeriod)
-
-		err := l.Init(l.snc, l.conf, nil, l.runSet)
-		if err != nil {
-			log.Tracef("exporter_exporter reinitialize failed: %s", err.Error())
-		}
-
-		// time.Sleep(restartPeriod)
-
-		err = l.Start()
-		if err != nil {
-			log.Tracef("exporter_exporter start failed: %s", err.Error())
-		}
+		return
 	}
 
-	go stopAndReinitializeFunc()
+	l.modulesLock.Lock()
+	l.modules = newModules
+	l.modulesLock.Unlock()
+
+	log.Tracef("exporter_exporter reload complete, %d modules loaded", len(newModules))
 }
 
 func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
 	l.snc = snc
-	l.conf = conf
-	l.runSet = runSet
 
 	err := setListenerAuthInit(&l.password, &l.requirePassword, conf)
 	if err != nil {
@@ -144,14 +132,18 @@ func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Confi
 	defaultModule, _ := conf.GetString("default module")
 	l.defaultModule = defaultModule
 
-	l.modules = map[string]*exporterModuleConfig{}
 	moduleDir, _ := conf.GetString("modules dir")
+	l.moduleDir = moduleDir
+
+	l.modules = map[string]*exporterModuleConfig{}
 	if moduleDir != "" {
 		modules, err2 := l.readModules(snc, moduleDir)
 		if err2 != nil {
 			return err2
 		}
 		l.modules = modules
+
+		l.WatchModulesConfigDirectory(moduleDir)
 	}
 
 	allowedHosts, err2 := NewAllowedHostConfig(conf)
@@ -219,12 +211,13 @@ func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map
 	log.Tracef("In the ExporterExporter config directory: '%s' , %d config files were added without errors, %d config files had errors",
 		moduleDir, mfsWithoutErrorsCount, mfsWithErrorsCount)
 
-	l.WatchConfigDirectory(moduleDir)
-
 	return modules, nil
 }
 
 func (l *HandlerExporterExporter) JSON() []map[string]string {
+	l.modulesLock.RLock()
+	defer l.modulesLock.RUnlock()
+
 	list := make([]map[string]string, 0, len(l.modules))
 	ssl := "0"
 	if l.listener.tlsConfig != nil {
@@ -299,6 +292,9 @@ func (l *HandlerWebExporterExporter) ServeHTTP(res http.ResponseWriter, req *htt
 }
 
 func (l *HandlerExporterExporter) listModules(res http.ResponseWriter, req *http.Request) {
+	l.modulesLock.RLock()
+	defer l.modulesLock.RUnlock()
+
 	switch req.Header.Get("Accept") {
 	case "application/json":
 		log.Debugf("Listing modules in json")
@@ -340,7 +336,9 @@ func (l *HandlerExporterExporter) doProxy(res http.ResponseWriter, req *http.Req
 
 	log.Debugf("running module %v\n", mod[0])
 
+	l.modulesLock.RLock()
 	mcfg, ok := l.modules[mod[0]]
+	l.modulesLock.RUnlock()
 	if !ok {
 		log.Warnf("unknown module requested  %v\n", mod)
 		http.Error(res, fmt.Sprintf("unknown module %v\n", mod), http.StatusNotFound)
@@ -662,7 +660,7 @@ func (m exporterExecConfig) ServeHTTP(res http.ResponseWriter, req *http.Request
 	LogError2(res.Write([]byte("\n")))
 }
 
-func (l *HandlerExporterExporter) WatchConfigDirectory(moduleDir string) {
+func (l *HandlerExporterExporter) WatchModulesConfigDirectory(moduleDir string) {
 	watcher, err := fsnotify.NewWatcher()
 
 	if err != nil {
@@ -687,12 +685,12 @@ func (l *HandlerExporterExporter) WatchConfigDirectory(moduleDir string) {
 	}
 
 	log.Debugf("Starting file watcher on path: %s", absDir)
-	go l.WatcherFunc(watcher)
+	go l.ModulesConfigDirectoryWatcherFunc(watcher)
 }
 
-func (l *HandlerExporterExporter) WatcherFunc(watcher *fsnotify.Watcher) {
+func (l *HandlerExporterExporter) ModulesConfigDirectoryWatcherFunc(watcher *fsnotify.Watcher) {
 	debounceDuration := time.Second * 5
-	lastSignificantEvent := time.Now() // starting counts as an event
+	lastSignificantEvent := time.Now()
 
 	for {
 		select {
@@ -703,15 +701,14 @@ func (l *HandlerExporterExporter) WatcherFunc(watcher *fsnotify.Watcher) {
 
 			if event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) ||
 				event.Has(fsnotify.Rename) || event.Has(fsnotify.Write) {
-
 				now := time.Now()
 				if now.Sub(lastSignificantEvent) <= debounceDuration {
-					return
+					continue
 				}
 				lastSignificantEvent = now
 
 				log.Tracef("file watcher event, reinitializing due to operation: %s , %s", event.Op.String(), event.Name)
-				l.stopAndReinitialize()
+				l.reloadModules()
 			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
