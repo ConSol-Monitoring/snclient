@@ -348,6 +348,7 @@ port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
 modules dir = ` + modulesDir + `
+modules dir watcher = true
 require password = false
 `
 	snc := StartTestAgent(t, config)
@@ -406,6 +407,66 @@ require password = false
 	res.Body.Close()
 
 	assert.Containsf(t, string(body), "<h2>Exporters:</h2>", "list endpoint should work with default prefix")
+}
+
+func TestExporterExporterConfigDirectoryNoReloadWhenWatcherDisabled(t *testing.T) {
+	modulesDir := t.TempDir()
+
+	initialModule := `
+method: file
+file:
+  path: ` + filepath.Join(modulesDir, "static.prom") + `
+`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(modulesDir, "static.yaml"),
+		[]byte(initialModule), 0o600,
+	))
+
+	config := `
+[/modules]
+WEBServer = enabled
+ExporterExporterServer = enabled
+
+[/settings/WEB/server]
+port = 45677
+use ssl = false
+require password = false
+
+[/settings/ExporterExporter/server]
+port = ${/settings/WEB/server/port}
+use ssl = ${/settings/WEB/server/use ssl}
+url prefix = /
+modules dir = ` + modulesDir + `
+modules dir watcher = false
+require password = false
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := waitForStatusOK(t, "http://127.0.0.1:45677/list")
+	body, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	res.Body.Close()
+	assert.Containsf(t, string(body), "static", "initial module should be listed")
+
+	newModule := `
+method: file
+file:
+  path: ` + filepath.Join(modulesDir, "not_picked_up.prom") + `
+`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(modulesDir, "not_picked_up.yaml"),
+		[]byte(newModule), 0o600,
+	))
+
+	time.Sleep(7 * time.Second)
+
+	res = waitForStatusOK(t, "http://127.0.0.1:45677/list")
+	body, err = io.ReadAll(res.Body)
+	require.NoError(t, err)
+	res.Body.Close()
+	assert.Containsf(t, string(body), "static", "original module should still be listed")
+	assert.NotContainsf(t, string(body), "not_picked_up", "new module should NOT be listed when watcher is disabled")
 }
 
 func waitForStatusOK(t *testing.T, url string) *http.Response {
