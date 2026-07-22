@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -54,6 +55,7 @@ type HandlerExporterExporter struct {
 	defaultModule    string
 	snc              *Agent
 	moduleDir        string
+	allowedMethods   []string
 	modules          map[string]*exporterModuleConfig
 	modulesLock      sync.RWMutex
 	allowedHosts     *AllowedHostConfig
@@ -135,6 +137,13 @@ func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Confi
 	moduleDir, _ := conf.GetString("modules dir")
 	l.moduleDir = moduleDir
 
+	allowedMethods, allowedMethodsPresent := conf.GetString("allowed methods")
+	if !allowedMethodsPresent || allowedMethods == "" {
+		l.allowedMethods = []string{}
+	} else {
+		l.allowedMethods = strings.Split(allowedMethods, ",")
+	}
+
 	l.modules = map[string]*exporterModuleConfig{}
 	if moduleDir != "" {
 		modules, err2 := l.readModules(snc, moduleDir)
@@ -199,7 +208,7 @@ func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map
 			continue
 		}
 
-		if err := modulesAdd(snc, modules, entry, fullpath); err != nil {
+		if err := l.modulesAdd(snc, modules, entry, fullpath); err != nil {
 			mfsWithErrorsCount++
 
 			continue
@@ -238,7 +247,7 @@ func (l *HandlerExporterExporter) JSON() []map[string]string {
 }
 
 // tries adding a module from a given a filesystem entry and path
-func modulesAdd(snc *Agent, modules map[string]*exporterModuleConfig, entry fs.DirEntry, fullpath string) error {
+func (l *HandlerExporterExporter) modulesAdd(snc *Agent, modules map[string]*exporterModuleConfig, entry fs.DirEntry, fullpath string) error {
 	moduleName := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 	if _, ok := modules[moduleName]; ok {
 		return fmt.Errorf("module %s is already defined", moduleName)
@@ -249,7 +258,7 @@ func modulesAdd(snc *Agent, modules map[string]*exporterModuleConfig, entry fs.D
 	}
 	defer file.Close()
 
-	mcfg, err := readModuleConfig(moduleName, file)
+	mcfg, err := l.readModuleConfig(moduleName, file)
 	if err != nil {
 		log.Errorf("failed reading configs %s, %s", fullpath, err.Error())
 
@@ -396,7 +405,7 @@ type exporterFileConfig struct {
 }
 
 // reads, parses and verifies an individual ExporterExporter config file
-func readModuleConfig(name string, r io.Reader) (*exporterModuleConfig, error) {
+func (l *HandlerExporterExporter) readModuleConfig(name string, r io.Reader) (*exporterModuleConfig, error) {
 	buf := bytes.Buffer{}
 	if _, err := io.Copy(&buf, r); err != nil {
 		return nil, fmt.Errorf("io.Copy: %s", err.Error())
@@ -407,16 +416,21 @@ func readModuleConfig(name string, r io.Reader) (*exporterModuleConfig, error) {
 		return nil, fmt.Errorf("yaml.Unmarshal: %s", err.Error())
 	}
 
-	if err := checkModuleConfig(name, &cfg); err != nil {
+	if err := l.checkModuleConfig(name, &cfg); err != nil {
 		return nil, err
 	}
 
 	return &cfg, nil
 }
 
-func checkModuleConfig(name string, cfg *exporterModuleConfig) error {
+// verifies a module config to see if it is correct.
+func (l *HandlerExporterExporter) checkModuleConfig(name string, cfg *exporterModuleConfig) error {
 	if len(cfg.XXX) != 0 {
 		return fmt.Errorf("unknown module configuration fields: %v", cfg.XXX)
+	}
+
+	if len(l.allowedMethods) > 0 && !slices.Contains(l.allowedMethods, cfg.Method) {
+		return fmt.Errorf("allowed methods: '%s' does not contain the module config method: '%s'", strings.Join(l.allowedMethods, ","), cfg.Method)
 	}
 
 	cfg.name = name
