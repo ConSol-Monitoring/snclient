@@ -213,7 +213,6 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 
 			// each entry in the list data is individually checked
 			// This can possibly set "_state" of each entry, influencing the final state
-			log.Tracef("checking warning, critical, and ok thresholds on a check entry")
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 		}
 
