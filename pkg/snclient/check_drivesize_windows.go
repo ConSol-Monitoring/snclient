@@ -28,6 +28,10 @@ const (
 	IoctlStorageGetMediaTypesEX = (IoctlStorageBase << 16) | (FileAnyAccess << 14) | (StorageGetMediaTypesEX << 2) | MethodBuffered
 	MaxMediaTypes               = 128
 
+	FileReadAccess             = 0x0001
+	StorageCheckVerify         = 0x0200
+	IoctlStorageCheckVerify    = (IoctlStorageBase << 16) | (FileReadAccess << 14) | (StorageCheckVerify << 2) | MethodBuffered
+
 	// https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumeinformationw
 	volumeOptReadOnly = uint32(0x00080000)
 	volumeCompressed  = uint32(0x00008000)
@@ -505,8 +509,22 @@ func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, 
 	}
 
 	mounted := "0"
-	if letter != "" {
-		mounted = "1"
+	if drive != "" {
+		szDevice := fmt.Sprintf(`\\.\%s`, strings.TrimSuffix(drive, "\\"))
+		szPtr, err := syscall.UTF16PtrFromString(szDevice)
+		if err == nil {
+			handle, err := windows.CreateFile(szPtr, 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, 0, 0)
+			if err == nil {
+				defer func() {
+					LogDebug(windows.CloseHandle(handle))
+				}()
+				var num uint32
+				err = windows.DeviceIoControl(handle, IoctlStorageCheckVerify, nil, 0, nil, 0, &num, nil)
+				if err == nil {
+					mounted = "1"
+				}
+			}
+		}
 	}
 
 	if drive != "" {
