@@ -7,7 +7,9 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -70,6 +72,13 @@ type replaceCertData struct {
 type logLevelOverrideRequest struct {
 	Level    string  `json:"level"`
 	Duration float64 `json:"duration"`
+}
+
+type updateInstallRequest struct {
+	Channel string `json:"channel"`
+	Restart bool   `json:"restart"`
+	Force   bool   `json:"force"`
+	Version string `json:"version"`
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -176,6 +185,9 @@ func (l *HandlerWebAdmin) serveLogLevel(res http.ResponseWriter, req *http.Reque
 	decoder.DisallowUnknownFields()
 	data := logLevelOverrideRequest{}
 	if err := decoder.Decode(&data); err != nil {
+		if errors.Is(err, io.EOF) {
+			err = fmt.Errorf("missing post data")
+		}
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusBadRequest)
 		LogError(json.NewEncoder(res).Encode(map[string]any{
@@ -548,6 +560,23 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 		return
 	}
 
+	decoder := json.NewDecoder(req.Body)
+	decoder.DisallowUnknownFields()
+	data := updateInstallRequest{
+		Force:   false,
+		Restart: true,
+	}
+	if err := decoder.Decode(&data); err != nil && !errors.Is(err, io.EOF) {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusBadRequest)
+		LogError(json.NewEncoder(res).Encode(map[string]any{
+			"success": false,
+			"error":   err.Error(),
+		}))
+
+		return
+	}
+
 	task := l.Handler.snc.Tasks.Get("Updates")
 	mod, ok := task.(*UpdateHandler)
 	if !ok {
@@ -556,7 +585,16 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	version, err := mod.CheckUpdates(req.Context(), true, true, true, false, "", "", false)
+	version, err := mod.CheckUpdates(
+		req.Context(),
+		true, // force checking for an update
+		true, // force download
+		data.Restart,
+		false,
+		data.Version,
+		data.Channel,
+		data.Force,
+	)
 	if err != nil {
 		l.sendError(res, fmt.Errorf("failed to fetch updates: %s", err.Error()))
 

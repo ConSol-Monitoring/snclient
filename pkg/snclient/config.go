@@ -38,7 +38,7 @@ const (
 	SystemCmdNastyCharacters = "$|`&><'\"\\{};\n\r"
 
 	// CacheFileMOde sets the mode to create cache folder
-	CacheFileMOde = 0o750
+	CacheFileMode = 0o750
 )
 
 var DefaultConfig = map[string]ConfigData{
@@ -438,7 +438,7 @@ func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigS
 	}
 
 	cacheDir := snc.getCacheFolder()
-	err = os.MkdirAll(cacheDir, CacheFileMOde)
+	err = os.MkdirAll(cacheDir, CacheFileMode)
 	if err != nil {
 		return fmt.Errorf("failed to create cache folder %s: %s", cacheDir, err.Error())
 	}

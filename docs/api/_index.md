@@ -283,11 +283,20 @@ new private key will be saved in the keyfile specified in the configuration
 
 Trigger checking for updates.
 
+The endpoint has the following optional options:
+
+- `channel`: set channel to fetch updates from. Defaults to default configured channel.
+- `force`: force installing an update. Default: false
+- `version`: force installing an specific version. Default is to use the latest version.
+- `restart`: restart after installing the update: Default: true
+
 Example:
 
 ```bash
 curl \
     -u user:changeme \
+    -H 'Content-Type: application/json' \
+    -d '{ "channel": "stable", "restart": false }' \
     -X POST \
     https://127.0.0.1:8443/api/v1/admin/updates/install
 ```
