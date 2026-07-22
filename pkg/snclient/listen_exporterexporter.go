@@ -45,20 +45,21 @@ func init() {
 }
 
 type HandlerExporterExporter struct {
-	noCopy           noCopy
-	handler          http.Handler
-	listener         *Listener
-	urlPrefix        string
-	password         string
-	requirePassword  bool
-	defaultModule    string
-	snc              *Agent
-	moduleDir        string
-	allowedMethods   []string
-	modules          map[string]*exporterModuleConfig
-	modulesLock      sync.RWMutex
-	allowedHosts     *AllowedHostConfig
-	moduleDirWatcher *fsnotify.Watcher
+	noCopy                  noCopy
+	handler                 http.Handler
+	listener                *Listener
+	urlPrefix               string
+	password                string
+	requirePassword         bool
+	defaultModule           string
+	snc                     *Agent
+	moduleDir               string
+	moduleDirWatcherEnabled bool
+	allowedMethods          []string
+	modules                 map[string]*exporterModuleConfig
+	modulesLock             sync.RWMutex
+	allowedHosts            *AllowedHostConfig
+	moduleDirWatcher        *fsnotify.Watcher
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -136,6 +137,12 @@ func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Confi
 	moduleDir, _ := conf.GetString("modules dir")
 	l.moduleDir = moduleDir
 
+	moduleDirWatcherEnabled, enableModuleDirWatcherPresent, err := conf.GetBool("modules dir watcher")
+	l.moduleDirWatcherEnabled = false
+	if enableModuleDirWatcherPresent && err == nil {
+		l.moduleDirWatcherEnabled = moduleDirWatcherEnabled
+	}
+
 	allowedMethods, allowedMethodsPresent := conf.GetString("allowed methods")
 	if !allowedMethodsPresent || allowedMethods == "" {
 		l.allowedMethods = []string{}
@@ -151,7 +158,9 @@ func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Confi
 		}
 		l.modules = modules
 
-		l.WatchModulesConfigDirectory(moduleDir)
+		if l.moduleDirWatcherEnabled {
+			l.WatchModulesConfigDirectory(moduleDir)
+		}
 	}
 
 	allowedHosts, err2 := NewAllowedHostConfig(conf)
