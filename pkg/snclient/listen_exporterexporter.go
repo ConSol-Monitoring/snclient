@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-
 	"github.com/goccy/go-json"
 	"gopkg.in/yaml.v3"
 )
@@ -307,7 +306,16 @@ func (l *HandlerExporterExporter) listModules(res http.ResponseWriter, req *http
 	switch req.Header.Get("Accept") {
 	case "application/json":
 		log.Debugf("Listing modules in json")
-		moduleJSON, err := json.Marshal(l.modules)
+		modulesWithPrefix := make(map[string]*exporterModuleConfig, len(l.modules))
+		for name, mcfg := range l.modules {
+			if mcfg.HTTP.Path == "" {
+				continue
+			}
+
+			mcfg.HTTP.Path = l.urlPrefix + "/proxy?module=" + name
+			modulesWithPrefix[name] = mcfg
+		}
+		moduleJSON, err := json.Marshal(modulesWithPrefix)
 		if err != nil {
 			log.Error(err)
 			http.Error(res, "Failed to produce JSON", http.StatusInternalServerError)
@@ -324,7 +332,7 @@ func (l *HandlerExporterExporter) listModules(res http.ResponseWriter, req *http
 		LogError2(res.Write([]byte("<h2>Exporters:</h2>\n")))
 		LogError2(res.Write([]byte("<ul>\n")))
 		for name := range l.modules {
-			LogError2(fmt.Fprintf(res, "<li><a href=\"/proxy?module=%s\">%s</a></li>\n", name, name))
+			LogError2(fmt.Fprintf(res, "<li><a href=\"%s/proxy?module=%s\">%s</a></li>\n", l.urlPrefix, name, name))
 		}
 		LogError2(res.Write([]byte("</ul>\n")))
 	}
@@ -676,7 +684,6 @@ func (m exporterExecConfig) ServeHTTP(res http.ResponseWriter, req *http.Request
 
 func (l *HandlerExporterExporter) WatchModulesConfigDirectory(moduleDir string) {
 	watcher, err := fsnotify.NewWatcher()
-
 	if err != nil {
 		log.Errorf("error creating file watcher: %s", err)
 
