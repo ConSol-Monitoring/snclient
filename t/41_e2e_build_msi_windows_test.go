@@ -205,4 +205,5 @@ func TestMSIinstaller(t *testing.T) {
 	// remove remaining files
 	os.Remove("snclient_update.msi")
 	os.Remove("snclient.ini")
+	os.Remove("snclient.exe")
 }
