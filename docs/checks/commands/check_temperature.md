@@ -46,16 +46,16 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                     |
-| ------------- | ------------------------------------------------- |
-| filter        | temperature != 0 and temperature != 1             |
-| warning       | temperature < \${min} \|\| temperature > \${crit} |
-| critical      | temperature < \${min} \|\| temperature > \${crit} |
-| empty-state   | 3 (UNKNOWN)                                       |
-| empty-syntax  | check_temperature failed to find any sensors.     |
-| top-syntax    | \${status} - \${list}                             |
-| ok-syntax     |                                                   |
-| detail-syntax | \${sensor}: \${temperature:fmt=%.1f} °C           |
+| Argument      | Default Value                                                                  |
+| ------------- | ------------------------------------------------------------------------------ |
+| filter        | temperature != 0 and temperature != 1                                          |
+| warning       | (min != 0 && temperature < \${min}) \|\| (crit != 0 && temperature > \${crit}) |
+| critical      | (min != 0 && temperature < \${min}) \|\| (crit != 0 && temperature > \${crit}) |
+| empty-state   | 3 (UNKNOWN)                                                                    |
+| empty-syntax  | check_temperature failed to find any sensors.                                  |
+| top-syntax    | \${status} - \${list}                                                          |
+| ok-syntax     |                                                                                |
+| detail-syntax | \${sensor}: \${temperature:fmt=%.1f} °C                                        |
 
 ## Check Specific Arguments
 
@@ -69,12 +69,12 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute | Description                                    |
-| --------- | ---------------------------------------------- |
-| sensor    | full name of this sensor, ex.: coretemp_core_0 |
-| name      | name of this sensor, ex.: coretemp             |
-| label     | label for this sensor, ex.: core 0             |
-| value     | current temperature                            |
-| crit      | critical value supplied from sensor            |
-| max       | max value supplied from sensor                 |
-| min       | min value supplied from sensor                 |
+| Attribute   | Description                                    |
+| ----------- | ---------------------------------------------- |
+| sensor      | full name of this sensor, ex.: coretemp_core_0 |
+| name        | name of this sensor, ex.: coretemp             |
+| label       | label for this sensor, ex.: core 0             |
+| temperature | current temperature                            |
+| crit        | critical value supplied from sensor            |
+| max         | max value supplied from sensor                 |
+| min         | min value supplied from sensor                 |

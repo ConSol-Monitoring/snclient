@@ -43,8 +43,8 @@ func (l *CheckTemperature) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		defaultFilter:   "temperature != 0 and temperature != 1", // seems like disabled sensors return 1.0000 or 0.0000
-		defaultWarning:  "temperature < ${min} || temperature > ${crit}",
-		defaultCritical: "temperature < ${min} || temperature > ${crit}",
+		defaultWarning:  "(min != 0 && temperature < ${min}) || (crit != 0 && temperature > ${crit})",
+		defaultCritical: "(min != 0 && temperature < ${min}) || (crit != 0 && temperature > ${crit})",
 		topSyntax:       "${status} - ${list}",
 		detailSyntax:    "${sensor}: ${temperature:fmt=%.1f} °C",
 		emptyState:      3,
@@ -53,7 +53,7 @@ func (l *CheckTemperature) Build() *CheckData {
 			{name: "sensor", description: "full name of this sensor, ex.: coretemp_core_0"},
 			{name: "name", description: "name of this sensor, ex.: coretemp"},
 			{name: "label", description: "label for this sensor, ex.: core 0"},
-			{name: "value", description: "current temperature"},
+			{name: "temperature", description: "current temperature"},
 			{name: "crit", description: "critical value supplied from sensor"},
 			{name: "max", description: "max value supplied from sensor"},
 			{name: "min", description: "min value supplied from sensor"},
@@ -104,6 +104,12 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat, 
 	} else {
 		duplicates[label] = 1
 	}
+
+	//nolint:mnd // sanitizing: this value is 0xFFFF kelvin converted to celsius and means the high value is not used
+	if sensor.High >= 65261.850000 {
+		sensor.High = 0
+	}
+
 	entry := map[string]string{
 		"sensor":      sensorKey,
 		"name":        name,
@@ -124,7 +130,7 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat, 
 
 	minVal := utils.ToPrecision(sensor.Min, 3)
 	maxVal := utils.ToPrecision(sensor.High, 3)
-	check.result.Metrics = append(check.result.Metrics, &CheckMetric{
+	metric := &CheckMetric{
 		ThresholdName: sensorKey,
 		Name:          sensorKey,
 		Value:         utils.ToPrecision(sensor.Temperature, 3),
@@ -132,7 +138,15 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat, 
 		Max:           &maxVal,
 		Warning:       check.ExpandMetricMacros(check.TransformMultipleKeywords([]string{"temp", "temperature"}, sensorKey, check.warnThreshold), entry),
 		Critical:      check.ExpandMetricMacros(check.TransformMultipleKeywords([]string{"temp", "temperature"}, sensorKey, check.critThreshold), entry),
-	})
+	}
+
+	// sanitizing: all zeros mean thresholds are disabled
+	if sensor.Critical == 0 && sensor.Min == 0 && sensor.High == 0 {
+		metric.Max = nil
+		metric.Min = nil
+	}
+
+	check.result.Metrics = append(check.result.Metrics, metric)
 
 	check.listData = append(check.listData, entry)
 }
