@@ -483,16 +483,16 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond Co
 }
 
 // CheckMetrics tries warn/crit/ok conditions against given metrics and sets final state accordingly
-func (cd *CheckData) CheckMetrics(warnCond, critCond, okCond ConditionList) {
+func (cd *CheckData) CheckMetrics(_, _, okCond ConditionList) {
 	// each metric is ran through conditions individually
 	for _, metric := range cd.result.Metrics {
 		state := CheckExitOK
 
-		if metric.CheckForThresholds(&warnCond) {
+		if metric.CheckForThresholds(&metric.Warning) {
 			state = CheckExitWarning
 		}
 
-		if metric.CheckForThresholds(&critCond) {
+		if metric.CheckForThresholds(&metric.Critical) {
 			state = CheckExitCritical
 		}
 
