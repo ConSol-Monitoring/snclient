@@ -598,7 +598,7 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 	}
 
 	//nolint:contextcheck // need a new context here, otherwise restarts would be killed when the request is finished
-	version, updateFile, err := mod.CheckUpdates(context.Background(), true, true, restart, false, data.Version, data.Channel, data.Force)
+	version, _, err := mod.CheckUpdates(context.Background(), true, true, restart, false, data.Version, data.Channel, data.Force)
 	if err != nil {
 		l.sendError(res, fmt.Errorf("failed to fetch updates: %s", err.Error()))
 
@@ -622,13 +622,6 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 			"message": "update found and downloaded",
 			"version": version,
 		}))
-
-		return
-	}
-
-	err = mod.ApplyRestart(updateFile, RestartDelayed)
-	if err != nil {
-		l.sendError(res, fmt.Errorf("failed to apply updates: %s", err.Error()))
 
 		return
 	}
