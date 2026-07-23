@@ -441,7 +441,7 @@ func (l *CheckDrivesize) setVolumes(requiredDrives map[string]map[string]string)
 // takes a GUID path of a volume, then finds its path name.
 // it may or may not be mounted directly on a drive letter
 //
-//nolint:funlen // there are a lot of entry attributes
+//nolint:funlen,nestif // there are a lot of entry attributes, error checks while determining 'mounted' attribute
 func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, volumeGUIDPath string, buffer []uint16) {
 	volPtr, err := syscall.UTF16PtrFromString(volumeGUIDPath)
 	if err != nil {
@@ -503,27 +503,21 @@ func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, 
 	}
 
 	mounted := "0"
-	var pathNameUTF16 *uint16
-	if volumePathName == "" {
+	if volumePathName != "" {
+		pathNameUTF16, err := syscall.UTF16PtrFromString(volumePathName)
+		if err != nil {
+			log.Tracef("error converting to utf16 string, volume: '%s' with path: '%s', assuming it is unmounted", volumeGUIDPath, volumePathName)
+		} else {
+			err = windows.GetVolumeInformation(pathNameUTF16, nil, 0, nil, nil, nil, nil, 0)
+			if err != nil {
+				log.Tracef("GetVolumeInformation failed for volume: '%s' with path: '%s', assuming it is unmounted", volumeGUIDPath, volumePathName)
+			} else {
+				mounted = "1"
+			}
+		}
+	} else {
 		log.Tracef("No path exists for volume: '%s', assuming it is unmounted", volumeGUIDPath)
-
-		goto mounteddiscovery
 	}
-	pathNameUTF16, err = syscall.UTF16PtrFromString(volumePathName)
-	if err != nil {
-		log.Tracef("error converting to utf16 string, volume: '%s' with path: '%s', assuming it is unmounted", volumeGUIDPath, volumePathName)
-
-		goto mounteddiscovery
-	}
-	err = windows.GetVolumeInformation(pathNameUTF16, nil, 0, nil, nil, nil, nil, 0)
-	if err != nil {
-		log.Tracef("GetVolumeInformation failed for volume: '%s' with path: '%s', assuming it is unmounted", volumeGUIDPath, volumePathName)
-
-		goto mounteddiscovery
-	}
-	mounted = "1"
-
-mounteddiscovery:
 
 	if drive != "" {
 		for _, existingDrive := range requiredDrives {
