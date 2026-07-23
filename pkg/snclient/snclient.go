@@ -1105,7 +1105,7 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 // returns the temporary location during an update and the target location for the update binary
 func (snc *Agent) buildUpdateFile(executable string) (tmpUpdateFile, updateFile string) {
 	executable = strings.TrimSuffix(strings.TrimSuffix(executable, GlobalMacros["file-ext"]), ".update")
-	updateFile = executable
+	updateFile = executable + GlobalMacros["file-ext"]
 	tmpUpdateFile = executable + ".update" + GlobalMacros["file-ext"]
 
 	// check if path is writable, if not, use the temp folder
