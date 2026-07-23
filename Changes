@@ -3,6 +3,7 @@ This file documents the revision history for the SNClient agent.
 next:
          - fix command injection in linux (CVE not yet assigned)
          - update node exporter to 1.12.1
+         - update windows exporter to 0.31.8
          - update golang build chain to 1.26.5
          - linux: merge lib into usr/lib
          - add newlines to default nasty characters
