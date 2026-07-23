@@ -1092,6 +1092,7 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 	snc.finishUpdate(executable, mode)
 }
 
+// returns the temporary location during an update and the target location for the update binary
 func (snc *Agent) buildUpdateFile(executable string) (tmpUpdateFile, updateFile string) {
 	executable = strings.TrimSuffix(strings.TrimSuffix(executable, GlobalMacros["file-ext"]), ".update")
 	updateFile = executable
@@ -1099,8 +1100,9 @@ func (snc *Agent) buildUpdateFile(executable string) (tmpUpdateFile, updateFile 
 
 	// check if path is writable, if not, use the temp folder
 	dir := filepath.Dir(tmpUpdateFile)
-	if !utils.IsWritable(dir) {
+	if err := utils.IsWritable(dir); err != nil {
 		tmpDir := snc.getCacheFolder()
+		log.Tracef("update target folder %s is not writable, using tmp folder %s", dir, tmpDir)
 		tmpUpdateFile = filepath.Join(tmpDir, filepath.Base(tmpUpdateFile))
 		log.Tracef("update file path %s is not writable, using cache folder file %s", dir, tmpUpdateFile)
 		updateFile = filepath.Join(tmpDir, filepath.Base(updateFile))

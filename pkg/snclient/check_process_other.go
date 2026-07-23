@@ -27,7 +27,6 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 		}
 
 		exe, filename := buildExeAndFilename(ctx, proc, cmdLine)
-
 		if len(l.processes) > 0 && !slices.Contains(l.processes, strings.ToLower(exe)) && !slices.Contains(l.processes, "*") {
 			continue
 		}

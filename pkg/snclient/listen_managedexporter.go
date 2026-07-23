@@ -376,7 +376,7 @@ func (l *HandlerManagedExporter) logPass(f string, v ...any) {
 
 // kill process based on path and arguments
 func (l *HandlerManagedExporter) killOrphanedExporters(agentPath string, args []string) {
-	log.Infof("HandlerManagerExporter.killOrphanedExporters agentPath: %s args: %v", agentPath, args)
+	log.Debugf("HandlerManagerExporter.killOrphanedExporters agentPath: %s args: %v", agentPath, args)
 
 	if len(args) == 0 {
 		log.Debugf("no arguments provided for %s exporter, skipping orphaned process check", l.name)
