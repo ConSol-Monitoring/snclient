@@ -102,6 +102,7 @@ func (snc *Agent) finishUpdate(binPath, mode string) {
 	}
 
 	if err := snc.checkFileOwner(binPath); err != nil {
+		log.Debugf("[update] owner check of %s: %s", binPath, err.Error())
 		log.Errorf("[update] refusing to exec into %s, owner mismatch", binPath)
 
 		return
@@ -218,10 +219,6 @@ func (snc *Agent) checkFileOwner(path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return fmt.Errorf("stat %s: %w", path, err)
-	}
-
-	if !info.IsDir() {
-		return fmt.Errorf("%s is not a directory", path)
 	}
 
 	stat, ok := info.Sys().(*syscall.Stat_t)

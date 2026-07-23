@@ -1045,6 +1045,7 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 		// tmp update file does not exist, but the target update file does
 		if runtime.GOOS != "windows" && utils.IsFile(executable) == nil && executable != GlobalMacros["exe-full"] {
 			if err := snc.checkFileOwner(executable); err != nil {
+				log.Debugf("[update] owner check %s: %s", executable, err.Error())
 				log.Errorf("[update] refusing to exec into %s, owner mismatch", executable)
 
 				return

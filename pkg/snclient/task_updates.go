@@ -820,6 +820,13 @@ func (u *UpdateHandler) ApplyRestart(bin string) error {
 			return fmt.Errorf("starting updater failed: %s", err.Error())
 		}
 	} else {
+		if err := u.snc.checkFileOwner(bin); err != nil {
+			log.Debugf("[update] owner check %s: %s", bin, err.Error())
+			log.Errorf("[update] refusing to exec into %s, owner mismatch", bin)
+
+			return fmt.Errorf("owner check failed for %s", bin)
+		}
+
 		err := syscall.Exec(bin, os.Args, os.Environ()) //nolint:gosec // false positive? There should be no tainted input here
 		if err != nil {
 			return fmt.Errorf("restart failed: %s", err.Error())
