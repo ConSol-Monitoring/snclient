@@ -504,3 +504,7 @@ func (snc *Agent) fixPathHoles(cmdAndArgs []string) []string {
 
 	return cmdAndArgs
 }
+
+func (snc *Agent) checkFileOwner(_ string) error {
+	return fmt.Errorf("cannot check owner on windows")
+}

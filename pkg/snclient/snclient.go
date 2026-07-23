@@ -73,6 +73,9 @@ const (
 
 	// DefaultGCPercentage sets gc level like GOGC environment.
 	DefaultGCPercentage = 30
+
+	// DefaultCacheFolderPermissions sets permissions for cache folder
+	DefaultCacheFolderPermissions = 0o750
 )
 
 var (
@@ -1041,6 +1044,12 @@ func (snc *Agent) CheckUpdateBinary(mode string) {
 	if utils.IsFile(tmpUpdateFile) != nil {
 		// tmp update file does not exist, but the target update file does
 		if runtime.GOOS != "windows" && utils.IsFile(executable) == nil && executable != GlobalMacros["exe-full"] {
+			if err := snc.checkFileOwner(executable); err != nil {
+				log.Errorf("[update] refusing to exec into %s, owner mismatch", executable)
+
+				return
+			}
+
 			// exec into the updated file when started with the previous version
 			log.Debugf("re-exec into updated version: %s", executable)
 			snc.stop()
@@ -1903,6 +1912,17 @@ func (snc *Agent) getCacheFolder() string {
 		}
 	} else {
 		cacheDir = filepath.Join(cacheDir, fmt.Sprintf("snclient-%d", uid))
+	}
+
+	if err := os.MkdirAll(cacheDir, DefaultCacheFolderPermissions); err != nil {
+		log.Fatalf("failed to create cache folder: %s: %s", cacheDir, err.Error())
+	}
+
+	// check owner of cache folder and make sure it belongs to the current user
+	if uid != -1 {
+		if err := snc.checkFileOwner(cacheDir); err != nil {
+			log.Fatalf("%s", err.Error())
+		}
 	}
 
 	return cacheDir

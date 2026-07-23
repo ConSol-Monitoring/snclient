@@ -100,6 +100,13 @@ func (snc *Agent) finishUpdate(binPath, mode string) {
 	if mode != "daemon" && mode != "server" {
 		return
 	}
+
+	if err := snc.checkFileOwner(binPath); err != nil {
+		log.Errorf("[update] refusing to exec into %s, owner mismatch", binPath)
+
+		return
+	}
+
 	log.Debugf("[update] re-exec into new file %s %#v", binPath, os.Args[1:])
 	err := syscall.Exec(binPath, os.Args, os.Environ()) //nolint:gosec // false positive? There should be no tainted input here
 	if err != nil {
@@ -200,4 +207,36 @@ func (snc *Agent) makeCmd(ctx context.Context, command string) (*exec.Cmd, error
 	cmd.Env = append(os.Environ(), "PATH="+scriptsPath+":"+os.Getenv("PATH"))
 
 	return cmd, nil
+}
+
+func (snc *Agent) checkFileOwner(path string) error {
+	uid := os.Geteuid()
+	if uid == -1 {
+		return fmt.Errorf("cannot determine current user, got user id: %d", uid)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("stat %s: %w", path, err)
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("%s is not a directory", path)
+	}
+
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return fmt.Errorf("failed to retrieve file metadata")
+	}
+
+	uid32, err := convert.UInt32E(uid)
+	if err != nil {
+		return fmt.Errorf("cannot convert uid to uint32: %w", err)
+	}
+
+	if stat.Uid != uid32 {
+		return fmt.Errorf("directory %s is not owned by the current user", path)
+	}
+
+	return nil
 }
