@@ -19,6 +19,8 @@ next:
          - check_drivesize: fixed an issue with network mounted drives
          - check_files: add support for symlinks + junctions, added follow-symlinks option
          - check_files: fixed an issue which incorrectly also matched the parent directory
+         - check_files: add max-files option to set the number of maximum files
+         - check_files: add 'max files limit' config option to set a upper limit for max-files
          - check_logfile: fix crash when using line-split
          - check_logfile: add max line limit when reading log files
          - check_logfile: improve output, better error handling when logfile is not readable

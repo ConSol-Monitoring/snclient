@@ -35,6 +35,12 @@ const (
 	CheckFilesDefaultFollowSymlinks   = true
 	CheckFilesDefaultAddFilesOnlyOnce = false
 	CheckFilesFollowSymlinkMaxDepth   = 50
+
+	// CheckFilesDefaultMaxFiles is the default value for max-files unless specified by the user. Can be increased up to CheckFilesMaxFilesLimit
+	CheckFilesDefaultMaxFiles = 10000
+
+	// maxFilesMax sets the upper limit a user can request by args (can be increased from the config)
+	CheckFilesMaxFilesLimit = 100000
 )
 
 type CheckFiles struct {
@@ -45,6 +51,7 @@ type CheckFiles struct {
 	calculateSubdirectorySizes bool // constructor NewCheckFiles sets this as false
 	followSymlinks             bool
 	addFilesOnlyOnce           bool
+	maxFiles                   int64 // maximum number of files
 }
 
 func NewCheckFiles() CheckHandler {
@@ -55,6 +62,7 @@ func NewCheckFiles() CheckHandler {
 		calculateSubdirectorySizes: false,
 		followSymlinks:             CheckFilesDefaultFollowSymlinks,
 		addFilesOnlyOnce:           CheckFilesDefaultAddFilesOnlyOnce,
+		maxFiles:                   CheckFilesDefaultMaxFiles,
 	}
 }
 
@@ -80,6 +88,7 @@ func (l *CheckFiles) Build() *CheckData {
 				" Enable this to track added files and stop adding them twice. Files will be added using the first path they were encountered with. Default: %t", CheckFilesDefaultAddFilesOnlyOnce)},
 			"calculate-subdirectory-sizes": {value: &l.calculateSubdirectorySizes, description: "For subdirectories that are found under the search paths, " +
 				"calculate the subdirectory sizes based on found files. This calculation may be expensive. Default: false"},
+			"max-files": {value: &l.maxFiles, description: fmt.Sprintf("Maximum number of files to process. Default: %d", CheckFilesDefaultMaxFiles)},
 		},
 		detailSyntax: "%(name)",
 		okSyntax:     "%(status) - All %(count) files are ok: (%(total_size))",
@@ -126,10 +135,18 @@ Check for folder size:
 	}
 }
 
-func (l *CheckFiles) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckFiles) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	l.paths = append(l.paths, l.pathList...)
 	if len(l.paths) == 0 {
 		return nil, fmt.Errorf("no path specified")
+	}
+
+	maxFilesLimit, ok, err := snc.config.Section("/settings/check/files").GetInt("max files limit")
+	if err != nil || !ok {
+		maxFilesLimit = CheckFilesMaxFilesLimit
+	}
+	if l.maxFiles > maxFilesLimit {
+		return nil, fmt.Errorf("max-files cannot exceed limit of %d", maxFilesLimit)
 	}
 
 	if l.followSymlinks && !l.addFilesOnlyOnce {
@@ -472,6 +489,10 @@ func (l *CheckFiles) addFile(check *CheckData, path, checkPath string, dirEntry 
 
 	if err := checkSlowFileOperations(check, entry, path); err != nil {
 		return err
+	}
+
+	if int64(len(check.listData)) > l.maxFiles {
+		return fmt.Errorf("maximum number of files reached, increase 'max-files' to allow more")
 	}
 
 	return nil
