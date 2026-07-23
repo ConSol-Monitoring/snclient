@@ -18,15 +18,9 @@ func NewAllowedHostConfig(conf *ConfigSection) (*AllowedHostConfig, error) {
 	ahc := &AllowedHostConfig{}
 
 	// parse / set allowed hosts
-	allowed, _ := conf.GetString("allowed hosts")
-	if allowed != "" {
-		for allow := range strings.SplitSeq(allowed, ",") {
-			allow = strings.TrimSpace(allow)
-			if allow == "" {
-				continue
-			}
-			ahc.Allowed = append(ahc.Allowed, NewAllowedHost(allow))
-		}
+	allowed, _ := conf.GetStringList("allowed hosts")
+	for _, allow := range allowed {
+		ahc.Allowed = append(ahc.Allowed, NewAllowedHost(allow))
 	}
 
 	// parse / set cache allowed hosts

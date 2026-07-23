@@ -1054,6 +1054,28 @@ func (cs *ConfigSection) GetStringRaw(key string) (raw []string, val string, ok 
 	return raw, val, ok
 }
 
+// GetStringList returns list of strings from config section.
+// it returns the value if found and sets ok to true.
+func (cs *ConfigSection) GetStringList(key string) (val []string, ok bool) {
+	// parse comma separated list
+	str, ok := cs.GetString(key)
+	if !ok {
+		return val, false
+	}
+
+	if str != "" {
+		for el := range strings.SplitSeq(str, ",") {
+			el = strings.TrimSpace(el)
+			if el == "" {
+				continue
+			}
+			val = append(val, el)
+		}
+	}
+
+	return val, ok
+}
+
 // returns true if value is usable (ex, password is not default)
 func (cs *ConfigSection) isUsable(key, val string) bool {
 	if key == "password" && val == DefaultPassword {

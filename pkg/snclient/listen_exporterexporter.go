@@ -143,11 +143,11 @@ func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Confi
 		l.moduleDirWatcherEnabled = moduleDirWatcherEnabled
 	}
 
-	allowedMethods, allowedMethodsPresent := conf.GetString("allowed methods")
-	if !allowedMethodsPresent || allowedMethods == "" {
+	allowedMethods, allowedMethodsPresent := conf.GetStringList("allowed methods")
+	if !allowedMethodsPresent {
 		l.allowedMethods = []string{}
 	} else {
-		l.allowedMethods = strings.Split(allowedMethods, ",")
+		l.allowedMethods = allowedMethods
 	}
 
 	l.modules = map[string]*exporterModuleConfig{}

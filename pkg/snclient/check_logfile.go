@@ -466,12 +466,7 @@ func (c *CheckLogFile) getRequiredColumnNumbers(check *CheckData) []int {
 
 // getAllowedPattern returns the list of allowed patterns from the config
 func (c *CheckLogFile) getAllowedPattern() []string {
-	allowedPatternRaw, _ := c.snc.config.Section("/settings/check/logfile").GetString("allowed pattern")
-	allowedPattern := strings.Split(allowedPatternRaw, ",")
-
-	for i := range allowedPattern {
-		allowedPattern[i] = strings.TrimSpace(allowedPattern[i])
-	}
+	allowedPattern, _ := c.snc.config.Section("/settings/check/logfile").GetStringList("allowed pattern")
 
 	return allowedPattern
 }

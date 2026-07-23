@@ -211,14 +211,14 @@ func (l *Listener) setListenTLSConfig(conf *ConfigSection) error {
 
 	caCerts := []string{}
 	// ca option for backward compatibility with NSclient
-	caPEMs, ok := conf.GetString("ca")
+	caPEMs, ok := conf.GetStringList("ca")
 	if ok {
-		caCerts = append(caCerts, strings.Split(caPEMs, ",")...)
+		caCerts = append(caCerts, caPEMs...)
 	}
 
-	clientPEMs, ok := conf.GetString("client certificates")
+	clientPEMs, ok := conf.GetStringList("client certificates")
 	if ok {
-		caCerts = append(caCerts, strings.Split(clientPEMs, ",")...)
+		caCerts = append(caCerts, clientPEMs...)
 	}
 
 	// require client certificate verification
