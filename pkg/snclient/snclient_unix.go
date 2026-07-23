@@ -122,7 +122,7 @@ func (snc *Agent) StartRestartWatcher() {
 		binFile := GlobalMacros["exe-full"]
 		snc.restartWatcherCb(func() {
 			up := &UpdateHandler{snc: snc}
-			LogError(up.ApplyRestart(binFile))
+			LogError(up.ApplyRestart(binFile, RestartAlways))
 		})
 	}()
 }

@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -591,16 +592,13 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	version, updateFile, err := mod.CheckUpdates(
-		req.Context(),
-		true,  // force checking for an update
-		true,  // force download
-		false, // do not restart immediately
-		false,
-		data.Version,
-		data.Channel,
-		data.Force,
-	)
+	restart := RestartNever
+	if data.Restart {
+		restart = RestartDelayed
+	}
+
+	//nolint:contextcheck // need a new context here, otherwise restarts would be killed when the request is finished
+	version, updateFile, err := mod.CheckUpdates(context.Background(), true, true, restart, false, data.Version, data.Channel, data.Force)
 	if err != nil {
 		l.sendError(res, fmt.Errorf("failed to fetch updates: %s", err.Error()))
 
@@ -628,16 +626,16 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	go func() {
-		time.Sleep(UpdateRestartDelay)
-		err = mod.ApplyRestart(updateFile)
-		if err != nil {
-			log.Errorf("failed to apply restart: %s", err.Error())
-		}
-	}()
+	err = mod.ApplyRestart(updateFile, RestartDelayed)
+	if err != nil {
+		l.sendError(res, fmt.Errorf("failed to apply updates: %s", err.Error()))
+
+		return
+	}
+
 	LogError(json.NewEncoder(res).Encode(map[string]any{
 		"success": true,
-		"message": fmt.Sprintf("update found and install, restarting in background delayed in %s", UpdateRestartDelay),
+		"message": fmt.Sprintf("update found and installed, restarting in background (%s delay)", UpdateRestartDelay),
 		"version": version,
 	}))
 }

@@ -79,7 +79,7 @@ func runUpdates(cmd *cobra.Command, args []string) {
 		context.TODO(),
 		true,
 		!checkOnly,
-		false,
+		snclient.RestartNever,
 		preRelease,
 		cmd.Flag("downgrade").Value.String(),
 		channel,
