@@ -39,8 +39,12 @@ case "$1" in
           install -d -m 0755 -o snclient -g snclient /var/log/snclient
 
           # Fix ownership of config files
-          # This throws a lintian warning, though /etc/snclient already had pretty restrictive permissions to begin with
-          chown -R snclient:snclient /etc/snclient
+          chown -h snclient:snclient \
+                /etc/snclient \
+                /etc/snclient/cacert.pem \
+                /etc/snclient/server.crt \
+                /etc/snclient/server.key \
+                /etc/snclient/snclient.ini
       fi
       if [ -x "/usr/bin/deb-systemd-helper" ] && [ -x "/usr/bin/systemctl" ] ; then
         deb-systemd-helper unmask snclient.service
