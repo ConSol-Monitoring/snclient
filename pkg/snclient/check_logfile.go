@@ -156,6 +156,8 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		for _, fileName := range filesMatchingPattern {
 			if !c.matchPattern(fileName, allowedPattern) {
 				log.Tracef("allowed pattern check failed for file: %s (pattern: %#v)", fileName, allowedPattern)
+
+				return nil, fmt.Errorf("file %s does not match any allowed pattern", fileName)
 			}
 
 			log.Debugf("adding file: %s", fileName)
