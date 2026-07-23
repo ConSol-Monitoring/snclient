@@ -207,7 +207,7 @@ func (u *UpdateHandler) mainLoop() {
 			return
 		case <-ticker.C:
 			ticker.Reset(interval)
-			_, err := u.CheckUpdates(*u.ctx, false, true, u.automaticRestart, u.preRelease, "", u.channel, false)
+			_, _, err := u.CheckUpdates(*u.ctx, false, true, u.automaticRestart, u.preRelease, "", u.channel, false)
 			if err != nil {
 				log.Errorf("[updates] checking for updates failed: %s", err.Error())
 			}
@@ -217,10 +217,10 @@ func (u *UpdateHandler) mainLoop() {
 	}
 }
 
-func (u *UpdateHandler) CheckUpdates(ctx context.Context, force, download, restarts, preRelease bool, downgrade, channel string, forceUpdate bool) (version string, err error) {
+func (u *UpdateHandler) CheckUpdates(ctx context.Context, force, download, restarts, preRelease bool, downgrade, channel string, forceUpdate bool) (version, file string, err error) {
 	if !force {
 		if !u.updatePreChecks() {
-			return "", nil
+			return "", "", nil
 		}
 	}
 
@@ -249,33 +249,33 @@ func (u *UpdateHandler) CheckUpdates(ctx context.Context, force, download, resta
 	if updateFile == "" {
 		available := u.fetchAvailableUpdates(ctx, preRelease, channel)
 		if len(available) == 0 {
-			return "", nil
+			return "", "", nil
 		}
 
 		best = u.chooseBestUpdate(available, downgrade, forceUpdate)
 		if best == nil {
-			return "", nil
+			return "", "", nil
 		}
 
 		if !download {
-			return best.version, nil
+			return best.version, "", nil
 		}
 	}
 
 	return u.finishUpdateCheck(ctx, best, restarts)
 }
 
-func (u *UpdateHandler) finishUpdateCheck(ctx context.Context, best *updatesAvailable, restarts bool) (version string, err error) {
+func (u *UpdateHandler) finishUpdateCheck(ctx context.Context, best *updatesAvailable, restarts bool) (version, file string, err error) {
 	updateFile, err := u.downloadUpdate(ctx, best)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	newVersion, err := u.verifyUpdate(ctx, updateFile)
 	if err != nil {
 		LogError(os.Remove(updateFile))
 
-		return "", err
+		return "", "", err
 	}
 
 	if utils.ParseVersion(newVersion) < utils.ParseVersion(u.snc.Version()) {
@@ -286,17 +286,17 @@ func (u *UpdateHandler) finishUpdateCheck(ctx context.Context, best *updatesAvai
 		log.Infof("[update] update successful from %s to %s, restarting into new version", u.snc.Version(), newVersion)
 		err = u.ApplyRestart(updateFile)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	} else {
 		log.Infof("[update] version %s successfully downloaded: %s", newVersion, updateFile)
 		err = u.Apply(ctx, updateFile)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 
-	return newVersion, nil
+	return newVersion, updateFile, nil
 }
 
 func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade string, forceUpdate bool) (best *updatesAvailable) {

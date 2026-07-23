@@ -39,7 +39,13 @@ func init() {
 	)
 }
 
-const DefaultPrivateKeySize = 4096
+const (
+	// DefaultPrivateKeySize sets the default size of the private key to generate for a new CSR request
+	DefaultPrivateKeySize = 4096
+
+	// UpdateRestartDelay sets delay of the restart after requesting an update via API
+	UpdateRestartDelay = 2 * time.Second
+)
 
 type HandlerAdmin struct {
 	noCopy          noCopy
@@ -585,11 +591,11 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	version, err := mod.CheckUpdates(
+	version, updateFile, err := mod.CheckUpdates(
 		req.Context(),
-		true, // force checking for an update
-		true, // force download
-		data.Restart,
+		true,  // force checking for an update
+		true,  // force download
+		false, // do not restart immediately
 		false,
 		data.Version,
 		data.Channel,
@@ -603,18 +609,37 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
-	if version != "" {
-		LogError(json.NewEncoder(res).Encode(map[string]any{
-			"success": true,
-			"message": "update found and installed",
-			"version": version,
-		}))
-	} else {
+	if version == "" {
 		LogError(json.NewEncoder(res).Encode(map[string]any{
 			"success": true,
 			"message": "no new update available",
 		}))
+
+		return
 	}
+
+	if !data.Restart {
+		LogError(json.NewEncoder(res).Encode(map[string]any{
+			"success": true,
+			"message": "update found and downloaded",
+			"version": version,
+		}))
+
+		return
+	}
+
+	go func() {
+		time.Sleep(UpdateRestartDelay)
+		err = mod.ApplyRestart(updateFile)
+		if err != nil {
+			log.Errorf("failed to apply restart: %s", err.Error())
+		}
+	}()
+	LogError(json.NewEncoder(res).Encode(map[string]any{
+		"success": true,
+		"message": fmt.Sprintf("update found and install, restarting in background delayed in %s", UpdateRestartDelay),
+		"version": version,
+	}))
 }
 
 // check if request used method POST

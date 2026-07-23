@@ -75,7 +75,7 @@ func runUpdates(cmd *cobra.Command, args []string) {
 	checkOnly := convert.Bool(cmd.Flag("check").Value.String())
 	preRelease := convert.Bool(cmd.Flag("prerelease").Value.String())
 	force := convert.Bool(cmd.Flag("force").Value.String())
-	version, err := mod.CheckUpdates(
+	version, _, err := mod.CheckUpdates(
 		context.TODO(),
 		true,
 		!checkOnly,
