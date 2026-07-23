@@ -852,15 +852,9 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 		}
 	}
 
-	if !chk.argsPassthrough {
+	if !chk.argsPassthrough && snc.flags != nil && snc.flags.Mode == ModeOneShot {
 		chk.checkThresholdKeywordsAgainstAttributeNames()
-		err = chk.checkFilterKeywordsAgainstAttributeNames()
-		if err != nil {
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("${status} - %s", err.Error()),
-			}, chk
-		}
+		LogDebug(chk.checkFilterKeywordsAgainstAttributeNames())
 	}
 
 	if timeoutOverride > 0 {

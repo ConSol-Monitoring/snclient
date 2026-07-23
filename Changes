@@ -25,6 +25,7 @@ next:
          - check_logfile: add max line limit when reading log files
          - check_logfile: improve output, better error handling when logfile is not readable
          - fix auto updates when running as snclient user
+         - test mode: show warning when using unknown attributes in filter or conditions
 
 
 0.44     Wed Jun 24 13:03:43 CEST 2026
