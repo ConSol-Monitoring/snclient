@@ -15,10 +15,13 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/goccy/go-json"
 	"gopkg.in/yaml.v3"
 )
@@ -42,16 +45,21 @@ func init() {
 }
 
 type HandlerExporterExporter struct {
-	noCopy          noCopy
-	handler         http.Handler
-	listener        *Listener
-	urlPrefix       string
-	password        string
-	requirePassword bool
-	defaultModule   string
-	snc             *Agent
-	modules         map[string]*exporterModuleConfig
-	allowedHosts    *AllowedHostConfig
+	noCopy                  noCopy
+	handler                 http.Handler
+	listener                *Listener
+	urlPrefix               string
+	password                string
+	requirePassword         bool
+	defaultModule           string
+	snc                     *Agent
+	moduleDir               string
+	moduleDirWatcherEnabled bool
+	allowedMethods          []string
+	modules                 map[string]*exporterModuleConfig
+	modulesLock             sync.RWMutex
+	allowedHosts            *AllowedHostConfig
+	moduleDirWatcher        *fsnotify.Watcher
 }
 
 // ensure we fully implement the RequestHandlerHTTP type
@@ -84,7 +92,27 @@ func (l *HandlerExporterExporter) Start() error {
 }
 
 func (l *HandlerExporterExporter) Stop() {
+	if l.moduleDirWatcher != nil {
+		LogError2(nil, l.moduleDirWatcher.Close())
+	}
 	l.listener.Stop()
+}
+
+func (l *HandlerExporterExporter) reloadModules() {
+	log.Tracef("exporter_exporter reloading modules from %s", l.moduleDir)
+
+	newModules, err := l.readModules(l.snc, l.moduleDir)
+	if err != nil {
+		log.Tracef("exporter_exporter reload failed: %s", err.Error())
+
+		return
+	}
+
+	l.modulesLock.Lock()
+	l.modules = newModules
+	l.modulesLock.Unlock()
+
+	log.Tracef("exporter_exporter reload complete, %d modules loaded", len(newModules))
 }
 
 func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
@@ -106,14 +134,33 @@ func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Confi
 	defaultModule, _ := conf.GetString("default module")
 	l.defaultModule = defaultModule
 
-	l.modules = map[string]*exporterModuleConfig{}
 	moduleDir, _ := conf.GetString("modules dir")
+	l.moduleDir = moduleDir
+
+	moduleDirWatcherEnabled, enableModuleDirWatcherPresent, err := conf.GetBool("modules dir watcher")
+	l.moduleDirWatcherEnabled = false
+	if enableModuleDirWatcherPresent && err == nil {
+		l.moduleDirWatcherEnabled = moduleDirWatcherEnabled
+	}
+
+	allowedMethods, allowedMethodsPresent := conf.GetString("allowed methods")
+	if !allowedMethodsPresent || allowedMethods == "" {
+		l.allowedMethods = []string{}
+	} else {
+		l.allowedMethods = strings.Split(allowedMethods, ",")
+	}
+
+	l.modules = map[string]*exporterModuleConfig{}
 	if moduleDir != "" {
 		modules, err2 := l.readModules(snc, moduleDir)
 		if err2 != nil {
 			return err2
 		}
 		l.modules = modules
+
+		if l.moduleDirWatcherEnabled {
+			l.WatchModulesConfigDirectory(moduleDir)
+		}
 	}
 
 	allowedHosts, err2 := NewAllowedHostConfig(conf)
@@ -140,6 +187,8 @@ func (l *HandlerExporterExporter) GetMappings(*Agent) []URLMapping {
 	}
 }
 
+// adds ExporterExporter module config files found in the module directory
+// does not return errors if config files could not be correctly added
 func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map[string]*exporterModuleConfig, error) {
 	modules := map[string]*exporterModuleConfig{}
 
@@ -157,6 +206,8 @@ func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map
 		".yml":  true,
 		".yaml": true,
 	}
+	mfsWithoutErrorsCount := 0
+	mfsWithErrorsCount := 0
 	for _, entry := range mfs {
 		fullpath := filepath.Join(moduleDir, entry.Name())
 		if entry.IsDir() || !yamlSuffixes[filepath.Ext(entry.Name())] {
@@ -165,15 +216,25 @@ func (l *HandlerExporterExporter) readModules(snc *Agent, moduleDir string) (map
 			continue
 		}
 
-		if err := modulesAdd(snc, modules, entry, fullpath); err != nil {
-			return nil, err
+		if err := l.modulesAdd(snc, modules, entry, fullpath); err != nil {
+			mfsWithErrorsCount++
+
+			continue
 		}
+
+		mfsWithoutErrorsCount++
 	}
+
+	log.Tracef("In the ExporterExporter config directory: '%s' , %d config files were added without errors, %d config files had errors",
+		moduleDir, mfsWithoutErrorsCount, mfsWithErrorsCount)
 
 	return modules, nil
 }
 
 func (l *HandlerExporterExporter) JSON() []map[string]string {
+	l.modulesLock.RLock()
+	defer l.modulesLock.RUnlock()
+
 	list := make([]map[string]string, 0, len(l.modules))
 	ssl := "0"
 	if l.listener.tlsConfig != nil {
@@ -193,7 +254,8 @@ func (l *HandlerExporterExporter) JSON() []map[string]string {
 	return list
 }
 
-func modulesAdd(snc *Agent, modules map[string]*exporterModuleConfig, entry fs.DirEntry, fullpath string) error {
+// tries adding a module from a given a filesystem entry and path
+func (l *HandlerExporterExporter) modulesAdd(snc *Agent, modules map[string]*exporterModuleConfig, entry fs.DirEntry, fullpath string) error {
 	moduleName := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 	if _, ok := modules[moduleName]; ok {
 		return fmt.Errorf("module %s is already defined", moduleName)
@@ -204,8 +266,10 @@ func modulesAdd(snc *Agent, modules map[string]*exporterModuleConfig, entry fs.D
 	}
 	defer file.Close()
 
-	mcfg, err := readModuleConfig(moduleName, file)
+	mcfg, err := l.readModuleConfig(moduleName, file)
 	if err != nil {
+		log.Errorf("failed reading configs %s, %s", fullpath, err.Error())
+
 		return fmt.Errorf("failed reading configs %s, %w", fullpath, err)
 	}
 	mcfg.snc = snc
@@ -226,7 +290,14 @@ type HandlerWebExporterExporter struct {
 }
 
 func (l *HandlerWebExporterExporter) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	switch req.URL.Path {
+	if !strings.HasPrefix(req.URL.Path, l.Handler.urlPrefix) {
+		res.WriteHeader(http.StatusBadRequest)
+		LogError2(res.Write([]byte("400 - missing url prefix\n")))
+
+		return
+	}
+	path := strings.TrimPrefix(req.URL.Path, l.Handler.urlPrefix)
+	switch path {
 	case "/list":
 		l.Handler.listModules(res, req)
 	case "/proxy":
@@ -238,27 +309,36 @@ func (l *HandlerWebExporterExporter) ServeHTTP(res http.ResponseWriter, req *htt
 }
 
 func (l *HandlerExporterExporter) listModules(res http.ResponseWriter, req *http.Request) {
+	l.modulesLock.RLock()
+	defer l.modulesLock.RUnlock()
+
 	switch req.Header.Get("Accept") {
 	case "application/json":
 		log.Debugf("Listing modules in json")
-		moduleJSON, err := json.Marshal(l.modules)
+		modulesWithPrefix := make(map[string]*exporterModuleConfig, len(l.modules))
+		for name, mcfg := range l.modules {
+			cp := *mcfg
+			cp.HTTP.Path = l.urlPrefix + "/proxy?module=" + name
+			modulesWithPrefix[name] = &cp
+		}
+		moduleJSON, err := json.Marshal(modulesWithPrefix)
 		if err != nil {
 			log.Error(err)
 			http.Error(res, "Failed to produce JSON", http.StatusInternalServerError)
 
 			return
 		}
-		res.WriteHeader(http.StatusOK)
 		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusOK)
 		LogError2(res.Write(moduleJSON))
 	default:
 		log.Debugf("Listing modules in html")
-		res.WriteHeader(http.StatusOK)
 		res.Header().Set("Content-Type", "text/html; charset=utf-8")
+		res.WriteHeader(http.StatusOK)
 		LogError2(res.Write([]byte("<h2>Exporters:</h2>\n")))
 		LogError2(res.Write([]byte("<ul>\n")))
 		for name := range l.modules {
-			LogError2(fmt.Fprintf(res, "<li><a href=\"/proxy?module=%s\">%s</a></li>\n", name, name))
+			LogError2(fmt.Fprintf(res, "<li><a href=\"%s/proxy?module=%s\">%s</a></li>\n", l.urlPrefix, name, name))
 		}
 		LogError2(res.Write([]byte("</ul>\n")))
 	}
@@ -279,7 +359,9 @@ func (l *HandlerExporterExporter) doProxy(res http.ResponseWriter, req *http.Req
 
 	log.Debugf("running module %v\n", mod[0])
 
+	l.modulesLock.RLock()
 	mcfg, ok := l.modules[mod[0]]
+	l.modulesLock.RUnlock()
 	if !ok {
 		log.Warnf("unknown module requested  %v\n", mod)
 		http.Error(res, fmt.Sprintf("unknown module %v\n", mod), http.StatusNotFound)
@@ -336,7 +418,8 @@ type exporterFileConfig struct {
 	mcfg *exporterModuleConfig
 }
 
-func readModuleConfig(name string, r io.Reader) (*exporterModuleConfig, error) {
+// reads, parses and verifies an individual ExporterExporter config file
+func (l *HandlerExporterExporter) readModuleConfig(name string, r io.Reader) (*exporterModuleConfig, error) {
 	buf := bytes.Buffer{}
 	if _, err := io.Copy(&buf, r); err != nil {
 		return nil, fmt.Errorf("io.Copy: %s", err.Error())
@@ -347,16 +430,21 @@ func readModuleConfig(name string, r io.Reader) (*exporterModuleConfig, error) {
 		return nil, fmt.Errorf("yaml.Unmarshal: %s", err.Error())
 	}
 
-	if err := checkModuleConfig(name, &cfg); err != nil {
+	if err := l.checkModuleConfig(name, &cfg); err != nil {
 		return nil, err
 	}
 
 	return &cfg, nil
 }
 
-func checkModuleConfig(name string, cfg *exporterModuleConfig) error {
+// verifies a module config to see if it is correct.
+func (l *HandlerExporterExporter) checkModuleConfig(name string, cfg *exporterModuleConfig) error {
 	if len(cfg.XXX) != 0 {
 		return fmt.Errorf("unknown module configuration fields: %v", cfg.XXX)
+	}
+
+	if len(l.allowedMethods) > 0 && !slices.Contains(l.allowedMethods, cfg.Method) {
+		return fmt.Errorf("allowed methods: '%s' does not contain the module config method: '%s'", strings.Join(l.allowedMethods, ","), cfg.Method)
 	}
 
 	cfg.name = name
@@ -598,4 +686,68 @@ func (m exporterExecConfig) ServeHTTP(res http.ResponseWriter, req *http.Request
 	res.WriteHeader(http.StatusOK)
 	LogError2(res.Write([]byte(stdout)))
 	LogError2(res.Write([]byte("\n")))
+}
+
+func (l *HandlerExporterExporter) WatchModulesConfigDirectory(moduleDir string) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Errorf("error creating file watcher: %s", err)
+
+		return
+	}
+	l.moduleDirWatcher = watcher
+
+	absDir, err := filepath.Abs(moduleDir)
+	if err != nil {
+		log.Errorf("error resolving absolute path for file watcher: %s", err)
+
+		return
+	}
+
+	err = watcher.Add(absDir)
+	if err != nil {
+		log.Errorf("error adding path to the file watcher: %s", err)
+
+		return
+	}
+
+	log.Debugf("Starting file watcher on path: %s", absDir)
+	go l.ModulesConfigDirectoryWatcherFunc(watcher)
+}
+
+func (l *HandlerExporterExporter) ModulesConfigDirectoryWatcherFunc(watcher *fsnotify.Watcher) {
+	debounceDuration := time.Second * 5
+	lastSignificantEvent := time.Now()
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+
+			if event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) ||
+				event.Has(fsnotify.Rename) || event.Has(fsnotify.Write) {
+				now := time.Now()
+				if now.Sub(lastSignificantEvent) <= debounceDuration {
+					continue
+				}
+
+				ext := filepath.Ext(event.Name)
+				if ext != ".yml" && ext != ".yaml" {
+					continue
+				}
+
+				lastSignificantEvent = now
+
+				log.Tracef("file watcher event, reinitializing due to operation: %s , %s", event.Op.String(), event.Name)
+				l.reloadModules()
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			log.Tracef("file watcher error: %s", err.Error())
+		}
+	}
 }

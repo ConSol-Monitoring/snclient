@@ -42,6 +42,7 @@ require (
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.10.1 // indirect
+	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
