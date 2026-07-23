@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -39,7 +40,13 @@ func init() {
 	)
 }
 
-const DefaultPrivateKeySize = 4096
+const (
+	// DefaultPrivateKeySize sets the default size of the private key to generate for a new CSR request
+	DefaultPrivateKeySize = 4096
+
+	// UpdateRestartDelay sets delay of the restart after requesting an update via API
+	UpdateRestartDelay = 2 * time.Second
+)
 
 type HandlerAdmin struct {
 	noCopy          noCopy
@@ -585,16 +592,13 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	version, err := mod.CheckUpdates(
-		req.Context(),
-		true, // force checking for an update
-		true, // force download
-		data.Restart,
-		false,
-		data.Version,
-		data.Channel,
-		data.Force,
-	)
+	restart := RestartNever
+	if data.Restart {
+		restart = RestartDelayed
+	}
+
+	//nolint:contextcheck // need a new context here, otherwise restarts would be killed when the request is finished
+	version, updateFile, err := mod.CheckUpdates(context.Background(), true, true, restart, false, data.Version, data.Channel, data.Force)
 	if err != nil {
 		l.sendError(res, fmt.Errorf("failed to fetch updates: %s", err.Error()))
 
@@ -603,18 +607,37 @@ func (l *HandlerWebAdmin) serveUpdate(res http.ResponseWriter, req *http.Request
 
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
-	if version != "" {
-		LogError(json.NewEncoder(res).Encode(map[string]any{
-			"success": true,
-			"message": "update found and installed",
-			"version": version,
-		}))
-	} else {
+	if version == "" {
 		LogError(json.NewEncoder(res).Encode(map[string]any{
 			"success": true,
 			"message": "no new update available",
 		}))
+
+		return
 	}
+
+	if !data.Restart {
+		LogError(json.NewEncoder(res).Encode(map[string]any{
+			"success": true,
+			"message": "update found and downloaded",
+			"version": version,
+		}))
+
+		return
+	}
+
+	err = mod.ApplyRestart(updateFile, RestartDelayed)
+	if err != nil {
+		l.sendError(res, fmt.Errorf("failed to apply updates: %s", err.Error()))
+
+		return
+	}
+
+	LogError(json.NewEncoder(res).Encode(map[string]any{
+		"success": true,
+		"message": fmt.Sprintf("update found and installed, restarting in background (%s delay)", UpdateRestartDelay),
+		"version": version,
+	}))
 }
 
 // check if request used method POST

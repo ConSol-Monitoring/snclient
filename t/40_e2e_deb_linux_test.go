@@ -237,7 +237,7 @@ func localContainerTests(t *testing.T, bin string) {
 	// test admin api
 	runCmd(t, &cmd{
 		Cmd:  "curl",
-		Args: []string{"-s", "-k", "--header", "password:admin", "-d", "''", "https://localhost:8443/api/v1/admin/reload"},
+		Args: []string{"-sS", "-k", "--header", "password:admin", "-d", "''", "https://localhost:8443/api/v1/admin/reload"},
 		Like: []string{`{"success":true}`},
 		Exit: 0,
 	})
@@ -246,7 +246,7 @@ func localContainerTests(t *testing.T, bin string) {
 	// increase log level
 	runCmd(t, &cmd{
 		Cmd:  "curl",
-		Args: []string{"-s", "-k", "--header", "password:admin", "-d", `{"level":"debug", "duration": 600}`, "https://localhost:8443/api/v1/admin/log/level"},
+		Args: []string{"-sS", "-k", "--header", "password:admin", "-d", `{"level":"debug", "duration": 600}`, "https://localhost:8443/api/v1/admin/log/level"},
 		Like: []string{`{.*"success":true.*}`},
 		Exit: 0,
 	})
@@ -254,11 +254,12 @@ func localContainerTests(t *testing.T, bin string) {
 	// test admin api local update
 	runCmd(t, &cmd{
 		Cmd:  "curl",
-		Args: []string{"-s", "-k", "--header", "password:admin", "-d", `{"channel":"local_file", "force": true}`, "https://localhost:8443/api/v1/admin/updates/install"},
-		Like: []string{`^$`},
-		Exit: 56, // cannot return useful result when updating
+		Args: []string{"-sS", "-k", "--header", "password:admin", "-d", `{"channel":"local_file", "force": true}`, "https://localhost:8443/api/v1/admin/updates/install"},
+		Like: []string{`update found and installed`},
 	})
+	time.Sleep(3 * time.Second)
 	waitUntilResponse(t, bin)
+
 	runCmd(t, &cmd{
 		Cmd:  "bash",
 		Args: []string{"-c", `ls -la /proc/$(pidof snclient)/exe`},
@@ -280,11 +281,12 @@ func localContainerTests(t *testing.T, bin string) {
 	// test admin api http update
 	runCmd(t, &cmd{
 		Cmd:  "curl",
-		Args: []string{"-s", "-k", "--header", "password:admin", "-d", `{"channel":"local_file", "force": true}`, "https://localhost:8443/api/v1/admin/updates/install"},
-		Like: []string{`^$`},
-		Exit: 56, // cannot return useful result when updating
+		Args: []string{"-sS", "-k", "--header", "password:admin", "-d", `{"channel":"local_file", "force": true}`, "https://localhost:8443/api/v1/admin/updates/install"},
+		Like: []string{`update found and installed`},
 	})
+	time.Sleep(3 * time.Second)
 	waitUntilResponse(t, bin)
+
 	runCmd(t, &cmd{
 		Cmd:  "bash",
 		Args: []string{"-c", `ls -la /proc/$(pidof snclient)/exe`},

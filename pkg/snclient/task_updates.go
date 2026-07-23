@@ -28,7 +28,7 @@ import (
 
 const (
 	// Delay until the first check after a start is done
-	UpdateCheckIntervalInitial = 2 * time.Second
+	UpdateCheckIntervalInitial = 500 * time.Millisecond
 
 	// Usual check interval
 	UpdateCheckIntervalRegular = 55 * time.Second
@@ -41,6 +41,20 @@ const (
 )
 
 var reVersion = regexp.MustCompile(`SNClient.*?\s+(v[\d.]+)\s+`)
+
+// UpdateRestartMode sets available restart modes when doing updates
+type UpdateRestartMode uint8
+
+const (
+	// do not restart all
+	RestartNever UpdateRestartMode = iota
+
+	// restart immediately
+	RestartAlways
+
+	// restart with a delay
+	RestartDelayed
+)
 
 func init() {
 	RegisterModule(
@@ -72,7 +86,7 @@ type UpdateHandler struct {
 	cancel context.CancelFunc
 
 	automaticUpdates bool
-	automaticRestart bool
+	automaticRestart UpdateRestartMode
 	channel          string
 	preRelease       bool
 	updateInterval   float64
@@ -143,7 +157,11 @@ func (u *UpdateHandler) setConfig(section *ConfigSection) error {
 	case err != nil:
 		return fmt.Errorf("automatic restarts: %s", err.Error())
 	case ok:
-		u.automaticRestart = autoRestart
+		if autoRestart {
+			u.automaticRestart = RestartAlways
+		} else {
+			u.automaticRestart = RestartNever
+		}
 	}
 
 	updateInterval, ok, err := section.GetDuration("update interval")
@@ -207,7 +225,7 @@ func (u *UpdateHandler) mainLoop() {
 			return
 		case <-ticker.C:
 			ticker.Reset(interval)
-			_, err := u.CheckUpdates(*u.ctx, false, true, u.automaticRestart, u.preRelease, "", u.channel, false)
+			_, _, err := u.CheckUpdates(*u.ctx, false, true, u.automaticRestart, u.preRelease, "", u.channel, false)
 			if err != nil {
 				log.Errorf("[updates] checking for updates failed: %s", err.Error())
 			}
@@ -217,10 +235,16 @@ func (u *UpdateHandler) mainLoop() {
 	}
 }
 
-func (u *UpdateHandler) CheckUpdates(ctx context.Context, force, download, restarts, preRelease bool, downgrade, channel string, forceUpdate bool) (version string, err error) {
+func (u *UpdateHandler) CheckUpdates(ctx context.Context,
+	force, download bool,
+	restarts UpdateRestartMode,
+	preRelease bool,
+	downgrade, channel string,
+	forceUpdate bool,
+) (version, file string, err error) {
 	if !force {
 		if !u.updatePreChecks() {
-			return "", nil
+			return "", "", nil
 		}
 	}
 
@@ -249,54 +273,54 @@ func (u *UpdateHandler) CheckUpdates(ctx context.Context, force, download, resta
 	if updateFile == "" {
 		available := u.fetchAvailableUpdates(ctx, preRelease, channel)
 		if len(available) == 0 {
-			return "", nil
+			return "", "", nil
 		}
 
 		best = u.chooseBestUpdate(available, downgrade, forceUpdate)
 		if best == nil {
-			return "", nil
+			return "", "", nil
 		}
 
 		if !download {
-			return best.version, nil
+			return best.version, "", nil
 		}
 	}
 
 	return u.finishUpdateCheck(ctx, best, restarts)
 }
 
-func (u *UpdateHandler) finishUpdateCheck(ctx context.Context, best *updatesAvailable, restarts bool) (version string, err error) {
+func (u *UpdateHandler) finishUpdateCheck(ctx context.Context, best *updatesAvailable, restarts UpdateRestartMode) (version, file string, err error) {
 	updateFile, err := u.downloadUpdate(ctx, best)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	newVersion, err := u.verifyUpdate(ctx, updateFile)
 	if err != nil {
 		LogError(os.Remove(updateFile))
 
-		return "", err
+		return "", "", err
 	}
 
 	if utils.ParseVersion(newVersion) < utils.ParseVersion(u.snc.Version()) {
 		log.Warnf("[update] downgrading to %s", newVersion)
 	}
 
-	if restarts {
+	if restarts != RestartNever {
 		log.Infof("[update] update successful from %s to %s, restarting into new version", u.snc.Version(), newVersion)
-		err = u.ApplyRestart(updateFile)
+		err = u.ApplyRestart(updateFile, restarts)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	} else {
 		log.Infof("[update] version %s successfully downloaded: %s", newVersion, updateFile)
 		err = u.Apply(ctx, updateFile)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 
-	return newVersion, nil
+	return newVersion, updateFile, nil
 }
 
 func (u *UpdateHandler) chooseBestUpdate(updates []updatesAvailable, downgrade string, forceUpdate bool) (best *updatesAvailable) {
@@ -805,7 +829,19 @@ func (u *UpdateHandler) getVersionFromURL(ctx context.Context, url string) (vers
 	return version, nil
 }
 
-func (u *UpdateHandler) ApplyRestart(bin string) error {
+func (u *UpdateHandler) ApplyRestart(bin string, restarts UpdateRestartMode) error {
+	if restarts == RestartDelayed {
+		go func() {
+			time.Sleep(UpdateRestartDelay)
+			err := u.ApplyRestart(bin, RestartAlways)
+			if err != nil {
+				log.Errorf("update restart failed: %s", err.Error())
+			}
+		}()
+
+		return nil
+	}
+
 	u.snc.stop()
 	log.Tracef("[update] re-exec into new file %s %v", bin, os.Args[1:])
 	if runtime.GOOS == "windows" {
@@ -820,6 +856,13 @@ func (u *UpdateHandler) ApplyRestart(bin string) error {
 			return fmt.Errorf("starting updater failed: %s", err.Error())
 		}
 	} else {
+		if err := u.snc.checkFileOwner(bin); err != nil {
+			log.Debugf("[update] owner check %s: %s", bin, err.Error())
+			log.Errorf("[update] refusing to exec into %s, owner mismatch", bin)
+
+			return fmt.Errorf("owner check failed for %s", bin)
+		}
+
 		err := syscall.Exec(bin, os.Args, os.Environ()) //nolint:gosec // false positive? There should be no tainted input here
 		if err != nil {
 			return fmt.Errorf("restart failed: %s", err.Error())
