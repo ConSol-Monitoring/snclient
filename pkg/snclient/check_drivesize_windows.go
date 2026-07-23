@@ -441,7 +441,7 @@ func (l *CheckDrivesize) setVolumes(requiredDrives map[string]map[string]string)
 // takes a GUID path of a volume, then finds its path name.
 // it may or may not be mounted directly on a drive letter
 //
-//nolint:funlen // there are a lot of entry attributes
+//nolint:funlen,nestif // there are a lot of entry attributes, error checks while determining 'mounted' attribute
 func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, volumeGUIDPath string, buffer []uint16) {
 	volPtr, err := syscall.UTF16PtrFromString(volumeGUIDPath)
 	if err != nil {
@@ -469,15 +469,13 @@ func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, 
 	}
 	volumePathName := syscall.UTF16ToString(buffer)
 
-	if volumePathName == "" {
-		log.Tracef("volume has no path name, using GUID path as path: %s", volumeGUIDPath)
-		volumePathName = volumeGUIDPath
-	}
-
 	// entry attributes
 	volumeID := volumeGUIDPath
 
 	name := volumePathName
+	if name == "" {
+		name = volumeGUIDPath
+	}
 
 	drive, isDrive, _ := cleanupPathString(volumePathName)
 	if !isDrive {
@@ -505,8 +503,20 @@ func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, 
 	}
 
 	mounted := "0"
-	if letter != "" {
-		mounted = "1"
+	if volumePathName != "" {
+		pathNameUTF16, err := syscall.UTF16PtrFromString(volumePathName)
+		if err != nil {
+			log.Tracef("error converting to utf16 string, volume: '%s' with path: '%s', assuming it is unmounted", volumeGUIDPath, volumePathName)
+		} else {
+			err = windows.GetVolumeInformation(pathNameUTF16, nil, 0, nil, nil, nil, nil, 0)
+			if err != nil {
+				log.Tracef("GetVolumeInformation failed for volume: '%s' with path: '%s', assuming it is unmounted", volumeGUIDPath, volumePathName)
+			} else {
+				mounted = "1"
+			}
+		}
+	} else {
+		log.Tracef("No path exists for volume: '%s', assuming it is unmounted", volumeGUIDPath)
 	}
 
 	if drive != "" {
