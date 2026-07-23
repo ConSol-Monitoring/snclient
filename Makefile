@@ -518,6 +518,7 @@ deb: | dist
 	find ./build-deb -type f -exec chmod 644 {} \; || true
 	chmod 755 \
 		build-deb/usr/bin/snclient \
+		build-deb/etc/init.d/snclient \
 		build-deb/usr/lib/snclient/node_exporter
 	chmod 755 ./build-deb/DEBIAN/{post,pre}*
 
