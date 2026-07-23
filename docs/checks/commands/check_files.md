@@ -65,6 +65,7 @@ Naemon Config
 | file                         | Alias for path                                                                         |
 | follow-symlinks              | Follow symlinks of files and subdirectories while traversing. The file paths will be registered originating from search path. Default: true |
 | max-depth                    | Maximum recursion depth. '0' and '1' disable recursion into subfolders and only include files/directories directly under path., '2' starts to include files/directories of subdirectories with given depth. '-1' disables depth checks. Default: -1  |
+| max-files                    | Maximum number of files to process. Default: 10000                                     |
 | path                         | Path in which to search for files                                                      |
 | paths                        | A comma separated list of paths                                                        |
 | pattern                      | Pattern of files to search for                                                         |
