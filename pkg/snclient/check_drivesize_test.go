@@ -149,3 +149,15 @@ func TestRootDriveSpecializedDriveConditions(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestRootDriveSpecializedDriveConditionsPerfdata(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// Check if the perfdata is printed out according to the specialized conditions
+	res := snc.RunCheck("check_drivesize", []string{"drive=/", "drive=/tmp", "critical='used_pct' gt 99", "critical=drive eq '/tmp' and 'used_pct' gt 1", "warn=none"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+	assert.Regexp(t, `'/ used %'=[^;]+;[^;]*;99;0;100`, string(res.BuildPluginOutput()), `'/tmp used %' perfdata matches`)
+	assert.Regexp(t, `'/tmp used %'=[^;]+;[^;]*;1;0;100`, string(res.BuildPluginOutput()), `'/tmp used %' perfdata matches`)
+
+	StopTestAgent(t, snc)
+}
