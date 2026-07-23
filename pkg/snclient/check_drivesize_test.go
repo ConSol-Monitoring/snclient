@@ -83,3 +83,69 @@ func TestNonexistingDrive(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestRootDriveThresholdsDrivePercentSign(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// This tests the conditions using '[drive] used %' keyword
+	res := snc.RunCheck("check_drivesize", []string{"drive=/", "warn='/ used %' >= 0", "crit=none"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state should be WARNING")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "crit='/ used %' >= 0"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "warn='/ used %' >= 0", "crit='/ used %' >= 0"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "warn='/ used %' >= 0", "crit='/ used %' >= 0", "ok='/ used %' >= 0"})
+	assert.Equalf(t, CheckExitOK, res.State, "state should be CRITICAL")
+
+	StopTestAgent(t, snc)
+}
+
+func TestRootDriveThresholdsUsedPct(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// This tests the conditions using '[drive] used_pct' keyword
+	res := snc.RunCheck("check_drivesize", []string{"drive=/", "warn='/ used_pct' >= 0", "crit=none"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state should be WARNING")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "crit='/ used_pct' >= 0"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "warn='/ used_pct' >= 0", "crit='/ used_pct' >= 0"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "warn='/ used_pct' >= 0", "crit='/ used_pct' >= 0", "ok='/ used_pct' >= 0"})
+	assert.Equalf(t, CheckExitOK, res.State, "state should be CRITICAL")
+
+	StopTestAgent(t, snc)
+}
+
+func TestRootDriveThresholdsUsedPercentSign(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// Generic 'used %' keyword, should trigger
+	res := snc.RunCheck("check_drivesize", []string{"drive=/", "warning='used %' gt 0", "critical=none"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state should be WARNING")
+
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "critical='used %' gt 0"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+
+	StopTestAgent(t, snc)
+}
+
+func TestRootDriveSpecializedDriveConditions(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// In critical conditions, the second one is filtered as it contains the drive="/" keyword.
+	// Since such a condition is present, other critical conditions are filtered out for that entry
+	res := snc.RunCheck("check_drivesize", []string{"drive=/", "critical='used %' gt 0", "critical=drive eq '/' and 'used_pct' gt 100"})
+	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
+
+	// Filtering does not work here, since the specialized condition is in the warning threshold, not critical threshold
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "critical='used %' gt 0", "warning=drive eq '/' and 'used_pct' gt 0"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be WARNING")
+
+	StopTestAgent(t, snc)
+}

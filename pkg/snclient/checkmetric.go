@@ -191,7 +191,7 @@ func (m *CheckMetric) BuildCheckData() (data map[string]string) {
 	return data
 }
 
-// Metrics have a defined way for specifying key / values
+// Returns if at least one condition in the conditionList is found to be correct
 //
 //nolint:dogsled // only need corrects list here
 func (m *CheckMetric) CheckForThresholds(conditionList *ConditionList) (result bool) {
@@ -199,5 +199,5 @@ func (m *CheckMetric) CheckForThresholds(conditionList *ConditionList) (result b
 
 	corrects, _, _, _ := conditionList.performMatches(data, true)
 
-	return len(corrects) > 1
+	return len(corrects) > 0
 }
