@@ -44,6 +44,8 @@ func init() {
 	)
 }
 
+var ExporterExporterDebounceDuration = time.Second * 5
+
 type HandlerExporterExporter struct {
 	noCopy                  noCopy
 	handler                 http.Handler
@@ -88,6 +90,12 @@ func (l *HandlerExporterExporter) Listener() *Listener {
 }
 
 func (l *HandlerExporterExporter) Start() error {
+	if l.moduleDir != "" {
+		if l.moduleDirWatcherEnabled {
+			l.WatchModulesConfigDirectory(l.moduleDir)
+		}
+	}
+
 	return l.listener.Start()
 }
 
@@ -151,16 +159,12 @@ func (l *HandlerExporterExporter) Init(snc *Agent, conf *ConfigSection, _ *Confi
 	}
 
 	l.modules = map[string]*exporterModuleConfig{}
-	if moduleDir != "" {
-		modules, err2 := l.readModules(snc, moduleDir)
+	if l.moduleDir != "" {
+		modules, err2 := l.readModules(snc, l.moduleDir)
 		if err2 != nil {
 			return err2
 		}
 		l.modules = modules
-
-		if l.moduleDirWatcherEnabled {
-			l.WatchModulesConfigDirectory(moduleDir)
-		}
 	}
 
 	allowedHosts, err2 := NewAllowedHostConfig(conf)
@@ -716,11 +720,21 @@ func (l *HandlerExporterExporter) WatchModulesConfigDirectory(moduleDir string) 
 }
 
 func (l *HandlerExporterExporter) ModulesConfigDirectoryWatcherFunc(watcher *fsnotify.Watcher) {
-	debounceDuration := time.Second * 5
-	lastSignificantEvent := time.Now()
+	var lastSignificantEvent *fsnotify.Event
+
+	timer := time.NewTimer(ExporterExporterDebounceDuration)
+	timer.Stop()
 
 	for {
 		select {
+		case <-timer.C:
+			timer.Stop()
+			if lastSignificantEvent != nil {
+				log.Tracef("file watcher event, reinitializing due to operation: %s , %s", lastSignificantEvent.Op.String(), lastSignificantEvent.Name)
+				lastSignificantEvent = nil
+				l.reloadModules()
+			}
+
 		case event, ok := <-watcher.Events:
 			if !ok {
 				return
@@ -728,20 +742,21 @@ func (l *HandlerExporterExporter) ModulesConfigDirectoryWatcherFunc(watcher *fsn
 
 			if event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) ||
 				event.Has(fsnotify.Rename) || event.Has(fsnotify.Write) {
-				now := time.Now()
-				if now.Sub(lastSignificantEvent) <= debounceDuration {
-					continue
-				}
-
 				ext := filepath.Ext(event.Name)
 				if ext != ".yml" && ext != ".yaml" {
 					continue
 				}
 
-				lastSignificantEvent = now
-
-				log.Tracef("file watcher event, reinitializing due to operation: %s , %s", event.Op.String(), event.Name)
-				l.reloadModules()
+				// there had been a timer running already
+				if timer.Reset(ExporterExporterDebounceDuration) {
+					// set event, so the time can do a final reload after debouncing
+					lastSignificantEvent = &event
+				} else {
+					// no time running, reload immediately
+					log.Tracef("file watcher event, reinitializing due to operation: %s , %s", event.Op.String(), event.Name)
+					lastSignificantEvent = nil
+					l.reloadModules()
+				}
 			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
