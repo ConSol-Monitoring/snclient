@@ -24,6 +24,8 @@ next:
          - check_logfile: fix crash when using line-split
          - check_logfile: add max line limit when reading log files
          - check_logfile: improve output, better error handling when logfile is not readable
+         - check_ping: fix ipv6 switch
+         - check_ping: add timeout option for each packet
          - fix auto updates when running as snclient user
          - test mode: show warning when using unknown attributes in filter or conditions
          - devuan / debian: bring back sysV init script to support non-systemd systems

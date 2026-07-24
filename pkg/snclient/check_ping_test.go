@@ -14,15 +14,15 @@ CheckBuiltinPlugins = enabled
 `
 	snc := StartTestAgent(t, config)
 
-	res := snc.RunCheck("check_ping", []string{"host=localhost"})
+	res := snc.RunCheck("check_ping", []string{"host=localhost", "packets=1"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(t, `^OK - Packet loss = [\d.]+%, RTA = [\d.]+ms \|'rta'=[\d.]+ms;1000;5000 'pl'=\d+%;30;80;0`, string(res.BuildPluginOutput()), "output matches")
 
-	res = snc.RunCheck("check_ping", []string{"host=10.99.99.99"})
+	res = snc.RunCheck("check_ping", []string{"host=10.99.99.99", "packets=1", "-t", "1"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
 	assert.Regexpf(t, `^CRITICAL - Packet loss = 100(|\.0)% \|'rta'=U 'pl'=100%;30;80;0`, string(res.BuildPluginOutput()), "output matches")
 
-	res = snc.RunCheck("check_ping", []string{"host=should_not_resolve.nowhere"})
+	res = snc.RunCheck("check_ping", []string{"host=should_not_resolve.nowhere", "packets=1"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
 	assert.Regexpf(t, `^UNKNOWN - failed to resolve hostname`, string(res.BuildPluginOutput()), "output matches")
 

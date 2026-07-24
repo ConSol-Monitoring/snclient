@@ -20,6 +20,7 @@ type CheckPing struct {
 	packets  int64
 	ipv4     bool
 	ipv6     bool
+	timeout  int64
 }
 
 func NewCheckPing() CheckHandler {
@@ -40,8 +41,9 @@ func (l *CheckPing) Build() *CheckData {
 		args: map[string]CheckArgument{
 			"host":    {value: &l.hostname, description: "host name or ip address to ping"},
 			"packets": {value: &l.packets, description: "number of ICMP ECHO packets to send (default: 5)"},
+			"-t":      {value: &l.timeout, description: "timeout in seconds for each ICMP ECHO packet"},
 			"-4":      {value: &l.ipv4, description: "Force using IPv4."},
-			"-6":      {value: &l.ipv4, description: "Force using IPv6."},
+			"-6":      {value: &l.ipv6, description: "Force using IPv6."},
 		},
 		defaultFilter:   "none",
 		defaultWarning:  "rta > 1000 || pl > 30",
@@ -108,6 +110,9 @@ func (l *CheckPing) addPingLinux(ctx context.Context, check *CheckData) error {
 	}
 	if l.ipv6 {
 		cmd += " -6"
+	}
+	if l.timeout > 0 {
+		cmd += fmt.Sprintf(" -W %d", l.timeout)
 	}
 
 	command, err := l.snc.MakeCmd(ctx, cmd)
