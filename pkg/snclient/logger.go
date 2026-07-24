@@ -162,10 +162,16 @@ func disableLogsTemporarilyToBuffer(buf *bytes.Buffer) {
 	targetWriter = buf
 	log.SetOutput(targetWriter)
 	restoreTarget = prev
+	if restoreTarget == nil {
+		restoreTarget = os.Stdout
+	}
 }
 
 func restoreLogTarget() {
-	log.SetOutput(restoreTarget)
+	if restoreTarget != nil {
+		log.SetOutput(restoreTarget)
+		restoreTarget = nil
+	}
 }
 
 func setLogFile(snc *Agent, conf *ConfigSection) {
@@ -231,7 +237,11 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 	}
 
 	log.SetFormatter(logFormatter)
-	log.SetOutput(targetWriter)
+	if restoreTarget != nil {
+		restoreTarget = targetWriter
+	} else {
+		log.SetOutput(targetWriter)
+	}
 }
 
 func buildLogHandle(file string) (*os.File, error) {

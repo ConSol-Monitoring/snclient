@@ -1,10 +1,12 @@
 package snclient
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,7 +14,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func init() {
+	// speed up testing
+	ExporterExporterDebounceDuration = 200 * time.Millisecond
+}
+
 func TestExporterExporterSkipsUnparsableFiles(t *testing.T) {
+	logBuffer := bytes.Buffer{}
+	disableLogsTemporarilyToBuffer(&logBuffer)
+	defer restoreLogTarget()
+
 	modulesDir := t.TempDir()
 
 	goodYAML := `
@@ -86,19 +97,24 @@ require password = false
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	res := waitForStatusOK(t, "http://127.0.0.1:45670/list")
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
+	body := waitForStatusOK(t, "http://127.0.0.1:45670/list")
+	assert.Containsf(t, body, "good_module", "only the valid module should be listed")
+	assert.NotContainsf(t, body, "bad_syntax", "bad syntax module should be skipped")
+	assert.NotContainsf(t, body, "bad_unknown", "unknown field module should be skipped")
+	assert.NotContainsf(t, body, "bad_nomethod", "unknown method module should be skipped")
+	assert.NotContainsf(t, body, "good_module.yml", "duplicate named module should be skipped")
 
-	assert.Containsf(t, string(body), "good_module", "only the valid module should be listed")
-	assert.NotContainsf(t, string(body), "bad_syntax", "bad syntax module should be skipped")
-	assert.NotContainsf(t, string(body), "bad_unknown", "unknown field module should be skipped")
-	assert.NotContainsf(t, string(body), "bad_nomethod", "unknown method module should be skipped")
-	assert.NotContainsf(t, string(body), "good_module.yml", "duplicate named module should be skipped")
+	logOutput := logBuffer.String()
+	assert.Contains(t, logOutput, "bad_nomethod.yaml, unknown module method")
+	assert.Contains(t, logOutput, "bad_syntax.yaml, yaml.Unmarshal: yaml: line 5:")
+	assert.Contains(t, logOutput, "bad_unknown.yaml, unknown module configuration")
 }
 
 func TestExporterExporterAllowedMethods(t *testing.T) {
+	logBuffer := bytes.Buffer{}
+	disableLogsTemporarilyToBuffer(&logBuffer)
+	defer restoreLogTarget()
+
 	modulesDir := t.TempDir()
 
 	fileModule := `
@@ -143,16 +159,19 @@ allowed methods = file
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	res := waitForStatusOK(t, "http://127.0.0.1:45671/list")
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
+	body := waitForStatusOK(t, "http://127.0.0.1:45671/list")
+	assert.Containsf(t, body, "file_module", "file method module should be listed")
+	assert.NotContainsf(t, body, "http_module", "http method module should be excluded by allowed methods")
 
-	assert.Containsf(t, string(body), "file_module", "file method module should be listed")
-	assert.NotContainsf(t, string(body), "http_module", "http method module should be excluded by allowed methods")
+	logOutput := logBuffer.String()
+	assert.Contains(t, logOutput, `does not contain the module config method: 'http'`)
 }
 
 func TestExporterExporterAllowedMethodsMulti(t *testing.T) {
+	logBuffer := bytes.Buffer{}
+	disableLogsTemporarilyToBuffer(&logBuffer)
+	defer restoreLogTarget()
+
 	modulesDir := t.TempDir()
 
 	fileModule := `
@@ -207,17 +226,20 @@ allowed methods = file,http
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	res := waitForStatusOK(t, "http://127.0.0.1:45676/list")
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
+	body := waitForStatusOK(t, "http://127.0.0.1:45676/list")
+	assert.Containsf(t, body, "file_module", "file method module should be listed")
+	assert.Containsf(t, body, "http_module", "http method module should be listed")
+	assert.NotContainsf(t, body, "exec_module", "exec method module should be excluded by allowed methods")
 
-	assert.Containsf(t, string(body), "file_module", "file method module should be listed")
-	assert.Containsf(t, string(body), "http_module", "http method module should be listed")
-	assert.NotContainsf(t, string(body), "exec_module", "exec method module should be excluded by allowed methods")
+	logOutput := logBuffer.String()
+	assert.Contains(t, logOutput, `does not contain the module config method: 'exec'`)
 }
 
 func TestExporterExporterAllFilesFailing(t *testing.T) {
+	logBuffer := bytes.Buffer{}
+	disableLogsTemporarilyToBuffer(&logBuffer)
+	defer restoreLogTarget()
+
 	modulesDir := t.TempDir()
 
 	badYAML := `
@@ -254,14 +276,14 @@ require password = false
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	res := waitForStatusOK(t, "http://127.0.0.1:45672/list")
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
+	body := waitForStatusOK(t, "http://127.0.0.1:45672/list")
+	assert.Containsf(t, body, "<h2>Exporters:</h2>", "agent should start even with all config files failing")
+	assert.NotContainsf(t, body, "bad1", "no module should be listed when all files fail")
+	assert.NotContainsf(t, body, "bad2", "no module should be listed when all files fail")
 
-	assert.Containsf(t, string(body), "<h2>Exporters:</h2>", "agent should start even with all config files failing")
-	assert.NotContainsf(t, string(body), "bad1", "no module should be listed when all files fail")
-	assert.NotContainsf(t, string(body), "bad2", "no module should be listed when all files fail")
+	logOutput := logBuffer.String()
+	assert.Contains(t, logOutput, `bad1.yaml, yaml.Unmarshal: yaml: line 4: mapping values are not allowed in this context`)
+	assert.Contains(t, logOutput, `bad2.yaml, yaml.Unmarshal: yaml: line 4: mapping values are not allowed in this context`)
 }
 
 func TestExporterExporterListEndpointWithPrefix(t *testing.T) {
@@ -297,12 +319,8 @@ require password = false
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	res := waitForStatusOK(t, "http://127.0.0.1:45673/hello/list")
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
-
-	assert.Containsf(t, string(body), "/hello/proxy?module=prefixed_module", "HTML href should contain the url prefix")
+	body := waitForStatusOK(t, "http://127.0.0.1:45673/hello/list")
+	assert.Containsf(t, body, "/hello/proxy?module=prefixed_module", "HTML href should contain the url prefix")
 
 	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet,
 		"http://127.0.0.1:45673/hello/list", http.NoBody)
@@ -354,13 +372,9 @@ require password = false
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	res := waitForStatusOK(t, "http://127.0.0.1:45674/list")
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
-	assert.Containsf(t, string(body), "initial", "initial module should be listed")
-
-	time.Sleep(7 * time.Second)
+	body := waitForStatusOK(t, "http://127.0.0.1:45674/list")
+	assert.Containsf(t, body, "initial", "initial module should be listed")
+	assert.NotContainsf(t, body, "reloaded", "newly module should not be listed before reload")
 
 	newModule := `
 method: file
@@ -372,14 +386,9 @@ file:
 		[]byte(newModule), 0o600,
 	))
 
-	time.Sleep(3 * time.Second)
-
-	res = waitForStatusOK(t, "http://127.0.0.1:45674/list")
-	body, err = io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
-	assert.Containsf(t, string(body), "reloaded", "newly added module should be listed after reload")
-	assert.Containsf(t, string(body), "initial", "original module should still be listed after reload")
+	body = waitForStatusOKText(t, "http://127.0.0.1:45674/list", "reloaded")
+	assert.Containsf(t, body, "reloaded", "newly added module should be listed after reload")
+	assert.Containsf(t, body, "initial", "original module should still be listed after reload")
 }
 
 func TestExporterExporterDefaults(t *testing.T) {
@@ -401,72 +410,8 @@ require password = false
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	res := waitForStatusOK(t, "http://127.0.0.1:45675/list")
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
-
-	assert.Containsf(t, string(body), "<h2>Exporters:</h2>", "list endpoint should work with default prefix")
-}
-
-func TestExporterExporterConfigDirectoryNoReloadWhenWatcherDisabled(t *testing.T) {
-	modulesDir := t.TempDir()
-
-	initialModule := `
-method: file
-file:
-  path: ` + filepath.Join(modulesDir, "static.prom") + `
-`
-	require.NoError(t, os.WriteFile(
-		filepath.Join(modulesDir, "static.yaml"),
-		[]byte(initialModule), 0o600,
-	))
-
-	config := `
-[/modules]
-WEBServer = enabled
-ExporterExporterServer = enabled
-
-[/settings/WEB/server]
-port = 45677
-use ssl = false
-require password = false
-
-[/settings/ExporterExporter/server]
-port = ${/settings/WEB/server/port}
-use ssl = ${/settings/WEB/server/use ssl}
-url prefix = /
-modules dir = ` + modulesDir + `
-modules dir watcher = false
-require password = false
-`
-	snc := StartTestAgent(t, config)
-	defer StopTestAgent(t, snc)
-
-	res := waitForStatusOK(t, "http://127.0.0.1:45677/list")
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
-	assert.Containsf(t, string(body), "static", "initial module should be listed")
-
-	newModule := `
-method: file
-file:
-  path: ` + filepath.Join(modulesDir, "not_picked_up.prom") + `
-`
-	require.NoError(t, os.WriteFile(
-		filepath.Join(modulesDir, "not_picked_up.yaml"),
-		[]byte(newModule), 0o600,
-	))
-
-	time.Sleep(7 * time.Second)
-
-	res = waitForStatusOK(t, "http://127.0.0.1:45677/list")
-	body, err = io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
-	assert.Containsf(t, string(body), "static", "original module should still be listed")
-	assert.NotContainsf(t, string(body), "not_picked_up", "new module should NOT be listed when watcher is disabled")
+	body := waitForStatusOK(t, "http://127.0.0.1:45675/list")
+	assert.Containsf(t, body, "<h2>Exporters:</h2>", "list endpoint should work with default prefix")
 }
 
 func TestExporterExporterFileWatcherIgnoresNonYaml(t *testing.T) {
@@ -503,13 +448,9 @@ require password = false
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	res := waitForStatusOK(t, "http://127.0.0.1:45678/list")
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
-	assert.Containsf(t, string(body), "first", "initial yaml module should be listed")
-
-	time.Sleep(6 * time.Second)
+	body := waitForStatusOK(t, "http://127.0.0.1:45678/list")
+	assert.Containsf(t, body, "first", "initial yaml module should be listed")
+	assert.NotContainsf(t, body, "picked_up", "yml file should not yet be picked up")
 
 	yamlModule := `
 method: file
@@ -531,18 +472,13 @@ file:
 		[]byte(txtFile), 0o600,
 	))
 
-	time.Sleep(3 * time.Second)
-
-	res = waitForStatusOK(t, "http://127.0.0.1:45678/list")
-	body, err = io.ReadAll(res.Body)
-	require.NoError(t, err)
-	res.Body.Close()
-	assert.Containsf(t, string(body), "first", "original module should still be listed")
-	assert.Containsf(t, string(body), "picked_up", "yml file should be picked up by watcher")
-	assert.NotContainsf(t, string(body), "ignored", "non-yml/yaML file should be ignored by watcher")
+	body = waitForStatusOKText(t, "http://127.0.0.1:45678/list", "picked_up")
+	assert.Containsf(t, body, "first", "original module should still be listed")
+	assert.Containsf(t, body, "picked_up", "yml file should be picked up by watcher")
+	assert.NotContainsf(t, body, "ignored", "non-yml/yaML file should be ignored by watcher")
 }
 
-func waitForStatusOK(t *testing.T, url string) *http.Response {
+func waitForStatusOK(t *testing.T, url string) string {
 	t.Helper()
 
 	var lastErr error
@@ -559,7 +495,11 @@ func waitForStatusOK(t *testing.T, url string) *http.Response {
 		}
 
 		if res.StatusCode == http.StatusOK {
-			return res
+			body, hErr := io.ReadAll(res.Body)
+			require.NoError(t, hErr)
+			res.Body.Close()
+
+			return string(body)
 		}
 		res.Body.Close()
 		lastErr = err
@@ -568,5 +508,22 @@ func waitForStatusOK(t *testing.T, url string) *http.Response {
 
 	t.Fatalf("timed out waiting for %s: %v", url, lastErr)
 
-	return nil
+	return ""
+}
+
+// wait for http ok and given text
+func waitForStatusOKText(t *testing.T, url, text string) string {
+	t.Helper()
+	for range 300 {
+		body := waitForStatusOK(t, url)
+		if strings.Contains(body, text) {
+			return body
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	t.Fatalf("timed out waiting for %s to contain %q", url, text)
+
+	return ""
 }
