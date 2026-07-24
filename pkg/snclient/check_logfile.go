@@ -423,13 +423,14 @@ func (c *CheckLogFile) getCustomSplitFunction() bufio.SplitFunc {
 	}
 
 	delim := []byte(c.LineDelimiter)
+	lenD := len(delim)
 
 	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
 			return 0, nil, nil
 		}
 		if i := bytes.Index(data, delim); i >= 0 {
-			return i + 1, data[0:i], nil
+			return i + lenD, data[0:i], nil
 		}
 
 		// If we're at EOF, we have a final, non-terminated line. Return it.
