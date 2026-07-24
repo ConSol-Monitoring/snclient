@@ -65,8 +65,8 @@ func (ahc *AllowedHostConfig) Check(ctx context.Context, remoteAddr string) bool
 		return false
 	}
 
-	for _, allow := range ahc.Allowed {
-		if allow.Contains(ctx, addr, ahc.UseCache) {
+	for i := range ahc.Allowed {
+		if ahc.Allowed[i].Contains(ctx, addr, ahc.UseCache) {
 			return true
 		}
 	}
