@@ -140,7 +140,7 @@ func TestRootDriveSpecializedDriveConditions(t *testing.T) {
 
 	// In critical conditions, the second one is filtered as it contains the drive="/" keyword.
 	// Since such a condition is present, other critical conditions are filtered out for that entry
-	res := snc.RunCheck("check_drivesize", []string{"drive=/", "critical='used %' gt 0", "critical=drive eq '/' and 'used_pct' gt 100"})
+	res := snc.RunCheck("check_drivesize", []string{"drive=/", "critical='used %' gt 0", "warning=none", "critical=drive eq '/' and 'used_pct' gt 100"})
 	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
 
 	// Filtering does not work here, since the specialized condition is in the warning threshold, not critical threshold
