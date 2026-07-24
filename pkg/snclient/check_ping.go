@@ -104,7 +104,7 @@ func (l *CheckPing) addSources(ctx context.Context, check *CheckData) (err error
 
 // run linux ping command
 func (l *CheckPing) addPingLinux(ctx context.Context, check *CheckData) error {
-	cmd := fmt.Sprintf("ping -c %d '%s'", l.packets, l.hostname)
+	cmd := fmt.Sprintf("ping -c %d", l.packets)
 	if l.ipv4 {
 		cmd += " -4"
 	}
@@ -114,6 +114,7 @@ func (l *CheckPing) addPingLinux(ctx context.Context, check *CheckData) error {
 	if l.timeout > 0 {
 		cmd += fmt.Sprintf(" -W %d", l.timeout)
 	}
+	cmd += fmt.Sprintf(" '%s'", l.hostname)
 
 	command, err := l.snc.MakeCmd(ctx, cmd)
 	if err != nil {
@@ -135,13 +136,17 @@ func (l *CheckPing) addPingLinux(ctx context.Context, check *CheckData) error {
 
 // run ping command on windows
 func (l *CheckPing) addPingWindows(ctx context.Context, check *CheckData) error {
-	cmd := fmt.Sprintf("ping.exe -n %d '%s'", l.packets, l.hostname)
+	cmd := fmt.Sprintf("ping.exe -n %d", l.packets)
 	if l.ipv4 {
 		cmd += " -4"
 	}
 	if l.ipv6 {
 		cmd += " -6"
 	}
+	if l.timeout > 0 {
+		cmd += fmt.Sprintf(" -w %d", l.timeout)
+	}
+	cmd += fmt.Sprintf(" '%s'", l.hostname)
 
 	command, err := l.snc.MakeCmd(ctx, cmd)
 	if err != nil {
