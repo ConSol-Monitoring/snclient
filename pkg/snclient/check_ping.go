@@ -112,7 +112,12 @@ func (l *CheckPing) addPingLinux(ctx context.Context, check *CheckData) error {
 		cmd += " -6"
 	}
 	if l.timeout > 0 {
-		cmd += fmt.Sprintf(" -W %d", l.timeout)
+		switch runtime.GOOS {
+		case "linux":
+			cmd += fmt.Sprintf(" -W %d", l.timeout)
+		case "darwin", "freebsd":
+			cmd += fmt.Sprintf(" -W %d", l.timeout*1000)
+		}
 	}
 	cmd += fmt.Sprintf(" '%s'", l.hostname)
 
@@ -144,7 +149,7 @@ func (l *CheckPing) addPingWindows(ctx context.Context, check *CheckData) error 
 		cmd += " -6"
 	}
 	if l.timeout > 0 {
-		cmd += fmt.Sprintf(" -w %d", l.timeout)
+		cmd += fmt.Sprintf(" -w %d", l.timeout*1000)
 	}
 	cmd += fmt.Sprintf(" '%s'", l.hostname)
 
