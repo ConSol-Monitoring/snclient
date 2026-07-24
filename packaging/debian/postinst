@@ -22,7 +22,7 @@ case "$1" in
       else
           # Create snclient group if it doesn't exist
           if ! getent group snclient >/dev/null; then
-            addgroup -S snclient
+            addgroup --system snclient
           fi
 
           # Create snclient user if it doesn't exist
