@@ -27,7 +27,7 @@ case "$1" in
 
           # Create snclient user if it doesn't exist
           if ! getent passwd snclient >/dev/null; then
-            adduser -S -D -H -h /var/lib/snclient -s /sbin/nologin -G snclient -g "Secure Naemon Client" snclient
+            adduser --system --disabled-password --no-create-home --home /var/lib/snclient --shell /sbin/nologin --group snclient --comment "Secure Naemon Client" snclient
           fi
       fi
       if [ -x "/usr/bin/systemd-tmpfiles" ]; then
