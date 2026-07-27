@@ -60,7 +60,7 @@ check_dummy_subdir = subdir/check_dummy.EXTENSION 0 "i am ok in my subdir"
 check_chinese = ./chinese.sh
 
 # test some issues
-check_win_none_ex = cmd /c echo scripts\custom\wrapper\timeout.ps1 $ARG1$; exit($lastexitcode) | powershell.exe -ExecutionPolicy ByPass -command -
+check_win_none_ex = cmd /c echo scripts\custom\wrapper\timeout.ps1 $ARG1$; exit($lastexitcode) | powershell.exe -ExecutionPolicy Bypass -command -
 check_win_subargs = t\scripts\check_args.ps1 $ARG1$
 
 [/settings/external scripts/wrapped scripts]

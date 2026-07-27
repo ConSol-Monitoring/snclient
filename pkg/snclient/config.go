@@ -24,7 +24,7 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
-const POWERSHELL = "powershell.exe -nologo -noprofile -WindowStyle hidden -NonInteractive -ExecutionPolicy ByPass"
+const POWERSHELL = "powershell.exe -nologo -noprofile -WindowStyle hidden -NonInteractive -ExecutionPolicy Bypass"
 
 const (
 	// DefaultPassword sets default password, login with default password is not
