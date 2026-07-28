@@ -26,8 +26,6 @@ func TestHTTP(t *testing.T) {
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", "example.com", "-u", "/"})
 
-	t.Logf("output: %s", output.String())
-
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
 	}
@@ -44,8 +42,6 @@ func TestHTTPSAutoNegotiated(t *testing.T) {
 	defer cancel()
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S"})
-
-	t.Logf("output: %s", output.String())
 
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
@@ -68,8 +64,6 @@ func TestHTTPSMaxVersion(t *testing.T) {
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--tls-min", "1.3"})
 
-	t.Logf("output: %s", output.String())
-
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
 	}
@@ -90,8 +84,6 @@ func TestCertificateCheckWarn3Days(t *testing.T) {
 	defer cancel()
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-S", "-C", "3"})
-
-	t.Logf("output: %s", output.String())
 
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
@@ -118,8 +110,6 @@ func TestCertificateCheckWarn100000Days(t *testing.T) {
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-S", "-C", "100000"})
 
-	t.Logf("output: %s", output.String())
-
 	if code != check_http.WARNING {
 		t.Errorf("expected exit code WARNING (1), got %d", code)
 	}
@@ -140,8 +130,6 @@ func TestRegex(t *testing.T) {
 	defer cancel()
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-r", `HRB \d+`})
-
-	t.Logf("output: %s", output.String())
 
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
@@ -165,8 +153,6 @@ func TestRegexLong(t *testing.T) {
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--regex", `HRB \d+`})
 
-	t.Logf("output: %s", output.String())
-
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
 	}
@@ -188,8 +174,6 @@ func TestRegexNoMatch(t *testing.T) {
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--regex", `XYZZY-NONEXISTENT`})
 
-	t.Logf("output: %s", output.String())
-
 	if code != check_http.CRITICAL {
 		t.Errorf("expected exit code CRITICAL (2), got %d", code)
 	}
@@ -210,8 +194,6 @@ func TestRegexiShort(t *testing.T) {
 	defer cancel()
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-R", "consol"})
-
-	t.Logf("output: %s", output.String())
 
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
@@ -235,8 +217,6 @@ func TestRegexiLong(t *testing.T) {
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--regexi", "consol"})
 
-	t.Logf("output: %s", output.String())
-
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
 	}
@@ -258,8 +238,6 @@ func TestBase64String(t *testing.T) {
 
 	// echo "Q29uU29s" | base64 --decode -> ConSol
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--base64-string", "Q29uU29s"})
-
-	t.Logf("output: %s", output.String())
 
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
@@ -283,8 +261,6 @@ func TestStringContent(t *testing.T) {
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-s", "Commercial register"})
 
-	t.Logf("output: %s", output.String())
-
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
 	}
@@ -306,8 +282,6 @@ func TestCertificateChainPerfdata(t *testing.T) {
 	defer cancel()
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-S", "-C", "30"})
-
-	t.Logf("output: %s", output.String())
 
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
@@ -333,8 +307,6 @@ func TestExpectStatusCode(t *testing.T) {
 	defer cancel()
 
 	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-e", "200"})
-
-	t.Logf("output: %s", output.String())
 
 	if code != check_http.OK {
 		t.Errorf("expected exit code OK (0), got %d", code)
