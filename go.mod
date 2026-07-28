@@ -8,6 +8,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/consol-monitoring/check_nsc_web v0.7.6
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-ole/go-ole v1.3.0
@@ -22,7 +23,6 @@ require (
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.7
 	github.com/shirou/gopsutil/v4 v4.26.6
-	github.com/sni/check_http_go v0.0.0-20260610084415-f9915b4a720f
 	github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9
 	github.com/sni/shelltoken v0.0.0-20251121074725-29095f38eced
 	github.com/spf13/cobra v1.10.2
@@ -41,7 +41,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect

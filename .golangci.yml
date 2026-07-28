@@ -61,6 +61,7 @@ linters:
             - Panicf
             - Panic
             - LogStderrf
+            - tracef
     ireturn:
       allow:
         - error
@@ -218,6 +219,9 @@ linters:
         text: 'stringscutprefix:'
       - path: (.+)/.*\.go$
         text: 'G702:|G703:|G704:|G705:'
+      - path: pkg/check_http/.*\.go$
+        text: 'tag is not aligned'
+    # completely ignored imported 3rd party code
     paths:
       - pkg/pdh/pdh.go
 issues:

@@ -102,8 +102,6 @@ github.com/sevlyar/go-daemon v0.1.7 h1:+HAteQuzDBCMkU+re3e73PltoguwDBaRWEGJVGAX3
 github.com/sevlyar/go-daemon v0.1.7/go.mod h1:XFAAg6dLmyBIYW7Gss91IQoNmbvZXAVdrXRP9u9AQu8=
 github.com/shirou/gopsutil/v4 v4.26.6 h1:Mzr/npDtQC/xpeEuQKHZt8Zo9CmPvhTj8nkR8w5TLDs=
 github.com/shirou/gopsutil/v4 v4.26.6/go.mod h1:LZ6ewCSkBqUpvSOf+LsTGnRinC6iaNUNMGBtDkJBaLQ=
-github.com/sni/check_http_go v0.0.0-20260610084415-f9915b4a720f h1:zlCsqEt6+aiwVTTFzFnfWyJ+ADVI4lP73FRxKUvrKD8=
-github.com/sni/check_http_go v0.0.0-20260610084415-f9915b4a720f/go.mod h1:prbOsmz0BMruOcHVlW0orP0DigkVuW+Ay0V/jBYQMjY=
 github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9 h1:UDgM4SP5Fd2PKVRdeUFlA/WRNHkvMNeIx0Nmw7sn21k=
 github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9/go.mod h1:VXyAUYIG8zcjjzf5DO9KlhWTStq/PQZTZfbgW93GOPg=
 github.com/sni/shelltoken v0.0.0-20251121074725-29095f38eced h1:/SNal7qC9zaneSuSU0QXcQdI457IeQZLO2OHuKAulHM=

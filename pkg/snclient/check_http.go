@@ -1,8 +1,6 @@
 package snclient
 
-import (
-	"github.com/sni/check_http_go/pkg/checkhttp"
-)
+import "github.com/consol-monitoring/snclient/pkg/check_http"
 
 func init() {
 	AvailableChecks["check_http"] = CheckEntry{"check_http", NewCheckHTTP}
@@ -13,7 +11,7 @@ func NewCheckHTTP() CheckHandler {
 		name: "check_http",
 		description: `Runs check_http to perform http(s) checks
 It basically wraps the plugin from https://github.com/sni/check_http_go`,
-		check:    checkhttp.Check,
+		check:    check_http.Check,
 		docTitle: `check_http`,
 		usage:    `check_http [<options>]`,
 		exampleDefault: `

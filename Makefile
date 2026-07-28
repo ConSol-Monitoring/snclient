@@ -233,7 +233,7 @@ rsrc_windows_arm64.syso: winres | tools
 test: vendor
 	CGO_ENABLED=$(CGO_ENABLED) $(GO) test -short -v $(TEST_FLAGS) ./pkg/* ./pkg/*/commands
 	if grep -Irn TODO: ./cmd/ ./pkg/ ./packaging/ ; then exit 1; fi
-	if grep -Irn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
+	if grep -Irn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump | grep -v opts.tracef; then exit 1; fi
 
 # test with filter
 testf: vendor
@@ -258,7 +258,7 @@ citest: tools vendor
 	#
 	# Checking remaining debug calls
 	#
-	if grep -Irn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump; then exit 1; fi
+	if grep -Irn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump | grep -v opts.tracef; then exit 1; fi
 	#
 	# Run other subtests
 	#
