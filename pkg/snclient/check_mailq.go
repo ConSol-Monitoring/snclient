@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
@@ -98,9 +99,22 @@ func (l *CheckMailq) addPostfix(ctx context.Context, check *CheckData) error {
 	entry := l.defaultEntry("postfix")
 
 	for _, queue := range []string{"active", "deferred"} {
-		count, size, err := l.folderStats(filepath.Join(queueFolder, queue))
+		entry[queue] = "0"
+		entry[queue+"_size"] = "0"
+
+		srcPath := filepath.Join(queueFolder, queue)
+		_, err := os.Stat(srcPath)
+		if os.IsNotExist(err) {
+			log.Debugf("checking folder %s failed: %s", queue, err.Error())
+
+			continue
+		}
+
+		count, size, err := l.folderStats(srcPath)
 		if err != nil {
 			log.Debugf("checking folder %s failed: %s", queue, err.Error())
+
+			entry["_error"] = err.Error()
 		}
 		entry[queue] = fmt.Sprintf("%d", count)
 		entry[queue+"_size"] = fmt.Sprintf("%d", size)
@@ -205,7 +219,7 @@ func (l *CheckMailq) folderStats(folder string) (count, size int64, err error) {
 		return nil
 	})
 	if err != nil {
-		return 0, 0, fmt.Errorf("error walking directory %s: %s", folder, err.Error())
+		return 0, 0, fmt.Errorf("error walking directory %s: %w", folder, err)
 	}
 
 	return count, size, nil
