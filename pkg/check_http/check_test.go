@@ -14,10 +14,7 @@ const (
 	testURI  = "/impressum/"
 )
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestHTTP(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -36,10 +33,7 @@ func TestHTTP(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestHTTPSAutoNegotiated(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -62,10 +56,7 @@ func TestHTTPSAutoNegotiated(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestHTTPSMaxVersion(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -88,10 +79,7 @@ func TestHTTPSMaxVersion(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestCertificateCheckWarn3Days(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -118,10 +106,7 @@ func TestCertificateCheckWarn3Days(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestCertificateCheckWarn100000Days(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -144,10 +129,7 @@ func TestCertificateCheckWarn100000Days(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestRegex(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -171,8 +153,6 @@ func TestRegex(t *testing.T) {
 }
 
 func TestRegexLong(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -196,10 +176,7 @@ func TestRegexLong(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestRegexNoMatch(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -222,10 +199,7 @@ func TestRegexNoMatch(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestRegexiShort(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -249,8 +223,6 @@ func TestRegexiShort(t *testing.T) {
 }
 
 func TestRegexiLong(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -274,10 +246,7 @@ func TestRegexiLong(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestBase64String(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -302,10 +271,7 @@ func TestBase64String(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestStringContent(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -329,10 +295,7 @@ func TestStringContent(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestCertificateChainPerfdata(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -359,10 +322,7 @@ func TestCertificateChainPerfdata(t *testing.T) {
 	}
 }
 
-//nolint:wsl,wsl_v5 // test boilerplate follows standard pattern
 func TestExpectStatusCode(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
