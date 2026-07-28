@@ -1,4 +1,4 @@
-package check_http_test
+package check_http
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/consol-monitoring/snclient/pkg/check_http"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -24,11 +25,9 @@ func TestHTTP(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", "example.com", "-u", "/"})
+	code := Check(ctx, &output, []string{"check_http", "-H", "example.com", "-u", "/"})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
 }
 
 func TestHTTPSAutoNegotiated(t *testing.T) {
@@ -41,15 +40,10 @@ func TestHTTPSAutoNegotiated(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S"})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S"})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
-
-	if !strings.Contains(output.String(), "HTTP OK") {
-		t.Errorf("expected output to contain 'HTTP OK'")
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
+	assert.Containsf(t, output.String(), "HTTP OK", "expected output to contain 'HTTP OK'")
 }
 
 func TestHTTPSMaxVersion(t *testing.T) {
@@ -62,18 +56,13 @@ func TestHTTPSMaxVersion(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--tls-min", "1.3"})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--tls-min", "1.3"})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
-
-	if !strings.Contains(output.String(), "HTTP OK") {
-		t.Errorf("expected output to contain 'HTTP OK'")
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
+	assert.Containsf(t, output.String(), "HTTP OK", "expected output to contain 'HTTP OK'")
 }
 
-func TestCertificateCheckWarn3Days(t *testing.T) {
+func TestHTTPCertificateCheckWarn3Days(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -83,22 +72,14 @@ func TestCertificateCheckWarn3Days(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-S", "-C", "3"})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-S", "-C", "3"})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
-
-	if !strings.Contains(output.String(), "HTTP OK") {
-		t.Errorf("expected output to contain 'HTTP OK'")
-	}
-
-	if !strings.Contains(output.String(), "days_chain_elem1=") {
-		t.Errorf("expected perfdata to contain 'days_chain_elem1='")
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
+	assert.Containsf(t, output.String(), "HTTP OK", "expected output to contain 'HTTP OK'")
+	assert.Containsf(t, output.String(), "days_chain_elem1=", "expected perfdata to contain 'days_chain_elem1='")
 }
 
-func TestCertificateCheckWarn100000Days(t *testing.T) {
+func TestHTTPCertificateCheckWarn100000Days(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -108,18 +89,13 @@ func TestCertificateCheckWarn100000Days(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-S", "-C", "100000"})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-S", "-C", "100000"})
 
-	if code != check_http.WARNING {
-		t.Errorf("expected exit code WARNING (1), got %d", code)
-	}
-
-	if !strings.Contains(output.String(), "HTTP WARNING") {
-		t.Errorf("expected output to contain 'HTTP WARNING'")
-	}
+	require.Equalf(t, WARNING, code, "expected exit code WARNING (1), got %d", code)
+	assert.Containsf(t, output.String(), "HTTP WARNING", "expected output to contain 'HTTP WARNING'")
 }
 
-func TestRegex(t *testing.T) {
+func TestHTTPRegex(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -129,18 +105,13 @@ func TestRegex(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-r", `HRB \d+`})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-r", `HRB \d+`})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
-
-	if !strings.Contains(output.String(), "HRB 97371") {
-		t.Errorf("expected output to contain 'HRB 97371'")
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
+	assert.Containsf(t, output.String(), "HRB 97371", "expected output to contain 'HRB 97371'")
 }
 
-func TestRegexLong(t *testing.T) {
+func TestHTTPRegexLong(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -151,18 +122,13 @@ func TestRegexLong(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--regex", `HRB \d+`})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--regex", `HRB \d+`})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
-
-	if !strings.Contains(output.String(), "HRB 97371") {
-		t.Errorf("expected output to contain 'HRB 97371'")
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
+	assert.Containsf(t, output.String(), "HRB 97371", "expected output to contain 'HRB 97371'")
 }
 
-func TestRegexNoMatch(t *testing.T) {
+func TestHTTPRegexNoMatch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -172,18 +138,13 @@ func TestRegexNoMatch(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--regex", `XYZZY-NONEXISTENT`})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--regex", `XYZZY-NONEXISTENT`})
 
-	if code != check_http.CRITICAL {
-		t.Errorf("expected exit code CRITICAL (2), got %d", code)
-	}
-
-	if !strings.Contains(output.String(), "HTTP CRITICAL") {
-		t.Errorf("expected output to contain 'HTTP CRITICAL'")
-	}
+	require.Equalf(t, CRITICAL, code, "expected exit code CRITICAL (2), got %d", code)
+	assert.Containsf(t, output.String(), "HTTP CRITICAL", "expected output to contain 'HTTP CRITICAL'")
 }
 
-func TestRegexiShort(t *testing.T) {
+func TestHTTPRegexiShort(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -193,18 +154,13 @@ func TestRegexiShort(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-R", "consol"})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-R", "consol"})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
-
-	if !strings.Contains(strings.ToLower(output.String()), "consol") {
-		t.Errorf("expected output to contain 'consol' (case-insensitive)")
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
+	assert.Containsf(t, strings.ToLower(output.String()), "consol", "expected output to contain 'consol' (case-insensitive)")
 }
 
-func TestRegexiLong(t *testing.T) {
+func TestHTTPRegexiLong(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -215,18 +171,13 @@ func TestRegexiLong(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--regexi", "consol"})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--regexi", "consol"})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
-
-	if !strings.Contains(strings.ToLower(output.String()), "consol") {
-		t.Errorf("expected output to contain 'consol' (case-insensitive)")
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
+	assert.Containsf(t, strings.ToLower(output.String()), "consol", "expected output to contain 'consol' (case-insensitive)")
 }
 
-func TestBase64String(t *testing.T) {
+func TestHTTPBase64String(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -237,19 +188,15 @@ func TestBase64String(t *testing.T) {
 	defer cancel()
 
 	// echo "Q29uU29s" | base64 --decode -> ConSol
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--base64-string", "Q29uU29s"})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "--base64-string", "Q29uU29s"})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
 
 	exceptStr := `Response body matched: [base64: 'Q29uU29s' , string: 'ConSol']`
-	if !strings.Contains(output.String(), exceptStr) {
-		t.Errorf("expected output to contain: '%s'", exceptStr)
-	}
+	assert.Containsf(t, output.String(), exceptStr, "expected output to contain: '%s'", exceptStr)
 }
 
-func TestStringContent(t *testing.T) {
+func TestHTTPStringContent(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -259,19 +206,15 @@ func TestStringContent(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-s", "Commercial register"})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-s", "Commercial register"})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
 
 	exceptStr := `Response body matched: [string: 'Commercial register']`
-	if !strings.Contains(output.String(), exceptStr) {
-		t.Errorf("expected output to contain '%s'", exceptStr)
-	}
+	assert.Containsf(t, output.String(), exceptStr, "expected output to contain '%s'", exceptStr)
 }
 
-func TestCertificateChainPerfdata(t *testing.T) {
+func TestHTTPCertificateChainPerfdata(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -281,22 +224,14 @@ func TestCertificateChainPerfdata(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-S", "-C", "30"})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-S", "-C", "30"})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
-
-	if !strings.Contains(output.String(), "days_chain_elem1=") {
-		t.Errorf("expected perfdata to contain 'days_chain_elem1='")
-	}
-
-	if !strings.Contains(output.String(), "days_chain_elem2=") {
-		t.Errorf("expected perfdata to contain 'days_chain_elem2=' for chain cert")
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
+	assert.Containsf(t, output.String(), "days_chain_elem1=", "expected perfdata to contain 'days_chain_elem1='")
+	assert.Containsf(t, output.String(), "days_chain_elem2=", "expected perfdata to contain 'days_chain_elem2=' for chain cert")
 }
 
-func TestExpectStatusCode(t *testing.T) {
+func TestHTTPExpectStatusCode(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
 	}
@@ -306,14 +241,10 @@ func TestExpectStatusCode(t *testing.T) {
 
 	defer cancel()
 
-	code := check_http.Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-e", "200"})
+	code := Check(ctx, &output, []string{"check_http", "-H", testHost, "-u", testURI, "-S", "-e", "200"})
 
-	if code != check_http.OK {
-		t.Errorf("expected exit code OK (0), got %d", code)
-	}
+	require.Equalf(t, OK, code, "expected exit code OK (0), got %d", code)
 
 	expectedStr := `matched option '200'`
-	if !strings.Contains(output.String(), expectedStr) {
-		t.Errorf("expected output to contain '%s'", expectedStr)
-	}
+	assert.Containsf(t, output.String(), expectedStr, "expected output to contain '%s'", expectedStr)
 }
