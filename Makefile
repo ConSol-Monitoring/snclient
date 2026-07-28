@@ -62,7 +62,10 @@ endif
 DEBFILE ?= snclient-$(VERSION)-$(RPM_ARCH).deb
 
 GITBASE=github.com/consol-monitoring/snclient
-BUILD_FLAGS=-ldflags "-s -w -X $(GITBASE)/pkg/snclient.Build=$(BUILD) -X $(GITBASE)/pkg/snclient.Revision=$(REVISION)"
+BUILD_FLAGS=\
+	-ldflags \
+	"-s -w -X $(GITBASE)/pkg/snclient.Build=$(BUILD) -X $(GITBASE)/pkg/snclient.Revision=$(REVISION)" \
+	-tags forceposix
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
 # node_exporter expects armv7, not arm
