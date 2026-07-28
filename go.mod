@@ -23,7 +23,7 @@ require (
 	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sevlyar/go-daemon v0.1.7
 	github.com/shirou/gopsutil/v4 v4.26.6
-	github.com/sni/go-flags v0.0.0-20241025124417-5e271e4d4cc9
+	github.com/sni/go-flags v0.0.0-20260728085005-7fabf5946d2e
 	github.com/sni/shelltoken v0.0.0-20260716060139-9ecb2e79f09d
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
