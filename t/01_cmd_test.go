@@ -50,9 +50,17 @@ func TestCommandFlags(t *testing.T) {
 		Like: []string{`uptime`, `inventory`},
 	})
 
+	// windows like parameters should be parsed posix style on all platforms
 	runCmd(t, &cmd{
 		Cmd:     bin,
 		Args:    []string{"-v", "run", "check_http", "-H", "localhost", "-p", "60666", "--uri=/test"},
+		Like:    []string{`HTTP CRITICAL`},
+		ErrLike: []string{``},
+		Exit:    2,
+	})
+	runCmd(t, &cmd{
+		Cmd:     bin,
+		Args:    []string{"-v", "run", "check_http", "-H", "localhost", "-p", "60666", "-u", "/test"},
 		Like:    []string{`HTTP CRITICAL`},
 		ErrLike: []string{``},
 		Exit:    2,
