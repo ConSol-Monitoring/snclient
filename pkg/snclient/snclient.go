@@ -87,6 +87,10 @@ var (
 	// compile passing -ldflags "-X snclient.Revision <commits>" to set the revision number.
 	Revision = ""
 
+	// Branch contains the git branch name.
+	// compile passing -ldflags "-X snclient.Branch <branch>" to set the branch name.
+	Branch = ""
+
 	// procCmdLineNamePrefixColonRe matches process cmdlines like:
 	// "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
 	// It intentionally requires whitespace after ":" to avoid false positives like "C:\path" or "http://...".
@@ -710,6 +714,9 @@ func (snc *Agent) deletePidFile() {
 
 // Version returns version including Revision number
 func (snc *Agent) Version() string {
+	if Branch != "" && Branch != "main" {
+		return fmt.Sprintf("v0.01.%s", Revision)
+	}
 	if Revision != "" {
 		return fmt.Sprintf("v%s.%s", VERSION, Revision)
 	}

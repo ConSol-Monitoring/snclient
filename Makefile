@@ -12,6 +12,7 @@ GOVERSION:=$(shell \
 MINGOVERSION:=00010026
 MINGOVERSIONSTR:=1.26
 BUILD:=$(shell git rev-parse --short HEAD)
+BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 REVISION:=$(shell ./buildtools/get_version | awk -F . '{ print $$3 }')
 # see https://github.com/go-modules-by-example/index/blob/master/010_tools/README.md
 # and https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
@@ -64,7 +65,7 @@ DEBFILE ?= snclient-$(VERSION)-$(RPM_ARCH).deb
 GITBASE=github.com/consol-monitoring/snclient
 BUILD_FLAGS=\
 	-ldflags \
-	"-s -w -X $(GITBASE)/pkg/snclient.Build=$(BUILD) -X $(GITBASE)/pkg/snclient.Revision=$(REVISION)"
+	"-s -w -X $(GITBASE)/pkg/snclient.Build=$(BUILD) -X $(GITBASE)/pkg/snclient.Revision=$(REVISION) -X $(GITBASE)/pkg/snclient.Branch=$(BRANCH)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
 
 # node_exporter expects armv7, not arm
