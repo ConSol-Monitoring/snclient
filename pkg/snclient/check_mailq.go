@@ -2,10 +2,13 @@ package snclient
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 )
@@ -89,6 +92,15 @@ func (l *CheckMailq) addQueues(ctx context.Context, check *CheckData) (err error
 
 // get queue from postfix
 func (l *CheckMailq) addPostfix(ctx context.Context, check *CheckData) error {
+	entry, err := l.postfixQueueStats(ctx)
+	if err == nil {
+		check.listData = append(check.listData, entry)
+		l.addMetrics(check, entry)
+
+		return nil
+	}
+	log.Debugf("checking postfix queue with postqueue failed: %s", err.Error())
+
 	queueFolder, stderr, rc, err := l.snc.execCommand(ctx, "postconf -h queue_directory", l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return fmt.Errorf("postfix: postconf failed: %s\n%s", err.Error(), stderr)
@@ -96,7 +108,7 @@ func (l *CheckMailq) addPostfix(ctx context.Context, check *CheckData) error {
 	if rc != 0 {
 		return fmt.Errorf("postconf failed: %s\n%s", queueFolder, stderr)
 	}
-	entry := l.defaultEntry("postfix")
+	entry = l.defaultEntry("postfix")
 
 	for _, queue := range []string{"active", "deferred"} {
 		entry[queue] = "0"
@@ -124,6 +136,49 @@ func (l *CheckMailq) addPostfix(ctx context.Context, check *CheckData) error {
 	l.addMetrics(check, entry)
 
 	return nil
+}
+
+func (l *CheckMailq) postfixQueueStats(ctx context.Context) (map[string]string, error) {
+	output, stderr, rc, err := l.snc.execCommand(ctx, "postqueue -j", l.snc.getBuiltinCmdTimeout())
+	if err != nil {
+		return nil, fmt.Errorf("postqueue failed: %s\n%s", err.Error(), stderr)
+	}
+	if rc != 0 {
+		return nil, fmt.Errorf("postqueue failed: %s\n%s", output, stderr)
+	}
+
+	var active, activeSize, deferred, deferredSize int64
+	decoder := json.NewDecoder(strings.NewReader(output))
+	for {
+		var item struct {
+			QueueName   string `json:"queue_name"`
+			MessageSize int64  `json:"message_size"`
+		}
+		err := decoder.Decode(&item)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("could not parse postqueue output: %w", err)
+		}
+
+		switch item.QueueName {
+		case "active":
+			active++
+			activeSize += item.MessageSize
+		default:
+			deferred++
+			deferredSize += item.MessageSize
+		}
+	}
+
+	entry := l.defaultEntry("postfix")
+	entry["active"] = fmt.Sprintf("%d", active)
+	entry["active_size"] = fmt.Sprintf("%d", activeSize)
+	entry["deferred"] = fmt.Sprintf("%d", deferred)
+	entry["deferred_size"] = fmt.Sprintf("%d", deferredSize)
+
+	return entry, nil
 }
 
 func (l *CheckMailq) defaultEntry(source string) map[string]string {

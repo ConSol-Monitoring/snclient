@@ -16,6 +16,15 @@ Checks the mailq.
 |:-------:|:------------------:|:------------------:|:------------------:|
 |         | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
+Postfix queues are read using `postqueue -j`. The user running SNClient must be
+allowed by `authorized_mailq_users` (default: `static:anyone`). For restricted
+setups, add the user to the list, for example `authorized_mailq_users = snclient`.
+
+Active messages are reported as `active`; all other queue states, including
+`hold`, are reported as `deferred`. If `postqueue` fails, the check falls back
+to reading the `active` and `deferred` directories below `queue_directory`. It
+returns `UNKNOWN` if these directories cannot be read.
+
 ## Examples
 
 ### Default Check
