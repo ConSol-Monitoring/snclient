@@ -490,7 +490,7 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 	}
 
 	freePct := float64(0)
-	usedPct := float64(0)
+	usedPct := float64(100)
 	if total > 0 {
 		freePct = float64(usage.Free) * 100 / float64(total)
 		usedPct = float64(usage.Used) * 100 / float64(total)
