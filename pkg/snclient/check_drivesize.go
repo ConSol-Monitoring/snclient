@@ -534,6 +534,24 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 	}
 
 	l.addMetrics(metricPrefix, drive, check, usage, magic)
+
+	// Add drive-prefixed copies of metric keys so conditions like "/boot used % > 10" can match the entry during entry-level checks.
+	prefixedKeys := make(map[string]string)
+	for k, v := range drive {
+		if strings.HasPrefix(k, "_") {
+			continue
+		}
+		switch k {
+		case "drive", "drive_or_id", "drive_or_name", "drive_or_name_or_id",
+			"id", "name", "fstype", "flags", "mounted",
+			"media_type", "type", "readable", "writable", "removable",
+			"erasable", "hotplug", "remote_name", "persistent",
+			"localised_remote_path", "perflabel_prefix", "letter", "opts":
+			continue
+		}
+		prefixedKeys[metricPrefix+" "+k] = v
+	}
+	maps.Copy(drive, prefixedKeys)
 }
 
 func (l *CheckDrivesize) getFlagNames(drive map[string]string) []string {
