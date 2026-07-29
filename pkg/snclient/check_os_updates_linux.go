@@ -115,12 +115,17 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 		return false, nil
 	}
 
+	// check requires root permission or capabilities
+	if os.Geteuid() != 0 && !HasCapabilities() {
+		return false, fmt.Errorf("check_os_updates requires root permissions or cap_setuid/cap_setgid")
+	}
+
 	yumOpts := " -C"
 	if l.update {
 		yumOpts = ""
 	}
 
-	output, stderr, exitCode, err := l.snc.execCommand(ctx, "yum check-update --security -q"+yumOpts, l.snc.getBuiltinCmdTimeout())
+	output, stderr, exitCode, err := l.snc.execCommandAsRoot(ctx, "yum check-update --security -q"+yumOpts, l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return true, fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
 	}
@@ -129,7 +134,7 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 	}
 	packageLookup := l.parseYUM(output, "1", check, nil)
 
-	output, stderr, exitCode, err = l.snc.execCommand(ctx, "yum check-update -q"+yumOpts, l.snc.getBuiltinCmdTimeout())
+	output, stderr, exitCode, err = l.snc.execCommandAsRoot(ctx, "yum check-update -q"+yumOpts, l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return true, fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
 	}
