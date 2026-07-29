@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint:lll // preserve realistic postqueue JSON output with one queue entry per line
 func TestCheckMailqPostfixJSON(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
