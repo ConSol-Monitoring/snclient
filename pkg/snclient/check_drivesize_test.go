@@ -149,3 +149,35 @@ func TestRootDriveSpecializedDriveConditions(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestDrivesizeSpecializedDriveConditionWithUsedPct(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// Generic condition would trigger (used_pct > 0 always true), but specialized
+	// critical with drive eq '/' and unreachable threshold (> 100) should filter it out
+	res := snc.RunCheck("check_drivesize", []string{
+		"drive=/", "critical=used_pct gt 0", "warning=none",
+		"critical=drive eq '/' and used_pct gt 100",
+	})
+	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
+
+	// Without any specialized condition, generic used_pct should trigger
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "critical=used_pct gt 0", "warning=none"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+
+	// Specialized condition only in warning: generic critical should still trigger
+	res = snc.RunCheck("check_drivesize", []string{
+		"drive=/", "critical=used_pct gt 0", "warning=none",
+		"warning=drive eq '/' and used_pct gt 100",
+	})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+
+	// Specialized condition only in critical: generic warning should still trigger
+	res = snc.RunCheck("check_drivesize", []string{
+		"drive=/", "warning=used_pct gt 0", "critical=none",
+		"critical=drive eq '/' and used_pct gt 100",
+	})
+	assert.Equalf(t, CheckExitWarning, res.State, "state should be WARNING")
+
+	StopTestAgent(t, snc)
+}

@@ -1490,6 +1490,25 @@ func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[s
 	return result
 }
 
+// blacklistConditionsNotUsingKeywordIfKeywordIsActive blacklists conditions that do not use the keyword, but only if keyword itself is used in the list and matches the enetry.
+// This is used when at least one condition in the list has the keyword AND matches the entry, indicating a specialized condition is present.
+// In that case, generic conditions (without the keyword) should not apply to this entry, so they will be blacklisted.
+func (cl *ConditionList) blacklistConditionsNotUsingKeywordIfKeywordIsActive(keyword string, entry map[string]string) {
+	_, keywordPresentAndPermitsEntry, conditionThatPermitsEntry := cl.ifKeywordIsPresentAndPermitsEntry(keyword, entry)
+	if !keywordPresentAndPermitsEntry {
+		return
+	}
+
+	for _, condition := range *cl {
+		keywords, _ := condition.GetListOfKeywords()
+		if !slices.Contains(keywords, keyword) {
+			condition.blacklistData = append(condition.blacklistData, entry)
+			log.Tracef("Blacklisting entry for condition lacking '%s' keyword, specialized condition: %q , blacklisted condition: %q , entry: %q",
+				keyword, conditionThatPermitsEntry.DetailedString(), condition.DetailedString(), entry)
+		}
+	}
+}
+
 // returns at first encounter of error
 // calls c.RunFuncRecursively to the conditions in ConditionList
 func (cl *ConditionList) applyFuncToConditions(_func func(c *Condition) error) error {
