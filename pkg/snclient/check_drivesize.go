@@ -483,6 +483,8 @@ func (l *CheckDrivesize) addTotalUserMacros(drive map[string]string) {
 }
 
 // Uses the disk.UsageStat argument and adds its data to the drive
+//
+//nolint:funlen // there are many attributes to add
 func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]string, usage *disk.UsageStat, magic float64) {
 	total := usage.Total
 	if !l.freespaceIgnoreReserved {
@@ -537,11 +539,11 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 
 	// Add drive-prefixed copies of metric keys so conditions like "/boot used % > 10" can match the entry during entry-level checks.
 	prefixedKeys := make(map[string]string)
-	for k, v := range drive {
-		if strings.HasPrefix(k, "_") {
+	for attributeKey, value := range drive {
+		if strings.HasPrefix(attributeKey, "_") {
 			continue
 		}
-		switch k {
+		switch attributeKey {
 		case "drive", "drive_or_id", "drive_or_name", "drive_or_name_or_id",
 			"id", "name", "fstype", "flags", "mounted",
 			"media_type", "type", "readable", "writable", "removable",
@@ -549,7 +551,7 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 			"localised_remote_path", "perflabel_prefix", "letter", "opts":
 			continue
 		}
-		prefixedKeys[metricPrefix+" "+k] = v
+		prefixedKeys[metricPrefix+" "+attributeKey] = value
 	}
 	maps.Copy(drive, prefixedKeys)
 }
