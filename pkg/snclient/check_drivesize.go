@@ -501,14 +501,18 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 	drive["used"] = humanize.IBytesF(uint64(magic*float64(usage.Used)), 3)
 	drive["used_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Used)))
 	drive["used_pct"] = fmt.Sprintf("%f", usedPct)
+	drive["used %"] = fmt.Sprintf("%f", usedPct)
 	drive["free"] = humanize.IBytesF(uint64(magic*float64(usage.Free)), 3)
 	drive["free_bytes"] = fmt.Sprintf("%d", uint64(magic*float64(usage.Free)))
 	drive["free_pct"] = fmt.Sprintf("%f", freePct)
+	drive["free %"] = fmt.Sprintf("%f", freePct)
 	drive["inodes_total"] = fmt.Sprintf("%d", usage.InodesTotal)
 	drive["inodes_used"] = fmt.Sprintf("%d", usage.InodesUsed)
 	drive["inodes_free"] = fmt.Sprintf("%d", usage.InodesFree)
 	drive["inodes_used_pct"] = fmt.Sprintf("%f", usage.InodesUsedPercent)
+	drive["inodes_used %"] = fmt.Sprintf("%f", usage.InodesUsedPercent)
 	drive["inodes_free_pct"] = fmt.Sprintf("%f", 100-usage.InodesUsedPercent)
+	drive["inodes_free %"] = fmt.Sprintf("%f", 100-usage.InodesUsedPercent)
 	if drive["fstype"] == "" {
 		drive["fstype"] = usage.Fstype
 	}

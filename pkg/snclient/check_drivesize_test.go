@@ -181,3 +181,21 @@ func TestDrivesizeSpecializedDriveConditionWithUsedPct(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestDrivesizeUsedPercentKeyword(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// 'used %' gt 0 should always trigger
+	res := snc.RunCheck("check_drivesize", []string{"drive=/", "warning=none", "critical='used %' gt 0"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+
+	// 'used %' gt 100 should never trigger
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "warning=none", "critical='used %' gt 100"})
+	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
+
+	// 'used %' keyword with warning
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "warning='used %' gt 0", "critical=none"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state should be WARNING")
+
+	StopTestAgent(t, snc)
+}
