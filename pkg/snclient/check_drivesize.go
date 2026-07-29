@@ -353,6 +353,13 @@ func (l *CheckDrivesize) disableGenerallizedConditionsForDrive(driveName string,
 		// specialized: <drive> <cut> %    generalized: <cut>
 		check.disableGenerallizedConditionsUsingAttributes(entry, `%[2]s %[3]s %%`, `%[3]s`, []string{attribute.name}, driveName, cut)
 	}
+
+	// Also handle conditions that use "drive" keyword in a subcondition e.g:
+	// "drive eq '/boot' and used_pct gt 85"
+	// When such a specialized condition exists, blacklist generic conditions (without "drive" keyword) so they dont work on this entry
+	check.warnThreshold.blacklistConditionsNotUsingKeywordIfKeywordIsActive("drive", entry)
+	check.critThreshold.blacklistConditionsNotUsingKeywordIfKeywordIsActive("drive", entry)
+	check.okThreshold.blacklistConditionsNotUsingKeywordIfKeywordIsActive("drive", entry)
 }
 
 func (l *CheckDrivesize) addMetrics(metricPrefix string, drive map[string]string, check *CheckData, usage *disk.UsageStat, magic float64) {
@@ -483,7 +490,7 @@ func (l *CheckDrivesize) addDriveSizeDetails(check *CheckData, drive map[string]
 	}
 
 	freePct := float64(0)
-	usedPct := float64(0)
+	usedPct := float64(100)
 	if total > 0 {
 		freePct = float64(usage.Free) * 100 / float64(total)
 		usedPct = float64(usage.Used) * 100 / float64(total)
