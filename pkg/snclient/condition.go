@@ -1490,7 +1490,7 @@ func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[s
 	return result
 }
 
-// blacklistConditionsNotUsingKeywordIfKeywordIsActive blacklists conditions that do not use the keyword, but only if keyword itself is used in the list and matches the enetry.
+// blacklistConditionsNotUsingKeywordIfKeywordIsActive blacklists conditions that do not use the keyword, but only if keyword itself is used in the list and matches the entry.
 // This is used when at least one condition in the list has the keyword AND matches the entry, indicating a specialized condition is present.
 // In that case, generic conditions (without the keyword) should not apply to this entry, so they will be blacklisted.
 func (cl *ConditionList) blacklistConditionsNotUsingKeywordIfKeywordIsActive(keyword string, entry map[string]string) {
