@@ -1,10 +1,14 @@
 package snclient
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckAPTUpdates(t *testing.T) {
@@ -52,22 +56,88 @@ Inst steam-libs-i386:i386 [1:1.0.0.78] (1:1.0.0.79 Steam launcher:repo.steampowe
 func TestCheckYUMUpdates(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
-	// mock yum command from output of: yum check-update -q -C
-	tmpPath := MockSystemUtilities(t, map[string]string{
-		"yum": `
-
+	// Mock yum command from output of: yum check-update -q
+	yumOutput := `
 bind-export-libs.x86_64    32:9.11.4-26.P2.el7_9.15       updates
 ca-certificates.noarch     2023.2.60_v7.0.306-72.el7_9    updates
 cronie.x86_64              1.4.11-25.el7_9                updates
 Obsoleting Packages
 grub2-tools.x86_64         1:2.06-70.el9_3.2.rocky.0.2    baseos
-    grub2-tools.x86_64     1:2.06-46.el9.rocky.0.1        @baseos`,
-		"yum_exit": "100",
-	})
-	defer os.RemoveAll(tmpPath)
+    grub2-tools.x86_64     1:2.06-46.el9.rocky.0.1        @baseos`
+	argsFile := mockYUMUtility(t, yumOutput, "", 100)
+	cacheRoot := filepath.Join(t.TempDir(), "cache root's")
+	t.Setenv("CACHE_DIRECTORY", cacheRoot)
+
 	res := snc.RunCheck("check_os_updates", []string{"--system=yum"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "CRITICAL - 3 security updates / 0 updates available. |'security'=3;;0;0 'updates'=0;0;;0", "output matches")
 
+	argsRaw, err := os.ReadFile(argsFile)
+	require.NoError(t, err)
+	args := strings.Split(strings.TrimSpace(string(argsRaw)), "\n")
+	require.Len(t, args, 2)
+
+	cacheDir := filepath.Join(cacheRoot, "dnf")
+	cacheInfo, err := os.Stat(cacheDir)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o700), cacheInfo.Mode().Perm())
+
 	StopTestAgent(t, snc)
+}
+
+func TestCheckYUMUnavailableRepositoriesFail(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	mockYUMUtility(t, "", "Failed to download metadata for repo 'baseos'", 1)
+	t.Setenv("CACHE_DIRECTORY", t.TempDir())
+
+	res := snc.RunCheck("check_os_updates", []string{"--system=yum"})
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Contains(t, string(res.BuildPluginOutput()), "yum check-update failed")
+	assert.Contains(t, string(res.BuildPluginOutput()), "Failed to download metadata for repo 'baseos'")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckYUMRejectsSymlinkedCache(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	mockYUMUtility(t, "", "", 0)
+	cacheRoot := t.TempDir()
+	t.Setenv("CACHE_DIRECTORY", cacheRoot)
+	require.NoError(t, os.Symlink(t.TempDir(), filepath.Join(cacheRoot, "dnf")))
+
+	res := snc.RunCheck("check_os_updates", []string{"--system=yum"})
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Contains(t, string(res.BuildPluginOutput()), "yum cache path")
+	assert.Contains(t, string(res.BuildPluginOutput()), "is not a directory")
+
+	StopTestAgent(t, snc)
+}
+
+func mockYUMUtility(t *testing.T, stdout, stderr string, exitCode int) string {
+	t.Helper()
+
+	tmpPath := MockSystemUtilities(t, map[string]string{"yum": ""})
+	argsFile := filepath.Join(t.TempDir(), "yum-args")
+	t.Setenv("YUM_ARGS_FILE", argsFile)
+
+	script := fmt.Sprintf(`#!/bin/sh
+for arg do
+    printf '<%%s>' "$arg" >> "$YUM_ARGS_FILE"
+done
+printf '\n' >> "$YUM_ARGS_FILE"
+cat <<'YUM_STDOUT'
+%s
+YUM_STDOUT
+cat >&2 <<'YUM_STDERR'
+%s
+YUM_STDERR
+exit %d
+`, stdout, stderr, exitCode)
+	yumPath := filepath.Join(tmpPath, "yum")
+	err := os.WriteFile(yumPath, []byte(script), 0o600)
+	require.NoError(t, err)
+	err = os.Chmod(yumPath, 0o700)
+	require.NoError(t, err)
+
+	return argsFile
 }

@@ -28,6 +28,12 @@ If you only want to be notified about security related updates:
     check_os_updates warn=none crit='count_security > 0'
     CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0
 
+On YUM/DNF systems, repository metadata is stored in a private cache owned by
+the SNClient service user. YUM/DNF refreshes missing or expired metadata without
+requiring root permissions. The **--update** option forces a metadata refresh.
+The check returns **UNKNOWN** if an enabled repository is unavailable, because
+otherwise an incomplete repository set could be reported as having no updates.
+
 ### Example using NRPE and Naemon
 
 Naemon Config

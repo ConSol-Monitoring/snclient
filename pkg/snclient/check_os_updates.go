@@ -64,6 +64,12 @@ If you only want to be notified about security related updates:
 
     check_os_updates warn=none crit='count_security > 0'
     CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0
+
+On YUM/DNF systems, repository metadata is stored in a private cache owned by
+the SNClient service user. YUM/DNF refreshes missing or expired metadata without
+requiring root permissions. The **--update** option forces a metadata refresh.
+The check returns **UNKNOWN** if an enabled repository is unavailable, because
+otherwise an incomplete repository set could be reported as having no updates.
 	`,
 		exampleArgs: `warn='count > 0' crit='count_security > 0'`,
 	}
@@ -76,6 +82,9 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 
 	if addedOsBackendCount == 0 {
 		return nil, fmt.Errorf("no suitable package system found, supported systems are apt, yum, osx and windows. found errors: %w", osBackendAddErr)
+	}
+	if osBackendAddErr != nil {
+		return nil, osBackendAddErr
 	}
 
 	count := 0
