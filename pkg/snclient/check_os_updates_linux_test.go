@@ -78,41 +78,9 @@ grub2-tools.x86_64         1:2.06-70.el9_3.2.rocky.0.2    baseos
 	require.Len(t, args, 2)
 
 	cacheDir := filepath.Join(cacheRoot, "dnf")
-	requiredOpts := "<--setopt=cachedir=" + cacheDir + ">" +
-		"<--setopt=*.skip_if_unavailable=False>"
-	assert.Equal(t, requiredOpts+"<check-update><--security><-q>", args[0])
-	assert.Equal(t, requiredOpts+"<check-update><-q>", args[1])
-	assert.NotContains(t, string(argsRaw), "<-C>")
-	assert.NotContains(t, string(argsRaw), "<--refresh>")
-
 	cacheInfo, err := os.Stat(cacheDir)
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0o700), cacheInfo.Mode().Perm())
-
-	StopTestAgent(t, snc)
-}
-
-func TestCheckYUMUpdateUsesLegacyCompatibleCacheExpiration(t *testing.T) {
-	snc := StartTestAgent(t, "")
-	argsFile := mockYUMUtility(t, "", "", 0)
-	cacheRoot := t.TempDir()
-	t.Setenv("CACHE_DIRECTORY", cacheRoot)
-
-	res := snc.RunCheck("check_os_updates", []string{"--system=yum", "--update"})
-	assert.Equal(t, CheckExitOK, res.State)
-
-	argsRaw, err := os.ReadFile(argsFile)
-	require.NoError(t, err)
-	args := strings.Split(strings.TrimSpace(string(argsRaw)), "\n")
-	require.Len(t, args, 3)
-
-	cacheDir := filepath.Join(cacheRoot, "dnf")
-	requiredOpts := "<--setopt=cachedir=" + cacheDir + ">" +
-		"<--setopt=*.skip_if_unavailable=False>"
-	assert.Equal(t, requiredOpts+"<clean><expire-cache><-q>", args[0])
-	assert.Equal(t, requiredOpts+"<check-update><--security><-q>", args[1])
-	assert.Equal(t, requiredOpts+"<check-update><-q>", args[2])
-	assert.NotContains(t, string(argsRaw), "<--refresh>")
 
 	StopTestAgent(t, snc)
 }

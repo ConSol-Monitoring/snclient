@@ -125,10 +125,10 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 		return true, err
 	}
 
-	yumOpts := fmt.Sprintf(
-		" --setopt=cachedir=%s --setopt='*.skip_if_unavailable=False'",
-		quoteShellArgument(cacheDir),
-	)
+	yumOpts := ""
+	if cacheDir != "" {
+		yumOpts += fmt.Sprintf(" --setopt=cachedir=%q --setopt='*.skip_if_unavailable=False'", cacheDir)
+	}
 	if l.update {
 		// Expiring the private cache before the query forces a metadata refresh
 		// and works with both legacy Yum 3 and DNF.
@@ -139,6 +139,9 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 		if exitCode != 0 {
 			return true, fmt.Errorf("yum cache expiration failed: %s\n%s", output, stderr)
 		}
+	} else {
+		// answer from cache only
+		yumOpts += " --cacheonly"
 	}
 
 	output, stderr, exitCode, err := l.snc.execCommand(ctx, "yum"+yumOpts+" check-update --security -q", l.snc.getBuiltinCmdTimeout())
@@ -163,6 +166,10 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 }
 
 func (l *CheckOSUpdates) yumCacheDir() (string, error) {
+	// root does not require cache folder
+	if os.Geteuid() == 0 {
+		return "", nil
+	}
 	cacheDir := filepath.Join(l.snc.getCacheFolder(), "dnf")
 	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
 		return "", fmt.Errorf("failed to create yum cache directory %s: %w", cacheDir, err)
@@ -183,10 +190,6 @@ func (l *CheckOSUpdates) yumCacheDir() (string, error) {
 	}
 
 	return cacheDir, nil
-}
-
-func quoteShellArgument(value string) string {
-	return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'"
 }
 
 func (l *CheckOSUpdates) parseYUM(output, security string, check *CheckData, skipPackages map[string]bool) map[string]bool {
