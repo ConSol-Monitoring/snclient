@@ -132,9 +132,9 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 	if l.update {
 		// Expiring the private cache before the query forces a metadata refresh
 		// and works with both legacy Yum 3 and DNF.
-		output, stderr, exitCode, err := l.snc.execCommand(ctx, "yum"+yumOpts+" clean expire-cache -q", l.snc.getBuiltinCmdTimeout())
-		if err != nil {
-			return true, fmt.Errorf("yum cache expiration failed: %s\n%s", err.Error(), stderr)
+		output, stderr, exitCode, cacheErr := l.snc.execCommand(ctx, "yum"+yumOpts+" clean expire-cache -q", l.snc.getBuiltinCmdTimeout())
+		if cacheErr != nil {
+			return true, fmt.Errorf("yum cache expiration failed: %s\n%s", cacheErr.Error(), stderr)
 		}
 		if exitCode != 0 {
 			return true, fmt.Errorf("yum cache expiration failed: %s\n%s", output, stderr)

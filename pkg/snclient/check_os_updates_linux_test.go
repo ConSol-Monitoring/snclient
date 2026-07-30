@@ -165,7 +165,10 @@ cat >&2 <<'YUM_STDERR'
 YUM_STDERR
 exit %d
 `, stdout, stderr, exitCode)
-	err := os.WriteFile(filepath.Join(tmpPath, "yum"), []byte(script), 0o700)
+	yumPath := filepath.Join(tmpPath, "yum")
+	err := os.WriteFile(yumPath, []byte(script), 0o600)
+	require.NoError(t, err)
+	err = os.Chmod(yumPath, 0o700)
 	require.NoError(t, err)
 
 	return argsFile
