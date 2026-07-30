@@ -22,7 +22,7 @@ func (l *CheckOSUpdates) addOSBackends(ctx context.Context, check *CheckData) (i
 	err = nil
 
 	aptAdded, aptErr := l.addAPT(ctx, check)
-	if aptAdded && aptErr == nil {
+	if aptAdded {
 		addedCount++
 	}
 	if aptErr != nil {
@@ -30,7 +30,7 @@ func (l *CheckOSUpdates) addOSBackends(ctx context.Context, check *CheckData) (i
 	}
 
 	yumAdded, yumErr := l.addYUM(ctx, check)
-	if yumAdded && yumErr == nil {
+	if yumAdded {
 		addedCount++
 	}
 	if yumErr != nil {

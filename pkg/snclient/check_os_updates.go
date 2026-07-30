@@ -83,6 +83,9 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 	if addedOsBackendCount == 0 {
 		return nil, fmt.Errorf("no suitable package system found, supported systems are apt, yum, osx and windows. found errors: %w", osBackendAddErr)
 	}
+	if osBackendAddErr != nil {
+		return nil, osBackendAddErr
+	}
 
 	count := 0
 	countSecurity := 0
