@@ -139,7 +139,11 @@ func (l *CheckMailq) addPostfix(ctx context.Context, check *CheckData) error {
 }
 
 func (l *CheckMailq) postfixQueueStats(ctx context.Context) (map[string]string, error) {
-	output, stderr, rc, err := l.snc.execCommand(ctx, "postqueue -j", l.snc.getBuiltinCmdTimeout())
+	// postqueue requires root permission or capabilities
+	if os.Geteuid() != 0 && !HasCapabilities() {
+		return nil, fmt.Errorf("no permissions for running postqueue")
+	}
+	output, stderr, rc, err := l.snc.execCommandAsRoot(ctx, "/usr/sbin/postqueue -j", l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return nil, fmt.Errorf("postqueue failed: %s\n%s", err.Error(), stderr)
 	}
