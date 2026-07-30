@@ -95,6 +95,9 @@ var (
 	// "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
 	// It intentionally requires whitespace after ":" to avoid false positives like "C:\path" or "http://...".
 	procCmdLineNamePrefixColonRe = regexp.MustCompile(`^([^:\s]+):\s+`)
+
+	// can be used by tests for bypass capabilities check
+	testModeFakeHasCapabilities = false
 )
 
 // MainStateType is used to set different states of the main loop.

@@ -13,6 +13,11 @@ import (
 func TestCheckMailqPostfixJSON(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
+	// replace absolute path for testing purpose
+	testModeFakeHasCapabilities = true
+	defer func() { testModeFakeHasCapabilities = false }()
+	postQueuePath = "postqueue"
+
 	// mock postqueue with anonymized output from a real postfix queue
 	tmpPath := MockSystemUtilities(t, map[string]string{
 		"postqueue": `

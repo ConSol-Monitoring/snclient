@@ -14,5 +14,11 @@ func (snc *Agent) execCommandAsRoot(ctx context.Context, command string, timeout
 
 // HasCapabilities returns false on non-Linux OSes.
 func HasCapabilities() bool {
+	if testModeFakeHasCapabilities {
+		log.Debug("has capabilities override enabled for testing")
+
+		return true
+	}
+
 	return false
 }

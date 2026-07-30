@@ -17,6 +17,8 @@ func init() {
 	AvailableChecks["check_mailq"] = CheckEntry{"check_mailq", NewCheckMailq}
 }
 
+var postQueuePath = "/usr/sbin/postqueue"
+
 type CheckMailq struct {
 	snc *Agent
 	mta string
@@ -143,7 +145,7 @@ func (l *CheckMailq) postfixQueueStats(ctx context.Context) (map[string]string, 
 	if os.Geteuid() != 0 && !HasCapabilities() {
 		return nil, fmt.Errorf("no permissions for running postqueue")
 	}
-	output, stderr, rc, err := l.snc.execCommandAsRoot(ctx, "/usr/sbin/postqueue -j", l.snc.getBuiltinCmdTimeout())
+	output, stderr, rc, err := l.snc.execCommandAsRoot(ctx, postQueuePath+" -j", l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return nil, fmt.Errorf("postqueue failed: %s\n%s", err.Error(), stderr)
 	}

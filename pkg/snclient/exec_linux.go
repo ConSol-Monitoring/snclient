@@ -20,7 +20,10 @@ func (snc *Agent) execCommandAsRoot(ctx context.Context, command string, timeout
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
-	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: 0, Gid: 0}
+	if !testModeFakeHasCapabilities {
+		// do not require capabilities when overridden for testing
+		cmd.SysProcAttr.Credential = &syscall.Credential{Uid: 0, Gid: 0}
+	}
 
 	stdout, stderr, exitCode, _, err = snc.runExternalCommand(ctx, cmd, timeout)
 
@@ -29,6 +32,11 @@ func (snc *Agent) execCommandAsRoot(ctx context.Context, command string, timeout
 
 // HasCapabilities returns true if the process possesses CAP_SETUID and CAP_SETGID.
 func HasCapabilities() bool {
+	if testModeFakeHasCapabilities {
+		log.Debug("has capabilities override enabled for testing")
+
+		return true
+	}
 	header := unix.CapUserHeader{
 		Version: unix.LINUX_CAPABILITY_VERSION_3,
 		Pid:     0, // current process
