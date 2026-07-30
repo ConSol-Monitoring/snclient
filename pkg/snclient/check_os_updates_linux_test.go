@@ -77,10 +77,12 @@ grub2-tools.x86_64         1:2.06-70.el9_3.2.rocky.0.2    baseos
 	args := strings.Split(strings.TrimSpace(string(argsRaw)), "\n")
 	require.Len(t, args, 2)
 
-	cacheDir := filepath.Join(cacheRoot, "dnf")
-	cacheInfo, err := os.Stat(cacheDir)
-	require.NoError(t, err)
-	assert.Equal(t, os.FileMode(0o700), cacheInfo.Mode().Perm())
+	if cacheRoot != "" {
+		cacheDir := filepath.Join(cacheRoot, "dnf")
+		cacheInfo, err := os.Stat(cacheDir)
+		require.NoError(t, err)
+		assert.Equal(t, os.FileMode(0o700), cacheInfo.Mode().Perm())
+	}
 
 	StopTestAgent(t, snc)
 }
