@@ -181,3 +181,59 @@ func TestDrivesizeSpecializedDriveConditionWithUsedPct(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestDrivesizeUsedPercentKeyword(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// 'used %' gt 0 should always trigger
+	res := snc.RunCheck("check_drivesize", []string{"drive=/", "warning=none", "critical='used %' gt 0"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+
+	// 'used %' gt 100 should never trigger
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "warning=none", "critical='used %' gt 100"})
+	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
+
+	// 'used %' keyword with warning
+	res = snc.RunCheck("check_drivesize", []string{"drive=/", "warning='used %' gt 0", "critical=none"})
+	assert.Equalf(t, CheckExitWarning, res.State, "state should be WARNING")
+
+	StopTestAgent(t, snc)
+}
+
+func TestDrivesizeSpecializedEntryInProblemList(t *testing.T) {
+	snc := StartTestAgent(t, "")
+
+	// Specialized critical for / with unreachable threshold:
+	// drive eq '/' and used_pct gt 100
+	// entry should not be in problem_list, no critical triggered.
+	res := snc.RunCheck("check_drivesize", []string{
+		"drive=/",
+		"warning=none",
+		"critical='used %' gt 88",
+		"crit=drive eq '/' and used_pct gt 100",
+	})
+	assert.Equalf(t, CheckExitOK, res.State, "state should be OK")
+	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - ", "output should be OK")
+
+	// Specialized critical for / with reachable threshold:
+	// drive eq '/' and used_pct gt 0
+	// entry should appear in problem_list, exit state CRITICAL.
+	res = snc.RunCheck("check_drivesize", []string{
+		"drive=/",
+		"warning=none",
+		"critical='used %' gt 88",
+		"crit=drive eq '/' and used_pct gt 0",
+	})
+	assert.Equalf(t, CheckExitCritical, res.State, "state should be CRITICAL")
+	output := string(res.BuildPluginOutput())
+	assert.Containsf(t, output, "CRITICAL - / ", "problem list should contain / entry")
+	// Perfdata thresholds: specialized critical (0%) overrides generic (88%), warning is empty (none)
+	assert.Regexpf(
+		t,
+		`/ used %'=[\d.]+%;;0;0;100`,
+		output,
+		"perfdata should use specialized critical threshold 0",
+	)
+
+	StopTestAgent(t, snc)
+}

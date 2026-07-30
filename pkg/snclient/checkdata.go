@@ -238,11 +238,10 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	// Run a separate check on the macros
 	log.Tracef("checking warning, critical, and ok thresholds on check macros")
 	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
-	cd.setStateFromMaps(finalMacros)
-	// Metrics are checked last, which also sets the final state
 	log.Tracef("checking warning, critical, and ok thresholds on check metrics")
 	// metrics save their own warning and critical thresholds, but ok thresholds come from check itself
 	cd.CheckMetrics(cd.okThreshold)
+	cd.setStateFromMaps(finalMacros)
 
 	switch {
 	case cd.result.Output != "":
@@ -506,6 +505,9 @@ func (cd *CheckData) CheckMetrics(okCond ConditionList) {
 		if state > CheckExitOK {
 			log.Debugf("metric.Name: '%s', metric.ThresholdName: '%s', metric.Value: '%v', gave non-ok state: %s", metric.Name, metric.ThresholdName, metric.Value, convert.StateString(state))
 			cd.result.EscalateStatus(state)
+			if metric.Entry != nil {
+				metric.Entry["_state"] = fmt.Sprintf("%d", state)
+			}
 		}
 	}
 }

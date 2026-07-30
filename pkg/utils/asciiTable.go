@@ -170,6 +170,7 @@ func calculateHeaderSize(header []ASCIITableHeader, dataRows reflect.Value, esca
 	}
 
 	avgLargeCol := (maxLineLength - (total - sumTooWide)) / numTooWide
+	avgLargeCol = max(avgLargeCol, 5)
 	for i := range header {
 		if header[i].size > avgAvail {
 			header[i].size = avgLargeCol
@@ -244,7 +245,9 @@ func buildHeader(header []ASCIITableHeader) string {
 		if head.Alignment == "centered" {
 			padding = ":"
 		}
-		fmt.Fprintf(&strBuilder, "|%s%s%s", padding, strings.Repeat("-", head.size), padding)
+		size := head.size
+		size = max(size, 0)
+		fmt.Fprintf(&strBuilder, "|%s%s%s", padding, strings.Repeat("-", size), padding)
 	}
 	strBuilder.WriteString("|\n")
 

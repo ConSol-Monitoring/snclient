@@ -976,7 +976,7 @@ func (c *Condition) TransformMultipleKeywords(srcKeywords []string, targetKeywor
 	}
 	c.keyword = targetKeyword
 	switch {
-	case strings.HasSuffix(found, "_pct"):
+	case strings.HasSuffix(found, "_pct"), strings.HasSuffix(found, " %"):
 		c.unit = "%"
 	case strings.HasSuffix(found, "_bytes"):
 		c.unit = "B"
