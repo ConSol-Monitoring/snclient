@@ -20,14 +20,9 @@ case "$1" in
       if [ -x "/usr/bin/systemd-sysusers" ]; then
           systemd-sysusers
       else
-          # Create snclient group if it doesn't exist
-          if ! getent group snclient >/dev/null; then
-            addgroup --system snclient
-          fi
-
-          # Create snclient user if it doesn't exist
+          # Create snclient user and group if they don't exist
           if ! getent passwd snclient >/dev/null; then
-            adduser --system --disabled-password --no-create-home --home /var/lib/snclient --shell /sbin/nologin --group snclient --comment "Secure Naemon Client" snclient
+            adduser --system --disabled-password --no-create-home --home /var/lib/snclient --shell /sbin/nologin --group --comment "Secure Naemon Client" snclient
           fi
       fi
       if [ -x "/usr/bin/systemd-tmpfiles" ]; then
