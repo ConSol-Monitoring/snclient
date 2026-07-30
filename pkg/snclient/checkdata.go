@@ -217,7 +217,12 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 			// This can possibly set "_state" of each entry, influencing the final state
 			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 		}
+	}
 
+	// metrics save their own warning and critical thresholds, but ok thresholds come from check itself
+	cd.CheckMetrics(cd.okThreshold)
+
+	if len(cd.listData) > 0 {
 		log.Tracef("list data:")
 		logTraceASCIIMap(cd.listData)
 	}
@@ -239,8 +244,6 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	log.Tracef("checking warning, critical, and ok thresholds on check macros")
 	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
 	log.Tracef("checking warning, critical, and ok thresholds on check metrics")
-	// metrics save their own warning and critical thresholds, but ok thresholds come from check itself
-	cd.CheckMetrics(cd.okThreshold)
 	cd.setStateFromMaps(finalMacros)
 
 	switch {
