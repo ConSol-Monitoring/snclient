@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -21,19 +22,23 @@ func (l *CheckOSUpdates) addOSBackends(ctx context.Context, check *CheckData) (i
 	err = nil
 
 	aptAdded, aptErr := l.addAPT(ctx, check)
-	if aptAdded {
+	if aptAdded && aptErr == nil {
 		addedCount++
 	}
 	if aptErr != nil {
-		err = fmt.Errorf("error when adding apt: %w", err)
+		err = fmt.Errorf("error when adding apt: %w", aptErr)
 	}
 
 	yumAdded, yumErr := l.addYUM(ctx, check)
-	if yumAdded {
+	if yumAdded && yumErr == nil {
 		addedCount++
 	}
 	if yumErr != nil {
-		err = fmt.Errorf("%w | error when adding yum: %w", err, yumErr)
+		if err == nil {
+			err = fmt.Errorf("error when adding yum: %w", yumErr)
+		} else {
+			err = fmt.Errorf("%w | error when adding yum: %w", err, yumErr)
+		}
 	}
 
 	return addedCount, err
@@ -115,17 +120,28 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 		return false, nil
 	}
 
-	// check requires root permission or capabilities
-	if os.Geteuid() != 0 && !HasCapabilities() {
-		return false, fmt.Errorf("check_os_updates requires root permissions or cap_setuid/cap_setgid")
+	cacheDir, err := l.yumCacheDir()
+	if err != nil {
+		return true, err
 	}
 
-	yumOpts := " -C"
+	yumOpts := fmt.Sprintf(
+		" --setopt=cachedir=%s --setopt='*.skip_if_unavailable=False'",
+		quoteShellArgument(cacheDir),
+	)
 	if l.update {
-		yumOpts = ""
+		// Expiring the private cache before the query forces a metadata refresh
+		// and works with both legacy Yum 3 and DNF.
+		output, stderr, exitCode, err := l.snc.execCommand(ctx, "yum"+yumOpts+" clean expire-cache -q", l.snc.getBuiltinCmdTimeout())
+		if err != nil {
+			return true, fmt.Errorf("yum cache expiration failed: %s\n%s", err.Error(), stderr)
+		}
+		if exitCode != 0 {
+			return true, fmt.Errorf("yum cache expiration failed: %s\n%s", output, stderr)
+		}
 	}
 
-	output, stderr, exitCode, err := l.snc.execCommandAsRoot(ctx, "yum check-update --security -q"+yumOpts, l.snc.getBuiltinCmdTimeout())
+	output, stderr, exitCode, err := l.snc.execCommand(ctx, "yum"+yumOpts+" check-update --security -q", l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return true, fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
 	}
@@ -134,7 +150,7 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 	}
 	packageLookup := l.parseYUM(output, "1", check, nil)
 
-	output, stderr, exitCode, err = l.snc.execCommandAsRoot(ctx, "yum check-update -q"+yumOpts, l.snc.getBuiltinCmdTimeout())
+	output, stderr, exitCode, err = l.snc.execCommand(ctx, "yum"+yumOpts+" check-update -q", l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return true, fmt.Errorf("yum check-update failed: %s\n%s", err.Error(), stderr)
 	}
@@ -144,6 +160,33 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 	l.parseYUM(output, "0", check, packageLookup)
 
 	return true, nil
+}
+
+func (l *CheckOSUpdates) yumCacheDir() (string, error) {
+	cacheDir := filepath.Join(l.snc.getCacheFolder(), "dnf")
+	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
+		return "", fmt.Errorf("failed to create yum cache directory %s: %w", cacheDir, err)
+	}
+
+	info, err := os.Lstat(cacheDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to inspect yum cache directory %s: %w", cacheDir, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		return "", fmt.Errorf("yum cache path %s is not a directory", cacheDir)
+	}
+	if err := l.snc.checkFileOwner(cacheDir); err != nil {
+		return "", fmt.Errorf("invalid yum cache directory: %w", err)
+	}
+	if err := os.Chmod(cacheDir, 0o700); err != nil {
+		return "", fmt.Errorf("failed to secure yum cache directory %s: %w", cacheDir, err)
+	}
+
+	return cacheDir, nil
+}
+
+func quoteShellArgument(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'"
 }
 
 func (l *CheckOSUpdates) parseYUM(output, security string, check *CheckData, skipPackages map[string]bool) map[string]bool {
