@@ -77,8 +77,10 @@ grub2-tools.x86_64         1:2.06-70.el9_3.2.rocky.0.2    baseos
 	args := strings.Split(strings.TrimSpace(string(argsRaw)), "\n")
 	require.Len(t, args, 2)
 
-	if cacheRoot != "" {
-		cacheDir := filepath.Join(cacheRoot, "dnf")
+	cacheDir := filepath.Join(cacheRoot, "dnf")
+	if os.Geteuid() == 0 {
+		require.NoDirExistsf(t, cacheDir, "cache folder is not in use as root")
+	} else {
 		cacheInfo, err := os.Stat(cacheDir)
 		require.NoError(t, err)
 		assert.Equal(t, os.FileMode(0o700), cacheInfo.Mode().Perm())
