@@ -2,9 +2,7 @@ package snclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -17,7 +15,7 @@ func init() {
 	AvailableChecks["check_mailq"] = CheckEntry{"check_mailq", NewCheckMailq}
 }
 
-var postQueuePath = "/usr/sbin/postqueue"
+var postQueueFolders = []string{"active", "deferred"}
 
 type CheckMailq struct {
 	snc *Agent
@@ -78,7 +76,7 @@ func (l *CheckMailq) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 
 func (l *CheckMailq) addQueues(ctx context.Context, check *CheckData) (err error) {
 	if l.mta == "auto" || l.mta == "postfix" {
-		err = l.addPostfix(ctx, check)
+		err = l.postfixAdd(ctx, check)
 		if err != nil {
 			log.Debugf("failed: postfix: %s", err.Error())
 			if l.mta != "auto" {
@@ -92,101 +90,6 @@ func (l *CheckMailq) addQueues(ctx context.Context, check *CheckData) (err error
 	return err
 }
 
-// get queue from postfix
-func (l *CheckMailq) addPostfix(ctx context.Context, check *CheckData) error {
-	entry, err := l.postfixQueueStats(ctx)
-	if err == nil {
-		check.listData = append(check.listData, entry)
-		l.addMetrics(check, entry)
-
-		return nil
-	}
-	log.Debugf("checking postfix queue with postqueue failed: %s", err.Error())
-
-	queueFolder, stderr, rc, err := l.snc.execCommand(ctx, "postconf -h queue_directory", l.snc.getBuiltinCmdTimeout())
-	if err != nil {
-		return fmt.Errorf("postfix: postconf failed: %s\n%s", err.Error(), stderr)
-	}
-	if rc != 0 {
-		return fmt.Errorf("postconf failed: %s\n%s", queueFolder, stderr)
-	}
-	entry = l.defaultEntry("postfix")
-
-	for _, queue := range []string{"active", "deferred"} {
-		entry[queue] = "0"
-		entry[queue+"_size"] = "0"
-
-		srcPath := filepath.Join(queueFolder, queue)
-		_, err := os.Stat(srcPath)
-		if os.IsNotExist(err) {
-			log.Debugf("checking folder %s failed: %s", queue, err.Error())
-
-			continue
-		}
-
-		count, size, err := l.folderStats(srcPath)
-		if err != nil {
-			log.Debugf("checking folder %s failed: %s", queue, err.Error())
-
-			entry["_error"] = err.Error()
-		}
-		entry[queue] = fmt.Sprintf("%d", count)
-		entry[queue+"_size"] = fmt.Sprintf("%d", size)
-	}
-
-	check.listData = append(check.listData, entry)
-	l.addMetrics(check, entry)
-
-	return nil
-}
-
-func (l *CheckMailq) postfixQueueStats(ctx context.Context) (map[string]string, error) {
-	// postqueue requires root permission or capabilities
-	if os.Geteuid() != 0 && !HasCapabilities() {
-		return nil, fmt.Errorf("no permissions for running postqueue")
-	}
-	output, stderr, rc, err := l.snc.execCommandAsRoot(ctx, postQueuePath+" -j", l.snc.getBuiltinCmdTimeout())
-	if err != nil {
-		return nil, fmt.Errorf("postqueue failed: %s\n%s", err.Error(), stderr)
-	}
-	if rc != 0 {
-		return nil, fmt.Errorf("postqueue failed: %s\n%s", output, stderr)
-	}
-
-	var active, activeSize, deferred, deferredSize int64
-	decoder := json.NewDecoder(strings.NewReader(output))
-	for {
-		var item struct {
-			QueueName   string `json:"queue_name"`
-			MessageSize int64  `json:"message_size"`
-		}
-		err := decoder.Decode(&item)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("could not parse postqueue output: %w", err)
-		}
-
-		switch item.QueueName {
-		case "active":
-			active++
-			activeSize += item.MessageSize
-		default:
-			deferred++
-			deferredSize += item.MessageSize
-		}
-	}
-
-	entry := l.defaultEntry("postfix")
-	entry["active"] = fmt.Sprintf("%d", active)
-	entry["active_size"] = fmt.Sprintf("%d", activeSize)
-	entry["deferred"] = fmt.Sprintf("%d", deferred)
-	entry["deferred_size"] = fmt.Sprintf("%d", deferredSize)
-
-	return entry, nil
-}
-
 func (l *CheckMailq) defaultEntry(source string) map[string]string {
 	return map[string]string{
 		"mta":           source,
@@ -195,6 +98,35 @@ func (l *CheckMailq) defaultEntry(source string) map[string]string {
 		"deferred":      "",
 		"deferred_size": "",
 	}
+}
+
+// get queue stats from postfix
+func (l *CheckMailq) postfixAdd(ctx context.Context, check *CheckData) error {
+	queueFolder, stderr, rc, err := l.snc.execCommand(ctx, "postconf -h queue_directory", l.snc.getBuiltinCmdTimeout())
+	if err != nil {
+		return fmt.Errorf("postfix: postconf failed: %s\n%s", err.Error(), stderr)
+	}
+	if rc != 0 {
+		return fmt.Errorf("postconf failed: %s\n%s", queueFolder, stderr)
+	}
+
+	var entry map[string]string
+	switch {
+	case os.Geteuid() == 0:
+		entry = l.postfixWalkQueueFolder(queueFolder)
+	case HasCapabilities():
+		entry, err = l.postfixRunFindQueueFolder(ctx, queueFolder)
+		if err != nil {
+			return err
+		}
+	}
+
+	if entry != nil {
+		check.listData = append(check.listData, entry)
+		l.addMetrics(check, entry)
+	}
+
+	return nil
 }
 
 func (l *CheckMailq) addMetrics(check *CheckData, entry map[string]string) {
@@ -255,7 +187,34 @@ func (l *CheckMailq) addMetrics(check *CheckData, entry map[string]string) {
 	}
 }
 
-func (l *CheckMailq) folderStats(folder string) (count, size int64, err error) {
+func (l *CheckMailq) postfixWalkQueueFolder(queueFolder string) (entry map[string]string) {
+	entry = l.defaultEntry("postfix")
+	for _, queue := range postQueueFolders {
+		entry[queue] = "0"
+		entry[queue+"_size"] = "0"
+
+		srcPath := filepath.Join(queueFolder, queue)
+		_, err := os.Stat(srcPath)
+		if os.IsNotExist(err) {
+			log.Debugf("checking folder %s failed: %s", queue, err.Error())
+
+			continue
+		}
+
+		count, size, err := l.postfixFolderStats(srcPath)
+		if err != nil {
+			log.Debugf("checking folder %s failed: %s", queue, err.Error())
+
+			entry["_error"] = err.Error()
+		}
+		entry[queue] = fmt.Sprintf("%d", count)
+		entry[queue+"_size"] = fmt.Sprintf("%d", size)
+	}
+
+	return entry
+}
+
+func (l *CheckMailq) postfixFolderStats(folder string) (count, size int64, err error) {
 	err = filepath.WalkDir(folder, func(path string, dir fs.DirEntry, err error) error {
 		if err != nil {
 			log.Debugf("reading folder failed %s: %s", path, err.Error())
@@ -284,4 +243,37 @@ func (l *CheckMailq) folderStats(folder string) (count, size int64, err error) {
 	}
 
 	return count, size, nil
+}
+
+func (l *CheckMailq) postfixRunFindQueueFolder(ctx context.Context, queueFolder string) (entry map[string]string, err error) {
+	entry = l.defaultEntry("postfix")
+
+	for _, queue := range postQueueFolders {
+		entry[queue] = "0"
+		entry[queue+"_size"] = "0"
+
+		output, stderr, rc, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("/usr/bin/find %q -type f -ls", filepath.Join(queueFolder, queue)), l.snc.getBuiltinCmdTimeout())
+		if err != nil {
+			return nil, fmt.Errorf("find failed: %s\n%s", err.Error(), stderr)
+		}
+		if rc != 0 {
+			return nil, fmt.Errorf("find failed: %s\n%s", output, stderr)
+		}
+
+		totalSize := int64(0)
+		count := 0
+		for line := range strings.SplitSeq(output, "\n") {
+			columns := strings.Fields(line)
+			if len(columns) < 7 {
+				continue
+			}
+			totalSize += convert.Int64(columns[6])
+			count++
+		}
+
+		entry[queue] = fmt.Sprintf("%d", count)
+		entry[queue+"_size"] = fmt.Sprintf("%d", totalSize)
+	}
+
+	return entry, nil
 }
