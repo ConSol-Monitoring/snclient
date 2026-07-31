@@ -103,6 +103,9 @@ func TestCheckYUMUnavailableRepositoriesFail(t *testing.T) {
 }
 
 func TestCheckYUMRejectsSymlinkedCache(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skipf("testing as root user does not work because it does not use the cache folder")
+	}
 	snc := StartTestAgent(t, "")
 	mockYUMUtility(t, "", "", 0)
 	cacheRoot := t.TempDir()
