@@ -28,9 +28,9 @@ const (
 func checkCertificate(ctx context.Context, opts *commandOpts, dialFunc func(ctx context.Context, _ string, _ string) (net.Conn, error), tlsConfig *tls.Config) *CheckResult {
 	// For certificate checking, we need to set ServerName for SNI
 	if tlsConfig.ServerName == "" {
-		host, _, err := net.SplitHostPort(opts.Hostname)
+		host, _, err := net.SplitHostPort(opts.flags.Hostname)
 		if err != nil {
-			host = opts.Hostname
+			host = opts.flags.Hostname
 		}
 
 		tlsConfig.ServerName = host
@@ -40,7 +40,7 @@ func checkCertificate(ctx context.Context, opts *commandOpts, dialFunc func(ctx 
 	if err != nil {
 		return &CheckResult{
 			nil,
-			fmt.Sprintf("HTTP CRITICAL - Error connecting to host %s on port %d: %v", opts.IPAddress, opts.Port, err),
+			fmt.Sprintf("HTTP CRITICAL - Error connecting to host %s on port %d: %v", opts.flags.IPAddress, opts.flags.Port, err),
 			CRITICAL,
 		}
 	}
@@ -52,7 +52,7 @@ func checkCertificate(ctx context.Context, opts *commandOpts, dialFunc func(ctx 
 	if handshakeErr != nil {
 		return &CheckResult{
 			nil,
-			fmt.Sprintf("HTTP CRITICAL - TLS handshake failed for host %s on port %d: %v", opts.IPAddress, opts.Port, handshakeErr),
+			fmt.Sprintf("HTTP CRITICAL - TLS handshake failed for host %s on port %d: %v", opts.flags.IPAddress, opts.flags.Port, handshakeErr),
 			CRITICAL,
 		}
 	}
@@ -61,7 +61,7 @@ func checkCertificate(ctx context.Context, opts *commandOpts, dialFunc func(ctx 
 	if len(certs) == 0 {
 		return &CheckResult{
 			nil,
-			fmt.Sprintf("HTTP CRITICAL - No certificate returned from host %s on port %d", opts.IPAddress, opts.Port),
+			fmt.Sprintf("HTTP CRITICAL - No certificate returned from host %s on port %d", opts.flags.IPAddress, opts.flags.Port),
 			CRITICAL,
 		}
 	}
@@ -95,15 +95,15 @@ func checkCertificateChain(opts *commandOpts, certs []*x509.Certificate) *CheckR
 	// Determine the hostname to match against the certificate's CN and SANs.
 	// When SNI is enabled the TLS ServerName is already set in the tls.Config,
 	// but we derive it from opts.Hostname here to match consistently.
-	matchHostname := opts.Hostname
+	matchHostname := opts.flags.Hostname
 
-	host, _, splitErr := net.SplitHostPort(opts.Hostname)
-	if opts.SNI && splitErr == nil {
+	host, _, splitErr := net.SplitHostPort(opts.flags.Hostname)
+	if opts.flags.SNI && splitErr == nil {
 		matchHostname = host
 	}
 
 	for idx, cert := range certs {
-		shouldCheck := idx == 0 || !opts.IgnoreCertificateChain
+		shouldCheck := idx == 0 || !opts.flags.IgnoreCertificateChain
 		// the output of the check_ssl_cert tool indexes from 1
 		perfIndex := idx + 1
 
@@ -115,23 +115,23 @@ func checkCertificateChain(opts *commandOpts, certs []*x509.Certificate) *CheckR
 		if shouldCheck {
 			perfParts = append(perfParts, fmt.Sprintf("days_chain_elem%d=%d;%d;%s;0", perfIndex, daysLeft, opts.certificateWarnDays, critDaysPerfStr))
 
-			if opts.CheckCN {
+			if opts.flags.CheckCN {
 				pushCommonNameCheck(cert, matchHostname, perfIndex, resultsPQ, opts)
 			}
 
-			if opts.CheckSAN {
+			if opts.flags.CheckSAN {
 				pushSubjectAlternativeNameCheck(cert, matchHostname, perfIndex, resultsPQ, opts)
 			}
 
-			if !opts.IgnoreNotBefore {
+			if !opts.flags.IgnoreNotBefore {
 				pushNotBeforeCheck(cert, perfIndex, customTimeLayout, resultsPQ, opts)
 			}
 
-			if !opts.IgnoreNotAfter {
+			if !opts.flags.IgnoreNotAfter {
 				pushNotAfterCheck(cert, opts, perfIndex, customTimeLayout, resultsPQ)
 			}
 
-			if !opts.IgnoreSignatureAlgorithm {
+			if !opts.flags.IgnoreSignatureAlgorithm {
 				// Signature algorithm check.
 				pushSignatureCheck(cert, perfIndex, resultsPQ, opts)
 			}
@@ -151,7 +151,7 @@ func checkCertificateChain(opts *commandOpts, certs []*x509.Certificate) *CheckR
 		subchecks = append(subchecks, top)
 	}
 
-	if opts.Verbose {
+	if opts.flags.Verbose {
 		for sIdx, subcheck := range subchecks {
 			importanceStr := "undefined"
 			if subcheck.resultImportance != nil {

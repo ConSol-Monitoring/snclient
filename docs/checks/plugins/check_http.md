@@ -110,7 +110,6 @@ Application Options:
       --sni                                                       enable SNI
   -4                                                              use tcp4 only
   -6                                                              use tcp6 only
-  -V, --version                                                   Show version
   -v, --verbose                                                   Show verbose output
       --show-body                                                 Print body content below status line
       --ignore-certificate-chain                                  by default all certificates are checked in many
@@ -119,7 +118,7 @@ Application Options:
       --check-cn                                                  Subject Common Name of leaf certificate can be
                                                                   checked to match hostname exactly. Common Name field
                                                                   is now largely unused in modern web, with Subject
-                                                                  Alternative Name fields being more prelavent and used
+                                                                  Alternative Name fields being more prevalent and used
                                                                   instead of Common Name when present. It is not
                                                                   checked by default, use this flag to enable it.
       --check-san                                                 Subject Alternative Names can be checked against the
