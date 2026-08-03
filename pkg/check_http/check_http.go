@@ -68,6 +68,7 @@ type commandOpts struct {
 		Base64ExpectContent      string        `          long:"base64-string"                           description:"Base64 Encoded string to expect the content"`
 		UserAgent                string        `short:"A" long:"useragent"         default:"check_http"  description:"UserAgent to be sent"`
 		Authorization            string        `short:"a" long:"authorization"                           description:"username:password on sites with basic authentication"`
+		Header                   []string      `short:"k" long:"header"                                  description:"Any other tags to be sent in http header. Use multiple times for additional headers"`
 		Certificate              string        `short:"C" long:"certificate"                             description:"check certificates instead of content. Specified in mandatory days left to warn and optional days to crit with a comma: warn_days[,<crit_days>]" `
 		TLSMinVersion            string        `          long:"tls-min"                                 description:"minimum supported TLS version. Values with plus set the max tls version as well to latest version: 1.3" choice:"1.0" choice:"1.0+" choice:"1.1" choice:"1.1+" choice:"1.2" choice:"1.2+" choice:"1.3"`
 		TLSMaxVersion            string        `          long:"tls-max"                                 description:"maximum supported TLS version" choice:"1.0" choice:"1.1" choice:"1.2" choice:"1.3"`
@@ -224,6 +225,14 @@ func buildRequest(ctx context.Context, opts *commandOpts) (*http.Request, error)
 	}
 
 	req.Header.Set("User-Agent", opts.flags.UserAgent)
+
+	// set additional headers
+	for _, hdr := range opts.flags.Header {
+		parts := strings.SplitN(hdr, ":", 2)
+		if len(parts) == 2 {
+			req.Header.Set(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+		}
+	}
 
 	return req, nil
 }

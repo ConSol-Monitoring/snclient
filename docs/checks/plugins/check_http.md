@@ -68,6 +68,8 @@ Application Options:
       --base64-string=                                            Base64 Encoded string to expect the content
   -A, --useragent=                                                UserAgent to be sent (default: check_http)
   -a, --authorization=                                            username:password on sites with basic authentication
+  -k, --header=                                                   Any other tags to be sent in http header. Use
+                                                                  multiple times for additional headers
   -C, --certificate=                                              check certificates instead of content. Specified in
                                                                   mandatory days left to warn and optional days to crit
                                                                   with a comma: warn_days[,<crit_days>]
