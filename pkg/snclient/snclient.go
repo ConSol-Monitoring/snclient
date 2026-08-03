@@ -717,7 +717,7 @@ func (snc *Agent) deletePidFile() {
 
 // Version returns version including Revision number
 func (snc *Agent) Version() string {
-	if Branch != "" && Branch != "main" {
+	if Branch != "" && Branch != "main" && Revision != "" {
 		return fmt.Sprintf("v0.01.%s", Revision)
 	}
 	if Revision != "" {
