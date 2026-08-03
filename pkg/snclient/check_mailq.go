@@ -254,7 +254,14 @@ func (l *CheckMailq) postfixRunFindQueueFolder(ctx context.Context, queueFolder 
 		entry[queue+"_size"] = "0"
 
 		folder := filepath.Join(queueFolder, queue)
+		if containsNastyCharacters(folder, SystemCmdNastyCharacters) {
+			log.Debugf("folder name contains nasty characters: %s", folder)
+
+			continue
+		}
 		if utils.IsFolder(folder) != nil {
+			log.Debugf("not a folder: %s: %s", folder, utils.IsFolder(folder))
+
 			continue
 		}
 
