@@ -1,5 +1,8 @@
 This file documents the revision history for the SNClient agent.
 
+next:
+         - fix github release builds action
+
 0.46     Mon Aug  3 13:55:25 CEST 2026
          - check_http: support additional header
          - check_http: add limits to buffer size and wait time
