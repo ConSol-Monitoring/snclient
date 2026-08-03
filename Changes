@@ -1,6 +1,6 @@
 This file documents the revision history for the SNClient agent.
 
-next:
+0.47     Mon Aug  3 14:24:53 CEST 2026
          - fix github release builds action
 
 0.46     Mon Aug  3 13:55:25 CEST 2026
