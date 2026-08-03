@@ -34,10 +34,13 @@ const (
 )
 
 const (
-	defaultKeepAliveSeconds       = 30
-	defaultIdleConnTimeoutSeconds = 30
-	defaultExpectContinueTimeoutSeconds
-	hoursInDays = 24
+	defaultKeepAliveSeconds             = 30
+	defaultIdleConnTimeoutSeconds       = 30
+	defaultExpectContinueTimeoutSeconds = 30
+	hoursInDays                         = 24
+	maxBufferSizeLimit                  = 100e+6 // 100 MB
+	maxWaitForMax                       = 180 * time.Second
+	maxConsecutive                      = 5
 )
 
 // this struct is big, order fields from big to small and avoid wasting space due to memory packing.
@@ -72,14 +75,14 @@ type commandOpts struct {
 		RegexStr                 string        `short:"r" long:"regex"                                   description:"Search page for case-sensitive regex string"`
 		RegexiStr                string        `short:"R" long:"regexi"                                  description:"Search page for case-insensitive regex string"`
 		Onredirect               string        `short:"f" long:"onredirect"                              description:"What strategy to use when encountering a redirect. ok/warning/critical returns immediately. follow uses the new URL returned by golang HTTP client. Sticky keeps the hostname to be same after redirect, and stickyport persists the port as well." choice:"ok" choice:"warning" choice:"critical" choice:"follow" choice:"sticky" choice:"stickyport"`
-		MaxBufferSize            string        `          long:"max-buffer-size"   default:"1MB"         description:"Max buffer size to read response body"`
+		MaxBufferSize            string        `          long:"max-buffer-size"   default:"1MB"         description:"Max buffer size to read response body (max.: 100MB)"`
 		TimeoutStr               string        `short:"t" long:"timeout"           default:"10"          description:"Timeout to wait for connection. If no time unit is given at the end, default of seconds is assumed"`
 		WarningThresholdStr      string        `short:"w" long:"warning"           default:"30"          description:"If the request+response takes longer specified warning threshold, raises a warning. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
 		CriticalThresholdStr     string        `short:"c" long:"critical"          default:"60"          description:"If the request+response takes longer specified critical threshold, raises a critical. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
 		WaitForInterval          time.Duration `          long:"wait-for-interval" default:"2s"          description:"retry interval"`
-		WaitForMax               time.Duration `          long:"wait-for-max"                            description:"time to wait for success"`
+		WaitForMax               time.Duration `          long:"wait-for-max"                            description:"time to wait for success (max.: 180s)"`
 		Interim                  time.Duration `          long:"interim"           default:"1s"          description:"interval time after successful request for consecutive mode"`
-		Consecutive              int           `          long:"consecutive"       default:"1"           description:"number of consecutive successful requests required"`
+		Consecutive              int           `          long:"consecutive"       default:"1"           description:"number of consecutive successful requests required (max.: 5)"`
 		Port                     int           `short:"p" long:"port"                                    description:"Port number"`
 		MaxRedirects             int           `          long:"max-redirs"                              description:"Maximum redirects before giving up on following"`
 		NoDiscard                bool          `          long:"no-discard"                              description:"raise error when the response body is larger then max-buffer-size"`
@@ -899,18 +902,32 @@ func Check(ctx context.Context, output io.Writer, osArgs []string) int {
 	opts.log, loggerCastOk = ctx.Value(snclientLoggerContextKey).(*factorlog.FactorLog)
 	opts.tracef("extracting logger from context using snclient logger specific key result: %t", loggerCastOk)
 
-	// TODO: check memory exhaustion
 	bufferSize, err := humanize.ParseBytes(opts.flags.MaxBufferSize)
 	if err != nil {
 		fmt.Fprintf(output, "Could not parse max-buffer-size: %v\n", err)
 
 		return UNKNOWN
 	}
+	if bufferSize > maxBufferSizeLimit {
+		fmt.Fprintf(output, "Max-buffer-size exceeds the limit: %d\n", bufferSize)
 
+		return UNKNOWN
+	}
 	opts.bufferSize = bufferSize
 
 	if opts.flags.WaitFor && opts.flags.WaitForMax == 0 {
 		fmt.Fprintf(output, "wait-for-max is required when wait-for is enabled\n")
+
+		return UNKNOWN
+	}
+	if opts.flags.WaitForMax > maxWaitForMax {
+		fmt.Fprintf(output, "wait-for-max exceeds the limit: %s (limit: %s)\n", opts.flags.WaitForMax, maxWaitForMax)
+
+		return UNKNOWN
+	}
+
+	if opts.flags.Consecutive > maxConsecutive {
+		fmt.Fprintf(output, "consecutive exceeds the limit: %d (limit: %d)\n", opts.flags.Consecutive, maxConsecutive)
 
 		return UNKNOWN
 	}

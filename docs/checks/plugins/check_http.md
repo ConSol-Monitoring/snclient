@@ -82,7 +82,8 @@ Application Options:
                                                                   the new URL returned by golang HTTP client. Sticky
                                                                   keeps the hostname to be same after redirect, and
                                                                   stickyport persists the port as well.
-      --max-buffer-size=                                          Max buffer size to read response body (default: 1MB)
+      --max-buffer-size=                                          Max buffer size to read response body (max.: 100MB)
+                                                                  (default: 1MB)
   -t, --timeout=                                                  Timeout to wait for connection. If no time unit is
                                                                   given at the end, default of seconds is assumed
                                                                   (default: 10)
@@ -96,11 +97,11 @@ Application Options:
                                                                   assumed. Value is truncated to milliseconds.
                                                                   (default: 60)
       --wait-for-interval=                                        retry interval (default: 2s)
-      --wait-for-max=                                             time to wait for success
+      --wait-for-max=                                             time to wait for success (max.: 180s)
       --interim=                                                  interval time after successful request for
                                                                   consecutive mode (default: 1s)
       --consecutive=                                              number of consecutive successful requests required
-                                                                  (default: 1)
+                                                                  (max.: 5) (default: 1)
   -p, --port=                                                     Port number
       --max-redirs=                                               Maximum redirects before giving up on following
       --no-discard                                                raise error when the response body is larger then
