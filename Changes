@@ -2,6 +2,11 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - check_http: support additional header
+         - check_http: add limits to buffer size and wait time
+         - check_mailq: fix always showing empty result
+         - check_os_updates: fix checking updates as non-root user
+         - check_drivesize: fix drive specific thresholds
+         - fix flags parsing on windows
 
 0.45     Fri Jul 24 15:22:31 CEST 2026
          - fix command injection in linux (GHSA-7875-572v-h272 / CVE not yet assigned)
