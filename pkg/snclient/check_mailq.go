@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 func init() {
@@ -252,7 +253,12 @@ func (l *CheckMailq) postfixRunFindQueueFolder(ctx context.Context, queueFolder 
 		entry[queue] = "0"
 		entry[queue+"_size"] = "0"
 
-		output, stderr, rc, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("/usr/bin/find %q -type f -ls", filepath.Join(queueFolder, queue)), l.snc.getBuiltinCmdTimeout())
+		folder := filepath.Join(queueFolder, queue)
+		if utils.IsFolder(folder) != nil {
+			continue
+		}
+
+		output, stderr, rc, err := l.snc.execCommandAsRoot(ctx, fmt.Sprintf("/usr/bin/find %q -type f -ls", folder), l.snc.getBuiltinCmdTimeout())
 		if err != nil {
 			return nil, fmt.Errorf("find failed: %s\n%s", err.Error(), stderr)
 		}
