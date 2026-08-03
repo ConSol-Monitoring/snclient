@@ -40,6 +40,8 @@ jobs:
         run: echo "sha=$( git rev-parse --short HEAD )" >> $GITHUB_OUTPUT
       - id: get-version
         run: echo "version=$(./buildtools/get_version)" >> $GITHUB_OUTPUT
+      - id: show-version
+        run: ./buildtools/get_version
 
 
   test-linux:
