@@ -1,10 +1,15 @@
 # SNClient
 
+<div>
+  <img src="https://raw.githubusercontent.com/Consol-Monitoring/snclient/refs/heads/main/docs/logo/snclient_dark.svg?sanitize=true#gh-dark-mode-only" style="height: auto; width: 200px;">
+  <img src="https://raw.githubusercontent.com/Consol-Monitoring/snclient/refs/heads/main/docs/logo/snclient.svg?sanitize=true#gh-light-mode-only" style="height: auto; width: 200px;">
+</div>
+
 [![CICD Pipeline](https://github.com/Consol-Monitoring/snclient/actions/workflows/builds.yml/badge.svg?branch=main)](https://github.com/Consol-Monitoring/snclient/actions/workflows/builds.yml)
 [![Latest Release](https://img.shields.io/github/v/release/Consol-Monitoring/snclient?sort=semver)](https://github.com/Consol-Monitoring/snclient/releases)
+[![Downloads](https://img.shields.io/github/downloads/Consol-Monitoring/snclient/total?color=yellow)](https://github.com/Consol-Monitoring/snclient/releases)
 [![License](https://img.shields.io/github/license/Consol-Monitoring/snclient)](https://github.com/Consol-Monitoring/snclient/blob/main/LICENSE)
 [![IRC](https://img.shields.io/badge/IRC-libera.chat%2F%23snclient-blue)](https://web.libera.chat/?nick=Guest?#snclient)
-<a href="https://omd.consol.de/docs/snclient/logo/"><img src="./docs/logo/snclient.svg" style="float:right; margin: 3px; height: auto; width: 200px; float: right;"></a>
 
 SNClient (Secure Naemon Client) is a general purpose monitoring agent designed as replacement for NRPE and NSClient++.
 
