@@ -11,17 +11,13 @@ import (
 //go:embed embed/scripts/windows/check_os_updates.ps1
 var checkOSupdatesPS1 string
 
-func (l *CheckOSUpdates) addOSBackends(ctx context.Context, check *CheckData) (int, error) {
-	addedCount := 0
-	var err error
-	err = nil
-
+func (l *CheckOSUpdates) addOSBackends(ctx context.Context, check *CheckData) (addedCount int, err error) {
 	windowsAdded, windowsErr := l.addWindows(ctx, check)
 	if windowsAdded {
 		addedCount++
 	}
 	if windowsErr != nil {
-		err = fmt.Errorf("error when adding windows: %w", err)
+		err = fmt.Errorf("error when adding windows: %s", windowsErr.Error())
 	}
 
 	return addedCount, err
