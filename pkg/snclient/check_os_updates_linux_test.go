@@ -68,7 +68,7 @@ grub2-tools.x86_64         1:2.06-70.el9_3.2.rocky.0.2    baseos
 	cacheRoot := filepath.Join(t.TempDir(), "cache root's")
 	t.Setenv("CACHE_DIRECTORY", cacheRoot)
 
-	res := snc.RunCheck("check_os_updates", []string{"--system=yum"})
+	res := snc.RunCheck("check_os_updates", []string{"--system=yum", "--skip-update"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "CRITICAL - 3 security updates / 0 updates available. |'security'=3;;0;0 'updates'=0;0;;0", "output matches")
 
@@ -94,7 +94,7 @@ func TestCheckYUMUnavailableRepositoriesFail(t *testing.T) {
 	mockYUMUtility(t, "", "Failed to download metadata for repo 'baseos'", 1)
 	t.Setenv("CACHE_DIRECTORY", t.TempDir())
 
-	res := snc.RunCheck("check_os_updates", []string{"--system=yum"})
+	res := snc.RunCheck("check_os_updates", []string{"--system=yum", "--skip-update"})
 	assert.Equal(t, CheckExitUnknown, res.State)
 	assert.Contains(t, string(res.BuildPluginOutput()), "yum check-update failed")
 	assert.Contains(t, string(res.BuildPluginOutput()), "Failed to download metadata for repo 'baseos'")

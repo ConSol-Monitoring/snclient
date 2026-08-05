@@ -15,15 +15,17 @@ func init() {
 }
 
 type CheckOSUpdates struct {
-	snc    *Agent
-	system string
-	update bool
+	snc        *Agent
+	system     string
+	update     bool
+	skipUpdate bool
 }
 
 func NewCheckOSUpdates() CheckHandler {
 	return &CheckOSUpdates{
-		update: false,
-		system: "auto",
+		update:     false,
+		skipUpdate: false,
+		system:     "auto",
 	}
 }
 
@@ -35,8 +37,9 @@ func (l *CheckOSUpdates) Build() *CheckData {
 		hasInventory: NoCallInventory,
 		result:       &CheckResult{},
 		args: map[string]CheckArgument{
-			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum, osx and windows (default: auto)"},
-			"-u|--update": {value: &l.update, description: "Update package list (if supported, ex.: apt-get update)"},
+			"-s|--system":      {value: &l.system, description: "Package system: auto, apt, yum, osx and windows (default: auto)"},
+			"-u|--update":      {value: &l.update, description: "Update package list (if supported, ex.: apt-get update)"},
+			"-N|--skip-update": {value: &l.skipUpdate, description: "Skip updating the package list in case updates are automatically, ex. for yum/dnf in non-root mode."},
 		},
 		defaultWarning:  "count > 0",
 		defaultCritical: "count_security > 0",
@@ -67,7 +70,8 @@ If you only want to be notified about security related updates:
 
 On YUM/DNF systems, repository metadata is stored in a private cache owned by
 the SNClient service user. YUM/DNF refreshes missing or expired metadata without
-requiring root permissions. The **--update** option forces a metadata refresh.
+requiring root permissions. The **--update** option forces a metadata refresh and is
+implicitly enabled for yum/dnf mode. Use **--skip-update** to disable this.
 The check returns **UNKNOWN** if an enabled repository is unavailable, because
 otherwise an incomplete repository set could be reported as having no updates.
 	`,

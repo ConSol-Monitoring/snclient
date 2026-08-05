@@ -128,6 +128,10 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 	yumOpts := ""
 	if cacheDir != "" {
 		yumOpts += fmt.Sprintf(" --setopt=cachedir=%q --setopt='*.skip_if_unavailable=False'", cacheDir)
+		// must enable updates when using private cache folder
+		if !l.skipUpdate {
+			l.update = true
+		}
 	}
 	if l.update {
 		// Expiring the private cache before the query forces a metadata refresh

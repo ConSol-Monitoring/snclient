@@ -30,7 +30,8 @@ If you only want to be notified about security related updates:
 
 On YUM/DNF systems, repository metadata is stored in a private cache owned by
 the SNClient service user. YUM/DNF refreshes missing or expired metadata without
-requiring root permissions. The **--update** option forces a metadata refresh.
+requiring root permissions. The **--update** option forces a metadata refresh and is
+implicitly enabled for yum/dnf mode. Use **--skip-update** to disable this.
 The check returns **UNKNOWN** if an enabled repository is unavailable, because
 otherwise an incomplete repository set could be reported as having no updates.
 
@@ -64,10 +65,11 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument     | Description                                                     |
-| ------------ | --------------------------------------------------------------- |
-| -s\|--system | Package system: auto, apt, yum, osx and windows (default: auto) |
-| -u\|--update | Update package list (if supported, ex.: apt-get update)         |
+| Argument          | Description                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------- |
+| -N\|--skip-update | Skip updating the package list in case updates are automatically, ex. for yum/dnf in non-root mode. |
+| -s\|--system      | Package system: auto, apt, yum, osx and windows (default: auto)                                   |
+| -u\|--update      | Update package list (if supported, ex.: apt-get update)                                           |
 
 ## Attributes
 
