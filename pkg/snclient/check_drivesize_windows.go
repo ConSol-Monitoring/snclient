@@ -277,7 +277,12 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	}
 
 	// drivePath needs to be in form 'X:\'
-	drivePath := strings.ToUpper(drive["drive_or_id"])
+	drivePath := drive["drive_or_id"]
+	if matchingVolumePath, ok := drive["_matching_volume_path"]; matchingVolumePath != "" && ok {
+		drivePath = drive["_matching_volume_path"]
+	}
+	drivePath = strings.ToUpper(drivePath)
+
 	if !strings.HasSuffix(drivePath, "\\") {
 		drivePath += "\\"
 	}
@@ -706,27 +711,24 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]ma
 	// try to find closest matching volume
 	availVolumes := map[string]map[string]string{}
 	l.setVolumes(availVolumes)
+	log.Tracef("available volumes: %v", availVolumes)
 
-	testPath := strings.TrimSuffix(cleanedPath, "\\") + "\\"
-	// make first character uppercase because drives are uppercase in the volume list
-	if len(testPath) > 1 {
-		testPath = strings.ToUpper(testPath[0:1]) + testPath[1:]
-	}
+	volumeTestPath := strings.TrimSuffix(cleanedPath, "\\") + "\\"
 
 	var match *map[string]string
 
 	for i := range availVolumes {
 		volume := availVolumes[i]
 
-		// parent fallback means parent folders of a drive are valid as well
-		if parentFallback && volume["drive"] != "" &&
-			strings.HasPrefix(strings.ToUpper(testPath), strings.ToUpper(volume["drive"])) {
-			if match == nil || len((*match)["drive"]) < len(volume["drive"]) {
+		// if parentFallback argument is true, consider parent folders of a drive/mount as valid matches for the given custom search path
+		if parentFallback && volume["name"] != "" &&
+			strings.HasPrefix(strings.ToUpper(volumeTestPath), strings.ToUpper(volume["name"])) {
+			if match == nil || len((*match)["name"]) < len(volume["name"]) {
 				match = &volume
 			}
 		}
 
-		if strings.EqualFold(testPath, volume["drive"]) {
+		if strings.EqualFold(volumeTestPath, volume["name"]) {
 			match = &volume
 
 			break
@@ -734,17 +736,35 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]ma
 	}
 	if match != nil {
 		requiredDrives[path] = utils.CloneStringMap(*match)
+		// "drive" and "name" attribute is set to custom search path
+		requiredDrives[path]["id"] = path
 		requiredDrives[path]["drive"] = path
 		requiredDrives[path]["name"] = path
-		requiredDrives[path]["drive_or_name"] = path
-		requiredDrives[path]["drive_or_name_or_id"] = path
+
+		// save this for the later GetVolumeInformation call
+		requiredDrives[path]["_matching_volume_path"] = (*match)["drive"]
+
+		requiredDrives[path]["drive_or_name"] = requiredDrives[path]["drive"]
+		if requiredDrives[path]["drive_or_name"] == "" {
+			requiredDrives[path]["drive_or_name"] = requiredDrives[path]["name"]
+		}
+
+		requiredDrives[path]["drive_or_id"] = requiredDrives[path]["drive"]
+		if requiredDrives[path]["drive_or_id"] == "" {
+			requiredDrives[path]["drive_or_id"] = requiredDrives[path]["id"]
+		}
+
+		requiredDrives[path]["drive_or_name_or_id"] = requiredDrives[path]["drive_or_name"]
+		if requiredDrives[path]["drive_or_name_or_id"] == "" {
+			requiredDrives[path]["drive_or_name_or_id"] = requiredDrives[path]["id"]
+		}
 
 		return nil
 	}
 
-	// add anyway to generate an error later with more default values filled in
+	// if there is no match, add it anyway with an error, which will be printed as is
 	entry := l.driveEntry(path)
-	entry["_error"] = fmt.Sprintf("%s not mounted", path)
+	entry["_error"] = fmt.Sprintf("could not find a drive or volume matching path %q", path)
 	requiredDrives[path] = entry
 
 	return nil
