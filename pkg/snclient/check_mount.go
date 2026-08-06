@@ -40,7 +40,7 @@ func (l *CheckMount) Build() *CheckData {
 			"fstype":  {value: &l.expectFSType, description: "The fstype to expect"},
 		},
 		detailSyntax:    "mount ${mount} ${issues}",
-		okSyntax:        "${status} - mounts are as expected",
+		okSyntax:        "${status} - ${count} mount(s) as expected",
 		topSyntax:       "${status} - ${problem_list}",
 		defaultWarning:  "issues != ''",
 		defaultCritical: "issues like 'not mounted'",
@@ -55,7 +55,7 @@ func (l *CheckMount) Build() *CheckData {
 		},
 		exampleDefault: `
     check_mount mount=/ options=rw,relatime fstype=ext4
-    OK - mounts are as expected
+    OK - 3 mounts(s) are as expected
 	`,
 		exampleArgs: `'mount=/' 'options=rw,relatime'`,
 	}
