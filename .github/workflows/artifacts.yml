@@ -23,7 +23,7 @@ jobs:
       sha:      ${{ steps.get-short-sha.outputs.sha }}
       version:  ${{ steps.get-version.outputs.version }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@main
         with:
           fetch-depth: 0
       - id: get-major-version
@@ -51,16 +51,16 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@main
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "snclient"
@@ -78,16 +78,16 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@main
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "snclient"
@@ -105,10 +105,10 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@main
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: |
@@ -117,7 +117,7 @@ jobs:
           make rsrc_windows
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
           mv snclient snclient.exe
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "snclient.exe"
@@ -136,8 +136,8 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "."
@@ -174,7 +174,7 @@ jobs:
           Write-Host "Verify snclient.exe"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x86/signtool.exe" verify /pa snclient.exe
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "snclient.exe"

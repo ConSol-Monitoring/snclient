@@ -27,7 +27,7 @@ jobs:
       sha:      ${{ steps.get-short-sha.outputs.sha }}
       version:  ${{ steps.get-version.outputs.version }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@main
         with:
           fetch-depth: 0
       - id: get-major-version
@@ -47,8 +47,8 @@ jobs:
   test-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: make citest
@@ -57,8 +57,8 @@ jobs:
   test-win:
     runs-on: windows-2025
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: |
@@ -72,8 +72,8 @@ jobs:
   test-osx:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: make test
@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@main
     - name: Test in FreeBSD
       uses: vmactions/freebsd-vm@v1
       with:
@@ -129,16 +129,16 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@main
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "snclient"
@@ -156,16 +156,16 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@main
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "snclient"
@@ -183,10 +183,10 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@main
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: |
@@ -195,7 +195,7 @@ jobs:
           make rsrc_windows
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
           mv snclient snclient.exe
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "snclient.exe"
@@ -214,8 +214,8 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "."
@@ -252,7 +252,7 @@ jobs:
           Write-Host "Verify snclient.exe"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x86/signtool.exe" verify /pa snclient.exe
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "snclient.exe"
@@ -264,8 +264,8 @@ jobs:
     needs: [get-version]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: sudo apt-get update
@@ -274,7 +274,7 @@ jobs:
           echo "Creating dist folder for linux/osx"
           make dist
           rm dist/snclient
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "dist"
           path: "dist"
@@ -285,8 +285,8 @@ jobs:
     needs: [get-version]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
       - run: sudo apt-get update
@@ -295,7 +295,7 @@ jobs:
           echo "Creating dist folder for windows"
           make windist
           rm dist/snclient
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "windist"
           path: "windist"
@@ -314,12 +314,12 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       CERTURL: ${{ secrets.AZURE_VAULT_CERT_URL }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "windist"
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "windist"
           path: "windist"
@@ -367,7 +367,7 @@ jobs:
           Write-Host "Verify snclient.msi"
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x86/signtool.exe" verify /pa ${{ env.BIN }}.msi
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}.msi"
           path: "${{ env.BIN }}.msi"
@@ -386,15 +386,15 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "dist"
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "dist"
           path: "dist"
@@ -406,7 +406,7 @@ jobs:
           export DEBFULLNAME="Sven Nierlein"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make deb
           mv snclient*.deb ${{ env.BIN }}.deb
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}.deb"
           path: "${{ env.BIN }}.deb"
@@ -427,7 +427,7 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.deb"
       - run: |
@@ -447,15 +447,15 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "dist"
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "dist"
           path: "dist"
@@ -463,7 +463,7 @@ jobs:
           echo "Building ${{ env.BIN }}.rpm"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make rpm
           mv snclient*.rpm ${{ env.BIN }}.rpm
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}.rpm"
           path: "${{ env.BIN }}.rpm"
@@ -483,7 +483,7 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.rpm"
       - run: |
@@ -504,16 +504,16 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
           cache: false
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "dist"
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "dist"
           path: "dist"
@@ -540,7 +540,7 @@ jobs:
           echo "Building ${{ env.BIN }}.apk"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} VERSION=${{needs.get-version.outputs.version}} make apk
           mv snclient*.apk ${{ env.BIN }}.apk
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.BIN }}.apk"
           path: "${{ env.BIN }}.apk"
@@ -560,7 +560,7 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.apk"
       - run: |
@@ -579,15 +579,15 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       DIST: "snclient-${{needs.get-version.outputs.version}}-osx-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "dist"
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "dist"
           path: "dist"
@@ -596,7 +596,7 @@ jobs:
           export PATH="/usr/local/opt/openssl@3/bin:$PATH"
           make osx
           mv snclient*.pkg ${{ env.DIST }}.pkg
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@main
         with:
           name: "${{ env.DIST }}.pkg"
           path: "${{ env.DIST }}.pkg"
@@ -635,11 +635,11 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.deb"
       - name: "Linux Integration Tests"
@@ -660,8 +660,8 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.deb"
       - name: "Linux Integration Tests"
@@ -681,11 +681,11 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-osx-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.pkg"
       - name: "OSX Integration Tests"
@@ -706,19 +706,19 @@ jobs:
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@main
+      - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "windist"
           path: "windist"
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}"
           path: "windist"
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.msi"
       - name: "Windows Integration Tests"
@@ -766,7 +766,7 @@ jobs:
     outputs:
       release-upload-url: ${{ steps.create-release.outputs.upload_url }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@main
       - run: make release_notes.txt
       - id: create-release
         uses: softprops/action-gh-release@v3
@@ -792,8 +792,8 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.msi"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.msi
@@ -814,8 +814,8 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.deb"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.deb
@@ -836,8 +836,8 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.rpm"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.rpm
@@ -858,8 +858,8 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.apk"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.apk
@@ -880,8 +880,8 @@ jobs:
       BIN:  "snclient-${{needs.get-version.outputs.version}}-osx-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.pkg"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.pkg
@@ -902,8 +902,8 @@ jobs:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}"
       - run: tar cvzf ./${{ env.BIN }}.tar.gz ./*
