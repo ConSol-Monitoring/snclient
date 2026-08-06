@@ -735,6 +735,8 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]ma
 		}
 	}
 	if match != nil {
+		log.Tracef("found volume matching path: %q , volumeTestPath: %q , volume: %v", path, volumeTestPath, (*match))
+
 		requiredDrives[path] = utils.CloneStringMap(*match)
 		// "drive" and "name" attribute is set to custom search path
 		requiredDrives[path]["id"] = path
@@ -742,7 +744,7 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]ma
 		requiredDrives[path]["name"] = path
 
 		// save this for the later GetVolumeInformation call
-		requiredDrives[path]["_matching_volume_path"] = (*match)["drive"]
+		requiredDrives[path]["_matching_volume_path"] = (*match)["name"]
 
 		requiredDrives[path]["drive_or_name"] = requiredDrives[path]["drive"]
 		if requiredDrives[path]["drive_or_name"] == "" {
