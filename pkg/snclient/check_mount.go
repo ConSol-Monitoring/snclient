@@ -54,8 +54,14 @@ func (l *CheckMount) Build() *CheckData {
 			{name: "issues", description: "Issues found"},
 		},
 		exampleDefault: `
-    check_mount mount=/ options=rw,relatime fstype=ext4
-    OK - 3 mounts(s) are as expected
+    check_mount
+    OK - 3 mounts(s) as expected
+
+	check_mount mount=/ options=rw,relatime fstype=ext4
+	OK - 1 mount(s) as expected
+
+	check_mount mount=X:
+	CRITICAL - mount X: not mounted
 	`,
 		exampleArgs: `'mount=/' 'options=rw,relatime'`,
 	}
