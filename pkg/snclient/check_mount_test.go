@@ -21,14 +21,14 @@ func TestMount(t *testing.T) {
 		res = snc.RunCheck("check_mount", []string{"mount=/"})
 	}
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - 1 mount(s) as expected", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - 1 mount(s) found", "output matches")
 
 	inv, err := snc.getInventoryEntry(t.Context(), "check_mount")
 	require.NoError(t, err)
 	require.NotEmptyf(t, inv, "expected mounts list to be non-empty")
 	res = snc.RunCheck("check_mount", []string{"mount=" + inv[0]["mount"], "options=" + inv[0]["options"], "fstype=" + inv[0]["fstype"]})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Contains(t, string(res.BuildPluginOutput()), "OK - 1 mount(s) as expected", "output matches")
+	assert.Contains(t, string(res.BuildPluginOutput()), "OK - 1 mount(s) found", "output matches")
 
 	StopTestAgent(t, snc)
 }
@@ -38,8 +38,8 @@ func TestMountNoMountArgument(t *testing.T) {
 
 	// mount= left empty means all mounts are checked
 	res := snc.RunCheck("check_mount", []string{})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Regexp(t, `OK - [\d]+ mount\(s\) as expected`, string(res.BuildPluginOutput()), "output matches")
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN")
+	assert.Equalf(t, "UNKNOWN - must specify at least one of mount/options/fstype", string(res.BuildPluginOutput()), "output matches")
 
 	StopTestAgent(t, snc)
 }
@@ -66,7 +66,7 @@ func TestMountMultipleMounts(t *testing.T) {
 	}
 	res := snc.RunCheck("check_mount", args)
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
-	assert.Regexp(t, `OK - [\d]+ mount\(s\) as expected`, string(res.BuildPluginOutput()), "output matches")
+	assert.Regexp(t, `OK - [\d]+ mount\(s\) found`, string(res.BuildPluginOutput()), "output matches")
 
 	// if one of them is missing, the whole check must raise critical
 	missing := "not_mounted_xyz"
@@ -86,11 +86,11 @@ func TestMountSingleSpecifiedMount(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		res := snc.RunCheck("check_mount", []string{"mount=C:\\"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
-		assert.Contains(t, string(res.BuildPluginOutput()), "OK - 1 mount(s) as expected", "output matches")
+		assert.Contains(t, string(res.BuildPluginOutput()), "OK - 1 mount(s) found", "output matches")
 	} else {
 		res := snc.RunCheck("check_mount", []string{"mount=/"})
 		assert.Equalf(t, CheckExitOK, res.State, "state OK")
-		assert.Contains(t, string(res.BuildPluginOutput()), "OK - 1 mount(s) as expected", "output matches")
+		assert.Contains(t, string(res.BuildPluginOutput()), "OK - 1 mount(s) found", "output matches")
 	}
 
 	StopTestAgent(t, snc)

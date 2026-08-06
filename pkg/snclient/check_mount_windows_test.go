@@ -18,7 +18,7 @@ func TestMountWindowsNoDuplicateEntries(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	// force every entry into the problem list so all mounts end up in the output
-	res := snc.RunCheck("check_mount", []string{"detail-syntax=mount=${mount}", "show-all"})
+	res := snc.RunCheck("check_mount", []string{"detail-syntax=mount=${mount}", "fstype=NTFS", "show-all"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	output := string(res.BuildPluginOutput())
 

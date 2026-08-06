@@ -40,7 +40,7 @@ func (l *CheckMount) Build() *CheckData {
 			"fstype":  {value: &l.expectFSType, description: "The fstype to expect"},
 		},
 		detailSyntax:    "mount ${mount} ${issues}",
-		okSyntax:        "${status} - ${count} mount(s) as expected",
+		okSyntax:        "${status} - ${count} mount(s) found",
 		topSyntax:       "${status} - ${problem_list}",
 		defaultWarning:  "issues != ''",
 		defaultCritical: "issues like 'not mounted'",
@@ -55,10 +55,10 @@ func (l *CheckMount) Build() *CheckData {
 		},
 		exampleDefault: `
     check_mount
-    OK - 3 mounts(s) as expected
+    OK - 3 mounts(s) found
 
 	check_mount mount=/ options=rw,relatime fstype=ext4
-	OK - 1 mount(s) as expected
+	OK - 1 mount(s) found
 
 	check_mount mount=X:
 	CRITICAL - mount X: not mounted
@@ -69,6 +69,10 @@ func (l *CheckMount) Build() *CheckData {
 
 //nolint:funlen // no need to split this up
 func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	if check.output != OutputInventory && len(l.mountPoints) == 0 && l.expectOptions == "" && l.expectFSType == "" {
+		return nil, fmt.Errorf("must specify at least one of mount/options/fstype")
+	}
+
 	for idx := range l.mountPoints {
 		l.mountPoints[idx] = trimTrailingSeparator(l.mountPoints[idx])
 	}
