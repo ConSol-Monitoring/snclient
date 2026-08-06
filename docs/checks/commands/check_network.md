@@ -79,7 +79,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | sent_bytes        | Bytes sent per second (calculated over the last 30s). In bytes                                    |
 | total_sent        | Total bytes sent                                                                                  |
 | speed             | Network interface speed. In Mbits/sec                                                             |
-| speed             | Network interface speed. In bytes                                                                 |
+| speed_bytes       | Network interface speed. In bytes                                                                 |
 | flags             | Interface flags                                                                                   |
 | total             | Sum of send and receive rates in bytes per second (calculated over the last 30s). In humanized format |
 | total_bytes       | Sum of send and receive rates in bytes per second (calculated over the last 30s). In bytes        |

@@ -64,7 +64,7 @@ func (l *CheckNetwork) Build() *CheckData {
 			{name: "sent_bytes", description: "Bytes sent per second (calculated over the last " + TrafficRateDuration.String() + "). In bytes", unit: UBytesPerSec},
 			{name: "total_sent", description: "Total bytes sent", unit: UByte},
 			{name: "speed", description: "Network interface speed. In Mbits/sec", unit: UBytesPerSec},
-			{name: "speed", description: "Network interface speed. In bytes", unit: UBytesPerSec},
+			{name: "speed_bytes", description: "Network interface speed. In bytes", unit: UBytesPerSec},
 			{name: "flags", description: "Interface flags"},
 			{name: "total", description: "Sum of send and receive rates in bytes per second (calculated over the last " + TrafficRateDuration.String() + "). In humanized format", unit: UBytesPerSec},
 			{name: "total_bytes", description: "Sum of send and receive rates in bytes per second (calculated over the last " + TrafficRateDuration.String() + "). In bytes", unit: UBytesPerSec},
