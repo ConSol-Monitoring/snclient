@@ -20,8 +20,14 @@ Checks the status for a mounted filesystem
 
 ### Default Check
 
-    check_mount mount=/ options=rw,relatime fstype=ext4
-    OK - mounts are as expected
+    check_mount
+    OK - 3 mounts(s) found
+
+	check_mount mount=/ options=rw,relatime fstype=ext4
+	OK - 1 mount(s) found
+
+	check_mount mount=X:
+	CRITICAL - mount X: not mounted
 
 ### Example using NRPE and Naemon
 
@@ -48,7 +54,7 @@ Naemon Config
 | empty-state   | 3 (UNKNOWN)                                           |
 | empty-syntax  | check_mount failed to find anything with this filter. |
 | top-syntax    | \${status} - \${problem_list}                         |
-| ok-syntax     | \${status} - mounts are as expected                   |
+| ok-syntax     | \${status} - \${count} mount(s) found                 |
 | detail-syntax | mount \${mount} \${issues}                            |
 
 ## Check Specific Arguments

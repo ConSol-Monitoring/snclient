@@ -2,9 +2,7 @@ package snclient
 
 import (
 	"context"
-	"os"
 	"slices"
-	"strings"
 )
 
 // getVolumes retrieves volumes and their details, excluding specified partitions, and returns a list of drives and any potential errors.
@@ -26,16 +24,19 @@ func (l *CheckMount) getVolumes(ctx context.Context, check *CheckData, partition
 				continue
 			}
 		}
-		mountPoint := strings.TrimSuffix(partition["drive_or_id"], string(os.PathSeparator))
+
+		mountPoint := trimTrailingSeparator(partition["drive_or_name"])
 		if _, ok := partitionMap[mountPoint]; ok {
 			continue
 		}
+
 		partitionMap[mountPoint] = true
-		if l.mountPoint != "" && mountPoint != l.mountPoint {
+		if len(l.mountPoints) > 0 && !slices.Contains(l.mountPoints, mountPoint) {
 			log.Tracef("skipped mountpoint: %s - not matching mount argument", mountPoint)
 
 			continue
 		}
+
 		// skip internal filesystems
 		if slices.Contains(excludes, partition["fstype"]) {
 			log.Tracef("skipped mountpoint: %s - fstype %s is excluded", mountPoint, partition["fstype"])
