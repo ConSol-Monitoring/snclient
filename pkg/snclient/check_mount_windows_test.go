@@ -18,11 +18,11 @@ func TestMountWindowsNoDuplicateEntries(t *testing.T) {
 	snc := StartTestAgent(t, "")
 
 	// force every entry into the problem list so all mounts end up in the output
-	res := snc.RunCheck("check_mount", []string{"options=force-mount-listing", "detail-syntax=mount=${mount}"})
-	assert.Equalf(t, CheckExitWarning, res.State, "state Warning")
+	res := snc.RunCheck("check_mount", []string{"detail-syntax=mount=${mount}", "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	output := string(res.BuildPluginOutput())
 
-	mountRe := regexp.MustCompile(`mount (\S+)`)
+	mountRe := regexp.MustCompile(`mount=(\S+)`)
 	mountSeen := map[string]int{}
 	for _, match := range mountRe.FindAllStringSubmatch(output, -1) {
 		mountSeen[match[1]]++
