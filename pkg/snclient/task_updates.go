@@ -832,6 +832,7 @@ func (u *UpdateHandler) getVersionFromURL(ctx context.Context, url string) (vers
 func (u *UpdateHandler) ApplyRestart(bin string, restarts UpdateRestartMode) error {
 	if restarts == RestartDelayed {
 		go func() {
+			log.Tracef("[update] delaying restart for %s", UpdateRestartDelay.String())
 			time.Sleep(UpdateRestartDelay)
 			err := u.ApplyRestart(bin, RestartAlways)
 			if err != nil {
@@ -842,7 +843,11 @@ func (u *UpdateHandler) ApplyRestart(bin string, restarts UpdateRestartMode) err
 		return nil
 	}
 
-	u.snc.stop()
+	// on windows let the service keep running, the child process will restart the service
+	if runtime.GOOS != "windows" && u.snc.flags.Mode != ModeServer {
+		u.snc.stop()
+	}
+
 	log.Tracef("[update] re-exec into new file %s %v", bin, os.Args[1:])
 	if runtime.GOOS == "windows" {
 		// cannot re-exec on windows, need to start a separate updater
