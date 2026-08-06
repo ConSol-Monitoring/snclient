@@ -4,6 +4,8 @@ next:
          - check_os_updates: fix powershell error on windows
          - check_os_updates: enable --update automatically for yum/dnf
          - check_os_updates: add --skip-update to disable automatic update
+         - check_mount: show error if no options where specified
+         - check_mount: add support for checking multiple mounts
          - windows: fix restart after auto update
 
 0.48     Mon Aug  3 16:00:52 CEST 2026
