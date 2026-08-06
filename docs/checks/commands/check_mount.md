@@ -20,9 +20,6 @@ Checks the status for a mounted filesystem
 
 ### Default Check
 
-    check_mount
-    OK - 3 mounts(s) found
-
 	check_mount mount=/ options=rw,relatime fstype=ext4
 	OK - 1 mount(s) found
 

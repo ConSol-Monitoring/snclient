@@ -54,9 +54,6 @@ func (l *CheckMount) Build() *CheckData {
 			{name: "issues", description: "Issues found"},
 		},
 		exampleDefault: `
-    check_mount
-    OK - 3 mounts(s) found
-
 	check_mount mount=/ options=rw,relatime fstype=ext4
 	OK - 1 mount(s) found
 
