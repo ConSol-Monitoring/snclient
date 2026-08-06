@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -57,6 +59,26 @@ func TestMSIinstaller(t *testing.T) {
 	for _, file := range requiredFiles {
 		require.FileExistsf(t, `C:\Program Files\snclient\`+file, file+" has been installed")
 	}
+
+	// Verify the packaged binary recognizes a volume mounted at a directory.
+	volumeMountPath := setupDirectoryMountedVolume(t)
+	runCmd(t, &cmd{
+		Cmd: `C:\Program Files\snclient\snclient.exe`,
+		Args: []string{
+			"test",
+			"check_drivesize",
+			"warn=used>=95%",
+			"crit=used>=97%",
+			"drive=" + volumeMountPath,
+			"perf-config=*(unit:Gb)",
+			"perf-syntax=%(key:lc)",
+			"show-all",
+		},
+		Like: []string{
+			`Exit Code: OK \(0\)`,
+			`OK.*disk3`,
+		},
+	})
 
 	iniContent, err := os.ReadFile(`C:\Program Files\snclient\snclient.ini`)
 	require.NoErrorf(t, err, "snclient.ini can be read")
@@ -205,4 +227,38 @@ func TestMSIinstaller(t *testing.T) {
 	// remove remaining files
 	os.Remove("snclient_update.msi")
 	os.Remove("snclient.ini")
+}
+
+func setupDirectoryMountedVolume(t *testing.T) string {
+	t.Helper()
+
+	root := t.TempDir()
+
+	vhdDir := filepath.Join(root, "vhds")
+	mountPath := filepath.Join(root, "testmount", "disk3")
+	require.NoError(t, os.MkdirAll(vhdDir, 0o700), "creating VHD directory")
+	require.NoError(t, os.MkdirAll(mountPath, 0o700), "creating volume mount directory")
+
+	vhdPath := filepath.Join(vhdDir, "snclient-drivesize-test.vhdx")
+	scriptDir := t.TempDir()
+	createScript := filepath.Join(scriptDir, "create-volume.txt")
+	writeFile(t, createScript, fmt.Sprintf(`create vdisk file="%s" maximum=100 type=expandable
+select vdisk file="%s"
+attach vdisk
+convert gpt
+create partition primary
+format fs=ntfs quick label="SNClientTest"
+assign mount="%s"
+`, vhdPath, vhdPath, mountPath))
+
+	runCmd(t, &cmd{Cmd: "diskpart", Args: []string{"/s", createScript}})
+	t.Cleanup(func() {
+		detachScript := filepath.Join(scriptDir, "detach-volume.txt")
+		writeFile(t, detachScript, fmt.Sprintf(`select vdisk file="%s"
+detach vdisk
+`, vhdPath))
+		runCmd(t, &cmd{Cmd: "diskpart", Args: []string{"/s", detachScript}})
+	})
+
+	return mountPath
 }
