@@ -57,14 +57,17 @@ func (l *CheckNetwork) Build() *CheckData {
 			{name: "enabled", description: "True if the network interface is enabled (true/false)"},
 			{name: "name", description: "Name of the interface"},
 			{name: "net_connection_id", description: "same as name"},
-			// unit would be B/s but unit is only used to expand threshold inputs here
-			{name: "received", description: "Bytes received per second (calculated over the last " + TrafficRateDuration.String() + ")", unit: UByte},
+			{name: "received", description: "Bytes received per second (calculated over the last " + TrafficRateDuration.String() + "). In humanized format", unit: UBytesPerSec},
+			{name: "received_bytes", description: "Bytes received per second (calculated over the last " + TrafficRateDuration.String() + "). In bytes", unit: UBytesPerSec},
 			{name: "total_received", description: "Total bytes received", unit: UByte},
-			{name: "sent", description: "Bytes sent per second (calculated over the last " + TrafficRateDuration.String() + ")", unit: UByte}, // received comment applies here as well
+			{name: "sent", description: "Bytes sent per second (calculated over the last " + TrafficRateDuration.String() + "). In humanized format", unit: UBytesPerSec},
+			{name: "sent_bytes", description: "Bytes sent per second (calculated over the last " + TrafficRateDuration.String() + "). In bytes", unit: UBytesPerSec},
 			{name: "total_sent", description: "Total bytes sent", unit: UByte},
-			{name: "speed", description: "Network interface speed (in Mbits/sec)"},
+			{name: "speed", description: "Network interface speed. In Mbits/sec", unit: UBytesPerSec},
+			{name: "speed", description: "Network interface speed. In bytes", unit: UBytesPerSec},
 			{name: "flags", description: "Interface flags"},
-			{name: "total", description: "Sum of sent and received bytes per second"},
+			{name: "total", description: "Sum of send and receive rates in bytes per second (calculated over the last " + TrafficRateDuration.String() + "). In humanized format", unit: UBytesPerSec},
+			{name: "total_bytes", description: "Sum of send and receive rates in bytes per second (calculated over the last " + TrafficRateDuration.String() + "). In bytes", unit: UBytesPerSec},
 		},
 		exampleDefault: `
     check_network device=eth0
@@ -116,17 +119,27 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 			totalSent = IOList[intnr].BytesSent
 		}
 
+		speedBytes := ""
+		if speed >= 0 {
+			// speed is in Mbit/s, convert to bytes/s
+			speedBytes = fmt.Sprintf("%.2f", float64(speed)*humanize.MBit/humanize.BitsPerByte)
+		}
+
 		entry := map[string]string{
 			"MAC":               int.HardwareAddr,
 			"enabled":           strconv.FormatBool(slices.Contains(int.Flags, "up")),
 			"name":              int.Name,
 			"net_connection_id": int.Name,
 			"received":          humanize.IBytes(uint64(recvRate)) + "/s",
+			"received_bytes":    fmt.Sprintf("%.2f", recvRate),
 			"total_received":    fmt.Sprintf("%d", totalReceived),
 			"sent":              humanize.IBytes(uint64(sentRate)) + "/s",
+			"sent_bytes":        fmt.Sprintf("%.2f", sentRate),
 			"total_sent":        fmt.Sprintf("%d", totalSent),
-			"total":             fmt.Sprintf("%.2f", recvRate+sentRate),
+			"total":             humanize.IBytes(uint64(recvRate)+uint64(sentRate)) + "/s",
+			"total_bytes":       fmt.Sprintf("%.2f", recvRate+sentRate),
 			"speed":             fmt.Sprintf("%d", speed),
+			"speed_bytes":       speedBytes,
 			"flags":             strings.Join(int.Flags, ","),
 		}
 		if speed == -1 {
@@ -169,11 +182,15 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 				"name":              deviceName,
 				"net_connection_id": deviceName,
 				"received":          "0",
+				"received_bytes":    "0",
 				"total_received":    "0",
 				"sent":              "0",
+				"sent_bytes":        "0",
 				"total_sent":        "0",
 				"total":             "0",
+				"total_bytes":       "0",
 				"speed":             "-1",
+				"speed_bytes":       "",
 				"flags":             "",
 			})
 		}
