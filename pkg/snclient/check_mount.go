@@ -16,7 +16,7 @@ func init() {
 }
 
 type CheckMount struct {
-	mountPoint    string
+	mountPoints   []string
 	expectOptions string
 	expectFSType  string
 }
@@ -35,7 +35,7 @@ func (l *CheckMount) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"mount":   {value: &l.mountPoint, description: "The mount point to check"},
+			"mount":   {value: &l.mountPoints, description: "The mount point to check"},
 			"options": {value: &l.expectOptions, description: "The mount options to expect"},
 			"fstype":  {value: &l.expectFSType, description: "The fstype to expect"},
 		},
@@ -61,10 +61,12 @@ func (l *CheckMount) Build() *CheckData {
 	}
 }
 
+//nolint:funlen // no need to split this up
 func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	if len(l.mountPoint) > 1 {
-		l.mountPoint = strings.TrimSuffix(l.mountPoint, string(os.PathSeparator))
+	for idx := range l.mountPoints {
+		l.mountPoints[idx] = trimTrailingSeparator(l.mountPoints[idx])
 	}
+
 	partitionMap := map[string]bool{}
 	partitions, err := l.getDrives(ctx, partitionMap)
 	if err != nil {
@@ -121,16 +123,18 @@ func (l *CheckMount) Check(ctx context.Context, _ *Agent, check *CheckData, _ []
 	}
 
 	// check if a mountpoint was supplied but not yet found
-	if l.mountPoint != "" {
-		if _, ok := partitionMap[l.mountPoint]; !ok {
-			entry := map[string]string{
-				"mount":   l.mountPoint,
-				"device":  "",
-				"fstype":  "",
-				"options": "",
-				"issues":  "not mounted",
+	if len(l.mountPoints) > 0 {
+		for _, mountPoint := range l.mountPoints {
+			if _, ok := partitionMap[mountPoint]; !ok {
+				entry := map[string]string{
+					"mount":   mountPoint,
+					"device":  "",
+					"fstype":  "",
+					"options": "",
+					"issues":  "not mounted",
+				}
+				check.listData = append(check.listData, entry)
 			}
-			check.listData = append(check.listData, entry)
 		}
 	}
 
@@ -147,42 +151,43 @@ func (l *CheckMount) getDrives(ctx context.Context, partitionMap map[string]bool
 
 	for i := range partitions {
 		partition := partitions[i]
-		partitionMap[partition.Mountpoint] = true
-		if l.mountPoint != "" {
-			if partition.Mountpoint != l.mountPoint {
-				log.Tracef("skipped mountpoint: %s - not matching mount argument", partition.Mountpoint)
+		mountpoint := trimTrailingSeparator(partition.Mountpoint)
+		partitionMap[mountpoint] = true
+		if len(l.mountPoints) > 0 {
+			if !slices.Contains(l.mountPoints, mountpoint) {
+				log.Tracef("skipped mountpoint: %s - not matching mount argument", mountpoint)
 
 				continue
 			}
 		} else {
 			// skip internal filesystems
 			if slices.Contains(excludes, partition.Fstype) {
-				log.Tracef("skipped mountpoint: %s - fstype %s is excluded", partition.Mountpoint, partition.Fstype)
+				log.Tracef("skipped mountpoint: %s - fstype %s is excluded", mountpoint, partition.Fstype)
 
 				continue
 			}
 			// skip some know internal locations
 			switch {
-			case strings.HasPrefix(partition.Mountpoint, "/run"),
-				strings.HasPrefix(partition.Mountpoint, "/proc"),
-				strings.HasPrefix(partition.Mountpoint, "/sys"),
-				strings.HasPrefix(partition.Mountpoint, "/dev"):
+			case strings.HasPrefix(mountpoint, "/run"),
+				strings.HasPrefix(mountpoint, "/proc"),
+				strings.HasPrefix(mountpoint, "/sys"),
+				strings.HasPrefix(mountpoint, "/dev"):
 
-				log.Tracef("skipped mountpoint: %s - prefix matched internal system mounts", partition.Mountpoint)
+				log.Tracef("skipped mountpoint: %s - prefix matched internal system mounts", mountpoint)
 
 				continue
 			}
 		}
 
-		if partition.Fstype == "" && partition.Device == "" && partition.Mountpoint == "" {
-			log.Tracef("skipped mountpoint: %s - empty device, fstype and mountpoint", partition.Mountpoint)
+		if partition.Fstype == "" && partition.Device == "" && mountpoint == "" {
+			log.Tracef("skipped mountpoint: %s - empty device, fstype and mountpoint", mountpoint)
 
 			continue
 		}
 
 		device := utils.ReplaceCommonPasswordPattern(partition.Device)
 		entry := map[string]string{
-			"mount":   partition.Mountpoint,
+			"mount":   mountpoint,
 			"device":  device,
 			"fstype":  partition.Fstype,
 			"options": strings.Join(partition.Opts, ","),
@@ -192,4 +197,13 @@ func (l *CheckMount) getDrives(ctx context.Context, partitionMap map[string]bool
 	}
 
 	return drives, nil
+}
+
+// trimTrailingSeparator removes a trailing path separator, but keeps a single-character mountpoint like "/" or "C:" intact so that it stays a valid root path.
+func trimTrailingSeparator(path string) string {
+	if len(path) > 1 {
+		return strings.TrimSuffix(path, string(os.PathSeparator))
+	}
+
+	return path
 }
