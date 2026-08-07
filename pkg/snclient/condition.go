@@ -524,6 +524,11 @@ func (c *Condition) getVarValue(data map[string]string) (varStr string, ok bool)
 		if ok {
 			return varStr, ok
 		}
+	case strings.EqualFold(c.unit, "B/s"):
+		varStr, ok = data[c.keyword+"_bytes"]
+		if ok {
+			return varStr, ok
+		}
 	}
 
 	varStr, ok = data[c.keyword+"_value"]
@@ -805,6 +810,12 @@ func (c *Condition) conditionSetValue(str string, expand bool) error {
 		str = strings.TrimSuffix(str, "'")
 		c.value = str
 
+		// quoted values are treated as literal strings, except when the attribute uses a known unit unlike UNone,
+		// example: '1 KiB/s' of UBytesPerSec
+		if expand && c.getUnit(c.keyword) != UNone {
+			return c.expandUnitByType(str)
+		}
+
 		return nil
 	case strings.HasPrefix(str, `"`):
 		if !strings.HasSuffix(str, `"`) || len(str) == 1 {
@@ -813,6 +824,10 @@ func (c *Condition) conditionSetValue(str string, expand bool) error {
 		str = strings.TrimPrefix(str, `"`)
 		str = strings.TrimSuffix(str, `"`)
 		c.value = str
+
+		if expand && c.getUnit(c.keyword) != UNone {
+			return c.expandUnitByType(str)
+		}
 
 		return nil
 	case !expand:
@@ -881,6 +896,9 @@ func (c *Condition) expandDateKeyword(str string) bool {
 	return false
 }
 
+// this sets the Condition.value and Condition.unit according to CheckAttribute.unit
+// Condition.Unit is a string, while CheckAttribute.unit is of snclient.Unit type
+//
 //nolint:funlen // the function is long due to handling all unit types, but it is simple
 func (c *Condition) expandUnitByType(str string) error {
 	// valid units might be "today", "thisweek", "thismonth", "thisyear" and ":utc" variants
@@ -927,6 +945,15 @@ func (c *Condition) expandUnitByType(str string) error {
 		}
 		c.value = strconv.FormatUint(value, 10)
 		c.unit = "B"
+
+		return nil
+	case UBytesPerSec:
+		value, err := humanize.ParseBytesPerSec(str)
+		if err != nil {
+			return fmt.Errorf("invalid bytes per second value: %s", err.Error())
+		}
+		c.value = strconv.FormatFloat(value, 'f', -1, 64)
+		c.unit = "B/s"
 
 		return nil
 	case UDate, UTimestamp:
