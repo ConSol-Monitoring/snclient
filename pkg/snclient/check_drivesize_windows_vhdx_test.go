@@ -42,7 +42,7 @@ func hasElevatedPrivileges() bool {
 func resolveLongPath(path string) (string, error) {
 	pathPtr, err := windows.UTF16PtrFromString(path)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("GetLongName error when creating UTF16 string pointer from path %w", err)
 	}
 	size, _ := windows.GetLongPathName(pathPtr, nil, 0)
 	if size == 0 {
@@ -102,6 +102,7 @@ func addDefenderExclusion(t *testing.T, directory string) {
 	escaped := strings.ReplaceAll(directory, "'", "''")
 	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
 	defer cancel()
+	//nolint:gosec // G204: the format uses the escpaed string for the path
 	out, err := exec.CommandContext(ctx, "powershell", "-NoProfile", "-Command",
 		fmt.Sprintf("Add-MpPreference -ExclusionPath '%s'", escaped)).CombinedOutput()
 	if err != nil {
