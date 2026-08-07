@@ -40,8 +40,8 @@ func (l *CheckNetwork) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"dev":     {value: &l.names, description: "Alias for device"},
 			"device":  {value: &l.names, description: "The device to check. Default is all"},
+			"dev":     {value: &l.names, description: "Alias for device"},
 			"name":    {value: &l.names, description: "Alias for device"},
 			"exclude": {value: &l.excludes, description: "Exclude device by name"},
 		},
@@ -55,19 +55,20 @@ func (l *CheckNetwork) Build() *CheckData {
 		attributes: []CheckAttribute{
 			{name: "MAC", description: "The MAC address"},
 			{name: "enabled", description: "True if the network interface is enabled (true/false)"},
-			{name: "name", description: "Name of the interface"},
+			{name: "device", description: "Interface device"},
+			{name: "name", description: "Alias for device"},
 			{name: "net_connection_id", description: "same as name"},
 			{name: "received", description: "Bytes received per second (calculated over the last " + TrafficRateDuration.String() + "). In humanized format", unit: UBytesPerSec},
-			{name: "received_bytes", description: "Bytes received per second (calculated over the last " + TrafficRateDuration.String() + "). In bytes", unit: UBytesPerSec},
+			{name: "received_bytes", description: "Bytes received in the rate calculation over the last " + TrafficRateDuration.String(), unit: UBytesPerSec},
 			{name: "total_received", description: "Total bytes received", unit: UByte},
 			{name: "sent", description: "Bytes sent per second (calculated over the last " + TrafficRateDuration.String() + "). In humanized format", unit: UBytesPerSec},
-			{name: "sent_bytes", description: "Bytes sent per second (calculated over the last " + TrafficRateDuration.String() + "). In bytes", unit: UBytesPerSec},
+			{name: "sent_bytes", description: "Bytes sent in the rate calculation over the last " + TrafficRateDuration.String(), unit: UBytesPerSec},
 			{name: "total_sent", description: "Total bytes sent", unit: UByte},
-			{name: "speed", description: "Network interface speed. In Mbits/sec", unit: UBytesPerSec},
-			{name: "speed_bytes", description: "Network interface speed. In bytes", unit: UBytesPerSec},
+			{name: "speed", description: "Network interface speed.", unit: UBytesPerSec},
+			{name: "speed_bytes", description: "Network interface speed. In bytes/s.", unit: UBytesPerSec},
 			{name: "flags", description: "Interface flags"},
 			{name: "total", description: "Sum of send and receive rates in bytes per second (calculated over the last " + TrafficRateDuration.String() + "). In humanized format", unit: UBytesPerSec},
-			{name: "total_bytes", description: "Sum of send and receive rates in bytes per second (calculated over the last " + TrafficRateDuration.String() + "). In bytes", unit: UBytesPerSec},
+			{name: "total_bytes", description: "Sum of sent and received bytes in the rate calculation over the last " + TrafficRateDuration.String(), unit: UBytesPerSec},
 		},
 		exampleDefault: `
     check_network device=eth0
@@ -121,24 +122,25 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 
 		speedBytes := ""
 		if speed >= 0 {
-			// speed is in Mbit/s, convert to bytes/s
+			// speed is in Mbps, convert to bytes/s
 			speedBytes = fmt.Sprintf("%.2f", float64(speed)*humanize.MBit/humanize.BitsPerByte)
 		}
 
 		entry := map[string]string{
 			"MAC":               int.HardwareAddr,
 			"enabled":           strconv.FormatBool(slices.Contains(int.Flags, "up")),
+			"device":            int.Name,
 			"name":              int.Name,
 			"net_connection_id": int.Name,
 			"received":          humanize.IBytes(uint64(recvRate)) + "/s",
-			"received_bytes":    fmt.Sprintf("%.2f", recvRate),
+			"received_bytes":    fmt.Sprintf("%d", uint64(recvRate)),
 			"total_received":    fmt.Sprintf("%d", totalReceived),
 			"sent":              humanize.IBytes(uint64(sentRate)) + "/s",
-			"sent_bytes":        fmt.Sprintf("%.2f", sentRate),
+			"sent_bytes":        fmt.Sprintf("%d", uint64(sentRate)),
 			"total_sent":        fmt.Sprintf("%d", totalSent),
 			"total":             humanize.IBytes(uint64(recvRate)+uint64(sentRate)) + "/s",
-			"total_bytes":       fmt.Sprintf("%.2f", recvRate+sentRate),
-			"speed":             fmt.Sprintf("%d", speed),
+			"total_bytes":       fmt.Sprintf("%d", uint64(recvRate)+uint64(sentRate)),
+			"speed":             fmt.Sprintf("%d Mb/s", speed),
 			"speed_bytes":       speedBytes,
 			"flags":             strings.Join(int.Flags, ","),
 		}
@@ -179,6 +181,7 @@ func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 				"_error":            fmt.Sprintf("no device named %s found", deviceName),
 				"MAC":               "",
 				"enabled":           "false",
+				"device":            deviceName,
 				"name":              deviceName,
 				"net_connection_id": deviceName,
 				"received":          "0",

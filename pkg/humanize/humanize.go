@@ -114,7 +114,8 @@ func ParseBytesPerSec(raw string) (float64, error) {
 	}
 
 	// bit based rates, ex. "100Mbps" -> 100*1000*1000 bits / 8 = 12500000 bytes/s
-	// these end with bps and have to be treated separately
+	// these end with 'bps' and have to be treated separately than ones that end with '/s'
+	// casing of the unit matters, ex. "Mb" is binary (mebibyte) while "MB" is decimal
 	if strings.HasSuffix(strings.ToLower(str), "bps") {
 		prefix, num, err := splitNumberPrefix(str[:len(str)-len("bps")])
 		if err != nil {
@@ -122,7 +123,7 @@ func ParseBytesPerSec(raw string) (float64, error) {
 		}
 		factor, ok := getBitSize(prefix)
 		if !ok {
-			return 0, fmt.Errorf("unhandled bits size name with prefix: %q, raw: %q", prefix, raw)
+			return 0, fmt.Errorf("unhandled bits size name with prefix: %q , raw: %q , str: %q", prefix, raw, str)
 		}
 
 		return num * float64(factor) / BitsPerByte, nil

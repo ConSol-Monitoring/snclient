@@ -70,16 +70,17 @@ these can be used in filters and thresholds (along with the default attributes):
 | ----------------- | ------------------------------------------------------------------------------------------------- |
 | MAC               | The MAC address                                                                                   |
 | enabled           | True if the network interface is enabled (true/false)                                             |
-| name              | Name of the interface                                                                             |
+| device            | Interface device                                                                                  |
+| name              | Alias for device                                                                                  |
 | net_connection_id | same as name                                                                                      |
 | received          | Bytes received per second (calculated over the last 30s). In humanized format                     |
-| received_bytes    | Bytes received per second (calculated over the last 30s). In bytes                                |
+| received_bytes    | Bytes received in the rate calculation over the last 30s                                          |
 | total_received    | Total bytes received                                                                              |
 | sent              | Bytes sent per second (calculated over the last 30s). In humanized format                         |
-| sent_bytes        | Bytes sent per second (calculated over the last 30s). In bytes                                    |
+| sent_bytes        | Bytes sent in the rate calculation over the last 30s                                              |
 | total_sent        | Total bytes sent                                                                                  |
-| speed             | Network interface speed. In Mbits/sec                                                             |
-| speed_bytes       | Network interface speed. In bytes                                                                 |
+| speed             | Network interface speed.                                                                          |
+| speed_bytes       | Network interface speed. In bytes/s.                                                              |
 | flags             | Interface flags                                                                                   |
 | total             | Sum of send and receive rates in bytes per second (calculated over the last 30s). In humanized format |
-| total_bytes       | Sum of send and receive rates in bytes per second (calculated over the last 30s). In bytes        |
+| total_bytes       | Sum of sent and received bytes in the rate calculation over the last 30s                          |
