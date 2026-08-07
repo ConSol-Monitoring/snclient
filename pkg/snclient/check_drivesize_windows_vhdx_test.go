@@ -23,7 +23,7 @@ import (
 const (
 	cmdTimeout           = 2 * time.Minute
 	drivesizeVhdxSizeMiB = 10
-	maxVhdxSizeBytes     = 50 * 1024 * 1024 // used in check_drivesize assesments
+	maxVhdxSizeBytes     = 50 * 1024 * 1024 // used in check_drivesize assessments
 )
 
 func hasElevatedPrivileges() bool {
@@ -50,11 +50,13 @@ func execDiskpart(t *testing.T, script string) (output string, err error) {
 	return string(out), cmdErr
 }
 
-func runDiskpart(t *testing.T, script string) {
+func runDiskpart(t *testing.T, script string) (output string) {
 	t.Helper()
 
 	out, err := execDiskpart(t, script)
 	require.NoErrorf(t, err, "diskpart failed: %s\n%s", err, out)
+
+	return out
 }
 
 // detachVhdx detaches the vhdx volume, tolerating an already detached state.
@@ -71,12 +73,27 @@ func detachVhdx(t *testing.T, vhdPath string) {
 	require.NoErrorf(t, err, "diskpart detach failed: %s\n%s", err, out)
 }
 
+// addDefenderExclusion adds a Microsoft Defender exclusion for the given directory, so that
+// realtime scanning does not keep a handle on the vhdx file. Best effort only.
+func addDefenderExclusion(t *testing.T, directory string) {
+	t.Helper()
+
+	escaped := strings.ReplaceAll(directory, "'", "''")
+	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "powershell", "-NoProfile", "-Command",
+		fmt.Sprintf("Add-MpPreference -ExclusionPath '%s'", escaped)).CombinedOutput()
+	if err != nil {
+		t.Logf("vhdx test: could not add defender exclusion for %s: %s\n%s", directory, err, out)
+	}
+}
+
 // waitForFileUnlock waits until the vhdx file can be removed again.
 // the storage stack can keep the file handle open for a while after the volume was detached.
 func waitForFileUnlock(t *testing.T, vhdPath string) {
 	t.Helper()
 
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(90 * time.Second)
 	for time.Now().Before(deadline) {
 		if err := os.Remove(vhdPath); err == nil {
 			t.Logf("vhdx test: vhd file removed: %s", vhdPath)
@@ -88,26 +105,44 @@ func waitForFileUnlock(t *testing.T, vhdPath string) {
 	t.Logf("vhdx test: vhd file still locked after waiting: %s", vhdPath)
 }
 
-// waitForVolumeDiscovery waits until the volume mounted at mountPath is found by the volume
-// discovery used by check_drivesize. the storage stack can take a moment to register a freshly attached volume.
-func waitForVolumeDiscovery(t *testing.T, mountPath string) {
+// volumeReady reports whether the volume mounted at mountPath is usable and found by the volume
+// discovery used by check_drivesize. the storage stack can take a moment to register a freshly
+// attached volume.
+func volumeReady(t *testing.T, mountPath string, timeout time.Duration) bool {
 	t.Helper()
 
 	checkDrivesize := &CheckDrivesize{}
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		requiredDrives := map[string]map[string]string{}
-		err := checkDrivesize.setCustomPath(mountPath, requiredDrives, false)
-		if err == nil {
-			if entry, ok := requiredDrives[mountPath]; ok && entry["_error"] == "" {
-				t.Logf("vhdx test: volume %s found by discovery", mountPath)
+		// the mount point has to resolve to the small volume and not to the parent drive
+		usage, err := disk.UsageWithContext(context.Background(), mountPath)
+		if err == nil && usage.Total < maxVhdxSizeBytes {
+			requiredDrives := map[string]map[string]string{}
+			err := checkDrivesize.setCustomPath(mountPath, requiredDrives, false)
+			if err == nil {
+				if entry, ok := requiredDrives[mountPath]; ok && entry["_error"] == "" {
+					t.Logf("vhdx test: volume %s found by discovery", mountPath)
 
-				return
+					return true
+				}
 			}
 		}
 		time.Sleep(1 * time.Second)
 	}
-	t.Fatalf("vhdx test: volume %s not found by discovery within 60s", mountPath)
+
+	return false
+}
+
+// logVolumes logs all volumes currently known to the windows volume discovery.
+func logVolumes(t *testing.T) {
+	t.Helper()
+
+	checkDrivesize := &CheckDrivesize{}
+	availVolumes := map[string]map[string]string{}
+	checkDrivesize.setVolumes(availVolumes)
+	for volumeID, volume := range availVolumes {
+		t.Logf("vhdx test: volume %s: name=%q drive=%q mounted=%q", volumeID, volume["name"], volume["drive"], volume["mounted"])
+	}
 }
 
 func logVolumeState(t *testing.T, mountPath string) {
@@ -150,12 +185,44 @@ func setupDirectoryMountedVolume(t *testing.T, sizeMiB int) string {
 	require.NoErrorf(t, os.MkdirAll(vhdDir, 0o700), "creating VHD directory")
 	require.NoErrorf(t, os.MkdirAll(mountPath, 0o700), "creating volume mount directory")
 
-	vhdPath := filepath.Join(vhdDir, "snclient-drivesize-test.vhdx")
-
 	t.Logf("vhdx test: temp test dir: %s", tempDir)
 	t.Logf("vhdx test: vhd directory: %s", vhdDir)
-	t.Logf("vhdx test: vhd file:      %s", vhdPath)
 	t.Logf("vhdx test: mount path:    %s", mountPath)
+
+	// realtime scanning can hold a handle on the vhdx file, try to keep it away
+	addDefenderExclusion(t, tempDir)
+
+	discoveryTimeout := 60 * time.Second
+	mounted := false
+	var vhdPath string
+	for attempt := 1; attempt <= 3 && !mounted; attempt++ {
+		vhdPath = filepath.Join(vhdDir, fmt.Sprintf("snclient-drivesize-test-%d.vhdx", attempt))
+		t.Logf("vhdx test: vhd file:      %s", vhdPath)
+
+		createScript := fmt.Sprintf(`create vdisk file="%s" maximum=%d type=expandable
+select vdisk file="%s"
+attach vdisk
+convert gpt
+create partition primary
+format fs=ntfs quick label="snclient-test"
+assign mount="%s"
+`, vhdPath, sizeMiB, vhdPath, mountPath)
+		out := runDiskpart(t, createScript)
+		t.Logf("vhdx test: diskpart create output:\n%s", out)
+
+		if volumeReady(t, mountPath, discoveryTimeout) {
+			mounted = true
+
+			break
+		}
+		t.Logf("vhdx test: volume %s did not come up, cleaning up attempt %d/3", mountPath, attempt)
+		detachVhdx(t, vhdPath)
+		waitForFileUnlock(t, vhdPath)
+	}
+	if !mounted {
+		logVolumes(t)
+		t.Fatalf("vhdx test: volume %s could not be mounted within 3 attempts", mountPath)
+	}
 
 	t.Cleanup(func() {
 		detachVhdx(t, vhdPath)
@@ -167,17 +234,6 @@ func setupDirectoryMountedVolume(t *testing.T, sizeMiB int) string {
 
 		t.Logf("vhdx test: cleaned up, %s still present: %v", vhdDir, vhdDirExists)
 	})
-
-	createScript := fmt.Sprintf(`create vdisk file="%s" maximum=%d type=expandable
-select vdisk file="%s"
-attach vdisk
-convert gpt
-create partition primary
-format fs=ntfs quick label="snclient-test"
-assign mount="%s"
-`, vhdPath, sizeMiB, vhdPath, mountPath)
-	runDiskpart(t, createScript)
-	waitForVolumeDiscovery(t, mountPath)
 
 	return mountPath
 }
@@ -287,10 +343,10 @@ func TestCheckDrivesizeVolumeMount(t *testing.T) {
 		t.Skipf("creating a vhdx volume requires elevated privileges")
 	}
 
+	mountPath := setupDirectoryMountedVolume(t, drivesizeVhdxSizeMiB)
+
 	snc := StartTestAgent(t, "")
 	defer StopTestAgent(t, snc)
-
-	mountPath := setupDirectoryMountedVolume(t, drivesizeVhdxSizeMiB)
 
 	dummyFolder := filepath.Join(mountPath, "dummy1", "dummy2", "dummy3")
 	require.NoErrorf(t, os.MkdirAll(dummyFolder, 0o700), "creating dummy folder inside the mounted volume")
@@ -372,10 +428,10 @@ func TestCheckDrivesizeVolumeMountFull(t *testing.T) {
 		t.Skipf("creating a vhdx volume requires elevated privileges")
 	}
 
+	mountPath := setupDirectoryMountedVolume(t, drivesizeVhdxSizeMiB)
+
 	snc := StartTestAgent(t, "")
 	defer StopTestAgent(t, snc)
-
-	mountPath := setupDirectoryMountedVolume(t, drivesizeVhdxSizeMiB)
 
 	// sparse volume is far below the critical threshold at the start
 	logVolumeState(t, mountPath)
