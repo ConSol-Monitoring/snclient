@@ -36,7 +36,7 @@ func hasElevatedPrivileges() bool {
 	return token.IsElevated()
 }
 
-func runDiskpart(t *testing.T, script string) {
+func execDiskpart(t *testing.T, script string) (output string, err error) {
 	t.Helper()
 
 	scriptDir := t.TempDir()
@@ -45,10 +45,97 @@ func runDiskpart(t *testing.T, script string) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, "diskpart", "/s", scriptPath).CombinedOutput()
-	if err != nil {
-		require.NoErrorf(t, err, "diskpart failed: %s\n%s", err.Error(), string(out))
+	out, cmdErr := exec.CommandContext(ctx, "diskpart", "/s", scriptPath).CombinedOutput()
+
+	return string(out), cmdErr
+}
+
+func runDiskpart(t *testing.T, script string) {
+	t.Helper()
+
+	out, err := execDiskpart(t, script)
+	require.NoErrorf(t, err, "diskpart failed: %s\n%s", err, out)
+}
+
+// detachVhdx detaches the vhdx volume, tolerating an already detached state.
+func detachVhdx(t *testing.T, vhdPath string) {
+	t.Helper()
+
+	//nolint:gocritic // %q would double-escape the backslashes in the windows path
+	out, err := execDiskpart(t, fmt.Sprintf("select vdisk file=\"%s\"\ndetach vdisk\n", vhdPath))
+	if err != nil && strings.Contains(out, "already detached") {
+		t.Logf("vhdx test: volume already detached")
+
+		return
 	}
+	require.NoErrorf(t, err, "diskpart detach failed: %s\n%s", err, out)
+}
+
+// waitForFileUnlock waits until the vhdx file can be removed again.
+// the storage stack can keep the file handle open for a while after the volume was detached.
+func waitForFileUnlock(t *testing.T, vhdPath string) {
+	t.Helper()
+
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		if err := os.Remove(vhdPath); err == nil {
+			t.Logf("vhdx test: vhd file removed: %s", vhdPath)
+
+			return
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	t.Logf("vhdx test: vhd file still locked after waiting: %s", vhdPath)
+}
+
+// waitForVolumeDiscovery waits until the volume mounted at mountPath is found by the volume
+// discovery used by check_drivesize. the storage stack can take a moment to register a freshly attached volume.
+func waitForVolumeDiscovery(t *testing.T, mountPath string) {
+	t.Helper()
+
+	checkDrivesize := &CheckDrivesize{}
+	deadline := time.Now().Add(60 * time.Second)
+	for time.Now().Before(deadline) {
+		requiredDrives := map[string]map[string]string{}
+		err := checkDrivesize.setCustomPath(mountPath, requiredDrives, false)
+		if err == nil {
+			if entry, ok := requiredDrives[mountPath]; ok && entry["_error"] == "" {
+				t.Logf("vhdx test: volume %s found by discovery", mountPath)
+
+				return
+			}
+		}
+		time.Sleep(1 * time.Second)
+	}
+	t.Fatalf("vhdx test: volume %s not found by discovery within 60s", mountPath)
+}
+
+func logVolumeState(t *testing.T, mountPath string) {
+	t.Helper()
+
+	usage, err := disk.UsageWithContext(context.Background(), mountPath)
+	if err != nil {
+		t.Logf("vhdx test: volume usage error: %s", err.Error())
+	} else {
+		t.Logf("vhdx test: volume total=%d free=%d used=%d", usage.Total, usage.Free, usage.Used)
+	}
+
+	checkDrivesize := &CheckDrivesize{}
+	requiredDrives := map[string]map[string]string{}
+	err = checkDrivesize.setCustomPath(mountPath, requiredDrives, false)
+	if err != nil {
+		t.Logf("vhdx test: setCustomPath error: %s", err.Error())
+
+		return
+	}
+	entry := requiredDrives[mountPath]
+	if entry == nil {
+		t.Logf("vhdx test: mountPath not found in requiredDrives")
+
+		return
+	}
+	t.Logf("vhdx test: discovered entry: drive=%q drive_or_id=%q _error=%q _matching_volume_path=%q",
+		entry["drive"], entry["drive_or_id"], entry["_error"], entry["_matching_volume_path"])
 }
 
 // setupDirectoryMountedVolume creates a vhdx volume and mounts it at a directory inside a temp folder.
@@ -71,12 +158,14 @@ func setupDirectoryMountedVolume(t *testing.T, sizeMiB int) string {
 	t.Logf("vhdx test: mount path:    %s", mountPath)
 
 	t.Cleanup(func() {
-		//nolint:gocritic // %q would double-escape the backslashes in the windows path
-		runDiskpart(t, fmt.Sprintf("select vdisk file=\"%s\"\ndetach vdisk\n", vhdPath))
+		detachVhdx(t, vhdPath)
+		waitForFileUnlock(t, vhdPath)
 		_ = os.RemoveAll(vhdDir)
+
 		_, err := os.Stat(vhdDir)
 		vhdDirExists := err == nil
-		t.Logf("vhdx test: detached volume, %s still present: %v", vhdDir, vhdDirExists)
+
+		t.Logf("vhdx test: cleaned up, %s still present: %v", vhdDir, vhdDirExists)
 	})
 
 	createScript := fmt.Sprintf(`create vdisk file="%s" maximum=%d type=expandable
@@ -88,6 +177,7 @@ format fs=ntfs quick label="snclient-test"
 assign mount="%s"
 `, vhdPath, sizeMiB, vhdPath, mountPath)
 	runDiskpart(t, createScript)
+	waitForVolumeDiscovery(t, mountPath)
 
 	return mountPath
 }
@@ -211,6 +301,7 @@ func TestCheckDrivesizeVolumeMount(t *testing.T) {
 	assert.Lessf(t, expectedUsage.Total, uint64(maxVhdxSizeBytes), "mounted volume is the small vhdx, not a real drive")
 
 	// drive argument pointing at the volume mount path
+	logVolumeState(t, mountPath)
 	res := snc.RunCheck("check_drivesize", []string{
 		"drive=" + mountPath,
 		"warn=used>100%",
@@ -287,6 +378,7 @@ func TestCheckDrivesizeVolumeMountFull(t *testing.T) {
 	mountPath := setupDirectoryMountedVolume(t, drivesizeVhdxSizeMiB)
 
 	// sparse volume is far below the critical threshold at the start
+	logVolumeState(t, mountPath)
 	res := snc.RunCheck("check_drivesize", []string{
 		"drive=" + mountPath,
 		"warning=none",
