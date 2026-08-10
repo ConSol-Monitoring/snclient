@@ -82,6 +82,7 @@ func NewCheckDrivesize() CheckHandler {
 	}
 }
 
+//nolint:funlen // there are lots of attributes in this check
 func (l *CheckDrivesize) Build() *CheckData {
 	return &CheckData{
 		name:         "check_drivesize",
@@ -98,10 +99,12 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"total":   {value: &l.total, description: "Include the total of all matching drives"},
 			"magic": {value: &l.magic, description: "Magic number for use with scaling drive sizes. " +
 				"Note there is also a more generic magic factor in the perf-config option."},
-			"mounted":                       {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
-			"ignore-unreadable":             {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
-			"freespace-ignore-reserved":     {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the total size. Default: true"},
-			"add-persistent-network-drives": {value: &l.addPersistentNetworkDrives, description: "Include persistent network drives (net use /persistent), even if currently disconnected, in the all/all-shares listing"},
+			"mounted":                   {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
+			"ignore-unreadable":         {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
+			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the total size. Default: true"},
+			"add-persistent-network-drives": {
+				value: &l.addPersistentNetworkDrives, description: "Include persistent network drives (net use /persistent), even if currently disconnected, in the all/all-shares listing",
+			},
 		},
 		defaultFilter:   l.getDefaultFilter(),
 		defaultWarning:  "used_pct > 80",
@@ -169,7 +172,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 	}
 }
 
-//nolint:funlen // no need to split the function, it is simple as is
+//nolint:funlen,contextcheck,nolintlint // no need to split the function, it is simple as is , context is constructed when needed
 func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckDisk")
 	if !enabled {
@@ -271,14 +274,14 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 
 	// remove errored paths unless custom path is specified
 	if !l.hasCustomPath {
-		for i, entry := range check.listData {
+		for idx, entry := range check.listData {
 			if errMsg, ok := entry["_error"]; ok {
 				// persistent network drives added via add-persistent-network-drives are treated like custom paths, so surface their errors instead of skipping them
 				if l.addPersistentNetworkDrives && entry["persistent"] == "1" {
 					continue
 				}
 				log.Debugf("drivesize failed for %s: %s", entry["drive_or_id"], errMsg)
-				check.listData[i]["_skip"] = "1"
+				check.listData[idx]["_skip"] = "1"
 			}
 		}
 	}
