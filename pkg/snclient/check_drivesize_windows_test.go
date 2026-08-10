@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckDrivesize(t *testing.T) {
@@ -262,6 +263,7 @@ func TestMatchNetworkShare(t *testing.T) {
 	assert.Falsef(t, matched, "disconnected drive skipped")
 
 	// no match at all
+	//nolint:misspell // it thinks that '\\other' is actually 'ther' due to backslash
 	_, _, matched = checkDrivesize.matchNetworkShare(`\\other\share`, shares)
 	assert.Falsef(t, matched, "no match")
 }
@@ -284,7 +286,7 @@ func TestCleanupPathString(t *testing.T) {
 	cd := CheckDrivesize{}
 	for _, test := range tests {
 		cleaned, isDrive, err := cd.cleanupPathString(test.path)
-		assert.NoErrorf(t, err, "cleanupPathString(%q)", test.path)
+		require.NoErrorf(t, err, "cleanupPathString(%q)", test.path)
 		assert.Equalf(t, test.cleaned, cleaned, "cleanupPathString(%q)", test.path)
 		assert.Equalf(t, test.isDrive, isDrive, "cleanupPathString(%q) isDrive", test.path)
 	}
