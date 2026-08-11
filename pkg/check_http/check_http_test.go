@@ -295,7 +295,7 @@ func TestHTTPProxySSL(t *testing.T) {
 
 	var proxied atomic.Int64
 	// this is a more realistic proxy server, which actually proxies the requests
-	// it is a http server and not HTTPS
+	// it is an http server and not HTTPS
 	proxy := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		// only accept the HTTP CONNECT method. This should be set by the http client
 		if req.Method != http.MethodConnect {
@@ -331,12 +331,12 @@ func TestHTTPProxySSL(t *testing.T) {
 		// this is the header for the proxy connection establishment
 		fmt.Fprint(clientConn, "HTTP/1.1 200 Connection Established\r\n\r\n")
 
-		// continiously copy the proxy client request to the target
+		// continuously copy the proxy client request to the target
 		go func() {
 			_, _ = io.Copy(dest, clientConn)
 		}()
 
-		// continiously copy the target responses to client
+		// continuously copy the target responses to client
 		_, _ = io.Copy(clientConn, dest)
 	}))
 	defer proxy.Close()
@@ -345,7 +345,7 @@ func TestHTTPProxySSL(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	// since the proxy actuall does proxying, this should get the result of the target
+	// since the proxy actually does proxying, this should get the result of the target
 	// the proxy is using http, there are no certificates to verify about proxy.
 	// the target is using https, but we are not in the --certificate mode where we perform certificate checks
 	code := Check(ctx, &output, []string{
@@ -388,8 +388,9 @@ func TestHTTPProxySSLSelfSignedProxy(t *testing.T) {
 	targetURL, err := url.Parse(target.URL)
 	require.NoError(t, err)
 
-	// this is also a working proxy, but it is a TLS server
-	// newTLSServer is using self-signed certificates by default, the certificates are not changed
+	// a TLS proxy with a self-signed certificate (httptest.NewTLSServer default).
+	// The CONNECT-tunnel handler is never reached in this test: the client
+	// fails to verify the proxy certificate during the TLS handshake.
 	proxy := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodConnect {
 			http.Error(writer, "expected CONNECT request", http.StatusBadRequest)
@@ -431,7 +432,7 @@ func TestHTTPProxySSLSelfSignedProxy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	// the proxy is using HTTPS, so proxy HTTPS should be verified
+	// the proxy is using HTTPS, so the proxy's HTTPS connection should be verified
 	// the target is using HTTP, but before reaching the target, the proxy TLS check fails
 	code := Check(ctx, &output, []string{
 		"check_http", "-H", targetURL.Host, "--proxy", proxy.URL, "-u", "/",
