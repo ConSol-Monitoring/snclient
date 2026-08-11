@@ -219,7 +219,7 @@ func makeTransport(opts *commandOpts, dialFunc func(ctx context.Context, _ strin
 		proxy = http.ProxyURL(parsedURL)
 	}
 
-	return &http.Transport{
+	transport := &http.Transport{
 		// inherited http.DefaultTransport
 		Proxy:                 proxy,
 		DialContext:           dialFunc,
@@ -230,7 +230,32 @@ func makeTransport(opts *commandOpts, dialFunc func(ctx context.Context, _ strin
 		ResponseHeaderTimeout: opts.TimeoutParsed,
 		TLSClientConfig:       tlsConfig,
 		ForceAttemptHTTP2:     true,
-	}, nil
+	}
+
+	if proxyScheme == "https" {
+		opts.debugf("The proxy certificate will be verified")
+
+		proxyTLSConfig := makeProxyTLSConfig(opts, parsedURL)
+		transport.DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			conn, err := dialFunc(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+
+			return tls.Client(conn, proxyTLSConfig), nil
+		}
+	}
+
+	return transport, nil
+}
+
+// makeProxyTLSConfig returns a tls config that verifies the certificate of an https proxy.
+func makeProxyTLSConfig(opts *commandOpts, proxyURL *url.URL) *tls.Config {
+	return &tls.Config{
+		ServerName: proxyURL.Hostname(),
+		MinVersion: opts.tlsMinVersion,
+		MaxVersion: opts.tlsMaxVersion,
+	}
 }
 
 func buildRequest(ctx context.Context, opts *commandOpts) (*http.Request, error) {
