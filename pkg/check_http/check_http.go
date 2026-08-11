@@ -170,10 +170,17 @@ func makeDialer(opts *commandOpts) func(ctx context.Context, _ string, _ string)
 		tcpMode = "tcp6"
 	}
 
-	dialFunc := func(ctx context.Context, _, _ string) (net.Conn, error) {
-		addr := net.JoinHostPort(opts.flags.IPAddress, strconv.Itoa(opts.flags.Port))
+	dialFunc := func(ctx context.Context, _ string, addr string) (net.Conn, error) {
+		// when a proxy is configured, the http transport passes the proxy address as addr, need to dial the proxy instead of the target
+		if opts.flags.Proxy != "" && addr != "" {
+			return baseDialFunc(ctx, tcpMode, addr)
+		}
 
-		return baseDialFunc(ctx, tcpMode, addr)
+		// otherwise it according to  -I/-p
+		// also used by the -C certificate check which calls dialFunc with an empty addr
+		targetAddr := net.JoinHostPort(opts.flags.IPAddress, strconv.Itoa(opts.flags.Port))
+
+		return baseDialFunc(ctx, tcpMode, targetAddr)
 	}
 
 	return dialFunc
