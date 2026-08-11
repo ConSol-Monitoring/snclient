@@ -212,8 +212,12 @@ func makeTransport(opts *commandOpts, dialFunc func(ctx context.Context, _ strin
 		switch proxyScheme {
 		case "https":
 			opts.debugf("This means a TLS connection will be established to the proxy")
-		case "socks4a", "socks5h":
-			opts.debugf("This means that the proxy will resolve the target hostname")
+		case "socks5", "socks5h":
+			opts.debugf("This means the proxy will resolve the target hostname")
+		case "socks4a":
+			opts.debugf("socks4a is not supported by the go http client, only socks5/socks5h is supported")
+		default:
+			opts.debugf("Using proxy with unsupported scheme: %q", proxyScheme)
 		}
 
 		proxy = http.ProxyURL(parsedURL)
