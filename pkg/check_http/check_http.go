@@ -115,6 +115,18 @@ func (opts *commandOpts) tracef(format string, args ...any) {
 	}
 }
 
+func (opts *commandOpts) debugf(format string, args ...any) {
+	if !opts.flags.Verbose {
+		return
+	}
+
+	if opts.log != nil {
+		opts.log.Debugf(format, args...)
+	} else {
+		log.Printf(format, args...)
+	}
+}
+
 func makeTLSConfig(opts *commandOpts) (conf *tls.Config) {
 	//nolint:gosec // TLS check is deliberately skipped, certificate checks are done in its separate function
 	conf = &tls.Config{
@@ -171,10 +183,30 @@ func makeDialer(opts *commandOpts) func(ctx context.Context, _ string, _ string)
 func makeTransport(opts *commandOpts, dialFunc func(ctx context.Context, _ string, _ string) (net.Conn, error), tlsConfig *tls.Config) (http.RoundTripper, error) {
 	proxy := http.ProxyFromEnvironment
 
+	var parsedURL *url.URL
+	proxyScheme := ""
+
 	if opts.flags.Proxy != "" {
-		parsedURL, err := url.Parse(opts.flags.Proxy)
+		var err error
+		parsedURL, err = url.Parse(opts.flags.Proxy)
 		if err != nil {
 			return nil, fmt.Errorf("Error while parsing Proxy URL. Error was: %s", err.Error())
+		}
+
+		opts.debugf("Proxy used: %q", parsedURL)
+
+		proxyScheme = parsedURL.Scheme
+		if proxyScheme == "" {
+			proxyScheme = "http"
+		}
+
+		opts.debugf("Proxy is using scheme: %q", proxyScheme)
+
+		switch proxyScheme {
+		case "https":
+			opts.debugf("This means a TLS connection will be established to the proxy")
+		case "socks4a", "socks5h":
+			opts.debugf("This means that the proxy will resolve the target hostname")
 		}
 
 		proxy = http.ProxyURL(parsedURL)
