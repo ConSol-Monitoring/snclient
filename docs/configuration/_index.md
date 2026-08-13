@@ -150,6 +150,56 @@ This is the order of inheritance for the example above:
 
 The first defined value will be used.
 
+## Network Share Credentials
+
+On Windows, network shares are accessed with the credentials of the account the snclient
+service runs under. Shares that were never opened before need credentials before they can
+be queried. These can be provided in the `[/settings/credentials]` section, they are stored
+in the Windows Credential Manager of the snclient account, without mounting anything.
+
+```ini
+[/settings/credentials]
+[[share1]]
+type     = windows-share
+target   = 192.168.178.21
+username = svc
+password = secret
+strategy = on-demand
+
+[[share2]]
+type     = windows-share
+target   = fileserver
+username = CORP\svc
+password = secret2
+strategy = on-start
+```
+
+The credential is added for the target server and is automatically used by the SMB
+redirector (NTLM/Kerberos) when the snclient connects to that server.
+
+### Keys
+
+| Key          | Description                                                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| type         | Type of the credential. Only `windows-share` is supported for now.                                                                        |
+| target       | Server to store the credential for, e.g. the host name or IP as used in the UNC path. A full UNC path like `\\server\share` works as well. |
+| username     | Account used to connect, e.g. `CORP\svc`. If it contains no domain, the domain of the account the snclient runs as is added automatically. |
+| password     | Plaintext password of the account. Required because the Windows authentication packages need the real secret to authenticate.              |
+| strategy     | When to load the credential, see below. Default: `on-demand`                                                                              |
+
+### Loading Strategies
+
+| Strategy  | Description                                                                                                                                                    |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| on-start  | The credential is loaded once when the snclient starts and stays for the lifetime of the snclient logon session. It is gone after a reboot.                     |
+| on-demand | The credential is loaded right before a share is queried and removed again immediately after the check finished. This minimizes the time the credential exists. |
+
+When a credential is loaded on demand and a credential for the same target already exists
+in the Credential Manager, it is left untouched and removed again after the check. The
+credentials never survive a reboot. Note that an established SMB session stays cached in
+the snclient logon session even after the credential was removed, so other processes in the
+same session could still reuse that connection.
+
 ## Includes
 
 It is possible and encouraged to include other ini files to organize your settings.

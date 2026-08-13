@@ -71,6 +71,8 @@ type CheckDrivesize struct {
 	hasCustomPath              bool
 	freespaceIgnoreReserved    bool
 	addPersistentNetworkDrives bool
+	shareUser                  string
+	sharePassword              string
 }
 
 func NewCheckDrivesize() CheckHandler {
@@ -104,6 +106,14 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the total size. Default: true"},
 			"add-persistent-network-drives": {
 				value: &l.addPersistentNetworkDrives, description: "Include persistent network drives (net use /persistent), even if currently disconnected, in the all/all-shares listing",
+			},
+			"share-user": {
+				value: &l.shareUser, description: "Windows only: username used to authenticate to the network shares given in this check. " +
+					"The credential is added to the Windows Credential Manager on demand and removed again after the check.",
+			},
+			"share-password": {
+				value: &l.sharePassword, description: "Windows only: password used to authenticate to the network shares given in this check. " +
+					"Note: the password is transmitted as part of the check request.",
 			},
 		},
 		defaultFilter:   l.getDefaultFilter(),
@@ -172,7 +182,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 	}
 }
 
-//nolint:funlen,contextcheck,nolintlint // no need to split the function, it is simple as is , context is constructed when needed
+//nolint:funlen,gocyclo,maintidx,contextcheck,nolintlint // no need to split the function, it is simple as is , context is constructed when needed
 func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckDisk")
 	if !enabled {
@@ -240,6 +250,115 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	sort.Strings(keys)
 
 	l.tidyThresholdDriveValues(check)
+
+	// overridden credentials from the share-user / share-password check arguments,
+	// they apply to all UNC shares given in this check
+	overrideCredentials := map[string]Credential{}
+	if l.shareUser != "" {
+		for _, k := range keys {
+			drive := requiredDisks[k]
+			if !isNetworkSharePath(drive["drive_or_id"]) {
+				continue
+			}
+			target := shareTargetFromUNCPath(drive["drive_or_id"])
+			if target == "" {
+				continue
+			}
+			// user is always needed, but password can be empty for a valid login
+			overrideCredentials[target] = Credential{
+				Type:     CredentialTypeWindowsShare,
+				Target:   target,
+				Username: qualifyUsername(l.shareUser, currentUserDomain()),
+				Password: l.sharePassword,
+				Strategy: CredentialStrategyOnDemand,
+			}
+		}
+	}
+
+	// on-demand credentials from the [/settings/credentials] config section,
+	// they are only added for UNC shares that have no override above
+	onDemandCredentials := map[string]Credential{}
+	for _, k := range keys {
+		drive := requiredDisks[k]
+		if !isNetworkSharePath(drive["drive_or_id"]) {
+			continue
+		}
+		target := shareTargetFromUNCPath(drive["drive_or_id"])
+		if target == "" {
+			continue
+		}
+		if _, ok := overrideCredentials[target]; ok {
+			continue
+		}
+		if _, ok := onDemandCredentials[target]; ok {
+			continue
+		}
+		if cred, ok := findOnDemandCredential(snc.config, target); ok {
+			onDemandCredentials[target] = cred
+		}
+	}
+
+	// keep track of the credentials that were actually written in this run,
+	// so the cleanup only removes the ones snclient added
+	addedCredentials := map[string]bool{}
+
+	// add the override credentials first
+	for target, cred := range overrideCredentials {
+		// leave credentials the user set up on their own untouched
+		if hasShareCredential(target) {
+			log.Debugf("credentials: credential for %s already exists, leaving it untouched", target)
+
+			continue
+		}
+		if err := addShareCredential(&cred); err != nil {
+			log.Errorf("credentials: failed to add override credential for %s: %s", target, err.Error())
+
+			continue
+		}
+		log.Debugf("credentials: added override credential for %s", target)
+		addedCredentials[target] = true
+	}
+
+	// then add the on-demand credentials when necessary
+	for target, cred := range onDemandCredentials {
+		// leave credentials the user set up on their own untouched
+		if hasShareCredential(target) {
+			log.Debugf("credentials: credential for %s already exists, leaving it untouched", target)
+
+			continue
+		}
+		if err := addShareCredential(&cred); err != nil {
+			log.Errorf("credentials: failed to add on-demand credential for %s: %s", target, err.Error())
+
+			continue
+		}
+		log.Debugf("credentials: added on-demand credential for %s", target)
+		addedCredentials[target] = true
+	}
+
+	addedCredentialsCount := 0
+	for _, added := range addedCredentials {
+		if added {
+			addedCredentialsCount++
+		}
+	}
+
+	if addedCredentialsCount >= 1 {
+		// wait a bit for credentials to take effect
+		time.Sleep(1 * time.Second)
+	}
+
+	// remove all added credentials again after the check finished
+	defer func() {
+		for target := range addedCredentials {
+			if err := deleteShareCredential(target); err != nil {
+				log.Errorf("credentials: failed to remove on-demand credential for %s: %s", target, err.Error())
+
+				continue
+			}
+			log.Debugf("credentials: removed on-demand credential for %s", target)
+		}
+	}()
 
 	for _, k := range keys {
 		if ctxErr := ctx.Err(); ctxErr != nil {
