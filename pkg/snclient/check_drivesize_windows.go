@@ -64,11 +64,18 @@ Include persistent network drives (net use /persistent), even if they are curren
 Hidden shares can be accessed if their path is specified.
 
 	check_drivesize drive='\\192.168.178.21\TestHidden$'
+
+Credentials for shares that were never opened before can be provided via share-user / share-password.
+The credential is added to the Windows Credential Manager for the duration of the check and removed afterwards.
+
+	check_drivesize drive='\\192.168.178.21\TestHidden$' share-user='CORP\svc' share-password='secret'
+
+Alternatively, credentials can be configured globally in the [/settings/credentials] section, see the snclient documentation for details.
 	`
 }
 
 // Terminology
-// Disk : Physical Hardware like a HDD, SSD, Usb Stick. A block device that ca be used to store raw bytes -> \\.\PhysicalDrive0
+// Disk : Physical Hardware like a HDD, SSD, Usb Stick. A block device that ca be used to store raw bytes -> \\.\PhysicalDritve0
 // Partition: Is written into the disk in a partition table. It exists independently of volumes, may not be used by Windows
 // Volume: A logical abstraction of a storage, formatted with a file system. It can be a virtual file, a RAID disk or one partition -> \\?\Volume{GUID}\
 // Drive: This term is not defined well. Here, it means a logical access point with an assigned drive letter.
@@ -897,25 +904,6 @@ func isNetworkDrivePersistent(driveLetter string) (isPersistent bool) {
 	log.Debugf("Found no persistent network drive with driveLetter %s", driveLetter)
 
 	return false
-}
-
-// returns if the path looks like an UNC path
-func isNetworkSharePath(path string) (isNetworkSharePath bool) {
-	// Example 1: \\FileServer01\PublicDocs
-	// Example 2: \\BackupServer\Data\Archive\2025-01-14.zip
-	// Example 3: \\192.168.1.50\SharedData\Images|
-	// But modern programs also generally accept forward slash definitions
-	// //192.168.1.50/Shareddata/Images
-
-	if len(path) < 2 {
-		return false
-	}
-
-	if !strings.HasPrefix(path, "\\\\") && !strings.HasPrefix(path, "//") {
-		return false
-	}
-
-	return true
 }
 
 // returns if the given UNC path points to a hidden share, i.e. the share name ends with a dollar sign

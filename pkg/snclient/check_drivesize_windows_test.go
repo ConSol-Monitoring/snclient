@@ -145,24 +145,6 @@ func TestNonexistingDrive(t *testing.T) {
 	StopTestAgent(t, snc)
 }
 
-func TestIsNetworkSharePath(t *testing.T) {
-	tests := []struct {
-		path string
-		want bool
-	}{
-		{`\\server\share`, true},
-		{`//server/share`, true},
-		{`\\server`, true},
-		{`C:\folder`, false},
-		{`C:`, false},
-		{`/`, false},
-		{``, false},
-	}
-	for _, test := range tests {
-		assert.Equalf(t, test.want, isNetworkSharePath(test.path), "isNetworkSharePath(%q)", test.path)
-	}
-}
-
 func TestIsHiddenSharePath(t *testing.T) {
 	tests := []struct {
 		path string
