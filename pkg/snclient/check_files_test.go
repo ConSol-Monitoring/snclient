@@ -76,7 +76,7 @@ func TestCheckFiles(t *testing.T) {
 
 	res = snc.RunCheck("check_files", []string{"path=./t/checksum.txt", "crit=md5_checksum != 3687C5D7106484CD61CDE867A2A999FA"})
 	assert.Equalf(t, CheckExitCritical, res.State, "CRITICAL")
-	assert.Contains(t, string(res.BuildPluginOutput()), "0/1 files")
+	assert.Contains(t, string(res.BuildPluginOutput()), "1/1 files")
 
 	res = snc.RunCheck("check_files", []string{"path=./t/checksum.txt", "crit=sha1_checksum == 4EE4BFE9AA51E56A7BD5CCF4785C35A27EE022F8"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
