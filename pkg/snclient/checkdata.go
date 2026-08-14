@@ -102,6 +102,7 @@ type CheckData struct {
 	defaultFilter                 string
 	conditionAlias                map[string]map[string]string // replacement map of equivalent condition values
 	conditionColAlias             map[string][]string          // if there are filter for given column, apply to alias columns too
+	disableFilter                 bool                         // disable filter argument for checks where filtering listData makes no sense
 	args                          map[string]CheckArgument
 	extraArgs                     map[string]CheckArgument // internal, map of expanded args
 	argsPassthrough               bool                     // allow arbitrary arguments without complaining about unknown argument
@@ -280,10 +281,12 @@ func (cd *CheckData) buildListMacros() map[string]string {
 	okList := make([]string, 0)
 	warnList := make([]string, 0)
 	critList := make([]string, 0)
+	unknownList := make([]string, 0)
 	count := int64(0)
 	okCount := int64(0)
 	warnCount := int64(0)
 	critCount := int64(0)
+	unknownCount := int64(0)
 	for _, entry := range cd.listData {
 		weight := int64(1)
 		if w, ok := entry["_count"]; ok {
@@ -308,6 +311,9 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		case "2":
 			critList = append(critList, expanded)
 			critCount += weight
+		case "3":
+			unknownList = append(unknownList, expanded)
+			unknownCount += weight
 		}
 	}
 
@@ -315,17 +321,21 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		cd.listCombine = ", "
 	}
 	result := map[string]string{
-		"count":         fmt.Sprintf("%d", count),
-		"list":          strings.Join(list, cd.listCombine),
-		"ok_count":      fmt.Sprintf("%d", okCount),
-		"ok_list":       "",
-		"warn_count":    fmt.Sprintf("%d", warnCount),
-		"warn_list":     "",
-		"crit_count":    fmt.Sprintf("%d", critCount),
-		"crit_list":     "",
-		"problem_count": fmt.Sprintf("%d", warnCount+critCount),
-		"problem_list":  "",
-		"detail_list":   "",
+		"count":          fmt.Sprintf("%d", count),
+		"list":           strings.Join(list, cd.listCombine),
+		"ok_count":       fmt.Sprintf("%d", okCount),
+		"ok_list":        "",
+		"warn_count":     fmt.Sprintf("%d", warnCount),
+		"warning_count":  fmt.Sprintf("%d", warnCount),
+		"warn_list":      "",
+		"crit_count":     fmt.Sprintf("%d", critCount),
+		"critical_count": fmt.Sprintf("%d", critCount),
+		"crit_list":      "",
+		"unknown_count":  fmt.Sprintf("%d", unknownCount),
+		"unknown_list":   "",
+		"problem_count":  fmt.Sprintf("%d", warnCount+critCount+unknownCount),
+		"problem_list":   "",
+		"detail_list":    "",
 	}
 
 	problemList := []string{}
@@ -341,6 +351,11 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		result["warn_list"] = "warning(" + strings.Join(warnList, cd.listCombine) + ")"
 		problemList = append(problemList, result["warn_list"])
 		detailList = append(detailList, result["warn_list"])
+	}
+	if len(unknownList) > 0 {
+		result["unknown_list"] = "unknown(" + strings.Join(unknownList, cd.listCombine) + ")"
+		problemList = append(problemList, result["unknown_list"])
+		detailList = append(detailList, result["unknown_list"])
 	}
 	if len(okList) > 0 {
 		result["ok_list"] = strings.Join(okList, cd.listCombine)
@@ -363,17 +378,21 @@ func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
 	}
 
 	result := map[string]string{
-		"count":         "1",
-		"list":          expanded,
-		"ok_count":      "0",
-		"ok_list":       "",
-		"warn_count":    "0",
-		"warn_list":     "",
-		"crit_count":    "0",
-		"crit_list":     "",
-		"problem_count": "0",
-		"problem_list":  "",
-		"detail_list":   expanded,
+		"count":          "1",
+		"list":           expanded,
+		"ok_count":       "0",
+		"ok_list":        "",
+		"warn_count":     "0",
+		"warning_count":  "0",
+		"warn_list":      "",
+		"crit_count":     "0",
+		"critical_count": "0",
+		"crit_list":      "",
+		"unknown_count":  "0",
+		"unknown_list":   "",
+		"problem_count":  "0",
+		"problem_list":   "",
+		"detail_list":    expanded,
 	}
 
 	numWarn := 0
@@ -386,12 +405,21 @@ func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
 		result["problem_list"] = expanded
 		result["warn_list"] = expanded
 		result["warn_count"] = "1"
+		result["warning_count"] = "1"
+		result["problem_count"] = "1"
 		numWarn = 1
 	case "2":
 		result["problem_list"] = expanded
 		result["crit_list"] = expanded
 		result["crit_count"] = "1"
+		result["critical_count"] = "1"
+		result["problem_count"] = "1"
 		numCrit = 1
+	case "3":
+		result["problem_list"] = expanded
+		result["unknown_list"] = expanded
+		result["unknown_count"] = "1"
+		result["problem_count"] = "1"
 	}
 
 	cd.buildCountMetrics(1, numCrit, numWarn)
@@ -731,6 +759,9 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
 		case "filter+":
+			if cd.disableFilter {
+				return nil, false, fmt.Errorf("%s is disabled for this check", keyword)
+			}
 			applyDefaultFilter = false
 			filter, err2 := cd.appendDefaultThreshold(keyword, argValue, cd.defaultFilter, cd.filter)
 			if err2 != nil {
@@ -738,6 +769,9 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 			}
 			cd.filter = filter
 		case "filter":
+			if cd.disableFilter {
+				return nil, false, fmt.Errorf("%s is disabled for this check", keyword)
+			}
 			applyDefaultFilter = false
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
