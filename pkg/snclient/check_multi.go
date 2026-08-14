@@ -25,16 +25,38 @@ func NewCheckMulti() CheckHandler {
 
 func (l *CheckMulti) Build() *CheckData {
 	return &CheckData{
-		name:          "check_multi",
-		description:   "Runs multiple checks and aggregates their status, output and performance data.",
+		name: "check_multi",
+		description: `Runs multiple checks and aggregates their status, output and performance data.
+
+	By default 'CheckMulti' is enabled, but you can disable it in the '[/modules]' section of the snclient_local.ini.
+	You can also set a limit for the number of checks that can be executed in the '[/settings/check/multi]' section
+	of the snclient_local.ini.
+
+	When using the inline mode, you can only use available commands (run 'check_index' to get a full list).
+
+	You can also define custom check sections in the config file, for example:
+    [/settings/check/multi/mycheck]
+    check_process process=123
+    check_process process=345
+
+    This can be executed with 'check_multi "config=mycheck"'.
+
+	It's also possible to use custom scripts in the config section, for example:
+	[/settings/check/multi/myscript]
+	/path/to/plugin1
+	/path/to/plugin2
+	/path/to/plugin3
+
+	This can be executed with 'check_multi "config=myscript"'.
+`,
 		implemented:   ALL,
 		disableFilter: true,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"check":  {value: &l.checks, description: "Inline check command to execute (can be specified multiple times)"},
-			"config": {value: &l.config, description: "Config section name under /settings/check/multi/ to execute"},
+			"check":  {value: &l.checks, description: "Check command to execute (can be specified multiple times)"},
+			"config": {value: &l.config, description: "Config section name under [/settings/check/multi/< section >] to execute"},
 		},
 		conditionAlias: map[string]map[string]string{
 			"warning_count":  {"warn_count": "warning_count"},
@@ -61,8 +83,17 @@ func (l *CheckMulti) Build() *CheckData {
 		emptySyntax:     "%(status) - no checks executed",
 		emptyState:      CheckExitUnknown,
 		exampleDefault: `
-    check_multi "check=check_process process=123" "check=check_process process=345" "warn=none" "crit=ok_count ne 2"
-    OK - 2 plugins checked, 2 ok
+    check_multi "check=check_process 'process=firefox'" "check=check_memory 'crit=used_pct gt 80%'"
+	OK - 2 plugins checked, 2 ok | 'check_process::count'=1;;;0 'check_process::rss'=258686976B;;;0 ...
+	[ 1] check_process OK - all 1 processes are ok.
+	[ 2] check_memory OK - physical = 12.22 GiB/16.00 GiB (76.4%), swap = 1.95 GiB/3.00 GiB (65.0%)
+
+	You can define warning/critical conditions based on the number of checks in a certain state (see attributes below):
+
+	check_multi "check=check_dummy 0 'OK'" "check=check_dummy 1 'WARNING'" "critical=problem_count gt 0"
+	CRITICAL - 2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown
+	[ 1] check_dummy OK
+	[ 2] check_dummy WARNING
 	`,
 	}
 }
