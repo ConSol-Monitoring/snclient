@@ -7,8 +7,8 @@ title: multi
 Runs multiple checks and aggregates their status, output and performance data.
 
 	By default 'CheckMulti' is enabled, but you can disable it in the '[/modules]' section of the snclient_local.ini.
-	You can also set a limit for the number of checks that can be executed in the '[/settings/check/multi]' section
-	of the snclient_local.ini.
+	You can also set 'max checks' in the '[/settings/check/multi]' section of the snclient_local.ini, which limits
+	the number of checks that can be configured.
 
 	When using the inline mode, you can only use available commands (run 'check_index' to get a full list).
 
