@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -138,17 +139,44 @@ CheckMulti = disabled
 }
 
 func TestCheckMultiConfigSection(t *testing.T) {
-	// Create a temporary shell script to test external scripts in config
+	// Create temporary scripts to test external scripts in config
 	tmpDir := t.TempDir()
-	script1 := filepath.Join(tmpDir, "test1.sh")
-	script2 := filepath.Join(tmpDir, "test2.sh")
+	var scriptExt string
+	var script1Content, script2Content string
 
-	err := os.WriteFile(script1, []byte("#!/bin/sh\necho \"SCRIPT 1 OK | perf1=10;20;30\"\nexit 0\n"), 0o600)
+	if runtime.GOOS == "windows" {
+		scriptExt = ".ps1"
+		script1Content = `Write-Output "SCRIPT 1 OK | perf1=10;20;30"
+exit 0
+`
+		script2Content = `Write-Output "SCRIPT 2 WARNING | perf2=50;40;60"
+exit 1
+`
+	} else {
+		scriptExt = ".sh"
+		script1Content = `#!/bin/sh
+echo "SCRIPT 1 OK | perf1=10;20;30"
+exit 0
+`
+		script2Content = `#!/bin/sh
+echo "SCRIPT 2 WARNING | perf2=50;40;60"
+exit 1
+`
+	}
+
+	script1 := filepath.Join(tmpDir, "test1"+scriptExt)
+	script2 := filepath.Join(tmpDir, "test2"+scriptExt)
+
+	err := os.WriteFile(script1, []byte(script1Content), 0o600)
 	require.NoError(t, err)
-	require.NoError(t, os.Chmod(script1, 0o700))
-	err = os.WriteFile(script2, []byte("#!/bin/sh\necho \"SCRIPT 2 WARNING | perf2=50;40;60\"\nexit 1\n"), 0o600)
+
+	err = os.WriteFile(script2, []byte(script2Content), 0o600)
 	require.NoError(t, err)
-	require.NoError(t, os.Chmod(script2, 0o700))
+
+	if runtime.GOOS != "windows" {
+		require.NoError(t, os.Chmod(script1, 0o700))
+		require.NoError(t, os.Chmod(script2, 0o700))
+	}
 
 	config := fmt.Sprintf(`
 [/modules]
