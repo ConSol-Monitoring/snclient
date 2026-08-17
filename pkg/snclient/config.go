@@ -454,7 +454,7 @@ func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigS
 			return fmt.Errorf("refusing unsafe http include cache file %s: %s", cacheFile, err.Error())
 		}
 		exists = true
-		if snc.flags.Mode == ModeOneShot {
+		if snc.Flags.Mode == ModeOneShot {
 			fetch = false
 		}
 		// fetch if file is older than one day

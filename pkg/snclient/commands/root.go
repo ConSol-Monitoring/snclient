@@ -34,7 +34,7 @@ while being easily extendible with own script and checks.`,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			// defaults to server mode unless --help/--version is given
 			if agentFlags.Version {
-				snc := snclient.Agent{}
+				snc := snclient.Agent{Flags: agentFlags}
 				snc.PrintVersion()
 
 				return nil
@@ -120,6 +120,8 @@ func maybeInjectRootAlias(rootCmd *cobra.Command, inject string) {
 	}
 	if tmpFlags.Version {
 		os.Args = []string{os.Args[0], "-V"}
+		// if snclient is started with verbose arguments, pass them to internal check as well
+		os.Args = snclient.AppendLogLevelArgs(os.Args, tmpFlags)
 
 		return
 	}
