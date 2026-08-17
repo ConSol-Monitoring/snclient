@@ -1072,20 +1072,20 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 	}
 }
 
-func AppendLogLevelArgs(args []string, flags *AgentFlags) (newArgs []string) {
+func PrependLogLevelArgs(args []string, flags *AgentFlags) (newArgs []string) {
 	switch {
 	case flags.Verbose >= 3:
-		newArgs = append(args, "-vvv")
+		newArgs = append([]string{"-vvv"}, args...)
 		log.Tracef("adding -vvv to the check arguments")
 
 		return newArgs
 	case flags.Verbose >= 2:
-		newArgs = append(args, "-vv")
+		newArgs = append([]string{"-vv"}, args...)
 		log.Tracef("adding -vv to the check arguments")
 
 		return newArgs
 	case flags.Verbose >= 1:
-		newArgs = append(args, "-v")
+		newArgs = append([]string{"-v"}, args...)
 		log.Tracef("adding -v to the check arguments")
 
 		return newArgs

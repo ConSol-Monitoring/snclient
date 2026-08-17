@@ -58,7 +58,7 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	args := []string{}
 	args = append(args, check.rawArgs...)
 	// if snclient is started with verbose arguments, pass them to internal check as well
-	args = AppendLogLevelArgs(args, snc.Flags)
+	args = PrependLogLevelArgs(args, snc.Flags)
 
 	ctx = utils.ContextWithLogger(ctx, log)
 
@@ -69,7 +69,7 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	check.result.State = int64(rc)
 
 	log.Tracef("internal check: %s returned rc: %d", l.name, rc)
-	log.Tracef("output: %s", utils.Shorten(check.result.Output, 30, "..."))
+	log.Tracef("output: %s", utils.Shorten(check.result.Output, 30, "...")) //nolint:mnd // magic number only used once here, no need to make it a constant
 
 	return check.Finalize()
 }
