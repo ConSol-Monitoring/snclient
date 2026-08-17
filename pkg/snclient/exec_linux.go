@@ -4,6 +4,8 @@ package snclient
 
 import (
 	"context"
+	"os"
+	"strings"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -24,6 +26,20 @@ func (snc *Agent) execCommandAsRoot(ctx context.Context, command string, timeout
 		// do not require capabilities when overridden for testing
 		cmd.SysProcAttr.Credential = &syscall.Credential{Uid: 0, Gid: 0}
 	}
+
+	// cleanup environment for elevated commands, only keep TERM and HOME variable
+	env := []string{
+		// set fixed PATH
+		"PATH=/usr/local/bin:/bin:/usr/bin:/sbin:/usr/sbin",
+	}
+	for _, line := range os.Environ() {
+		splitted := strings.SplitN(line, "=", 2)
+		switch splitted[0] {
+		case "TERM", "HOME":
+			env = append(env, line)
+		}
+	}
+	cmd.Env = env
 
 	stdout, stderr, exitCode, _, err = snc.runExternalCommand(ctx, cmd, timeout)
 
