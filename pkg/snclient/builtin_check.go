@@ -71,6 +71,12 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	log.Tracef("internal check: %s returned rc: %d", l.name, rc)
 	log.Tracef("output: %s", utils.Shorten(check.result.Output, 30, "...")) //nolint:mnd // magic number only used once here, no need to make it a constant
 
+	// reset conditions, they are not used for builtin checks but might interfere with other checks
+	check.warnThreshold = nil
+	check.critThreshold = nil
+	check.okThreshold = nil
+	check.filter = nil
+
 	return check.Finalize()
 }
 
