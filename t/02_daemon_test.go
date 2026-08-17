@@ -123,6 +123,18 @@ func TestDaemonRequests(t *testing.T) {
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-vv", "-p", localDaemonPassword, "-r", "-u", baseURL},
+		Like: []string{`REQUEST:`, `snclient working`},
+	})
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"run", "check_nsc_web", "-vv", "-p", localDaemonPassword, "-u", baseURL, "check_cpu", "warn=load > 100", "crit=load > 100"},
+		Like: []string{`OK - CPU load is ok.`},
+	})
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
 		Args: append(baseArgs, "check_cpu", "warn=load > 100", "crit=load > 100"),
 		Like: []string{`OK - CPU load is ok.`},
 	})

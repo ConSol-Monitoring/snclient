@@ -753,3 +753,11 @@ func Deduplicate[T comparable](slice []T) []T {
 
 	return result
 }
+
+func Shorten(txt string, maxLength int, suffix string) string {
+	if len(txt) <= maxLength {
+		return txt
+	}
+
+	return txt[0:maxLength] + suffix
+}

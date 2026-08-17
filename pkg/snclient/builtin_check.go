@@ -62,10 +62,14 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 
 	ctx = utils.ContextWithLogger(ctx, log)
 
+	log.Tracef("calling internal check: %s", l.name)
 	output := bytes.NewBuffer(nil)
 	rc := l.check(ctx, output, args)
 	check.result.Output = output.String()
 	check.result.State = int64(rc)
+
+	log.Tracef("internal check: %s returned rc: %d", l.name, rc)
+	log.Tracef("output: %s", utils.Shorten(check.result.Output, 30, "..."))
 
 	return check.Finalize()
 }
