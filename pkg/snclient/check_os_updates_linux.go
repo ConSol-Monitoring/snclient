@@ -61,7 +61,7 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 	}
 
 	if l.update {
-		output, stderr, rc, err := l.snc.execCommand(ctx, "apt-get update", l.snc.getBuiltinCmdTimeout())
+		output, stderr, rc, err := l.snc.execCommandAsRoot(ctx, "/usr/bin/apt-get update", l.snc.getBuiltinCmdTimeout())
 		if err != nil {
 			return true, fmt.Errorf("apt-get update failed: %s\n%s", err.Error(), stderr)
 		}
