@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -15,7 +16,8 @@ func TestHandlerNRPE(t *testing.T) {
 }
 
 func TestNRPE(t *testing.T) {
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 NRPEServer = enabled
 
@@ -25,13 +27,14 @@ level = error
 
 [/settings/NRPE/server]
 allow nasty characters = false
-port = 45666
+port = %d
 allow arguments = false
 use ssl = false
-`
+`, testPort)
+
 	snc := StartTestAgent(t, config)
 
-	con, err := net.DialTimeout("tcp", "127.0.0.1:45666", 10*time.Second)
+	con, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", testPort), 10*time.Second)
 	require.NoErrorf(t, err, "connection established")
 
 	req := nrpe.BuildPacketV4(nrpe.NrpeQueryPacket, 0, []byte("check_snclient_version"))

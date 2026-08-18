@@ -62,15 +62,16 @@ password = CHANGEME
 local = %s
 `, tmpInclude.Name())
 
-	_, err = tmpInclude.WriteString(`
+	testPort := getRandomFreeTCPPort(t)
+	_, err = fmt.Fprintf(tmpInclude, `
 [/settings/default]
 allowed hosts = ::1, 127.0.0.1, 123.123.123.123
 
 [/settings/WEB/server]
-port = 45666
+port = %d
 use ssl = false
 password = test
-`)
+`, testPort)
 	require.NoErrorf(t, err, "tmp include created")
 	err = tmpInclude.Close()
 	require.NoErrorf(t, err, "tmp include created")

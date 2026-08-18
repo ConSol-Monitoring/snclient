@@ -3,25 +3,27 @@
 package snclient
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckHTTP(t *testing.T) {
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 CheckBuiltinPlugins = enabled
 WEBServer = enabled
 
 [/settings/WEB/server]
-port = 45666
+port = %d
 use ssl = false
 password = test
-	`
+	`, testPort)
 	snc := StartTestAgent(t, config)
 
-	res := snc.RunCheck("check_http", []string{"-H", "localhost", "-p", "45666", "-u", "/index.html"})
+	res := snc.RunCheck("check_http", []string{"-H", "localhost", "-p", fmt.Sprintf("%d", testPort), "-u", "/index.html"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(
 		t,
@@ -30,7 +32,7 @@ password = test
 		"output matches",
 	)
 
-	res = snc.RunCheck("check_http", []string{"-H", "localhost", "-p", "45666", "-u", "/api/v1/inventory"})
+	res = snc.RunCheck("check_http", []string{"-H", "localhost", "-p", fmt.Sprintf("%d", testPort), "-u", "/api/v1/inventory"})
 	assert.Equalf(t, CheckExitWarning, res.State, "state warning")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "HTTP/1.1 403 Forbidden", "output matches")
 

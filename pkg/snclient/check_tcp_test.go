@@ -1,28 +1,30 @@
 package snclient
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckTCP(t *testing.T) {
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 CheckBuiltinPlugins = enabled
 WEBServer = enabled
 
 [/settings/WEB/server]
-port = 45666
+port = %d
 use ssl = false
-`
+`, testPort)
 	snc := StartTestAgent(t, config)
 
-	res := snc.RunCheck("check_tcp", []string{"-H", "localhost", "-p", "45666"})
+	res := snc.RunCheck("check_tcp", []string{"-H", "localhost", "-p", fmt.Sprintf("%d", testPort)})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(
 		t,
-		`^TCP OK - [\d.]+ seconds response time on localhost port 45666`,
+		fmt.Sprintf(`^TCP OK - [\d.]+ seconds response time on localhost port %d`, testPort),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
