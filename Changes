@@ -11,6 +11,7 @@ next:
          - check_network: support byte/s units in conditions
          - windows: fix restart after auto update
          - linux: reset environment when running elevated commands (GHSA-p72w-3vw7-cg4p)
+         - show versions of compiled in external check plugins with ./snclient -vV
 
 0.48     Mon Aug  3 16:00:52 CEST 2026
          - fix showing 0.01 as version when building release builds
