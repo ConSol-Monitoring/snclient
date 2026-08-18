@@ -121,7 +121,7 @@ func maybeInjectRootAlias(rootCmd *cobra.Command, inject string) {
 	if tmpFlags.Version {
 		os.Args = []string{os.Args[0], "-V"}
 		// if snclient is started with verbose arguments, pass them to internal check as well
-		os.Args = snclient.PrependLogLevelArgs(os.Args, tmpFlags)
+		os.Args = snclient.InjectLogLevelArgs(os.Args, tmpFlags, "back")
 
 		return
 	}
