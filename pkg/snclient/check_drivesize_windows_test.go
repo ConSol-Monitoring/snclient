@@ -256,8 +256,8 @@ func TestCleanupPathString(t *testing.T) {
 		cleaned string
 		isDrive bool
 	}{
-		{`c`, `C:`, true},
-		{`c:`, `C:`, true},
+		{`c`, `C:\`, true},
+		{`c:`, `C:\`, true},
 		{`c:\`, `C:\`, true},
 		{`C:\`, `C:\`, true},
 		{`c:/`, `C:\`, true},
