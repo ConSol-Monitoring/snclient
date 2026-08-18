@@ -28,6 +28,9 @@ while being easily extendible with own script and checks.`,
   * Start as daemon in background
     %> snclient daemon
 
+  * Check snclient version with compiled in plugins:
+    %> snclient -vV
+
   * Check for update in verbose mode
     %> snclient update -v
 `,
