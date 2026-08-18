@@ -102,7 +102,7 @@ func addDefenderExclusion(t *testing.T, directory string) {
 	escaped := strings.ReplaceAll(directory, "'", "''")
 	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
 	defer cancel()
-	//nolint:gosec // G204: the format uses the escpaed string for the path
+	//nolint:gosec // G204: the format uses the escaped string for the path
 	out, err := exec.CommandContext(ctx, "powershell", "-NoProfile", "-Command",
 		fmt.Sprintf("Add-MpPreference -ExclusionPath '%s'", escaped)).CombinedOutput()
 	if err != nil {
