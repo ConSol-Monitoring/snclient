@@ -88,12 +88,20 @@ func (l *CheckMulti) Build() *CheckData {
 	[ 1] check_process OK - all 1 processes are ok.
 	[ 2] check_memory OK - physical = 12.22 GiB/16.00 GiB (76.4%), swap = 1.95 GiB/3.00 GiB (65.0%)
 
-	You can define warning/critical conditions based on the number of checks in a certain state (see attributes below):
+	You can define 'warning' and 'critical' conditions based on the number of checks in a certain state (see attributes below):
 
 	check_multi "check=check_dummy 0 'OK'" "check=check_dummy 1 'WARNING'" "critical=problem_count gt 0"
 	CRITICAL - 2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown
 	[ 1] check_dummy OK
 	[ 2] check_dummy WARNING
+
+	You can also override the 'top-syntax' and use IF ELSE statements to get a certain output based on the results:
+
+	check_multi "check=check_dummy 0 'OK'" "check=check_dummy 2 'CRITICAL'" \
+				"top-syntax={{ if ok_count gt 0 }}OK - %(ok_count)/%(count) checks are OK {{ ELSE }}CRITICAL - all checks failed{{ END }}"
+	OK - 1/2 checks are OK
+	[ 1] check_dummy OK
+	[ 2] check_dummy CRITICAL
 	`,
 	}
 }
@@ -256,6 +264,7 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 			"status":  res.StateString(),
 			"output":  firstLine,
 			"_state":  fmt.Sprintf("%d", res.State),
+			"_skip":   "1",
 			"_count":  "1",
 		}
 		check.listData = append(check.listData, entry)
@@ -314,9 +323,9 @@ func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, check *Check
 		return snc.RunCheckWithContext(ctx, cmdName, cmdArgs, 0, nil, false), false
 	}
 
-	stdout, stderr, exitCode, _ := snc.runExternalCheckString(ctx, chk.cmdStr, int64(check.timeout))
+	stdout, stderr, exitCode, err := snc.runExternalCheckString(ctx, chk.cmdStr, int64(check.timeout))
 	out := stdout
-	if stderr != "" {
+	if stderr != "" && !strings.Contains(out, stderr) {
 		if out != "" {
 			out += "\n"
 		}
