@@ -50,13 +50,13 @@ func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 
 		return Resume
 	case syscall.SIGUSR2:
-		if snc.flags.ProfileMem == "" {
+		if snc.Flags.ProfileMem == "" {
 			log.Errorf("requested memory profile, but flag -memprofile missing")
 
 			return Resume
 		}
 
-		memFile, err := os.Create(snc.flags.ProfileMem)
+		memFile, err := os.Create(snc.Flags.ProfileMem)
 		if err != nil {
 			log.Errorf("could not create memory profile: %s", err.Error())
 		}
@@ -68,7 +68,7 @@ func mainSignalHandler(sig os.Signal, snc *Agent) MainStateType {
 			log.Errorf("could not write memory profile: %s", err.Error())
 		}
 
-		log.Warnf("memory profile written to: %s", snc.flags.ProfileMem)
+		log.Warnf("memory profile written to: %s", snc.Flags.ProfileMem)
 
 		return Resume
 	default:

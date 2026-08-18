@@ -84,6 +84,7 @@ const (
 	UTimestamp
 	UPercent
 	UBool
+	UBytesPerSec
 )
 
 type CheckAttribute struct {

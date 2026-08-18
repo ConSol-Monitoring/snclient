@@ -192,7 +192,7 @@ type Agent struct {
 	Listeners             *ModuleSet   // Listeners stores if we started listeners
 	Tasks                 *ModuleSet   // Tasks stores if we started task runners
 	Counter               *counter.Set // Counter stores collected counters from tasks
-	flags                 *AgentFlags
+	Flags                 *AgentFlags
 	cpuProfileHandler     *os.File
 	runSet                *AgentRunSet
 	osSignalChannel       chan os.Signal
@@ -261,7 +261,7 @@ func NewAgentSimple(flags *AgentFlags) *Agent {
 		Tasks:     NewModuleSet("task"),
 		Counter:   counter.NewCounterSet(),
 		config:    NewConfig(true),
-		flags:     flags,
+		Flags:     flags,
 		Log:       log,
 	}
 	snc.running.Store(Stopped)
@@ -470,7 +470,7 @@ func (snc *Agent) StartTask(name string) error {
 }
 
 func (snc *Agent) FindConfigFiles() (files, defaultLocations ConfigFiles) {
-	files = ConfigFiles(snc.flags.ConfigFiles)
+	files = ConfigFiles(snc.Flags.ConfigFiles)
 
 	defaultLocations = []string{
 		"./snclient.ini",
@@ -504,7 +504,7 @@ func (snc *Agent) Init(mode InitMode) (*AgentRunSet, error) {
 	files, defaultLocations := snc.FindConfigFiles()
 
 	// still empty
-	if len(files) == 0 && snc.flags.Mode == ModeServer {
+	if len(files) == 0 && snc.Flags.Mode == ModeServer {
 		return nil, fmt.Errorf("no config file supplied (--config=..) and no readable config file found in default locations (%s)",
 			strings.Join(defaultLocations, ", "))
 	}
@@ -523,7 +523,7 @@ func (snc *Agent) Init(mode InitMode) (*AgentRunSet, error) {
 	}
 
 	initSet.listeners = NewModuleSet("listener")
-	if snc.flags.Mode == ModeServer {
+	if snc.Flags.Mode == ModeServer {
 		err = snc.initModules("listener", AvailableListeners, initSet, initSet.listeners)
 		if err != nil {
 			return initSet, fmt.Errorf("listener initialization failed: %s", err.Error())
@@ -674,15 +674,15 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *A
 
 func (snc *Agent) createPidFile() {
 	// write the pid id if file path is defined
-	if snc.flags.Pidfile == "" {
+	if snc.Flags.Pidfile == "" {
 		return
 	}
 	// check existing pid
 	if snc.checkStalePidFile() {
-		LogStderrf("WARNING: removing stale pidfile %s", snc.flags.Pidfile)
+		LogStderrf("WARNING: removing stale pidfile %s", snc.Flags.Pidfile)
 	}
 
-	err := os.WriteFile(snc.flags.Pidfile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0o600)
+	err := os.WriteFile(snc.Flags.Pidfile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0o600)
 	if err != nil {
 		LogStderrf("ERROR: Could not write pidfile: %s", err.Error())
 		snc.CleanExit(ExitCodeError)
@@ -690,7 +690,7 @@ func (snc *Agent) createPidFile() {
 }
 
 func (snc *Agent) checkStalePidFile() bool {
-	pid, err := utils.ReadPid(snc.flags.Pidfile)
+	pid, err := utils.ReadPid(snc.Flags.Pidfile)
 	if err != nil {
 		return false
 	}
@@ -710,8 +710,8 @@ func (snc *Agent) checkStalePidFile() bool {
 }
 
 func (snc *Agent) deletePidFile() {
-	if snc.flags.Pidfile != "" {
-		os.Remove(snc.flags.Pidfile)
+	if snc.Flags.Pidfile != "" {
+		os.Remove(snc.Flags.Pidfile)
 	}
 }
 
@@ -730,22 +730,41 @@ func (snc *Agent) Version() string {
 // PrintVersion prints the version.
 func (snc *Agent) PrintVersion() {
 	fmt.Fprintf(os.Stdout, "%s %s (Build: %s, %s)\n", NAME, snc.Version(), Build, runtime.Version())
+
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return
+	}
+
+	if snc.Flags == nil || snc.Flags.Verbose < 1 {
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, "internal check libraries:\n")
+	for _, lib := range info.Deps {
+		switch {
+		case strings.Contains(lib.Path, "/check_nsc_web"),
+			strings.Contains(lib.Path, "/check_prometheus"),
+			snc.Flags.Verbose >= 2:
+			fmt.Fprintf(os.Stdout, "  - %-50s - %s\n", lib.Path, lib.Version)
+		}
+	}
 }
 
 func (snc *Agent) checkFlags() {
-	if snc.flags.ProfilePort != "" {
-		if snc.flags.ProfileCPU != "" || snc.flags.ProfileMem != "" {
+	if snc.Flags.ProfilePort != "" {
+		if snc.Flags.ProfileCPU != "" || snc.Flags.ProfileMem != "" {
 			LogStderrf("ERROR: either use -debug-profile or -cpu/memprofile, not both")
 			os.Exit(ExitCodeError)
 		}
 
-		snc.startPProfiler(snc.flags.ProfilePort)
+		snc.startPProfiler(snc.Flags.ProfilePort)
 	}
 
-	if snc.flags.ProfileCPU != "" {
+	if snc.Flags.ProfileCPU != "" {
 		runtime.SetBlockProfileRate(BlockProfileRateInterval)
 
-		cpuProfileHandler, err := os.Create(snc.flags.ProfileCPU)
+		cpuProfileHandler, err := os.Create(snc.Flags.ProfileCPU)
 		if err != nil {
 			LogStderrf("ERROR: could not create CPU profile: %s", err.Error())
 			os.Exit(ExitCodeError)
@@ -759,11 +778,11 @@ func (snc *Agent) checkFlags() {
 		snc.cpuProfileHandler = cpuProfileHandler
 	}
 
-	if snc.flags.DeadlockTimeout <= 0 {
+	if snc.Flags.DeadlockTimeout <= 0 {
 		deadlock.Opts.Disable = true
 	} else {
 		deadlock.Opts.Disable = false
-		deadlock.Opts.DeadlockTimeout = time.Duration(snc.flags.DeadlockTimeout) * time.Second
+		deadlock.Opts.DeadlockTimeout = time.Duration(snc.Flags.DeadlockTimeout) * time.Second
 		deadlock.Opts.LogBuf = NewLogWriter("Error")
 	}
 }
@@ -771,10 +790,10 @@ func (snc *Agent) checkFlags() {
 func (snc *Agent) CleanExit(exitCode int) {
 	snc.deletePidFile()
 
-	if snc.flags.ProfileCPU != "" {
+	if snc.Flags.ProfileCPU != "" {
 		pprof.StopCPUProfile()
 		snc.cpuProfileHandler.Close()
-		log.Infof("cpu profile written to: %s", snc.flags.ProfileCPU)
+		log.Infof("cpu profile written to: %s", snc.Flags.ProfileCPU)
 	}
 
 	os.Exit(exitCode)
@@ -862,7 +881,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 		}
 	}
 
-	if !chk.argsPassthrough && snc.flags != nil && snc.flags.Mode == ModeOneShot {
+	if !chk.argsPassthrough && snc.Flags != nil && snc.Flags.Mode == ModeOneShot {
 		chk.checkThresholdKeywordsAgainstAttributeNames()
 		LogDebug(chk.checkFilterKeywordsAgainstAttributeNames())
 	}
@@ -1012,12 +1031,12 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 		level = "info"
 	}
 
-	if snc.flags.Quiet {
+	if snc.Flags.Quiet {
 		level = "error"
 	}
 
-	if snc.flags.LogLevel != "" {
-		level = snc.flags.LogLevel
+	if snc.Flags.LogLevel != "" {
+		level = snc.Flags.LogLevel
 	}
 
 	trace2 := false
@@ -1039,18 +1058,40 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 
 	// command line options beats env
 	switch {
-	case snc.flags.Verbose >= 3:
+	case snc.Flags.Verbose >= 3:
 		level = "trace"
 		trace2 = true
-	case snc.flags.Verbose >= 2:
+	case snc.Flags.Verbose >= 2:
 		level = "trace"
-	case snc.flags.Verbose >= 1:
+	case snc.Flags.Verbose >= 1:
 		level = "debug"
 	}
 	setLogLevel(level)
 	if trace2 {
 		log.SetVerbosity(LogVerbosityTrace2)
 	}
+}
+
+func PrependLogLevelArgs(args []string, flags *AgentFlags) (newArgs []string) {
+	switch {
+	case flags.Verbose >= 3:
+		newArgs = append([]string{"-vvv"}, args...)
+		log.Tracef("adding -vvv to the check arguments")
+
+		return newArgs
+	case flags.Verbose >= 2:
+		newArgs = append([]string{"-vv"}, args...)
+		log.Tracef("adding -vv to the check arguments")
+
+		return newArgs
+	case flags.Verbose >= 1:
+		newArgs = append([]string{"-v"}, args...)
+		log.Tracef("adding -v to the check arguments")
+
+		return newArgs
+	}
+
+	return args
 }
 
 // CheckUpdateBinary checks if we run as snclient.update.exe and if so, move that file in place and restart
@@ -1534,7 +1575,7 @@ func (snc *Agent) getCachedInventory(ctx context.Context, modules []string) *Inv
 func (snc *Agent) listExporter() (listData []map[string]string) {
 	listData = make([]map[string]string, 0)
 
-	if snc.flags.Mode != ModeServer && snc.Listeners == nil || len(snc.Listeners.modules) == 0 {
+	if snc.Flags.Mode != ModeServer && snc.Listeners == nil || len(snc.Listeners.modules) == 0 {
 		LogDebug(snc.initModules("listener", AvailableListeners, snc.runSet, snc.runSet.listeners))
 		snc.Listeners = snc.runSet.listeners
 	}
@@ -1577,7 +1618,7 @@ func pkgArch(arch string) string {
 // check configuration if profiler needs to be stopped or started
 func (snc *Agent) checkConfigProfiler(config *Config) {
 	// do not touch profile server if started from command args
-	if snc.flags.ProfilePort != "" {
+	if snc.Flags.ProfilePort != "" {
 		return
 	}
 

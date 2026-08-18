@@ -58,24 +58,24 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	args := []string{}
 	args = append(args, check.rawArgs...)
 	// if snclient is started with verbose arguments, pass them to internal check as well
-	switch {
-	case snc.flags.Verbose >= 3:
-		args = append(args, "-vvv")
-		log.Tracef("adding -vvv to the builtin check arguments")
-	case snc.flags.Verbose >= 2:
-		args = append(args, "-vv")
-		log.Tracef("adding -vv to the builtin check arguments")
-	case snc.flags.Verbose >= 1:
-		args = append(args, "-v")
-		log.Tracef("adding -v to the builtin check arguments")
-	}
+	args = PrependLogLevelArgs(args, snc.Flags)
 
 	ctx = utils.ContextWithLogger(ctx, log)
 
+	log.Tracef("calling internal check: %s", l.name)
 	output := bytes.NewBuffer(nil)
 	rc := l.check(ctx, output, args)
 	check.result.Output = output.String()
 	check.result.State = int64(rc)
+
+	log.Tracef("internal check: %s returned rc: %d", l.name, rc)
+	log.Tracef("output: %s", utils.Shorten(check.result.Output, 30, "...")) //nolint:mnd // magic number only used once here, no need to make it a constant
+
+	// reset conditions, they are not used for builtin checks but might interfere with other checks
+	check.warnThreshold = nil
+	check.critThreshold = nil
+	check.okThreshold = nil
+	check.filter = nil
 
 	return check.Finalize()
 }

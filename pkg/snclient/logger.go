@@ -177,8 +177,8 @@ func restoreLogTarget() {
 func setLogFile(snc *Agent, conf *ConfigSection) {
 	file, _ := conf.GetString("file name")
 	// override from cmd flags
-	if snc.flags.LogFile != "" {
-		file = snc.flags.LogFile
+	if snc.Flags.LogFile != "" {
+		file = snc.Flags.LogFile
 	}
 
 	logColorOn := LogColors
@@ -228,8 +228,8 @@ func setLogFile(snc *Agent, conf *ConfigSection) {
 	switch {
 	case format != "":
 		logFormatter = BuildFormatter(format)
-	case snc.flags.LogFormat != "":
-		logFormatter = BuildFormatter(snc.flags.LogFormat)
+	case snc.Flags.LogFormat != "":
+		logFormatter = BuildFormatter(snc.Flags.LogFormat)
 	}
 
 	if runtime.GOOS == "windows" {

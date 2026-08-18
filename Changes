@@ -7,7 +7,9 @@ next:
          - check_os_updates: add --skip-update to disable automatic update
          - check_mount: show error if no options where specified
          - check_mount: add support for checking multiple mounts
+         - check_nsc_web: fix using conditions twice (#453)
          - windows: fix restart after auto update
+         - linux: reset environment when running elevated commands (GHSA-p72w-3vw7-cg4p)
 
 0.48     Mon Aug  3 16:00:52 CEST 2026
          - fix showing 0.01 as version when building release builds
