@@ -210,6 +210,8 @@ func makeTransport(opts *commandOpts, dialFunc func(ctx context.Context, _ strin
 		opts.debugf("Proxy is using scheme: %q", proxyScheme)
 
 		switch proxyScheme {
+		case "http":
+			opts.debugf("This means an HTTP connection will be established to the proxy")
 		case "https":
 			opts.debugf("This means a TLS connection will be established to the proxy")
 		case "socks5", "socks5h":
