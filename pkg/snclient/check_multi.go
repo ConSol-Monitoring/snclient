@@ -17,6 +17,20 @@ type CheckMulti struct {
 	config string
 }
 
+var checkMultiAttributes = []CheckAttribute{
+	{name: "count", description: "Total number of checks executed", unit: UNone},
+	{name: "ok_count", description: "Number of checks in OK state", unit: UNone},
+	{name: "warning_count", description: "Number of checks in WARNING state", unit: UNone},
+	{name: "critical_count", description: "Number of checks in CRITICAL state", unit: UNone},
+	{name: "unknown_count", description: "Number of checks in UNKNOWN state", unit: UNone},
+	{name: "problem_count", description: "Number of checks in non-OK state", unit: UNone},
+	{name: "name", description: "Name/tag of the check", unit: UNone},
+	{name: "command", description: "Command executed", unit: UNone},
+	{name: "state", description: "Exit code of the check (0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN)", unit: UNone},
+	{name: "status", description: "Status text of the check (OK, WARNING, CRITICAL, UNKNOWN)", unit: UNone},
+	{name: "output", description: "Output of the check", unit: UNone},
+}
+
 func NewCheckMulti() CheckHandler {
 	return &CheckMulti{
 		checks: make([]string, 0),
@@ -62,19 +76,7 @@ func (l *CheckMulti) Build() *CheckData {
 			"warning_count":  {"warn_count": "warning_count"},
 			"critical_count": {"crit_count": "critical_count"},
 		},
-		attributes: []CheckAttribute{
-			{name: "count", description: "Total number of checks executed", unit: UNone},
-			{name: "ok_count", description: "Number of checks in OK state", unit: UNone},
-			{name: "warning_count", description: "Number of checks in WARNING state", unit: UNone},
-			{name: "critical_count", description: "Number of checks in CRITICAL state", unit: UNone},
-			{name: "unknown_count", description: "Number of checks in UNKNOWN state", unit: UNone},
-			{name: "problem_count", description: "Number of checks in non-OK state", unit: UNone},
-			{name: "name", description: "Name/tag of the check", unit: UNone},
-			{name: "command", description: "Command executed", unit: UNone},
-			{name: "state", description: "Exit code of the check (0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN)", unit: UNone},
-			{name: "status", description: "Status text of the check (OK, WARNING, CRITICAL, UNKNOWN)", unit: UNone},
-			{name: "output", description: "Output of the check", unit: UNone},
-		},
+		attributes:      checkMultiAttributes,
 		defaultWarning:  "warning_count > 0",
 		defaultCritical: "critical_count > 0",
 		defaultUnknown:  "unknown_count > 0",

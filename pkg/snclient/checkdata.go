@@ -687,18 +687,20 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 	argList = make([]Argument, 0, len(args))
 	cd.expandArgDefinitions()
 
-	sanitized, defaultWarning, defaultCritical, defaultUnknown, applyDefaultFilter, err := cd.preParseArgs(args)
+	pre, err := cd.preParseArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
+	applyDefaultFilter := pre.applyDefaultFilter
+
 	// skip argument parsing for external scripts
 	if _, ok := AvailableChecks[cd.name]; !ok && cd.argsPassthrough {
-		for _, arg := range sanitized {
+		for _, arg := range pre.sanitized {
 			argList = append(argList, Argument{key: arg.key, value: arg.value})
 		}
 	} else {
-		argList, applyDefaultFilter, err = cd.processArgs(sanitized, defaultWarning, defaultCritical, defaultUnknown, applyDefaultFilter)
+		argList, applyDefaultFilter, err = cd.processArgs(pre)
 		if err != nil {
 			return nil, err
 		}
@@ -709,7 +711,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 		cd.timezone = timeZone
 	}
 
-	err = cd.setFallbacks(applyDefaultFilter, defaultWarning, defaultCritical, defaultUnknown)
+	err = cd.setFallbacks(applyDefaultFilter, pre.defaultWarning, pre.defaultCritical, pre.defaultUnknown)
 	if err != nil {
 		return nil, err
 	}
@@ -720,13 +722,13 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 	return argList, nil
 }
 
-//nolint:funlen,gocyclo // it is not complex, it is just a long list of options
-func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCritical, defaultUnknown string, initialApplyDefaultFilter bool) (argList []Argument, applyDefaultFilter bool, err error) {
+//nolint:funlen,gocyclo,maintidx // it is not complex, it is just a long list of options
+func (cd *CheckData) processArgs(pre *preParsedArgs) (argList []Argument, applyDefaultFilter bool, err error) {
 	topSupplied := false
 	okSupplied := false
-	applyDefaultFilter = initialApplyDefaultFilter
+	applyDefaultFilter = pre.applyDefaultFilter
 
-	for _, arg := range sanitized {
+	for _, arg := range pre.sanitized {
 		keyword := arg.key
 		argValue := arg.value
 		argExpr := arg.raw
@@ -747,7 +749,7 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 			}
 			cd.okThreshold = append(cd.okThreshold, cond)
 		case "warn+", "warning+":
-			warn, err2 := cd.appendDefaultThreshold(keyword, argValue, defaultWarning, cd.warnThreshold)
+			warn, err2 := cd.appendDefaultThreshold(keyword, argValue, pre.defaultWarning, cd.warnThreshold)
 			if err2 != nil {
 				return nil, false, err2
 			}
@@ -759,7 +761,7 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 			}
 			cd.warnThreshold = append(cd.warnThreshold, cond)
 		case "crit+", "critical+":
-			crit, err2 := cd.appendDefaultThreshold(keyword, argValue, defaultCritical, cd.critThreshold)
+			crit, err2 := cd.appendDefaultThreshold(keyword, argValue, pre.defaultCritical, cd.critThreshold)
 			if err2 != nil {
 				return nil, false, err2
 			}
@@ -771,7 +773,7 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
 		case "unknown+":
-			unknown, err2 := cd.appendDefaultThreshold(keyword, argValue, defaultUnknown, cd.unknownThreshold)
+			unknown, err2 := cd.appendDefaultThreshold(keyword, argValue, pre.defaultUnknown, cd.unknownThreshold)
 			if err2 != nil {
 				return nil, false, err2
 			}
@@ -883,13 +885,23 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 	return argList, applyDefaultFilter, nil
 }
 
-func (cd *CheckData) preParseArgs(args []string) (sanitized []Argument, defaultWarning, defaultCritical, defaultUnknown string, hasArgsFilter bool, err error) {
-	sanitized = make([]Argument, 0)
+type preParsedArgs struct {
+	sanitized          []Argument
+	defaultWarning     string
+	defaultCritical    string
+	defaultUnknown     string
+	applyDefaultFilter bool
+}
+
+func (cd *CheckData) preParseArgs(args []string) (pre *preParsedArgs, err error) {
+	pre = &preParsedArgs{
+		sanitized:          make([]Argument, 0),
+		applyDefaultFilter: true,
+		defaultWarning:     cd.defaultWarning,
+		defaultCritical:    cd.defaultCritical,
+		defaultUnknown:     cd.defaultUnknown,
+	}
 	numArgs := len(args)
-	applyDefaultFilter := true
-	defaultWarning = cd.defaultWarning
-	defaultCritical = cd.defaultCritical
-	defaultUnknown = cd.defaultUnknown
 
 	for idx := 0; idx < numArgs; idx++ {
 		argExpr := cd.removeQuotes(args[idx])
@@ -897,7 +909,7 @@ func (cd *CheckData) preParseArgs(args []string) (sanitized []Argument, defaultW
 		keyword := cd.removeQuotes(split[0])
 		argValue, newIdx, err2 := cd.fetchNextArg(args, split, keyword, idx, numArgs)
 		if err2 != nil {
-			return nil, "", "", "", false, err2
+			return pre, err2
 		}
 		idx = newIdx
 		argValue = cd.removeQuotes(argValue)
@@ -909,22 +921,22 @@ func (cd *CheckData) preParseArgs(args []string) (sanitized []Argument, defaultW
 			chkArg = &a
 		}
 		if chkArg != nil {
-			applyDefaultFilter = false
+			pre.applyDefaultFilter = false
 			cd.hasArgsFilter = true
 			if chkArg.defaultWarning != "" {
-				defaultWarning = chkArg.defaultWarning
+				pre.defaultWarning = chkArg.defaultWarning
 			}
 			if chkArg.defaultCritical != "" {
-				defaultCritical = chkArg.defaultCritical
+				pre.defaultCritical = chkArg.defaultCritical
 			}
 			if chkArg.defaultUnknown != "" {
-				defaultUnknown = chkArg.defaultUnknown
+				pre.defaultUnknown = chkArg.defaultUnknown
 			}
 		}
-		sanitized = append(sanitized, Argument{key: keyword, value: argValue, raw: argExpr})
+		pre.sanitized = append(pre.sanitized, Argument{key: keyword, value: argValue, raw: argExpr})
 	}
 
-	return sanitized, defaultWarning, defaultCritical, defaultUnknown, applyDefaultFilter, nil
+	return pre, nil
 }
 
 // Threshold keywords do not necessarily have to match an attribute name.
