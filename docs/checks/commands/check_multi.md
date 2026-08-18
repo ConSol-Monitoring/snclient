@@ -49,10 +49,10 @@ Runs multiple checks and aggregates their status, output and performance data.
 
 	You can define 'warning' and 'critical' conditions based on the number of checks in a certain state (see attributes below):
 
-	check_multi "check=check_dummy 0 'OK'" "check=check_dummy 1 'WARNING'" "critical=problem_count gt 0"
-	CRITICAL - 2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown
-	[ 1] check_dummy OK
-	[ 2] check_dummy WARNING
+	check_multi "check=check_dummy 0 'OK - check works'" "check=check_dummy 1 'WARNING - problem found'" "critical=problem_count gt 0"
+	CRITICAL - 2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown - warning(check_dummy: WARNING - problem found)
+	[ 1] check_dummy OK - check works
+	[ 2] check_dummy WARNING - problem found
 
 	You can also override the 'top-syntax' and use IF ELSE statements to get a certain output based on the results:
 
@@ -83,12 +83,13 @@ Naemon Config
 | Argument      | Default Value                                                                                         |
 | ------------- | ----------------------------------------------------------------------------------------------------- |
 | warning       | warning_count > 0                                                                                     |
-| critical      | critical_count > 0 \|\| unknown_count > 0                                                             |
+| critical      | critical_count > 0                                                                                    |
+| unknown       | unknown_count > 0                                                                                     |
 | empty-state   | 3 (UNKNOWN)                                                                                           |
 | empty-syntax  | %(status) - no checks executed                                                                        |
-| top-syntax    | %(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown%(problem_list) |
+| top-syntax    | %(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list) |
 | ok-syntax     | %(status) - %(count) plugins checked, %(ok_count) ok                                                  |
-| detail-syntax | [%(status)] %(name): %(output)                                                                        |
+| detail-syntax | %(name): %(output)                                                                                    |
 
 ## Check Specific Arguments
 

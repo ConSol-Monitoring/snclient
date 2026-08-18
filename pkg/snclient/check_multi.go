@@ -76,10 +76,11 @@ func (l *CheckMulti) Build() *CheckData {
 			{name: "output", description: "Output of the check", unit: UNone},
 		},
 		defaultWarning:  "warning_count > 0",
-		defaultCritical: "critical_count > 0 || unknown_count > 0",
+		defaultCritical: "critical_count > 0",
+		defaultUnknown:  "unknown_count > 0",
 		okSyntax:        "%(status) - %(count) plugins checked, %(ok_count) ok",
-		topSyntax:       "%(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown%(problem_list)",
-		detailSyntax:    "[%(status)] %(name): %(output)",
+		topSyntax:       "%(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list)",
+		detailSyntax:    "%(name): %(output)",
 		emptySyntax:     "%(status) - no checks executed",
 		emptyState:      CheckExitUnknown,
 		exampleDefault: `
@@ -90,10 +91,10 @@ func (l *CheckMulti) Build() *CheckData {
 
 	You can define 'warning' and 'critical' conditions based on the number of checks in a certain state (see attributes below):
 
-	check_multi "check=check_dummy 0 'OK'" "check=check_dummy 1 'WARNING'" "critical=problem_count gt 0"
-	CRITICAL - 2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown
-	[ 1] check_dummy OK
-	[ 2] check_dummy WARNING
+	check_multi "check=check_dummy 0 'OK - check works'" "check=check_dummy 1 'WARNING - problem found'" "critical=problem_count gt 0"
+	CRITICAL - 2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown - warning(check_dummy: WARNING - problem found)
+	[ 1] check_dummy OK - check works
+	[ 2] check_dummy WARNING - problem found
 
 	You can also override the 'top-syntax' and use IF ELSE statements to get a certain output based on the results:
 

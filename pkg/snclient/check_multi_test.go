@@ -93,6 +93,40 @@ CheckMulti = enabled
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when filter argument is used")
 	assert.Contains(t, res.Output, "filter is disabled for this check")
+
+	// 8. Unknown threshold (default and custom)
+	res = snc.RunCheck("check_multi", []string{
+		"check=check_dummy 0 'ok'",
+		"check=check_dummy 3 'unknown check'",
+	})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when child check is unknown by default")
+
+	res = snc.RunCheck("check_multi", []string{
+		"check=check_dummy 0 'ok'",
+		"check=check_dummy 3 'unknown check'",
+		"unknown=unknown_count gt 0",
+		"warning=warning_count gt 0",
+		"critical=critical_count gt 0",
+	})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when custom unknown condition matches")
+
+	res = snc.RunCheck("check_multi", []string{
+		"check=check_dummy 1 'warn check'",
+		"check=check_dummy 3 'unknown check'",
+		"unknown=unknown_count gt 0",
+		"warning=warning_count gt 0",
+		"critical=critical_count gt 0",
+	})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN takes precedence over WARNING")
+
+	res = snc.RunCheck("check_multi", []string{
+		"check=check_dummy 2 'crit check'",
+		"check=check_dummy 3 'unknown check'",
+		"unknown=unknown_count gt 0",
+		"warning=warning_count gt 0",
+		"critical=critical_count gt 0",
+	})
+	assert.Equalf(t, CheckExitCritical, res.State, "state CRITICAL takes precedence over UNKNOWN")
 }
 
 func TestCheckMultiLimits(t *testing.T) {
