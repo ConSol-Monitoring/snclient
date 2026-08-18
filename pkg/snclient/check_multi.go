@@ -323,7 +323,7 @@ func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, check *Check
 		return snc.RunCheckWithContext(ctx, cmdName, cmdArgs, 0, nil, false), false
 	}
 
-	stdout, stderr, exitCode, err := snc.runExternalCheckString(ctx, chk.cmdStr, int64(check.timeout))
+	stdout, stderr, exitCode, _ := snc.runExternalCheckString(ctx, chk.cmdStr, int64(check.timeout))
 	out := stdout
 	if stderr != "" && !strings.Contains(out, stderr) {
 		if out != "" {
