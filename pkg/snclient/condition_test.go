@@ -144,6 +144,82 @@ func TestConditionParseErrors(t *testing.T) {
 	}
 }
 
+func TestConditionBytePerSec(t *testing.T) {
+	// example attributes from check_network
+	attr := &[]CheckAttribute{
+		{name: "sent", unit: UBytesPerSec},
+		{name: "received", unit: UBytesPerSec},
+		{name: "total", unit: UBytesPerSec},
+		{name: "speed", unit: UBytesPerSec},
+		{name: "used", unit: UByte},
+		{name: "version", unit: UNone},
+	}
+	for _, check := range []struct {
+		threshold string
+		value     string
+		unit      string
+	}{
+		{`sent > '1 KiB/s'`, "1024", "B/s"},
+		{`sent > 1KiB/s`, "1024", "B/s"},
+		{`sent > '1 MiB/s'`, "1048576", "B/s"},
+		{`sent > '1.5 MiB/s'`, "1572864", "B/s"},
+		{`speed > 100Mbps`, "12500000", "B/s"},
+		{`speed > '100 Mbps'`, "12500000", "B/s"},
+		{`speed > '1 Gbps'`, "125000000", "B/s"},
+		{`total > 80GB`, "80000000000", "B/s"},
+		{`total > '80 GB'`, "80000000000", "B/s"},
+		{`received > 1024`, "1024", ""},
+	} {
+		cond, err := NewCondition(check.threshold, attr)
+		require.NoErrorf(t, err, "parsed threshold %s", check.threshold)
+		assert.Equalf(t, check.value, cond.value, "value for %s", check.threshold)
+		assert.Equalf(t, check.unit, cond.unit, "unit for %s", check.threshold)
+	}
+
+	cond, err := NewCondition(`used > '90GB'`, attr)
+	require.NoError(t, err)
+	assert.Equal(t, "90000000000", cond.value)
+	assert.Equal(t, "B", cond.unit)
+
+	// quoted values on plain string attributes stay literal
+	cond, err = NewCondition(`version not like '1 2 3'`, attr)
+	require.NoError(t, err)
+	assert.Equal(t, "1 2 3", cond.value)
+	assert.Empty(t, cond.unit)
+}
+
+func TestConditionBytePerSecMatch(t *testing.T) {
+	// example attributes from check_network
+	attr := &[]CheckAttribute{
+		{name: "sent", unit: UBytesPerSec},
+		{name: "received", unit: UBytesPerSec},
+	}
+	data := map[string]string{
+		"sent":           "4 MiB/s",
+		"sent_bytes":     "4194304",
+		"received":       "11 MiB/s",
+		"received_bytes": "11534336",
+	}
+	for _, check := range []struct {
+		threshold string
+		expect    bool
+	}{
+		{"sent > '1 KiB/s'", true},
+		{"sent > 1MiB/s", true},
+		{"sent > '1 GiB/s'", false},
+		{"sent < '1 KiB/s'", false},
+		{"sent = '4 MiB/s'", true},
+		{"received >= '100 KiB/s'", true},
+		{"received < '1 MiB/s'", false},
+	} {
+		cond, err := NewCondition(check.threshold, attr)
+		require.NoErrorf(t, err, "parsed threshold %s", check.threshold)
+		res, ok := cond.Match(data)
+		assert.Truef(t, ok, "deterministic for %s", check.threshold)
+		assert.Equalf(t, check.expect, res, "result for %s", check.threshold)
+	}
+}
+
 func TestConditionCompare(t *testing.T) {
 	for _, check := range []struct {
 		threshold     string

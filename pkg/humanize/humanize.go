@@ -30,6 +30,20 @@ const (
 	EByte = PByte * 1000
 )
 
+// SI Bit Sizes.
+const (
+	IBit = 1
+	KBit = IBit * 1000
+	MBit = KBit * 1000
+	GBit = MBit * 1000
+	TBit = GBit * 1000
+	PBit = TBit * 1000
+	EBit = PBit * 1000
+)
+
+// BitsPerByte is the number of bits in one byte.
+const BitsPerByte = 8
+
 var bytesSizeTable = map[string]uint64{
 	"B": Byte,
 
@@ -71,6 +85,96 @@ var bytesSizeTable = map[string]uint64{
 	"P":  PByte,
 	"EI": EiByte,
 	"E":  EByte,
+}
+
+var bitSizeTable = map[string]uint64{
+	"":   IBit,
+	"k":  KBit,
+	"M":  MBit,
+	"G":  GBit,
+	"T":  TBit,
+	"P":  PBit,
+	"E":  EBit,
+	"Kb": KBit,
+	"Mb": MBit,
+	"Gb": GBit,
+	"Tb": TBit,
+}
+
+// parses byte values with optional suffixes into raw bytes per second equivalents
+// values without a "/s" suffix are interpreted as bytes per second.
+// ParseBytesPerSec("1 KiB/s") -> 1024
+// ParseBytesPerSec("1 MB/s") -> 1000000
+// ParseBytesPerSec("80GB")   -> 80000000000
+// ParseBytesPerSec("1 Mbps") -> 125000
+func ParseBytesPerSec(raw string) (float64, error) {
+	str := strings.TrimSpace(raw)
+	if str == "" {
+		return 0, fmt.Errorf("empty value")
+	}
+
+	// bit based rates, ex. "100Mbps" -> 100*1000*1000 bits / 8 = 12500000 bytes/s
+	// these end with 'bps' and have to be treated separately than ones that end with '/s'
+	// casing of the unit matters, ex. "Mb" is binary (mebibyte) while "MB" is decimal
+	if strings.HasSuffix(strings.ToLower(str), "bps") {
+		prefix, num, err := splitNumberPrefix(str[:len(str)-len("bps")])
+		if err != nil {
+			return 0, err
+		}
+		factor, ok := getBitSize(prefix)
+		if !ok {
+			return 0, fmt.Errorf("unhandled bits size name with prefix: %q , raw: %q , str: %q", prefix, raw, str)
+		}
+
+		return num * float64(factor) / BitsPerByte, nil
+	}
+
+	// strip "/s" suffix, ex. "1 KiB/s" -> "1 KiB"
+	if strings.HasSuffix(strings.ToLower(str), "/s") {
+		str = str[:len(str)-len("/s")]
+	}
+
+	prefix, num, err := splitNumberPrefix(strings.TrimSpace(str))
+	if err != nil {
+		return 0, err
+	}
+	if prefix == "" {
+		// plain number, already bytes per second
+		return num, nil
+	}
+	factor, ok := getByteSize(prefix)
+	if !ok {
+		return 0, fmt.Errorf("unhandled size name: %v", prefix)
+	}
+
+	return num * float64(factor), nil
+}
+
+// splitNumberPrefix splits a string like "1.5 GiB" into the number and the prefix ("GiB").
+func splitNumberPrefix(raw string) (prefix string, num float64, err error) {
+	lastDigit := 0
+	hasComma := false
+	for _, r := range raw {
+		if !unicode.IsDigit(r) && r != '.' && r != ',' {
+			break
+		}
+		if r == ',' {
+			hasComma = true
+		}
+		lastDigit++
+	}
+
+	strNum := raw[:lastDigit]
+	if hasComma {
+		strNum = strings.ReplaceAll(strNum, ",", "")
+	}
+
+	num, err = strconv.ParseFloat(strNum, 64)
+	if err != nil {
+		return "", 0, fmt.Errorf("parsefloat %s: %s", raw, err.Error())
+	}
+
+	return strings.TrimSpace(raw[lastDigit:]), num, nil
 }
 
 // ParseBytes("83 M") -> 82854982
@@ -202,6 +306,21 @@ func roundToPrecision(val float64, precision int) float64 {
 	factor := math.Pow10(precision)
 
 	return math.Round(val*factor) / factor
+}
+
+// find entry in the bit size table, looks for case-insensitive cases as well
+func getBitSize(name string) (uint64, bool) {
+	if m, ok := bitSizeTable[name]; ok {
+		return m, ok
+	}
+
+	for key, val := range bitSizeTable {
+		if strings.EqualFold(key, name) {
+			return val, true
+		}
+	}
+
+	return 1, false
 }
 
 // find entry in the byte size table

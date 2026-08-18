@@ -34,6 +34,44 @@ func TestParseBytes(t *testing.T) {
 	}
 }
 
+func TestParseBytesPerSec(t *testing.T) {
+	tests := []struct {
+		in  string
+		res float64
+		err bool
+	}{
+		{"1 B/s", 1, false},
+		{"1B/s", 1, false},
+		{"1 KiB/s", 1024, false},
+		{"1 KiB /s", 1024, false},
+		{"1 MiB/s", 1048576, false},
+		{"1.5 MiB/s", 1.5 * 1048576, false},
+		{"1 MB/s", 1000000, false},
+		{"1 GB/s", 1000000000, false},
+		{"80GB", 80000000000, false},
+		{"80 GB", 80000000000, false},
+		{"4194304", 4194304, false},
+		{"12345.67", 12345.67, false},
+		{"1 Mbps", 125000, false},
+		{"100 Mbps", 12500000, false},
+		{"1 Gbps", 125000000, false},
+		{"1 kb/s", 1000, false},
+		{"", 0, true},
+		{"xyz", 0, true},
+		{"1 xyz/s", 0, true},
+	}
+
+	for _, tst := range tests {
+		res, err := ParseBytesPerSec(tst.in)
+		if tst.err {
+			require.Errorf(t, err, "ParseBytesPerSec: %s should error", tst.in)
+		} else {
+			require.NoErrorf(t, err, "ParseBytesPerSec: %s", tst.in)
+		}
+		assert.InDeltaf(t, tst.res, res, 0.0001, "ParseBytesPerSec: %s -> %f", tst.in, res)
+	}
+}
+
 func TestBytes(t *testing.T) {
 	tests := []struct {
 		in  uint64
