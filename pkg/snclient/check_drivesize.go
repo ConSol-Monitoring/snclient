@@ -109,7 +109,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 			},
 			"share-user": {
 				value: &l.shareUser, description: "Windows only: username used to authenticate to the network shares given in this check. " +
-					"The credential is added to the Windows Credential Manager on demand and removed again after the check.",
+					"The connection is established on demand and removed again after the check.",
 			},
 			"share-password": {
 				value: &l.sharePassword, description: "Windows only: password used to authenticate to the network shares given in this check. " +
@@ -251,112 +251,74 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 
 	l.tidyThresholdDriveValues(check)
 
-	// overridden credentials from the share-user / share-password check arguments,
-	// they apply to all UNC shares given in this check
-	overrideCredentials := map[string]Credential{}
-	if l.shareUser != "" {
-		for _, k := range keys {
-			drive := requiredDisks[k]
-			if !isNetworkSharePath(drive["drive_or_id"]) {
-				continue
-			}
-			target := shareTargetFromUNCPath(drive["drive_or_id"])
-			if target == "" {
-				continue
-			}
-			// user is always needed, but password can be empty for a valid login
-			overrideCredentials[target] = Credential{
-				Type:     CredentialTypeWindowsShare,
-				Target:   target,
-				Username: qualifyUsername(l.shareUser, currentUserDomain()),
-				Password: l.sharePassword,
-				Strategy: CredentialStrategyOnDemand,
-			}
-		}
-	}
-
-	// on-demand credentials from the [/settings/credentials] config section,
-	// they are only added for UNC shares that have no override above
-	onDemandCredentials := map[string]Credential{}
+	// resolve the credential to use for each UNC share in this check.
+	// share-user / share-password override any credentials from the config section.
+	shareCredentials := map[string]Credential{}
 	for _, k := range keys {
 		drive := requiredDisks[k]
 		if !isNetworkSharePath(drive["drive_or_id"]) {
 			continue
 		}
-		target := shareTargetFromUNCPath(drive["drive_or_id"])
-		if target == "" {
+		root := shareRoot(drive["drive_or_id"])
+		if root == "" {
 			continue
 		}
-		if _, ok := overrideCredentials[target]; ok {
+		if _, ok := shareCredentials[root]; ok {
 			continue
 		}
-		if _, ok := onDemandCredentials[target]; ok {
+
+		if l.shareUser != "" {
+			// user is always needed, but password can be empty for a valid login
+			shareCredentials[root] = Credential{
+				Type:     CredentialTypeWindowsShare,
+				Target:   shareTargetFromUNCPath(root),
+				Username: qualifyUsername(l.shareUser, currentUserDomain()),
+				Password: l.sharePassword,
+				Strategy: CredentialStrategyOnDemand,
+			}
+
 			continue
 		}
-		if cred, ok := findOnDemandCredential(snc.config, target); ok {
-			onDemandCredentials[target] = cred
+
+		if cred, ok := findOnDemandCredential(snc.config, shareTargetFromUNCPath(root)); ok {
+			shareCredentials[root] = cred
 		}
 	}
 
-	// keep track of the credentials that were actually written in this run,
-	// so the cleanup only removes the ones snclient added
-	addedCredentials := map[string]bool{}
+	// keep track of the connections snclient established, so the cleanup only tears down the ones it added itself
+	addedConnections := map[string]bool{}
 
-	// add the override credentials first
-	for target, cred := range overrideCredentials {
-		// leave credentials the user set up on their own untouched
-		if hasShareCredential(target) {
-			log.Debugf("credentials: credential for %s already exists, leaving it untouched", target)
-
-			continue
+	for root, cred := range shareCredentials {
+		// drop a stale session first, otherwise SMB redirector keeps reusing it and the new credential would not take effect
+		if err := deleteShareConnection(root); err != nil {
+			log.Debugf("credentials: could not drop existing connection for %s: %s", root, err.Error())
 		}
-		if err := addShareCredential(&cred); err != nil {
-			log.Errorf("credentials: failed to add override credential for %s: %s", target, err.Error())
 
-			continue
-		}
-		log.Debugf("credentials: added override credential for %s", target)
-		addedCredentials[target] = true
-	}
-
-	// then add the on-demand credentials when necessary
-	for target, cred := range onDemandCredentials {
-		// leave credentials the user set up on their own untouched
-		if hasShareCredential(target) {
-			log.Debugf("credentials: credential for %s already exists, leaving it untouched", target)
-
-			continue
-		}
-		if err := addShareCredential(&cred); err != nil {
-			log.Errorf("credentials: failed to add on-demand credential for %s: %s", target, err.Error())
-
-			continue
-		}
-		log.Debugf("credentials: added on-demand credential for %s", target)
-		addedCredentials[target] = true
-	}
-
-	addedCredentialsCount := 0
-	for _, added := range addedCredentials {
-		if added {
-			addedCredentialsCount++
-		}
-	}
-
-	if addedCredentialsCount >= 1 {
-		// wait a bit for credentials to take effect
-		time.Sleep(1 * time.Second)
-	}
-
-	// remove all added credentials again after the check finished
-	defer func() {
-		for target := range addedCredentials {
-			if err := deleteShareCredential(target); err != nil {
-				log.Errorf("credentials: failed to remove on-demand credential for %s: %s", target, err.Error())
+		if err := addShareConnection(&cred, root); err != nil {
+			// a connection with different credentials may still be around, force it away and try once more
+			if errors.Is(err, errSessionCredentialConflict) {
+				_ = deleteShareConnection(root)
+				err = addShareConnection(&cred, root)
+			}
+			if err != nil {
+				log.Errorf("credentials: failed to connect to %s: %s", root, err.Error())
 
 				continue
 			}
-			log.Debugf("credentials: removed on-demand credential for %s", target)
+		}
+		log.Debugf("credentials: established connection for %s", root)
+		addedConnections[root] = true
+	}
+
+	// remove all newly added connections again after the check finished
+	defer func() {
+		for root := range addedConnections {
+			if err := deleteShareConnection(root); err != nil {
+				log.Errorf("credentials: failed to remove connection for %s: %s", root, err.Error())
+
+				continue
+			}
+			log.Debugf("credentials: removed connection for %s", root)
 		}
 	}()
 
