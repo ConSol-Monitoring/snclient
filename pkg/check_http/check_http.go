@@ -37,6 +37,7 @@ const (
 	defaultKeepAliveSeconds             = 30
 	defaultIdleConnTimeoutSeconds       = 30
 	defaultExpectContinueTimeoutSeconds = 30
+	defaultProxyTLSHandshakeTimeout     = 30 * time.Second
 	hoursInDays                         = 24
 	maxBufferSizeLimit                  = 100e+6 // 100 MB
 	maxWaitForMax                       = 180 * time.Second
@@ -67,11 +68,11 @@ type commandOpts struct {
 		ExpectContent            string        `short:"s" long:"string"                                  description:"String to expect in the content"`
 		Base64ExpectContent      string        `          long:"base64-string"                           description:"Base64 Encoded string to expect the content"`
 		UserAgent                string        `short:"A" long:"useragent"         default:"check_http"  description:"UserAgent to be sent"`
-		Authorization            string        `short:"a" long:"authorization"                           description:"username:password on sites with basic authentication"`
+		Authorization            string        `short:"a" long:"authorization"                           description:"Pass '[username]:[password]' formatted string to be used as basic authorization header"`
 		Header                   []string      `short:"k" long:"header"                                  description:"Any other tags to be sent in http header. Use multiple times for additional headers"`
-		Certificate              string        `short:"C" long:"certificate"                             description:"check certificates instead of content. Specified in mandatory days left to warn and optional days to crit with a comma: warn_days[,<crit_days>]" `
-		TLSMinVersion            string        `          long:"tls-min"                                 description:"minimum supported TLS version. Values with plus set the max tls version as well to latest version: 1.3" choice:"1.0" choice:"1.0+" choice:"1.1" choice:"1.1+" choice:"1.2" choice:"1.2+" choice:"1.3"`
-		TLSMaxVersion            string        `          long:"tls-max"                                 description:"maximum supported TLS version" choice:"1.0" choice:"1.1" choice:"1.2" choice:"1.3"`
+		Certificate              string        `short:"C" long:"certificate"                             description:"Check certificates instead of content. Specified in mandatory days left to warn and optional days to crit with a comma: warn_days[,<crit_days>]" `
+		TLSMinVersion            string        `          long:"tls-min"                                 description:"Minimum supported TLS version. Values with plus set the max tls version as well to latest version: 1.3" choice:"1.0" choice:"1.0+" choice:"1.1" choice:"1.1+" choice:"1.2" choice:"1.2+" choice:"1.3"`
+		TLSMaxVersion            string        `          long:"tls-max"                                 description:"Maximum supported TLS version" choice:"1.0" choice:"1.1" choice:"1.2" choice:"1.3"`
 		Proxy                    string        `          long:"proxy"                                   description:"Proxy that should be used"`
 		RegexStr                 string        `short:"r" long:"regex"                                   description:"Search page for case-sensitive regex string"`
 		RegexiStr                string        `short:"R" long:"regexi"                                  description:"Search page for case-insensitive regex string"`
@@ -80,21 +81,21 @@ type commandOpts struct {
 		TimeoutStr               string        `short:"t" long:"timeout"           default:"10"          description:"Timeout to wait for connection. If no time unit is given at the end, default of seconds is assumed"`
 		WarningThresholdStr      string        `short:"w" long:"warning"           default:"30"          description:"If the request+response takes longer specified warning threshold, raises a warning. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
 		CriticalThresholdStr     string        `short:"c" long:"critical"          default:"60"          description:"If the request+response takes longer specified critical threshold, raises a critical. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
-		WaitForInterval          time.Duration `          long:"wait-for-interval" default:"2s"          description:"retry interval"`
-		WaitForMax               time.Duration `          long:"wait-for-max"                            description:"time to wait for success (max.: 180s)"`
-		Interim                  time.Duration `          long:"interim"           default:"1s"          description:"interval time after successful request for consecutive mode"`
-		Consecutive              int           `          long:"consecutive"       default:"1"           description:"number of consecutive successful requests required (max.: 5)"`
+		WaitForInterval          time.Duration `          long:"wait-for-interval" default:"2s"          description:"Retry interval"`
+		WaitForMax               time.Duration `          long:"wait-for-max"                            description:"Time to wait for success (max.: 180s)"`
+		Interim                  time.Duration `          long:"interim"           default:"1s"          description:"Interval time after successful request for consecutive mode"`
+		Consecutive              int           `          long:"consecutive"       default:"1"           description:"Number of consecutive successful requests required (max.: 5)"`
 		Port                     int           `short:"p" long:"port"                                    description:"Port number"`
 		MaxRedirects             int           `          long:"max-redirs"                              description:"Maximum redirects before giving up on following"`
-		NoDiscard                bool          `          long:"no-discard"                              description:"raise error when the response body is larger then max-buffer-size"`
-		WaitFor                  bool          `          long:"wait-for"                                description:"retry until successful when enabled"`
-		SSL                      bool          `short:"S" long:"ssl"                                     description:"use https"`
-		SNI                      bool          `          long:"sni"                                     description:"enable SNI"`
-		TCP4                     bool          `short:"4"                                                description:"use tcp4 only"`
-		TCP6                     bool          `short:"6"                                                description:"use tcp6 only"`
+		NoDiscard                bool          `          long:"no-discard"                              description:"Raise error when the response body is larger then max-buffer-size"`
+		WaitFor                  bool          `          long:"wait-for"                                description:"Retry until successful when enabled"`
+		SSL                      bool          `short:"S" long:"ssl"                                     description:"Use https"`
+		SNI                      bool          `          long:"sni"                                     description:"Enable SNI"`
+		TCP4                     bool          `short:"4"                                                description:"Use tcp4 only"`
+		TCP6                     bool          `short:"6"                                                description:"Use tcp6 only"`
 		Verbose                  bool          `short:"v" long:"verbose"                                 description:"Show verbose output"`
 		ShowBody                 bool          `          long:"show-body"                               description:"Print body content below status line"`
-		IgnoreCertificateChain   bool          `          long:"ignore-certificate-chain"                description:"by default all certificates are checked in many aspects. Toggle this option to only check the leaf (final) certificate."`
+		IgnoreCertificateChain   bool          `          long:"ignore-certificate-chain"                description:"During certificate check, all certificates are checked in many aspects. Toggle this option to only check the leaf (final) certificate."`
 		CheckCN                  bool          `          long:"check-cn"                                description:"Subject Common Name of leaf certificate can be checked to match hostname exactly. Common Name field is now largely unused in modern web, with Subject Alternative Name fields being more prevalent and used instead of Common Name when present. It is not checked by default, use this flag to enable it."`
 		CheckSAN                 bool          `          long:"check-san"                               description:"Subject Alternative Names can be checked against the hostname. SANs contain the hostnames and IP addresses this certificate is valid for. They are ignored if the certificate is a Certificate Authority type, meaning they are used to sign other certificates and not for proving security for a hostname. It is not checked by default, use this flag to enable it."`
 		IgnoreNotAfter           bool          `          long:"ignore-not-after"                        description:"Certificates are invalid after the timestamp in their NotAfter has passed. This field can be ignored with this flag."`
@@ -110,6 +111,18 @@ func (opts *commandOpts) tracef(format string, args ...any) {
 
 	if opts.log != nil {
 		opts.log.Tracef(format, args...)
+	} else {
+		log.Printf(format, args...)
+	}
+}
+
+func (opts *commandOpts) debugf(format string, args ...any) {
+	if !opts.flags.Verbose {
+		return
+	}
+
+	if opts.log != nil {
+		opts.log.Debugf(format, args...)
 	} else {
 		log.Printf(format, args...)
 	}
@@ -158,10 +171,17 @@ func makeDialer(opts *commandOpts) func(ctx context.Context, _ string, _ string)
 		tcpMode = "tcp6"
 	}
 
-	dialFunc := func(ctx context.Context, _, _ string) (net.Conn, error) {
-		addr := net.JoinHostPort(opts.flags.IPAddress, strconv.Itoa(opts.flags.Port))
+	dialFunc := func(ctx context.Context, _ string, addr string) (net.Conn, error) {
+		// when a proxy is configured, the http transport passes the proxy address as addr, need to dial the proxy instead of the target
+		if opts.flags.Proxy != "" && addr != "" {
+			return baseDialFunc(ctx, tcpMode, addr)
+		}
 
-		return baseDialFunc(ctx, tcpMode, addr)
+		// otherwise it according to  -I/-p
+		// also used by the -C certificate check which calls dialFunc with an empty addr
+		targetAddr := net.JoinHostPort(opts.flags.IPAddress, strconv.Itoa(opts.flags.Port))
+
+		return baseDialFunc(ctx, tcpMode, targetAddr)
 	}
 
 	return dialFunc
@@ -171,16 +191,42 @@ func makeDialer(opts *commandOpts) func(ctx context.Context, _ string, _ string)
 func makeTransport(opts *commandOpts, dialFunc func(ctx context.Context, _ string, _ string) (net.Conn, error), tlsConfig *tls.Config) (http.RoundTripper, error) {
 	proxy := http.ProxyFromEnvironment
 
+	var parsedURL *url.URL
+	proxyScheme := ""
+
 	if opts.flags.Proxy != "" {
-		parsedURL, err := url.Parse(opts.flags.Proxy)
+		var err error
+		parsedURL, err = url.Parse(opts.flags.Proxy)
 		if err != nil {
 			return nil, fmt.Errorf("Error while parsing Proxy URL. Error was: %s", err.Error())
+		}
+
+		opts.debugf("Proxy used: %q", parsedURL)
+
+		proxyScheme = parsedURL.Scheme
+		if proxyScheme == "" {
+			proxyScheme = "http"
+		}
+
+		opts.debugf("Proxy is using scheme: %q", proxyScheme)
+
+		switch proxyScheme {
+		case "http":
+			opts.debugf("This means an HTTP connection will be established to the proxy")
+		case "https":
+			opts.debugf("This means a TLS connection will be established to the proxy")
+		case "socks5", "socks5h":
+			opts.debugf("This means the proxy will resolve the target hostname")
+		case "socks4a":
+			opts.debugf("socks4a is not supported by the go http client, only socks5/socks5h is supported")
+		default:
+			opts.debugf("Using proxy with unsupported scheme: %q", proxyScheme)
 		}
 
 		proxy = http.ProxyURL(parsedURL)
 	}
 
-	return &http.Transport{
+	transport := &http.Transport{
 		// inherited http.DefaultTransport
 		Proxy:                 proxy,
 		DialContext:           dialFunc,
@@ -191,7 +237,42 @@ func makeTransport(opts *commandOpts, dialFunc func(ctx context.Context, _ strin
 		ResponseHeaderTimeout: opts.TimeoutParsed,
 		TLSClientConfig:       tlsConfig,
 		ForceAttemptHTTP2:     true,
-	}, nil
+	}
+
+	if proxyScheme == "https" {
+		opts.debugf("The proxy certificate will be verified")
+
+		proxyTLSConfig := makeProxyTLSConfig(opts, parsedURL)
+		transport.DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			dialCtx, cancel := context.WithTimeout(ctx, defaultProxyTLSHandshakeTimeout)
+			defer cancel()
+
+			conn, err := dialFunc(dialCtx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+
+			tlsConn := tls.Client(conn, proxyTLSConfig)
+			if err := tlsConn.HandshakeContext(dialCtx); err != nil {
+				_ = tlsConn.Close()
+
+				return nil, fmt.Errorf("error during handshake to https proxy: %w", err)
+			}
+
+			return tlsConn, nil
+		}
+	}
+
+	return transport, nil
+}
+
+// makeProxyTLSConfig returns a tls config that verifies the certificate of an https proxy.
+func makeProxyTLSConfig(opts *commandOpts, proxyURL *url.URL) *tls.Config {
+	return &tls.Config{
+		ServerName: proxyURL.Hostname(),
+		MinVersion: opts.tlsMinVersion,
+		MaxVersion: opts.tlsMaxVersion,
+	}
 }
 
 func buildRequest(ctx context.Context, opts *commandOpts) (*http.Request, error) {
@@ -200,7 +281,18 @@ func buildRequest(ctx context.Context, opts *commandOpts) (*http.Request, error)
 		schema = "https"
 	}
 
-	uri := fmt.Sprintf("%s://%s%s", schema, opts.flags.Hostname, opts.flags.URI)
+	host := opts.flags.Hostname
+	if _, _, splitErr := net.SplitHostPort(host); splitErr != nil {
+		defaultPort := 80
+		if opts.flags.SSL {
+			defaultPort = 443
+		}
+		if opts.flags.Port != defaultPort {
+			host = net.JoinHostPort(host, strconv.Itoa(opts.flags.Port))
+		}
+	}
+
+	uri := fmt.Sprintf("%s://%s%s", schema, host, opts.flags.URI)
 
 	var buffer bytes.Buffer
 

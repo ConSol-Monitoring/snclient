@@ -67,15 +67,16 @@ Application Options:
   -s, --string=                                                   String to expect in the content
       --base64-string=                                            Base64 Encoded string to expect the content
   -A, --useragent=                                                UserAgent to be sent (default: check_http)
-  -a, --authorization=                                            username:password on sites with basic authentication
+  -a, --authorization=                                            Pass '[username]:[password]' formatted string to be
+                                                                  used as basic authorization header
   -k, --header=                                                   Any other tags to be sent in http header. Use
                                                                   multiple times for additional headers
-  -C, --certificate=                                              check certificates instead of content. Specified in
+  -C, --certificate=                                              Check certificates instead of content. Specified in
                                                                   mandatory days left to warn and optional days to crit
                                                                   with a comma: warn_days[,<crit_days>]
-      --tls-min=[1.0|1.0+|1.1|1.1+|1.2|1.2+|1.3]                  minimum supported TLS version. Values with plus set
+      --tls-min=[1.0|1.0+|1.1|1.1+|1.2|1.2+|1.3]                  Minimum supported TLS version. Values with plus set
                                                                   the max tls version as well to latest version: 1.3
-      --tls-max=[1.0|1.1|1.2|1.3]                                 maximum supported TLS version
+      --tls-max=[1.0|1.1|1.2|1.3]                                 Maximum supported TLS version
       --proxy=                                                    Proxy that should be used
   -r, --regex=                                                    Search page for case-sensitive regex string
   -R, --regexi=                                                   Search page for case-insensitive regex string
@@ -98,26 +99,26 @@ Application Options:
                                                                   unit is given at the end, default of seconds is
                                                                   assumed. Value is truncated to milliseconds.
                                                                   (default: 60)
-      --wait-for-interval=                                        retry interval (default: 2s)
-      --wait-for-max=                                             time to wait for success (max.: 180s)
-      --interim=                                                  interval time after successful request for
+      --wait-for-interval=                                        Retry interval (default: 2s)
+      --wait-for-max=                                             Time to wait for success (max.: 180s)
+      --interim=                                                  Interval time after successful request for
                                                                   consecutive mode (default: 1s)
-      --consecutive=                                              number of consecutive successful requests required
+      --consecutive=                                              Number of consecutive successful requests required
                                                                   (max.: 5) (default: 1)
   -p, --port=                                                     Port number
       --max-redirs=                                               Maximum redirects before giving up on following
-      --no-discard                                                raise error when the response body is larger then
+      --no-discard                                                Raise error when the response body is larger then
                                                                   max-buffer-size
-      --wait-for                                                  retry until successful when enabled
-  -S, --ssl                                                       use https
-      --sni                                                       enable SNI
-  -4                                                              use tcp4 only
-  -6                                                              use tcp6 only
+      --wait-for                                                  Retry until successful when enabled
+  -S, --ssl                                                       Use https
+      --sni                                                       Enable SNI
+  -4                                                              Use tcp4 only
+  -6                                                              Use tcp6 only
   -v, --verbose                                                   Show verbose output
       --show-body                                                 Print body content below status line
-      --ignore-certificate-chain                                  by default all certificates are checked in many
-                                                                  aspects. Toggle this option to only check the leaf
-                                                                  (final) certificate.
+      --ignore-certificate-chain                                  During certificate check, all certificates are
+                                                                  checked in many aspects. Toggle this option to only
+                                                                  check the leaf (final) certificate.
       --check-cn                                                  Subject Common Name of leaf certificate can be
                                                                   checked to match hostname exactly. Common Name field
                                                                   is now largely unused in modern web, with Subject
