@@ -107,7 +107,10 @@ func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config,
 	c.snc = snc
 	c.stopChannel = make(chan bool)
 
-	log.Debugf("Logs saved during System handler init() functions:\n%s", strings.Join(taskCheckSystemInitLogs, "\n"))
+	logs := strings.TrimSpace(strings.Join(taskCheckSystemInitLogs, "\n"))
+	if logs != "" {
+		log.Debugf("logs saved during System handler init() functions:\n%s", logs)
+	}
 
 	bufferLength, _, err := section.GetDuration("default buffer length")
 	if err != nil {
