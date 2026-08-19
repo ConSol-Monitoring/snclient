@@ -3,8 +3,7 @@ This file documents the revision history for the SNClient agent.
 next:
          - update golang build chain to 1.26.6
          - check_os_updates: fix powershell error on windows
-         - check_os_updates: enable --update automatically for yum/dnf
-         - check_os_updates: add --skip-update to disable automatic update
+         - check_os_updates: make -u/--update work without root permissions
          - check_mount: show error if no options where specified
          - check_mount: add support for checking multiple mounts
          - check_nsc_web: fix using conditions twice (#453)

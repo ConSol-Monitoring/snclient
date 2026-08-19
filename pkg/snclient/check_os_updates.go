@@ -15,17 +15,15 @@ func init() {
 }
 
 type CheckOSUpdates struct {
-	snc        *Agent
-	system     string
-	update     bool
-	skipUpdate bool
+	snc    *Agent
+	system string
+	update bool
 }
 
 func NewCheckOSUpdates() CheckHandler {
 	return &CheckOSUpdates{
-		update:     false,
-		skipUpdate: false,
-		system:     "auto",
+		update: false,
+		system: "auto",
 	}
 }
 
@@ -37,9 +35,8 @@ func (l *CheckOSUpdates) Build() *CheckData {
 		hasInventory: NoCallInventory,
 		result:       &CheckResult{},
 		args: map[string]CheckArgument{
-			"-s|--system":      {value: &l.system, description: "Package system: auto, apt, yum, osx and windows (default: auto)"},
-			"-u|--update":      {value: &l.update, description: "Update package list (if supported, ex.: apt-get update)"},
-			"-N|--skip-update": {value: &l.skipUpdate, description: "Skip updating the package list in case updates are automatically, ex. for yum/dnf in non-root mode."},
+			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum, osx and windows (default: auto)"},
+			"-u|--update": {value: &l.update, description: "Update package list (if supported, ex.: apt-get update)"},
 		},
 		defaultWarning:  "count > 0",
 		defaultCritical: "count_security > 0",
@@ -68,11 +65,10 @@ If you only want to be notified about security related updates:
     check_os_updates warn=none crit='count_security > 0'
     CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0
 
-On YUM/DNF systems, repository metadata is stored in a private cache owned by
-the SNClient service user. YUM/DNF refreshes missing or expired metadata without
-requiring root permissions. The **--update** option forces a metadata refresh and is
-implicitly enabled for yum/dnf mode. Use **--skip-update** to disable this.
-The check returns **UNKNOWN** if an enabled repository is unavailable, because
+On DNF/APT systems, **--update** refreshes repository metadata in a private cache
+owned by the SNClient service user unless started as root user.
+
+The DNF check returns **UNKNOWN** if an enabled repository is unavailable, because
 otherwise an incomplete repository set could be reported as having no updates.
 	`,
 		exampleArgs: `warn='count > 0' crit='count_security > 0'`,
