@@ -243,10 +243,6 @@ func TestHTTPExpectStatusCode(t *testing.T) {
 }
 
 func TestHTTPProxyPlain(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping network test in short mode")
-	}
-
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, "direct-target-response")
 	}))
@@ -280,10 +276,6 @@ func TestHTTPProxyPlain(t *testing.T) {
 }
 
 func TestHTTPProxySSL(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping network test in short mode")
-	}
-
 	// the target is a TLS address on a TLS server
 	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, "proxied-target-response")
@@ -359,10 +351,6 @@ func TestHTTPProxySSL(t *testing.T) {
 }
 
 func TestHTTPProxySSLPNonDefaultPort(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping network test in short mode")
-	}
-
 	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, "proxied-target-response")
 	}))
@@ -448,10 +436,6 @@ func TestMakeProxyTLSConfig(t *testing.T) {
 }
 
 func TestHTTPProxySSLSelfSignedProxy(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping network test in short mode")
-	}
-
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, "target-response")
 	}))
