@@ -280,7 +280,18 @@ func buildRequest(ctx context.Context, opts *commandOpts) (*http.Request, error)
 		schema = "https"
 	}
 
-	uri := fmt.Sprintf("%s://%s%s", schema, opts.flags.Hostname, opts.flags.URI)
+	host := opts.flags.Hostname
+	if _, _, splitErr := net.SplitHostPort(host); splitErr != nil {
+		defaultPort := 80
+		if opts.flags.SSL {
+			defaultPort = 443
+		}
+		if opts.flags.Port != defaultPort {
+			host = net.JoinHostPort(host, strconv.Itoa(opts.flags.Port))
+		}
+	}
+
+	uri := fmt.Sprintf("%s://%s%s", schema, host, opts.flags.URI)
 
 	var buffer bytes.Buffer
 

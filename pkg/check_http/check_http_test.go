@@ -358,6 +358,78 @@ func TestHTTPProxySSL(t *testing.T) {
 	assert.Containsf(t, output.String(), "proxied-target-response", "expected output to contain 'proxied-target-response'")
 }
 
+func TestHTTPProxySSLPNonDefaultPort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping network test in short mode")
+	}
+
+	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, "proxied-target-response")
+	}))
+	defer target.Close()
+
+	targetURL, err := url.Parse(target.URL)
+	require.NoError(t, err)
+
+	// the hostname given to check_http without any port, the port comes only from -p
+	host, _, splitErr := net.SplitHostPort(targetURL.Host)
+	require.NoError(t, splitErr)
+
+	var connectTarget atomic.Value
+	proxy := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodConnect {
+			http.Error(writer, "expected CONNECT request", http.StatusBadRequest)
+
+			return
+		}
+		connectTarget.Store(req.Host)
+
+		dest, err := net.Dial("tcp", req.Host)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadGateway)
+
+			return
+		}
+		defer dest.Close()
+
+		hijacker, ok := writer.(http.Hijacker)
+		if !ok {
+			http.Error(writer, "hijacking not supported", http.StatusInternalServerError)
+
+			return
+		}
+
+		clientConn, _, err := hijacker.Hijack()
+		if err != nil {
+			return
+		}
+		defer clientConn.Close()
+
+		fmt.Fprint(clientConn, "HTTP/1.1 200 Connection Established\r\n\r\n")
+
+		go func() {
+			_, _ = io.Copy(dest, clientConn)
+		}()
+		_, _ = io.Copy(clientConn, dest)
+	}))
+	defer proxy.Close()
+
+	var output strings.Builder
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	// -H is given without a port, the port is only set via -p
+	// it must still end up in the proxy CONNECT target
+	code := Check(ctx, &output, []string{
+		"check_http", "-H", host, "-S", "-p", targetURL.Port(),
+		"--proxy", proxy.URL, "-s", "proxied-target-response",
+	})
+
+	assert.Equalf(t, OK, code, "expected exit code OK (0), got %d, output: %s", code, output.String())
+	assert.Equalf(t, targetURL.Host, connectTarget.Load(), "expected the proxy CONNECT target to use the port from -p, output: %s", output.String())
+	assert.Containsf(t, output.String(), "proxied-target-response", "expected output to contain 'proxied-target-response'")
+}
+
 func TestMakeProxyTLSConfig(t *testing.T) {
 	opts := &commandOpts{}
 	opts.tlsMinVersion = tls.VersionTLS12
