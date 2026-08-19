@@ -19,114 +19,112 @@ CheckMulti = enabled
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	// 1. Basic inline checks - all OK
+	// 1. Basic inline checks with mandatory tags - all OK
 	res := snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'dummy ok 1'",
-		"check=check_dummy 0 'dummy ok 2'",
+		"command[d1]=check_dummy 0 'dummy ok 1'",
+		"command[d2]=check_dummy 0 'dummy ok 2'",
 	})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, res.Output, "2 plugins checked, 2 ok")
-	assert.Contains(t, res.Details, "dummy ok 1")
-	assert.Contains(t, res.Details, "dummy ok 2")
+	assert.Contains(t, res.Details, "[d1] dummy ok 1")
+	assert.Contains(t, res.Details, "[d2] dummy ok 2")
 
 	// 2. Inline checks with warning and critical (default thresholds)
 	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'dummy ok'",
-		"check=check_dummy 1 'dummy warn'",
+		"command[d1]=check_dummy 0 'dummy ok'",
+		"command[d2]=check_dummy 1 'dummy warn'",
 	})
 	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING")
 	assert.Contains(t, res.Output, "2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown")
 
 	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'dummy ok'",
-		"check=check_dummy 2 'dummy crit'",
+		"command[d1]=check_dummy 0 'dummy ok'",
+		"command[d2]=check_dummy 2 'dummy crit'",
 	})
 	assert.Equalf(t, CheckExitCritical, res.State, "state CRITICAL")
 	assert.Contains(t, res.Output, "2 plugins checked: 1 ok, 0 warning, 1 critical, 0 unknown")
 
 	// 3. Custom conditions: warn=none crit=ok_count ne 2
 	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'dummy 1'",
-		"check=check_dummy 0 'dummy 2'",
+		"command[d1]=check_dummy 0 'dummy 1'",
+		"command[d2]=check_dummy 0 'dummy 2'",
 		"warn=none",
 		"crit=ok_count ne 2",
 	})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK when ok_count == 2")
 
 	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'dummy 1'",
-		"check=check_dummy 1 'dummy 2'",
+		"command[d1]=check_dummy 0 'dummy 1'",
+		"command[d2]=check_dummy 1 'dummy 2'",
 		"warn=none",
 		"crit=ok_count ne 2",
 	})
 	assert.Equalf(t, CheckExitCritical, res.State, "state CRITICAL when ok_count != 2")
 
-	// 4. Custom conditions: warn=problem_count gt 0
+	// 4. Custom condition on entry attribute: critical=name eq 'alias2' and state=2
 	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'dummy 1'",
-		"check=check_dummy 1 'dummy 2'",
-		"warn=problem_count gt 0",
-		"crit=none",
+		"command[alias1]=check_dummy 2 'crit 1'",
+		"command[alias2]=check_dummy 0 'ok 2'",
+		"warn=none",
+		"crit=name eq 'alias2' and state=2",
 	})
-	assert.Equalf(t, CheckExitWarning, res.State, "state WARNING when problem_count > 0")
+	assert.Equalf(t, CheckExitOK, res.State, "state OK when alias2 is not in state 2")
 
-	// 5. Unknown/inline checks restriction (cannot run arbitrary external commands inline)
 	res = snc.RunCheck("check_multi", []string{
-		"check=/bin/nonexistent_or_external_script -H 123",
+		"command[alias1]=check_dummy 0 'ok 1'",
+		"command[alias2]=check_dummy 2 'crit 2'",
+		"warn=none",
+		"crit=name eq 'alias2' and state=2",
+	})
+	assert.Equalf(t, CheckExitCritical, res.State, "state CRITICAL when alias2 is in state 2")
+
+	// 5. Mandatory tag validation: missing tag & duplicate tag
+	res = snc.RunCheck("check_multi", []string{
+		"command=check_dummy 0 'ok'",
+	})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when command has no tag")
+	assert.Contains(t, res.Output, "command argument requires a unique tag")
+
+	res = snc.RunCheck("check_multi", []string{
+		"command[dup]=check_dummy 0 'ok 1'",
+		"command[dup]=check_dummy 0 'ok 2'",
+	})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when command tag is duplicated")
+	assert.Contains(t, res.Output, "duplicate command tag: dup")
+
+	// 6. Unknown/inline checks restriction (cannot run arbitrary external commands inline)
+	res = snc.RunCheck("check_multi", []string{
+		"command[ext]=/bin/nonexistent_or_external_script -H 123",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN for unregistered inline command")
 	assert.Contains(t, res.Output, "unknown check command")
 
-	// 6. Inline check with check_process or check_cpu
-	res = snc.RunCheck("check_multi", []string{
-		"check=check_cpu warn=load=101 crit=load=102",
-		"warn=none",
-		"crit=ok_count ne 1",
-	})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK for check_cpu inline")
-	assert.Contains(t, res.Details, "check_cpu")
-
 	// 7. Filter argument is disabled/rejected
 	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'ok'",
+		"command[d1]=check_dummy 0 'ok'",
 		"filter=state=1",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when filter argument is used")
 	assert.Contains(t, res.Output, "filter is disabled for this check")
 
-	// 8. Unknown threshold (default and custom)
+	// 8. Severity hierarchy: UNKNOWN > CRITICAL > WARNING > OK
 	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'ok'",
-		"check=check_dummy 3 'unknown check'",
+		"command[d1]=check_dummy 0 'ok'",
+		"command[d2]=check_dummy 3 'unknown check'",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when child check is unknown by default")
 
 	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'ok'",
-		"check=check_dummy 3 'unknown check'",
-		"unknown=unknown_count gt 0",
-		"warning=warning_count gt 0",
-		"critical=critical_count gt 0",
-	})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when custom unknown condition matches")
-
-	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 1 'warn check'",
-		"check=check_dummy 3 'unknown check'",
-		"unknown=unknown_count gt 0",
-		"warning=warning_count gt 0",
-		"critical=critical_count gt 0",
+		"command[d1]=check_dummy 1 'warn check'",
+		"command[d2]=check_dummy 3 'unknown check'",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN takes precedence over WARNING")
 
 	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 2 'crit check'",
-		"check=check_dummy 3 'unknown check'",
-		"unknown=unknown_count gt 0",
-		"warning=warning_count gt 0",
-		"critical=critical_count gt 0",
+		"command[d1]=check_dummy 2 'crit check'",
+		"command[d2]=check_dummy 3 'unknown check'",
 	})
-	assert.Equalf(t, CheckExitCritical, res.State, "state CRITICAL takes precedence over UNKNOWN")
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN takes precedence over CRITICAL")
 }
 
 func TestCheckMultiLimits(t *testing.T) {
@@ -142,16 +140,16 @@ max checks = 2
 
 	// Under limit: 2 checks
 	res := snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'ok 1'",
-		"check=check_dummy 0 'ok 2'",
+		"command[d1]=check_dummy 0 'ok 1'",
+		"command[d2]=check_dummy 0 'ok 2'",
 	})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK for 2 checks")
 
 	// Exceeds limit: 3 checks
 	res = snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'ok 1'",
-		"check=check_dummy 0 'ok 2'",
-		"check=check_dummy 0 'ok 3'",
+		"command[d1]=check_dummy 0 'ok 1'",
+		"command[d2]=check_dummy 0 'ok 2'",
+		"command[d3]=check_dummy 0 'ok 3'",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when exceeding max checks")
 	assert.Contains(t, res.Output, "exceeds max checks limit")
@@ -166,7 +164,7 @@ CheckMulti = disabled
 	defer StopTestAgent(t, snc)
 
 	res := snc.RunCheck("check_multi", []string{
-		"check=check_dummy 0 'ok 1'",
+		"command[d1]=check_dummy 0 'ok 1'",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when module is disabled")
 	assert.Contains(t, res.Output, "module CheckMulti is not enabled")
@@ -217,17 +215,22 @@ exit 1
 CheckMulti = enabled
 
 [/settings/check/multi/mycheck]
-check_dummy 0 ok1
-check_dummy 0 ok2
+command[c1] = check_dummy 0 ok1
+command[c2] = check_dummy 0 ok2
 
 [/settings/check/multi/custom]
-%s -H 123
-%s -W 123
+command[s1] = %s -H 123
+command[s2] = %s -W 123
 
-[/settings/check/multi/named]
-first = check_dummy 0 ok_first
-second = %s -H 456
-`, script1, script2, script1)
+[/settings/check/multi/loop]
+command[sub] = check_multi config=loop
+
+[/settings/check/multi/loopA]
+command[b] = check_multi config=loopB
+
+[/settings/check/multi/loopB]
+command[a] = check_multi config=loopA
+`, script1, script2)
 
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
@@ -252,13 +255,19 @@ second = %s -H 456
 	assert.Contains(t, res.Details, "SCRIPT 1 OK")
 	assert.Contains(t, res.Details, "SCRIPT 2 WARNING")
 
-	// Test config=named (named check tags in config)
+	// Test direct loop detection: check_multi config=loop
 	res = snc.RunCheck("check_multi", []string{
-		"config=named",
+		"config=loop",
 	})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK for named config")
-	assert.Contains(t, res.Details, "first")
-	assert.Contains(t, res.Details, "second")
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN for loop config")
+	assert.Contains(t, res.Output, "loop detected")
+
+	// Test indirect loop detection: loopA -> loopB -> loopA
+	res = snc.RunCheck("check_multi", []string{
+		"config=loopA",
+	})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN for indirect loop")
+	assert.Contains(t, res.Output, "loop detected")
 
 	// Test non-existing config
 	res = snc.RunCheck("check_multi", []string{

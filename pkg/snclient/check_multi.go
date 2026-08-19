@@ -3,6 +3,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
@@ -12,28 +13,35 @@ func init() {
 	AvailableChecks["check_multi"] = CheckEntry{"check_multi", NewCheckMulti}
 }
 
+type (
+	checkMultiConfigKey struct{}
+	checkMultiDepthKey  struct{}
+)
+
 type CheckMulti struct {
-	checks []string
-	config string
+	commands TaggedCommandList
+	config   string
 }
 
 var checkMultiAttributes = []CheckAttribute{
-	{name: "count", description: "Total number of checks executed", unit: UNone},
-	{name: "ok_count", description: "Number of checks in OK state", unit: UNone},
-	{name: "warning_count", description: "Number of checks in WARNING state", unit: UNone},
-	{name: "critical_count", description: "Number of checks in CRITICAL state", unit: UNone},
-	{name: "unknown_count", description: "Number of checks in UNKNOWN state", unit: UNone},
-	{name: "problem_count", description: "Number of checks in non-OK state", unit: UNone},
-	{name: "name", description: "Name/tag of the check", unit: UNone},
-	{name: "command", description: "Command executed", unit: UNone},
-	{name: "state", description: "Exit code of the check (0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN)", unit: UNone},
-	{name: "status", description: "Status text of the check (OK, WARNING, CRITICAL, UNKNOWN)", unit: UNone},
-	{name: "output", description: "Output of the check", unit: UNone},
+	{name: "count", description: "Total number of checks executed"},
+	{name: "ok_count", description: "Number of checks in OK state"},
+	{name: "warning_count", description: "Number of checks in WARNING state"},
+	{name: "critical_count", description: "Number of checks in CRITICAL state"},
+	{name: "unknown_count", description: "Number of checks in UNKNOWN state"},
+	{name: "problem_count", description: "Number of checks in non-OK state"},
+	{name: "name", description: "Name/Tag of the check"},
+	{name: "tag", description: "Alias for name"},
+	{name: "command", description: "Command executed"},
+	{name: "state", description: "Exit code of the check (0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN)"},
+	{name: "status", description: "Status text of the check (OK, WARNING, CRITICAL, UNKNOWN)"},
+	{name: "output", description: "Check output"},
+	{name: "shortoutput", description: "First line of the check output"},
 }
 
 func NewCheckMulti() CheckHandler {
 	return &CheckMulti{
-		checks: make([]string, 0),
+		commands: make(TaggedCommandList, 0),
 	}
 }
 
@@ -50,16 +58,16 @@ func (l *CheckMulti) Build() *CheckData {
 
 	You can also define custom check sections in the config file, for example:
     [/settings/check/multi/mycheck]
-    check_process process=123
-    check_process process=345
+    command[alias1] = check_process process=123
+    command[alias2] = check_process process=345
 
     This can be executed with 'check_multi "config=mycheck"'.
 
 	It's also possible to use custom scripts in the config section, for example:
 	[/settings/check/multi/myscript]
-	/path/to/plugin1
-	/path/to/plugin2
-	/path/to/plugin3
+	command[alias1] = /path/to/plugin1
+	command[alias2] = /path/to/plugin2
+	command[alias3] = /path/to/plugin3
 
 	This can be executed with 'check_multi "config=myscript"'.
 `,
@@ -69,8 +77,8 @@ func (l *CheckMulti) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"check":  {value: &l.checks, description: "Check command to execute (can be specified multiple times)"},
-			"config": {value: &l.config, description: "Config section name under [/settings/check/multi/< section >] to execute"},
+			"command": {value: &l.commands, description: "Check command to execute with mandatory unique tag, e.g. command[tag]=..."},
+			"config":  {value: &l.config, description: "Config section name under [/settings/check/multi/< section >] to execute"},
 		},
 		conditionAlias: map[string]map[string]string{
 			"warning_count":  {"warn_count": "warning_count"},
@@ -86,25 +94,25 @@ func (l *CheckMulti) Build() *CheckData {
 		emptySyntax:     "%(status) - no checks executed",
 		emptyState:      CheckExitUnknown,
 		exampleDefault: `
-    check_multi "check=check_process 'process=firefox'" "check=check_memory 'crit=used_pct gt 80%'"
-	OK - 2 plugins checked, 2 ok | 'check_process::count'=1;;;0 'check_process::rss'=258686976B;;;0 ...
-	[ 1] check_process OK - all 1 processes are ok.
-	[ 2] check_memory OK - physical = 12.22 GiB/16.00 GiB (76.4%), swap = 1.95 GiB/3.00 GiB (65.0%)
+    check_multi "command[check_process]=check_process 'process=firefox'" "command[check_memory]=check_memory 'type=physical' 'crit=used_pct gt 80%'"
+	OK - 2 plugins checked, 2 ok |'check_process::count'=1;;;0 ... 'check_memory::physical %'=78.7%;;;0;100
+	[check_process] OK - all 1 processes are ok.
+	[check_memory] OK - physical = 12.59 GiB/16.00 GiB (78.7%)
 
 	You can define 'warning' and 'critical' conditions based on the number of checks in a certain state (see attributes below):
 
-	check_multi "check=check_dummy 0 'OK - check works'" "check=check_dummy 1 'WARNING - problem found'" "critical=problem_count gt 0"
-	CRITICAL - 2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown - warning(check_dummy: WARNING - problem found)
-	[ 1] check_dummy OK - check works
-	[ 2] check_dummy WARNING - problem found
+	check_multi "command[check_dummy1]=check_dummy 0 'OK - check works'" "command[check_dummy2]=check_dummy 1 'WARNING - problem found'" "critical=problem_count gt 0"
+	CRITICAL - 2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown - warning(check_dummy2: WARNING - problem found)
+	[check_dummy1] OK - check works
+	[check_dummy2] WARNING - problem found
 
 	You can also override the 'top-syntax' and use IF ELSE statements to get a certain output based on the results:
 
-	check_multi "check=check_dummy 0 'OK'" "check=check_dummy 2 'CRITICAL'" \
+	check_multi "command[check_dummy1]=check_dummy 0 'OK'" "command[check_dummy2]=check_dummy 2 'CRITICAL'" \
 				"top-syntax={{ if ok_count gt 0 }}OK - %(ok_count)/%(count) checks are OK {{ ELSE }}CRITICAL - all checks failed{{ END }}"
 	OK - 1/2 checks are OK
-	[ 1] check_dummy OK
-	[ 2] check_dummy CRITICAL
+	[check_dummy1] OK
+	[check_dummy2] CRITICAL
 	`,
 	}
 }
@@ -122,6 +130,33 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 			State:  CheckExitUnknown,
 			Output: "module CheckMulti is not enabled in /modules section",
 		}, nil
+	}
+
+	depth, _ := ctx.Value(checkMultiDepthKey{}).(int)
+	if depth > 5 {
+		return &CheckResult{
+			State:  CheckExitUnknown,
+			Output: "recursion limit exceeded for check_multi",
+		}, nil
+	}
+	ctx = context.WithValue(ctx, checkMultiDepthKey{}, depth+1)
+
+	activeConfigs, _ := ctx.Value(checkMultiConfigKey{}).(map[string]bool)
+	if activeConfigs == nil {
+		activeConfigs = make(map[string]bool)
+	}
+
+	if l.config != "" {
+		if activeConfigs[l.config] {
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: fmt.Sprintf("loop detected: check_multi config %s is already running in the call chain", l.config),
+			}, nil
+		}
+		newActive := make(map[string]bool, len(activeConfigs)+1)
+		maps.Copy(newActive, activeConfigs)
+		newActive[l.config] = true
+		ctx = context.WithValue(ctx, checkMultiConfigKey{}, newActive)
 	}
 
 	maxChecks, ok, err := snc.config.Section("/settings/check/multi").GetInt("max checks")
@@ -154,23 +189,36 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 // buildChildChecks assembles the list of child checks from config section and inline args.
 func (l *CheckMulti) buildChildChecks(snc *Agent) ([]multiChildCheck, *CheckResult) {
 	childChecks := []multiChildCheck{}
+	seenTags := make(map[string]bool)
 
 	if l.config != "" {
 		configChecks, res := l.buildConfigChecks(snc)
 		if res != nil {
 			return nil, res
 		}
-		childChecks = append(childChecks, configChecks...)
+		for _, chk := range configChecks {
+			if seenTags[chk.tag] {
+				return nil, &CheckResult{
+					State:  CheckExitUnknown,
+					Output: fmt.Sprintf("duplicate command tag: %s", chk.tag),
+				}
+			}
+			seenTags[chk.tag] = true
+			childChecks = append(childChecks, chk)
+		}
 	}
 
-	for _, inlineCmd := range l.checks {
-		inlineCmd = strings.TrimSpace(inlineCmd)
-		if inlineCmd == "" {
-			continue
+	for _, cmd := range l.commands {
+		if seenTags[cmd.Tag] {
+			return nil, &CheckResult{
+				State:  CheckExitUnknown,
+				Output: fmt.Sprintf("duplicate command tag: %s", cmd.Tag),
+			}
 		}
+		seenTags[cmd.Tag] = true
 		childChecks = append(childChecks, multiChildCheck{
-			tag:      "",
-			cmdStr:   inlineCmd,
+			tag:      cmd.Tag,
+			cmdStr:   cmd.Command,
 			isInline: true,
 		})
 	}
@@ -191,33 +239,50 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, *CheckRes
 	}
 
 	childChecks := make([]multiChildCheck, 0, len(sec.keys))
+	seenTags := make(map[string]bool)
 
 	for _, key := range sec.keys {
-		rawCmd, tag := l.resolveConfigEntry(snc, key, sec.data[key])
+		rawVal := sec.data[key]
+		if !strings.HasPrefix(key, "command[") || !strings.HasSuffix(key, "]") {
+			return nil, &CheckResult{
+				State:  CheckExitUnknown,
+				Output: fmt.Sprintf("invalid check_multi config entry: %s (must be in format command[tag]=<command>)", key),
+			}
+		}
+		tag := strings.TrimSuffix(strings.TrimPrefix(key, "command["), "]")
+		if strings.ContainsAny(tag, DefaultNastyCharacters+"=") {
+			return nil, &CheckResult{
+				State:  CheckExitUnknown,
+				Output: fmt.Sprintf("command tag contains invalid characters: %s", tag),
+			}
+		}
+		if strings.TrimSpace(tag) == "" {
+			return nil, &CheckResult{
+				State:  CheckExitUnknown,
+				Output: "empty command tag in config section",
+			}
+		}
+		if strings.TrimSpace(rawVal) == "" {
+			return nil, &CheckResult{
+				State:  CheckExitUnknown,
+				Output: fmt.Sprintf("empty command for tag %s in config section", tag),
+			}
+		}
+		if seenTags[tag] {
+			return nil, &CheckResult{
+				State:  CheckExitUnknown,
+				Output: fmt.Sprintf("duplicate command tag: %s", tag),
+			}
+		}
+		seenTags[tag] = true
 		childChecks = append(childChecks, multiChildCheck{
 			tag:      tag,
-			cmdStr:   rawCmd,
+			cmdStr:   rawVal,
 			isInline: false,
 		})
 	}
 
 	return childChecks, nil
-}
-
-// resolveConfigEntry determines the raw command and tag for a single config section entry.
-func (l *CheckMulti) resolveConfigEntry(snc *Agent, key, val string) (rawCmd, tag string) {
-	rawCmd = key
-	tag = ""
-
-	if val == "" {
-		return rawCmd, tag
-	}
-
-	if _, isKnown := snc.getCheck(key, false); isKnown {
-		return key + " " + val, key
-	}
-
-	return val, key
 }
 
 // executeChildChecks runs all child checks and aggregates results.
@@ -227,49 +292,50 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 	detailsList := make([]string, 0, len(childChecks))
 	allMetrics := make([]*CheckMetric, 0)
 
-	for idx, chk := range childChecks {
+	hasEntryThresholds := check.HasThreshold("name") || check.HasThreshold("tag") || check.HasThreshold("command") ||
+		check.HasThreshold("output") || check.HasThreshold("shortoutput") || check.HasThreshold("status") || check.HasThreshold("state")
+
+	for _, chk := range childChecks {
 		res, fatal := l.runChildCheck(ctx, snc, check, chk)
 		if fatal {
 			return res, nil
 		}
 
+		tag := chk.tag
+
+		firstLine := strings.TrimSpace(strings.Split(res.Output, "\n")[0])
+		detailsList = append(detailsList, fmt.Sprintf("[%s] %s", tag, res.Output))
+
+		entryState := fmt.Sprintf("%d", res.State)
+		entry := map[string]string{
+			"name":        tag,
+			"tag":         tag,
+			"command":     chk.cmdStr,
+			"state":       entryState,
+			"status":      res.StateString(),
+			"shortoutput": firstLine,
+			"output":      res.Output,
+			"_state":      entryState,
+			"_skip":       "1",
+			"_count":      "1",
+		}
+
+		if hasEntryThresholds {
+			check.Check(entry, check.warnThreshold, check.critThreshold, check.unknownThreshold, check.okThreshold)
+		}
+
 		count++
-		switch res.State {
-		case CheckExitOK:
+		switch entry["_state"] {
+		case "0":
 			okCount++
-		case CheckExitWarning:
+		case "1":
 			warnCount++
-		case CheckExitCritical:
+		case "2":
 			critCount++
 		default:
 			unknownCount++
 		}
 
-		tokens := utils.Tokenize(chk.cmdStr)
-		cmdName := chk.cmdStr
-		if len(tokens) > 0 {
-			cmdName = tokens[0]
-		}
-
-		tag := chk.tag
-		if tag == "" {
-			tag = cmdName
-		}
-
-		firstLine := strings.TrimSpace(strings.Split(res.Output, "\n")[0])
-		detailsList = append(detailsList, fmt.Sprintf("[% 2d] %s %s", idx+1, tag, res.Output))
-
-		entry := map[string]string{
-			"idx":     fmt.Sprintf("%d", idx+1),
-			"name":    tag,
-			"command": chk.cmdStr,
-			"state":   fmt.Sprintf("%d", res.State),
-			"status":  res.StateString(),
-			"output":  firstLine,
-			"_state":  fmt.Sprintf("%d", res.State),
-			"_skip":   "1",
-			"_count":  "1",
-		}
 		check.listData = append(check.listData, entry)
 
 		for _, m := range res.Metrics {

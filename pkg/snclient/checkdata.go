@@ -42,6 +42,13 @@ const (
 
 type CommaStringList []string
 
+type TaggedCommand struct {
+	Tag     string
+	Command string
+}
+
+type TaggedCommandList []TaggedCommand
+
 type CheckArgument struct {
 	value           any    // reference to storage pointer
 	description     string // used in help
@@ -478,10 +485,13 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	}
 
 	switch {
-	case macros["crit_count"] != "0":
+	case macros["unknown_count"] != "0" && macros["unknown_count"] != "":
+		cd.result.EscalateStatus(3)
+		macros["_state"] = "3"
+	case macros["crit_count"] != "0" && macros["crit_count"] != "":
 		cd.result.EscalateStatus(2)
 		macros["_state"] = "2"
-	case macros["warn_count"] != "0":
+	case macros["warn_count"] != "0" && macros["warn_count"] != "":
 		cd.result.EscalateStatus(1)
 		macros["_state"] = "1"
 	}
@@ -505,17 +515,17 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, unknownCo
 		}
 	}
 
-	for i := range unknownCond {
-		if res, ok := unknownCond[i].Match(data); res && ok {
-			log.Debugf("This given data matched the UNKNOWN condition: '%s' ", unknownCond[i].DetailedString())
-			data["_state"] = fmt.Sprintf("%d", CheckExitUnknown)
-		}
-	}
-
 	for i := range critCond {
 		if res, ok := critCond[i].Match(data); res && ok {
 			log.Debugf("This given data matched the CRITICAL condition: '%s' ", critCond[i].DetailedString())
 			data["_state"] = fmt.Sprintf("%d", CheckExitCritical)
+		}
+	}
+
+	for i := range unknownCond {
+		if res, ok := unknownCond[i].Match(data); res && ok {
+			log.Debugf("This given data matched the UNKNOWN condition: '%s' ", unknownCond[i].DetailedString())
+			data["_state"] = fmt.Sprintf("%d", CheckExitUnknown)
 		}
 	}
 
@@ -1028,9 +1038,13 @@ func (cd *CheckData) fetchNextArg(args, split []string, keyword string, idx, num
 	if len(split) == 2 {
 		return split[1], idx, nil
 	}
-	arg, ok := cd.args[keyword]
+	lookupKey := keyword
+	if before, _, found := strings.Cut(keyword, "["); found && strings.HasSuffix(keyword, "]") {
+		lookupKey = before
+	}
+	arg, ok := cd.args[lookupKey]
 	if !ok {
-		arg, ok = cd.extraArgs[keyword]
+		arg, ok = cd.extraArgs[lookupKey]
 		if !ok {
 			return "", idx, nil
 		}
@@ -1050,29 +1064,72 @@ func (cd *CheckData) fetchNextArg(args, split []string, keyword string, idx, num
 	return args[idx], idx, nil
 }
 
+// parseTaggedCommand handles parsing a TaggedCommandList argument (command[tag]=...).
+func (cd *CheckData) parseTaggedCommand(argRef *TaggedCommandList, tag, argValue string) error {
+	tag = strings.TrimSpace(tag)
+	if tag == "" {
+		return fmt.Errorf("command argument requires a unique tag, e.g. command[tag]=<check>")
+	}
+
+	if strings.ContainsAny(tag, DefaultNastyCharacters+"=") {
+		return fmt.Errorf("command tag contains invalid characters: %s", tag)
+	}
+
+	for _, existing := range *argRef {
+		if existing.Tag == tag {
+			return fmt.Errorf("duplicate command tag: %s", tag)
+		}
+	}
+
+	*argRef = append(*argRef, TaggedCommand{
+		Tag:     tag,
+		Command: strings.TrimSpace(argValue),
+	})
+
+	return nil
+}
+
 // parseAnyArg parses args into the args map with custom arguments
 func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error) {
-	arg, ok := cd.args[keyword]
+	lookupKey := keyword
+	tag := ""
+	if before, rest, found := strings.Cut(keyword, "["); found && strings.HasSuffix(keyword, "]") {
+		lookupKey = before
+		tag = rest[:len(rest)-1]
+	}
+
+	arg, ok := cd.args[lookupKey]
 	if !ok {
-		arg, ok = cd.extraArgs[keyword]
+		arg, ok = cd.extraArgs[lookupKey]
 		if !ok {
 			return false, nil
 		}
 	}
 
+	if err := cd.parseArgValue(argExpr, keyword, argValue, tag, &arg); err != nil {
+		return true, err
+	}
+
+	cd.hasArgsSupplied[keyword] = true
+
+	return true, nil
+}
+
+// parseArgValue dispatches an argument value into the correct typed storage reference.
+func (cd *CheckData) parseArgValue(argExpr, keyword, argValue, tag string, arg *CheckArgument) error { //nolint:cyclop // many type cases are required here
 	switch argRef := arg.value.(type) {
+	case *TaggedCommandList:
+		return cd.parseTaggedCommand(argRef, tag, argValue)
 	case *[]string:
 		if _, ok := cd.hasArgsSupplied[keyword]; !ok {
 			// first time this arg occurs, empty default lists
-			empty := make([]string, 0)
-			*argRef = empty
+			*argRef = make([]string, 0)
 		}
 		*argRef = append(*argRef, argValue)
 	case *CommaStringList:
 		if _, ok := cd.hasArgsSupplied[keyword]; !ok {
 			// first time this arg occurs, empty default lists
-			empty := make([]string, 0)
-			*argRef = empty
+			*argRef = make([]string, 0)
 		}
 		*argRef = append(*argRef, strings.Split(argValue, ",")...)
 	case *string:
@@ -1080,29 +1137,28 @@ func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error
 	case *float64:
 		f, err := strconv.ParseFloat(argValue, 64)
 		if err != nil {
-			return true, fmt.Errorf("parseFloat %s: %s", argExpr, err.Error())
+			return fmt.Errorf("parseFloat %s: %s", argExpr, err.Error())
 		}
 		*argRef = f
 	case *int64:
 		i, err := strconv.ParseInt(argValue, 10, 64)
 		if err != nil {
-			return true, fmt.Errorf("parseInt %s: %s", argExpr, err.Error())
+			return fmt.Errorf("parseInt %s: %s", argExpr, err.Error())
 		}
 		*argRef = i
 	case *int:
 		i, err := strconv.ParseInt(argValue, 10, 32)
 		if err != nil {
-			return true, fmt.Errorf("parseInt %s: %s", argExpr, err.Error())
+			return fmt.Errorf("parseInt %s: %s", argExpr, err.Error())
 		}
 		*argRef = int(i)
 	case *bool:
 		if argValue == "" {
-			b := true
-			*argRef = b
+			*argRef = true
 		} else {
 			b, err := convert.BoolE(argValue)
 			if err != nil {
-				return true, fmt.Errorf("parseBool %s: %s", argValue, err.Error())
+				return fmt.Errorf("parseBool %s: %s", argValue, err.Error())
 			}
 			*argRef = b
 		}
@@ -1110,9 +1166,7 @@ func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error
 		log.Errorf("unsupported args type: %T in %s", argRef, argExpr)
 	}
 
-	cd.hasArgsSupplied[keyword] = true
-
-	return true, nil
+	return nil
 }
 
 // removeQuotes remove single/double quotes around string

@@ -323,43 +323,16 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 			continue
 		}
 
-		isMultiSection := strings.HasPrefix(currentSection.name, "/settings/check/multi/")
-
 		// parse key and value
 		val := strings.SplitN(line, "=", 2)
 
-		// bare line (no '='): only allowed in check/multi sections, treated as raw command
 		if len(val) < 2 {
-			if !isMultiSection {
-				parseErrors = append(parseErrors, fmt.Errorf("parse error in %s:%d: found key without '='", iniPath, lineNr))
-
-				continue
-			}
-			if err := currentSection.SetRaw(line, ""); err != nil {
-				parseErrors = append(parseErrors, fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, err.Error()))
-			}
-			if len(currentComments) > 0 {
-				currentSection.comments[line] = currentComments
-				currentComments = make([]string, 0)
-			}
+			parseErrors = append(parseErrors, fmt.Errorf("parse error in %s:%d: found key without '='", iniPath, lineNr))
 
 			continue
 		}
 		val[0] = strings.TrimSpace(val[0])
 		val[1] = strings.TrimSpace(val[1])
-
-		// key contains space (e.g. 'check_process process=123'): also a raw command line in check/multi sections
-		if isMultiSection && strings.Contains(val[0], " ") {
-			if err := currentSection.SetRaw(line, ""); err != nil {
-				parseErrors = append(parseErrors, fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, err.Error()))
-			}
-			if len(currentComments) > 0 {
-				currentSection.comments[line] = currentComments
-				currentComments = make([]string, 0)
-			}
-
-			continue
-		}
 
 		// silently skip UNKNOWN values which were placeholder in nsclient
 		if val[1] == "UNKNOWN" {
