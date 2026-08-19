@@ -37,6 +37,7 @@ const (
 	defaultKeepAliveSeconds             = 30
 	defaultIdleConnTimeoutSeconds       = 30
 	defaultExpectContinueTimeoutSeconds = 30
+	defaultProxyTLSHandshakeTimeout     = 30 * time.Second
 	hoursInDays                         = 24
 	maxBufferSizeLimit                  = 100e+6 // 100 MB
 	maxWaitForMax                       = 180 * time.Second
@@ -243,12 +244,21 @@ func makeTransport(opts *commandOpts, dialFunc func(ctx context.Context, _ strin
 
 		proxyTLSConfig := makeProxyTLSConfig(opts, parsedURL)
 		transport.DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			conn, err := dialFunc(ctx, network, addr)
+			dialCtx, cancel := context.WithTimeout(ctx, defaultProxyTLSHandshakeTimeout)
+			defer cancel()
+
+			conn, err := dialFunc(dialCtx, network, addr)
 			if err != nil {
 				return nil, err
 			}
 
-			return tls.Client(conn, proxyTLSConfig), nil
+			tlsConn := tls.Client(conn, proxyTLSConfig)
+			if err := tlsConn.HandshakeContext(dialCtx); err != nil {
+				_ = tlsConn.Close()
+				return nil, err
+			}
+
+			return tlsConn, nil
 		}
 	}
 
