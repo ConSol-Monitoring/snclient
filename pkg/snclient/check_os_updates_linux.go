@@ -3,17 +3,25 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
+
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 var (
 	reAPTSecurity = regexp.MustCompile(`(Debian-Security:|Ubuntu:[^/]*/[^-]*-security)`)
 	reAPTEntry    = regexp.MustCompile(`^Inst\s+(\S+)\s+\[([^\[]+)\]\s+\((\S+)\s+(.*)\s+\[(\S+)\]\)`)
 	reYUMEntry    = regexp.MustCompile(`^(\S+)\.(\S+)\s+(\S+)\s+(\S+)`)
+
+	// system wide locations of the package manager metadata, overridden in tests
+	aptSystemListsDir  = "/var/lib/apt/lists"
+	yumSystemCacheDirs = []string{"/var/cache/dnf", "/var/cache/yum"}
 )
 
 func (l *CheckOSUpdates) addOSBackends(ctx context.Context, check *CheckData) (int, error) {
@@ -61,6 +69,7 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 	}
 
 	aptOpts := " -o 'Debug::NoLocking=true'"
+	listsDir := aptSystemListsDir
 	if l.update {
 		cacheDir, err := l.pkgListsDir("apt", []string{"partial"})
 		if err != nil {
@@ -69,6 +78,7 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 
 		if cacheDir != "" {
 			aptOpts += fmt.Sprintf(" -o Dir::State::Lists=%q", cacheDir)
+			listsDir = cacheDir
 		}
 
 		updateOpts := aptOpts + " -o 'APT::Update::Error-Mode=any'"
@@ -79,6 +89,10 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 		if rc != 0 {
 			return true, fmt.Errorf("apt-get update failed: %s\n%s", output, stderr)
 		}
+	}
+
+	if err := l.checkMetadataAge(listsDir); err != nil {
+		return true, err
 	}
 
 	output, stderr, rc, err := l.snc.execCommand(ctx, "apt-get upgrade"+aptOpts+" -s -qq", l.snc.getBuiltinCmdTimeout())
@@ -173,9 +187,11 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 
 	// normally answer from cache only
 	yumOpts := " --cacheonly"
+	cacheDir := ""
 
 	if l.update {
-		cacheDir, err := l.pkgListsDir("dnf", nil)
+		var err error
+		cacheDir, err = l.pkgListsDir("dnf", nil)
 		if err != nil {
 			return true, err
 		}
@@ -194,6 +210,11 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 			return true, fmt.Errorf("yum cache expiration failed: %s\n%s", output, stderr)
 		}
 	}
+
+	if err := l.checkMetadataAge(l.yumCacheDir(cacheDir)); err != nil {
+		return true, err
+	}
+
 	yumOpts += " --setopt='*.skip_if_unavailable=False'"
 
 	output, stderr, exitCode, err := l.snc.execCommand(ctx, "yum"+yumOpts+" check-update --security -q", l.snc.getBuiltinCmdTimeout())
@@ -242,4 +263,94 @@ func (l *CheckOSUpdates) parseYUM(output, security string, check *CheckData, ski
 	}
 
 	return packages
+}
+
+// yumCacheDir returns the cache directory to inspect for the metadata age
+// check. It prefers the private cache directory (used with --update as
+// non-root) and otherwise falls back to the first existing system-wide
+// yum/dnf cache directory.
+func (l *CheckOSUpdates) yumCacheDir(privateCacheDir string) string {
+	if privateCacheDir != "" {
+		return privateCacheDir
+	}
+
+	for _, dir := range yumSystemCacheDirs {
+		if _, err := os.Stat(dir); err == nil {
+			return dir
+		}
+	}
+
+	return yumSystemCacheDirs[0]
+}
+
+// checkMetadataAge fails with an error if the --max-metadata-age threshold is
+// set and the repository metadata found in dir is older than that threshold.
+func (l *CheckOSUpdates) checkMetadataAge(dir string) error {
+	if l.maxMetadataAge == "" {
+		return nil
+	}
+
+	maxAgeSec, err := utils.ExpandDuration(l.maxMetadataAge)
+	if err != nil {
+		return fmt.Errorf("could not parse max-metadata-age: %s", err.Error())
+	}
+	maxAge := time.Duration(maxAgeSec) * time.Second
+	if maxAge <= 0 {
+		return nil
+	}
+
+	newest, err := newestMTime(dir)
+	if err != nil {
+		return fmt.Errorf("could not determine repository metadata age in %s: %w", dir, err)
+	}
+
+	age := time.Since(newest)
+	log.Debugf("repository metadata in %s is %s old (max age: %s)", dir, age.Round(time.Second), maxAge.Round(time.Second))
+	if age > maxAge {
+		return fmt.Errorf("repository metadata in %s is %s old and exceeds max age of %s", dir, age.Round(time.Second), maxAge.Round(time.Second))
+	}
+
+	return nil
+}
+
+// newestMTime returns the most recent modification time of any regular file
+// found in dir (recursively), skipping lock files and partial download folders.
+func newestMTime(dir string) (time.Time, error) {
+	var newest time.Time
+	found := false
+
+	err := filepath.WalkDir(dir, func(_ string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			if entry.Name() == "partial" {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+		if strings.HasSuffix(entry.Name(), ".lock") || strings.HasSuffix(entry.Name(), "lock") {
+			return nil
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("failed to retrieve file info for %s: %w", entry.Name(), err)
+		}
+		if !found || info.ModTime().After(newest) {
+			newest = info.ModTime()
+			found = true
+		}
+
+		return nil
+	})
+	if err != nil {
+		return time.Time{}, fmt.Errorf("dir walk failed for %s: %w", dir, err)
+	}
+	if !found {
+		return time.Time{}, fmt.Errorf("no metadata files found")
+	}
+
+	return newest, nil
 }

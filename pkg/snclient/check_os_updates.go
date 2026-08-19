@@ -15,15 +15,17 @@ func init() {
 }
 
 type CheckOSUpdates struct {
-	snc    *Agent
-	system string
-	update bool
+	snc            *Agent
+	system         string
+	update         bool
+	maxMetadataAge string
 }
 
 func NewCheckOSUpdates() CheckHandler {
 	return &CheckOSUpdates{
-		update: false,
-		system: "auto",
+		update:         false,
+		system:         "auto",
+		maxMetadataAge: "24h",
 	}
 }
 
@@ -37,6 +39,10 @@ func (l *CheckOSUpdates) Build() *CheckData {
 		args: map[string]CheckArgument{
 			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum, osx and windows (default: auto)"},
 			"-u|--update": {value: &l.update, description: "Update package list (if supported, ex.: apt-get update)"},
+			"-m|--max-metadata-age": {
+				value:       &l.maxMetadataAge,
+				description: "Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, ex.: 24h (default: disabled)",
+			},
 		},
 		defaultWarning:  "count > 0",
 		defaultCritical: "count_security > 0",
@@ -70,6 +76,9 @@ owned by the SNClient service user unless started as root user.
 
 The DNF check returns **UNKNOWN** if an enabled repository is unavailable, because
 otherwise an incomplete repository set could be reported as having no updates.
+
+Use **--max-metadata-age** to make the check return **UNKNOWN** if the repository
+metadata has not been refreshed within the given duration, ex.: --max-metadata-age=24h
 	`,
 		exampleArgs: `warn='count > 0' crit='count_security > 0'`,
 	}

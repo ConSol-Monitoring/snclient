@@ -34,6 +34,9 @@ owned by the SNClient service user unless started as root user.
 The DNF check returns **UNKNOWN** if an enabled repository is unavailable, because
 otherwise an incomplete repository set could be reported as having no updates.
 
+Use **--max-metadata-age** to make the check return **UNKNOWN** if the repository
+metadata has not been refreshed within the given duration, ex.: --max-metadata-age=24h
+
 ### Example using NRPE and Naemon
 
 Naemon Config
@@ -64,10 +67,11 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument     | Description                                                     |
-| ------------ | --------------------------------------------------------------- |
-| -s\|--system | Package system: auto, apt, yum, osx and windows (default: auto) |
-| -u\|--update | Update package list (if supported, ex.: apt-get update)         |
+| Argument               | Description                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| -m\|--max-metadata-age | Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, ex.: 24h (default: disabled) |
+| -s\|--system           | Package system: auto, apt, yum, osx and windows (default: auto)                              |
+| -u\|--update           | Update package list (if supported, ex.: apt-get update)                                      |
 
 ## Attributes
 

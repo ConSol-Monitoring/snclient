@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,7 +61,7 @@ func TestCheckAPTUpdatesWithPrivateLists(t *testing.T) {
 	t.Setenv("CACHE_DIRECTORY", cacheRoot)
 	argsFile := mockAPTUtility(t, `Inst base-files [12.4+deb12u4] (12.4+deb12u5 Debian:12.5/stable [amd64])`)
 
-	res := snc.RunCheck("check_os_updates", []string{"--system=apt", "--update"})
+	res := snc.RunCheck("check_os_updates", []string{"--system=apt", "--update", "-m", "-1"})
 	assert.Equal(t, CheckExitWarning, res.State)
 	assert.Contains(t, string(res.BuildPluginOutput()), "0 security updates / 1 updates available")
 
@@ -112,7 +113,7 @@ grub2-tools.x86_64         1:2.06-70.el9_3.2.rocky.0.2    baseos
 	cacheRoot := filepath.Join(t.TempDir(), "cache root's")
 	t.Setenv("CACHE_DIRECTORY", cacheRoot)
 
-	res := snc.RunCheck("check_os_updates", []string{"--system=yum"})
+	res := snc.RunCheck("check_os_updates", []string{"--system=yum", "-m", "-1"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "CRITICAL - 3 security updates / 0 updates available. |'security'=3;;0;0 'updates'=0;0;;0", "output matches")
 
@@ -129,12 +130,58 @@ func TestCheckYUMUnavailableRepositoriesFail(t *testing.T) {
 	mockYUMUtility(t, "", "Failed to download metadata for repo 'baseos'", 1)
 	t.Setenv("CACHE_DIRECTORY", t.TempDir())
 
-	res := snc.RunCheck("check_os_updates", []string{"--system=yum"})
+	res := snc.RunCheck("check_os_updates", []string{"--system=yum", "-m", "-1"})
 	assert.Equal(t, CheckExitUnknown, res.State)
 	assert.Contains(t, string(res.BuildPluginOutput()), "yum check-update failed")
 	assert.Contains(t, string(res.BuildPluginOutput()), "Failed to download metadata for repo 'baseos'")
 
 	StopTestAgent(t, snc)
+}
+
+func TestCheckAPTMetadataAge(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	defer StopTestAgent(t, snc)
+	mockAPTUtility(t, "")
+
+	origListsDir := aptSystemListsDir
+	defer func() { aptSystemListsDir = origListsDir }()
+	aptSystemListsDir = t.TempDir()
+
+	metaFile := filepath.Join(aptSystemListsDir, "example_Packages")
+	require.NoError(t, os.WriteFile(metaFile, []byte("data"), 0o600))
+	oldTime := time.Now().Add(-2 * time.Hour)
+	require.NoError(t, os.Chtimes(metaFile, oldTime, oldTime))
+
+	res := snc.RunCheck("check_os_updates", []string{"--system=apt", "--max-metadata-age=1h"})
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Contains(t, string(res.BuildPluginOutput()), "exceeds max age")
+
+	require.NoError(t, os.Chtimes(metaFile, time.Now(), time.Now()))
+	res = snc.RunCheck("check_os_updates", []string{"--system=apt", "--max-metadata-age=1h"})
+	assert.NotEqual(t, CheckExitUnknown, res.State)
+}
+
+func TestCheckYUMMetadataAge(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	defer StopTestAgent(t, snc)
+	mockYUMUtility(t, "", "", 0)
+
+	origCacheDirs := yumSystemCacheDirs
+	defer func() { yumSystemCacheDirs = origCacheDirs }()
+	yumSystemCacheDirs = []string{t.TempDir()}
+
+	metaFile := filepath.Join(yumSystemCacheDirs[0], "repomd.xml")
+	require.NoError(t, os.WriteFile(metaFile, []byte("data"), 0o600))
+	oldTime := time.Now().Add(-2 * time.Hour)
+	require.NoError(t, os.Chtimes(metaFile, oldTime, oldTime))
+
+	res := snc.RunCheck("check_os_updates", []string{"--system=yum", "--max-metadata-age=1h"})
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Contains(t, string(res.BuildPluginOutput()), "exceeds max age")
+
+	require.NoError(t, os.Chtimes(metaFile, time.Now(), time.Now()))
+	res = snc.RunCheck("check_os_updates", []string{"--system=yum", "--max-metadata-age=1h"})
+	assert.NotEqual(t, CheckExitUnknown, res.State)
 }
 
 func mockYUMUtility(t *testing.T, stdout, stderr string, exitCode int) string {

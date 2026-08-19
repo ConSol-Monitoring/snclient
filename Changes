@@ -4,6 +4,7 @@ next:
          - update golang build chain to 1.26.6
          - check_os_updates: fix powershell error on windows
          - check_os_updates: make -u/--update work without root permissions
+         - check_os_updates: add --max-metadata-age to detect stale apt/yum/dnf repository metadata. defaults to 24h
          - check_mount: show error if no options where specified
          - check_mount: add support for checking multiple mounts
          - check_nsc_web: fix using conditions twice (#453)
