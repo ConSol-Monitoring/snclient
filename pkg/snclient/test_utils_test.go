@@ -2,6 +2,9 @@ package snclient
 
 import (
 	"fmt"
+	"io"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,6 +37,7 @@ var testAgentStarted = atomic.Bool{}
 // Starts a full Agent from given config
 func StartTestAgent(t *testing.T, config string) *Agent {
 	t.Helper()
+
 	if testAgentStarted.Load() {
 		t.Fatalf("test agent already started, forgot to call StopTestAgent()?")
 	}
@@ -76,6 +80,7 @@ WEBServer = disabled
 // Stops the agent started by StartTestAgent
 func StopTestAgent(t *testing.T, snc *Agent) {
 	t.Helper()
+
 	stopped := snc.StopWait(10 * time.Second)
 	assert.Truef(t, stopped, "agent stopped successfully")
 	if !stopped {
@@ -123,4 +128,73 @@ func MockSystemUtilities(t *testing.T, utils map[string]string) (tmpPath string)
 	}
 
 	return tmpPath
+}
+
+// getRandomFreeTCPPort returns a random free tcp port
+func getRandomFreeTCPPort(t *testing.T) (port int) {
+	t.Helper()
+
+	// get a random port by opening a listener on port 0 and then closing it
+	listen, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoErrorf(t, err, "get free listener worked")
+
+	addr := listen.Addr()
+	require.IsTypef(t, &net.TCPAddr{}, addr, "listener address is TCP")
+	if addr, ok := listen.Addr().(*net.TCPAddr); ok {
+		port = addr.Port
+	}
+	err = listen.Close()
+	require.NoErrorf(t, err, "close free listener worked")
+
+	return port
+}
+
+// wait for http ok and given text
+func waitForStatusOKText(t *testing.T, url, text string) string {
+	t.Helper()
+	for range 300 {
+		body := waitForStatusOK(t, url)
+		if strings.Contains(body, text) {
+			return body
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	t.Fatalf("timed out waiting for %s to contain %q", url, text)
+
+	return ""
+}
+
+func waitForStatusOK(t *testing.T, url string) string {
+	t.Helper()
+
+	var lastErr error
+	for range 300 {
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, http.NoBody)
+		require.NoErrorf(t, err, "request created")
+
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			lastErr = err
+			time.Sleep(100 * time.Millisecond)
+
+			continue
+		}
+
+		if res.StatusCode == http.StatusOK {
+			body, hErr := io.ReadAll(res.Body)
+			require.NoError(t, hErr)
+			res.Body.Close()
+
+			return string(body)
+		}
+		res.Body.Close()
+		lastErr = err
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	t.Fatalf("timed out waiting for %s: %v", url, lastErr)
+
+	return ""
 }

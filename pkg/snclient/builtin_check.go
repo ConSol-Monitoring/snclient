@@ -58,7 +58,7 @@ func (l *CheckBuiltin) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	args := []string{}
 	args = append(args, check.rawArgs...)
 	// if snclient is started with verbose arguments, pass them to internal check as well
-	args = PrependLogLevelArgs(args, snc.Flags)
+	args = InjectLogLevelArgs(args, snc.Flags, "front")
 
 	ctx = utils.ContextWithLogger(ctx, log)
 

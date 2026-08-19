@@ -1072,23 +1072,46 @@ func (snc *Agent) applyLogLevel(conf *ConfigSection) {
 	}
 }
 
-func PrependLogLevelArgs(args []string, flags *AgentFlags) (newArgs []string) {
-	switch {
-	case flags.Verbose >= 3:
-		newArgs = append([]string{"-vvv"}, args...)
-		log.Tracef("adding -vvv to the check arguments")
+func InjectLogLevelArgs(args []string, flags *AgentFlags, pos string) (newArgs []string) {
+	switch pos {
+	case "front":
+		switch {
+		case flags.Verbose >= 3:
+			newArgs = append([]string{"-vvv"}, args...)
+			log.Tracef("prepending -vvv to the check arguments")
 
-		return newArgs
-	case flags.Verbose >= 2:
-		newArgs = append([]string{"-vv"}, args...)
-		log.Tracef("adding -vv to the check arguments")
+			return newArgs
+		case flags.Verbose >= 2:
+			newArgs = append([]string{"-vv"}, args...)
+			log.Tracef("prepending -vv to the check arguments")
 
-		return newArgs
-	case flags.Verbose >= 1:
-		newArgs = append([]string{"-v"}, args...)
-		log.Tracef("adding -v to the check arguments")
+			return newArgs
+		case flags.Verbose >= 1:
+			newArgs = append([]string{"-v"}, args...)
+			log.Tracef("prepending -v to the check arguments")
 
-		return newArgs
+			return newArgs
+		}
+	case "back":
+		switch {
+		case flags.Verbose >= 3:
+			newArgs = append(args, "-vvv")
+			log.Tracef("appending -vvv to the check arguments")
+
+			return newArgs
+		case flags.Verbose >= 2:
+			newArgs = append(args, "-vv")
+			log.Tracef("appending -vv to the check arguments")
+
+			return newArgs
+		case flags.Verbose >= 1:
+			newArgs = append(args, "-v")
+			log.Tracef("appending -v to the check arguments")
+
+			return newArgs
+		}
+	default:
+		log.Panicf("unsupported position, use front|back.")
 	}
 
 	return args

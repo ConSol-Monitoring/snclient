@@ -21,6 +21,24 @@ func TestCommandFlags(t *testing.T) {
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
+		Args: []string{"-vV"},
+		Like: []string{"^SNClient.*Build:", "internal check libraries", "/check_nsc_web"},
+	})
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"-V", "-v"},
+		Like: []string{"^SNClient.*Build:", "internal check libraries", "/check_nsc_web"},
+	})
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
+		Args: []string{"-vvV"},
+		Like: []string{"^SNClient.*Build:", "internal check libraries", "/check_nsc_web", "go-daemon", "shelltoken"},
+	})
+
+	runCmd(t, &cmd{
+		Cmd:  bin,
 		Args: []string{"run", "check_dummy", "help"},
 		Like: []string{"check_dummy", "Usage"},
 		Exit: 3,

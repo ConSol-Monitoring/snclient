@@ -64,6 +64,11 @@ var (
 	logLevelExpiresAt time.Time
 )
 
+func init() {
+	// set a default log level to info
+	log.SetMinMaxSeverity(factorlog.INFO, factorlog.PANIC)
+}
+
 func setLogLevel(level string) {
 	restoreLevel = level
 	switch strings.ToLower(level) {

@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -41,27 +42,28 @@ func TestListenerConfig(t *testing.T) {
 }
 
 func TestListenerSharedPort(t *testing.T) {
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 	[/modules]
 	WEBServer = enabled
 	ExporterExporterServer = enabled
 	PrometheusServer = enabled
 
 	[/settings/WEB/server]
-	port = 45666
+	port = %d
 	use ssl = false
 
 	[/settings/Prometheus/server]
-	port = 45666
+	port = %d
 	use ssl = false
 
 	[/settings/ExporterExporter/server]
 	port = ${/settings/WEB/server/port}
 	use ssl = ${/settings/WEB/server/use ssl}
-	`
+	`, testPort, testPort)
 	snc := StartTestAgent(t, config)
 
-	_, err := net.DialTimeout("tcp", "127.0.0.1:45666", 10*time.Second)
+	_, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", testPort), 10*time.Second)
 	require.NoErrorf(t, err, "connection established")
 
 	StopTestAgent(t, snc)

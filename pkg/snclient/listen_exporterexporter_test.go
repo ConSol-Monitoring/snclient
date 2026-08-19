@@ -2,11 +2,11 @@ package snclient
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -77,13 +77,15 @@ file:
 		[]byte(noMethodYAML), 0o600,
 	))
 
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+
+	config := fmt.Sprintf(`
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = 45670
+port = %d
 use ssl = false
 require password = false
 
@@ -91,13 +93,14 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = ` + modulesDir + `
+modules dir = `+modulesDir+`
 require password = false
-`
+`, testPort)
+
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	body := waitForStatusOK(t, "http://127.0.0.1:45670/list")
+	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
 	assert.Containsf(t, body, "good_module", "only the valid module should be listed")
 	assert.NotContainsf(t, body, "bad_syntax", "bad syntax module should be skipped")
 	assert.NotContainsf(t, body, "bad_unknown", "unknown field module should be skipped")
@@ -138,13 +141,14 @@ http:
 		[]byte(httpModule), 0o600,
 	))
 
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = 45671
+port = %d
 use ssl = false
 require password = false
 
@@ -152,14 +156,15 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = ` + modulesDir + `
+modules dir = `+modulesDir+`
 require password = false
 allowed methods = file
-`
+`, testPort)
+
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	body := waitForStatusOK(t, "http://127.0.0.1:45671/list")
+	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
 	assert.Containsf(t, body, "file_module", "file method module should be listed")
 	assert.NotContainsf(t, body, "http_module", "http method module should be excluded by allowed methods")
 
@@ -205,13 +210,14 @@ exec:
 		[]byte(execModule), 0o600,
 	))
 
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = 45676
+port = %d
 use ssl = false
 require password = false
 
@@ -219,14 +225,15 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = ` + modulesDir + `
+modules dir = `+modulesDir+`
 require password = false
 allowed methods = file,http
-`
+`, testPort)
+
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	body := waitForStatusOK(t, "http://127.0.0.1:45676/list")
+	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
 	assert.Containsf(t, body, "file_module", "file method module should be listed")
 	assert.Containsf(t, body, "http_module", "http method module should be listed")
 	assert.NotContainsf(t, body, "exec_module", "exec method module should be excluded by allowed methods")
@@ -256,13 +263,14 @@ unknown: invalid
 		[]byte(badYAML), 0o600,
 	))
 
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = 45672
+port = %d
 use ssl = false
 require password = false
 
@@ -270,13 +278,14 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = ` + modulesDir + `
+modules dir = `+modulesDir+`
 require password = false
-`
+`, testPort)
+
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	body := waitForStatusOK(t, "http://127.0.0.1:45672/list")
+	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
 	assert.Containsf(t, body, "<h2>Exporters:</h2>", "agent should start even with all config files failing")
 	assert.NotContainsf(t, body, "bad1", "no module should be listed when all files fail")
 	assert.NotContainsf(t, body, "bad2", "no module should be listed when all files fail")
@@ -299,13 +308,14 @@ file:
 		[]byte(fileModule), 0o600,
 	))
 
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = 45673
+port = %d
 use ssl = false
 require password = false
 
@@ -313,17 +323,18 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /hello
-modules dir = ` + modulesDir + `
+modules dir = `+modulesDir+`
 require password = false
-`
+`, testPort)
+
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	body := waitForStatusOK(t, "http://127.0.0.1:45673/hello/list")
+	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/hello/list", testPort))
 	assert.Containsf(t, body, "/hello/proxy?module=prefixed_module", "HTML href should contain the url prefix")
 
 	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet,
-		"http://127.0.0.1:45673/hello/list", http.NoBody)
+		fmt.Sprintf("http://127.0.0.1:%d/hello/list", testPort), http.NoBody)
 	require.NoError(t, err)
 	req.Header.Set("Accept", "application/json")
 	jsonRes, err := http.DefaultClient.Do(req)
@@ -351,13 +362,14 @@ file:
 		[]byte(initialModule), 0o600,
 	))
 
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = 45674
+port = %d
 use ssl = false
 require password = false
 
@@ -365,14 +377,15 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = ` + modulesDir + `
+modules dir = `+modulesDir+`
 modules dir watcher = true
 require password = false
-`
+`, testPort)
+
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	body := waitForStatusOK(t, "http://127.0.0.1:45674/list")
+	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
 	assert.Containsf(t, body, "initial", "initial module should be listed")
 	assert.NotContainsf(t, body, "reloaded", "newly module should not be listed before reload")
 
@@ -386,19 +399,20 @@ file:
 		[]byte(newModule), 0o600,
 	))
 
-	body = waitForStatusOKText(t, "http://127.0.0.1:45674/list", "reloaded")
+	body = waitForStatusOKText(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort), "reloaded")
 	assert.Containsf(t, body, "reloaded", "newly added module should be listed after reload")
 	assert.Containsf(t, body, "initial", "original module should still be listed after reload")
 }
 
 func TestExporterExporterDefaults(t *testing.T) {
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = 45675
+port = %d
 use ssl = false
 require password = false
 
@@ -406,11 +420,11 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 require password = false
-`
+`, testPort)
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	body := waitForStatusOK(t, "http://127.0.0.1:45675/list")
+	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
 	assert.Containsf(t, body, "<h2>Exporters:</h2>", "list endpoint should work with default prefix")
 }
 
@@ -427,13 +441,14 @@ file:
 		[]byte(initialModule), 0o600,
 	))
 
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = 45678
+port = %d
 use ssl = false
 require password = false
 
@@ -441,14 +456,15 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = ` + modulesDir + `
+modules dir = `+modulesDir+`
 modules dir watcher = true
 require password = false
-`
+`, testPort)
+
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
 
-	body := waitForStatusOK(t, "http://127.0.0.1:45678/list")
+	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
 	assert.Containsf(t, body, "first", "initial yaml module should be listed")
 	assert.NotContainsf(t, body, "picked_up", "yml file should not yet be picked up")
 
@@ -472,58 +488,8 @@ file:
 		[]byte(txtFile), 0o600,
 	))
 
-	body = waitForStatusOKText(t, "http://127.0.0.1:45678/list", "picked_up")
+	body = waitForStatusOKText(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort), "picked_up")
 	assert.Containsf(t, body, "first", "original module should still be listed")
 	assert.Containsf(t, body, "picked_up", "yml file should be picked up by watcher")
 	assert.NotContainsf(t, body, "ignored", "non-yml/yaML file should be ignored by watcher")
-}
-
-func waitForStatusOK(t *testing.T, url string) string {
-	t.Helper()
-
-	var lastErr error
-	for range 300 {
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, http.NoBody)
-		require.NoErrorf(t, err, "request created")
-
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			lastErr = err
-			time.Sleep(100 * time.Millisecond)
-
-			continue
-		}
-
-		if res.StatusCode == http.StatusOK {
-			body, hErr := io.ReadAll(res.Body)
-			require.NoError(t, hErr)
-			res.Body.Close()
-
-			return string(body)
-		}
-		res.Body.Close()
-		lastErr = err
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	t.Fatalf("timed out waiting for %s: %v", url, lastErr)
-
-	return ""
-}
-
-// wait for http ok and given text
-func waitForStatusOKText(t *testing.T, url, text string) string {
-	t.Helper()
-	for range 300 {
-		body := waitForStatusOK(t, url)
-		if strings.Contains(body, text) {
-			return body
-		}
-
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	t.Fatalf("timed out waiting for %s to contain %q", url, text)
-
-	return ""
 }

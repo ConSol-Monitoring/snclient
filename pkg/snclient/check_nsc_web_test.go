@@ -3,25 +3,27 @@
 package snclient
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckNSCWeb(t *testing.T) {
-	config := `
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
 [/modules]
 CheckBuiltinPlugins = enabled
 WEBServer = enabled
 
 [/settings/WEB/server]
-port = 45666
+port = %d
 use ssl = false
 password = test
-	`
+	`, testPort)
 	snc := StartTestAgent(t, config)
 
-	res := snc.RunCheck("check_nsc_web", []string{"-u", "http://127.0.0.1:45666", "-p", "test"})
+	res := snc.RunCheck("check_nsc_web", []string{"-u", fmt.Sprintf("http://127.0.0.1:%d", testPort), "-p", "test"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(
 		t,

@@ -28,6 +28,9 @@ while being easily extendible with own script and checks.`,
   * Start as daemon in background
     %> snclient daemon
 
+  * Check snclient version with compiled in plugins:
+    %> snclient -vV
+
   * Check for update in verbose mode
     %> snclient update -v
 `,
@@ -121,7 +124,7 @@ func maybeInjectRootAlias(rootCmd *cobra.Command, inject string) {
 	if tmpFlags.Version {
 		os.Args = []string{os.Args[0], "-V"}
 		// if snclient is started with verbose arguments, pass them to internal check as well
-		os.Args = snclient.PrependLogLevelArgs(os.Args, tmpFlags)
+		os.Args = snclient.InjectLogLevelArgs(os.Args, tmpFlags, "back")
 
 		return
 	}
