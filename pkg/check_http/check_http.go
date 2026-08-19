@@ -255,7 +255,8 @@ func makeTransport(opts *commandOpts, dialFunc func(ctx context.Context, _ strin
 			tlsConn := tls.Client(conn, proxyTLSConfig)
 			if err := tlsConn.HandshakeContext(dialCtx); err != nil {
 				_ = tlsConn.Close()
-				return nil, err
+
+				return nil, fmt.Errorf("error during handshake to https proxy: %w", err)
 			}
 
 			return tlsConn, nil
