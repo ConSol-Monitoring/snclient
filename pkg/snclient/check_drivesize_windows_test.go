@@ -177,9 +177,8 @@ func TestShareRoot(t *testing.T) {
 		{`\\server`, `\\server`},
 		{`C:\folder`, `C:\folder`},
 	}
-	cd := CheckDrivesize{}
 	for _, test := range tests {
-		assert.Equalf(t, test.want, cd.shareRoot(test.path), "shareRoot(%q)", test.path)
+		assert.Equalf(t, test.want, shareRoot(test.path), "shareRoot(%q)", test.path)
 	}
 }
 

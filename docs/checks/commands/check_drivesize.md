@@ -79,7 +79,7 @@ Naemon Config
 | magic                         | Magic number for use with scaling drive sizes. Note there is also a more generic magic factor in the perf-config option. |
 | mounted                       | Deprecated, use filter instead                                                        |
 | share-password                | Windows only: password used to authenticate to the network shares given in this check. Note: the password is transmitted as part of the check request. |
-| share-user                    | Windows only: username used to authenticate to the network shares given in this check. The credential is added to the Windows Credential Manager on demand and removed again after the check. |
+| share-user                    | Windows only: username used to authenticate to the network shares given in this check. The connection is established on demand and removed again after the check. |
 | total                         | Include the total of all matching drives                                              |
 
 ## Attributes

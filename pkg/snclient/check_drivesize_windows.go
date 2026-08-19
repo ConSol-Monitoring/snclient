@@ -66,7 +66,7 @@ Hidden shares can be accessed if their path is specified.
 	check_drivesize drive='\\192.168.178.21\TestHidden$'
 
 Credentials for shares that were never opened before can be provided via share-user / share-password.
-The credential is added to the Windows Credential Manager for the duration of the check and removed afterwards.
+A connection is established with the given credentials for the duration of the check and removed afterwards.
 
 	check_drivesize drive='\\192.168.178.21\TestHidden$' share-user='CORP\svc' share-password='secret'
 
@@ -698,7 +698,7 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]ma
 		// no connected mapping exists, e.g. hidden shares like \\server\C$
 		// these may not be mapped to a drive letter, so add them with UNC path directly
 		entry := l.driveEntry(normalizedPath)
-		entry["remote_name"] = l.shareRoot(normalizedPath)
+		entry["remote_name"] = shareRoot(normalizedPath)
 		entry["hidden"] = convert.BoolTo01String(l.isHiddenSharePath(normalizedPath))
 		requiredDrives[normalizedPath] = entry
 
@@ -916,16 +916,6 @@ func (l *CheckDrivesize) isHiddenSharePath(path string) bool {
 	}
 
 	return strings.HasSuffix(parts[3], "$")
-}
-
-// returns the share root of a UNC path, e.g. \\server\share for \\server\share\folder\file
-func (l *CheckDrivesize) shareRoot(path string) string {
-	parts := strings.Split(path, "\\")
-	if len(parts) < 4 {
-		return path
-	}
-
-	return strings.Join(parts[:4], "\\")
 }
 
 // returns the path with exactly one trailing backslash.

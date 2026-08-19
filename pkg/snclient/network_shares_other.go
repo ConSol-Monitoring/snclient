@@ -11,12 +11,14 @@ func addShareCredential(cred *Credential) error {
 	return nil
 }
 
-func deleteShareCredential(_ string) error {
+func addShareConnection(_ *Credential, shareRoot string) error {
+	log.Debugf("credentials: network share connections are only supported on windows, skipping target %s", shareRoot)
+
 	return nil
 }
 
-func hasShareCredential(_ string) bool {
-	return false
+func deleteShareConnection(_ string) error {
+	return nil
 }
 
 func currentUserDomain() string {
