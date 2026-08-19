@@ -28,7 +28,7 @@ Inst tar [1.34+dfsg-1.2] (1.34+dfsg-1.2+deb12u1 Debian:12.5/stable [amd64])
 Conf tar (1.34+dfsg-1.2+deb12u1 Debian:12.5/stable [amd64])`,
 	})
 	defer os.RemoveAll(tmpPath)
-	res := snc.RunCheck("check_os_updates", []string{"--system=apt"})
+	res := snc.RunCheck("check_os_updates", []string{"--system=apt", "-m", "-1"})
 	assert.Equalf(t, CheckExitWarning, res.State, "state Warning")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "WARNING - 0 security updates / 2 updates available. |'security'=0;;0;0 'updates'=2;0;;0", "output matches")
 
@@ -47,7 +47,7 @@ Inst runc [1.1.5+ds1-1+b1] (1.1.5+ds1-1+deb12u1 Debian:12.5/stable, Debian-Secur
 Inst steam-libs-i386:i386 [1:1.0.0.78] (1:1.0.0.79 Steam launcher:repo.steampowered.com [i386])`,
 	})
 	defer os.RemoveAll(tmpPath)
-	res = snc.RunCheck("check_os_updates", []string{"--system=apt"})
+	res = snc.RunCheck("check_os_updates", []string{"--system=apt", "-m", "-1"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0", "output matches")
 
