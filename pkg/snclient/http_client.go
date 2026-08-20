@@ -24,9 +24,9 @@ func (snc *Agent) httpClient(options *HTTPClientOptions) *http.Client {
 		Timeout: timeout,
 		Transport: &http.Transport{
 			TLSClientConfig: options.tlsConfig,
-			Dial: (&net.Dialer{
+			DialContext: (&net.Dialer{
 				Timeout: timeout,
-			}).Dial,
+			}).DialContext,
 			ResponseHeaderTimeout: timeout,
 			TLSHandshakeTimeout:   timeout,
 			IdleConnTimeout:       timeout,

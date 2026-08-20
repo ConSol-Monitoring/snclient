@@ -6,6 +6,7 @@ linters:
     - depguard
     - err113
     - exhaustruct
+    - exhaustruct_v5
     - embeddedstructfieldcheck
     - funcorder
     - gochecknoglobals
@@ -72,6 +73,11 @@ linters:
       line-length: 200
     exhaustive:
       default-signifies-exhaustive: true
+    staticcheck:
+      checks:
+        - "all"
+        - "-SA4023"
+        - "-ST1003"
   exclusions:
     #warn-unused: true
     generated: lax
@@ -204,7 +210,9 @@ linters:
       - path: (.+)\.go$
         text: parameter name 'b' is too short for the scope of its usage
       - path: (.+)\.go$
-        text: 'fieldalignment: struct'
+        text: 'fieldalignment:.*leading bytes of pointer data'
+      - path: (.+)\.go$
+        text: 'fieldalignment:.*but the optimal size'
       - path: (.+)(utils|utils_test|fieldsn|asciiTable)\.go$
         text: 'var-naming: avoid meaningless package names'
       - path: (.+)_test\.go$

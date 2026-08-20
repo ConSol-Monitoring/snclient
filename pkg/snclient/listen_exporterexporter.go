@@ -480,7 +480,7 @@ func (l *HandlerExporterExporter) checkModuleConfig(name string, cfg *exporterMo
 			return fmt.Errorf("could not create tls config, %w", err)
 		}
 
-		dirFunc, err := cfg.getReverseProxyDirectorFunc()
+		rewriteFunc, err := cfg.getReverseProxyRewriteFunc()
 		if err != nil {
 			return err
 		}
@@ -488,7 +488,7 @@ func (l *HandlerExporterExporter) checkModuleConfig(name string, cfg *exporterMo
 		cfg.HTTP.tlsConfig = tlsConfig
 		cfg.HTTP.ReverseProxy = &httputil.ReverseProxy{
 			Transport:    &http.Transport{TLSClientConfig: tlsConfig},
-			Director:     dirFunc,
+			Rewrite:      rewriteFunc,
 			ErrorHandler: getReverseProxyErrorHandlerFunc(cfg.name),
 		}
 	case "exec":
@@ -531,7 +531,7 @@ func (cfg *exporterHTTPConfig) getTLSConfig() (*tls.Config, error) {
 	return config, nil
 }
 
-func (cfg *exporterModuleConfig) getReverseProxyDirectorFunc() (func(*http.Request), error) {
+func (cfg *exporterModuleConfig) getReverseProxyRewriteFunc() (func(*httputil.ProxyRequest), error) {
 	base, err := url.Parse(cfg.HTTP.Path)
 	if err != nil {
 		return nil, fmt.Errorf("http configuration path should be a valid URL path with options, %w", err)
@@ -539,7 +539,8 @@ func (cfg *exporterModuleConfig) getReverseProxyDirectorFunc() (func(*http.Reque
 
 	cvs := base.Query()
 
-	return func(req *http.Request) {
+	return func(proxyReq *httputil.ProxyRequest) {
+		req := proxyReq.Out
 		qvs := req.URL.Query()
 		for k, vs := range cvs {
 			for _, v := range vs {
