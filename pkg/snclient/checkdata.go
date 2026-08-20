@@ -134,7 +134,7 @@ type CheckData struct {
 	emptyStateSet                 bool
 	details                       map[string]string
 	listData                      []map[string]string
-	listCombine                   string // join string for detail list
+	listCombine                   string // join string for detail output
 	listCombineSet                bool   // has the listCombine been set by user
 	showAll                       bool   // flag if check called with show-all
 	addCountMetrics               bool
@@ -484,16 +484,27 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 		cd.result.EscalateStatus(3)
 	}
 
-	switch {
-	case macros["unknown_count"] != "0" && macros["unknown_count"] != "":
-		cd.result.EscalateStatus(3)
-		macros["_state"] = "3"
-	case macros["crit_count"] != "0" && macros["crit_count"] != "":
-		cd.result.EscalateStatus(2)
-		macros["_state"] = "2"
-	case macros["warn_count"] != "0" && macros["warn_count"] != "":
-		cd.result.EscalateStatus(1)
-		macros["_state"] = "1"
+	// Only escalate based on counts if the user hasn't explicitly set the threshold.
+	// This respects explicit thresholds like "crit=none" which disable escalation.
+	if !cd.hasArgsSupplied["unknown"] && !cd.hasArgsSupplied["unknown+"] {
+		if macros["unknown_count"] != "0" && macros["unknown_count"] != "" {
+			cd.result.EscalateStatus(3)
+			macros["_state"] = "3"
+		}
+	}
+
+	if !cd.hasArgsSupplied["crit"] && !cd.hasArgsSupplied["critical"] && !cd.hasArgsSupplied["crit+"] && !cd.hasArgsSupplied["critical+"] {
+		if macros["crit_count"] != "0" && macros["crit_count"] != "" {
+			cd.result.EscalateStatus(2)
+			macros["_state"] = "2"
+		}
+	}
+
+	if !cd.hasArgsSupplied["warn"] && !cd.hasArgsSupplied["warning"] && !cd.hasArgsSupplied["warn+"] && !cd.hasArgsSupplied["warning+"] {
+		if macros["warn_count"] != "0" && macros["warn_count"] != "" {
+			cd.result.EscalateStatus(1)
+			macros["_state"] = "1"
+		}
 	}
 
 	if state, ok := cd.details["_state"]; ok {
@@ -501,6 +512,12 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	}
 
 	cd.details["_state"] = fmt.Sprintf("%d", cd.result.State)
+}
+
+func (cd *CheckData) markCheckMultiThresholdSupplied(keyword string) {
+	if cd.name == "check_multi" {
+		cd.hasArgsSupplied[keyword] = true
+	}
 }
 
 // Check tries warn/crit/unknown/ok conditions against given data and sets result state.
@@ -541,6 +558,10 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, unknownCo
 func (cd *CheckData) CheckMetrics(okCond ConditionList) {
 	// each metric is ran through conditions individually
 	for _, metric := range cd.result.Metrics {
+		if metric.SkipStateCheck {
+			continue
+		}
+
 		state := CheckExitOK
 
 		if metric.CheckForThresholds(&metric.Warning) {
@@ -764,36 +785,42 @@ func (cd *CheckData) processArgs(pre *preParsedArgs) (argList []Argument, applyD
 				return nil, false, err2
 			}
 			cd.warnThreshold = warn
+			cd.markCheckMultiThresholdSupplied(keyword)
 		case "warn", "warning":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.warnThreshold = append(cd.warnThreshold, cond)
+			cd.markCheckMultiThresholdSupplied(keyword)
 		case "crit+", "critical+":
 			crit, err2 := cd.appendDefaultThreshold(keyword, argValue, pre.defaultCritical, cd.critThreshold)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.critThreshold = crit
+			cd.markCheckMultiThresholdSupplied(keyword)
 		case "crit", "critical":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
+			cd.markCheckMultiThresholdSupplied(keyword)
 		case "unknown+":
 			unknown, err2 := cd.appendDefaultThreshold(keyword, argValue, pre.defaultUnknown, cd.unknownThreshold)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.unknownThreshold = unknown
+			cd.markCheckMultiThresholdSupplied(keyword)
 		case "unknown":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.unknownThreshold = append(cd.unknownThreshold, cond)
+			cd.markCheckMultiThresholdSupplied(keyword)
 		case "filter+":
 			if cd.disableFilter {
 				return nil, false, fmt.Errorf("%s is disabled for this check", keyword)

@@ -6,6 +6,7 @@ import (
 	"maps"
 	"strings"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
@@ -94,11 +95,14 @@ func (l *CheckMulti) Build() *CheckData {
 		defaultWarning:  "warning_count > 0",
 		defaultCritical: "critical_count > 0",
 		defaultUnknown:  "unknown_count > 0",
-		okSyntax:        "%(status) - %(count) plugins checked, %(ok_count) ok",
-		topSyntax:       "%(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list)",
-		detailSyntax:    "%(name): %(output)",
-		emptySyntax:     "%(status) - no checks executed",
-		emptyState:      CheckExitUnknown,
+		okSyntax: "{{ if problem_count gt 0 }}%(status) - %(count) plugins checked: " +
+			"%(ok_count) ok, %(warning_count) warning, %(critical_count) critical, " +
+			"%(unknown_count) unknown - %(problem_list){{ ELSE }}%(status) - " +
+			"%(count) plugins checked, %(ok_count) ok{{ END }}",
+		topSyntax:    "%(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list)",
+		detailSyntax: "%(name): %(output)",
+		emptySyntax:  "%(status) - no checks executed",
+		emptyState:   CheckExitUnknown,
 		exampleDefault: `
     check_multi "command[check_process]=check_process 'process=firefox'" "command[check_memory]=check_memory 'type=physical' 'crit=used_pct gt 80%'"
 	OK - 2 plugins checked, 2 ok |'check_process::count'=1;;;0 ... 'check_memory::physical %'=78.7%;;;0;100
@@ -302,9 +306,10 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 		}
 
 		tag := chk.tag
+		childOutput := res.BuildOutputString()
 
-		firstLine := strings.TrimSpace(strings.Split(res.Output, "\n")[0])
-		detailsList = append(detailsList, fmt.Sprintf("[%s] %s", tag, res.Output))
+		firstLine := strings.TrimSpace(strings.Split(childOutput, "\n")[0])
+		detailsList = append(detailsList, fmt.Sprintf("[%s] %s", tag, childOutput))
 
 		entryState := fmt.Sprintf("%d", res.State)
 		entry := map[string]string{
@@ -314,14 +319,16 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 			"state":       entryState,
 			"status":      res.StateString(),
 			"shortoutput": firstLine,
-			"output":      res.Output,
+			"output":      childOutput,
 			"_state":      entryState,
 			"_skip":       "1",
 			"_count":      "1",
 		}
 
 		if hasEntryThresholds {
-			check.Check(entry, check.warnThreshold, check.critThreshold, check.unknownThreshold, check.okThreshold)
+			thresholdEntry := maps.Clone(entry)
+			check.Check(thresholdEntry, check.warnThreshold, check.critThreshold, check.unknownThreshold, check.okThreshold)
+			check.result.EscalateStatus(convert.Int64(thresholdEntry["_state"]))
 		}
 
 		count++
@@ -338,11 +345,7 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 
 		check.listData = append(check.listData, entry)
 
-		for _, m := range res.Metrics {
-			metricCopy := *m
-			metricCopy.Name = fmt.Sprintf("%s::%s", tag, m.Name)
-			allMetrics = append(allMetrics, &metricCopy)
-		}
+		allMetrics = appendChildMetrics(allMetrics, res, tag)
 	}
 
 	problemCount := warnCount + critCount + unknownCount
@@ -361,6 +364,17 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 	check.result.Details = strings.Join(detailsList, "\n")
 
 	return check.Finalize()
+}
+
+func appendChildMetrics(allMetrics []*CheckMetric, res *CheckResult, tag string) []*CheckMetric {
+	for _, m := range res.Metrics {
+		metricCopy := *m
+		metricCopy.Name = fmt.Sprintf("%s::%s", tag, m.Name)
+		metricCopy.SkipStateCheck = true
+		allMetrics = append(allMetrics, &metricCopy)
+	}
+
+	return allMetrics
 }
 
 func (l *CheckMulti) incrementCheckMultiCounter(ctx context.Context) *CheckResult {

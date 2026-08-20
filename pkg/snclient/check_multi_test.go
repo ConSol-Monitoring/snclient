@@ -38,6 +38,13 @@ CheckMulti = enabled
 	assert.Contains(t, res.Output, "2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown")
 
 	res = snc.RunCheck("check_multi", []string{
+		"command[test1]=check_dummy 1 WARN",
+		"warn=none",
+	})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK when warning threshold is none")
+	assert.Contains(t, res.Output, "OK - 1 plugins checked: 0 ok, 1 warning, 0 critical, 0 unknown - test1: WARN")
+
+	res = snc.RunCheck("check_multi", []string{
 		"command[d1]=check_dummy 0 'dummy ok'",
 		"command[d2]=check_dummy 2 'dummy crit'",
 	})
@@ -125,6 +132,49 @@ CheckMulti = enabled
 		"command[d2]=check_dummy 3 'unknown check'",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN takes precedence over CRITICAL")
+}
+
+func TestCheckMultiDefaultEnabled(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{
+		"command[d1]=check_dummy 0 'default enabled'",
+	})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK when CheckMulti is enabled by default")
+}
+
+func TestCheckMultiPriorityThreshold(t *testing.T) {
+	config := `
+[/modules]
+CheckMulti = enabled
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	args := []string{
+		"command[prio]=check_dummy 2 'priority critical'",
+		"command[dummy2]=check_dummy 0 'dummy 2'",
+		"command[dummy3]=check_dummy 0 'dummy 3'",
+		"warn=none",
+		"unknown=none",
+		"crit=name eq 'prio' and state ne '0'",
+	}
+	res := snc.RunCheck("check_multi", args)
+	assert.Equalf(t, CheckExitCritical, res.State, "state CRITICAL when prio is not OK")
+	assert.Contains(t, res.Details, "[prio] priority critical")
+
+	res = snc.RunCheck("check_multi", []string{
+		"command[prio]=check_dummy 0 'priority ok'",
+		"command[dummy2]=check_dummy 3 'dummy 2 unknown'",
+		"command[dummy3]=check_dummy 2 'dummy 3 critical'",
+		"warn=none",
+		"unknown=none",
+		"crit=name eq 'prio' and state ne '0'",
+	})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK when only non-prio checks are problems")
+	assert.Contains(t, res.Details, "[dummy2] dummy 2 unknown")
+	assert.Contains(t, res.Details, "[dummy3] dummy 3 critical")
 }
 
 func TestCheckMultiLimits(t *testing.T) {
@@ -245,6 +295,9 @@ command[b] = check_multi config=loopB
 
 [/settings/check/multi/loopB]
 command[a] = check_multi config=loopA
+
+[/settings/check/multi/inner]
+command[leaf] = check_dummy 0 'nested detail'
 `, script1, script2)
 
 	snc := StartTestAgent(t, config)
@@ -269,6 +322,14 @@ command[a] = check_multi config=loopA
 	assert.Contains(t, res.Output, "2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown")
 	assert.Contains(t, res.Details, "SCRIPT 1 OK")
 	assert.Contains(t, res.Details, "SCRIPT 2 WARNING")
+
+	// Nested detail output is included in the parent output attribute.
+	res = snc.RunCheck("check_multi", []string{
+		"command[nested]=check_multi config=inner",
+	})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK for nested detail output")
+	assert.Contains(t, res.BuildOutputString(), "nested detail")
+	assert.Contains(t, res.Details, "nested detail")
 
 	// Test direct loop detection: check_multi config=loop
 	res = snc.RunCheck("check_multi", []string{

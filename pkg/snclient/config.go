@@ -48,6 +48,7 @@ var DefaultConfig = map[string]ConfigData{
 		"CheckSystem":          "enabled",
 		"CheckSystemUnix":      "enabled",
 		"CheckAlias":           "enabled",
+		"CheckMulti":           "enabled",
 		"CheckExternalScripts": "enabled",
 		"CheckDisk":            "enabled",
 		"CheckDriveIO":         "enabled",
