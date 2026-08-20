@@ -63,11 +63,11 @@ func (l *CheckMulti) Build() *CheckData {
 	When using the inline mode, you can only use available commands (run 'check_index' to get a full list).
 
 	You can also define custom check sections in the config file, for example:
-    [/settings/check/multi/mycheck]
-    command[alias1] = check_process process=123
-    command[alias2] = check_process process=345
+  [/settings/check/multi/mycheck]
+  command[alias1] = check_process process=123
+  command[alias2] = check_process process=345
 
-    This can be executed with 'check_multi "config=mycheck"'.
+  This can be executed with 'check_multi "config=mycheck"'.
 
 	It's also possible to use custom scripts in the config section, for example:
 	[/settings/check/multi/myscript]
@@ -152,9 +152,8 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 		maxChecks = 20
 	}
 
-	counter, ok := ctx.Value(checkMultiCounterKey{}).(*checkMultiCounter)
-	if !ok {
-		counter = &checkMultiCounter{maxChecks: maxChecks}
+	if _, ok := ctx.Value(checkMultiCounterKey{}).(*checkMultiCounter); !ok {
+		counter := &checkMultiCounter{maxChecks: maxChecks}
 		ctx = context.WithValue(ctx, checkMultiCounterKey{}, counter)
 	}
 
@@ -285,7 +284,6 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, *CheckRes
 // executeChildChecks runs all child checks and aggregates results.
 func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *CheckData, childChecks []multiChildCheck) (*CheckResult, error) {
 	var count, okCount, warnCount, critCount, unknownCount int64
-	counter, _ := ctx.Value(checkMultiCounterKey{}).(*checkMultiCounter)
 
 	detailsList := make([]string, 0, len(childChecks))
 	allMetrics := make([]*CheckMetric, 0)
@@ -294,12 +292,8 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 		check.HasThreshold("output") || check.HasThreshold("shortoutput") || check.HasThreshold("status") || check.HasThreshold("state")
 
 	for _, chk := range childChecks {
-		counter.count++
-		if counter.count > counter.maxChecks {
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("number of checks (%d) exceeds max checks limit (%d)", counter.count, counter.maxChecks),
-			}, nil
+		if res := l.incrementCheckMultiCounter(ctx); res != nil {
+			return res, nil
 		}
 
 		res, fatal := l.runChildCheck(ctx, snc, check, chk)
@@ -367,6 +361,19 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 	check.result.Details = strings.Join(detailsList, "\n")
 
 	return check.Finalize()
+}
+
+func (l *CheckMulti) incrementCheckMultiCounter(ctx context.Context) *CheckResult {
+	counter, _ := ctx.Value(checkMultiCounterKey{}).(*checkMultiCounter)
+	counter.count++
+	if counter.count > counter.maxChecks {
+		return &CheckResult{
+			State:  CheckExitUnknown,
+			Output: fmt.Sprintf("number of checks (%d) exceeds max checks limit (%d)", counter.count, counter.maxChecks),
+		}
+	}
+
+	return nil
 }
 
 // runChildCheck executes a single child check and returns its result.

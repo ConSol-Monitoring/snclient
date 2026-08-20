@@ -13,11 +13,11 @@ Runs multiple checks and aggregates their status, output and performance data.
 	When using the inline mode, you can only use available commands (run 'check_index' to get a full list).
 
 	You can also define custom check sections in the config file, for example:
-    [/settings/check/multi/mycheck]
-    command[alias1] = check_process process=123
-    command[alias2] = check_process process=345
+  [/settings/check/multi/mycheck]
+  command[alias1] = check_process process=123
+  command[alias2] = check_process process=345
 
-    This can be executed with 'check_multi "config=mycheck"'.
+  This can be executed with 'check_multi "config=mycheck"'.
 
 	It's also possible to use custom scripts in the config section, for example:
 	[/settings/check/multi/myscript]
