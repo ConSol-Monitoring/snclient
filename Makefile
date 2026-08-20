@@ -278,7 +278,7 @@ citest: tools vendor
 	#
 	$(MAKE) benchmark
 	#
-	# Race rondition tests
+	# Race condition tests
 	#
 	$(MAKE) racetest
 	#
