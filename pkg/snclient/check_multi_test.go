@@ -133,7 +133,11 @@ func TestCheckMultiLimits(t *testing.T) {
 CheckMulti = enabled
 
 [/settings/check/multi]
-max checks = 2
+max checks = 4
+
+[/settings/check/multi/nested]
+command[d1] = check_dummy 0 'nested 1'
+command[d2] = check_dummy 0 'nested 2'
 `
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
@@ -145,14 +149,25 @@ max checks = 2
 	})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK for 2 checks")
 
-	// Exceeds limit: 3 checks
+	// Exceeds limit: 5 checks
 	res = snc.RunCheck("check_multi", []string{
 		"command[d1]=check_dummy 0 'ok 1'",
 		"command[d2]=check_dummy 0 'ok 2'",
 		"command[d3]=check_dummy 0 'ok 3'",
+		"command[d4]=check_dummy 0 'ok 4'",
+		"command[d5]=check_dummy 0 'ok 5'",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when exceeding max checks")
 	assert.Contains(t, res.Output, "exceeds max checks limit")
+
+	// Nested checks share the same cumulative execution count.
+	res = snc.RunCheck("check_multi", []string{
+		"command[d1]=check_dummy 0 'outer 1'",
+		"command[d2]=check_dummy 0 'outer 2'",
+		"command[nested]=check_multi config=nested",
+	})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when nested checks exceed max checks")
+	assert.Contains(t, res.Details, "number of checks (5) exceeds max checks limit (4)")
 }
 
 func TestCheckMultiDisabled(t *testing.T) {

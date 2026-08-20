@@ -14,9 +14,15 @@ func init() {
 }
 
 type (
-	checkMultiConfigKey struct{}
-	checkMultiDepthKey  struct{}
+	checkMultiConfigKey  struct{}
+	checkMultiDepthKey   struct{}
+	checkMultiCounterKey struct{}
 )
+
+type checkMultiCounter struct {
+	count     int64
+	maxChecks int64
+}
 
 type CheckMulti struct {
 	commands TaggedCommandList
@@ -141,6 +147,17 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 	}
 	ctx = context.WithValue(ctx, checkMultiDepthKey{}, depth+1)
 
+	maxChecks, ok, err := snc.config.Section("/settings/check/multi").GetInt("max checks")
+	if err != nil || !ok || maxChecks <= 0 {
+		maxChecks = 20
+	}
+
+	counter, ok := ctx.Value(checkMultiCounterKey{}).(*checkMultiCounter)
+	if !ok {
+		counter = &checkMultiCounter{maxChecks: maxChecks}
+		ctx = context.WithValue(ctx, checkMultiCounterKey{}, counter)
+	}
+
 	activeConfigs, _ := ctx.Value(checkMultiConfigKey{}).(map[string]bool)
 	if activeConfigs == nil {
 		activeConfigs = make(map[string]bool)
@@ -159,11 +176,6 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 		ctx = context.WithValue(ctx, checkMultiConfigKey{}, newActive)
 	}
 
-	maxChecks, ok, err := snc.config.Section("/settings/check/multi").GetInt("max checks")
-	if err != nil || !ok || maxChecks <= 0 {
-		maxChecks = 20
-	}
-
 	childChecks, res := l.buildChildChecks(snc)
 	if res != nil {
 		return res, nil
@@ -173,13 +185,6 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 		return &CheckResult{
 			State:  CheckExitUnknown,
 			Output: "no checks or config specified",
-		}, nil
-	}
-
-	if int64(len(childChecks)) > maxChecks {
-		return &CheckResult{
-			State:  CheckExitUnknown,
-			Output: fmt.Sprintf("number of checks (%d) exceeds max checks limit (%d)", len(childChecks), maxChecks),
 		}, nil
 	}
 
@@ -280,6 +285,7 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, *CheckRes
 // executeChildChecks runs all child checks and aggregates results.
 func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *CheckData, childChecks []multiChildCheck) (*CheckResult, error) {
 	var count, okCount, warnCount, critCount, unknownCount int64
+	counter, _ := ctx.Value(checkMultiCounterKey{}).(*checkMultiCounter)
 
 	detailsList := make([]string, 0, len(childChecks))
 	allMetrics := make([]*CheckMetric, 0)
@@ -288,6 +294,14 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 		check.HasThreshold("output") || check.HasThreshold("shortoutput") || check.HasThreshold("status") || check.HasThreshold("state")
 
 	for _, chk := range childChecks {
+		counter.count++
+		if counter.count > counter.maxChecks {
+			return &CheckResult{
+				State:  CheckExitUnknown,
+				Output: fmt.Sprintf("number of checks (%d) exceeds max checks limit (%d)", counter.count, counter.maxChecks),
+			}, nil
+		}
+
 		res, fatal := l.runChildCheck(ctx, snc, check, chk)
 		if fatal {
 			return res, nil
