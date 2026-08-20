@@ -159,7 +159,6 @@ func makeDialer(opts *commandOpts) func(ctx context.Context, _ string, _ string)
 	baseDialFunc := (&net.Dialer{
 		Timeout:   opts.TimeoutParsed,
 		KeepAlive: defaultKeepAliveSeconds * time.Second,
-		DualStack: true,
 	}).DialContext
 
 	tcpMode := "tcp"

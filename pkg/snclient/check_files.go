@@ -893,8 +893,7 @@ func (l *CheckFiles) setError(entry map[string]string, err error) {
 		entry["_error"] = fmt.Sprintf("%s: file or directory not readable", entry["fullname"])
 	default:
 		// Handle *fs.PathError specifically
-		var pathErr *fs.PathError
-		if errors.As(err, &pathErr) {
+		if pathErr, ok := errors.AsType[*fs.PathError](err); ok {
 			switch {
 			case errors.Is(pathErr, syscall.ENOENT):
 				entry["_error"] = fmt.Sprintf("%s: no such file or directory", entry["fullname"])
