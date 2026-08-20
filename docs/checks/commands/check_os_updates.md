@@ -28,12 +28,14 @@ If you only want to be notified about security related updates:
     check_os_updates warn=none crit='count_security > 0'
     CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0
 
-On YUM/DNF systems, repository metadata is stored in a private cache owned by
-the SNClient service user. YUM/DNF refreshes missing or expired metadata without
-requiring root permissions. The **--update** option forces a metadata refresh and is
-implicitly enabled for yum/dnf mode. Use **--skip-update** to disable this.
-The check returns **UNKNOWN** if an enabled repository is unavailable, because
+On DNF/APT systems, **--update** refreshes repository metadata in a private cache
+owned by the SNClient service user unless started as root user.
+
+The DNF check returns **UNKNOWN** if an enabled repository is unavailable, because
 otherwise an incomplete repository set could be reported as having no updates.
+
+Use **--max-metadata-age** to make the check return **UNKNOWN** if the repository
+metadata has not been refreshed within the given duration, ex.: --max-metadata-age=24h
 
 ### Example using NRPE and Naemon
 
@@ -65,11 +67,11 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument          | Description                                                                                       |
-| ----------------- | ------------------------------------------------------------------------------------------------- |
-| -N\|--skip-update | Skip updating the package list in case updates are automatically, ex. for yum/dnf in non-root mode. |
-| -s\|--system      | Package system: auto, apt, yum, osx and windows (default: auto)                                   |
-| -u\|--update      | Update package list (if supported, ex.: apt-get update)                                           |
+| Argument               | Description                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| -m\|--max-metadata-age | Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, ex.: 24h (default: disabled) |
+| -s\|--system           | Package system: auto, apt, yum, osx and windows (default: auto)                              |
+| -u\|--update           | Update package list (if supported, ex.: apt-get update)                                      |
 
 ## Attributes
 

@@ -3,17 +3,25 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
+
+	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
 var (
 	reAPTSecurity = regexp.MustCompile(`(Debian-Security:|Ubuntu:[^/]*/[^-]*-security)`)
 	reAPTEntry    = regexp.MustCompile(`^Inst\s+(\S+)\s+\[([^\[]+)\]\s+\((\S+)\s+(.*)\s+\[(\S+)\]\)`)
 	reYUMEntry    = regexp.MustCompile(`^(\S+)\.(\S+)\s+(\S+)\s+(\S+)`)
+
+	// system wide locations of the package manager metadata, overridden in tests
+	aptSystemListsDir  = "/var/lib/apt/lists"
+	yumSystemCacheDirs = []string{"/var/cache/dnf", "/var/cache/yum"}
 )
 
 func (l *CheckOSUpdates) addOSBackends(ctx context.Context, check *CheckData) (int, error) {
@@ -60,8 +68,21 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 		return false, nil
 	}
 
+	aptOpts := " -o 'Debug::NoLocking=true'"
+	listsDir := aptSystemListsDir
 	if l.update {
-		output, stderr, rc, err := l.snc.execCommandAsRoot(ctx, "/usr/bin/apt-get update", l.snc.getBuiltinCmdTimeout())
+		cacheDir, err := l.pkgListsDir("apt", []string{"partial"})
+		if err != nil {
+			return true, err
+		}
+
+		if cacheDir != "" {
+			aptOpts += fmt.Sprintf(" -o Dir::State::Lists=%q", cacheDir)
+			listsDir = cacheDir
+		}
+
+		updateOpts := aptOpts + " -o 'APT::Update::Error-Mode=any'"
+		output, stderr, rc, err := l.snc.execCommand(ctx, "apt-get update"+updateOpts, l.snc.getBuiltinCmdTimeout())
 		if err != nil {
 			return true, fmt.Errorf("apt-get update failed: %s\n%s", err.Error(), stderr)
 		}
@@ -70,7 +91,11 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 		}
 	}
 
-	output, stderr, rc, err := l.snc.execCommand(ctx, "apt-get upgrade -o 'Debug::NoLocking=true' -s -qq", l.snc.getBuiltinCmdTimeout())
+	if err := l.checkMetadataAge(listsDir); err != nil {
+		return true, err
+	}
+
+	output, stderr, rc, err := l.snc.execCommand(ctx, "apt-get upgrade"+aptOpts+" -s -qq", l.snc.getBuiltinCmdTimeout())
 	if err != nil {
 		return true, fmt.Errorf("apt-get upgrade failed: %s\n%s", err.Error(), stderr)
 	}
@@ -81,6 +106,46 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 	l.parseAPT(output, check)
 
 	return true, nil
+}
+
+// pkgListsDir returns a path to a private cache folder for package manager
+// metadata. It creates the folder if it does not exist and ensures that it has
+// proper permissions, user and is not a symlink.
+// It returns an empty string if no cache folder is required.
+func (l *CheckOSUpdates) pkgListsDir(subRoot string, subFolder []string) (string, error) {
+	// root does not require cache folder
+	if os.Geteuid() == 0 {
+		return "", nil
+	}
+	cacheDir := l.snc.getCacheFolder()
+	if err := os.MkdirAll(cacheDir, DefaultCacheFolderPermissions); err != nil {
+		return "", fmt.Errorf("failed to create cache directory %s: %w", cacheDir, err)
+	}
+	dir := cacheDir
+
+	components := append([]string{subRoot}, subFolder...)
+	for _, component := range components {
+		dir = filepath.Join(dir, component)
+		if err := os.Mkdir(dir, 0o700); err != nil && !os.IsExist(err) {
+			return "", fmt.Errorf("failed to create pkg cache directory %s: %w", dir, err)
+		}
+
+		info, err := os.Lstat(dir)
+		if err != nil {
+			return "", fmt.Errorf("failed to inspect pkg cache directory %s: %w", dir, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return "", fmt.Errorf("pkg cache path %s is not a directory", dir)
+		}
+		if err := l.snc.checkFileOwner(dir); err != nil {
+			return "", fmt.Errorf("invalid pkg cache directory: %w", err)
+		}
+		if err := os.Chmod(dir, 0o700); err != nil {
+			return "", fmt.Errorf("failed to secure pkg cache directory %s: %w", dir, err)
+		}
+	}
+
+	return filepath.Join(cacheDir, subRoot), nil
 }
 
 func (l *CheckOSUpdates) parseAPT(output string, check *CheckData) {
@@ -120,20 +185,21 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 		return false, nil
 	}
 
-	cacheDir, err := l.yumCacheDir()
-	if err != nil {
-		return true, err
-	}
+	// normally answer from cache only
+	yumOpts := " --cacheonly"
+	cacheDir := ""
 
-	yumOpts := ""
-	if cacheDir != "" {
-		yumOpts += fmt.Sprintf(" --setopt=cachedir=%q --setopt='*.skip_if_unavailable=False'", cacheDir)
-		// must enable updates when using private cache folder
-		if !l.skipUpdate {
-			l.update = true
-		}
-	}
 	if l.update {
+		var err error
+		cacheDir, err = l.pkgListsDir("dnf", nil)
+		if err != nil {
+			return true, err
+		}
+
+		if cacheDir != "" {
+			yumOpts = fmt.Sprintf(" --setopt=cachedir=%q", cacheDir)
+		}
+
 		// Expiring the private cache before the query forces a metadata refresh
 		// and works with both legacy Yum 3 and DNF.
 		output, stderr, exitCode, cacheErr := l.snc.execCommand(ctx, "yum"+yumOpts+" clean expire-cache -q", l.snc.getBuiltinCmdTimeout())
@@ -143,10 +209,13 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 		if exitCode != 0 {
 			return true, fmt.Errorf("yum cache expiration failed: %s\n%s", output, stderr)
 		}
-	} else {
-		// answer from cache only
-		yumOpts += " --cacheonly"
 	}
+
+	if err := l.checkMetadataAge(l.yumCacheDir(cacheDir)); err != nil {
+		return true, err
+	}
+
+	yumOpts += " --setopt='*.skip_if_unavailable=False'"
 
 	output, stderr, exitCode, err := l.snc.execCommand(ctx, "yum"+yumOpts+" check-update --security -q", l.snc.getBuiltinCmdTimeout())
 	if err != nil {
@@ -167,33 +236,6 @@ func (l *CheckOSUpdates) addYUM(ctx context.Context, check *CheckData) (bool, er
 	l.parseYUM(output, "0", check, packageLookup)
 
 	return true, nil
-}
-
-func (l *CheckOSUpdates) yumCacheDir() (string, error) {
-	// root does not require cache folder
-	if os.Geteuid() == 0 {
-		return "", nil
-	}
-	cacheDir := filepath.Join(l.snc.getCacheFolder(), "dnf")
-	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
-		return "", fmt.Errorf("failed to create yum cache directory %s: %w", cacheDir, err)
-	}
-
-	info, err := os.Lstat(cacheDir)
-	if err != nil {
-		return "", fmt.Errorf("failed to inspect yum cache directory %s: %w", cacheDir, err)
-	}
-	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
-		return "", fmt.Errorf("yum cache path %s is not a directory", cacheDir)
-	}
-	if err := l.snc.checkFileOwner(cacheDir); err != nil {
-		return "", fmt.Errorf("invalid yum cache directory: %w", err)
-	}
-	if err := os.Chmod(cacheDir, 0o700); err != nil {
-		return "", fmt.Errorf("failed to secure yum cache directory %s: %w", cacheDir, err)
-	}
-
-	return cacheDir, nil
 }
 
 func (l *CheckOSUpdates) parseYUM(output, security string, check *CheckData, skipPackages map[string]bool) map[string]bool {
@@ -221,4 +263,94 @@ func (l *CheckOSUpdates) parseYUM(output, security string, check *CheckData, ski
 	}
 
 	return packages
+}
+
+// yumCacheDir returns the cache directory to inspect for the metadata age
+// check. It prefers the private cache directory (used with --update as
+// non-root) and otherwise falls back to the first existing system-wide
+// yum/dnf cache directory.
+func (l *CheckOSUpdates) yumCacheDir(privateCacheDir string) string {
+	if privateCacheDir != "" {
+		return privateCacheDir
+	}
+
+	for _, dir := range yumSystemCacheDirs {
+		if _, err := os.Stat(dir); err == nil {
+			return dir
+		}
+	}
+
+	return yumSystemCacheDirs[0]
+}
+
+// checkMetadataAge fails with an error if the --max-metadata-age threshold is
+// set and the repository metadata found in dir is older than that threshold.
+func (l *CheckOSUpdates) checkMetadataAge(dir string) error {
+	if l.maxMetadataAge == "" {
+		return nil
+	}
+
+	maxAgeSec, err := utils.ExpandDuration(l.maxMetadataAge)
+	if err != nil {
+		return fmt.Errorf("could not parse max-metadata-age: %s", err.Error())
+	}
+	maxAge := time.Duration(maxAgeSec) * time.Second
+	if maxAge <= 0 {
+		return nil
+	}
+
+	newest, err := newestMTime(dir)
+	if err != nil {
+		return fmt.Errorf("could not determine repository metadata age in %s: %w", dir, err)
+	}
+
+	age := time.Since(newest)
+	log.Debugf("repository metadata in %s is %s old (max age: %s)", dir, age.Round(time.Second), maxAge.Round(time.Second))
+	if age > maxAge {
+		return fmt.Errorf("repository metadata in %s is %s old and exceeds max age of %s", dir, age.Round(time.Second), maxAge.Round(time.Second))
+	}
+
+	return nil
+}
+
+// newestMTime returns the most recent modification time of any regular file
+// found in dir (recursively), skipping lock files and partial download folders.
+func newestMTime(dir string) (time.Time, error) {
+	var newest time.Time
+	found := false
+
+	err := filepath.WalkDir(dir, func(_ string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			if entry.Name() == "partial" {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+		if strings.HasSuffix(entry.Name(), ".lock") || strings.HasSuffix(entry.Name(), "lock") {
+			return nil
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("failed to retrieve file info for %s: %w", entry.Name(), err)
+		}
+		if !found || info.ModTime().After(newest) {
+			newest = info.ModTime()
+			found = true
+		}
+
+		return nil
+	})
+	if err != nil {
+		return time.Time{}, fmt.Errorf("dir walk failed for %s: %w", dir, err)
+	}
+	if !found {
+		return time.Time{}, fmt.Errorf("no metadata files found")
+	}
+
+	return newest, nil
 }
