@@ -239,7 +239,6 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, *CheckRes
 	}
 
 	childChecks := make([]multiChildCheck, 0, len(sec.keys))
-	seenTags := make(map[string]bool)
 
 	for _, key := range sec.keys {
 		rawVal := sec.data[key]
@@ -268,13 +267,6 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, *CheckRes
 				Output: fmt.Sprintf("empty command for tag %s in config section", tag),
 			}
 		}
-		if seenTags[tag] {
-			return nil, &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("duplicate command tag: %s", tag),
-			}
-		}
-		seenTags[tag] = true
 		childChecks = append(childChecks, multiChildCheck{
 			tag:      tag,
 			cmdStr:   rawVal,
