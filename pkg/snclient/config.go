@@ -796,11 +796,7 @@ func (cs *ConfigSection) String() string {
 		// none-multiline entries
 		case 0, 1:
 			if val == "" {
-				if strings.HasPrefix(cs.name, "/settings/check/multi/") {
-					data = append(data, key)
-				} else {
-					data = append(data, fmt.Sprintf("%s =", key))
-				}
+				data = append(data, fmt.Sprintf("%s =", key))
 			} else {
 				data = append(data, fmt.Sprintf("%s = %s", key, strings.Join(raw, "")))
 			}
