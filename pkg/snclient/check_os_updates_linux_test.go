@@ -70,21 +70,26 @@ func TestCheckAPTUpdatesWithPrivateLists(t *testing.T) {
 	args := strings.Split(strings.TrimSpace(string(argsRaw)), "\n")
 	require.Len(t, args, 2)
 
-	listsDir := filepath.Join(cacheRoot, "apt")
-	assert.Contains(t, args[0], "<update>")
-	assert.Contains(t, args[0], "<Dir::State::Lists="+listsDir+">")
-	assert.Contains(t, args[0], "<APT::Update::Error-Mode=any>")
-	assert.Contains(t, args[1], "<upgrade>")
-	assert.Contains(t, args[1], "<Dir::State::Lists="+listsDir+">")
-	assert.NotContains(t, args[1], "<APT::Update::Error-Mode=any>")
-	for _, dir := range []string{filepath.Join(cacheRoot, "apt"), listsDir, filepath.Join(listsDir, "partial")} {
-		info, err := os.Stat(dir)
-		require.NoError(t, err)
-		assert.Equal(t, os.FileMode(0o700), info.Mode().Perm())
+	if os.Geteuid() != 0 {
+		listsDir := filepath.Join(cacheRoot, "apt")
+		assert.Contains(t, args[0], "<update>")
+		assert.Contains(t, args[0], "<Dir::State::Lists="+listsDir+">")
+		assert.Contains(t, args[0], "<APT::Update::Error-Mode=any>")
+		assert.Contains(t, args[1], "<upgrade>")
+		assert.Contains(t, args[1], "<Dir::State::Lists="+listsDir+">")
+		assert.NotContains(t, args[1], "<APT::Update::Error-Mode=any>")
+		for _, dir := range []string{filepath.Join(cacheRoot, "apt"), listsDir, filepath.Join(listsDir, "partial")} {
+			info, err := os.Stat(dir)
+			require.NoError(t, err)
+			assert.Equal(t, os.FileMode(0o700), info.Mode().Perm())
+		}
 	}
 }
 
 func TestCheckAPTRejectsSymlinkedCache(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skipf("test does not work with when started as root (private cache will not be used)")
+	}
 	snc := StartTestAgent(t, "")
 	defer StopTestAgent(t, snc)
 	mockAPTUtility(t, "")
