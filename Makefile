@@ -278,7 +278,7 @@ citest: tools vendor
 	#
 	$(MAKE) benchmark
 	#
-	# Race rondition tests
+	# Race condition tests
 	#
 	$(MAKE) racetest
 	#
@@ -737,6 +737,7 @@ DOC_COMMANDS=\
 	check_mailq \
 	check_memory \
 	check_mount \
+	check_multi \
 	check_network \
 	check_ntp_offset \
 	check_omd \

@@ -14,18 +14,19 @@ import (
 
 // CheckMetric contains a single performance value.
 type CheckMetric struct {
-	Name          string        // Name as used in the perf data string
-	Unit          string        // Unit of the value
-	Value         any           // Current value
-	ThresholdName string        // if set, this will be added to the data before checking a conditions
-	Warning       ConditionList // threshold used for warnings
-	WarningStr    *string       // set warnings from string
-	Critical      ConditionList // threshold used for critical
-	CriticalStr   *string       // set critical from string
-	Min           *float64
-	Max           *float64
-	PerfConfig    *PerfConfig       // apply perf tweaks
-	Entry         map[string]string // entry that this metric is generated from
+	Name           string        // Name as used in the perf data string
+	Unit           string        // Unit of the value
+	Value          any           // Current value
+	ThresholdName  string        // if set, this will be added to the data before checking a conditions
+	Warning        ConditionList // threshold used for warnings
+	WarningStr     *string       // set warnings from string
+	Critical       ConditionList // threshold used for critical
+	CriticalStr    *string       // set critical from string
+	SkipStateCheck bool          // do not use warning or critical conditions for state
+	Min            *float64
+	Max            *float64
+	PerfConfig     *PerfConfig       // apply perf tweaks
+	Entry          map[string]string // entry that this metric is generated from
 }
 
 // generates a naemon like string, including the perfdata
