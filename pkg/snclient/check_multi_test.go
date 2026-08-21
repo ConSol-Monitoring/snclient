@@ -144,6 +144,26 @@ func TestCheckMultiDefaultEnabled(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK when CheckMulti is enabled by default")
 }
 
+func TestCheckMultiPreservesLiteralChildOutput(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{
+		"command[child]=check_dummy 0 '%(count) {{ IF condition }}literal{{ END }}'",
+	})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK for literal child output")
+	assert.Contains(t, res.Details, "%(count) {{ IF condition }}literal{{ END }}")
+}
+
+func TestTaggedNonCommandArgumentRejected(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_files", []string{"path[x]=/tmp"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN for tagged non-command argument")
+	assert.Contains(t, res.Output, "does not support tags")
+}
+
 func TestCheckMultiPriorityThreshold(t *testing.T) {
 	config := `
 [/modules]
@@ -298,6 +318,10 @@ command[a] = check_multi config=loopA
 
 [/settings/check/multi/inner]
 command[leaf] = check_dummy 0 'nested detail'
+
+[/settings/check/multi/duplicate]
+command[foo] = check_dummy 0 first
+command[ foo ] = check_dummy 0 second
 `, script1, script2)
 
 	snc := StartTestAgent(t, config)
@@ -330,6 +354,12 @@ command[leaf] = check_dummy 0 'nested detail'
 	assert.Equalf(t, CheckExitOK, res.State, "state OK for nested detail output")
 	assert.Contains(t, res.BuildOutputString(), "nested detail")
 	assert.Contains(t, res.Details, "nested detail")
+
+	res = snc.RunCheck("check_multi", []string{
+		"config=duplicate",
+	})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN for whitespace-duplicate config tags")
+	assert.Contains(t, res.Output, "duplicate command tag: foo")
 
 	// Test direct loop detection: check_multi config=loop
 	res = snc.RunCheck("check_multi", []string{

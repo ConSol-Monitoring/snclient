@@ -237,9 +237,9 @@ func (l *CheckMulti) buildChildChecks(snc *Agent) ([]multiChildCheck, *CheckResu
 // buildConfigChecks loads checks from the named config section.
 func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, *CheckResult) {
 	secName := "/settings/check/multi/" + l.config
-	sec := snc.config.Section(secName)
+	sec, ok := snc.config.sections[secName]
 
-	if len(sec.keys) == 0 {
+	if !ok || len(sec.keys) == 0 {
 		return nil, &CheckResult{
 			State:  CheckExitUnknown,
 			Output: fmt.Sprintf("no checks defined in config section %s", secName),
@@ -256,7 +256,7 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, *CheckRes
 				Output: fmt.Sprintf("invalid check_multi config entry: %s (must be in format command[tag]=<command>)", key),
 			}
 		}
-		tag := strings.TrimSuffix(strings.TrimPrefix(key, "command["), "]")
+		tag := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(key, "command["), "]"))
 		if strings.ContainsAny(tag, DefaultNastyCharacters+"=") {
 			return nil, &CheckResult{
 				State:  CheckExitUnknown,
@@ -309,7 +309,8 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 		childOutput := res.BuildOutputString()
 
 		firstLine := strings.TrimSpace(strings.Split(childOutput, "\n")[0])
-		detailsList = append(detailsList, fmt.Sprintf("[%s] %s", tag, childOutput))
+		literalOutput := check.result.LiteralizeDetails(fmt.Sprintf("[%s] %s", tag, childOutput))
+		detailsList = append(detailsList, literalOutput)
 
 		entryState := fmt.Sprintf("%d", res.State)
 		entry := map[string]string{

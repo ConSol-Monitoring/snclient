@@ -1120,9 +1120,11 @@ func (cd *CheckData) parseTaggedCommand(argRef *TaggedCommandList, tag, argValue
 func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error) {
 	lookupKey := keyword
 	tag := ""
+	hasTag := false
 	if before, rest, found := strings.Cut(keyword, "["); found && strings.HasSuffix(keyword, "]") {
 		lookupKey = before
 		tag = rest[:len(rest)-1]
+		hasTag = true
 	}
 
 	arg, ok := cd.args[lookupKey]
@@ -1130,6 +1132,11 @@ func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error
 		arg, ok = cd.extraArgs[lookupKey]
 		if !ok {
 			return false, nil
+		}
+	}
+	if hasTag {
+		if _, tagged := arg.value.(*TaggedCommandList); !tagged {
+			return false, fmt.Errorf("argument %s does not support tags", lookupKey)
 		}
 	}
 
