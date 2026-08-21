@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient agent.
 
-next:
+0.49     Fri Aug 21 08:50:54 CEST 2026
+         - linux: reset environment when running elevated commands (GHSA-p72w-3vw7-cg4p / CVE not yet assigned)
          - update golang build chain to 1.26.6
          - check_os_updates: fix powershell error on windows
          - check_os_updates: make -u/--update work without root permissions
@@ -10,7 +11,6 @@ next:
          - check_nsc_web: fix using conditions twice (#453)
          - check_network: support byte/s units in conditions
          - windows: fix restart after auto update
-         - linux: reset environment when running elevated commands (GHSA-p72w-3vw7-cg4p / CVE not yet assigned)
          - show versions of compiled in external check plugins with ./snclient -vV
 
 0.48     Mon Aug  3 16:00:52 CEST 2026
