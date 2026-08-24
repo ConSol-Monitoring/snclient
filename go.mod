@@ -10,7 +10,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.10.1
-	github.com/go-chi/chi/v5 v5.3.1
+	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-ole/go-ole v1.3.0
 	github.com/goccy/go-json v0.10.6
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
