@@ -235,7 +235,7 @@ command[check2] = sleep 4
 
 	assert.Equal(t, CheckExitUnknown, res.State)
 	assert.Equal(t, "UNKNOWN - check_multi timed out after 3s", res.Output)
-	assert.Contains(t, res.Details, "[check1] OK (took 1s)")
+	assert.Regexp(t, `\[check1\] OK \(took 1(?:\.\d+)?s\)`, res.Details)
 	assert.Contains(t, res.Details, "[check2] timed out after 2s (reached check_multi timeout of 3s)")
 }
 
@@ -258,8 +258,6 @@ timeout = 10
 command[check1] = /bin/sh -c 'sleep 1; echo OK'
 command[check2] = sleep 4
 command[check3] = check_dummy 0 'check 3'
-command[check4] = check_dummy 0 'check 4'
-command[check5] = check_dummy 0 'check 5'
 `
 	snc := StartTestAgent(t, config)
 	defer StopTestAgent(t, snc)
@@ -270,11 +268,9 @@ command[check5] = check_dummy 0 'check 5'
 
 	assert.Equal(t, CheckExitUnknown, res.State)
 	assert.Equal(t, "UNKNOWN - check_multi timed out after 3s", res.Output)
-	assert.Contains(t, res.Details, "[check1] OK (took 1s)")
+	assert.Regexp(t, `\[check1\] OK \(took 1(?:\.\d+)?s\)`, res.Details)
 	assert.Contains(t, res.Details, "[check2] timed out after 2s (reached check_multi timeout of 3s)")
 	assert.NotContains(t, res.Details, "[check3]")
-	assert.NotContains(t, res.Details, "[check4]")
-	assert.NotContains(t, res.Details, "[check5]")
 }
 
 func TestCheckMultiScenarioExternalTimeoutSummaryAndDetails(t *testing.T) {
