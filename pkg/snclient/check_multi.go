@@ -2,9 +2,12 @@ package snclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
+	"math"
 	"strings"
+	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/utils"
@@ -100,7 +103,7 @@ func (l *CheckMulti) Build() *CheckData {
 			"%(unknown_count) unknown - %(problem_list){{ ELSE }}%(status) - " +
 			"%(count) plugins checked, %(ok_count) ok{{ END }}",
 		topSyntax:    "%(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list)",
-		detailSyntax: "%(name): %(output)",
+		detailSyntax: "%(name): %(shortoutput)",
 		emptySyntax:  "%(status) - no checks executed",
 		emptyState:   CheckExitUnknown,
 		exampleDefault: `
@@ -133,6 +136,62 @@ type multiChildCheck struct {
 	isInline bool
 }
 
+func (l *CheckMulti) childTimeoutResult(timeout, totalTimeout int64) *CheckResult {
+	return &CheckResult{
+		State:  CheckExitUnknown,
+		Output: fmt.Sprintf("timed out after %ds (reached check_multi timeout of %ds)", timeout, totalTimeout),
+	}
+}
+
+func (l *CheckMulti) overallTimeoutResult(snc *Agent, details []string) *CheckResult {
+	timeout := snc.getBuiltinCmdTimeout()
+
+	return &CheckResult{
+		State:   CheckExitUnknown,
+		Output:  fmt.Sprintf("UNKNOWN - check_multi timed out after %ds", timeout),
+		Details: strings.Join(details, "\n"),
+	}
+}
+
+func (l *CheckMulti) externalScriptTimeoutResult(res *CheckResult) bool {
+	return res.State == CheckExitUnknown && strings.Contains(res.Output, "script run into timeout after")
+}
+
+func (l *CheckMulti) externalScriptTimeout(snc *Agent) int64 {
+	timeout, ok, err := snc.config.Section("/settings/external scripts").GetDuration("timeout")
+	if err != nil || !ok || timeout <= 0 {
+		return snc.getBuiltinCmdTimeout()
+	}
+
+	return int64(math.Ceil(timeout))
+}
+
+func (l *CheckMulti) formatDuration(d time.Duration) string {
+	sec := d.Seconds()
+	if sec < 0 {
+		sec = 0
+	}
+	if sec >= 1.0 && math.Abs(sec-math.Round(sec)) < 0.05 {
+		return fmt.Sprintf("%ds", int64(math.Round(sec)))
+	}
+
+	return fmt.Sprintf("%.1fs", sec)
+}
+
+func (l *CheckMulti) remainingTimeoutSeconds(ctx context.Context) int64 {
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return 0
+	}
+
+	remaining := int64(math.Ceil(time.Until(deadline).Seconds()))
+	if remaining < 0 {
+		return 0
+	}
+
+	return remaining
+}
+
 func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckMulti")
 	if !enabled {
@@ -141,6 +200,10 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 			Output: "module CheckMulti is not enabled in /modules section",
 		}, nil
 	}
+	timeout := snc.getBuiltinCmdTimeout()
+	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	defer cancel()
+	ctx = timeoutCtx
 
 	depth, _ := ctx.Value(checkMultiDepthKey{}).(int)
 	if depth > 5 {
@@ -285,10 +348,105 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, *CheckRes
 	return childChecks, nil
 }
 
+type childRecord struct {
+	tag              string
+	childOutput      string
+	durationStr      string
+	parentTimedOut   bool
+	externalTimedOut bool
+}
+
+type childCheckCounts struct {
+	count, ok, warning, critical, unknown int64
+}
+
+func (counts *childCheckCounts) add(state string) {
+	counts.count++
+	switch state {
+	case "0":
+		counts.ok++
+	case "1":
+		counts.warning++
+	case "2":
+		counts.critical++
+	default:
+		counts.unknown++
+	}
+}
+
+func (l *CheckMulti) recordChildResult(
+	check *CheckData,
+	childCheck multiChildCheck,
+	result *CheckResult,
+	record childRecord,
+	hasEntryThresholds bool,
+	counts *childCheckCounts,
+	metrics *[]*CheckMetric,
+) {
+	firstLine := strings.TrimRight(strings.Split(record.childOutput, "\n")[0], "\r\n ")
+	entryState := fmt.Sprintf("%d", result.State)
+	entry := map[string]string{
+		"name":        record.tag,
+		"tag":         record.tag,
+		"command":     childCheck.cmdStr,
+		"state":       entryState,
+		"status":      result.StateString(),
+		"shortoutput": firstLine,
+		"output":      record.childOutput,
+		"_state":      entryState,
+		"_skip":       "1",
+		"_count":      "1",
+	}
+
+	if hasEntryThresholds {
+		thresholdEntry := maps.Clone(entry)
+		check.Check(thresholdEntry, check.warnThreshold, check.critThreshold, check.unknownThreshold, check.okThreshold)
+		check.result.EscalateStatus(convert.Int64(thresholdEntry["_state"]))
+	}
+
+	counts.add(entry["_state"])
+	check.listData = append(check.listData, entry)
+	*metrics = appendChildMetrics(*metrics, result, record.tag)
+}
+
+// runOneChild executes a single child check and returns the result along with metadata.
+// It detects whether the child timed out due to the parent's deadline and adjusts the
+// result accordingly. Returns (result, record, fatal).
+func (l *CheckMulti) runOneChild(ctx context.Context, snc *Agent, chk multiChildCheck) (*CheckResult, childRecord, bool) {
+	childTimeout := l.remainingTimeoutSeconds(ctx)
+	childStart := time.Now()
+	res, fatal := l.runChildCheck(ctx, snc, chk)
+	childElapsed := time.Since(childStart)
+	parentTimedOut := errors.Is(ctx.Err(), context.DeadlineExceeded) || l.remainingTimeoutSeconds(ctx) <= 0
+	externalTimedOut := l.externalScriptTimeoutResult(res)
+
+	// If the child was an external script whose effective timeout was reduced by the parent
+	// deadline (i.e. remaining budget < configured external timeout), and it returned a
+	// script-timeout result, the parent deadline caused the termination — treat as parentTimedOut.
+	if !parentTimedOut && externalTimedOut && childTimeout > 0 && childTimeout < l.externalScriptTimeout(snc) {
+		parentTimedOut = true
+	}
+
+	if parentTimedOut {
+		res = l.childTimeoutResult(childTimeout, snc.getBuiltinCmdTimeout())
+	}
+
+	rec := childRecord{
+		tag:              chk.tag,
+		childOutput:      res.BuildOutputString(),
+		durationStr:      l.formatDuration(childElapsed),
+		parentTimedOut:   parentTimedOut,
+		externalTimedOut: externalTimedOut,
+	}
+
+	return res, rec, fatal
+}
+
 // executeChildChecks runs all child checks and aggregates results.
 func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *CheckData, childChecks []multiChildCheck) (*CheckResult, error) {
-	var count, okCount, warnCount, critCount, unknownCount int64
+	var counts childCheckCounts
 
+	executedChildren := make([]childRecord, 0, len(childChecks))
 	detailsList := make([]string, 0, len(childChecks))
 	allMetrics := make([]*CheckMetric, 0)
 
@@ -300,64 +458,56 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 			return res, nil
 		}
 
-		res, fatal := l.runChildCheck(ctx, snc, check, chk)
+		res, rec, fatal := l.runOneChild(ctx, snc, chk)
 		if fatal {
 			return res, nil
 		}
 
-		tag := chk.tag
-		childOutput := res.BuildOutputString()
+		executedChildren = append(executedChildren, rec)
+		l.recordChildResult(check, chk, res, rec, hasEntryThresholds, &counts, &allMetrics)
 
-		firstLine := strings.TrimSpace(strings.Split(childOutput, "\n")[0])
-		literalOutput := check.result.LiteralizeDetails(fmt.Sprintf("[%s] %s", tag, childOutput))
-		detailsList = append(detailsList, literalOutput)
+		if rec.parentTimedOut {
+			for _, child := range executedChildren {
+				var line string
+				if child.parentTimedOut {
+					line = fmt.Sprintf("[%s] %s", child.tag, child.childOutput)
+				} else {
+					trimmedOutput := strings.TrimRight(child.childOutput, "\r\n ")
+					line = fmt.Sprintf("[%s] %s (took %s)", child.tag, trimmedOutput, child.durationStr)
+				}
+				detailsList = append(detailsList, line)
+			}
 
-		entryState := fmt.Sprintf("%d", res.State)
-		entry := map[string]string{
-			"name":        tag,
-			"tag":         tag,
-			"command":     chk.cmdStr,
-			"state":       entryState,
-			"status":      res.StateString(),
-			"shortoutput": firstLine,
-			"output":      childOutput,
-			"_state":      entryState,
-			"_skip":       "1",
-			"_count":      "1",
+			return l.overallTimeoutResult(snc, detailsList), nil
 		}
-
-		if hasEntryThresholds {
-			thresholdEntry := maps.Clone(entry)
-			check.Check(thresholdEntry, check.warnThreshold, check.critThreshold, check.unknownThreshold, check.okThreshold)
-			check.result.EscalateStatus(convert.Int64(thresholdEntry["_state"]))
-		}
-
-		count++
-		switch entry["_state"] {
-		case "0":
-			okCount++
-		case "1":
-			warnCount++
-		case "2":
-			critCount++
-		default:
-			unknownCount++
-		}
-
-		check.listData = append(check.listData, entry)
-
-		allMetrics = appendChildMetrics(allMetrics, res, tag)
 	}
 
-	problemCount := warnCount + critCount + unknownCount
+	for _, rec := range executedChildren {
+		childText := rec.childOutput
+		if rec.externalTimedOut {
+			firstLine := strings.TrimRight(strings.Split(childText, "\n")[0], "\r\n ")
+			extTimeout := l.externalScriptTimeout(snc)
+			expectedTimeoutMsg := fmt.Sprintf("timeout after %ds", extTimeout)
+			if strings.Contains(firstLine, expectedTimeoutMsg) {
+				childText = fmt.Sprintf("%s (reached external scripts timeout of %ds)", firstLine, extTimeout)
+			} else {
+				childText = firstLine
+			}
+		}
+		line := fmt.Sprintf("[%s] %s", rec.tag, childText)
+		line = check.result.LiteralizeDetails(line)
+		detailsList = append(detailsList, line)
+	}
+
+	problemCount := counts.warning + counts.critical + counts.unknown
 	check.details = map[string]string{
-		"count":          fmt.Sprintf("%d", count),
-		"ok_count":       fmt.Sprintf("%d", okCount),
-		"warning_count":  fmt.Sprintf("%d", warnCount),
-		"warn_count":     fmt.Sprintf("%d", warnCount),
-		"critical_count": fmt.Sprintf("%d", critCount),
-		"crit_count":     fmt.Sprintf("%d", critCount),
-		"unknown_count":  fmt.Sprintf("%d", unknownCount),
+		"count":          fmt.Sprintf("%d", counts.count),
+		"ok_count":       fmt.Sprintf("%d", counts.ok),
+		"warning_count":  fmt.Sprintf("%d", counts.warning),
+		"warn_count":     fmt.Sprintf("%d", counts.warning),
+		"critical_count": fmt.Sprintf("%d", counts.critical),
+		"crit_count":     fmt.Sprintf("%d", counts.critical),
+		"unknown_count":  fmt.Sprintf("%d", counts.unknown),
 		"problem_count":  fmt.Sprintf("%d", problemCount),
 	}
 
@@ -393,7 +543,7 @@ func (l *CheckMulti) incrementCheckMultiCounter(ctx context.Context) *CheckResul
 
 // runChildCheck executes a single child check and returns its result.
 // The second return value is true when the error is fatal and the caller should stop processing.
-func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, check *CheckData, chk multiChildCheck) (*CheckResult, bool) {
+func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, chk multiChildCheck) (*CheckResult, bool) {
 	tokens := utils.Tokenize(chk.cmdStr)
 	tokens, err := utils.TrimQuotesList(tokens)
 
@@ -420,7 +570,11 @@ func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, check *Check
 		return snc.RunCheckWithContext(ctx, cmdName, cmdArgs, 0, nil, false), false
 	}
 
-	stdout, stderr, exitCode, _ := snc.runExternalCheckString(ctx, chk.cmdStr, int64(check.timeout))
+	timeout := snc.getBuiltinCmdTimeout()
+	if configuredTimeout, ok, err := snc.config.Section("/settings/external scripts").GetInt("timeout"); err == nil && ok && configuredTimeout > 0 {
+		timeout = configuredTimeout
+	}
+	stdout, stderr, exitCode, _ := snc.runExternalCheckString(ctx, chk.cmdStr, timeout)
 	out := stdout
 	if stderr != "" && !strings.Contains(out, stderr) {
 		if out != "" {

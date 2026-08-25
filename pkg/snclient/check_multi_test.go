@@ -144,6 +144,172 @@ func TestCheckMultiDefaultEnabled(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK when CheckMulti is enabled by default")
 }
 
+func TestCheckMultiGlobalTimeout(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses the Unix sleep command")
+	}
+
+	config := `
+[/modules]
+CheckMulti = enabled
+
+[/settings/default]
+timeout = 1
+
+[/settings/external scripts]
+timeout = 5
+
+[/settings/check/multi/timeout]
+command[slow] = sleep 3; echo OK
+command[never] = check_dummy 0 'must not run'
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{
+		"config=timeout",
+	})
+
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Equal(t, "UNKNOWN - check_multi timed out after 1s", res.Output)
+	assert.Contains(t, res.Details, "[slow] timed out after 1s (reached check_multi timeout of 1s)")
+	assert.NotContains(t, res.BuildOutputString(), "must not run")
+}
+
+func TestCheckMultiCustomScriptTimeout(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses the Unix sleep command")
+	}
+
+	config := `
+[/modules]
+CheckMulti = enabled
+
+[/settings/default]
+timeout = 5
+
+[/settings/external scripts]
+timeout = 1
+
+[/settings/check/multi/timeout]
+command[slow] = sleep 5
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{
+		"config=timeout",
+	})
+
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Contains(t, res.Output, "UNKNOWN - 1 plugins checked: 0 ok, 0 warning, 0 critical, 1 unknown - slow: UNKNOWN - script run into timeout after 1s")
+	assert.Contains(t, res.Details, "[slow] UNKNOWN - script run into timeout after 1s (reached external scripts timeout of 1s)")
+	assert.NotContains(t, res.Details, "(took ")
+}
+
+func TestCheckMultiLaterChildUsesRemainingTimeout(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses the Unix sleep command")
+	}
+
+	config := `
+[/modules]
+CheckMulti = enabled
+
+[/settings/default]
+timeout = 3
+
+[/settings/external scripts]
+timeout = 10
+
+[/settings/check/multi/timeout]
+command[check1] = /bin/sh -c 'sleep 1; echo OK'
+command[check2] = sleep 4
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{
+		"config=timeout",
+	})
+
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Equal(t, "UNKNOWN - check_multi timed out after 3s", res.Output)
+	assert.Contains(t, res.Details, "[check1] OK (took 1s)")
+	assert.Contains(t, res.Details, "[check2] timed out after 2s (reached check_multi timeout of 3s)")
+}
+
+func TestCheckMultiScenarioGlobalTimeoutPartialExecution(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses the Unix sleep command")
+	}
+
+	config := `
+[/modules]
+CheckMulti = enabled
+
+[/settings/default]
+timeout = 3
+
+[/settings/external scripts]
+timeout = 10
+
+[/settings/check/multi/scenario1]
+command[check1] = /bin/sh -c 'sleep 1; echo OK'
+command[check2] = sleep 4
+command[check3] = check_dummy 0 'check 3'
+command[check4] = check_dummy 0 'check 4'
+command[check5] = check_dummy 0 'check 5'
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{
+		"config=scenario1",
+	})
+
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Equal(t, "UNKNOWN - check_multi timed out after 3s", res.Output)
+	assert.Contains(t, res.Details, "[check1] OK (took 1s)")
+	assert.Contains(t, res.Details, "[check2] timed out after 2s (reached check_multi timeout of 3s)")
+	assert.NotContains(t, res.Details, "[check3]")
+	assert.NotContains(t, res.Details, "[check4]")
+	assert.NotContains(t, res.Details, "[check5]")
+}
+
+func TestCheckMultiScenarioExternalTimeoutSummaryAndDetails(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses the Unix sleep command")
+	}
+
+	config := `
+[/modules]
+CheckMulti = enabled
+
+[/settings/default]
+timeout = 5
+
+[/settings/external scripts]
+timeout = 2
+
+[/settings/check/multi/scenario2]
+command[check_drivesize] = check_dummy 0 'OK - All 1 drive(s) are ok'
+command[check_ext1] = sleep 4
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{
+		"config=scenario2",
+	})
+
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Equal(t, "UNKNOWN - 2 plugins checked: 1 ok, 0 warning, 0 critical, 1 unknown - unknown(check_ext1: UNKNOWN - script run into timeout after 2s)", res.Output)
+	assert.Contains(t, res.Details, "[check_drivesize] OK - All 1 drive(s) are ok")
+	assert.Contains(t, res.Details, "[check_ext1] UNKNOWN - script run into timeout after 2s (reached external scripts timeout of 2s)")
+	assert.NotContains(t, res.Details, "(took ")
+}
+
 func TestCheckMultiPreservesLiteralChildOutput(t *testing.T) {
 	snc := StartTestAgent(t, "")
 	defer StopTestAgent(t, snc)
