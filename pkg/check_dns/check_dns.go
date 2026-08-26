@@ -214,7 +214,9 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 				}
 				message.Id = dns.Id()
 
-				r, duration, err = c.Exchange(message, nameserver)
+				// Use the caller's context so an enclosing check (for example
+				// check_multi) can stop an in-flight DNS query at its deadline.
+				r, duration, err = c.ExchangeContext(ctx, message, nameserver)
 
 				if err == nil {
 					if len(r.Answer) == 0 {
@@ -251,6 +253,8 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 	go queryDNS()
 
 	select {
+	case <-ctx.Done():
+		return checkers.Unknown(ctx.Err().Error())
 	case <-time.After(time.Duration(opts.Timeout) * time.Second):
 		return checkers.Unknown(fmt.Sprintf("Failed to get a result after %d seconds", opts.Timeout))
 	case queryDNSSuccessful = <-queryDNSChan:

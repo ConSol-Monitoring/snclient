@@ -12,8 +12,8 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/convert"
 )
 
-func (l *CheckConnections) addIPV4(_ context.Context, check *CheckData) error {
-	counter, err := l.getProcStats("/proc/net/tcp")
+func (l *CheckConnections) addIPV4(ctx context.Context, check *CheckData) error {
+	counter, err := l.getProcStats(ctx, "/proc/net/tcp")
 	if err != nil {
 		return err
 	}
@@ -22,8 +22,8 @@ func (l *CheckConnections) addIPV4(_ context.Context, check *CheckData) error {
 	return nil
 }
 
-func (l *CheckConnections) addIPV6(_ context.Context, check *CheckData) error {
-	counter, err := l.getProcStats("/proc/net/tcp6")
+func (l *CheckConnections) addIPV6(ctx context.Context, check *CheckData) error {
+	counter, err := l.getProcStats(ctx, "/proc/net/tcp6")
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func (l *CheckConnections) addIPV6(_ context.Context, check *CheckData) error {
 	return nil
 }
 
-func (l *CheckConnections) getProcStats(file string) ([]uint64, error) {
+func (l *CheckConnections) getProcStats(ctx context.Context, file string) ([]uint64, error) {
 	log.Debugf("collecting stats from %s", file)
 	procFile, err := os.Open(file)
 	if err != nil {
@@ -44,6 +44,9 @@ func (l *CheckConnections) getProcStats(file string) ([]uint64, error) {
 	fileScanner := bufio.NewScanner(procFile)
 	fileScanner.Scan() // skip first header line
 	for fileScanner.Scan() {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, fmt.Errorf("scan %s canceled: %w", file, ctxErr)
+		}
 		line := fileScanner.Text()
 		fields := strings.Fields(line)
 		if len(fields) < 6 {

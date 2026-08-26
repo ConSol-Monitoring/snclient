@@ -135,7 +135,7 @@ Check for folder size:
 	}
 }
 
-func (l *CheckFiles) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckFiles) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	l.paths = append(l.paths, l.pathList...)
 	if len(l.paths) == 0 {
 		return nil, fmt.Errorf("no path specified")
@@ -160,10 +160,13 @@ func (l *CheckFiles) Check(_ context.Context, snc *Agent, check *CheckData, _ []
 	}
 
 	for _, checkPath := range l.paths {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, fmt.Errorf("file scan canceled: %w", ctxErr)
+		}
 		checkPath = l.normalizePath(checkPath)
 		log.Tracef("normalized checkPath: %s", checkPath)
 
-		walker := &fileWalker{cf: l, check: check, checkPath: checkPath, visited: make(map[string]bool), seenInodes: make(map[uint64]bool)}
+		walker := &fileWalker{isCanceled: ctx.Err, cf: l, check: check, checkPath: checkPath, visited: make(map[string]bool), seenInodes: make(map[uint64]bool)}
 
 		realRoot := checkPath
 		rootIsSymlink := false
@@ -210,6 +213,7 @@ func (l *CheckFiles) Check(_ context.Context, snc *Agent, check *CheckData, _ []
 // it registers new paths under the checkPath, even if the links take it outside of it
 // the depth is calculated with the checkpath being the root
 type fileWalker struct {
+	isCanceled func() error
 	cf         *CheckFiles
 	check      *CheckData
 	checkPath  string          // original check path this walk started from
@@ -228,6 +232,9 @@ func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error 
 	// filepath.WalkDir then calls the passed function with arguments:
 	// path is the current path of the file
 	return filepath.WalkDir(realRoot, func(path string, dirEntry fs.DirEntry, err error) error {
+		if ctxErr := w.isCanceled(); ctxErr != nil {
+			return fmt.Errorf("file walk canceled: %w", ctxErr)
+		}
 		entryType := "file"
 		if dirEntry != nil && dirEntry.Type().IsDir() {
 			entryType = "dir"

@@ -21,7 +21,12 @@ type PdhValue struct {
 }
 
 // Check implements CheckHandler.
-func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, args []Argument) (*CheckResult, error) {
+//
+//nolint:funlen // PDH setup is performed in one sequence before collecting values.
+func (c *CheckPDH) check(ctx context.Context, _ *Agent, check *CheckData, args []Argument) (*CheckResult, error) {
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, fmt.Errorf("PDH check canceled: %w", ctxErr)
+	}
 	// If the counter path is empty we need to parse the argument ourself for the optional alias case counter:alias=...
 	if c.CounterPath == "" {
 		err := c.parseCheckSpecificArgs(args)
@@ -89,7 +94,7 @@ func (c *CheckPDH) check(_ context.Context, _ *Agent, check *CheckData, args []A
 	}
 
 	// Collect Values For All Counters and save values in check.listData
-	err = c.collectValuesForAllCounters(hQuery, counters, check)
+	err = c.collectValuesForAllCounters(ctx, hQuery, counters, check)
 	if err != nil {
 		return nil, fmt.Errorf("could not get values for all counter path, error: %s", err.Error())
 	}
@@ -118,9 +123,15 @@ func (c *CheckPDH) parseCheckSpecificArgs(args []Argument) error {
 	return nil
 }
 
-func (c *CheckPDH) collectValuesForAllCounters(hQuery pdh.PDH_HQUERY, counters map[string]pdh.PDH_HCOUNTER, check *CheckData) error {
+func (c *CheckPDH) collectValuesForAllCounters(ctx context.Context, hQuery pdh.PDH_HQUERY, counters map[string]pdh.PDH_HCOUNTER, check *CheckData) error {
 	for counterPath, hCounter := range counters {
-		largeArr, ret := collectLargeValuesArray(hCounter, hQuery)
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return fmt.Errorf("PDH value collection canceled: %w", ctxErr)
+		}
+		largeArr, ret, err := collectLargeValuesArray(ctx, hCounter, hQuery)
+		if err != nil {
+			return err
+		}
 		if ret != pdh.ERROR_SUCCESS && ret != pdh.PDH_MORE_DATA && ret != pdh.PDH_NO_MORE_DATA {
 			return fmt.Errorf("could not collect formatted value %v", ret)
 		}
@@ -167,16 +178,20 @@ func (c *CheckPDH) addAllPathToCounter(hQuery pdh.PDH_HQUERY, possiblePaths []st
 	return counters, nil
 }
 
-func collectQueryData(hQuery *pdh.PDH_HQUERY) uint32 {
+func collectQueryData(ctx context.Context, hQuery *pdh.PDH_HQUERY) (uint32, error) {
 	ret := pdh.PdhCollectQueryData(*hQuery)
 	if ret != pdh.PDH_MORE_DATA && ret != pdh.ERROR_SUCCESS {
-		return ret
+		return ret, nil
 	}
 	// PDH requires a double collection with a second wait between the calls See MSDN
-	time.Sleep(querySleepDuration)
+	select {
+	case <-ctx.Done():
+		return 0, fmt.Errorf("PDH data collection canceled: %w", ctx.Err())
+	case <-time.After(querySleepDuration):
+	}
 	ret = pdh.PdhCollectQueryData(*hQuery)
 
-	return ret
+	return ret, nil
 }
 
 /*
@@ -184,13 +199,15 @@ func collectQueryData(hQuery *pdh.PDH_HQUERY) uint32 {
 - Collect formatted with size = 0 to get actual size
 - if More Data -> Create Actual Array and fill
 */
-func collectLargeValuesArray(hCounter pdh.PDH_HCOUNTER, hQuery pdh.PDH_HQUERY) (values []PdhValue, apiResponseCode uint32) {
+func collectLargeValuesArray(ctx context.Context, hCounter pdh.PDH_HCOUNTER, hQuery pdh.PDH_HQUERY) (values []PdhValue, apiResponseCode uint32, err error) {
 	var bufCount uint32
 	var bufSize uint32
 	size := uint32(unsafe.Sizeof(pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE{}))
 	var emptyBuf [1]pdh.PDH_FMT_COUNTERVALUE_ITEM_LARGE // need at least 1 addressable null ptr.
-	if res := collectQueryData(&hQuery); res != pdh.ERROR_SUCCESS {
-		return nil, res
+	if res, err := collectQueryData(ctx, &hQuery); err != nil {
+		return nil, 0, err
+	} else if res != pdh.ERROR_SUCCESS {
+		return nil, res, nil
 	}
 	returnArray := []PdhValue{}
 	if ret := pdh.PdhGetFormattedCounterArrayLarge(hCounter, &bufSize, &bufCount, &emptyBuf[0]); ret == pdh.PDH_MORE_DATA {
@@ -204,5 +221,5 @@ func collectLargeValuesArray(hCounter pdh.PDH_HCOUNTER, hQuery pdh.PDH_HQUERY) (
 		}
 	}
 
-	return returnArray, pdh.ERROR_SUCCESS
+	return returnArray, pdh.ERROR_SUCCESS, nil
 }

@@ -77,20 +77,23 @@ func (l *CheckNetwork) Build() *CheckData {
 	}
 }
 
-func (l *CheckNetwork) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckNetwork) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	l.snc = snc
 
 	interfaceList, err := net.Interfaces()
 	if err != nil {
 		return nil, fmt.Errorf("net.Interfaces: %s", err.Error())
 	}
-	IOList, err := net.IOCounters(true)
+	IOList, err := net.IOCountersWithContext(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("net.IOCounters: %s", err.Error())
 	}
 
 	found := map[string]bool{}
 	for intnr, int := range interfaceList {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, fmt.Errorf("network interface scan canceled: %w", ctxErr)
+		}
 		if slices.Contains(l.excludes, int.Name) {
 			log.Tracef("device %s excluded by 'exclude' argument", int.Name)
 

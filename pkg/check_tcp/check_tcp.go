@@ -48,7 +48,7 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 		return int(checkers.UNKNOWN)
 	}
 
-	ckr := opts.run(output)
+	ckr := opts.run(ctx, output)
 	ckr.Name = "TCP"
 	if opts.Service != "" {
 		ckr.Name = opts.Service
@@ -195,17 +195,23 @@ func (opts *tcpOpts) merge(ex exchange) {
 	}
 }
 
-func dial(network, address string, ssl bool, noCheckCertificate bool, timeout time.Duration) (net.Conn, error) {
+func dial(ctx context.Context, network, address string, ssl bool, noCheckCertificate bool, timeout time.Duration) (net.Conn, error) {
 	d := &net.Dialer{Timeout: timeout}
 	if ssl {
-		return tls.DialWithDialer(d, network, address, &tls.Config{
-			InsecureSkipVerify: noCheckCertificate,
-		})
+		tlsDialer := &tls.Dialer{
+			NetDialer: d,
+			Config: &tls.Config{
+				InsecureSkipVerify: noCheckCertificate,
+			},
+		}
+
+		return tlsDialer.DialContext(ctx, network, address)
 	}
-	return d.Dial(network, address)
+
+	return d.DialContext(ctx, network, address)
 }
 
-func (opts *tcpOpts) run(output io.Writer) *checkers.Checker {
+func (opts *tcpOpts) run(ctx context.Context, output io.Writer) *checkers.Checker {
 	err := opts.prepare()
 	if err != nil {
 		return checkers.Unknown(err.Error())
@@ -230,14 +236,21 @@ func (opts *tcpOpts) run(output io.Writer) *checkers.Checker {
 	timeout := time.Duration(opts.Timeout * float64(time.Second))
 	start := time.Now()
 	if opts.Delay > 0 {
-		time.Sleep(time.Duration(opts.Delay) * time.Second)
+		select {
+		case <-ctx.Done():
+			return checkers.Unknown(ctx.Err().Error())
+		case <-time.After(time.Duration(opts.Delay) * time.Second):
+		}
 	}
 
 	if opts.Verbose {
 		fmt.Fprintf(output, "Establishing a connection to addr: %s protocol: %s ssl: %t noCheckCertificate: %t timeout: %f\n", addr, proto, opts.SSL, opts.NoCheckCertificate, timeout.Seconds())
 	}
-	conn, err := dial(proto, addr, opts.SSL, opts.NoCheckCertificate, timeout)
+	conn, err := dial(ctx, proto, addr, opts.SSL, opts.NoCheckCertificate, timeout)
 	if err != nil {
+		if ctx.Err() != nil {
+			return checkers.Unknown(ctx.Err().Error())
+		}
 		if opts.ExpectClosed {
 			var msg string
 			if opts.UnixSock == "" {
@@ -253,6 +266,8 @@ func (opts *tcpOpts) run(output io.Writer) *checkers.Checker {
 		return checkers.Critical(err.Error())
 	}
 	defer conn.Close()
+	stopCancelWatch := closeOnContextDone(ctx, conn)
+	defer stopCancelWatch()
 
 	if opts.ExpectClosed {
 		var msg string
@@ -273,6 +288,9 @@ func (opts *tcpOpts) run(output io.Writer) *checkers.Checker {
 		}
 		err := write(conn, []byte(opts.Send), timeout)
 		if err != nil {
+			if ctx.Err() != nil {
+				return checkers.Unknown(ctx.Err().Error())
+			}
 			if opts.ErrWarning {
 				return checkers.Warning(err.Error())
 			}
@@ -284,6 +302,9 @@ func (opts *tcpOpts) run(output io.Writer) *checkers.Checker {
 	if opts.expectReg != nil {
 		buf, err := slurp(conn, opts.MaxBytes, timeout)
 		if err != nil {
+			if ctx.Err() != nil {
+				return checkers.Unknown(ctx.Err().Error())
+			}
 			if opts.ErrWarning {
 				return checkers.Warning(err.Error())
 			}
@@ -308,6 +329,9 @@ func (opts *tcpOpts) run(output io.Writer) *checkers.Checker {
 		}
 		err := write(conn, []byte(opts.Quit), timeout)
 		if err != nil {
+			if ctx.Err() != nil {
+				return checkers.Unknown(ctx.Err().Error())
+			}
 			if opts.ErrWarning {
 				return checkers.Warning(err.Error())
 			}
@@ -337,6 +361,20 @@ func (opts *tcpOpts) run(output io.Writer) *checkers.Checker {
 	msg += fmt.Sprintf(" | time=%fs;;;%f;%f", elapsedSeconds, opts.Warning, opts.Critical)
 
 	return checkers.NewChecker(chkSt, msg)
+}
+
+// closeOnContextDone interrupts connection reads and writes when the caller cancels the check.
+func closeOnContextDone(ctx context.Context, conn net.Conn) func() {
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.Close()
+		case <-done:
+		}
+	}()
+
+	return func() { close(done) }
 }
 
 func write(conn net.Conn, content []byte, timeout time.Duration) error {

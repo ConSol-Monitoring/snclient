@@ -99,7 +99,7 @@ Changing the return syntax to get more information:
 func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
 
-	physical, err := mem.VirtualMemory()
+	physical, err := mem.VirtualMemoryWithContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fetching virtual memory failed: %s", err.Error())
 	}
@@ -120,7 +120,7 @@ func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ [
 		case "physical":
 			l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total)
 		case "swap":
-			swap, err := mem.SwapMemory()
+			swap, err := mem.SwapMemoryWithContext(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
 			}
