@@ -86,7 +86,7 @@ func (l *CheckNetwork) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	}
 	IOList, err := net.IOCountersWithContext(ctx, true)
 	if err != nil {
-		return nil, fmt.Errorf("net.IOCounters: %s", err.Error())
+		return nil, fmt.Errorf("net.IOCounters: %w", err)
 	}
 
 	found := map[string]bool{}

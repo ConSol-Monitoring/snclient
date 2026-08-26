@@ -182,7 +182,7 @@ func (l *CheckFiles) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 		}
 
 		if err := walker.walk(realRoot, checkPath, rootIsSymlink); err != nil {
-			return nil, fmt.Errorf("error walking directory %s: %s", checkPath, err.Error())
+			return nil, fmt.Errorf("error walking directory %s: %w", checkPath, err)
 		}
 	}
 

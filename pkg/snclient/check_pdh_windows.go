@@ -90,13 +90,13 @@ func (c *CheckPDH) check(ctx context.Context, _ *Agent, check *CheckData, args [
 
 	counters, err := c.addAllPathToCounter(hQuery, possiblePaths)
 	if err != nil {
-		return nil, fmt.Errorf("could not add all counter path to query, error: %s", err.Error())
+		return nil, fmt.Errorf("could not add all counter path to query, error: %w", err)
 	}
 
 	// Collect Values For All Counters and save values in check.listData
 	err = c.collectValuesForAllCounters(ctx, hQuery, counters, check)
 	if err != nil {
-		return nil, fmt.Errorf("could not get values for all counter path, error: %s", err.Error())
+		return nil, fmt.Errorf("could not get values for all counter path, error: %w", err)
 	}
 
 	return check.Finalize()
