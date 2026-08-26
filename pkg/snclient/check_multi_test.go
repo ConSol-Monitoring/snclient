@@ -176,6 +176,31 @@ command[never] = check_dummy 0 'must not run'
 	assert.NotContains(t, res.BuildOutputString(), "must not run")
 }
 
+func TestCheckMultiGlobalTimeoutPreservesLiteralChildOutput(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses the Unix sleep command")
+	}
+
+	config := `
+[/modules]
+CheckMulti = enabled
+
+[/settings/default]
+timeout = 1
+
+[/settings/check/multi/timeout]
+command[literal] = check_dummy 0 '%(count) {{ IF condition }}literal{{ END }}'
+command[slow] = sleep 3
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{"config=timeout"})
+
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Contains(t, res.Details, "[literal] %(count) {{ IF condition }}literal{{ END }} (took ")
+}
+
 func TestCheckMultiCustomScriptTimeout(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("uses the Unix sleep command")

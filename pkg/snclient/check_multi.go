@@ -136,21 +136,25 @@ type multiChildCheck struct {
 	isInline bool
 }
 
-func (l *CheckMulti) childTimeoutResult(timeout, totalTimeout int64) *CheckResult {
+func (l *CheckMulti) childTimeoutResult(timeout time.Duration, totalTimeout int64) *CheckResult {
 	return &CheckResult{
 		State:  CheckExitUnknown,
-		Output: fmt.Sprintf("timed out after %ds (reached check_multi timeout of %ds)", timeout, totalTimeout),
+		Output: fmt.Sprintf("timed out after %s (reached check_multi timeout of %ds)", l.formatTimeout(timeout), totalTimeout),
 	}
 }
 
-func (l *CheckMulti) overallTimeoutResult(snc *Agent, details []string) *CheckResult {
+func (l *CheckMulti) overallTimeoutResult(check *CheckData, snc *Agent, children []childRecord) *CheckResult {
 	timeout := snc.getBuiltinCmdTimeout()
-
-	return &CheckResult{
-		State:   CheckExitUnknown,
-		Output:  fmt.Sprintf("UNKNOWN - check_multi timed out after %ds", timeout),
-		Details: strings.Join(details, "\n"),
+	details := make([]string, 0, len(children))
+	for _, child := range children {
+		details = append(details, check.result.LiteralizeDetails(l.timeoutDetail(child)))
 	}
+
+	check.result.State = CheckExitUnknown
+	check.result.Output = fmt.Sprintf("UNKNOWN - check_multi timed out after %ds", timeout)
+	check.result.Details = strings.Join(details, "\n")
+
+	return check.result
 }
 
 func (l *CheckMulti) externalScriptTimeoutResult(res *CheckResult) bool {
@@ -178,13 +182,19 @@ func (l *CheckMulti) formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%.1fs", sec)
 }
 
-func (l *CheckMulti) remainingTimeoutSeconds(ctx context.Context) int64 {
+func (l *CheckMulti) formatTimeout(d time.Duration) string {
+	seconds := max(int64(math.Ceil(d.Seconds())), 0)
+
+	return fmt.Sprintf("%ds", seconds)
+}
+
+func (l *CheckMulti) remainingTimeout(ctx context.Context) time.Duration {
 	deadline, ok := ctx.Deadline()
 	if !ok {
 		return 0
 	}
 
-	remaining := int64(math.Ceil(time.Until(deadline).Seconds()))
+	remaining := time.Until(deadline)
 	if remaining < 0 {
 		return 0
 	}
@@ -410,25 +420,18 @@ func (l *CheckMulti) recordChildResult(
 }
 
 // runOneChild executes a single child check and returns the result along with metadata.
-// It detects whether the child timed out due to the parent's deadline and adjusts the
-// result accordingly. Returns (result, record, fatal).
+// The parent context deadline takes precedence over an external script timeout.
 func (l *CheckMulti) runOneChild(ctx context.Context, snc *Agent, chk multiChildCheck) (*CheckResult, childRecord, bool) {
-	childTimeout := l.remainingTimeoutSeconds(ctx)
+	childTimeout := l.remainingTimeout(ctx)
 	childStart := time.Now()
 	res, fatal := l.runChildCheck(ctx, snc, chk)
 	childElapsed := time.Since(childStart)
-	parentTimedOut := errors.Is(ctx.Err(), context.DeadlineExceeded) || l.remainingTimeoutSeconds(ctx) <= 0
+	parentTimedOut := errors.Is(ctx.Err(), context.DeadlineExceeded)
 	externalTimedOut := l.externalScriptTimeoutResult(res)
-
-	// If the child was an external script whose effective timeout was reduced by the parent
-	// deadline (i.e. remaining budget < configured external timeout), and it returned a
-	// script-timeout result, the parent deadline caused the termination — treat as parentTimedOut.
-	if !parentTimedOut && externalTimedOut && childTimeout > 0 && childTimeout < l.externalScriptTimeout(snc) {
-		parentTimedOut = true
-	}
 
 	if parentTimedOut {
 		res = l.childTimeoutResult(childTimeout, snc.getBuiltinCmdTimeout())
+		externalTimedOut = false
 	}
 
 	rec := childRecord{
@@ -442,18 +445,46 @@ func (l *CheckMulti) runOneChild(ctx context.Context, snc *Agent, chk multiChild
 	return res, rec, fatal
 }
 
+func (l *CheckMulti) timeoutDetail(child childRecord) string {
+	if child.parentTimedOut {
+		return fmt.Sprintf("[%s] %s", child.tag, child.childOutput)
+	}
+
+	output := strings.TrimRight(child.childOutput, "\r\n ")
+
+	return fmt.Sprintf("[%s] %s (took %s)", child.tag, output, child.durationStr)
+}
+
+func (l *CheckMulti) childDetail(child childRecord, externalTimeout int64) string {
+	output := child.childOutput
+	if child.externalTimedOut {
+		firstLine := strings.TrimRight(strings.Split(output, "\n")[0], "\r\n ")
+		expectedTimeoutMsg := fmt.Sprintf("timeout after %ds", externalTimeout)
+		if strings.Contains(firstLine, expectedTimeoutMsg) {
+			output = fmt.Sprintf("%s (reached external scripts timeout of %ds)", firstLine, externalTimeout)
+		} else {
+			output = firstLine
+		}
+	}
+
+	return fmt.Sprintf("[%s] %s", child.tag, output)
+}
+
 // executeChildChecks runs all child checks and aggregates results.
 func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *CheckData, childChecks []multiChildCheck) (*CheckResult, error) {
 	var counts childCheckCounts
 
 	executedChildren := make([]childRecord, 0, len(childChecks))
-	detailsList := make([]string, 0, len(childChecks))
 	allMetrics := make([]*CheckMetric, 0)
 
 	hasEntryThresholds := check.HasThreshold("name") || check.HasThreshold("tag") || check.HasThreshold("command") ||
 		check.HasThreshold("output") || check.HasThreshold("shortoutput") || check.HasThreshold("status") || check.HasThreshold("state")
 
 	for _, chk := range childChecks {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return l.overallTimeoutResult(check, snc, executedChildren), nil
+		}
+
 		if res := l.incrementCheckMultiCounter(ctx); res != nil {
 			return res, nil
 		}
@@ -463,40 +494,20 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 			return res, nil
 		}
 
+		if rec.parentTimedOut {
+			executedChildren = append(executedChildren, rec)
+
+			return l.overallTimeoutResult(check, snc, executedChildren), nil
+		}
+
 		executedChildren = append(executedChildren, rec)
 		l.recordChildResult(check, chk, res, rec, hasEntryThresholds, &counts, &allMetrics)
-
-		if rec.parentTimedOut {
-			for _, child := range executedChildren {
-				var line string
-				if child.parentTimedOut {
-					line = fmt.Sprintf("[%s] %s", child.tag, child.childOutput)
-				} else {
-					trimmedOutput := strings.TrimRight(child.childOutput, "\r\n ")
-					line = fmt.Sprintf("[%s] %s (took %s)", child.tag, trimmedOutput, child.durationStr)
-				}
-				detailsList = append(detailsList, line)
-			}
-
-			return l.overallTimeoutResult(snc, detailsList), nil
-		}
 	}
 
+	detailsList := make([]string, 0, len(executedChildren))
+	externalTimeout := l.externalScriptTimeout(snc)
 	for _, rec := range executedChildren {
-		childText := rec.childOutput
-		if rec.externalTimedOut {
-			firstLine := strings.TrimRight(strings.Split(childText, "\n")[0], "\r\n ")
-			extTimeout := l.externalScriptTimeout(snc)
-			expectedTimeoutMsg := fmt.Sprintf("timeout after %ds", extTimeout)
-			if strings.Contains(firstLine, expectedTimeoutMsg) {
-				childText = fmt.Sprintf("%s (reached external scripts timeout of %ds)", firstLine, extTimeout)
-			} else {
-				childText = firstLine
-			}
-		}
-		line := fmt.Sprintf("[%s] %s", rec.tag, childText)
-		line = check.result.LiteralizeDetails(line)
-		detailsList = append(detailsList, line)
+		detailsList = append(detailsList, check.result.LiteralizeDetails(l.childDetail(rec, externalTimeout)))
 	}
 
 	problemCount := counts.warning + counts.critical + counts.unknown
