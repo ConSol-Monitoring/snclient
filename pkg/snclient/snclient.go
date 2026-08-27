@@ -1126,6 +1126,7 @@ func InjectLogLevelArgs(args []string, flags *AgentFlags, pos string) (newArgs [
 }
 
 // CheckUpdateBinary checks if we run as snclient.update.exe and if so, move that file in place and restart
+// depending on the permissions, re-exec into the update binary
 func (snc *Agent) CheckUpdateBinary(mode string) {
 	tmpUpdateFile, executable := snc.buildUpdateFile(GlobalMacros["exe-full"])
 
