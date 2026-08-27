@@ -99,9 +99,9 @@ Changing the return syntax to get more information:
 func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
 
-	physical, err := mem.VirtualMemory()
+	physical, err := mem.VirtualMemoryWithContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("fetching virtual memory failed: %s", err.Error())
+		return nil, fmt.Errorf("fetching virtual memory failed: %w", err)
 	}
 
 	if physical.Total == 0 {
@@ -120,9 +120,9 @@ func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ [
 		case "physical":
 			l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total)
 		case "swap":
-			swap, err := mem.SwapMemory()
+			swap, err := mem.SwapMemoryWithContext(ctx)
 			if err != nil {
-				return nil, fmt.Errorf("fetching swap failed: %s", err.Error())
+				return nil, fmt.Errorf("fetching swap failed: %w", err)
 			}
 			// osx changes swap total on demand, so always return something in inventory mode
 			if swap.Total > 0 || check.hasArgsSupplied["type"] || (runtime.GOOS == "darwin" && check.output == OutputInventory) {

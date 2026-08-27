@@ -235,6 +235,9 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	l.tidyThresholdDriveValues(check)
 
 	for _, k := range keys {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, fmt.Errorf("disk scan canceled: %w", ctxErr)
+		}
 		drive := requiredDisks[k]
 		if l.isExcluded(drive, l.excludes) {
 			continue

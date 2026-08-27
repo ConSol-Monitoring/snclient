@@ -119,7 +119,9 @@ Non-OK output example
 }
 
 // Check implements CheckHandler.
-func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+//
+//nolint:funlen // The check setup and file traversal belong together.
+func (c *CheckLogFile) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	c.snc = snc
 
 	patterns, allowedPattern, err := c.processArguments()
@@ -142,6 +144,9 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 	}
 
 	for _, filePattern := range c.FilePathPatterns {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, fmt.Errorf("log file scan canceled: %w", ctxErr)
+		}
 		if filePattern == "" {
 			continue
 		}
@@ -157,6 +162,9 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 		}
 
 		for _, fileName := range filesMatchingPattern {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return nil, fmt.Errorf("log file scan canceled: %w", ctxErr)
+			}
 			if !c.matchPattern(fileName, allowedPattern) {
 				log.Tracef("allowed pattern check failed for file: %s (pattern: %#v)", fileName, allowedPattern)
 
@@ -164,7 +172,7 @@ func (c *CheckLogFile) Check(_ context.Context, snc *Agent, check *CheckData, _ 
 			}
 
 			log.Debugf("adding file: %s", fileName)
-			entries, lineIndex, err := c.addFile(fileName, check, patterns)
+			entries, lineIndex, err := c.addFile(ctx, fileName, check, patterns)
 			if err != nil {
 				switch {
 				case os.IsPermission(err):
@@ -267,7 +275,7 @@ func (c *CheckLogFile) buildFileCountsDetailString(checkedFilesWithMatchedEntrie
 }
 
 //nolint:wrapcheck // need to preserve the type of error that comes of from os.Open. The caller then checks the type. If we wrapped it, it would be a generic error out of fmt.Errorf
-func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[string]*regexp.Regexp) (entries []map[string]string, lineIndex int, err error) {
+func (c *CheckLogFile) addFile(ctx context.Context, fileName string, check *CheckData, labels map[string]*regexp.Regexp) (entries []map[string]string, lineIndex int, err error) {
 	file, err := os.Open(fileName)
 	if err != nil {
 		return entries, 0, err
@@ -320,6 +328,9 @@ func (c *CheckLogFile) addFile(fileName string, check *CheckData, labels map[str
 	columnNumbers := c.getRequiredColumnNumbers(check)
 
 	for lineIndex = 0; scanner.Scan(); lineIndex++ {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return lineStorage, lineIndex, fmt.Errorf("read %s canceled: %w", fileName, ctxErr)
+		}
 		line := scanner.Text()
 
 		if int64(lineIndex) > c.MaxLinesPerFile {
