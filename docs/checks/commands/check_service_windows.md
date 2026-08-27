@@ -65,7 +65,7 @@ Naemon Config
 
 | Argument | Description                                                                                           |
 | -------- | ----------------------------------------------------------------------------------------------------- |
-| exclude  | List of services to exclude from the check (mainly used when service is set to \*) (case insensitive) |
+| exclude  | List of case-insensitive services to exclude from the check (mainly used when service is set to \*). Supports wildcards. |
 | service  | List of services to check (set to \* to check all services). (case insensitive) Default: \*           |
 
 ## Attributes

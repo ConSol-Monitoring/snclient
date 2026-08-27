@@ -31,3 +31,8 @@ func TestCheckService(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 service", "output matches")
 }
+
+func TestCheckServiceWindowsExcludeWildcard(t *testing.T) {
+	assert.True(t, matchesServiceExclude([]string{"Wildcard*"}, "Wildcard"))
+	assert.True(t, matchesServiceExclude([]string{"Wildcard*"}, "WildcardTest"))
+}
