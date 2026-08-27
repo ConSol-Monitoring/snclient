@@ -297,6 +297,9 @@ func (snc *Agent) Run() {
 	snc.createPidFile()
 	defer snc.deletePidFile()
 
+	// cleanup inherited child processes when started with syscall.Exec
+	reapInheritedChildProcesses()
+
 	signal.Notify(snc.osSignalChannel, syscall.SIGHUP)
 	signal.Notify(snc.osSignalChannel, syscall.SIGTERM)
 	signal.Notify(snc.osSignalChannel, os.Interrupt)

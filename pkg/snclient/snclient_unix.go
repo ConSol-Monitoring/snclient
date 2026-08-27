@@ -237,3 +237,37 @@ func (snc *Agent) checkFileOwner(path string) error {
 
 	return nil
 }
+
+// reap all inherited processes on startup to not accumulate zombies
+func reapInheritedChildProcesses() {
+	for {
+		var status syscall.WaitStatus
+		// WNOHANG: return immediately if no child has exited.
+		// pid -1: wait for any child process.
+		pid, err := syscall.Wait4(-1, &status, syscall.WNOHANG, nil)
+		if err != nil {
+			// ECHILD means no children exist at all — nothing to reap.
+			if errors.Is(err, syscall.ECHILD) {
+				return
+			}
+
+			// EINTR: interrupted, try again.
+			if errors.Is(err, syscall.EINTR) {
+				time.Sleep(100 * time.Millisecond)
+
+				continue
+			}
+
+			log.Warnf("wait4 error: %s", err.Error())
+
+			return
+		}
+
+		// pid == 0: no more exited children to reap right now.
+		if pid <= 0 {
+			return
+		}
+
+		log.Warnf("reaped inherited child pid=%d status=%v", pid, status)
+	}
+}
