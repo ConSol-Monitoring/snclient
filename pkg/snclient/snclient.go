@@ -1008,12 +1008,17 @@ func (snc *Agent) buildStartupMsg() string {
 	if err != nil {
 		log.Debugf("failed to get platform host id: %s", err.Error())
 	}
-	u, err := user.Current()
+	usr, err := user.Current()
 	if err != nil {
 		log.Debugf("failed to get current user: %s", err.Error())
 	}
-	msg := fmt.Sprintf("%s starting (version:v%s.%s - build:%s - host:%s - pid:%d - os:%s %s - arch:%s - %s - user:%s)",
-		NAME, VERSION, Revision, Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH, runtime.Version(), u.Username)
+	extra := ""
+	if runtime.GOOS == "linux" {
+		extra = fmt.Sprintf(" - capabilities:%v", HasCapabilities())
+	}
+
+	msg := fmt.Sprintf("%s starting (version:v%s.%s - build:%s - host:%s - pid:%d - os:%s %s - arch:%s - %s - user:%s%s)",
+		NAME, VERSION, Revision, Build, hostid, os.Getpid(), platform, pversion, runtime.GOARCH, runtime.Version(), usr.Username, extra)
 
 	return msg
 }
@@ -1121,6 +1126,7 @@ func InjectLogLevelArgs(args []string, flags *AgentFlags, pos string) (newArgs [
 }
 
 // CheckUpdateBinary checks if we run as snclient.update.exe and if so, move that file in place and restart
+// depending on the permissions, re-exec into the update binary
 func (snc *Agent) CheckUpdateBinary(mode string) {
 	tmpUpdateFile, executable := snc.buildUpdateFile(GlobalMacros["exe-full"])
 
