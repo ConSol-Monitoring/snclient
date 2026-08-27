@@ -232,6 +232,40 @@ command[slow] = sleep 5
 	assert.NotContains(t, res.Details, "(took ")
 }
 
+func TestCheckMultiNamedExternalScriptUsesParentTimeout(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses the Unix sleep command")
+	}
+
+	config := `
+[/modules]
+CheckMulti = enabled
+CheckExternalScripts = enabled
+
+[/settings/default]
+timeout = 3
+
+[/settings/external scripts]
+timeout = 2
+
+[/settings/external scripts/scripts]
+check_ext = sleep 10
+
+[/settings/check/multi/timeout]
+command[check_ext1] = check_ext
+command[check_ext2] = check_ext
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{"config=timeout"})
+
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Equal(t, "UNKNOWN - check_multi timed out after 3s", res.Output)
+	assert.Contains(t, res.Details, "[check_ext1] UNKNOWN - script run into timeout after 2s (took ")
+	assert.Contains(t, res.Details, "[check_ext2] timed out after 1s (reached check_multi timeout of 3s)")
+}
+
 func TestCheckMultiLaterChildUsesRemainingTimeout(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("uses the Unix sleep command")

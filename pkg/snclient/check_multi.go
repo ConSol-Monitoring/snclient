@@ -136,10 +136,10 @@ type multiChildCheck struct {
 	isInline bool
 }
 
-func (l *CheckMulti) childTimeoutResult(timeout time.Duration, totalTimeout int64) *CheckResult {
+func (l *CheckMulti) childTimeoutResult(timeout, totalTimeout time.Duration) *CheckResult {
 	return &CheckResult{
 		State:  CheckExitUnknown,
-		Output: fmt.Sprintf("timed out after %s (reached check_multi timeout of %ds)", l.formatTimeout(timeout), totalTimeout),
+		Output: fmt.Sprintf("timed out after %s (reached check_multi timeout of %s)", l.formatTimeout(timeout), totalTimeout),
 	}
 }
 
@@ -151,7 +151,7 @@ func (l *CheckMulti) overallTimeoutResult(check *CheckData, snc *Agent, children
 	}
 
 	check.result.State = CheckExitUnknown
-	check.result.Output = fmt.Sprintf("UNKNOWN - check_multi timed out after %ds", timeout)
+	check.result.Output = fmt.Sprintf("UNKNOWN - check_multi timed out after %s", timeout)
 	check.result.Details = strings.Join(details, "\n")
 
 	return check.result
@@ -161,13 +161,13 @@ func (l *CheckMulti) externalScriptTimeoutResult(res *CheckResult) bool {
 	return res.State == CheckExitUnknown && strings.Contains(res.Output, "script run into timeout after")
 }
 
-func (l *CheckMulti) externalScriptTimeout(snc *Agent) int64 {
+func (l *CheckMulti) externalScriptTimeout(snc *Agent) time.Duration {
 	timeout, ok, err := snc.config.Section("/settings/external scripts").GetDuration("timeout")
 	if err != nil || !ok || timeout <= 0 {
 		return snc.getBuiltinCmdTimeout()
 	}
 
-	return int64(math.Ceil(timeout))
+	return timeout
 }
 
 func (l *CheckMulti) formatDuration(d time.Duration) string {
@@ -211,7 +211,7 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 		}, nil
 	}
 	timeout := snc.getBuiltinCmdTimeout()
-	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	ctx = timeoutCtx
 
@@ -455,13 +455,13 @@ func (l *CheckMulti) timeoutDetail(child childRecord) string {
 	return fmt.Sprintf("[%s] %s (took %s)", child.tag, output, child.durationStr)
 }
 
-func (l *CheckMulti) childDetail(child childRecord, externalTimeout int64) string {
+func (l *CheckMulti) childDetail(child childRecord, externalTimeout time.Duration) string {
 	output := child.childOutput
 	if child.externalTimedOut {
 		firstLine := strings.TrimRight(strings.Split(output, "\n")[0], "\r\n ")
-		expectedTimeoutMsg := fmt.Sprintf("timeout after %ds", externalTimeout)
+		expectedTimeoutMsg := fmt.Sprintf("timeout after %s", externalTimeout)
 		if strings.Contains(firstLine, expectedTimeoutMsg) {
-			output = fmt.Sprintf("%s (reached external scripts timeout of %ds)", firstLine, externalTimeout)
+			output = fmt.Sprintf("%s (reached external scripts timeout of %s)", firstLine, externalTimeout)
 		} else {
 			output = firstLine
 		}
@@ -582,7 +582,7 @@ func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, chk multiChi
 	}
 
 	timeout := snc.getBuiltinCmdTimeout()
-	if configuredTimeout, ok, err := snc.config.Section("/settings/external scripts").GetInt("timeout"); err == nil && ok && configuredTimeout > 0 {
+	if configuredTimeout, ok, err := snc.config.Section("/settings/external scripts").GetDuration("timeout"); err == nil && ok && configuredTimeout > 0 {
 		timeout = configuredTimeout
 	}
 	stdout, stderr, exitCode, _ := snc.runExternalCheckString(ctx, chk.cmdStr, timeout)
