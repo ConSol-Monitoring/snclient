@@ -67,10 +67,10 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument | Description                                                                                           |
-| -------- | ----------------------------------------------------------------------------------------------------- |
+| Argument | Description                                                                                                |
+| -------- | ---------------------------------------------------------------------------------------------------------- |
 | exclude  | List of case-insensitive services to exclude from the check (mainly used when service is set to \*). Supports wildcards. |
-| service  | List of services to check (set to \* to check all services). (case insensitive) Default: \*           |
+| service  | List of services to check (set to \* to check all services). (case insensitive) Default: \*                |
 
 ## Attributes
 
