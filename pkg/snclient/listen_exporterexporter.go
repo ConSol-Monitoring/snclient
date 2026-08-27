@@ -279,7 +279,7 @@ func (l *HandlerExporterExporter) modulesAdd(snc *Agent, modules map[string]*exp
 	mcfg.snc = snc
 
 	if mcfg.Timeout == 0 {
-		mcfg.Timeout = DefaultSocketTimeout * time.Second
+		mcfg.Timeout = DefaultSocketTimeout
 	}
 
 	log.Debugf("read exporter module config '%s' from: %s", moduleName, fullpath)
@@ -676,9 +676,9 @@ func (m exporterExecConfig) ServeHTTP(res http.ResponseWriter, req *http.Request
 
 	deadline, ok := ctx.Deadline()
 	if !ok {
-		deadline = time.Now().Add(DefaultSocketTimeout * time.Second)
+		deadline = time.Now().Add(DefaultSocketTimeout)
 	}
-	stdout, stderr, _, _, err := m.mcfg.snc.runExternalCommand(ctx, cmd, deadline.Unix())
+	stdout, stderr, _, _, err := m.mcfg.snc.runExternalCommand(ctx, cmd, time.Until(deadline))
 	if err != nil {
 		http.Error(res, fmt.Sprintf("exec module error: %s\n", err.Error()), http.StatusInternalServerError)
 

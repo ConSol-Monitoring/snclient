@@ -63,13 +63,13 @@ const (
 	BlockProfileRateInterval = 10
 
 	// DefaultSocketTimeout sets the default timeout for tcp sockets.
-	DefaultSocketTimeout = 60
+	DefaultSocketTimeout = 60 * time.Second
 
 	// DefaultCmdTimeout sets the default timeout for running commands.
-	DefaultCmdTimeout = 30
+	DefaultCmdTimeout = 30 * time.Second
 
 	// DefaultProfilerTimeout sets the default timeout for pprof handler.
-	DefaultProfilerTimeout = 180
+	DefaultProfilerTimeout = 180 * time.Second
 
 	// DefaultGCPercentage sets gc level like GOGC environment.
 	DefaultGCPercentage = 30
@@ -296,6 +296,9 @@ func (snc *Agent) Run() {
 
 	snc.createPidFile()
 	defer snc.deletePidFile()
+
+	// cleanup inherited child processes when started with syscall.Exec
+	reapInheritedChildProcesses()
 
 	signal.Notify(snc.osSignalChannel, syscall.SIGHUP)
 	signal.Notify(snc.osSignalChannel, syscall.SIGTERM)
@@ -828,7 +831,7 @@ func (snc *Agent) RunCheck(name string, args []string) *CheckResult {
 
 // RunCheckWithContext calls check by name and returns the check result.
 // secCon configuration section will be used to check for nasty characters and allowed arguments.
-func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection, skipAlias bool) *CheckResult {
+func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []string, timeoutOverride time.Duration, transportConf *ConfigSection, skipAlias bool) *CheckResult {
 	start := time.Now()
 	res, chk := snc.runCheck(ctx, name, args, timeoutOverride, transportConf, false, skipAlias)
 	if res.Raw == nil || res.Raw.showHelp == 0 {
@@ -843,7 +846,7 @@ func (snc *Agent) RunCheckWithContext(ctx context.Context, name string, args []s
 	return res
 }
 
-func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOverride float64, transportConf *ConfigSection, skipAllowedCheck, skipAlias bool) (*CheckResult, *CheckData) {
+func (snc *Agent) runCheck(ctx context.Context, name string, args []string, timeoutOverride time.Duration, transportConf *ConfigSection, skipAllowedCheck, skipAlias bool) (*CheckResult, *CheckData) {
 	log.Tracef("command: %s", name)
 	log.Tracef("args: %#v", args)
 	if deadline, ok := ctx.Deadline(); ok {
@@ -890,7 +893,7 @@ func (snc *Agent) runCheck(ctx context.Context, name string, args []string, time
 		chk.timeout = timeoutOverride
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(chk.timeout+1)*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, chk.timeout+(1*time.Second))
 	defer cancel()
 
 	res, err := handler.Check(ctx, snc, chk, parsedArgs)
@@ -1238,11 +1241,11 @@ func (snc *Agent) restartWatcherCb(restartCb func()) {
 	}
 }
 
-func fixReturnCodes(output, stderr *string, exitCode *int64, timeout int64, cmd *exec.Cmd, procState *os.ProcessState, err error) {
+func fixReturnCodes(output, stderr *string, exitCode *int64, timeout time.Duration, cmd *exec.Cmd, procState *os.ProcessState, err error) {
 	log.Tracef("stdout: \n%s", *output)
 	log.Tracef("stderr: \n%s", *stderr)
 	log.Tracef("exitCode: %d", *exitCode)
-	log.Tracef("timeout: %d", timeout)
+	log.Tracef("timeout: %s", timeout.String())
 	log.Tracef("error: %#v", err)
 	log.Tracef("state: %#v", procState)
 	if err != nil {
@@ -1255,7 +1258,7 @@ func fixReturnCodes(output, stderr *string, exitCode *int64, timeout int64, cmd 
 			log.Warnf("no permissions: %s", err.Error())
 			*exitCode = 126
 		case errors.Is(err, context.DeadlineExceeded):
-			*output = fmt.Sprintf("UNKNOWN - script run into timeout after %ds\n%s%s", timeout, *output, *stderr)
+			*output = fmt.Sprintf("UNKNOWN - script run into timeout after %s\n%s%s", timeout.String(), *output, *stderr)
 		case procState == nil:
 			log.Warnf("system error: %s", err.Error())
 			*output = fmt.Sprintf("UNKNOWN - %s", err.Error())
@@ -1315,7 +1318,7 @@ func catchOutputErrors(command, stderr *string, exitCode *int64) {
 }
 
 // runs check command (makes sure exit code is from 0-3)
-func (snc *Agent) runExternalCheckString(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
+func (snc *Agent) runExternalCheckString(ctx context.Context, command string, timeout time.Duration) (stdout, stderr string, exitCode int64, err error) {
 	cmd, err := snc.MakeCmd(ctx, command)
 	var procState *os.ProcessState
 	if err == nil {
@@ -1327,7 +1330,7 @@ func (snc *Agent) runExternalCheckString(ctx context.Context, command string, ti
 }
 
 // runs command and does not touch exit code and such (timeout is in seconds)
-func (snc *Agent) execCommand(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
+func (snc *Agent) execCommand(ctx context.Context, command string, timeout time.Duration) (stdout, stderr string, exitCode int64, err error) {
 	cmd, err := snc.MakeCmd(ctx, command)
 	if err == nil {
 		stdout, stderr, exitCode, _, err = snc.runExternalCommand(ctx, cmd, timeout)
@@ -1336,9 +1339,9 @@ func (snc *Agent) execCommand(ctx context.Context, command string, timeout int64
 	return stdout, stderr, exitCode, err
 }
 
-// run command and return raw output and exit code (timeout is in seconds)
-func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout int64) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+// run command and return raw output and exit code
+func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout time.Duration) (stdout, stderr string, exitCode int64, proc *os.ProcessState, err error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	// byte buffer for output
@@ -1403,9 +1406,9 @@ func (snc *Agent) runExternalCommand(ctx context.Context, cmd *exec.Cmd, timeout
 }
 
 // returns the timeout for builtin external commands
-func (snc *Agent) getBuiltinCmdTimeout() int64 {
+func (snc *Agent) getBuiltinCmdTimeout() time.Duration {
 	defaultSection := snc.config.Section("/settings/default")
-	timeout, ok, _ := defaultSection.GetInt("timeout")
+	timeout, ok, _ := defaultSection.GetDuration("timeout")
 	if !ok || timeout <= 0 {
 		return DefaultCmdTimeout
 	}
@@ -1678,10 +1681,10 @@ func (snc *Agent) startPProfiler(port string) {
 
 		server := &http.Server{
 			Addr:              port,
-			ReadTimeout:       DefaultSocketTimeout * time.Second,
-			ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
-			WriteTimeout:      DefaultProfilerTimeout * time.Second,
-			IdleTimeout:       DefaultSocketTimeout * time.Second,
+			ReadTimeout:       DefaultSocketTimeout,
+			ReadHeaderTimeout: DefaultSocketTimeout,
+			WriteTimeout:      DefaultProfilerTimeout,
+			IdleTimeout:       DefaultSocketTimeout,
 			Handler:           http.DefaultServeMux,
 		}
 

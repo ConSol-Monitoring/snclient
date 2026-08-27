@@ -5,13 +5,14 @@ package snclient
 import (
 	"context"
 	"syscall"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
 
 // execCommandAsRoot runs the command with UID 0 / GID 0, leveraging capabilities
 // if the process possesses CAP_SETUID and CAP_SETGID. If already root, it works identically.
-func (snc *Agent) execCommandAsRoot(ctx context.Context, command string, timeout int64) (stdout, stderr string, exitCode int64, err error) {
+func (snc *Agent) execCommandAsRoot(ctx context.Context, command string, timeout time.Duration) (stdout, stderr string, exitCode int64, err error) {
 	cmd, err := snc.MakeCmd(ctx, command)
 	if err != nil {
 		return stdout, stderr, exitCode, err

@@ -59,7 +59,7 @@ func (p *ProcessMemoryWatcherHandler) Init(snc *Agent, section *ConfigSection, _
 	if checkInterval <= 0 {
 		return fmt.Errorf("check interval: must be greater than 0")
 	}
-	p.checkInterval = time.Duration(checkInterval * float64(time.Second))
+	p.checkInterval = checkInterval
 
 	return nil
 }

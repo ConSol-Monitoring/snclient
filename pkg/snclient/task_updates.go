@@ -89,7 +89,7 @@ type UpdateHandler struct {
 	automaticRestart UpdateRestartMode
 	channel          string
 	preRelease       bool
-	updateInterval   float64
+	updateInterval   time.Duration
 	updateHours      []UpdateHours
 	updateDays       []UpdateDays
 
@@ -211,10 +211,7 @@ func (u *UpdateHandler) mainLoop() {
 	ticker := time.NewTicker(UpdateCheckIntervalInitial)
 	defer ticker.Stop()
 
-	interval := UpdateCheckIntervalRegular
-	if interval > time.Duration(u.updateInterval) {
-		interval = time.Duration(u.updateInterval) * time.Second
-	}
+	interval := max(UpdateCheckIntervalRegular, u.updateInterval)
 	log.Debugf("[updates] checking for updates every %s", interval.String())
 
 	for {
@@ -844,7 +841,7 @@ func (u *UpdateHandler) ApplyRestart(bin string, restarts UpdateRestartMode) err
 	}
 
 	// on windows let the service keep running, the child process will restart the service
-	if runtime.GOOS != "windows" && u.snc.Flags.Mode != ModeServer {
+	if runtime.GOOS != "windows" || u.snc.Flags.Mode != ModeServer {
 		u.snc.stop()
 	}
 
@@ -910,7 +907,7 @@ func (u *UpdateHandler) updatePreChecks() bool {
 	}
 
 	if u.lastUpdate != nil {
-		if u.lastUpdate.After(time.Now().Add(time.Duration(-u.updateInterval) * time.Second)) {
+		if u.lastUpdate.After(time.Now().Add(-u.updateInterval)) {
 			if log.IsV(LogVerbosityTrace2) {
 				log.Tracef("[updates] no update check required, last check: %s", u.lastUpdate.String())
 			}

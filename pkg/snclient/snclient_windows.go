@@ -508,3 +508,8 @@ func (snc *Agent) fixPathHoles(cmdAndArgs []string) []string {
 func (snc *Agent) checkFileOwner(_ string) error {
 	return fmt.Errorf("cannot check owner on windows")
 }
+
+// reap all inherited processes on startup to not accumulate zombies (does nothing on windows)
+func reapInheritedChildProcesses() {
+	// not supported on windows
+}

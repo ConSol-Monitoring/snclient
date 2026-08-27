@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 )
@@ -127,7 +128,7 @@ func (l *CheckPing) addPingLinux(ctx context.Context, check *CheckData) error {
 	}
 	command.Env = append(command.Env, "LC_ALL=C", "LANG=C")
 
-	output, stderr, _, _, err := l.snc.runExternalCommand(ctx, command, int64(check.timeout)-1)
+	output, stderr, _, _, err := l.snc.runExternalCommand(ctx, command, check.timeout-(1*time.Second))
 	if err != nil {
 		return fmt.Errorf("ping failed: %s\n%s", err.Error(), stderr)
 	}
@@ -158,7 +159,7 @@ func (l *CheckPing) addPingWindows(ctx context.Context, check *CheckData) error 
 		return err
 	}
 
-	output, stderr, _, _, err := l.snc.runExternalCommand(ctx, command, int64(check.timeout)-1)
+	output, stderr, _, _, err := l.snc.runExternalCommand(ctx, command, check.timeout-(1*time.Second))
 	if err != nil {
 		return fmt.Errorf("ping failed: %s\n%s", err.Error(), stderr)
 	}

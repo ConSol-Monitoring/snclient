@@ -125,9 +125,9 @@ func (l *Listener) setListenConfig(conf *ConfigSection) error {
 	case err != nil:
 		return fmt.Errorf("invalid timeout specification: %s", err.Error())
 	case ok:
-		l.socketTimeout = time.Duration(socketTimeout) * time.Second
+		l.socketTimeout = socketTimeout
 	default:
-		l.socketTimeout = DefaultSocketTimeout * time.Second
+		l.socketTimeout = DefaultSocketTimeout
 	}
 
 	// parse / set ssl config

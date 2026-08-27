@@ -94,7 +94,7 @@ func (l *CheckOMD) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 
 	deadline, ok := ctx.Deadline()
 	if !ok || deadline.IsZero() {
-		ctxDeadline, cancel := context.WithDeadline(ctx, time.Now().Add(time.Duration(l.snc.getBuiltinCmdTimeout())*time.Second))
+		ctxDeadline, cancel := context.WithDeadline(ctx, time.Now().Add(l.snc.getBuiltinCmdTimeout()))
 		defer cancel()
 		ctx = ctxDeadline
 	}
@@ -257,7 +257,7 @@ func (l *CheckOMD) livestatusQuery(ctx context.Context, query, socketPath string
 		UNIXCATbin,
 		socketPath)
 
-	stdout, stderr, exitCode, err := l.snc.execCommandAsRoot(ctx, cmdString, int64(timeout.Seconds()))
+	stdout, stderr, exitCode, err := l.snc.execCommandAsRoot(ctx, cmdString, timeout)
 	if err != nil {
 		return nil, fmt.Errorf("exec %s failed: %s (stderr: %s)", UNIXCATbin, err.Error(), stderr)
 	}
