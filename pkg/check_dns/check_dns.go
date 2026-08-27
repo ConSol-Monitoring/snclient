@@ -184,6 +184,8 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 	queryDNSChan := make(chan bool, 1)
 	queryDNSSuccessful := false
+	queryCtx, cancelQuery := context.WithTimeout(ctx, time.Duration(opts.Timeout)*time.Second)
+	defer cancelQuery()
 
 	emptyResults := make([]emptyResult, 0)
 	recordEmptyResult := func(hostCandidate, nameserver, reason string) {
@@ -199,6 +201,11 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 		for _, hostCandidate := range hostCandidates {
 			for _, nameserver := range nameservers {
+				if queryCtx.Err() != nil {
+					queryDNSChan <- false
+
+					return
+				}
 				message := &dns.Msg{
 					MsgHdr: dns.MsgHdr{
 						RecursionDesired: !opts.Norec,
@@ -214,7 +221,9 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 				}
 				message.Id = dns.Id()
 
-				r, duration, err = c.Exchange(message, nameserver)
+				// Use the per-run context so either this check or an enclosing check
+				// (for example check_multi) can stop an in-flight DNS query.
+				r, duration, err = c.ExchangeContext(queryCtx, message, nameserver)
 
 				if err == nil {
 					if len(r.Answer) == 0 {
@@ -251,7 +260,13 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 	go queryDNS()
 
 	select {
-	case <-time.After(time.Duration(opts.Timeout) * time.Second):
+	case <-ctx.Done():
+		return checkers.Unknown(ctx.Err().Error())
+	case <-queryCtx.Done():
+		if ctx.Err() != nil {
+			return checkers.Unknown(ctx.Err().Error())
+		}
+
 		return checkers.Unknown(fmt.Sprintf("Failed to get a result after %d seconds", opts.Timeout))
 	case queryDNSSuccessful = <-queryDNSChan:
 	}

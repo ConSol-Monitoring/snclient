@@ -10,7 +10,7 @@ import (
 	"github.com/sni/go-flags"
 )
 
-func CheckSSH(_ context.Context, output io.Writer, args []string, sendString string) int {
+func CheckSSH(ctx context.Context, output io.Writer, args []string, sendString string) int {
 	opts, err := parseArgs(args)
 	if err != nil {
 		var flagsErr *flags.Error
@@ -52,7 +52,7 @@ func CheckSSH(_ context.Context, output io.Writer, args []string, sendString str
 	// this skips over the minus sign
 	opts.ExpectPattern = `^SSH-\d+\.\d+-[!-,.-~]+`
 
-	ckr := opts.run(output)
+	ckr := opts.run(ctx, output)
 	ckr.Name = "SSH"
 	if opts.Service != "" {
 		ckr.Name = opts.Service
