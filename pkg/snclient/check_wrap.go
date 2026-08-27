@@ -22,9 +22,9 @@ type CheckWrap struct {
 
 func (l *CheckWrap) Build() *CheckData {
 	// set default timeout
-	timeoutSeconds, ok, err := l.config.GetDuration("timeout")
+	timeout, ok, err := l.config.GetDuration("timeout")
 	if err != nil || !ok {
-		timeoutSeconds = DefaultCheckTimeout.Seconds()
+		timeout = DefaultCheckTimeout
 	}
 
 	return &CheckData{
@@ -32,7 +32,7 @@ func (l *CheckWrap) Build() *CheckData {
 		implemented:     ALL,
 		hasInventory:    ScriptsInventory,
 		argsPassthrough: true,
-		timeout:         timeoutSeconds,
+		timeout:         timeout,
 	}
 }
 
@@ -77,17 +77,17 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		log.Debugf("command after macros expanded: %s", command)
 	}
 
-	timeoutSeconds := check.timeout
+	timeout := check.timeout
 	deadline, ok := ctx.Deadline()
 	if ok {
-		deadlineTimeoutSeconds := time.Until(deadline).Seconds()
-		if deadlineTimeoutSeconds < timeoutSeconds {
-			timeoutSeconds = deadlineTimeoutSeconds
-			log.Debugf("reduced cmd timeout to %ds because of shorter context", int64(timeoutSeconds))
+		deadlineTimeout := time.Until(deadline)
+		if deadlineTimeout < timeout {
+			timeout = deadlineTimeout
+			log.Debugf("reduced cmd timeout to %s because of shorter context", timeout.String())
 		}
 	}
 
-	stdout, stderr, exitCode, _ := l.snc.runExternalCheckString(ctx, command, int64(timeoutSeconds))
+	stdout, stderr, exitCode, _ := l.snc.runExternalCheckString(ctx, command, timeout)
 	if stderr != "" {
 		if stdout != "" {
 			stdout += "\n"

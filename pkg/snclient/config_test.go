@@ -451,10 +451,10 @@ func TestConfigHTTPInclude(t *testing.T) {
 	// start mock http server
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", testPort),
-		ReadTimeout:       DefaultSocketTimeout * time.Second,
-		ReadHeaderTimeout: DefaultSocketTimeout * time.Second,
-		WriteTimeout:      DefaultSocketTimeout * time.Second,
-		IdleTimeout:       DefaultSocketTimeout * time.Second,
+		ReadTimeout:       DefaultSocketTimeout,
+		ReadHeaderTimeout: DefaultSocketTimeout,
+		WriteTimeout:      DefaultSocketTimeout,
+		IdleTimeout:       DefaultSocketTimeout,
 		ErrorLog:          NewStandardLog("WARN"),
 	}
 	httpConfig1 := `
@@ -510,7 +510,7 @@ allowed hosts  += 192.168.3.4
 	// wait up to 30 seconds for mock server to start
 	testReq, err := http.NewRequestWithContext(t.Context(), http.MethodGet, fmt.Sprintf("http://localhost:%d", testPort), http.NoBody)
 	require.NoErrorf(t, err, "request created")
-	httpClient := snc.httpClient(&HTTPClientOptions{reqTimeout: DefaultSocketTimeout})
+	httpClient := snc.httpClient(&HTTPClientOptions{reqTimeout: int64(DefaultSocketTimeout.Seconds())})
 	for range 300 {
 		res, err2 := httpClient.Do(testReq)
 		if err2 != nil {

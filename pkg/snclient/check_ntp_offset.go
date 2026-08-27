@@ -551,7 +551,7 @@ func (l *CheckNTPOffset) getOSXData(ctx context.Context) (output, server string,
 
 // get offset and stratum from user supplied ntp server
 func (l *CheckNTPOffset) addNTPServer(_ context.Context, check *CheckData) (err error) {
-	options := ntp.QueryOptions{Timeout: time.Duration(l.snc.getBuiltinCmdTimeout()) * time.Second}
+	options := ntp.QueryOptions{Timeout: l.snc.getBuiltinCmdTimeout()}
 	for _, server := range l.ntpserver {
 		response, nErr := ntp.QueryWithOptions(server, options)
 		if nErr != nil {

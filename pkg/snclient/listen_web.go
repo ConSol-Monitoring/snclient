@@ -349,21 +349,21 @@ func (l *HandlerWeb) runCheck(req *http.Request, command string) (result *CheckR
 	args := queryParam2CommandArgs(req)
 
 	// extend timeout from check_nsc_web
-	timeoutSeconds := float64(0)
+	timeoutOverride := time.Duration(0)
 	timeout := req.Header.Get("X-Nsc-Web-Timeout")
 	if timeout != "" {
 		dur, err := utils.ExpandDuration(timeout)
 		if err == nil {
 			if dur > DefaultCheckTimeout.Seconds() && dur <= MaxHTTPHeaderTimeoutOverride.Seconds() {
-				timeoutSeconds = dur
-				log.Tracef("extended timeout from http header: %s", time.Duration(dur*float64(time.Second)).String())
+				timeoutOverride = time.Duration(dur * float64(time.Second))
+				log.Tracef("extended timeout from http header: %s", timeoutOverride.String())
 			}
 		} else {
 			log.Debugf("failed to parse timeout: %s", err.Error())
 		}
 	}
 
-	return l.snc.RunCheckWithContext(req.Context(), command, args, timeoutSeconds, l.conf, false)
+	return l.snc.RunCheckWithContext(req.Context(), command, args, timeoutOverride, l.conf, false)
 }
 
 type HandlerWebLegacy struct {

@@ -116,16 +116,16 @@ func (c *CheckSystemHandler) Init(snc *Agent, section *ConfigSection, _ *Config,
 	if err != nil {
 		return fmt.Errorf("default buffer length: %s", err.Error())
 	}
-	c.bufferLength = time.Duration(bufferLength) * time.Second
+	c.bufferLength = bufferLength
 
 	metricsInterval, _, err := section.GetDuration("metrics interval")
 	if err != nil {
 		return fmt.Errorf("metrics interval: %s", err.Error())
 	}
 	if metricsInterval <= 0 {
-		metricsInterval = DefaultSystemMetricsMeasureInterval.Seconds()
+		metricsInterval = DefaultSystemMetricsMeasureInterval
 	}
-	c.metricsInterval = time.Duration(metricsInterval) * time.Second
+	c.metricsInterval = metricsInterval
 
 	deviceFilter, ok, err := section.GetRegexp("device filter")
 	if err != nil {

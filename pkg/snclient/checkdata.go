@@ -132,7 +132,7 @@ type CheckData struct {
 	addProblemCountMetricsToFront bool
 	result                        *CheckResult
 	showHelp                      ShowHelp
-	timeout                       float64 // timeout in seconds
+	timeout                       time.Duration
 	perfConfig                    []PerfConfig
 	perfSyntax                    string
 	hasInventory                  InventoryMode
@@ -780,11 +780,11 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 			}
 			cd.timezone = timeZone
 		case "timeout":
-			timeout, err2 := convert.Float64E(argValue)
+			timeout, err2 := utils.ExpandDuration(argValue)
 			if err2 != nil {
 				return nil, false, fmt.Errorf("timeout parse error: %s", err2.Error())
 			}
-			cd.timeout = timeout
+			cd.timeout = time.Duration(timeout * float64(time.Second))
 		case "perf-config":
 			perf, err2 := NewPerfConfig(argValue)
 			if err2 != nil {
@@ -1075,7 +1075,7 @@ func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defau
 	cd.critThreshold = cd.applyDefaultThreshold(cd.defaultCritical, cd.critThreshold)
 
 	if cd.timeout == 0 {
-		cd.timeout = DefaultCheckTimeout.Seconds()
+		cd.timeout = DefaultCheckTimeout
 	}
 
 	return nil
