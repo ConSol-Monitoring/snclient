@@ -844,7 +844,7 @@ func (u *UpdateHandler) ApplyRestart(bin string, restarts UpdateRestartMode) err
 	}
 
 	// on windows let the service keep running, the child process will restart the service
-	if runtime.GOOS != "windows" && u.snc.Flags.Mode != ModeServer {
+	if runtime.GOOS != "windows" || u.snc.Flags.Mode != ModeServer {
 		u.snc.stop()
 	}
 
