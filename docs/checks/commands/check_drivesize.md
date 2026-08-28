@@ -70,6 +70,7 @@ Naemon Config
 
 | Argument                  | Description                                                                               |
 | ------------------------- | ----------------------------------------------------------------------------------------- |
+| add-persistent-network-drives | Include persistent network drives (net use /persistent), even if currently disconnected, in the all/all-shares listing. Disconnected drives are excluded by the default filter (mounted = 1) but are still listed when the filter is overridden. |
 | drive                     | The drives to check, e.g. C:\ or /                                                        |
 | exclude                   | List of drives to exclude from check                                                      |
 | folder                    | The folders to check (parent mountpoint)                                                  |
@@ -125,4 +126,6 @@ these can be used in filters and thresholds (along with the default attributes):
 | hotplug               | Windows only: flag drive is hotplugable (0/1)                                                 |
 | remote_name           | Windows only: the remote name of the drive, if it uses a network name                         |
 | persistent            | Windows only: if the network drive is mounted as persistent (0/1)                             |
+| connected             | Windows only: if the network drive is currently connected (0/1)                               |
+| hidden                | Windows only: if the network share is a hidden share, i.e. the share name ends with a dollar sign like C$ (0/1) |
 | localised_remote_path | Windows only: If the path is given as a remote path, and that remote path has an assigned logical drive, this is the replaced path under that logical drive. |

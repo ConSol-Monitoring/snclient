@@ -23,7 +23,7 @@ func init() {
 }
 
 const (
-	DiskDetailsTimeout = 30 * time.Second
+	DiskDetailsTimeout = 10 * time.Second
 )
 
 func defaultExcludedFsTypes() []string {
@@ -61,15 +61,16 @@ func defaultExcludedFsTypes() []string {
 }
 
 type CheckDrivesize struct {
-	drives                  []string
-	folders                 []string
-	excludes                []string
-	total                   bool
-	magic                   float64
-	mounted                 bool
-	ignoreUnreadable        bool
-	hasCustomPath           bool
-	freespaceIgnoreReserved bool
+	drives                     []string
+	folders                    []string
+	excludes                   []string
+	total                      bool
+	magic                      float64
+	mounted                    bool
+	ignoreUnreadable           bool
+	hasCustomPath              bool
+	freespaceIgnoreReserved    bool
+	addPersistentNetworkDrives bool
 }
 
 func NewCheckDrivesize() CheckHandler {
@@ -97,9 +98,10 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"total":   {value: &l.total, description: "Include the total of all matching drives"},
 			"magic": {value: &l.magic, description: "Magic number for use with scaling drive sizes. " +
 				"Note there is also a more generic magic factor in the perf-config option."},
-			"mounted":                   {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
-			"ignore-unreadable":         {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
-			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the total size. Default: true"},
+			"mounted":                       {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
+			"ignore-unreadable":             {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
+			"freespace-ignore-reserved":     {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the total size. Default: true"},
+			"add-persistent-network-drives": {value: &l.addPersistentNetworkDrives, description: "Include persistent network drives (net use /persistent), even if currently disconnected, in the all/all-shares listing"},
 		},
 		defaultFilter:   l.getDefaultFilter(),
 		defaultWarning:  "used_pct > 80",
@@ -152,6 +154,8 @@ func (l *CheckDrivesize) Build() *CheckData {
 
 			{name: "remote_name", description: "Windows only: the remote name of the drive, if it uses a network name"},
 			{name: "persistent", description: "Windows only: if the network drive is mounted as persistent (0/1)", unit: UBool},
+			{name: "connected", description: "Windows only: if the network drive is currently connected (0/1)", unit: UBool},
+			{name: "hidden", description: "Windows only: if the network share is a hidden share, i.e. the share name ends with a dollar sign like C$ (0/1)", unit: UBool},
 			{name: "localised_remote_path", description: "Windows only: If the path is given as a remote path, and that remote path has an assigned logical drive," +
 				" this is the replaced path under that logical drive."},
 		},
@@ -269,6 +273,10 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 	if !l.hasCustomPath {
 		for i, entry := range check.listData {
 			if errMsg, ok := entry["_error"]; ok {
+				// persistent network drives added via add-persistent-network-drives are treated like custom paths, so surface their errors instead of skipping them
+				if l.addPersistentNetworkDrives && entry["persistent"] == "1" {
+					continue
+				}
 				log.Debugf("drivesize failed for %s: %s", entry["drive_or_id"], errMsg)
 				check.listData[i]["_skip"] = "1"
 			}

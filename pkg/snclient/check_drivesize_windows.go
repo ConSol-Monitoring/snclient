@@ -40,10 +40,30 @@ func (l *CheckDrivesize) getDefaultFilter() string {
 func (l *CheckDrivesize) getExample() string {
 	return `
     check_drivesize drive=c: show-all
-    OK - c: 36.801 GiB/63.075 GiB (58.3%) |...
+    OK - C: 36.801 GiB/63.075 GiB (58.3%) |...
 
-    check_drivesize folder=c:\Temp show-all
-    OK - c: 36.801 GiB/63.075 GiB (58.3%) |...
+    check_drivesize folder=C:\Windows show-all
+    OK - C:\Windows 36.801 GiB/63.075 GiB (58.3%) |...
+
+Check a network share directly via its UNC path, no drive letter mapping required. This also works for hidden shares like the administrative share C$:
+
+	check_drivesize drive=\\server\C$ show-all
+	OK - \\server\C$ 100.000 GiB/500.000 GiB (20.0%) |'\\server\C$ used'=...
+
+Shares in general are only accessible if the snclient has sufficient credentials on the remote server. Otherwise the check reports an error for that drive.
+
+If the UNC path is mapped to a drive letter, the mapped drive is used and the localised path is available in the localised_remote_path attribute:
+
+	check_drivesize drive=\\server\share\folder show-all
+	OK - Z:\ 100.000 GiB/500.000 GiB (20.0%) |...
+
+Include persistent network drives (net use /persistent), even if they are currently disconnected, when specifying drive=all or drive=all-shares:
+
+	check_drivesize all-shares add-persistent-network-drives
+
+Hidden shares can be accessed if their path is specified.
+
+	check_drivesize drive='\\192.168.178.21\TestHidden$'
 	`
 }
 
@@ -114,7 +134,8 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 
 	l.setDeviceInfo(drive)
 
-	if drive["type"] != "remote" {
+	// device flags and media type need a handle to the device, which does not work for UNC paths or remote drives
+	if drive["type"] != "remote" && !strings.HasPrefix(drive["drive_or_id"], "\\\\") {
 		if err := l.setDeviceFlags(drive); err != nil {
 			log.Debugf("device flags: %s", err.Error())
 		}
@@ -126,8 +147,9 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 	timeoutContext, cancel := context.WithTimeout(ctx, DiskDetailsTimeout)
 	defer cancel()
 
-	// Uses gopsutil to check disk usage
-	usage, err := disk.UsageWithContext(timeoutContext, drive["drive_or_id"])
+	// Uses gopsutil to check disk usage, which calls GetDiskFreeSpaceExW on the given path.
+	// GetDiskFreeSpaceExW requires UNC names to end with a trailing backslash e.g. \\server\share\ , so make sure the path is in that form.
+	usage, err := disk.UsageWithContext(timeoutContext, l.ensureTrailingBackslash(drive["drive_or_id"]))
 	if err != nil {
 		switch {
 		case drive["type"] == "cdrom":
@@ -265,9 +287,15 @@ func (l *CheckDrivesize) setMediaType(drive map[string]string) error {
 //
 //nolint:funlen //no need to split this
 func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
-	driveType, err := GetDriveType(drive["drive_or_id"])
-	if err != nil {
-		log.Warnf("Error when getting the drive type of drive, drive: '%s' , error: %s", drive["drive_or_id"], err.Error())
+	// GetDriveType is meant for drive roots and is unreliable for UNC paths
+	// SMB does not support volume management functions
+	// Assume that an UNC path is always a remote share.
+	if strings.HasPrefix(drive["drive_or_id"], "\\\\") {
+		drive["type"] = "remote"
+	} else {
+		driveType, err := GetDriveType(drive["drive_or_id"])
+		if err != nil {
+			log.Warnf("Error when getting the drive type of drive, drive: '%s' , error: %s", drive["drive_or_id"], err.Error())
 
 		return
 	}
@@ -286,6 +314,10 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	if !strings.HasSuffix(drivePath, "\\") {
 		drivePath += "\\"
 	}
+
+	// drivePath needs to be in form 'X:\' or '\\server\share\',
+	// GetVolumeInformation requires a trailing backslash.
+	drivePath := strings.ToUpper(l.ensureTrailingBackslash(drive["drive_or_id"]))
 	driveUTF16, err := syscall.UTF16PtrFromString(drivePath)
 	if err != nil {
 		log.Warnf("Cannot convert drive to UTF16 : %s: %s", drive["drive_or_id"], err.Error())
@@ -369,7 +401,9 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 
 // gopsutil disk.Partition had an issue with Bitlocker, but a fix was upstreamed
 func (l *CheckDrivesize) setDrives(requiredDrives map[string]map[string]string) (err error) {
-	partitions, err := disk.Partitions(true)
+	timeoutContext, cancel := context.WithTimeout(context.Background(), DiskDetailsTimeout)
+	defer cancel()
+	partitions, err := disk.PartitionsWithContext(timeoutContext, true)
 	if err != nil && len(partitions) == 0 {
 		return fmt.Errorf("disk partitions failed: %s", err.Error())
 	}
@@ -482,7 +516,7 @@ func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, 
 		name = volumeGUIDPath
 	}
 
-	drive, isDrive, _ := cleanupPathString(volumePathName)
+	drive, isDrive, _ := l.cleanupPathString(volumePathName)
 	if !isDrive {
 		drive = ""
 	}
@@ -577,7 +611,7 @@ func getPerflabelPrefix(path string) (perflabelPrefix string, err error) {
 // changes the drive letter to be uppercase, if present
 // adds a colon after the drive letter if its not present
 // adds a backward slash after colon if not present
-func cleanupPathString(path string) (cleanedPath string, isDrive bool, err error) {
+func (l *CheckDrivesize) cleanupPathString(path string) (cleanedPath string, isDrive bool, err error) {
 	if path == "" {
 		return "", false, fmt.Errorf("path to cleanup is empty")
 	}
@@ -636,33 +670,48 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]ma
 	// if its a network share path, discover existing shares and match it with a drive[remote_path]
 	// then we replace path argument in-place, replacing the network path with the logical drive it is assigned to
 	if isNetworkSharePath(path) {
+		// isNetworkSharePath also accepts forward slashes,
+		// remote names returned by WNetGetConnection always use backslashes
+		normalizedPath := strings.ReplaceAll(path, "/", "\\")
+
 		discoveredNetworkShares := map[string]map[string]string{}
 		l.setShares(discoveredNetworkShares)
 
-		for key := range discoveredNetworkShares {
-			networkShare := discoveredNetworkShares[key]
-			remoteName, hasRemoteName := networkShare["remote_name"]
-			if hasRemoteName && strings.HasPrefix(path, remoteName) {
-				requiredDrives[key] = utils.CloneStringMap(discoveredNetworkShares[key])
+		if key, _, matched := l.matchNetworkShare(normalizedPath, discoveredNetworkShares); matched {
+			requiredDrives[key] = utils.CloneStringMap(discoveredNetworkShares[key])
 
-				// drive["remote_name"] = \\SERVER\SHARENAME
-				// drive["drive"] = x:
-				// pathExample1 = \\SERVER\SHARENAME -> x:
-				// pathExample2 = \\SERVER\SHARENAME\FOO\BAR -> x:\FOO\BAR
-				pathReplaced := strings.Replace(path, networkShare["remote_name"], networkShare["drive"], 1)
-				// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
-				// requiredDrives[key]["drive_or_name"] = fmt.Sprintf("%s - (%s)", path, pathReplaced)
-				requiredDrives[key]["localised_remote_path"] = pathReplaced
-
-				return nil
+			// drive["remote_name"] = \\SERVER\SHARENAME
+			// drive["drive"] = x:
+			// pathExample1 = \\SERVER\SHARENAME -> x:
+			// pathExample2 = \\SERVER\SHARENAME\FOO\BAR -> x:\FOO\BAR
+			remoteName := strings.TrimRight(discoveredNetworkShares[key]["remote_name"], "\\")
+			trimmedPath := strings.TrimRight(normalizedPath, "\\")
+			remainder := ""
+			if len(trimmedPath) >= len(remoteName) {
+				remainder = trimmedPath[len(remoteName):]
 			}
+			pathReplaced := strings.TrimRight(discoveredNetworkShares[key]["drive"], "\\") + "\\" + strings.TrimPrefix(remainder, "\\")
+			// It is better to let users set their own detailSyntax or okSyntax, we give them the attributes for it
+			// requiredDrives[key]["drive_or_name"] = fmt.Sprintf("%s - (%s)", path, pathReplaced)
+			requiredDrives[key]["localised_remote_path"] = pathReplaced
+
+			return nil
 		}
+
+		// no connected mapping exists, e.g. hidden shares like \\server\C$
+		// these may not be mapped to a drive letter, so add them with UNC path directly
+		entry := l.driveEntry(normalizedPath)
+		entry["remote_name"] = l.shareRoot(normalizedPath)
+		entry["hidden"] = convert.BoolTo01String(l.isHiddenSharePath(normalizedPath))
+		requiredDrives[normalizedPath] = entry
+
+		return nil
 	}
 
 	// Important: UNC network paths have slashes next to each other e.g: \\ServerName\SharedFolder\ResourcePath
 	// This gets cleaned up using cleanupPathString , as it is meant for absolute paths inside a drive.
 	// Not cleaning up the path beforehand is intentional
-	cleanedPath, isDrivePath, err := cleanupPathString(path)
+	cleanedPath, isDrivePath, err := l.cleanupPathString(path)
 	if err != nil {
 		return fmt.Errorf("error when cleaning up path: %w", err)
 	}
@@ -774,7 +823,9 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]ma
 
 // adds all network shares to requiredDrives
 func (l *CheckDrivesize) setShares(requiredDrives map[string]map[string]string) {
-	partitions, err := disk.Partitions(true)
+	timeoutContext, cancel := context.WithTimeout(context.Background(), DiskDetailsTimeout)
+	defer cancel()
+	partitions, err := disk.PartitionsWithContext(timeoutContext, true)
 	if err != nil {
 		log.Debugf("Error when discovering partitions: %s", err.Error())
 	}
@@ -814,10 +865,44 @@ func (l *CheckDrivesize) setShares(requiredDrives map[string]map[string]string) 
 
 			drive["letter"] = fmt.Sprintf("%c", logicalDrive[0])
 			drive["remote_name"] = remoteName
+			drive["connected"] = "1"
+			drive["hidden"] = convert.BoolTo01String(l.isHiddenSharePath(remoteName))
 			if isNetworkDrivePersistent(logicalDrive) {
 				drive["persistent"] = "1"
 			} else {
 				drive["persistent"] = "0"
+			}
+			requiredDrives[logicalDrive] = drive
+		}
+	}
+
+	// when opted in, also add persistent network drives from the registry,
+	// even if they are currently disconnected
+	if l.addPersistentNetworkDrives {
+		persistentNetworkDrives, err := discoverPersistentNetworkDrives()
+		if err != nil {
+			log.Debugf("Error when discovering persistent network drives: %s", err.Error())
+
+			return
+		}
+		for _, networkDrive := range persistentNetworkDrives {
+			logicalDrive := strings.ToUpper(networkDrive.DriveLetter) + ":\\"
+			if _, ok := requiredDrives[logicalDrive]; ok {
+				// drive is already listed as a currently connected drive
+				continue
+			}
+			drive := map[string]string{
+				"id":                  networkDrive.RemotePath,
+				"drive":               logicalDrive,
+				"drive_or_id":         logicalDrive,
+				"drive_or_name":       logicalDrive,
+				"drive_or_name_or_id": logicalDrive,
+				"letter":              strings.ToUpper(networkDrive.DriveLetter),
+				"remote_name":         networkDrive.RemotePath,
+				"persistent":          "1",
+				"connected":           "0",
+				"mounted":             "0",
+				"hidden":              convert.BoolTo01String(l.isHiddenSharePath(networkDrive.RemotePath)),
 			}
 			requiredDrives[logicalDrive] = drive
 		}
@@ -858,4 +943,54 @@ func isNetworkSharePath(path string) (isNetworkSharePath bool) {
 	}
 
 	return true
+}
+
+// returns if the given UNC path points to a hidden share, i.e. the share name ends with a dollar sign
+func (l *CheckDrivesize) isHiddenSharePath(path string) bool {
+	parts := strings.Split(path, "\\")
+	// UNC paths are in the form \\server\share\...
+	// share name is the 4th element
+	if len(parts) < 4 || parts[0] != "" || parts[1] != "" {
+		return false
+	}
+
+	return strings.HasSuffix(parts[3], "$")
+}
+
+// returns the share root of a UNC path, e.g. \\server\share for \\server\share\folder\file
+func (l *CheckDrivesize) shareRoot(path string) string {
+	parts := strings.Split(path, "\\")
+	if len(parts) < 4 {
+		return path
+	}
+
+	return strings.Join(parts[:4], "\\")
+}
+
+// returns the path with exactly one trailing backslash.
+// Windows file system APIs like GetVolumeInformation and GetDiskFreeSpaceExW require a trailing backslash when the path is a UNC name e.g. \\server\share\ or a root path to a drive
+func (l *CheckDrivesize) ensureTrailingBackslash(path string) string {
+	return strings.TrimRight(path, "\\") + "\\"
+}
+
+// tries to find a mounted network share that the given UNC path belongs to.
+// matching is case-insensitive and checks the share name as well
+// disconnected drives (connected = 0) are skipped, such entries may be added when adding persistent drives
+func (l *CheckDrivesize) matchNetworkShare(path string, shares map[string]map[string]string) (key string, entry map[string]string, matched bool) {
+	upperPath := strings.ToUpper(strings.TrimRight(path, "\\"))
+	for shareKey, share := range shares {
+		if share["connected"] == "0" {
+			continue
+		}
+		remoteName, hasRemoteName := share["remote_name"]
+		if !hasRemoteName || remoteName == "" {
+			continue
+		}
+		upperRemote := strings.ToUpper(strings.TrimRight(remoteName, "\\"))
+		if upperPath == upperRemote || strings.HasPrefix(upperPath, upperRemote+"\\") {
+			return shareKey, share, true
+		}
+	}
+
+	return "", nil, false
 }

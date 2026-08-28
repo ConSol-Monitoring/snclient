@@ -154,3 +154,169 @@ func TestNonexistingDrive(t *testing.T) {
 
 	StopTestAgent(t, snc)
 }
+
+func TestIsNetworkSharePath(t *testing.T) {
+	tests := []struct {
+		path string
+		want bool
+	}{
+		{`\\server\share`, true},
+		{`//server/share`, true},
+		{`\\server`, true},
+		{`C:\folder`, false},
+		{`C:`, false},
+		{`/`, false},
+		{``, false},
+	}
+	for _, test := range tests {
+		assert.Equalf(t, test.want, isNetworkSharePath(test.path), "isNetworkSharePath(%q)", test.path)
+	}
+}
+
+func TestIsHiddenSharePath(t *testing.T) {
+	tests := []struct {
+		path string
+		want bool
+	}{
+		{`\\server\C$`, true},
+		{`\\server\ADMIN$`, true},
+		{`\\server\share$`, true},
+		{`\\server\share$\folder`, true},
+		{`\\server\share`, false},
+		{`\\server\share\folder`, false},
+		{`\\server`, false},
+		{`C:\folder`, false},
+		{``, false},
+	}
+	cd := CheckDrivesize{}
+	for _, test := range tests {
+		assert.Equalf(t, test.want, cd.isHiddenSharePath(test.path), "isHiddenSharePath(%q)", test.path)
+	}
+}
+
+func TestShareRoot(t *testing.T) {
+	tests := []struct {
+		path string
+		want string
+	}{
+		{`\\server\share`, `\\server\share`},
+		{`\\server\share\folder`, `\\server\share`},
+		{`\\server\share\folder\file.txt`, `\\server\share`},
+		{`\\server`, `\\server`},
+		{`C:\folder`, `C:\folder`},
+	}
+	cd := CheckDrivesize{}
+	for _, test := range tests {
+		assert.Equalf(t, test.want, cd.shareRoot(test.path), "shareRoot(%q)", test.path)
+	}
+}
+
+func TestMatchNetworkShare(t *testing.T) {
+	shares := map[string]map[string]string{
+		`Z:\`: {
+			"remote_name": `\\server\share`,
+			"drive":       `Z:\`,
+			"connected":   "1",
+		},
+		`Y:\`: {
+			"remote_name": `\\server\share2`,
+			"drive":       `Y:\`,
+			"connected":   "1",
+		},
+		`X:\`: {
+			"remote_name": `\\offline\share`,
+			"drive":       `X:\`,
+			"connected":   "0",
+		},
+	}
+	checkDrivesize := CheckDrivesize{}
+
+	// exact match
+	key, entry, matched := checkDrivesize.matchNetworkShare(`\\server\share`, shares)
+	assert.Truef(t, matched, "exact match")
+	assert.Equalf(t, `Z:\`, key, "exact match key")
+	assert.Equalf(t, `Z:\`, entry["drive"], "exact match entry")
+
+	// subfolder match
+	key, _, matched = checkDrivesize.matchNetworkShare(`\\server\share\folder`, shares)
+	assert.Truef(t, matched, "subfolder match")
+	assert.Equalf(t, `Z:\`, key, "subfolder match key")
+
+	// trailing backslash
+	key, _, matched = checkDrivesize.matchNetworkShare(`\\server\share\`, shares)
+	assert.Truef(t, matched, "trailing backslash match")
+	assert.Equalf(t, `Z:\`, key, "trailing backslash match key")
+
+	key, _, matched = checkDrivesize.matchNetworkShare(`\\server\share\\\\`, shares)
+	assert.Truef(t, matched, "trailing backslash match")
+	assert.Equalf(t, `Z:\`, key, "multiple trailing backslash match key")
+
+	// case-insensitive
+	key, _, matched = checkDrivesize.matchNetworkShare(`\\SERVER\SHARE\Folder`, shares)
+	assert.Truef(t, matched, "case-insensitive match")
+	assert.Equalf(t, `Z:\`, key, "case-insensitive match key")
+
+	// prefix without share name boundary must not match
+	_, _, matched = checkDrivesize.matchNetworkShare(`\\server\shareX`, shares)
+	assert.Falsef(t, matched, "no match for share without boundary")
+
+	key, _, matched = checkDrivesize.matchNetworkShare(`\\server\share2`, shares)
+	assert.Truef(t, matched, "share2 matches its own remote name")
+	assert.Equalf(t, `Y:\`, key, "share2 key")
+
+	key, _, matched = checkDrivesize.matchNetworkShare(`\\server\share2\folder`, shares)
+	assert.Truef(t, matched, "share2 subfolder matches")
+	assert.Equalf(t, `Y:\`, key, "share2 subfolder key")
+
+	// disconnected persistent drives are skipped
+	_, _, matched = checkDrivesize.matchNetworkShare(`\\offline\share`, shares)
+	assert.Falsef(t, matched, "disconnected drive skipped")
+
+	// no match at all
+	_, _, matched = checkDrivesize.matchNetworkShare(`\\other\share`, shares)
+	assert.Falsef(t, matched, "no match")
+}
+
+func TestCleanupPathString(t *testing.T) {
+	tests := []struct {
+		path    string
+		cleaned string
+		isDrive bool
+	}{
+		{`c`, `C:`, true},
+		{`c:`, `C:`, true},
+		{`c:\`, `C:\`, true},
+		{`C:\`, `C:\`, true},
+		{`c:/`, `C:\`, true},
+		{`c:\\`, `C:\`, true},
+		{`C://///`, `C:\`, true},
+		{`\\server\share`, `\server\share`, false},
+	}
+	cd := CheckDrivesize{}
+	for _, test := range tests {
+		cleaned, isDrive, err := cd.cleanupPathString(test.path)
+		assert.NoErrorf(t, err, "cleanupPathString(%q)", test.path)
+		assert.Equalf(t, test.cleaned, cleaned, "cleanupPathString(%q)", test.path)
+		assert.Equalf(t, test.isDrive, isDrive, "cleanupPathString(%q) isDrive", test.path)
+	}
+}
+
+func TestEnsureTrailingBackslash(t *testing.T) {
+	tests := []struct {
+		path string
+		want string
+	}{
+		{`\\server\share`, `\\server\share\`},
+		{`\\server\share\`, `\\server\share\`},
+		{`\\server\share\\`, `\\server\share\`},
+		{`\\server\share\\\\\\\\`, `\\server\share\`},
+		{`\\server\share$\folder`, `\\server\share$\folder\`},
+		{`C:`, `C:\`},
+		{`C:\`, `C:\`},
+		{`Z:\`, `Z:\`},
+	}
+	cd := CheckDrivesize{}
+	for _, test := range tests {
+		assert.Equalf(t, test.want, cd.ensureTrailingBackslash(test.path), "ensureTrailingBackslash(%q)", test.path)
+	}
+}
