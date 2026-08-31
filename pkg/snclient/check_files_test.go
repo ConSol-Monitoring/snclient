@@ -827,15 +827,15 @@ func duBytes(t *testing.T, path string) uint64 {
 	require.NoErrorf(t, err, "du -B1 %s failed: %s", path, err)
 	fields := strings.Fields(string(out))
 	require.Lenf(t, fields, 2, "unexpected du output for %s: %s", path, out)
-	v, err := strconv.ParseUint(fields[0], 10, 64)
+	value, err := strconv.ParseUint(fields[0], 10, 64)
 	require.NoErrorf(t, err, "could not parse du output %q for %s", fields[0], path)
 	switch runtime.GOOS {
 	case "darwin", "freebsd":
 		// BSD du: -B1 means one 512 byte block
-		v *= 512
+		value *= 512
 	}
 
-	return v
+	return value
 }
 
 func TestCheckFilesDiskSizeDuComparison(t *testing.T) {
