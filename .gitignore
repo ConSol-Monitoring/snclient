@@ -34,5 +34,4 @@ node_exporter-*
 go.work
 go.work.sum
 scripts/
-AGENT.md
 .codex
