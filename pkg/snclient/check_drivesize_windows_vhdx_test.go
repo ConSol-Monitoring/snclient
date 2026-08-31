@@ -36,27 +36,6 @@ func hasElevatedPrivileges() bool {
 	return token.IsElevated()
 }
 
-// resolveLongPath expands 8.3 short names (ex.: C:\Users\RUNNER~1) to their long form.
-// diskpart stores the vhd backing file path and the mount point as given, so later
-// select/detach calls need to use the exact same path string.
-func resolveLongPath(path string) (string, error) {
-	pathPtr, err := windows.UTF16PtrFromString(path)
-	if err != nil {
-		return "", fmt.Errorf("GetLongName error when creating UTF16 string pointer from path %w", err)
-	}
-	size, _ := windows.GetLongPathName(pathPtr, nil, 0)
-	if size == 0 {
-		return "", fmt.Errorf("GetLongPathName returned no size for %s", path)
-	}
-	buf := make([]uint16, size)
-	res, _ := windows.GetLongPathName(pathPtr, &buf[0], size)
-	if res == 0 {
-		return "", fmt.Errorf("GetLongPathName returned 0 for %s", path)
-	}
-
-	return windows.UTF16ToString(buf[:res]), nil
-}
-
 func execDiskpart(t *testing.T, script string) (output string, err error) {
 	t.Helper()
 
