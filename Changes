@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - fix remaining zombie processes after automatic updates
+         - check_service: add wildcard support for exclude argument
 
 0.49     Fri Aug 21 08:50:54 CEST 2026
          - linux: reset environment when running elevated commands (GHSA-p72w-3vw7-cg4p / CVE not yet assigned)
