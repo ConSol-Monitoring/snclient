@@ -818,7 +818,9 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 	StopTestAgent(t, snc)
 }
 
-// duBytes returns the on-disk allocated size of a file in bytes as reported by `du -B1`.
+// duBytes returns the on-disk allocated size of a file in bytes as reported by `du`.
+// GNU du interprets -B1 as a 1 byte unit, while BSD/macOS du interprets it as one
+// 512 byte block, so the BSD output is scaled to bytes to stay consistent.
 func duBytes(t *testing.T, path string) uint64 {
 	t.Helper()
 	out, err := exec.Command("du", "-B1", path).Output()
@@ -827,6 +829,11 @@ func duBytes(t *testing.T, path string) uint64 {
 	require.Lenf(t, fields, 2, "unexpected du output for %s: %s", path, out)
 	v, err := strconv.ParseUint(fields[0], 10, 64)
 	require.NoErrorf(t, err, "could not parse du output %q for %s", fields[0], path)
+	switch runtime.GOOS {
+	case "darwin", "freebsd":
+		// BSD du: -B1 means one 512 byte block
+		v *= 512
+	}
 
 	return v
 }
