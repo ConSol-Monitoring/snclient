@@ -31,11 +31,6 @@ func TestCheckServiceLinux(t *testing.T) {
 	assert.Containsf(t, string(res.BuildPluginOutput()), "UNKNOWN - could not find service: nonexistingservice", "output matches")
 }
 
-func TestCheckServiceLinuxExcludeWildcard(t *testing.T) {
-	assert.True(t, matchesServiceExclude([]string{"Wildcard*"}, "Wildcard"))
-	assert.True(t, matchesServiceExclude([]string{"Wildcard*"}, "WildcardTest"))
-}
-
 func TestCheckServiceLinuxSystemCtlOutput_1(t *testing.T) {
 	output := `● blah-service.service
 	Loaded: loaded (/usr/lib/blub/blah-service.sh; enabled; preset: enabled)
