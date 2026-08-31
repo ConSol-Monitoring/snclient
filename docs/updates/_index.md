@@ -50,6 +50,9 @@ In order to use the dev channel, you need to create a github token here: [github
 
 Unfortunately it is not possible to download the build artifacts without a token.
 
+**Note:** The SNClient self update works on linux, but cannot safely transfer the required capabilities. So it will
+only fully work if you don't require any capabilities.
+
 ### Debian / Ubuntu
 
 On Debian and Ubuntu you can make use of the `unattended-upgrades` package.
