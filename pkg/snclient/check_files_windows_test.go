@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -150,18 +148,23 @@ func TestCheckFilesDiskSizeWindows(t *testing.T) {
 	assert.GreaterOrEqualf(t, wantDiskSize, uint64(1), "a 1-byte file allocates at least one cluster")
 
 	// a directory entry reports its own allocated size (not the sum of its contents)
+	sub := filepath.Join(dir, "subdir")
+	require.NoError(t, os.Mkdir(sub, 0o700))
+	// put more than 1 MiB into the directory so the disksize would exceed 1 MiB if it summed the contents
+	require.NoError(t, os.WriteFile(filepath.Join(sub, "child.bin"), make([]byte, 2<<20), 0o600))
+
 	res = snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "crit='disksize < 0'", "filter='type == dir'"})
 	require.Equalf(t, CheckExitOK, res.State, "state OK")
 	output = string(res.BuildPluginOutput())
-	re := regexp.MustCompile(`'.+ disksize'=(\d+)B`)
-	m := re.FindStringSubmatch(output)
-	require.Lenf(t, m, 2, "directory disksize metric missing: %s", output)
-	dirDiskSize, err := strconv.ParseUint(m[1], 10, 64)
+
+	info, err = os.Stat(sub)
 	require.NoError(t, err)
-	// the directory's own allocation is far smaller than the file's contents would suggest;
-	// assert it is a positive, small value
-	assert.Positivef(t, dirDiskSize, "directory has an allocated size")
-	assert.Lessf(t, dirDiskSize, uint64(1<<20), "directory entry allocation is small (< 1 MiB)")
+	wantDirDiskSize, err := getFileDiskSize(info, sub)
+	require.NoError(t, err)
+	assert.Containsf(t, output, fmt.Sprintf("'subdir disksize'=%dB", wantDirDiskSize),
+		"disksize matches OS allocation size (want %d)", wantDirDiskSize)
+	// the directory's own allocation is far smaller than its contents would suggest
+	assert.Lessf(t, wantDirDiskSize, uint64(1<<20), "directory entry allocation is small (< 1 MiB)")
 
 	StopTestAgent(t, snc)
 }
