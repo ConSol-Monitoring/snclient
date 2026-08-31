@@ -44,7 +44,7 @@ func getFileDiskSize(_ fs.FileInfo, path string) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("could not open file %s: %s", longPath, err.Error())
 	}
-	defer LogDebug(windows.CloseHandle(handle))
+	defer func() { LogDebug(windows.CloseHandle(handle)) }()
 
 	var info fileStandardInfo
 	err = windows.GetFileInformationByHandleEx(handle, windows.FileStandardInfo, (*byte)(unsafe.Pointer(&info)), uint32(unsafe.Sizeof(info)))
