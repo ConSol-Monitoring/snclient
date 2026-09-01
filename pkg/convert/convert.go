@@ -324,15 +324,6 @@ func Num2StringE(raw any) (string, error) {
 	}
 }
 
-// converts a bool into a "1"/"0" string, used for flag attributes like connected and hidden
-func BoolTo01String(value bool) string {
-	if value {
-		return "1"
-	}
-
-	return "0"
-}
-
 // StateString returns the string corresponding to a monitoring plugin exit code
 func StateString(state int64) string {
 	switch state {

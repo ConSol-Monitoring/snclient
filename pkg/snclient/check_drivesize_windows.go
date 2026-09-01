@@ -666,7 +666,7 @@ func (l *CheckDrivesize) cleanupPathString(path string) (cleanedPath string, isD
 // This is used if folders are given
 // c:/, d:/volume, f:/folder/with/slash
 //
-//nolint:funlen // can not split this function up, it has to check if its network drive, normal drive, a custom path under a volume etc.
+//nolint:funlen,nestif // can not split this function up, it has to check if its network drive, normal drive, a custom path under a volume etc.
 func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]map[string]string, parentFallback bool) (err error) {
 	// --------- Option 1 : Network share path
 
@@ -705,7 +705,12 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]ma
 		// these may not be mapped to a drive letter, so add them with UNC path directly
 		entry := l.driveEntry(normalizedPath)
 		entry["remote_name"] = shareRoot(normalizedPath)
-		entry["hidden"] = convert.BoolTo01String(l.isHiddenSharePath(normalizedPath))
+		if l.isHiddenSharePath(normalizedPath) {
+			entry["hidden"] = "1"
+		} else {
+			entry["hidden"] = "0"
+		}
+
 		requiredDrives[normalizedPath] = entry
 
 		return nil
@@ -825,6 +830,8 @@ func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]ma
 }
 
 // adds all network shares to requiredDrives
+//
+//nolint:funlen,nestif // populating the attributes takes a lot of statements
 func (l *CheckDrivesize) setShares(requiredDrives map[string]map[string]string) {
 	timeoutContext, cancel := context.WithTimeout(context.Background(), DiskDetailsTimeout)
 	defer cancel()
@@ -869,7 +876,11 @@ func (l *CheckDrivesize) setShares(requiredDrives map[string]map[string]string) 
 			drive["letter"] = fmt.Sprintf("%c", logicalDrive[0])
 			drive["remote_name"] = remoteName
 			drive["connected"] = "1"
-			drive["hidden"] = convert.BoolTo01String(l.isHiddenSharePath(remoteName))
+			if l.isHiddenSharePath(remoteName) {
+				drive["hidden"] = "1"
+			} else {
+				drive["hidden"] = "0"
+			}
 			if isNetworkDrivePersistent(logicalDrive) {
 				drive["persistent"] = "1"
 			} else {
@@ -905,8 +916,12 @@ func (l *CheckDrivesize) setShares(requiredDrives map[string]map[string]string) 
 				"persistent":          "1",
 				"connected":           "0",
 				"mounted":             "0",
-				"hidden":              convert.BoolTo01String(l.isHiddenSharePath(networkDrive.RemotePath)),
+				"hidden":              "0",
 			}
+			if l.isHiddenSharePath(logicalDrive) {
+				drive["hidden"] = "1"
+			}
+
 			requiredDrives[logicalDrive] = drive
 		}
 	}
