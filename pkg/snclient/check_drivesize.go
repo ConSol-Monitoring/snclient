@@ -112,8 +112,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 					"The connection is established on demand and removed again after the check.",
 			},
 			"share-password": {
-				value: &l.sharePassword, description: "Windows only: password used to authenticate to the network shares given in this check. " +
-					"Note: the password is transmitted as part of the check request.",
+				value: &l.sharePassword, description: "Windows only: password used to authenticate to the network shares given in this check. " + "If set to an empty string, no password is used. If omitted, the cached/default password for the user is used.",
 			},
 		},
 		defaultFilter:   l.getDefaultFilter(),
@@ -267,14 +266,15 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 			continue
 		}
 
-		if l.shareUser != "" {
+		if check.hasArgsSupplied["share-user"] {
 			// user is always needed, but password can be empty for a valid login
 			shareCredentials[root] = Credential{
-				Type:     CredentialTypeWindowsShare,
-				Target:   shareTargetFromUNCPath(root),
-				Username: qualifyUsername(l.shareUser, currentUserDomain()),
-				Password: l.sharePassword,
-				Strategy: CredentialStrategyOnDemand,
+				Type:        CredentialTypeWindowsShare,
+				Target:      shareTargetFromUNCPath(root),
+				Username:    qualifyUsername(l.shareUser, currentUserDomain()),
+				Password:    l.sharePassword,
+				PasswordSet: check.hasArgsSupplied["share-password"],
+				Strategy:    CredentialStrategyOnDemand,
 			}
 
 			continue

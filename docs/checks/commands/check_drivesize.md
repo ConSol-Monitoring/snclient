@@ -78,7 +78,7 @@ Naemon Config
 | ignore-unreadable             | Deprecated, use filter instead                                                        |
 | magic                         | Magic number for use with scaling drive sizes. Note there is also a more generic magic factor in the perf-config option. |
 | mounted                       | Deprecated, use filter instead                                                        |
-| share-password                | Windows only: password used to authenticate to the network shares given in this check. Note: the password is transmitted as part of the check request. |
+| share-password                | Windows only: password used to authenticate to the network shares given in this check. If set to an empty string, no password is used. If omitted, the cached/default password for the user is used. |
 | share-user                    | Windows only: username used to authenticate to the network shares given in this check. The connection is established on demand and removed again after the check. |
 | total                         | Include the total of all matching drives                                              |
 

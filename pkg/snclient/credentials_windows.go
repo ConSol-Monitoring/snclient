@@ -64,14 +64,20 @@ func addShareCredential(cred *Credential) error {
 	if err != nil {
 		return fmt.Errorf("username to utf16: %s", err.Error())
 	}
-	passwordUTF16, err := syscall.UTF16FromString(cred.Password)
-	if err != nil {
-		return fmt.Errorf("password to utf16: %s", err.Error())
-	}
 	// the credential blob contains the plaintext unicode password, no trailing null character
-	passwordBlobSize, err := convert.UInt32E((len(passwordUTF16) - 1) * 2)
-	if err != nil {
-		return fmt.Errorf("password length to large for credential blob: %s", err.Error())
+	// if no password was configured, store an empty blob
+	passwordBlobSize := uint32(0)
+	var passwordBlob *byte
+	if cred.PasswordSet {
+		passwordUTF16, e := syscall.UTF16FromString(cred.Password)
+		if e != nil {
+			return fmt.Errorf("password to utf16: %s", e.Error())
+		}
+		passwordBlobSize, err = convert.UInt32E((len(passwordUTF16) - 1) * 2)
+		if err != nil {
+			return fmt.Errorf("password length to large for credential blob: %s", err.Error())
+		}
+		passwordBlob = (*byte)(unsafe.Pointer(&passwordUTF16[0]))
 	}
 
 	credential := credentialW{
@@ -79,7 +85,7 @@ func addShareCredential(cred *Credential) error {
 		TargetName:         targetUTF16,
 		UserName:           userUTF16,
 		CredentialBlobSize: passwordBlobSize,
-		CredentialBlob:     (*byte)(unsafe.Pointer(&passwordUTF16[0])),
+		CredentialBlob:     passwordBlob,
 		Persist:            credPersistSession,
 	}
 

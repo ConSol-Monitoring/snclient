@@ -96,8 +96,11 @@ func addShareConnection(cred *Credential, shareRoot string) error {
 	if err != nil {
 		return fmt.Errorf("username to utf16: %s", err.Error())
 	}
+
+	// if PasswordSet is false, a NULL password is passed, so the SMB redirector uses the cached/default password for the user.
+	// If PasswordSet is true, the given password is used, an empty string means no password.
 	var passwordUTF16 *uint16
-	if cred.Password != "" {
+	if cred.PasswordSet {
 		passwordUTF16, err = syscall.UTF16PtrFromString(cred.Password)
 		if err != nil {
 			return fmt.Errorf("password to utf16: %s", err.Error())

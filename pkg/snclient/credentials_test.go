@@ -121,12 +121,43 @@ func TestParseCredentials(t *testing.T) {
 	assert.Equal(t, `\\server1`, credentials[0].Target)
 	assert.Equal(t, `CORP\svc`, credentials[0].Username)
 	assert.Equal(t, "secret", credentials[0].Password)
+	assert.True(t, credentials[0].PasswordSet)
 	assert.Equal(t, CredentialStrategyOnDemand, credentials[0].Strategy)
 
 	assert.Equal(t, CredentialTypeWindowsShare, credentials[1].Type)
 	assert.Equal(t, "server2", credentials[1].Target)
 	assert.Equal(t, "svc@corp.example.com", credentials[1].Username)
+	assert.Equal(t, "secret2", credentials[1].Password)
+	assert.True(t, credentials[1].PasswordSet)
 	assert.Equal(t, CredentialStrategyOnStart, credentials[1].Strategy)
+}
+
+func TestParseCredentialsPasswordSet(t *testing.T) {
+	config := NewConfig(true)
+	parent := config.Section("/settings/credentials")
+	parent.Set("strategy", "on-start")
+
+	// no password key -> PasswordSet false, so the cached/default password is used
+	share1 := config.Section("/settings/credentials/share1")
+	share1.Set("target", `\\server1`)
+	share1.Set("username", `CORP\svc`)
+	share1.Set("strategy", "on-demand")
+
+	// empty password -> PasswordSet true with empty password, so a passwordless login is used
+	share2 := config.Section("/settings/credentials/share2")
+	share2.Set("target", `\\server2`)
+	share2.Set("username", `CORP\svc`)
+	share2.Set("password", "")
+	share2.Set("strategy", "on-demand")
+
+	credentials := parseCredentials(config)
+	require.Lenf(t, credentials, 2, "two valid credentials expected")
+
+	assert.False(t, credentials[0].PasswordSet)
+	assert.Empty(t, credentials[0].Password)
+
+	assert.True(t, credentials[1].PasswordSet)
+	assert.Empty(t, credentials[1].Password)
 }
 
 func TestFindOnDemandCredential(t *testing.T) {

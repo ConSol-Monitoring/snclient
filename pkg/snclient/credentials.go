@@ -27,11 +27,12 @@ var errSessionCredentialConflict = errors.New("a connection to the server alread
 
 // Credential describes a single entry in the [/settings/credentials] section.
 type Credential struct {
-	Type     string
-	Target   string
-	Username string
-	Password string
-	Strategy string
+	Type        string
+	Target      string
+	Username    string
+	Password    string
+	PasswordSet bool
+	Strategy    string
 }
 
 // parseCredentials reads the [/settings/credentials] section and returns all entries.
@@ -64,6 +65,7 @@ func parseCredentials(config *Config) (credentials []Credential) {
 		}
 		if val, ok := section.GetString("password"); ok {
 			cred.Password = val
+			cred.PasswordSet = true
 		}
 		if val, ok := section.GetString("strategy"); ok && val != "" {
 			cred.Strategy = strings.ToLower(strings.TrimSpace(val))
