@@ -285,11 +285,11 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 		}
 	}
 
-	// keep track of the connections snclient established, so the cleanup only tears down the ones it added itself
+	// keep track of the connections snclient established, later tear down only the newly added connections
 	addedConnections := map[string]bool{}
 
 	for root, cred := range shareCredentials {
-		// drop a stale session first, otherwise SMB redirector keeps reusing it and the new credential would not take effect
+		// drop a stale session first, otherwise Windows SMB path redirector keeps reusing stale session, new credential is not used.
 		if err := deleteShareConnection(root); err != nil {
 			log.Debugf("credentials: could not drop existing connection for %s: %s", root, err.Error())
 		}
