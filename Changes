@@ -33,7 +33,7 @@ next:
 
 0.45     Fri Jul 24 15:22:31 CEST 2026
          - fix command injection in linux (GHSA-7875-572v-h272 / CVE-2026-77340)
-         - http includes: verify ownership of temp files (GHSA-7hr2-76v9-99cg / CVE not yet assigned)
+         - http includes: verify ownership of temp files (GHSA-7hr2-76v9-99cg / CVE-2026-83604)
          - windows: improve documentation on quoted arguments (GHSA-wf5r-r4v9-m69g / CVE-2026-77618)
          - update node exporter to 1.12.1
          - update windows exporter to 0.31.8
