@@ -112,7 +112,8 @@ func (l *CheckDrivesize) Build() *CheckData {
 					"The connection is established on demand and removed again after the check.",
 			},
 			"share-password": {
-				value: &l.sharePassword, description: "Windows only: password used to authenticate to the network shares given in this check. " + "If set to an empty string, no password is used. If omitted, the cached/default password for the user is used.",
+				value: &l.sharePassword, description: "Windows only: password used to authenticate to the network shares given in this check. " +
+					"If set to an empty string, no password is used. If omitted, the cached/default password for the user is used.",
 			},
 		},
 		defaultFilter:   l.getDefaultFilter(),
