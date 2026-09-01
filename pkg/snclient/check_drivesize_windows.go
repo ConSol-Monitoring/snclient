@@ -75,7 +75,7 @@ Alternatively, credentials can be configured globally in the [/settings/credenti
 }
 
 // Terminology
-// Disk : Physical Hardware like a HDD, SSD, Usb Stick. A block device that ca be used to store raw bytes -> \\.\PhysicalDritve0
+// Disk : Physical Hardware like a HDD, SSD, Usb Stick. A block device that ca be used to store raw bytes -> \\.\PhysicalDrive0
 // Partition: Is written into the disk in a partition table. It exists independently of volumes, may not be used by Windows
 // Volume: A logical abstraction of a storage, formatted with a file system. It can be a virtual file, a RAID disk or one partition -> \\?\Volume{GUID}\
 // Drive: This term is not defined well. Here, it means a logical access point with an assigned drive letter.
@@ -154,8 +154,7 @@ func (l *CheckDrivesize) addDiskDetails(ctx context.Context, check *CheckData, d
 	timeoutContext, cancel := context.WithTimeout(ctx, DiskDetailsTimeout)
 	defer cancel()
 
-	// Uses gopsutil to check disk usage, which calls GetDiskFreeSpaceExW on the given path.
-	// GetDiskFreeSpaceExW requires UNC names to end with a trailing backslash e.g. \\server\share\ , so make sure the path is in that form.
+	// Uses gopsutil to check disk usage that uses i.e GetDiskFreeSpaceExW , which requires UNC names to end with a trailing backslash e.g. \\server\share\
 	usage, err := disk.UsageWithContext(timeoutContext, l.ensureTrailingBackslash(drive["drive_or_id"]))
 	if err != nil {
 		switch {
@@ -294,19 +293,20 @@ func (l *CheckDrivesize) setMediaType(drive map[string]string) error {
 //
 //nolint:funlen //no need to split this
 func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
-	// GetDriveType is meant for drive roots and is unreliable for UNC paths
-	// SMB does not support volume management functions
 	// Assume that an UNC path is always a remote share.
 	if strings.HasPrefix(drive["drive_or_id"], "\\\\") {
 		drive["type"] = "remote"
 	} else {
+		// GetDriveType is meant for drive roots and is unreliable for UNC paths
 		driveType, err := GetDriveType(drive["drive_or_id"])
 		if err != nil {
 			log.Warnf("Error when getting the drive type of drive, drive: '%s' , error: %s", drive["drive_or_id"], err.Error())
 
-		return
+			return
+		}
+		drive["type"] = driveType.toString()
 	}
-	drive["type"] = driveType.toString()
+
 	if drive["type"] == "removable" {
 		drive["removable"] = "1"
 	}
@@ -324,7 +324,7 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 
 	// drivePath needs to be in form 'X:\' or '\\server\share\',
 	// GetVolumeInformation requires a trailing backslash.
-	drivePath := strings.ToUpper(l.ensureTrailingBackslash(drive["drive_or_id"]))
+	drivePath = strings.ToUpper(l.ensureTrailingBackslash(drive["drive_or_id"]))
 	driveUTF16, err := syscall.UTF16PtrFromString(drivePath)
 	if err != nil {
 		log.Warnf("Cannot convert drive to UTF16 : %s: %s", drive["drive_or_id"], err.Error())

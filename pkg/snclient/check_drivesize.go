@@ -23,7 +23,7 @@ func init() {
 }
 
 const (
-	DiskDetailsTimeout = 10 * time.Second
+	DiskDetailsTimeout = 30 * time.Second
 )
 
 func defaultExcludedFsTypes() []string {
