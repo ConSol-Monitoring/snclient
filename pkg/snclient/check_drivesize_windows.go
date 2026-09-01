@@ -316,15 +316,11 @@ func (l *CheckDrivesize) setDeviceInfo(drive map[string]string) {
 	if matchingVolumePath, ok := drive["_matching_volume_path"]; matchingVolumePath != "" && ok {
 		drivePath = drive["_matching_volume_path"]
 	}
-	drivePath = strings.ToUpper(drivePath)
-
-	if !strings.HasSuffix(drivePath, "\\") {
-		drivePath += "\\"
-	}
 
 	// drivePath needs to be in form 'X:\' or '\\server\share\',
 	// GetVolumeInformation requires a trailing backslash.
-	drivePath = strings.ToUpper(l.ensureTrailingBackslash(drive["drive_or_id"]))
+	drivePath = strings.ToUpper(l.ensureTrailingBackslash(drivePath))
+
 	driveUTF16, err := syscall.UTF16PtrFromString(drivePath)
 	if err != nil {
 		log.Warnf("Cannot convert drive to UTF16 : %s: %s", drive["drive_or_id"], err.Error())
