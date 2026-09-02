@@ -3,6 +3,9 @@ This file documents the revision history for the SNClient agent.
 next:
          - fix remaining zombie processes after automatic updates
          - check_service: add wildcard support for exclude argument
+         - add credential storing system to the config
+         - check_drivesize: windows only, add support for connecting to shares using credentials
+         - check_drivesize: add support for hidden shares
 
 0.49     Fri Aug 21 08:50:54 CEST 2026
          - linux: reset environment when running elevated commands (GHSA-p72w-3vw7-cg4p / CVE not yet assigned)

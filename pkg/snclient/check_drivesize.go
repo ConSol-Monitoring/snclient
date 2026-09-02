@@ -61,15 +61,18 @@ func defaultExcludedFsTypes() []string {
 }
 
 type CheckDrivesize struct {
-	drives                  []string
-	folders                 []string
-	excludes                []string
-	total                   bool
-	magic                   float64
-	mounted                 bool
-	ignoreUnreadable        bool
-	hasCustomPath           bool
-	freespaceIgnoreReserved bool
+	drives                     []string
+	folders                    []string
+	excludes                   []string
+	total                      bool
+	magic                      float64
+	mounted                    bool
+	ignoreUnreadable           bool
+	hasCustomPath              bool
+	freespaceIgnoreReserved    bool
+	addPersistentNetworkDrives bool
+	shareUser                  string
+	sharePassword              string
 }
 
 func NewCheckDrivesize() CheckHandler {
@@ -81,6 +84,7 @@ func NewCheckDrivesize() CheckHandler {
 	}
 }
 
+//nolint:funlen // there are lots of attributes in this check
 func (l *CheckDrivesize) Build() *CheckData {
 	return &CheckData{
 		name:         "check_drivesize",
@@ -100,6 +104,17 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"mounted":                   {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
 			"ignore-unreadable":         {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
 			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the total size. Default: true"},
+			"add-persistent-network-drives": {
+				value: &l.addPersistentNetworkDrives, description: "Include persistent network drives (net use /persistent), even if currently disconnected, in the all/all-shares listing",
+			},
+			"share-user": {
+				value: &l.shareUser, description: "Windows only: username used to authenticate to the network shares given in this check. " +
+					"The connection is established on demand and removed again after the check.",
+			},
+			"share-password": {
+				value: &l.sharePassword, description: "Windows only: password used to authenticate to the network shares given in this check. " +
+					"If set to an empty string, no password is used. If omitted, the cached/default password for the user is used.",
+			},
 		},
 		defaultFilter:   l.getDefaultFilter(),
 		defaultWarning:  "used_pct > 80",
@@ -152,6 +167,8 @@ func (l *CheckDrivesize) Build() *CheckData {
 
 			{name: "remote_name", description: "Windows only: the remote name of the drive, if it uses a network name"},
 			{name: "persistent", description: "Windows only: if the network drive is mounted as persistent (0/1)", unit: UBool},
+			{name: "connected", description: "Windows only: if the network drive is currently connected (0/1)", unit: UBool},
+			{name: "hidden", description: "Windows only: if the network share is a hidden share, i.e. the share name ends with a dollar sign like C$ (0/1)", unit: UBool},
 			{name: "localised_remote_path", description: "Windows only: If the path is given as a remote path, and that remote path has an assigned logical drive," +
 				" this is the replaced path under that logical drive."},
 		},
@@ -165,7 +182,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 	}
 }
 
-//nolint:funlen // no need to split the function, it is simple as is
+//nolint:funlen,gocyclo,maintidx,contextcheck,nolintlint // no need to split the function, it is simple as is , context is constructed when needed
 func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckDisk")
 	if !enabled {
@@ -234,6 +251,78 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 
 	l.tidyThresholdDriveValues(check)
 
+	// resolve the credential to use for each UNC share in this check.
+	// share-user / share-password override any credentials from the config section.
+	shareCredentials := map[string]Credential{}
+	for _, k := range keys {
+		drive := requiredDisks[k]
+		if !isNetworkSharePath(drive["drive_or_id"]) {
+			continue
+		}
+		root := shareRoot(drive["drive_or_id"])
+		if root == "" {
+			continue
+		}
+		if _, ok := shareCredentials[root]; ok {
+			continue
+		}
+
+		if check.hasArgsSupplied["share-user"] {
+			// user is always needed, but password can be empty for a valid login
+			shareCredentials[root] = Credential{
+				Type:        CredentialTypeWindowsShare,
+				Target:      shareTargetFromUNCPath(root),
+				Username:    qualifyUsername(l.shareUser, currentUserDomain()),
+				Password:    l.sharePassword,
+				PasswordSet: check.hasArgsSupplied["share-password"],
+				Strategy:    CredentialStrategyOnDemand,
+			}
+
+			continue
+		}
+
+		if cred, ok := findOnDemandCredential(snc.config, shareTargetFromUNCPath(root)); ok {
+			shareCredentials[root] = cred
+		}
+	}
+
+	// keep track of the connections snclient established, later tear down only the newly added connections
+	addedConnections := map[string]bool{}
+
+	for root, cred := range shareCredentials {
+		// drop a stale session first, otherwise Windows SMB path redirector keeps reusing stale session, new credential is not used.
+		if err := deleteShareConnection(root); err != nil {
+			log.Debugf("credentials: could not drop existing connection for %s: %s", root, err.Error())
+		}
+
+		if err := addShareConnection(&cred, root); err != nil {
+			// a connection with different credentials may still be around, force it away and try once more
+			if errors.Is(err, errSessionCredentialConflict) {
+				_ = deleteShareConnection(root)
+				err = addShareConnection(&cred, root)
+			}
+			if err != nil {
+				log.Errorf("credentials: failed to connect to %s: %s", root, err.Error())
+
+				continue
+			}
+		}
+		log.Debugf("credentials: established connection for %s", root)
+		addedConnections[root] = true
+	}
+
+	// remove all newly added connections again after the check finished
+	defer func() {
+		for root := range addedConnections {
+			if err := deleteShareConnection(root); err != nil {
+				log.Errorf("credentials: failed to remove connection for %s: %s", root, err.Error())
+
+				continue
+			}
+			log.Debugf("credentials: removed connection for %s", root)
+		}
+	}()
+
 	for _, k := range keys {
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return nil, fmt.Errorf("disk scan canceled: %w", ctxErr)
@@ -267,10 +356,14 @@ func (l *CheckDrivesize) Check(ctx context.Context, snc *Agent, check *CheckData
 
 	// remove errored paths unless custom path is specified
 	if !l.hasCustomPath {
-		for i, entry := range check.listData {
+		for idx, entry := range check.listData {
 			if errMsg, ok := entry["_error"]; ok {
+				// persistent network drives added via add-persistent-network-drives are treated like custom paths, so surface their errors instead of skipping them
+				if l.addPersistentNetworkDrives && entry["persistent"] == "1" {
+					continue
+				}
 				log.Debugf("drivesize failed for %s: %s", entry["drive_or_id"], errMsg)
-				check.listData[i]["_skip"] = "1"
+				check.listData[idx]["_skip"] = "1"
 			}
 		}
 	}
