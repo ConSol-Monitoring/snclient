@@ -48,6 +48,7 @@ var DefaultConfig = map[string]ConfigData{
 		"CheckSystem":          "enabled",
 		"CheckSystemUnix":      "enabled",
 		"CheckAlias":           "enabled",
+		"CheckMulti":           "enabled",
 		"CheckExternalScripts": "enabled",
 		"CheckDisk":            "enabled",
 		"CheckDriveIO":         "enabled",
@@ -325,6 +326,7 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 
 		// parse key and value
 		val := strings.SplitN(line, "=", 2)
+
 		if len(val) < 2 {
 			parseErrors = append(parseErrors, fmt.Errorf("parse error in %s:%d: found key without '='", iniPath, lineNr))
 
