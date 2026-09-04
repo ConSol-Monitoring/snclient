@@ -1,10 +1,14 @@
 package snclient
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckDriveLetterPaths(t *testing.T) {
@@ -113,6 +117,54 @@ func TestCheckPathSpecifications(t *testing.T) {
 	// Multiple forward slashes that do not actually go into subfolders and add depth should be ignored
 	res = snc.RunCheck("check_files", []string{"path=C://Windows////fonts", "max-depth=1", "filter= type == 'file' and name == 'arial.ttf' "})
 	assert.Containsf(t, string(res.BuildPluginOutput()), "OK - All 1 files are ok", "output matches")
+
+	StopTestAgent(t, snc)
+}
+
+// TestCheckFilesDiskSizeWindows verifies disksize matches the OS-reported allocation size
+// (Explorer "Size on disk") for a small file and a directory.
+func TestCheckFilesDiskSizeWindows(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("windows specific")
+	}
+	snc := StartTestAgent(t, "")
+	dir := t.TempDir()
+
+	// 1-byte file: disksize == allocated cluster size (>= logical size)
+	small := filepath.Join(dir, "small.bin")
+	require.NoError(t, os.WriteFile(small, []byte{1}, 0o600))
+
+	res := snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "crit='disksize < 0'", "filter='type == file'"})
+	require.Equalf(t, CheckExitOK, res.State, "state OK")
+	output := string(res.BuildPluginOutput())
+
+	// the reported disksize must equal the OS allocation size (Explorer "Size on disk")
+	info, err := os.Stat(small)
+	require.NoError(t, err)
+	wantDiskSize, err := getFileDiskSize(info, small)
+	require.NoError(t, err)
+	assert.Containsf(t, output, fmt.Sprintf("'small.bin disksize'=%dB", wantDiskSize),
+		"disksize matches OS allocation size (want %d)", wantDiskSize)
+	assert.GreaterOrEqualf(t, wantDiskSize, uint64(1), "a 1-byte file allocates at least one cluster")
+
+	// a directory entry reports its own allocated size (not the sum of its contents)
+	sub := filepath.Join(dir, "subdir")
+	require.NoError(t, os.Mkdir(sub, 0o700))
+	// put more than 1 MiB into the directory so the disksize would exceed 1 MiB if it summed the contents
+	require.NoError(t, os.WriteFile(filepath.Join(sub, "child.bin"), make([]byte, 2<<20), 0o600))
+
+	res = snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "crit='disksize < 0'", "filter='type == dir'"})
+	require.Equalf(t, CheckExitOK, res.State, "state OK")
+	output = string(res.BuildPluginOutput())
+
+	info, err = os.Stat(sub)
+	require.NoError(t, err)
+	wantDirDiskSize, err := getFileDiskSize(info, sub)
+	require.NoError(t, err)
+	assert.Containsf(t, output, fmt.Sprintf("'subdir disksize'=%dB", wantDirDiskSize),
+		"disksize matches OS allocation size (want %d)", wantDirDiskSize)
+	// the directory's own allocation is far smaller than its contents would suggest
+	assert.Lessf(t, wantDirDiskSize, uint64(1<<20), "directory entry allocation is small (< 1 MiB)")
 
 	StopTestAgent(t, snc)
 }

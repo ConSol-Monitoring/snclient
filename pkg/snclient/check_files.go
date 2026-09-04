@@ -51,6 +51,7 @@ type CheckFiles struct {
 	calculateSubdirectorySizes bool // constructor NewCheckFiles sets this as false
 	followSymlinks             bool
 	addFilesOnlyOnce           bool
+	addDiskSize                bool  // constructor NewCheckFiles sets this as false
 	maxFiles                   int64 // maximum number of files
 }
 
@@ -62,6 +63,7 @@ func NewCheckFiles() CheckHandler {
 		calculateSubdirectorySizes: false,
 		followSymlinks:             CheckFilesDefaultFollowSymlinks,
 		addFilesOnlyOnce:           CheckFilesDefaultAddFilesOnlyOnce,
+		addDiskSize:                false,
 		maxFiles:                   CheckFilesDefaultMaxFiles,
 	}
 }
@@ -88,6 +90,8 @@ func (l *CheckFiles) Build() *CheckData {
 				" Enable this to track added files and stop adding them twice. Files will be added using the first path they were encountered with. Default: %t", CheckFilesDefaultAddFilesOnlyOnce)},
 			"calculate-subdirectory-sizes": {value: &l.calculateSubdirectorySizes, description: "For subdirectories that are found under the search paths, " +
 				"calculate the subdirectory sizes based on found files. This calculation may be expensive. Default: false"},
+			"add-disk-size": {value: &l.addDiskSize, description: "Add the disk size used on disk for each file and directory. On unix systems this is " +
+				"calculated from the allocated blocks, on windows an additional API call is required for each entry. This calculation may be expensive. Default: false"},
 			"max-files": {value: &l.maxFiles, description: fmt.Sprintf("Maximum number of files to process. Default: %d", CheckFilesDefaultMaxFiles)},
 		},
 		detailSyntax: "%(name)",
@@ -106,6 +110,7 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "access", description: "Unix timestamp of last access time", unit: UDate},
 			{name: "creation", description: "Unix timestamp when file was created", unit: UDate},
 			{name: "size", description: "File size in bytes", unit: UByte},
+			{name: "disksize", description: "File size on disk in bytes", unit: UByte},
 			{name: "written", description: "Unix timestamp when file was last written to", unit: UDate},
 			{name: "write", description: "Alias for written", unit: UDate},
 			{name: "age", description: "Seconds since file was last written", unit: UDuration},
@@ -113,6 +118,8 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "line_count", description: "Number of lines in the files (text files)"},
 			{name: "total_bytes", description: "Total size over all files in bytes", unit: UByte},
 			{name: "total_size", description: "Total size over all files as human readable bytes", unit: UByte},
+			{name: "total_diskbytes", description: "Total disk size over all files in bytes", unit: UByte},
+			{name: "total_disksize", description: "Total disk size over all files as human readable bytes", unit: UByte},
 			{name: "md5_checksum", description: "MD5 checksum of the file"},
 			{name: "sha1_checksum", description: "SHA1 checksum of the file"},
 			{name: "sha256_checksum", description: "SHA256 checksum of the file"},
@@ -518,6 +525,14 @@ func (l *CheckFiles) populateEntryDetails(check *CheckData, entry map[string]str
 	entry["write"] = fmt.Sprintf("%d", fileInfoSys.Mtime.Unix())
 	entry["written"] = fmt.Sprintf("%d", fileInfoSys.Mtime.Unix())
 
+	if l.addDiskSize {
+		if diskSize, diskErr := getFileDiskSize(fileInfo, path); diskErr != nil {
+			log.Debugf("could not get disk size for %s: %s", path, diskErr.Error())
+		} else {
+			entry["disksize"] = fmt.Sprintf("%d", diskSize)
+		}
+	}
+
 	needVersion := check.HasThreshold("version") || check.HasMacro("version")
 	if needVersion {
 		version, err := getFileVersion(path)
@@ -620,6 +635,34 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 		check.details = map[string]string{
 			"total_bytes": fmt.Sprintf("%d", totalSize),
 			"total_size":  humanize.IBytesF(convert.UInt64(totalSize), 2),
+		}
+	}
+
+	// only calculate the total disk size when the attribute has been populated for the entries
+	if l.addDiskSize {
+		totalDiskSize := uint64(0)
+		for _, data := range check.listData {
+			if data["type"] == "file" {
+				totalDiskSize += convert.UInt64(data["disksize"])
+			}
+		}
+
+		if len(check.listData) > 0 || check.emptySyntax == "" {
+			check.details["total_diskbytes"] = fmt.Sprintf("%d", totalDiskSize)
+			check.details["total_disksize"] = humanize.IBytesF(convert.UInt64(totalDiskSize), 2)
+		}
+
+		if check.HasThreshold("total_disksize") {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					ThresholdName: "total_disksize",
+					Name:          "total_disksize",
+					Value:         totalDiskSize,
+					Unit:          "B",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				})
 		}
 	}
 
@@ -735,8 +778,10 @@ func (l *CheckFiles) addSubDirMetrics(check *CheckData) {
 	}
 }
 
+//nolint:funlen // the length is ok, function is not complex
 func (l *CheckFiles) addFileMetrics(check *CheckData) {
 	needSize := check.HasThreshold("size")
+	needDiskSize := l.addDiskSize && check.HasThreshold("disksize")
 	needAge := check.HasThreshold("age")
 	needAccess := check.HasThreshold("access")
 	needWritten := check.HasThreshold("written")
@@ -749,6 +794,18 @@ func (l *CheckFiles) addFileMetrics(check *CheckData) {
 					ThresholdName: "size",
 					Name:          data["filename"] + " " + "size",
 					Value:         convert.UInt64(data["size"]),
+					Unit:          "B",
+					Warning:       check.warnThreshold,
+					Critical:      check.critThreshold,
+					Min:           &Zero,
+				})
+		}
+		if needDiskSize {
+			check.result.Metrics = append(check.result.Metrics,
+				&CheckMetric{
+					ThresholdName: "disksize",
+					Name:          data["filename"] + " " + "disksize",
+					Value:         convert.UInt64(data["disksize"]),
 					Unit:          "B",
 					Warning:       check.warnThreshold,
 					Critical:      check.critThreshold,
