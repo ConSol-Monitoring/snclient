@@ -12,7 +12,7 @@ import (
 	"github.com/shirou/gopsutil/v4/process"
 )
 
-func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
+func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error { //nolint:funlen // the length comes from many fields to fetch
 	procs, err := process.ProcessesWithContext(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching processes failed: %s", err.Error())
@@ -86,6 +86,14 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			log.Debugf("check_process: cpuinfo error: %s", err.Error())
 		}
 
+		ppid := int32(-1)
+		p, err := proc.PpidWithContext(ctx)
+		if err != nil {
+			log.Debugf("check_process: ppid error: %s", err.Error())
+		} else {
+			ppid = p
+		}
+
 		cpuSeconds := float64(0)
 		cpuT, err := proc.TimesWithContext(ctx)
 		if err != nil {
@@ -102,6 +110,7 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			"exe":          exe,
 			"filename":     filename,
 			"pid":          fmt.Sprintf("%d", proc.Pid),
+			"ppid":         fmt.Sprintf("%d", ppid),
 			"uid":          fmt.Sprintf("%d", uid),
 			"username":     username,
 			"virtual":      fmt.Sprintf("%d", mem.VMS),

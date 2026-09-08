@@ -92,6 +92,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | state            | Current state (windows: started, stopped, hung - linux: idle, lock, running, sleep, stop, wait and zombie) |
 | creation         | Start time of process                                                                              |
 | pid              | Process id                                                                                         |
+| ppid             | Parent process id                                                                                  |
 | uid              | User id of process owner (linux only)                                                              |
 | username         | User name of process owner (linux only)                                                            |
 | cpu              | CPU usage in percent (over total lifetime of process)                                              |
