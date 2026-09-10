@@ -50,10 +50,10 @@ type dnsOpts struct {
 	ResolvConfFile  string   `long:"resolv-conf-file" default:"/etc/resolv.conf" description:"Path to the resolv.conf file to use. Is not used in Windows."`
 	Verbose         bool     `short:"v" long:"vv" long:"vvv" long:"verbose" description:"Show verbose output."`
 	WarningTimeout  *int     `short:"w" long:"warning" description:"Return warning if elapsed time to get a successful DNS query exceeds this value in seconds. Default is off."`
-	CriticalTimeout *int     `short:"c" long:"critical" description:"Return critical if elapsed time to get a successful DNS query exceeds this value in seconds. Default ist off."`
+	CriticalTimeout *int     `short:"c" long:"critical" description:"Return critical if elapsed time to get a successful DNS query exceeds this value in seconds. Default is off."`
 	Timeout         int      `short:"t" long:"timeout" default:"30" description:"Global timeout in seconds. Exit early and return unknown if elapsed time to get a successful DNS query exceeds this value."`
 	QueryTimeout    *int     `short:"T" long:"query-timeout" description:"Timeout for each single DNS query in seconds, retransmissions included. If exceeded, the next query is tried instead of exiting. Can be specified in resolv.conf file. Defaults to 5 seconds."`
-	Attempts        *int     `short:"a" long:"attempts" description:"Number of packets sent for each single DNS query before it is considered unanswered. Can be specified in resolv.conf file. Defaults to 2 seconds."`
+	Attempts        *int     `short:"a" long:"attempts" description:"Number of packets sent for each single DNS query before it is considered unanswered. Can be specified in resolv.conf file. Defaults to 2 attempts."`
 }
 
 // same defaults as the resolver in glibc (RES_TIMEOUT / RES_DFLRETRY)
