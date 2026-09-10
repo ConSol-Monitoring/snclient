@@ -70,8 +70,11 @@ Application Options:
                           Default ist off.
   -t, --timeout=          Global timeout in seconds. Exit early and return unknown if elapsed time to get a successful
                           DNS query exceeds this value. (default: 30)
-  -T, --query-timeout=    Timeout for each single DNS query in seconds. If exceeded, the next query is tried instead of
-                          exiting. (default: 5)
+  -T, --query-timeout=    Timeout for each single DNS query in seconds, retransmissions included. If exceeded, the next
+                          query is tried instead of exiting. Can be specified in resolv.conf file. Defaults to 5
+                          seconds.
+  -a, --attempts=         Number of packets sent for each single DNS query before it is considered unanswered. Can be
+                          specified in resolv.conf file. Defaults to 2 seconds.
 
 Help Options:
   -h, --help              Show this help message

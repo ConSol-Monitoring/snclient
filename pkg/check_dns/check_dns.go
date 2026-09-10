@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"runtime"
 	"slices"
 	"strconv"
@@ -51,8 +52,17 @@ type dnsOpts struct {
 	WarningTimeout  *int     `short:"w" long:"warning" description:"Return warning if elapsed time to get a successful DNS query exceeds this value in seconds. Default is off."`
 	CriticalTimeout *int     `short:"c" long:"critical" description:"Return critical if elapsed time to get a successful DNS query exceeds this value in seconds. Default ist off."`
 	Timeout         int      `short:"t" long:"timeout" default:"30" description:"Global timeout in seconds. Exit early and return unknown if elapsed time to get a successful DNS query exceeds this value."`
-	QueryTimeout    int      `short:"T" long:"query-timeout" default:"5" description:"Timeout for each single DNS query in seconds. If exceeded, the next query is tried instead of exiting."`
+	QueryTimeout    *int     `short:"T" long:"query-timeout" description:"Timeout for each single DNS query in seconds, retransmissions included. If exceeded, the next query is tried instead of exiting. Can be specified in resolv.conf file. Defaults to 5 seconds."`
+	Attempts        *int     `short:"a" long:"attempts" description:"Number of packets sent for each single DNS query before it is considered unanswered. Can be specified in resolv.conf file. Defaults to 2 seconds."`
 }
+
+// same defaults as the resolver in glibc (RES_TIMEOUT / RES_DFLRETRY)
+// ref: https://github.com/bminor/glibc/blob/765325951ac5c7d072278c9424930b29657e9758/resolv/resolv.h#L68-L72
+const (
+	defaultQueryTimeout = 5
+	defaultAttempts     = 2
+	maxAttempts         = 10
+)
 
 func parseArgs(args []string) (*dnsOpts, error) {
 	opts := &dnsOpts{}
@@ -79,8 +89,11 @@ func (opts *dnsOpts) validate() error {
 	if opts.Timeout <= 0 {
 		return fmt.Errorf("timeout must be a positive number of seconds, got: %d", opts.Timeout)
 	}
-	if opts.QueryTimeout <= 0 {
-		return fmt.Errorf("query timeout must be a positive number of seconds, got: %d", opts.QueryTimeout)
+	if opts.QueryTimeout != nil && *opts.QueryTimeout <= 0 {
+		return fmt.Errorf("query timeout must be a positive number of seconds, got: %d", *opts.QueryTimeout)
+	}
+	if opts.Attempts != nil && (*opts.Attempts < 1 || *opts.Attempts > maxAttempts) {
+		return fmt.Errorf("attempts must be between 1 and %d, got: %d", maxAttempts, *opts.Attempts)
 	}
 	if opts.WarningTimeout != nil && *opts.WarningTimeout < 0 {
 		return fmt.Errorf("warning threshold must not be negative, got: %d", *opts.WarningTimeout)
@@ -123,6 +136,29 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 			return checkers.Critical(err.Error())
 		}
 	default:
+	}
+
+	queryTimeout := time.Duration(defaultQueryTimeout) * time.Second
+	attempts := defaultAttempts
+	if clientConfig != nil {
+		if clientConfig.Timeout > 0 {
+			queryTimeout = time.Duration(clientConfig.Timeout) * time.Second
+		}
+		if clientConfig.Attempts > 0 {
+			attempts = clientConfig.Attempts
+			if attempts > maxAttempts {
+				attempts = maxAttempts
+			}
+		}
+	}
+	if opts.QueryTimeout != nil {
+		queryTimeout = time.Duration(*opts.QueryTimeout) * time.Second
+	}
+	if opts.Attempts != nil {
+		attempts = *opts.Attempts
+	}
+	if logger != nil && opts.Verbose {
+		logger.Tracef("DNS query timeout: %s, attempts: %d", queryTimeout, attempts)
 	}
 
 	var nameservers []string
@@ -172,8 +208,9 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 		return checkers.Critical(fmt.Sprintf("%s is an invalid query type", opts.QueryType))
 	}
 
-	// Timeout is a builtin cumulative timeout for dial, write and read, it is applied to every single Exchange i.e. DNS query.
-	c := &dns.Client{Timeout: time.Duration(opts.QueryTimeout) * time.Second}
+	// Timeout is a builtin cumulative timeout for dial, write and read.
+	// The deadlines of the single packets are set explicitly in exchangeWithRetries.
+	c := &dns.Client{Timeout: queryTimeout}
 
 	var r *dns.Msg
 	var duration time.Duration
@@ -223,7 +260,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 
 				// Use the per-run context so either this check or an enclosing check
 				// (for example check_multi) can stop an in-flight DNS query.
-				r, duration, err = c.ExchangeContext(queryCtx, message, nameserver)
+				r, duration, err = exchangeWithRetries(queryCtx, c, message, nameserver, queryTimeout, attempts)
 
 				if err == nil {
 					if len(r.Answer) == 0 {
@@ -388,6 +425,82 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 	return checkers.NewChecker(checkSt, msg)
 }
 
+// exchangeWithRetries sends the query and waits for the answer.
+// Answers which do not arrive within a slice of the timeout are considered lost and the very same query is sent again over the same socket.
+// A late answer to one of the previous packets is still accepted.
+// Retries use up the given timeout instead of extending it.
+func exchangeWithRetries(ctx context.Context, client *dns.Client, message *dns.Msg, nameserver string, timeout time.Duration, attempts int) (*dns.Msg, time.Duration, error) {
+	start := time.Now()
+
+	deadline := start.Add(timeout)
+	if ctxDeadline, ok := ctx.Deadline(); ok && ctxDeadline.Before(deadline) {
+		deadline = ctxDeadline
+	}
+
+	conn, err := client.DialContext(ctx, nameserver)
+	if err != nil {
+		return nil, time.Since(start), err
+	}
+	defer func() { _ = conn.Close() }()
+
+	waitSlice := timeout / time.Duration(attempts)
+	if waitSlice <= 0 {
+		waitSlice = timeout
+	}
+	waitUntil := start.Add(waitSlice)
+	if deadline.Before(waitUntil) {
+		waitUntil = deadline
+	}
+
+	var lastErr error = os.ErrDeadlineExceeded
+	for sent := 1; sent <= attempts; sent++ {
+		if err := conn.SetWriteDeadline(waitUntil); err != nil {
+			return nil, time.Since(start), err
+		}
+		if err := conn.WriteMsg(message); err != nil {
+			return nil, time.Since(start), err
+		}
+
+		for time.Now().Before(waitUntil) {
+			if err := conn.SetReadDeadline(waitUntil); err != nil {
+				return nil, time.Since(start), err
+			}
+			r, err := conn.ReadMsg()
+			if err == nil {
+				if r.Id == message.Id {
+					return r, time.Since(start), nil
+				}
+
+				// answer to a packet sent before, keep waiting
+				continue
+			}
+			if !isTimeoutError(err) {
+				return nil, time.Since(start), err
+			}
+			lastErr = err
+
+			break
+		}
+
+		if sent == attempts || !time.Now().Before(deadline) || ctx.Err() != nil {
+			break
+		}
+
+		waitUntil = time.Now().Add(waitSlice)
+		if deadline.Before(waitUntil) {
+			waitUntil = deadline
+		}
+	}
+
+	return nil, time.Since(start), lastErr
+}
+
+func isTimeoutError(err error) bool {
+	var netErr net.Error
+
+	return errors.As(err, &netErr) && netErr.Timeout()
+}
+
 func dnsAnswer(answer dns.RR) (string, string, error) {
 	switch t := answer.(type) {
 	case *dns.A:
@@ -463,8 +576,7 @@ func emptyResultReason(rcode int) string {
 }
 
 func queryFailedReason(err error) string {
-	var netErr net.Error
-	if errors.As(err, &netErr) && netErr.Timeout() {
+	if isTimeoutError(err) {
 		return "query failed: timeout"
 	}
 

@@ -1,6 +1,7 @@
 This file documents the revision history for the SNClient agent.
 
 next:
+         - check_dns: resend lost packets and use the timeout and attempts settings of the resolv.conf
          - fix remaining zombie processes after automatic updates
          - check_service: add wildcard support for exclude argument
          - check_process: make parent pid (ppid) available
