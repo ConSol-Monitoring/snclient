@@ -42,12 +42,20 @@ const (
 
 type CommaStringList []string
 
+type TaggedCommand struct {
+	Tag     string
+	Command string
+}
+
+type TaggedCommandList []TaggedCommand
+
 type CheckArgument struct {
 	value           any    // reference to storage pointer
 	description     string // used in help
 	isFilter        bool   // if true, default filter is not used when this argument is set
 	defaultCritical string // overrides default filter if argument is used
-	defaultWarning  string // same for critical condition
+	defaultWarning  string // same for warning condition
+	defaultUnknown  string // same for unknown condition
 }
 
 // Implemented defines the available supported operating systems
@@ -103,6 +111,7 @@ type CheckData struct {
 	defaultFilter                 string
 	conditionAlias                map[string]map[string]string // replacement map of equivalent condition values
 	conditionColAlias             map[string][]string          // if there are filter for given column, apply to alias columns too
+	disableFilter                 bool                         // disable filter argument for checks where filtering listData makes no sense
 	args                          map[string]CheckArgument
 	extraArgs                     map[string]CheckArgument // internal, map of expanded args
 	argsPassthrough               bool                     // allow arbitrary arguments without complaining about unknown argument
@@ -113,6 +122,8 @@ type CheckData struct {
 	defaultWarning                string
 	critThreshold                 ConditionList
 	defaultCritical               string
+	unknownThreshold              ConditionList
+	defaultUnknown                string
 	okThreshold                   ConditionList
 	detailSyntax                  string
 	topSyntax                     string
@@ -123,7 +134,7 @@ type CheckData struct {
 	emptyStateSet                 bool
 	details                       map[string]string
 	listData                      []map[string]string
-	listCombine                   string // join string for detail list
+	listCombine                   string // join string for detail output
 	listCombineSet                bool   // has the listCombine been set by user
 	showAll                       bool   // flag if check called with show-all
 	addCountMetrics               bool
@@ -159,13 +170,14 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	log.Debugf("filter:             %s", cd.filter.String())
 	log.Debugf("condition  warning: %s", cd.warnThreshold.String())
 	log.Debugf("condition critical: %s", cd.critThreshold.String())
+	log.Debugf("condition  unknown: %s", cd.unknownThreshold.String())
 	log.Debugf("condition       ok: %s", cd.okThreshold.String())
 	// Run thresholds once on cd.details. This is done separately than metrics or entries
 	// cd.details are of type map[string]string,
 	// same as elements of the slice cd.listData, but there is only one per check
 	// This can possibly set a value to cd.details[_state] , influencing check state
-	log.Tracef("checking warning, critical, and ok thresholds on check details")
-	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
+	log.Tracef("checking warning, critical, unknown, and ok thresholds on check details")
+	cd.Check(cd.details, cd.warnThreshold, cd.critThreshold, cd.unknownThreshold, cd.okThreshold)
 	log.Tracef("details:")
 	logTraceASCIIMap(cd.details)
 
@@ -216,7 +228,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 
 			// each entry in the list data is individually checked
 			// This can possibly set "_state" of each entry, influencing the final state
-			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
+			cd.Check(entry, cd.warnThreshold, cd.critThreshold, cd.unknownThreshold, cd.okThreshold)
 		}
 	}
 
@@ -242,8 +254,8 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 
 	cd.result.ApplyPerfSyntax(cd.perfSyntax, cd.timezone)
 	// Run a separate check on the macros
-	log.Tracef("checking warning, critical, and ok thresholds on check macros")
-	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.okThreshold)
+	log.Tracef("checking warning, critical, unknown, and ok thresholds on check macros")
+	cd.Check(finalMacros, cd.warnThreshold, cd.critThreshold, cd.unknownThreshold, cd.okThreshold)
 	log.Tracef("checking warning, critical, and ok thresholds on check metrics")
 	cd.setStateFromMaps(finalMacros)
 
@@ -281,10 +293,12 @@ func (cd *CheckData) buildListMacros() map[string]string {
 	okList := make([]string, 0)
 	warnList := make([]string, 0)
 	critList := make([]string, 0)
+	unknownList := make([]string, 0)
 	count := int64(0)
 	okCount := int64(0)
 	warnCount := int64(0)
 	critCount := int64(0)
+	unknownCount := int64(0)
 	for _, entry := range cd.listData {
 		weight := int64(1)
 		if w, ok := entry["_count"]; ok {
@@ -309,6 +323,9 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		case "2":
 			critList = append(critList, expanded)
 			critCount += weight
+		case "3":
+			unknownList = append(unknownList, expanded)
+			unknownCount += weight
 		}
 	}
 
@@ -316,17 +333,21 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		cd.listCombine = ", "
 	}
 	result := map[string]string{
-		"count":         fmt.Sprintf("%d", count),
-		"list":          strings.Join(list, cd.listCombine),
-		"ok_count":      fmt.Sprintf("%d", okCount),
-		"ok_list":       "",
-		"warn_count":    fmt.Sprintf("%d", warnCount),
-		"warn_list":     "",
-		"crit_count":    fmt.Sprintf("%d", critCount),
-		"crit_list":     "",
-		"problem_count": fmt.Sprintf("%d", warnCount+critCount),
-		"problem_list":  "",
-		"detail_list":   "",
+		"count":          fmt.Sprintf("%d", count),
+		"list":           strings.Join(list, cd.listCombine),
+		"ok_count":       fmt.Sprintf("%d", okCount),
+		"ok_list":        "",
+		"warn_count":     fmt.Sprintf("%d", warnCount),
+		"warning_count":  fmt.Sprintf("%d", warnCount),
+		"warn_list":      "",
+		"crit_count":     fmt.Sprintf("%d", critCount),
+		"critical_count": fmt.Sprintf("%d", critCount),
+		"crit_list":      "",
+		"unknown_count":  fmt.Sprintf("%d", unknownCount),
+		"unknown_list":   "",
+		"problem_count":  fmt.Sprintf("%d", warnCount+critCount+unknownCount),
+		"problem_list":   "",
+		"detail_list":    "",
 	}
 
 	problemList := []string{}
@@ -342,6 +363,11 @@ func (cd *CheckData) buildListMacros() map[string]string {
 		result["warn_list"] = "warning(" + strings.Join(warnList, cd.listCombine) + ")"
 		problemList = append(problemList, result["warn_list"])
 		detailList = append(detailList, result["warn_list"])
+	}
+	if len(unknownList) > 0 {
+		result["unknown_list"] = "unknown(" + strings.Join(unknownList, cd.listCombine) + ")"
+		problemList = append(problemList, result["unknown_list"])
+		detailList = append(detailList, result["unknown_list"])
 	}
 	if len(okList) > 0 {
 		result["ok_list"] = strings.Join(okList, cd.listCombine)
@@ -364,17 +390,21 @@ func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
 	}
 
 	result := map[string]string{
-		"count":         "1",
-		"list":          expanded,
-		"ok_count":      "0",
-		"ok_list":       "",
-		"warn_count":    "0",
-		"warn_list":     "",
-		"crit_count":    "0",
-		"crit_list":     "",
-		"problem_count": "0",
-		"problem_list":  "",
-		"detail_list":   expanded,
+		"count":          "1",
+		"list":           expanded,
+		"ok_count":       "0",
+		"ok_list":        "",
+		"warn_count":     "0",
+		"warning_count":  "0",
+		"warn_list":      "",
+		"crit_count":     "0",
+		"critical_count": "0",
+		"crit_list":      "",
+		"unknown_count":  "0",
+		"unknown_list":   "",
+		"problem_count":  "0",
+		"problem_list":   "",
+		"detail_list":    expanded,
 	}
 
 	numWarn := 0
@@ -387,12 +417,21 @@ func (cd *CheckData) buildListMacrosFromSingleEntry() map[string]string {
 		result["problem_list"] = expanded
 		result["warn_list"] = expanded
 		result["warn_count"] = "1"
+		result["warning_count"] = "1"
+		result["problem_count"] = "1"
 		numWarn = 1
 	case "2":
 		result["problem_list"] = expanded
 		result["crit_list"] = expanded
 		result["crit_count"] = "1"
+		result["critical_count"] = "1"
+		result["problem_count"] = "1"
 		numCrit = 1
+	case "3":
+		result["problem_list"] = expanded
+		result["unknown_list"] = expanded
+		result["unknown_count"] = "1"
+		result["problem_count"] = "1"
 	}
 
 	cd.buildCountMetrics(1, numCrit, numWarn)
@@ -445,13 +484,27 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 		cd.result.EscalateStatus(3)
 	}
 
-	switch {
-	case macros["crit_count"] != "0":
-		cd.result.EscalateStatus(2)
-		macros["_state"] = "2"
-	case macros["warn_count"] != "0":
-		cd.result.EscalateStatus(1)
-		macros["_state"] = "1"
+	// Only escalate based on counts if the user hasn't explicitly set the threshold.
+	// This respects explicit thresholds like "crit=none" which disable escalation.
+	if !cd.hasArgsSupplied["unknown"] && !cd.hasArgsSupplied["unknown+"] {
+		if macros["unknown_count"] != "0" && macros["unknown_count"] != "" {
+			cd.result.EscalateStatus(3)
+			macros["_state"] = "3"
+		}
+	}
+
+	if !cd.hasArgsSupplied["crit"] && !cd.hasArgsSupplied["critical"] && !cd.hasArgsSupplied["crit+"] && !cd.hasArgsSupplied["critical+"] {
+		if macros["crit_count"] != "0" && macros["crit_count"] != "" {
+			cd.result.EscalateStatus(2)
+			macros["_state"] = "2"
+		}
+	}
+
+	if !cd.hasArgsSupplied["warn"] && !cd.hasArgsSupplied["warning"] && !cd.hasArgsSupplied["warn+"] && !cd.hasArgsSupplied["warning+"] {
+		if macros["warn_count"] != "0" && macros["warn_count"] != "" {
+			cd.result.EscalateStatus(1)
+			macros["_state"] = "1"
+		}
 	}
 
 	if state, ok := cd.details["_state"]; ok {
@@ -461,9 +514,15 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	cd.details["_state"] = fmt.Sprintf("%d", cd.result.State)
 }
 
-// Check tries warn/crit/ok conditions against given data and sets result state.
+func (cd *CheckData) markCheckMultiThresholdSupplied(keyword string) {
+	if cd.name == "check_multi" {
+		cd.hasArgsSupplied[keyword] = true
+	}
+}
+
+// Check tries warn/crit/unknown/ok conditions against given data and sets result state.
 // The data argument can be anything that has the correct keys that conditions use
-func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond ConditionList) {
+func (cd *CheckData) Check(data map[string]string, warnCond, critCond, unknownCond, okCond ConditionList) {
 	data["_state"] = fmt.Sprintf("%d", CheckExitOK)
 
 	for i := range warnCond {
@@ -480,6 +539,13 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond Co
 		}
 	}
 
+	for i := range unknownCond {
+		if res, ok := unknownCond[i].Match(data); res && ok {
+			log.Debugf("This given data matched the UNKNOWN condition: '%s' ", unknownCond[i].DetailedString())
+			data["_state"] = fmt.Sprintf("%d", CheckExitUnknown)
+		}
+	}
+
 	for i := range okCond {
 		if res, ok := okCond[i].Match(data); res && ok {
 			log.Debugf("This given data matched the OK condition: '%s' ", okCond[i].DetailedString())
@@ -492,6 +558,10 @@ func (cd *CheckData) Check(data map[string]string, warnCond, critCond, okCond Co
 func (cd *CheckData) CheckMetrics(okCond ConditionList) {
 	// each metric is ran through conditions individually
 	for _, metric := range cd.result.Metrics {
+		if metric.SkipStateCheck {
+			continue
+		}
+
 		state := CheckExitOK
 
 		if metric.CheckForThresholds(&metric.Warning) {
@@ -648,18 +718,20 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 	argList = make([]Argument, 0, len(args))
 	cd.expandArgDefinitions()
 
-	sanitized, defaultWarning, defaultCritical, applyDefaultFilter, err := cd.preParseArgs(args)
+	pre, err := cd.preParseArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
+	applyDefaultFilter := pre.applyDefaultFilter
+
 	// skip argument parsing for external scripts
 	if _, ok := AvailableChecks[cd.name]; !ok && cd.argsPassthrough {
-		for _, arg := range sanitized {
+		for _, arg := range pre.sanitized {
 			argList = append(argList, Argument{key: arg.key, value: arg.value})
 		}
 	} else {
-		argList, applyDefaultFilter, err = cd.processArgs(sanitized, defaultWarning, defaultCritical, applyDefaultFilter)
+		argList, applyDefaultFilter, err = cd.processArgs(pre)
 		if err != nil {
 			return nil, err
 		}
@@ -670,7 +742,7 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 		cd.timezone = timeZone
 	}
 
-	err = cd.setFallbacks(applyDefaultFilter, defaultWarning, defaultCritical)
+	err = cd.setFallbacks(applyDefaultFilter, pre.defaultWarning, pre.defaultCritical, pre.defaultUnknown)
 	if err != nil {
 		return nil, err
 	}
@@ -681,13 +753,13 @@ func (cd *CheckData) parseArgs(args []string) (argList []Argument, err error) {
 	return argList, nil
 }
 
-//nolint:funlen,gocyclo // it is not complex, it is just a long list of options
-func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCritical string, initialApplyDefaultFilter bool) (argList []Argument, applyDefaultFilter bool, err error) {
+//nolint:funlen,gocyclo,maintidx // it is not complex, it is just a long list of options
+func (cd *CheckData) processArgs(pre *preParsedArgs) (argList []Argument, applyDefaultFilter bool, err error) {
 	topSupplied := false
 	okSupplied := false
-	applyDefaultFilter = initialApplyDefaultFilter
+	applyDefaultFilter = pre.applyDefaultFilter
 
-	for _, arg := range sanitized {
+	for _, arg := range pre.sanitized {
 		keyword := arg.key
 		argValue := arg.value
 		argExpr := arg.raw
@@ -708,30 +780,51 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 			}
 			cd.okThreshold = append(cd.okThreshold, cond)
 		case "warn+", "warning+":
-			warn, err2 := cd.appendDefaultThreshold(keyword, argValue, defaultWarning, cd.warnThreshold)
+			warn, err2 := cd.appendDefaultThreshold(keyword, argValue, pre.defaultWarning, cd.warnThreshold)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.warnThreshold = warn
+			cd.markCheckMultiThresholdSupplied(keyword)
 		case "warn", "warning":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.warnThreshold = append(cd.warnThreshold, cond)
+			cd.markCheckMultiThresholdSupplied(keyword)
 		case "crit+", "critical+":
-			crit, err2 := cd.appendDefaultThreshold(keyword, argValue, defaultCritical, cd.critThreshold)
+			crit, err2 := cd.appendDefaultThreshold(keyword, argValue, pre.defaultCritical, cd.critThreshold)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.critThreshold = crit
+			cd.markCheckMultiThresholdSupplied(keyword)
 		case "crit", "critical":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
+			cd.markCheckMultiThresholdSupplied(keyword)
+		case "unknown+":
+			unknown, err2 := cd.appendDefaultThreshold(keyword, argValue, pre.defaultUnknown, cd.unknownThreshold)
+			if err2 != nil {
+				return nil, false, err2
+			}
+			cd.unknownThreshold = unknown
+			cd.markCheckMultiThresholdSupplied(keyword)
+		case "unknown":
+			cond, err2 := NewCondition(argValue, &cd.attributes)
+			if err2 != nil {
+				return nil, false, err2
+			}
+			cd.unknownThreshold = append(cd.unknownThreshold, cond)
+			cd.markCheckMultiThresholdSupplied(keyword)
 		case "filter+":
+			if cd.disableFilter {
+				return nil, false, fmt.Errorf("%s is disabled for this check", keyword)
+			}
 			applyDefaultFilter = false
 			filter, err2 := cd.appendDefaultThreshold(keyword, argValue, cd.defaultFilter, cd.filter)
 			if err2 != nil {
@@ -739,6 +832,9 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 			}
 			cd.filter = filter
 		case "filter":
+			if cd.disableFilter {
+				return nil, false, fmt.Errorf("%s is disabled for this check", keyword)
+			}
 			applyDefaultFilter = false
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
@@ -826,12 +922,23 @@ func (cd *CheckData) processArgs(sanitized []Argument, defaultWarning, defaultCr
 	return argList, applyDefaultFilter, nil
 }
 
-func (cd *CheckData) preParseArgs(args []string) (sanitized []Argument, defaultWarning, defaultCritical string, hasArgsFilter bool, err error) {
-	sanitized = make([]Argument, 0)
+type preParsedArgs struct {
+	sanitized          []Argument
+	defaultWarning     string
+	defaultCritical    string
+	defaultUnknown     string
+	applyDefaultFilter bool
+}
+
+func (cd *CheckData) preParseArgs(args []string) (pre *preParsedArgs, err error) {
+	pre = &preParsedArgs{
+		sanitized:          make([]Argument, 0),
+		applyDefaultFilter: true,
+		defaultWarning:     cd.defaultWarning,
+		defaultCritical:    cd.defaultCritical,
+		defaultUnknown:     cd.defaultUnknown,
+	}
 	numArgs := len(args)
-	applyDefaultFilter := true
-	defaultWarning = cd.defaultWarning
-	defaultCritical = cd.defaultCritical
 
 	for idx := 0; idx < numArgs; idx++ {
 		argExpr := cd.removeQuotes(args[idx])
@@ -839,7 +946,7 @@ func (cd *CheckData) preParseArgs(args []string) (sanitized []Argument, defaultW
 		keyword := cd.removeQuotes(split[0])
 		argValue, newIdx, err2 := cd.fetchNextArg(args, split, keyword, idx, numArgs)
 		if err2 != nil {
-			return nil, "", "", false, err2
+			return pre, err2
 		}
 		idx = newIdx
 		argValue = cd.removeQuotes(argValue)
@@ -851,19 +958,22 @@ func (cd *CheckData) preParseArgs(args []string) (sanitized []Argument, defaultW
 			chkArg = &a
 		}
 		if chkArg != nil {
-			applyDefaultFilter = false
+			pre.applyDefaultFilter = false
 			cd.hasArgsFilter = true
 			if chkArg.defaultWarning != "" {
-				defaultWarning = chkArg.defaultWarning
+				pre.defaultWarning = chkArg.defaultWarning
 			}
 			if chkArg.defaultCritical != "" {
-				defaultCritical = chkArg.defaultCritical
+				pre.defaultCritical = chkArg.defaultCritical
+			}
+			if chkArg.defaultUnknown != "" {
+				pre.defaultUnknown = chkArg.defaultUnknown
 			}
 		}
-		sanitized = append(sanitized, Argument{key: keyword, value: argValue, raw: argExpr})
+		pre.sanitized = append(pre.sanitized, Argument{key: keyword, value: argValue, raw: argExpr})
 	}
 
-	return sanitized, defaultWarning, defaultCritical, applyDefaultFilter, nil
+	return pre, nil
 }
 
 // Threshold keywords do not necessarily have to match an attribute name.
@@ -886,6 +996,14 @@ func (cd *CheckData) checkThresholdKeywordsAgainstAttributeNames() {
 		critKeywordsExtra := utils.SubtractSlice(critKeywords, attributeNames)
 		if len(critKeywordsExtra) > 0 {
 			log.Tracef("Crit condition uses keyword(s) not present in the attributes, run with --help to get a list of attributes, extra keywords: %v", critKeywordsExtra)
+		}
+	}
+
+	unknownKeywords, err := cd.unknownThreshold.GetListOfKeywords()
+	if err == nil && len(unknownKeywords) > 0 {
+		unknownKeywordsExtra := utils.SubtractSlice(unknownKeywords, attributeNames)
+		if len(unknownKeywordsExtra) > 0 {
+			log.Tracef("Unknown condition uses keyword(s) not present in the attributes, run with --help to get a list of attributes, extra keywords: %v", unknownKeywordsExtra)
 		}
 	}
 
@@ -947,9 +1065,13 @@ func (cd *CheckData) fetchNextArg(args, split []string, keyword string, idx, num
 	if len(split) == 2 {
 		return split[1], idx, nil
 	}
-	arg, ok := cd.args[keyword]
+	lookupKey := keyword
+	if before, _, found := strings.Cut(keyword, "["); found && strings.HasSuffix(keyword, "]") {
+		lookupKey = before
+	}
+	arg, ok := cd.args[lookupKey]
 	if !ok {
-		arg, ok = cd.extraArgs[keyword]
+		arg, ok = cd.extraArgs[lookupKey]
 		if !ok {
 			return "", idx, nil
 		}
@@ -969,29 +1091,79 @@ func (cd *CheckData) fetchNextArg(args, split []string, keyword string, idx, num
 	return args[idx], idx, nil
 }
 
+// parseTaggedCommand handles parsing a TaggedCommandList argument (command[tag]=...).
+func (cd *CheckData) parseTaggedCommand(argRef *TaggedCommandList, tag, argValue string) error {
+	tag = strings.TrimSpace(tag)
+	if tag == "" {
+		return fmt.Errorf("command argument requires a unique tag, e.g. command[tag]=<check>")
+	}
+
+	if strings.ContainsAny(tag, DefaultNastyCharacters+"=") {
+		return fmt.Errorf("command tag contains invalid characters: %s", tag)
+	}
+
+	for _, existing := range *argRef {
+		if existing.Tag == tag {
+			return fmt.Errorf("duplicate command tag: %s", tag)
+		}
+	}
+
+	*argRef = append(*argRef, TaggedCommand{
+		Tag:     tag,
+		Command: strings.TrimSpace(argValue),
+	})
+
+	return nil
+}
+
 // parseAnyArg parses args into the args map with custom arguments
 func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error) {
-	arg, ok := cd.args[keyword]
+	lookupKey := keyword
+	tag := ""
+	hasTag := false
+	if before, rest, found := strings.Cut(keyword, "["); found && strings.HasSuffix(keyword, "]") {
+		lookupKey = before
+		tag = rest[:len(rest)-1]
+		hasTag = true
+	}
+
+	arg, ok := cd.args[lookupKey]
 	if !ok {
-		arg, ok = cd.extraArgs[keyword]
+		arg, ok = cd.extraArgs[lookupKey]
 		if !ok {
 			return false, nil
 		}
 	}
+	if hasTag {
+		if _, tagged := arg.value.(*TaggedCommandList); !tagged {
+			return false, fmt.Errorf("argument %s does not support tags", lookupKey)
+		}
+	}
 
+	if err := cd.parseArgValue(argExpr, keyword, argValue, tag, &arg); err != nil {
+		return true, err
+	}
+
+	cd.hasArgsSupplied[keyword] = true
+
+	return true, nil
+}
+
+// parseArgValue dispatches an argument value into the correct typed storage reference.
+func (cd *CheckData) parseArgValue(argExpr, keyword, argValue, tag string, arg *CheckArgument) error { //nolint:cyclop // many type cases are required here
 	switch argRef := arg.value.(type) {
+	case *TaggedCommandList:
+		return cd.parseTaggedCommand(argRef, tag, argValue)
 	case *[]string:
 		if _, ok := cd.hasArgsSupplied[keyword]; !ok {
 			// first time this arg occurs, empty default lists
-			empty := make([]string, 0)
-			*argRef = empty
+			*argRef = make([]string, 0)
 		}
 		*argRef = append(*argRef, argValue)
 	case *CommaStringList:
 		if _, ok := cd.hasArgsSupplied[keyword]; !ok {
 			// first time this arg occurs, empty default lists
-			empty := make([]string, 0)
-			*argRef = empty
+			*argRef = make([]string, 0)
 		}
 		*argRef = append(*argRef, strings.Split(argValue, ",")...)
 	case *string:
@@ -999,29 +1171,28 @@ func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error
 	case *float64:
 		f, err := strconv.ParseFloat(argValue, 64)
 		if err != nil {
-			return true, fmt.Errorf("parseFloat %s: %s", argExpr, err.Error())
+			return fmt.Errorf("parseFloat %s: %s", argExpr, err.Error())
 		}
 		*argRef = f
 	case *int64:
 		i, err := strconv.ParseInt(argValue, 10, 64)
 		if err != nil {
-			return true, fmt.Errorf("parseInt %s: %s", argExpr, err.Error())
+			return fmt.Errorf("parseInt %s: %s", argExpr, err.Error())
 		}
 		*argRef = i
 	case *int:
 		i, err := strconv.ParseInt(argValue, 10, 32)
 		if err != nil {
-			return true, fmt.Errorf("parseInt %s: %s", argExpr, err.Error())
+			return fmt.Errorf("parseInt %s: %s", argExpr, err.Error())
 		}
 		*argRef = int(i)
 	case *bool:
 		if argValue == "" {
-			b := true
-			*argRef = b
+			*argRef = true
 		} else {
 			b, err := convert.BoolE(argValue)
 			if err != nil {
-				return true, fmt.Errorf("parseBool %s: %s", argValue, err.Error())
+				return fmt.Errorf("parseBool %s: %s", argValue, err.Error())
 			}
 			*argRef = b
 		}
@@ -1029,9 +1200,7 @@ func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error
 		log.Errorf("unsupported args type: %T in %s", argRef, argExpr)
 	}
 
-	cd.hasArgsSupplied[keyword] = true
-
-	return true, nil
+	return nil
 }
 
 // removeQuotes remove single/double quotes around string
@@ -1053,8 +1222,8 @@ func (cd *CheckData) removeQuotes(str string) string {
 	return str
 }
 
-// setFallbacks sets default filter/warn/crit thresholds unless already set.
-func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defaultCritical string) error {
+// setFallbacks sets default filter/warn/crit/unknown thresholds unless already set.
+func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defaultCritical, defaultUnknown string) error {
 	if applyDefaultFilter && cd.defaultFilter != "" {
 		cond, err := NewCondition(cd.defaultFilter, &cd.attributes)
 		if err != nil {
@@ -1063,16 +1232,20 @@ func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defau
 		cd.filter = append(cd.filter, cond)
 	}
 
-	// default warning/critical overridden from check arguments, ex. check_service
+	// default warning/critical/unknown overridden from check arguments, ex. check_service
 	if defaultWarning != "" {
 		cd.defaultWarning = defaultWarning
 	}
 	if defaultCritical != "" {
 		cd.defaultCritical = defaultCritical
 	}
+	if defaultUnknown != "" {
+		cd.defaultUnknown = defaultUnknown
+	}
 
 	cd.warnThreshold = cd.applyDefaultThreshold(cd.defaultWarning, cd.warnThreshold)
 	cd.critThreshold = cd.applyDefaultThreshold(cd.defaultCritical, cd.critThreshold)
+	cd.unknownThreshold = cd.applyDefaultThreshold(cd.defaultUnknown, cd.unknownThreshold)
 
 	if cd.timeout == 0 {
 		cd.timeout = DefaultCheckTimeout
@@ -1122,6 +1295,7 @@ func (cd *CheckData) applyConditionColAlias() {
 	cd.applyConditionColAliasList(cd.filter)
 	cd.applyConditionColAliasList(cd.warnThreshold)
 	cd.applyConditionColAliasList(cd.critThreshold)
+	cd.applyConditionColAliasList(cd.unknownThreshold)
 	cd.applyConditionColAliasList(cd.okThreshold)
 }
 
@@ -1167,6 +1341,7 @@ func (cd *CheckData) applyConditionAlias() {
 	cd.applyConditionAliasList(cd.filter)
 	cd.applyConditionAliasList(cd.warnThreshold)
 	cd.applyConditionAliasList(cd.critThreshold)
+	cd.applyConditionAliasList(cd.unknownThreshold)
 	cd.applyConditionAliasList(cd.okThreshold)
 }
 
@@ -1203,6 +1378,9 @@ func (cd *CheckData) HasThreshold(name string) bool {
 	if cd.hasThresholdCond(cd.critThreshold, name) {
 		return true
 	}
+	if cd.hasThresholdCond(cd.unknownThreshold, name) {
+		return true
+	}
 	if cd.hasThresholdCond(cd.okThreshold, name) {
 		return true
 	}
@@ -1210,16 +1388,18 @@ func (cd *CheckData) HasThreshold(name string) bool {
 	return false
 }
 
-// GetAllThresholdKeywords returns a list of all keywords used in warn/crit/ok thresholds.
+// GetAllThresholdKeywords returns a list of all keywords used in warn/crit/unknown/ok thresholds.
 func (cd *CheckData) GetAllThresholdKeywords() []string {
-	keywords := make([]string, 0, len(cd.warnThreshold)+len(cd.critThreshold)+len(cd.okThreshold))
+	keywords := make([]string, 0, len(cd.warnThreshold)+len(cd.critThreshold)+len(cd.unknownThreshold)+len(cd.okThreshold))
 
 	warnThresholdKeywords, _ := cd.warnThreshold.GetListOfKeywords()
 	critThresholdKeywords, _ := cd.critThreshold.GetListOfKeywords()
+	unknownThresholdKeywords, _ := cd.unknownThreshold.GetListOfKeywords()
 	okThresholdKeywords, _ := cd.okThreshold.GetListOfKeywords()
 
 	keywords = append(keywords, warnThresholdKeywords...)
 	keywords = append(keywords, critThresholdKeywords...)
+	keywords = append(keywords, unknownThresholdKeywords...)
 	keywords = append(keywords, okThresholdKeywords...)
 
 	utils.Deduplicate(keywords)
@@ -1259,6 +1439,7 @@ func (cd *CheckData) SetDefaultThresholdUnit(defaultUnit string, names []string)
 	}
 	cd.VisitAll(cd.warnThreshold, setDefault)
 	cd.VisitAll(cd.critThreshold, setDefault)
+	cd.VisitAll(cd.unknownThreshold, setDefault)
 	cd.VisitAll(cd.okThreshold, setDefault)
 	cd.VisitAll(cd.filter, setDefault)
 }
@@ -1659,6 +1840,9 @@ func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
 	}
 	if cd.defaultCritical != "" {
 		defaultArgs = append(defaultArgs, defaultArg{name: "critical", defaults: cd.defaultCritical})
+	}
+	if cd.defaultUnknown != "" {
+		defaultArgs = append(defaultArgs, defaultArg{name: "unknown", defaults: cd.defaultUnknown})
 	}
 	defaultArgs = append(
 		defaultArgs,

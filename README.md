@@ -76,6 +76,7 @@ Further details are covered in the [documentation](https://omd.consol.de/docs/sn
 | **check_mailq**                   |         |    X    |    X    |    X    |
 | **check_memory**                  |    X    |    X    |    X    |    X    |
 | **check_mount**                   |    X    |    X    |    X    |    X    |
+| **check_multi**                   |    X    |    X    |    X    |    X    |
 | **check_network**                 |    X    |    X    |    X    |    X    |
 | **check_nsc_web**                 |    X    |    X    |    X    |    X    |
 | **check_ntp_offset**              |    X    |    X    |    X    |    X    |

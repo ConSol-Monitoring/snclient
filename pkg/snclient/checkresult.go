@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -29,11 +30,12 @@ var reValuesUnit = regexp.MustCompile(`^([0-9.]+)(.*?)$`)
 
 // CheckResult is the result of a single check run.
 type CheckResult struct {
-	State   int64          // naemon exit code: OK=0, Warning=1, Critical=2, Unknown=3
-	Output  string         // plugin output, should be human readable
-	Metrics []*CheckMetric // performance data metrics
-	Raw     *CheckData     // reference to the original check data, for use in inventory and other checks
-	Details string         // additional details that should be printed on a new line after the main output, e.g. for showing top consuming processes
+	State          int64          // naemon exit code: OK=0, Warning=1, Critical=2, Unknown=3
+	Output         string         // plugin output, should be human readable
+	Metrics        []*CheckMetric // performance data metrics
+	Raw            *CheckData     // reference to the original check data, for use in inventory and other checks
+	Details        string         // additional details that should be printed on a new line after the main output, e.g. for showing top consuming processes
+	literalDetails map[string]string
 }
 
 func (cr *CheckResult) Finalize(timezone *time.Location, macros ...map[string]string) {
@@ -59,6 +61,20 @@ func (cr *CheckResult) Finalize(timezone *time.Location, macros ...map[string]st
 		cr.Output = ReplaceMacros(cr.Output, timezone, macroSet...)
 	}
 	cr.Details = ReplaceMacros(cr.Details, timezone, macroSet...)
+	for placeholder, literal := range cr.literalDetails {
+		cr.Details = strings.ReplaceAll(cr.Details, placeholder, literal)
+	}
+	cr.literalDetails = nil
+}
+
+func (cr *CheckResult) LiteralizeDetails(value string) string {
+	if cr.literalDetails == nil {
+		cr.literalDetails = make(map[string]string)
+	}
+	placeholder := fmt.Sprintf("\x00snclient-literal-%d\x00", len(cr.literalDetails))
+	cr.literalDetails[placeholder] = value
+
+	return placeholder
 }
 
 func (cr *CheckResult) ApplyPerfConfig(perfCfg []PerfConfig) error {
