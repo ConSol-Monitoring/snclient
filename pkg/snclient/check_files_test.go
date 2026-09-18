@@ -3,8 +3,11 @@ package snclient
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -530,6 +533,42 @@ func TestCheckFilesSizePerfdata(t *testing.T) {
 	outputString = string(res.BuildPluginOutput())
 	assert.Containsf(t, outputString, "OK - All 4 files are ok: (4.00 MiB)", "output matches")
 
+	// check if add-disk-size populates the disksize attribute
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "add-disk-size=true", "filter='type == file and disksize > 0'"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "OK - All 16 files are ok", "output matches")
+
+	// the disksize attribute should not be populated when add-disk-size is not enabled.
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "filter='disksize > 0'"})
+	outputString = string(res.BuildPluginOutput())
+	assert.NotContainsf(t, outputString, "OK - All", "disksize should not be populated without add-disk-size")
+
+	// check if total_disksize metric is calculated when add-disk-size is enabled
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "add-disk-size=true", "crit='total_disksize > 0'", "filter='type == file'"})
+	outputString = string(res.BuildPluginOutput())
+	assert.Containsf(t, outputString, "'total_disksize'=", "output matches")
+
+	// total_disksize equals the sum of the matched files' disksize values
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "add-disk-size=true", "warn='total_disksize > 0'", "crit='disksize < 0'", "filter='type == file'"})
+	outputString = string(res.BuildPluginOutput())
+	totalMatch := regexp.MustCompile(`'total_disksize'=(\d+)B`).FindStringSubmatch(outputString)
+	require.Lenf(t, totalMatch, 2, "total_disksize metric missing: %s", outputString)
+	totalDiskSize, err := strconv.ParseUint(totalMatch[1], 10, 64)
+	require.NoError(t, err)
+	perFileRe := regexp.MustCompile(`'[^']* disksize'=(\d+)B`)
+	var sumDiskSize uint64
+	for _, m := range perFileRe.FindAllStringSubmatch(outputString, -1) {
+		v, parseErr := strconv.ParseUint(m[1], 10, 64)
+		require.NoError(t, parseErr)
+		sumDiskSize += v
+	}
+	assert.Equalf(t, sumDiskSize, totalDiskSize, "total_disksize is the sum of per-file disksize values")
+
+	// total_disksize is not emitted when add-disk-size is off
+	res = snc.RunCheck("check_files", []string{"path=" + generationDirectory, "crit='total_disksize > 0'", "filter='type == file'"})
+	outputString = string(res.BuildPluginOutput())
+	assert.NotContainsf(t, outputString, "'total_disksize'=", "no total_disksize metric without add-disk-size")
+
 	StopTestAgent(t, snc)
 }
 
@@ -775,6 +814,187 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 
 	default:
 	}
+
+	StopTestAgent(t, snc)
+}
+
+// duBytes returns the on-disk allocated size of a file in bytes as reported by `du`.
+// GNU du interprets -B1 as a 1 byte unit, while BSD/macOS du interprets it as one
+// 512 byte block, so the BSD output is scaled to bytes to stay consistent.
+func duBytes(t *testing.T, path string) uint64 {
+	t.Helper()
+	out, err := exec.Command("du", "-B1", path).Output()
+	require.NoErrorf(t, err, "du -B1 %s failed: %s", path, err)
+	fields := strings.Fields(string(out))
+	require.Lenf(t, fields, 2, "unexpected du output for %s: %s", path, out)
+	value, err := strconv.ParseUint(fields[0], 10, 64)
+	require.NoErrorf(t, err, "could not parse du output %q for %s", fields[0], path)
+	switch runtime.GOOS {
+	case "darwin", "freebsd":
+		// BSD du: -B1 means one 512 byte block
+		value *= 512
+	}
+
+	return value
+}
+
+func TestCheckFilesDiskSizeDuComparison(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("du comparison is unix only")
+	}
+	snc := StartTestAgent(t, "")
+	dir := t.TempDir()
+
+	regular := filepath.Join(dir, "regular.bin")
+	require.NoError(t, os.WriteFile(regular, make([]byte, 7000), 0o600))
+
+	empty := filepath.Join(dir, "empty.bin")
+	require.NoError(t, os.WriteFile(empty, nil, 0o600))
+
+	// sparse file: logical size larger than allocated size
+	sparse := filepath.Join(dir, "sparse.bin")
+	f, err := os.Create(sparse)
+	require.NoError(t, err)
+	require.NoError(t, f.Truncate(int64(10)<<20))
+	require.NoError(t, f.Close())
+
+	res := snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "crit='disksize < 0'", "filter='type == file'"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	output := string(res.BuildPluginOutput())
+
+	for _, name := range []string{"regular.bin", "empty.bin", "sparse.bin"} {
+		want := duBytes(t, filepath.Join(dir, name))
+		assert.Regexpf(t, regexp.QuoteMeta(fmt.Sprintf("'%s disksize'=%dB", name, want)), output,
+			"disksize matches du -B1 for %s (want %d)", name, want)
+	}
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckFilesDiskSizePerFileMetric(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "a.bin"), make([]byte, 100), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "b.bin"), make([]byte, 100), 0o600))
+
+	// add-disk-size enabled and a threshold references disksize -> per-file metrics emitted
+	res := snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "crit='disksize < 0'", "filter='type == file'"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	output := string(res.BuildPluginOutput())
+	assert.Contains(t, output, "'a.bin disksize'=")
+	assert.Contains(t, output, "'b.bin disksize'=")
+
+	// add-disk-size disabled but threshold set -> no per-file disksize metric (FR-014)
+	res = snc.RunCheck("check_files", []string{"path=" + dir, "crit='disksize < 0'", "filter='type == file'"})
+	output = string(res.BuildPluginOutput())
+	assert.NotContains(t, output, " disksize'=", "no per-file disksize metric without add-disk-size")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckFilesDiskSizeGracefulFailure(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("unix specific: chmod based")
+	}
+	if os.Geteuid() == 0 {
+		t.Skip("running as root, permission bits are not enforced")
+	}
+	snc := StartTestAgent(t, "")
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "readable.bin"), make([]byte, 100), 0o600))
+	unreadable := filepath.Join(dir, "secret.bin")
+	require.NoError(t, os.WriteFile(unreadable, make([]byte, 100), 0o600))
+	require.NoError(t, os.Chmod(unreadable, 0))
+
+	// an unreadable file must not fail the check nor prevent disksize for the other files
+	res := snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "crit='disksize < 0'", "filter='type == file'"})
+	assert.Equalf(t, CheckExitOK, res.State, "check passes despite unreadable file")
+	output := string(res.BuildPluginOutput())
+	assert.Contains(t, output, "All 2 files are ok")
+	assert.Contains(t, output, "'readable.bin disksize'=")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckFilesDiskSizeHardLinks(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("hard link test is unix specific")
+	}
+	snc := StartTestAgent(t, "")
+	dir := t.TempDir()
+	orig := filepath.Join(dir, "orig.bin")
+	require.NoError(t, os.WriteFile(orig, make([]byte, 100), 0o600))
+	require.NoError(t, os.Link(orig, filepath.Join(dir, "hardlink.bin")))
+
+	res := snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "crit='disksize < 0'", "filter='type == file'"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	output := string(res.BuildPluginOutput())
+	// both paths are counted once each
+	assert.Contains(t, output, "All 2 files are ok")
+
+	origMatch := regexp.MustCompile(`'orig\.bin disksize'=(\d+)B`).FindStringSubmatch(output)
+	require.Lenf(t, origMatch, 2, "orig.bin disksize metric missing: %s", output)
+	linkMatch := regexp.MustCompile(`'hardlink\.bin disksize'=(\d+)B`).FindStringSubmatch(output)
+	require.Lenf(t, linkMatch, 2, "hardlink.bin disksize metric missing: %s", output)
+	assert.Equal(t, origMatch[1], linkMatch[1], "hard links report the same disksize")
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckFilesDiskSizeLargeFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("sparse large file test is unix specific")
+	}
+	snc := StartTestAgent(t, "")
+	dir := t.TempDir()
+	big := filepath.Join(dir, "big.bin")
+	f, err := os.Create(big)
+	require.NoError(t, err)
+	// 5 GiB logical size, sparse (no data written)
+	require.NoError(t, f.Truncate(int64(5)<<30))
+	require.NoError(t, f.Close())
+
+	// logical size > 4 GiB reported without overflow
+	res := snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "crit='size < 0'", "filter='type == file and filename == big.bin'"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	output := string(res.BuildPluginOutput())
+	assert.Contains(t, output, fmt.Sprintf("'big.bin size'=%dB", int64(5)<<30))
+
+	// disksize equals the allocated bytes per du (sparse -> smaller than logical), no overflow
+	want := duBytes(t, big)
+	res = snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "crit='disksize < 0'", "filter='type == file and filename == big.bin'"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	output = string(res.BuildPluginOutput())
+	assert.Regexpf(t, regexp.QuoteMeta(fmt.Sprintf("'big.bin disksize'=%dB", want)), output,
+		"disksize matches du -B1 for large sparse file (want %d)", want)
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckFilesDiskSizeSymlinks(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink test is unix specific")
+	}
+	snc := StartTestAgent(t, "")
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target.bin")
+	require.NoError(t, os.WriteFile(target, make([]byte, 3000), 0o600))
+	require.NoError(t, os.Symlink(target, filepath.Join(dir, "link.bin")))
+
+	want := duBytes(t, target)
+	res := snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "crit='disksize < 0'", "filter='type == file'"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	output := string(res.BuildPluginOutput())
+	// symlink reports the disksize of its target
+	assert.Regexpf(t, regexp.QuoteMeta(fmt.Sprintf("'link.bin disksize'=%dB", want)), output,
+		"symlink disksize matches target du -B1 (want %d)", want)
+
+	// a broken symlink is recorded as an errored entry; the check does not crash
+	require.NoError(t, os.Symlink(filepath.Join(dir, "missing.bin"), filepath.Join(dir, "broken.bin")))
+	res = snc.RunCheck("check_files", []string{"path=" + dir, "add-disk-size=true", "filter='type == file'"})
+	output = string(res.BuildPluginOutput())
+	assert.Contains(t, output, "broken.bin")
+	assert.Contains(t, output, "no such file or directory")
 
 	StopTestAgent(t, snc)
 }
