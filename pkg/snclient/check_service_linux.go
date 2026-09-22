@@ -66,7 +66,7 @@ There is a specific [check_service for windows](../check_service_windows) as wel
 				description:     "List of services to check (set to * to check all services). (case insensitive) Default: *",
 				defaultCritical: stateCondition,
 			},
-			"exclude": {value: &l.excludes, description: "List of services to exclude from the check (mainly used when service is set to *) (case insensitive)"},
+			"exclude": {value: &l.excludes, description: "List of case-insensitive services to exclude from the check (mainly used when service is set to *). Supports wildcards."},
 		},
 		defaultFilter:   "active != inactive",
 		defaultCritical: stateCondition + " && preset != 'disabled'",
@@ -331,7 +331,7 @@ func (l *CheckService) parseAllServices(ctx context.Context, check *CheckData, o
 		}
 		service := serviceMatches[1]
 
-		if slices.Contains(l.excludes, strings.ToLower(service)) {
+		if matchesServiceExclude(l.excludes, service) {
 			log.Tracef("service %s excluded by 'exclude' argument", service)
 
 			continue

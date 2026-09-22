@@ -109,13 +109,8 @@ func (snc *Agent) finishUpdate(binPath, mode string) {
 	}
 
 	log.Debugf("[update] re-exec into new file %s %#v", binPath, os.Args[1:])
-	// prepare capabilities which previously have been removed for all child processes, but in this case are required again
-	runtime.LockOSThread()
-	LogError(prepareCapsForExec())
 	err := syscall.Exec(binPath, os.Args, os.Environ()) //nolint:gosec // false positive? There should be no tainted input here
 	if err != nil {
-		LogError(clearInheritableCaps()) // in case of an error, clear the inheritable caps again to not leak them to other processes
-		runtime.UnlockOSThread()
 		log.Errorf("restart failed: %s", err.Error())
 	}
 	os.Exit(ExitCodeError)

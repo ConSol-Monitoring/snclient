@@ -5,6 +5,7 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"path"
 	"slices"
 	"strings"
 	"time"
@@ -163,10 +164,24 @@ func (l *CheckService) addServiceMetrics(service string, serviceState float64, c
 	}
 }
 
+// matchesServiceExclude reports whether a value matches a case-insensitive exclusion pattern, including wildcards.
+func matchesServiceExclude(excludes []string, value string) bool {
+	value = strings.ToLower(value)
+	if slices.Contains(excludes, value) {
+		return true
+	}
+
+	return slices.ContainsFunc(excludes, func(pattern string) bool {
+		match, err := path.Match(strings.ToLower(pattern), value)
+
+		return err == nil && match
+	})
+}
+
 func (l *CheckService) isRequired(check *CheckData, entry map[string]string, services, excludes []string) bool {
 	name := strings.ToLower(entry["name"])
 	desc := strings.ToLower(entry["desc"])
-	if slices.Contains(excludes, name) || slices.Contains(excludes, desc) {
+	if matchesServiceExclude(excludes, name) || matchesServiceExclude(excludes, desc) {
 		log.Tracef("service %s excluded by exclude list", name)
 
 		return false

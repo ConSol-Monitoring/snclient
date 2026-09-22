@@ -43,37 +43,3 @@ func clearInheritableCaps() error {
 
 	return nil
 }
-
-// add cap_setuid and cap_setgid to inheritable set
-func prepareCapsForExec() error {
-	if !HasCapabilities() {
-		return nil
-	}
-
-	caps := []int{unix.CAP_SETUID, unix.CAP_SETGID}
-
-	// 1. Read current caps
-	hdr := unix.CapUserHeader{Version: unix.LINUX_CAPABILITY_VERSION_3}
-	var data [2]unix.CapUserData
-	if err := unix.Capget(&hdr, &data[0]); err != nil {
-		return fmt.Errorf("capget: %w", err)
-	}
-
-	// 2. Add both to the Inheritable set
-	for _, c := range caps {
-		idx, mask := uint(c)/32, uint32(1)<<(uint(c)%32)
-		data[idx].Inheritable |= mask
-	}
-	if err := unix.Capset(&hdr, &data[0]); err != nil {
-		return fmt.Errorf("capset: %w", err)
-	}
-
-	// 3. Raise each into the Ambient set
-	for _, c := range caps {
-		if err := unix.Prctl(unix.PR_CAP_AMBIENT, unix.PR_CAP_AMBIENT_RAISE, uintptr(c), 0, 0); err != nil {
-			return fmt.Errorf("prctl: %w", err)
-		}
-	}
-
-	return nil
-}
