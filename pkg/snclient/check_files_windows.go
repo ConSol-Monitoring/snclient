@@ -24,10 +24,7 @@ type fileStandardInfo struct {
 // The win32 file attributes used by os.FileInfo.Sys() do not include the allocated size, so an additional API call is required.
 // The file is opened without FILE_FLAG_OPEN_REPARSE_POINT, so symlinks are resolved and the size of the target is returned.
 func getFileDiskSize(_ fs.FileInfo, path string) (uint64, error) {
-	// GetFileInformationByHandleEx requires the handle to be opened with the
-	// FILE_READ_ATTRIBUTES access right, an invalid-handle error is returned otherwise.
-	// 8.3 short names (ex.: C:\Users\RUNNER~1) are resolved to their long form first,
-	// since short paths can also cause the query to fail.
+	// 8.3 short names (ex.: C:\Users\RUNNER~1) are resolved to their long form first, since short paths can also cause the query to fail.
 	longPath, err := resolveLongPath(path)
 	if err != nil {
 		longPath = path
@@ -38,6 +35,7 @@ func getFileDiskSize(_ fs.FileInfo, path string) (uint64, error) {
 		return 0, fmt.Errorf("could not convert path to UTF16: %s", longPath)
 	}
 
+	// GetFileInformationByHandleEx requires the handle to be opened with the FILE_READ_ATTRIBUTES access right, an invalid-handle error is returned otherwise.
 	handle, err := windows.CreateFile(pathPtr, windows.FILE_READ_ATTRIBUTES,
 		windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE|windows.FILE_SHARE_DELETE,
 		nil, windows.OPEN_EXISTING, windows.FILE_FLAG_BACKUP_SEMANTICS, 0)

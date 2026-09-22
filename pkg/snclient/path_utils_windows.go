@@ -8,10 +8,8 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// resolveLongPath expands 8.3 short names (ex.: C:\Users\RUNNER~1) to their long form.
-// Some Win32 APIs (e.g. GetFileInformationByHandleEx with the FileStandardInfo class)
-// fail with an invalid-handle error when given a short path, so paths are resolved to
-// their long form before use.
+// resolveLongPath expands 8.3 short names (ex.: C:\Users\RUNNER~1) to their long form. This is used in Github CI runners.
+// Some Win32 APIs , e.g. GetFileInformationByHandleEx with the FileStandardInfo class, fail with an invalid-handle error when given a short path
 func resolveLongPath(path string) (string, error) {
 	pathPtr, err := windows.UTF16PtrFromString(path)
 	if err != nil {
