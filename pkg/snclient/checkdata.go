@@ -485,24 +485,27 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 
 	// Only escalate based on counts if the user hasn't explicitly set the threshold.
 	// This respects explicit thresholds like "crit=none" which disable escalation.
-	if !cd.hasArgsSupplied["unknown"] && !cd.hasArgsSupplied["unknown+"] {
-		if macros["unknown_count"] != "0" && macros["unknown_count"] != "" {
-			cd.result.EscalateStatus(3)
-			macros["_state"] = "3"
+	hasExplicitThreshold := func(args ...string) bool {
+		for _, arg := range args {
+			if cd.hasArgsSupplied[arg] {
+				return true
+			}
 		}
+
+		return false
 	}
 
-	if !cd.hasArgsSupplied["crit"] && !cd.hasArgsSupplied["critical"] && !cd.hasArgsSupplied["crit+"] && !cd.hasArgsSupplied["critical+"] {
-		if macros["crit_count"] != "0" && macros["crit_count"] != "" {
-			cd.result.EscalateStatus(2)
-			macros["_state"] = "2"
-		}
-	}
-
-	if !cd.hasArgsSupplied["warn"] && !cd.hasArgsSupplied["warning"] && !cd.hasArgsSupplied["warn+"] && !cd.hasArgsSupplied["warning+"] {
-		if macros["warn_count"] != "0" && macros["warn_count"] != "" {
-			cd.result.EscalateStatus(1)
-			macros["_state"] = "1"
+	for _, threshold := range []struct {
+		countKey string
+		state    int64
+		args     []string
+	}{
+		{countKey: "warn_count", state: CheckExitWarning, args: []string{"warn", "warning", "warn+", "warning+"}},
+		{countKey: "crit_count", state: CheckExitCritical, args: []string{"crit", "critical", "crit+", "critical+"}},
+		{countKey: "unknown_count", state: CheckExitUnknown, args: []string{"unknown", "unknown+"}},
+	} {
+		if !hasExplicitThreshold(threshold.args...) && macros[threshold.countKey] != "0" && macros[threshold.countKey] != "" {
+			cd.result.EscalateStatus(threshold.state)
 		}
 	}
 
@@ -510,7 +513,9 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 		cd.result.EscalateStatus(convert.Int64(state))
 	}
 
-	cd.details["_state"] = fmt.Sprintf("%d", cd.result.State)
+	state := fmt.Sprintf("%d", cd.result.State)
+	macros["_state"] = state
+	cd.details["_state"] = state
 }
 
 func (cd *CheckData) markCheckMultiThresholdSupplied(keyword string) {
