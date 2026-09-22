@@ -67,6 +67,8 @@ func (cr *CheckResult) Finalize(timezone *time.Location, macros ...map[string]st
 	cr.literalDetails = nil
 }
 
+// LiteralizeDetails protects an already-rendered value from template expansion
+// when Details is finalized, so embedded plugin output remains unchanged.
 func (cr *CheckResult) LiteralizeDetails(value string) string {
 	if cr.literalDetails == nil {
 		cr.literalDetails = make(map[string]string)
