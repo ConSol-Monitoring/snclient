@@ -127,6 +127,7 @@ func (l *CheckMulti) Build() *CheckData {
 	[check_dummy1] OK
 	[check_dummy2] CRITICAL
 	`,
+		exampleArgs: `"command[check_cpu]=check_cpu" "command[check_memory]=check_memory"`,
 	}
 }
 

@@ -75,7 +75,7 @@ Naemon Config
         host_name            testhost
         service_description  check_multi
         use                  generic-service
-        check_command        check_nrpe!check_multi!
+        check_command        check_nrpe!check_multi!"command[check_cpu]=check_cpu" "command[check_memory]=check_memory"
     }
 
 ## Argument Defaults
