@@ -35,6 +35,7 @@ const (
 	CheckFilesDefaultFollowSymlinks   = true
 	CheckFilesDefaultAddFilesOnlyOnce = false
 	CheckFilesFollowSymlinkMaxDepth   = 50
+	CheckFilesDefaultAddDiskSize      = false
 
 	// CheckFilesDefaultMaxFiles is the default value for max-files unless specified by the user. Can be increased up to CheckFilesMaxFilesLimit
 	CheckFilesDefaultMaxFiles = 10000
@@ -51,7 +52,7 @@ type CheckFiles struct {
 	calculateSubdirectorySizes bool // constructor NewCheckFiles sets this as false
 	followSymlinks             bool
 	addFilesOnlyOnce           bool
-	addDiskSize                bool  // constructor NewCheckFiles sets this as false
+	addDiskSize                bool
 	maxFiles                   int64 // maximum number of files
 }
 
@@ -63,7 +64,7 @@ func NewCheckFiles() CheckHandler {
 		calculateSubdirectorySizes: false,
 		followSymlinks:             CheckFilesDefaultFollowSymlinks,
 		addFilesOnlyOnce:           CheckFilesDefaultAddFilesOnlyOnce,
-		addDiskSize:                false,
+		addDiskSize:                CheckFilesDefaultAddDiskSize,
 		maxFiles:                   CheckFilesDefaultMaxFiles,
 	}
 }
