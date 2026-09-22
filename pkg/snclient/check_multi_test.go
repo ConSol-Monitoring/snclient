@@ -106,15 +106,7 @@ CheckMulti = enabled
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN for unregistered inline command")
 	assert.Contains(t, res.Output, "unknown check command")
 
-	// 7. Filter argument is disabled/rejected
-	res = snc.RunCheck("check_multi", []string{
-		"command[d1]=check_dummy 0 'ok'",
-		"filter=state=1",
-	})
-	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when filter argument is used")
-	assert.Contains(t, res.Output, "filter is disabled for this check")
-
-	// 8. Severity hierarchy: UNKNOWN > CRITICAL > WARNING > OK
+	// 7. Severity hierarchy: UNKNOWN > CRITICAL > WARNING > OK
 	res = snc.RunCheck("check_multi", []string{
 		"command[d1]=check_dummy 0 'ok'",
 		"command[d2]=check_dummy 3 'unknown check'",

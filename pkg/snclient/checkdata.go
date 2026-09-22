@@ -111,7 +111,6 @@ type CheckData struct {
 	defaultFilter                 string
 	conditionAlias                map[string]map[string]string // replacement map of equivalent condition values
 	conditionColAlias             map[string][]string          // if there are filter for given column, apply to alias columns too
-	disableFilter                 bool                         // disable filter argument for checks where filtering listData makes no sense
 	args                          map[string]CheckArgument
 	extraArgs                     map[string]CheckArgument // internal, map of expanded args
 	argsPassthrough               bool                     // allow arbitrary arguments without complaining about unknown argument
@@ -822,9 +821,6 @@ func (cd *CheckData) processArgs(pre *preParsedArgs) (argList []Argument, applyD
 			cd.unknownThreshold = append(cd.unknownThreshold, cond)
 			cd.markCheckMultiThresholdSupplied(keyword)
 		case "filter+":
-			if cd.disableFilter {
-				return nil, false, fmt.Errorf("%s is disabled for this check", keyword)
-			}
 			applyDefaultFilter = false
 			filter, err2 := cd.appendDefaultThreshold(keyword, argValue, cd.defaultFilter, cd.filter)
 			if err2 != nil {
@@ -832,9 +828,6 @@ func (cd *CheckData) processArgs(pre *preParsedArgs) (argList []Argument, applyD
 			}
 			cd.filter = filter
 		case "filter":
-			if cd.disableFilter {
-				return nil, false, fmt.Errorf("%s is disabled for this check", keyword)
-			}
 			applyDefaultFilter = false
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {

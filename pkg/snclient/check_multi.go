@@ -81,8 +81,7 @@ func (l *CheckMulti) Build() *CheckData {
 
 	This can be executed with 'check_multi "config=myscript"'.
 `,
-		implemented:   ALL,
-		disableFilter: true,
+		implemented: ALL,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
