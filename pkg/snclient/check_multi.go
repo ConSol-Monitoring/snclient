@@ -93,10 +93,11 @@ func (l *CheckMulti) Build() *CheckData {
 			"warning_count":  {"warn_count": "warning_count"},
 			"critical_count": {"crit_count": "critical_count"},
 		},
-		attributes:      checkMultiAttributes,
-		defaultWarning:  "warning_count > 0",
-		defaultCritical: "critical_count > 0",
-		defaultUnknown:  "unknown_count > 0",
+		attributes:               checkMultiAttributes,
+		defaultWarning:           "warning_count > 0",
+		defaultCritical:          "critical_count > 0",
+		defaultUnknown:           "unknown_count > 0",
+		thresholdsOverrideCounts: true,
 		okSyntax: "{{ if problem_count gt 0 }}%(status) - %(count) plugins checked: " +
 			"%(ok_count) ok, %(warning_count) warning, %(critical_count) critical, " +
 			"%(unknown_count) unknown - %(problem_list){{ ELSE }}%(status) - " +

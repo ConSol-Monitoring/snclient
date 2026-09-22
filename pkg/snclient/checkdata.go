@@ -140,6 +140,7 @@ type CheckData struct {
 	addCountMetricsToFront        bool
 	addProblemCountMetrics        bool
 	addProblemCountMetricsToFront bool
+	thresholdsOverrideCounts      bool
 	result                        *CheckResult
 	showHelp                      ShowHelp
 	timeout                       time.Duration
@@ -518,8 +519,8 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	cd.details["_state"] = state
 }
 
-func (cd *CheckData) markCheckMultiThresholdSupplied(keyword string) {
-	if cd.name == "check_multi" {
+func (cd *CheckData) markThresholdSupplied(keyword string) {
+	if cd.thresholdsOverrideCounts {
 		cd.hasArgsSupplied[keyword] = true
 	}
 }
@@ -789,42 +790,42 @@ func (cd *CheckData) processArgs(pre *preParsedArgs) (argList []Argument, applyD
 				return nil, false, err2
 			}
 			cd.warnThreshold = warn
-			cd.markCheckMultiThresholdSupplied(keyword)
+			cd.markThresholdSupplied(keyword)
 		case "warn", "warning":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.warnThreshold = append(cd.warnThreshold, cond)
-			cd.markCheckMultiThresholdSupplied(keyword)
+			cd.markThresholdSupplied(keyword)
 		case "crit+", "critical+":
 			crit, err2 := cd.appendDefaultThreshold(keyword, argValue, pre.defaultCritical, cd.critThreshold)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.critThreshold = crit
-			cd.markCheckMultiThresholdSupplied(keyword)
+			cd.markThresholdSupplied(keyword)
 		case "crit", "critical":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.critThreshold = append(cd.critThreshold, cond)
-			cd.markCheckMultiThresholdSupplied(keyword)
+			cd.markThresholdSupplied(keyword)
 		case "unknown+":
 			unknown, err2 := cd.appendDefaultThreshold(keyword, argValue, pre.defaultUnknown, cd.unknownThreshold)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.unknownThreshold = unknown
-			cd.markCheckMultiThresholdSupplied(keyword)
+			cd.markThresholdSupplied(keyword)
 		case "unknown":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
 				return nil, false, err2
 			}
 			cd.unknownThreshold = append(cd.unknownThreshold, cond)
-			cd.markCheckMultiThresholdSupplied(keyword)
+			cd.markThresholdSupplied(keyword)
 		case "filter+":
 			applyDefaultFilter = false
 			filter, err2 := cd.appendDefaultThreshold(keyword, argValue, cd.defaultFilter, cd.filter)
