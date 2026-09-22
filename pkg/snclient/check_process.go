@@ -50,6 +50,7 @@ func (l *CheckProcess) Build() *CheckData {
 			{name: "state", description: "Current state (windows: started, stopped, hung - linux: idle, lock, running, sleep, stop, wait and zombie)"},
 			{name: "creation", description: "Start time of process", unit: UDate},
 			{name: "pid", description: "Process id"},
+			{name: "ppid", description: "Parent process id"},
 			{name: "uid", description: "User id of process owner (linux only)"},
 			{name: "username", description: "User name of process owner (linux only)"},
 			{name: "cpu", description: "CPU usage in percent (over total lifetime of process)", unit: UPercent},
