@@ -639,7 +639,6 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 		}
 	}
 
-	// only calculate the total disk size when the attribute has been populated for the entries
 	if l.addDiskSize {
 		totalDiskSize := uint64(0)
 		for _, data := range check.listData {
