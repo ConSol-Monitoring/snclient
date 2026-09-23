@@ -125,6 +125,7 @@ type CheckData struct {
 	defaultUnknown                string
 	okThreshold                   ConditionList
 	detailSyntax                  string
+	longDetailSyntax              string
 	topSyntax                     string
 	okSyntax                      string
 	hasArgsFilter                 bool // will be true if any arg supplied which has isFilter set
@@ -167,6 +168,9 @@ func (cd *CheckData) Finalize() (*CheckResult, error) {
 	cd.details["ok-syntax"] = cd.okSyntax
 	cd.details["empty-syntax"] = cd.emptySyntax
 	cd.details["detail-syntax"] = cd.detailSyntax
+	if cd.longDetailSyntax != "" {
+		cd.details["long-detail-syntax"] = cd.longDetailSyntax
+	}
 	log.Debugf("filter:             %s", cd.filter.String())
 	log.Debugf("condition  warning: %s", cd.warnThreshold.String())
 	log.Debugf("condition critical: %s", cd.critThreshold.String())
@@ -844,6 +848,8 @@ func (cd *CheckData) processArgs(pre *preParsedArgs) (argList []Argument, applyD
 			// not in use
 		case "detail-syntax":
 			cd.detailSyntax = argValue
+		case "long-detail-syntax":
+			cd.longDetailSyntax = argValue
 		case "list-combine":
 			cd.listCombine = argValue
 			cd.listCombineSet = true
@@ -1255,7 +1261,7 @@ func (cd *CheckData) setFallbacks(applyDefaultFilter bool, defaultWarning, defau
 
 // HasMacro returns true is the syntax attributes contain a macro with the given name.
 func (cd *CheckData) HasMacro(name string) bool {
-	for _, syntax := range []string{cd.detailSyntax, cd.topSyntax, cd.okSyntax, cd.emptySyntax, cd.perfSyntax} {
+	for _, syntax := range []string{cd.detailSyntax, cd.longDetailSyntax, cd.topSyntax, cd.okSyntax, cd.emptySyntax, cd.perfSyntax} {
 		macros := MacroNames(syntax)
 		if slices.Contains(macros, name) {
 			return true
@@ -1270,7 +1276,7 @@ func (cd *CheckData) AllRequiredMacros() []string {
 	var allMacros []string
 
 	// extract macros from syntax templates
-	for _, syntax := range []string{cd.detailSyntax, cd.topSyntax, cd.okSyntax, cd.emptySyntax, cd.perfSyntax} {
+	for _, syntax := range []string{cd.detailSyntax, cd.longDetailSyntax, cd.topSyntax, cd.okSyntax, cd.emptySyntax, cd.perfSyntax} {
 		macros := MacroNames(syntax)
 		allMacros = append(allMacros, macros...)
 	}
@@ -1851,6 +1857,9 @@ func (cd *CheckData) helpDefaultArguments(format ShowHelp) string {
 		defaultArg{name: "ok-syntax", defaults: cd.okSyntax},
 		defaultArg{name: "detail-syntax", defaults: cd.detailSyntax},
 	)
+	if cd.longDetailSyntax != "" {
+		defaultArgs = append(defaultArgs, defaultArg{name: "long-detail-syntax", defaults: cd.longDetailSyntax})
+	}
 
 	header := []utils.ASCIITableHeader{
 		{Name: "Argument", Field: "name"},

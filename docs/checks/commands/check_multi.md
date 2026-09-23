@@ -80,16 +80,17 @@ Naemon Config
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                                                         |
-| ------------- | ----------------------------------------------------------------------------------------------------- |
-| warning       | warning_count > 0                                                                                     |
-| critical      | critical_count > 0                                                                                    |
-| unknown       | unknown_count > 0                                                                                     |
-| empty-state   | 3 (UNKNOWN)                                                                                           |
-| empty-syntax  | %(status) - no checks executed                                                                        |
-| top-syntax    | %(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list) |
-| ok-syntax     | {{ if problem_count gt 0 }}%(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list){{ ELSE }}%(status) - %(count) plugins checked, %(ok_count) ok{{ END }} |
-| detail-syntax | %(name): %(shortoutput)                                                                               |
+| Argument           | Default Value                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| warning            | warning_count > 0                                                                                |
+| critical           | critical_count > 0                                                                               |
+| unknown            | unknown_count > 0                                                                                |
+| empty-state        | 3 (UNKNOWN)                                                                                      |
+| empty-syntax       | %(status) - no checks executed                                                                   |
+| top-syntax         | %(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list) |
+| ok-syntax          | {{ if problem_count gt 0 }}%(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list){{ ELSE }}%(status) - %(count) plugins checked, %(ok_count) ok{{ END }} |
+| detail-syntax      | %(name): %(shortoutput)                                                                          |
+| long-detail-syntax | [%(name)] %(output)                                                                              |
 
 ## Check Specific Arguments
 

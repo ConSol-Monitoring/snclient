@@ -110,10 +110,11 @@ func (l *CheckMulti) Build() *CheckData {
 			"%(ok_count) ok, %(warning_count) warning, %(critical_count) critical, " +
 			"%(unknown_count) unknown - %(problem_list){{ ELSE }}%(status) - " +
 			"%(count) plugins checked, %(ok_count) ok{{ END }}",
-		topSyntax:    "%(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list)",
-		detailSyntax: "%(name): %(shortoutput)",
-		emptySyntax:  "%(status) - no checks executed",
-		emptyState:   CheckExitUnknown,
+		topSyntax:        "%(status) - %(count) plugins checked: %(ok_count) ok, %(warning_count) warning, %(critical_count) critical, %(unknown_count) unknown - %(problem_list)",
+		detailSyntax:     "%(name): %(shortoutput)",
+		longDetailSyntax: "[%(name)] %(output)",
+		emptySyntax:      "%(status) - no checks executed",
+		emptyState:       CheckExitUnknown,
 		exampleDefault: `
     check_multi "command[check_process]=check_process 'process=firefox'" "command[check_memory]=check_memory 'type=physical' 'crit=used_pct gt 80%'"
 	OK - 2 plugins checked, 2 ok |'check_process::count'=1;;;0 ... 'check_memory::physical %'=78.7%;;;0;100
@@ -155,8 +156,18 @@ func (l *CheckMulti) childTimeoutResult(timeout, totalTimeout time.Duration) *Ch
 func (l *CheckMulti) overallTimeoutResult(check *CheckData, snc *Agent, children []childRecord) *CheckResult {
 	timeout := snc.getBuiltinCmdTimeout()
 	details := make([]string, 0, len(children))
-	for _, child := range children {
-		details = append(details, check.result.LiteralizeDetails(l.timeoutDetail(child)))
+	for i := range children {
+		child := &children[i]
+		detail, err := l.renderLongDetail(check, child, l.timeoutDetailOutput(child))
+		if err != nil {
+			check.result.State = CheckExitUnknown
+			check.result.Output = fmt.Sprintf("UNKNOWN - %s", err.Error())
+
+			return check.result
+		}
+		if detail != "" {
+			details = append(details, detail)
+		}
 	}
 
 	check.result.State = CheckExitUnknown
@@ -332,6 +343,9 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, error) {
 
 type childRecord struct {
 	tag              string
+	command          string
+	state            string
+	status           string
 	childOutput      string
 	durationStr      string
 	parentTimedOut   bool
@@ -358,24 +372,22 @@ func (counts *childCheckCounts) add(state string) {
 
 func (l *CheckMulti) recordChildResult(
 	check *CheckData,
-	childCheck multiChildCheck,
 	result *CheckResult,
-	record childRecord,
+	record *childRecord,
 	hasEntryThresholds bool,
 	counts *childCheckCounts,
 	metrics *[]*CheckMetric,
 ) {
 	firstLine := strings.TrimRight(strings.Split(record.childOutput, "\n")[0], "\r\n ")
-	entryState := fmt.Sprintf("%d", result.State)
 	entry := map[string]string{
 		"name":        record.tag,
 		"tag":         record.tag,
-		"command":     childCheck.cmdStr,
-		"state":       entryState,
-		"status":      result.StateString(),
+		"command":     record.command,
+		"state":       record.state,
+		"status":      record.status,
 		"shortoutput": firstLine,
 		"output":      record.childOutput,
-		"_state":      entryState,
+		"_state":      record.state,
 		"_skip":       "1",
 		"_count":      "1",
 	}
@@ -411,6 +423,9 @@ func (l *CheckMulti) runOneChild(ctx context.Context, snc *Agent, chk multiChild
 
 	rec := childRecord{
 		tag:              chk.tag,
+		command:          chk.cmdStr,
+		state:            fmt.Sprintf("%d", res.State),
+		status:           res.StateString(),
 		childOutput:      res.BuildOutputString(),
 		durationStr:      l.formatDuration(childElapsed),
 		parentTimedOut:   parentTimedOut,
@@ -420,17 +435,17 @@ func (l *CheckMulti) runOneChild(ctx context.Context, snc *Agent, chk multiChild
 	return res, rec, nil
 }
 
-func (l *CheckMulti) timeoutDetail(child childRecord) string {
+func (l *CheckMulti) timeoutDetailOutput(child *childRecord) string {
 	if child.parentTimedOut {
-		return fmt.Sprintf("[%s] %s", child.tag, child.childOutput)
+		return child.childOutput
 	}
 
 	output := strings.TrimRight(child.childOutput, "\r\n ")
 
-	return fmt.Sprintf("[%s] %s (took %s)", child.tag, output, child.durationStr)
+	return fmt.Sprintf("%s (took %s)", output, child.durationStr)
 }
 
-func (l *CheckMulti) childDetail(child childRecord, externalTimeout time.Duration) string {
+func (l *CheckMulti) childDetailOutput(child *childRecord, externalTimeout time.Duration) string {
 	output := child.childOutput
 	if child.externalTimedOut {
 		firstLine := strings.TrimRight(strings.Split(output, "\n")[0], "\r\n ")
@@ -442,7 +457,33 @@ func (l *CheckMulti) childDetail(child childRecord, externalTimeout time.Duratio
 		}
 	}
 
-	return fmt.Sprintf("[%s] %s", child.tag, output)
+	return output
+}
+
+func (l *CheckMulti) renderLongDetail(check *CheckData, child *childRecord, output string) (string, error) {
+	if check.longDetailSyntax == "" {
+		return "", nil
+	}
+
+	firstLine := strings.TrimRight(strings.Split(output, "\n")[0], "\r\n ")
+	attributes := map[string]string{
+		"name":        child.tag,
+		"tag":         child.tag,
+		"command":     child.command,
+		"state":       child.state,
+		"status":      child.status,
+		"output":      output,
+		"shortoutput": firstLine,
+	}
+	detail, err := ReplaceTemplate(check.longDetailSyntax, check.timezone, attributes)
+	if err != nil {
+		return "", fmt.Errorf("replacing long-detail-syntax failed: %s", err.Error())
+	}
+	if detail == "" {
+		return "", nil
+	}
+
+	return check.result.LiteralizeDetails(detail), nil
 }
 
 // executeChildChecks runs all child checks and aggregates results.
@@ -476,13 +517,20 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 		}
 
 		executedChildren = append(executedChildren, rec)
-		l.recordChildResult(check, chk, res, rec, hasEntryThresholds, &counts, &allMetrics)
+		l.recordChildResult(check, res, &rec, hasEntryThresholds, &counts, &allMetrics)
 	}
 
 	detailsList := make([]string, 0, len(executedChildren))
 	externalTimeout := l.externalScriptTimeout(snc)
-	for _, rec := range executedChildren {
-		detailsList = append(detailsList, check.result.LiteralizeDetails(l.childDetail(rec, externalTimeout)))
+	for i := range executedChildren {
+		rec := &executedChildren[i]
+		detail, err := l.renderLongDetail(check, rec, l.childDetailOutput(rec, externalTimeout))
+		if err != nil {
+			return nil, err
+		}
+		if detail != "" {
+			detailsList = append(detailsList, detail)
+		}
 	}
 
 	problemCount := counts.warning + counts.critical + counts.unknown
