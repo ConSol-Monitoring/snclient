@@ -17,6 +17,14 @@ func init() {
 	AvailableChecks["check_multi"] = CheckEntry{"check_multi", NewCheckMulti}
 }
 
+const (
+	// defaultMaxChecks sets the default maximum number of checks
+	defaultMaxChecks = 20
+
+	// defaultMaxRecursionDepth sets the default maximum recursion depth
+	defaultMaxRecursionDepth = 5
+)
+
 type (
 	checkMultiConfigKey  struct{}
 	checkMultiDepthKey   struct{}
@@ -214,14 +222,14 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 	ctx = timeoutCtx
 
 	depth, _ := ctx.Value(checkMultiDepthKey{}).(int)
-	if depth > 5 {
+	if depth > defaultMaxRecursionDepth {
 		return nil, fmt.Errorf("recursion limit exceeded for check_multi")
 	}
 	ctx = context.WithValue(ctx, checkMultiDepthKey{}, depth+1)
 
 	maxChecks, ok, err := snc.config.Section("/settings/check/multi").GetInt("max checks")
 	if err != nil || !ok || maxChecks <= 0 {
-		maxChecks = 20
+		maxChecks = defaultMaxChecks
 	}
 
 	if _, ok := ctx.Value(checkMultiCounterKey{}).(*checkMultiCounter); !ok {
