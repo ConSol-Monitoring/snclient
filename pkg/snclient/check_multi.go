@@ -550,10 +550,7 @@ func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, chk multiChi
 		return snc.RunCheckWithContext(ctx, cmdName, cmdArgs, 0, nil, false), nil
 	}
 
-	timeout := snc.getBuiltinCmdTimeout()
-	if configuredTimeout, ok, err := snc.config.Section("/settings/external scripts").GetDuration("timeout"); err == nil && ok && configuredTimeout > 0 {
-		timeout = configuredTimeout
-	}
+	timeout := l.externalScriptTimeout(snc)
 	stdout, stderr, exitCode, _ := snc.runExternalCheckString(ctx, chk.cmdStr, timeout)
 	out := stdout
 	if stderr != "" && !strings.Contains(out, stderr) {
