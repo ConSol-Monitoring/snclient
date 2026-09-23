@@ -104,7 +104,7 @@ CheckMulti = enabled
 		"command[ext]=/bin/nonexistent_or_external_script -H 123",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN for unregistered inline command")
-	assert.Contains(t, res.Output, "unknown check command")
+	assert.Equal(t, "UNKNOWN - unknown check command: /bin/nonexistent_or_external_script (inline checks only support existing check commands)", res.Output)
 
 	// 7. Severity hierarchy: UNKNOWN > CRITICAL > WARNING > OK
 	res = snc.RunCheck("check_multi", []string{
@@ -441,7 +441,7 @@ command[d2] = check_dummy 0 'nested 2'
 		"command[d5]=check_dummy 0 'ok 5'",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when exceeding max checks")
-	assert.Contains(t, res.Output, "exceeds max checks limit")
+	assert.Equal(t, "UNKNOWN - number of checks (5) exceeds max checks limit (4)", res.Output)
 
 	// Nested checks share the same cumulative execution count.
 	res = snc.RunCheck("check_multi", []string{
@@ -465,7 +465,38 @@ CheckMulti = disabled
 		"command[d1]=check_dummy 0 'ok 1'",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when module is disabled")
-	assert.Contains(t, res.Output, "module CheckMulti is not enabled")
+	assert.Equal(t, "UNKNOWN - module CheckMulti is not enabled in /modules section", res.Output)
+}
+
+func TestCheckMultiRecursionLimit(t *testing.T) {
+	config := `
+[/modules]
+CheckMulti = enabled
+
+[/settings/check/multi/depth0]
+command[next] = check_multi config=depth1
+
+[/settings/check/multi/depth1]
+command[next] = check_multi config=depth2
+
+[/settings/check/multi/depth2]
+command[next] = check_multi config=depth3
+
+[/settings/check/multi/depth3]
+command[next] = check_multi config=depth4
+
+[/settings/check/multi/depth4]
+command[next] = check_multi config=depth5
+
+[/settings/check/multi/depth5]
+command[next] = check_multi config=depth6
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{"config=depth0"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when exceeding recursion limit")
+	assert.Contains(t, res.BuildOutputString(), "UNKNOWN - recursion limit exceeded for check_multi")
 }
 
 func TestCheckMultiConfigSection(t *testing.T) {
@@ -572,7 +603,7 @@ command[ foo ] = check_dummy 0 second
 		"config=duplicate",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN for whitespace-duplicate config tags")
-	assert.Contains(t, res.Output, "duplicate command tag: foo")
+	assert.Equal(t, "UNKNOWN - duplicate command tag: foo", res.Output)
 
 	// Test direct loop detection: check_multi config=loop
 	res = snc.RunCheck("check_multi", []string{
@@ -593,7 +624,7 @@ command[ foo ] = check_dummy 0 second
 		"config=doesnotexist",
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN for missing config section")
-	assert.Contains(t, res.Output, "no checks defined in config section")
+	assert.Equal(t, "UNKNOWN - no checks defined in config section /settings/check/multi/doesnotexist", res.Output)
 }
 
 func TestCheckMultiIndex(t *testing.T) {

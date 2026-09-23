@@ -206,10 +206,7 @@ func (l *CheckMulti) remainingTimeout(ctx context.Context) time.Duration {
 func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckMulti")
 	if !enabled {
-		return &CheckResult{
-			State:  CheckExitUnknown,
-			Output: "module CheckMulti is not enabled in /modules section",
-		}, nil
+		return nil, fmt.Errorf("module CheckMulti is not enabled in /modules section")
 	}
 	timeout := snc.getBuiltinCmdTimeout()
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -218,10 +215,7 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 
 	depth, _ := ctx.Value(checkMultiDepthKey{}).(int)
 	if depth > 5 {
-		return &CheckResult{
-			State:  CheckExitUnknown,
-			Output: "recursion limit exceeded for check_multi",
-		}, nil
+		return nil, fmt.Errorf("recursion limit exceeded for check_multi")
 	}
 	ctx = context.WithValue(ctx, checkMultiDepthKey{}, depth+1)
 
@@ -242,10 +236,7 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 
 	if l.config != "" {
 		if activeConfigs[l.config] {
-			return &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("loop detected: check_multi config %s is already running in the call chain", l.config),
-			}, nil
+			return nil, fmt.Errorf("loop detected: check_multi config %s is already running in the call chain", l.config)
 		}
 		newActive := make(map[string]bool, len(activeConfigs)+1)
 		maps.Copy(newActive, activeConfigs)
@@ -253,37 +244,31 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 		ctx = context.WithValue(ctx, checkMultiConfigKey{}, newActive)
 	}
 
-	childChecks, res := l.buildChildChecks(snc)
-	if res != nil {
-		return res, nil
+	childChecks, err := l.buildChildChecks(snc)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(childChecks) == 0 {
-		return &CheckResult{
-			State:  CheckExitUnknown,
-			Output: "no checks or config specified",
-		}, nil
+		return nil, fmt.Errorf("no checks or config specified")
 	}
 
 	return l.executeChildChecks(ctx, snc, check, childChecks)
 }
 
 // buildChildChecks assembles the list of child checks from config section and inline args.
-func (l *CheckMulti) buildChildChecks(snc *Agent) ([]multiChildCheck, *CheckResult) {
+func (l *CheckMulti) buildChildChecks(snc *Agent) ([]multiChildCheck, error) {
 	childChecks := []multiChildCheck{}
 	seenTags := make(map[string]bool)
 
 	if l.config != "" {
-		configChecks, res := l.buildConfigChecks(snc)
-		if res != nil {
-			return nil, res
+		configChecks, err := l.buildConfigChecks(snc)
+		if err != nil {
+			return nil, err
 		}
 		for _, chk := range configChecks {
 			if seenTags[chk.tag] {
-				return nil, &CheckResult{
-					State:  CheckExitUnknown,
-					Output: fmt.Sprintf("duplicate command tag: %s", chk.tag),
-				}
+				return nil, fmt.Errorf("duplicate command tag: %s", chk.tag)
 			}
 			seenTags[chk.tag] = true
 			childChecks = append(childChecks, chk)
@@ -292,10 +277,7 @@ func (l *CheckMulti) buildChildChecks(snc *Agent) ([]multiChildCheck, *CheckResu
 
 	for _, cmd := range l.commands {
 		if seenTags[cmd.Tag] {
-			return nil, &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("duplicate command tag: %s", cmd.Tag),
-			}
+			return nil, fmt.Errorf("duplicate command tag: %s", cmd.Tag)
 		}
 		seenTags[cmd.Tag] = true
 		childChecks = append(childChecks, multiChildCheck{
@@ -309,15 +291,12 @@ func (l *CheckMulti) buildChildChecks(snc *Agent) ([]multiChildCheck, *CheckResu
 }
 
 // buildConfigChecks loads checks from the named config section.
-func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, *CheckResult) {
+func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, error) {
 	secName := "/settings/check/multi/" + l.config
 	sec, ok := snc.config.sections[secName]
 
 	if !ok || len(sec.keys) == 0 {
-		return nil, &CheckResult{
-			State:  CheckExitUnknown,
-			Output: fmt.Sprintf("no checks defined in config section %s", secName),
-		}
+		return nil, fmt.Errorf("no checks defined in config section %s", secName)
 	}
 
 	childChecks := make([]multiChildCheck, 0, len(sec.keys))
@@ -325,29 +304,17 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, *CheckRes
 	for _, key := range sec.keys {
 		rawVal := sec.data[key]
 		if !strings.HasPrefix(key, "command[") || !strings.HasSuffix(key, "]") {
-			return nil, &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("invalid check_multi config entry: %s (must be in format command[tag]=<command>)", key),
-			}
+			return nil, fmt.Errorf("invalid check_multi config entry: %s (must be in format command[tag]=<command>)", key)
 		}
 		tag := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(key, "command["), "]"))
 		if strings.ContainsAny(tag, DefaultNastyCharacters+"=") {
-			return nil, &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("command tag contains invalid characters: %s", tag),
-			}
+			return nil, fmt.Errorf("command tag contains invalid characters: %s", tag)
 		}
 		if strings.TrimSpace(tag) == "" {
-			return nil, &CheckResult{
-				State:  CheckExitUnknown,
-				Output: "empty command tag in config section",
-			}
+			return nil, fmt.Errorf("empty command tag in config section")
 		}
 		if strings.TrimSpace(rawVal) == "" {
-			return nil, &CheckResult{
-				State:  CheckExitUnknown,
-				Output: fmt.Sprintf("empty command for tag %s in config section", tag),
-			}
+			return nil, fmt.Errorf("empty command for tag %s in config section", tag)
 		}
 		childChecks = append(childChecks, multiChildCheck{
 			tag:      tag,
@@ -422,10 +389,13 @@ func (l *CheckMulti) recordChildResult(
 
 // runOneChild executes a single child check and returns the result along with metadata.
 // The parent context deadline takes precedence over an external script timeout.
-func (l *CheckMulti) runOneChild(ctx context.Context, snc *Agent, chk multiChildCheck) (*CheckResult, childRecord, bool) {
+func (l *CheckMulti) runOneChild(ctx context.Context, snc *Agent, chk multiChildCheck) (*CheckResult, childRecord, error) {
 	childTimeout := l.remainingTimeout(ctx)
 	childStart := time.Now()
-	res, fatal := l.runChildCheck(ctx, snc, chk)
+	res, err := l.runChildCheck(ctx, snc, chk)
+	if err != nil {
+		return nil, childRecord{}, err
+	}
 	childElapsed := time.Since(childStart)
 	parentTimedOut := errors.Is(ctx.Err(), context.DeadlineExceeded)
 	externalTimedOut := l.externalScriptTimeoutResult(res)
@@ -443,7 +413,7 @@ func (l *CheckMulti) runOneChild(ctx context.Context, snc *Agent, chk multiChild
 		externalTimedOut: externalTimedOut,
 	}
 
-	return res, rec, fatal
+	return res, rec, nil
 }
 
 func (l *CheckMulti) timeoutDetail(child childRecord) string {
@@ -486,13 +456,13 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 			return l.overallTimeoutResult(check, snc, executedChildren), nil
 		}
 
-		if res := l.incrementCheckMultiCounter(ctx); res != nil {
-			return res, nil
+		if err := l.incrementCheckMultiCounter(ctx); err != nil {
+			return nil, err
 		}
 
-		res, rec, fatal := l.runOneChild(ctx, snc, chk)
-		if fatal {
-			return res, nil
+		res, rec, err := l.runOneChild(ctx, snc, chk)
+		if err != nil {
+			return nil, err
 		}
 
 		if rec.parentTimedOut {
@@ -540,30 +510,23 @@ func appendChildMetrics(allMetrics []*CheckMetric, res *CheckResult, tag string)
 	return allMetrics
 }
 
-func (l *CheckMulti) incrementCheckMultiCounter(ctx context.Context) *CheckResult {
+func (l *CheckMulti) incrementCheckMultiCounter(ctx context.Context) error {
 	counter, _ := ctx.Value(checkMultiCounterKey{}).(*checkMultiCounter)
 	counter.count++
 	if counter.count > counter.maxChecks {
-		return &CheckResult{
-			State:  CheckExitUnknown,
-			Output: fmt.Sprintf("number of checks (%d) exceeds max checks limit (%d)", counter.count, counter.maxChecks),
-		}
+		return fmt.Errorf("number of checks (%d) exceeds max checks limit (%d)", counter.count, counter.maxChecks)
 	}
 
 	return nil
 }
 
 // runChildCheck executes a single child check and returns its result.
-// The second return value is true when the error is fatal and the caller should stop processing.
-func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, chk multiChildCheck) (*CheckResult, bool) {
+func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, chk multiChildCheck) (*CheckResult, error) {
 	tokens := utils.Tokenize(chk.cmdStr)
 	tokens, err := utils.TrimQuotesList(tokens)
 
 	if err != nil || len(tokens) == 0 {
-		return &CheckResult{
-			State:  CheckExitUnknown,
-			Output: fmt.Sprintf("failed to parse check command: %s", chk.cmdStr),
-		}, true
+		return nil, fmt.Errorf("failed to parse check command: %s", chk.cmdStr)
 	}
 
 	cmdName := tokens[0]
@@ -572,14 +535,11 @@ func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, chk multiChi
 	_, isKnown := snc.getCheck(cmdName, false)
 
 	if chk.isInline && !isKnown {
-		return &CheckResult{
-			State:  CheckExitUnknown,
-			Output: fmt.Sprintf("unknown check command: %s (inline checks only support existing check commands)", cmdName),
-		}, true
+		return nil, fmt.Errorf("unknown check command: %s (inline checks only support existing check commands)", cmdName)
 	}
 
 	if isKnown {
-		return snc.RunCheckWithContext(ctx, cmdName, cmdArgs, 0, nil, false), false
+		return snc.RunCheckWithContext(ctx, cmdName, cmdArgs, 0, nil, false), nil
 	}
 
 	timeout := snc.getBuiltinCmdTimeout()
@@ -600,5 +560,5 @@ func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, chk multiChi
 	}
 	res.ParsePerformanceDataFromOutput()
 
-	return res, false
+	return res, nil
 }
