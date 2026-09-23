@@ -769,12 +769,9 @@ func (cd *CheckData) processArgs(pre *preParsedArgs) (argList []Argument, applyD
 	applyDefaultFilter = pre.applyDefaultFilter
 
 	for _, arg := range pre.sanitized {
-		keyword := arg.key
-		argValue := arg.value
-		argExpr := arg.raw
-		switch keyword {
-		case "help":
-			switch argValue {
+		switch {
+		case arg.key == "help":
+			switch arg.value {
 			case "markdown", "md":
 				cd.showHelp = Markdown
 			default:
@@ -782,6 +779,18 @@ func (cd *CheckData) processArgs(pre *preParsedArgs) (argList []Argument, applyD
 			}
 
 			return nil, false, nil
+		case !cd.argsPassthrough && (arg.key == "-h" || arg.key == "--help"):
+			cd.showHelp = PluginHelp
+
+			return nil, false, nil
+		}
+	}
+
+	for _, arg := range pre.sanitized {
+		keyword := arg.key
+		argValue := arg.value
+		argExpr := arg.raw
+		switch keyword {
 		case "ok":
 			cond, err2 := NewCondition(argValue, &cd.attributes)
 			if err2 != nil {
@@ -910,8 +919,6 @@ func (cd *CheckData) processArgs(pre *preParsedArgs) (argList []Argument, applyD
 				// ok
 			case cd.argsPassthrough:
 				argList = append(argList, Argument{key: keyword, value: argValue})
-			case keyword == "-h", keyword == "--help":
-				cd.showHelp = PluginHelp
 			case keyword == "-a":
 				// ignore -a for legacy compatibility
 			default:
