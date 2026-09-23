@@ -35,6 +35,7 @@ type CheckResult struct {
 	Metrics        []*CheckMetric // performance data metrics
 	Raw            *CheckData     // reference to the original check data, for use in inventory and other checks
 	Details        string         // additional details that should be printed on a new line after the main output, e.g. for showing top consuming processes
+	IsTimeout      bool           // check execution exceeded its deadline
 	literalDetails map[string]string
 }
 
