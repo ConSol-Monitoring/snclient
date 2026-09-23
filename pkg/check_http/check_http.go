@@ -21,7 +21,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
-	"github.com/dustin/go-humanize"
+	"github.com/consol-monitoring/snclient/pkg/humanize"
 	"github.com/kdar/factorlog"
 	"github.com/sni/go-flags"
 )
