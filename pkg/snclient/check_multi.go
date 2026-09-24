@@ -549,6 +549,7 @@ func (l *CheckMulti) executeChildChecks(
 	}
 
 	problemCount := counts.warning + counts.critical + counts.unknown
+	timeoutSeconds := snc.getBuiltinCmdTimeout().Seconds()
 	check.details = map[string]string{
 		"count":          fmt.Sprintf("%d", counts.count),
 		"ok_count":       fmt.Sprintf("%d", counts.ok),
@@ -567,7 +568,7 @@ func (l *CheckMulti) executeChildChecks(
 		&CheckMetric{Name: "unknown_count", Value: counts.unknown, Min: &Zero, SkipStateCheck: true},
 		&CheckMetric{Name: "problem_count", Value: problemCount, Min: &Zero, SkipStateCheck: true},
 		&CheckMetric{Name: "total_count", Value: counts.count, Min: &Zero, SkipStateCheck: true},
-		&CheckMetric{Name: "time", Value: time.Since(start).Seconds(), Unit: "s", Min: &Zero, SkipStateCheck: true},
+		&CheckMetric{Name: "time", Value: utils.ToPrecision(time.Since(start).Seconds(), 2), Unit: "s", Min: &Zero, Max: &timeoutSeconds, SkipStateCheck: true},
 	)
 	check.result.Details = strings.Join(detailsList, "\n")
 
