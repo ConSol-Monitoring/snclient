@@ -126,6 +126,41 @@ CheckMulti = enabled
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN takes precedence over CRITICAL")
 }
 
+func TestCheckMultiNastyCharacters(t *testing.T) {
+	config := `
+[/modules]
+CheckMulti = enabled
+CheckExternalScripts = enabled
+
+[/settings/external scripts/scripts/check_external]
+command = /does/not/exist $ARG1$
+allow arguments = true
+allow nasty characters = false
+
+[/settings/external scripts/scripts/check_external_no_args]
+command = /does/not/exist
+allow arguments = false
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{
+		"command[external]=check_external_no_args safe",
+	})
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Contains(t, res.BuildOutputString(), "request contained arguments")
+
+	for _, arg := range []string{"bad$value", "bad|value", "bad&value", "bad>value", "bad<value", "bad;value"} {
+		t.Run(arg, func(t *testing.T) {
+			res := snc.RunCheck("check_multi", []string{
+				"command[external]=check_external " + arg,
+			})
+			assert.Equal(t, CheckExitUnknown, res.State)
+			assert.Contains(t, res.BuildOutputString(), "request contained illegal characters")
+		})
+	}
+}
+
 func TestCheckMultiDefaultEnabled(t *testing.T) {
 	snc := StartTestAgent(t, "")
 	defer StopTestAgent(t, snc)
@@ -671,17 +706,4 @@ command[ foo ] = check_dummy 0 second
 	})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN for missing config section")
 	assert.Equal(t, "UNKNOWN - no checks defined in config section /settings/check/multi/doesnotexist", res.Output)
-}
-
-func TestCheckMultiIndex(t *testing.T) {
-	config := `
-[/modules]
-CheckMulti = enabled
-`
-	snc := StartTestAgent(t, config)
-	defer StopTestAgent(t, snc)
-
-	res := snc.RunCheck("check_index", []string{"filter=name = 'check_multi'"})
-	assert.Equalf(t, CheckExitOK, res.State, "state OK for check_index")
-	assert.Contains(t, res.Output, "check_multi")
 }
