@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"runtime"
@@ -87,7 +88,7 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		}
 	}
 
-	stdout, stderr, exitCode, _ := l.snc.runExternalCheckString(ctx, command, timeout)
+	stdout, stderr, exitCode, err := l.snc.runExternalCheckString(ctx, command, timeout)
 	if stderr != "" {
 		if stdout != "" {
 			stdout += "\n"
@@ -96,8 +97,9 @@ func (l *CheckWrap) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 	}
 
 	return &CheckResult{
-		State:  exitCode,
-		Output: stdout,
+		State:     exitCode,
+		Output:    stdout,
+		IsTimeout: errors.Is(err, context.DeadlineExceeded),
 	}, nil
 }
 

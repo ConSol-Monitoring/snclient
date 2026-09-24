@@ -19,3 +19,22 @@ func TestCheckMetricsString(t *testing.T) {
 		assert.Equalf(t, check.expect, res, "CheckMetric.String() ->> %s", res)
 	}
 }
+
+func TestCheckMetricsSkipStateCheck(t *testing.T) {
+	metric := &CheckMetric{
+		Name:  "value",
+		Value: 1,
+		Warning: ConditionList{{
+			keyword:  "value",
+			operator: Greater,
+			value:    float64(0),
+		}},
+		SkipStateCheck: true,
+	}
+	check := &CheckData{result: &CheckResult{Metrics: []*CheckMetric{metric}}}
+
+	check.CheckMetrics(nil)
+
+	assert.Equal(t, CheckExitOK, check.result.State)
+	assert.Equal(t, "'value'=1;0", metric.String())
+}
