@@ -136,6 +136,52 @@ func TestCheckMultiDefaultEnabled(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK when CheckMulti is enabled by default")
 }
 
+func TestCheckMultiFilter(t *testing.T) {
+	snc := StartTestAgent(t, "")
+	defer StopTestAgent(t, snc)
+
+	commands := []string{
+		"command[check_dummy1]=check_dummy 2 'CRITICAL - errors found'",
+		"command[check_dummy2]=check_dummy 1 'WARNING - small problem found'",
+		"critical=problem_count gt 0",
+	}
+
+	res := snc.RunCheck("check_multi", append(commands, "filter=output like 'CRIT'"))
+	assert.Equal(t, CheckExitCritical, res.State)
+	assert.Equal(t, "CRITICAL - 1 plugins checked: 0 ok, 0 warning, 1 critical, 0 unknown - check_dummy1: CRITICAL - errors found", res.Output)
+	assert.Equal(t, "[check_dummy1] CRITICAL - errors found", res.Details)
+	assert.NotContains(t, res.BuildOutputString(), "small problem found")
+
+	res = snc.RunCheck("check_multi", append(commands,
+		"filter=output like 'problem'",
+		"long-detail-syntax=%(tag): %(shortoutput)",
+	))
+	assert.Equal(t, CheckExitCritical, res.State)
+	assert.Equal(t, "CRITICAL - 1 plugins checked: 0 ok, 1 warning, 0 critical, 0 unknown - check_dummy2: WARNING - small problem found", res.Output)
+	assert.Equal(t, "check_dummy2: WARNING - small problem found", res.Details)
+	assert.NotContains(t, res.BuildOutputString(), "errors found")
+
+	res = snc.RunCheck("check_multi", append(commands, "filter=output like 'missing'"))
+	assert.Equal(t, CheckExitUnknown, res.State)
+	assert.Equal(t, "UNKNOWN - no checks executed", res.Output)
+	assert.Empty(t, res.Details)
+	assert.NotContains(t, res.BuildOutputString(), "errors found")
+	assert.NotContains(t, res.BuildOutputString(), "small problem found")
+
+	res = snc.RunCheck("check_multi", []string{
+		"command[visible]=check_dummy 0 'OK'",
+		"command[hidden]=check_dummy 2 'CRITICAL'",
+		"warning=none",
+		"unknown=none",
+		"critical=name eq 'hidden' and state=2",
+		"filter=name eq 'visible'",
+	})
+	assert.Equal(t, CheckExitOK, res.State)
+	assert.Equal(t, "OK - 1 plugins checked, 1 ok", res.Output)
+	assert.Equal(t, "[visible] OK", res.Details)
+	assert.NotContains(t, res.BuildOutputString(), "hidden")
+}
+
 func TestCheckMultiGlobalTimeout(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("uses the Unix sleep command")

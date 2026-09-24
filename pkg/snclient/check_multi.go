@@ -377,7 +377,7 @@ func (l *CheckMulti) recordChildResult(
 	hasEntryThresholds bool,
 	counts *childCheckCounts,
 	metrics *[]*CheckMetric,
-) {
+) bool {
 	firstLine := strings.TrimRight(strings.Split(record.childOutput, "\n")[0], "\r\n ")
 	entry := map[string]string{
 		"name":        record.tag,
@@ -391,6 +391,10 @@ func (l *CheckMulti) recordChildResult(
 		"_skip":       "1",
 		"_count":      "1",
 	}
+	if !check.MatchMapCondition(check.filter, entry, false) {
+		return false
+	}
+	*metrics = appendChildMetrics(*metrics, result, record.tag)
 
 	if hasEntryThresholds {
 		thresholdEntry := maps.Clone(entry)
@@ -400,7 +404,8 @@ func (l *CheckMulti) recordChildResult(
 
 	counts.add(entry["_state"])
 	check.listData = append(check.listData, entry)
-	*metrics = appendChildMetrics(*metrics, result, record.tag)
+
+	return true
 }
 
 // runOneChild executes a single child check and returns the result along with metadata.
@@ -491,6 +496,7 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 	var counts childCheckCounts
 
 	executedChildren := make([]childRecord, 0, len(childChecks))
+	visibleChildren := make([]childRecord, 0, len(childChecks))
 	allMetrics := make([]*CheckMetric, 0)
 
 	hasEntryThresholds := check.HasThreshold("name") || check.HasThreshold("tag") || check.HasThreshold("command") ||
@@ -517,13 +523,15 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 		}
 
 		executedChildren = append(executedChildren, rec)
-		l.recordChildResult(check, res, &rec, hasEntryThresholds, &counts, &allMetrics)
+		if l.recordChildResult(check, res, &rec, hasEntryThresholds, &counts, &allMetrics) {
+			visibleChildren = append(visibleChildren, rec)
+		}
 	}
 
-	detailsList := make([]string, 0, len(executedChildren))
+	detailsList := make([]string, 0, len(visibleChildren))
 	externalTimeout := l.externalScriptTimeout(snc)
-	for i := range executedChildren {
-		rec := &executedChildren[i]
+	for i := range visibleChildren {
+		rec := &visibleChildren[i]
 		detail, err := l.renderLongDetail(check, rec, l.childDetailOutput(rec, externalTimeout))
 		if err != nil {
 			return nil, err
