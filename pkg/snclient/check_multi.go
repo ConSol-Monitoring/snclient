@@ -219,6 +219,7 @@ func (l *CheckMulti) remainingTimeout(ctx context.Context) time.Duration {
 }
 
 func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	start := time.Now()
 	enabled, _, _ := snc.config.Section("/modules").GetBool("CheckMulti")
 	if !enabled {
 		return nil, fmt.Errorf("module CheckMulti is not enabled in /modules section")
@@ -268,7 +269,7 @@ func (l *CheckMulti) Check(ctx context.Context, snc *Agent, check *CheckData, _ 
 		return nil, fmt.Errorf("no checks or config specified")
 	}
 
-	return l.executeChildChecks(ctx, snc, check, childChecks)
+	return l.executeChildChecks(ctx, snc, check, childChecks, start)
 }
 
 // buildChildChecks assembles the list of child checks from config section and inline args.
@@ -492,12 +493,18 @@ func (l *CheckMulti) renderLongDetail(check *CheckData, child *childRecord, outp
 }
 
 // executeChildChecks runs all child checks and aggregates results.
-func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *CheckData, childChecks []multiChildCheck) (*CheckResult, error) {
+func (l *CheckMulti) executeChildChecks(
+	ctx context.Context,
+	snc *Agent,
+	check *CheckData,
+	childChecks []multiChildCheck,
+	start time.Time,
+) (*CheckResult, error) {
 	var counts childCheckCounts
 
 	executedChildren := make([]childRecord, 0, len(childChecks))
 	visibleChildren := make([]childRecord, 0, len(childChecks))
-	allMetrics := make([]*CheckMetric, 0)
+	allMetrics := make([]*CheckMetric, 0, 7)
 
 	hasEntryThresholds := check.HasThreshold("name") || check.HasThreshold("tag") || check.HasThreshold("command") ||
 		check.HasThreshold("output") || check.HasThreshold("shortoutput") || check.HasThreshold("status") || check.HasThreshold("state")
@@ -553,7 +560,15 @@ func (l *CheckMulti) executeChildChecks(ctx context.Context, snc *Agent, check *
 		"problem_count":  fmt.Sprintf("%d", problemCount),
 	}
 
-	check.result.Metrics = allMetrics
+	check.result.Metrics = append(allMetrics,
+		&CheckMetric{Name: "ok_count", Value: counts.ok, Min: &Zero, SkipStateCheck: true},
+		&CheckMetric{Name: "warning_count", Value: counts.warning, Min: &Zero, SkipStateCheck: true},
+		&CheckMetric{Name: "critical_count", Value: counts.critical, Min: &Zero, SkipStateCheck: true},
+		&CheckMetric{Name: "unknown_count", Value: counts.unknown, Min: &Zero, SkipStateCheck: true},
+		&CheckMetric{Name: "problem_count", Value: problemCount, Min: &Zero, SkipStateCheck: true},
+		&CheckMetric{Name: "total_count", Value: counts.count, Min: &Zero, SkipStateCheck: true},
+		&CheckMetric{Name: "time", Value: time.Since(start).Seconds(), Unit: "s", Min: &Zero, SkipStateCheck: true},
+	)
 	check.result.Details = strings.Join(detailsList, "\n")
 
 	return check.Finalize()
