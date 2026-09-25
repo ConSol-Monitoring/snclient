@@ -59,6 +59,8 @@ Naemon Config
 Application Options:
       --service=              Service name. e.g. ftp, smtp, pop, imap and so on
   -H, --hostname=             Host name or IP Address
+  -4, --ipv4                  Resolve and connect using IPv4 only
+  -6, --ipv6                  Resolve and connect using IPv6 only
   -p, --port=                 Port number
   -s, --send=                 String to send to the server
   -e, --expect-pattern=       Regexp pattern to expect in server response
