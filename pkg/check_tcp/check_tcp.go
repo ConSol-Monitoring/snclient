@@ -11,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -64,6 +65,8 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 type tcpOpts struct {
 	Service  string `long:"service" description:"Service name. e.g. ftp, smtp, pop, imap and so on"`
 	Hostname string `short:"H" long:"hostname" description:"Host name or IP Address"`
+	IPv4     bool   `short:"4" long:"ipv4" description:"Resolve and connect using IPv4 only"`
+	IPv6     bool   `short:"6" long:"ipv6" description:"Resolve and connect using IPv6 only"`
 	exchange
 	Timeout      float64 `short:"t" long:"timeout" default:"10" description:"Seconds before connection times out"`
 	MaxBytes     int     `short:"m" long:"maxbytes" description:"Close connection once more than this number of bytes are received"`
@@ -92,6 +95,9 @@ func parseArgs(args []string) (*tcpOpts, error) {
 	psr := flags.NewParser(opts, flags.HelpFlag|flags.PassDoubleDash) // default flags without flags.PrintErrors
 	psr.Name = "check_tcp"
 	remaining, err := psr.ParseArgs(args)
+	if err != nil {
+		return nil, err
+	}
 	if len(remaining) > 0 && opts.Hostname == "" {
 		opts.Hostname = remaining[0]
 		remaining = remaining[1:]
@@ -99,7 +105,10 @@ func parseArgs(args []string) (*tcpOpts, error) {
 	if len(remaining) > 0 {
 		return nil, fmt.Errorf("cannot parse options, unknown option: %s", strings.Join(remaining, " "))
 	}
-	return opts, err
+	if opts.IPv4 && opts.IPv6 {
+		return nil, fmt.Errorf("cannot use both -4 and -6 at the same time")
+	}
+	return opts, nil
 }
 
 var defaultExchangeMap = map[string]exchange{
@@ -195,14 +204,46 @@ func (opts *tcpOpts) merge(ex exchange) {
 	}
 }
 
-func dial(ctx context.Context, network, address string, ssl bool, noCheckCertificate bool, timeout time.Duration) (net.Conn, error) {
+// dialHost returns the address to dial. Without a family switch the hostname is
+// returned unchanged; with -4/-6 it resolves the name and picks the matching family.
+func (opts *tcpOpts) dialHost(ctx context.Context) (string, error) {
+	if !opts.IPv4 && !opts.IPv6 {
+		return opts.Hostname, nil
+	}
+
+	wantV6 := opts.IPv6
+	ipAddrs, err := net.DefaultResolver.LookupIPAddr(ctx, opts.Hostname)
+	if err != nil {
+		// let the dialer surface the resolution error
+		return opts.Hostname, nil
+	}
+
+	for _, a := range ipAddrs {
+		if (a.IP.To4() != nil) == !wantV6 {
+			return a.IP.String(), nil
+		}
+	}
+
+	family := "IPv4"
+	if wantV6 {
+		family = "IPv6"
+	}
+
+	return "", fmt.Errorf("no %s address found for %s", family, opts.Hostname)
+}
+
+func dial(ctx context.Context, network, address, serverName string, ssl bool, noCheckCertificate bool, timeout time.Duration) (net.Conn, error) {
 	d := &net.Dialer{Timeout: timeout}
 	if ssl {
+		cfg := &tls.Config{
+			InsecureSkipVerify: noCheckCertificate,
+		}
+		if serverName != "" {
+			cfg.ServerName = serverName
+		}
 		tlsDialer := &tls.Dialer{
 			NetDialer: d,
-			Config: &tls.Config{
-				InsecureSkipVerify: noCheckCertificate,
-			},
+			Config:    cfg,
 		}
 
 		return tlsDialer.DialContext(ctx, network, address)
@@ -221,7 +262,7 @@ func (opts *tcpOpts) run(ctx context.Context, output io.Writer) *checkers.Checke
 	os.Setenv("LC_ALL", "C")
 
 	proto := "tcp"
-	addr := fmt.Sprintf("%s:%d", opts.Hostname, opts.Port)
+	var addr, serverName string
 	if opts.UnixSock != "" {
 		proto = "unix"
 		addr = opts.UnixSock
@@ -232,6 +273,12 @@ func (opts *tcpOpts) run(ctx context.Context, output io.Writer) *checkers.Checke
 		if opts.Port == 0 {
 			return checkers.Unknown("port is required.")
 		}
+		dialHost, err := opts.dialHost(ctx)
+		if err != nil {
+			return checkers.Unknown(err.Error())
+		}
+		addr = net.JoinHostPort(dialHost, strconv.Itoa(opts.Port))
+		serverName = opts.Hostname
 	}
 	timeout := time.Duration(opts.Timeout * float64(time.Second))
 	start := time.Now()
@@ -246,7 +293,7 @@ func (opts *tcpOpts) run(ctx context.Context, output io.Writer) *checkers.Checke
 	if opts.Verbose {
 		fmt.Fprintf(output, "Establishing a connection to addr: %s protocol: %s ssl: %t noCheckCertificate: %t timeout: %f\n", addr, proto, opts.SSL, opts.NoCheckCertificate, timeout.Seconds())
 	}
-	conn, err := dial(ctx, proto, addr, opts.SSL, opts.NoCheckCertificate, timeout)
+	conn, err := dial(ctx, proto, addr, serverName, opts.SSL, opts.NoCheckCertificate, timeout)
 	if err != nil {
 		if ctx.Err() != nil {
 			return checkers.Unknown(ctx.Err().Error())
