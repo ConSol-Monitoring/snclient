@@ -481,38 +481,16 @@ func (cd *CheckData) buildCountMetrics(listLen, critLen, warnLen int) {
 func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	switch macros["_state"] {
 	case "1":
-		cd.result.EscalateStatus(1)
+		cd.result.EscalateStatus(CheckExitWarning)
 	case "2":
-		cd.result.EscalateStatus(2)
+		cd.result.EscalateStatus(CheckExitCritical)
 	case "3":
-		cd.result.EscalateStatus(3)
+		cd.result.EscalateStatus(CheckExitUnknown)
 	}
 
-	// Only escalate based on counts if the user hasn't explicitly set the threshold.
-	// This respects explicit thresholds like "crit=none" which disable escalation.
-	hasExplicitThreshold := func(args ...string) bool {
-		for _, arg := range args {
-			if cd.hasArgsSupplied[arg] {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	for _, threshold := range []struct {
-		countKey string
-		state    int64
-		args     []string
-	}{
-		{countKey: "warn_count", state: CheckExitWarning, args: []string{"warn", "warning", "warn+", "warning+"}},
-		{countKey: "crit_count", state: CheckExitCritical, args: []string{"crit", "critical", "crit+", "critical+"}},
-		{countKey: "unknown_count", state: CheckExitUnknown, args: []string{"unknown", "unknown+"}},
-	} {
-		if !hasExplicitThreshold(threshold.args...) && macros[threshold.countKey] != "0" && macros[threshold.countKey] != "" {
-			cd.result.EscalateStatus(threshold.state)
-		}
-	}
+	cd.escalateFromCount(macros, "warn_count", CheckExitWarning, "warn", "warning", "warn+", "warning+")
+	cd.escalateFromCount(macros, "crit_count", CheckExitCritical, "crit", "critical", "crit+", "critical+")
+	cd.escalateFromCount(macros, "unknown_count", CheckExitUnknown, "unknown", "unknown+")
 
 	if state, ok := cd.details["_state"]; ok {
 		cd.result.EscalateStatus(convert.Int64(state))
@@ -521,6 +499,19 @@ func (cd *CheckData) setStateFromMaps(macros map[string]string) {
 	state := fmt.Sprintf("%d", cd.result.State)
 	macros["_state"] = state
 	cd.details["_state"] = state
+}
+
+// escalateFromCount respects explicit thresholds like "crit=none" which disable escalation.
+func (cd *CheckData) escalateFromCount(macros map[string]string, countKey string, state int64, thresholdKeywords ...string) {
+	for _, keyword := range thresholdKeywords {
+		if cd.hasArgsSupplied[keyword] {
+			return
+		}
+	}
+
+	if macros[countKey] != "" && macros[countKey] != "0" {
+		cd.result.EscalateStatus(state)
+	}
 }
 
 func (cd *CheckData) markThresholdSupplied(keyword string) {
