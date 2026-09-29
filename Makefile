@@ -760,6 +760,7 @@ DOC_PLUGINS=\
 	check_dns \
 	check_http \
 	check_nsc_web \
+	check_snclient \
 	check_tcp \
 	check_ssh \
 

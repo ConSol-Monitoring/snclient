@@ -82,7 +82,7 @@ func daemonInit(t *testing.T, configOverride string) (bin, baseURL string, baseA
 		baseURL = fmt.Sprintf("https://127.0.0.1:%d", localDaemonPort)
 	}
 
-	baseArgs = []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-u", baseURL}
+	baseArgs = []string{"run", "check_snclient", "-p", localDaemonPassword, "-u", baseURL}
 
 	cleanUp = func() {
 		ok := stopBackgroundDaemon(t)
@@ -117,19 +117,19 @@ func TestDaemonRequests(t *testing.T) {
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-r", "-u", fmt.Sprintf("%s/api/v1/inventory", baseURL)},
+		Args: []string{"run", "check_snclient", "-p", localDaemonPassword, "-r", "-u", fmt.Sprintf("%s/api/v1/inventory", baseURL)},
 		Like: []string{`{"inventory":`, `check_echo`},
 	})
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-vv", "-p", localDaemonPassword, "-r", "-u", baseURL},
+		Args: []string{"run", "check_snclient", "-vv", "-p", localDaemonPassword, "-r", "-u", baseURL},
 		Like: []string{`REQUEST:`, `snclient working`},
 	})
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-vv", "-p", localDaemonPassword, "-u", baseURL, "check_cpu", "warn=load > 100", "crit=load > 100"},
+		Args: []string{"run", "check_snclient", "-vv", "-p", localDaemonPassword, "-u", baseURL, "check_cpu", "warn=load > 100", "crit=load > 100"},
 		Like: []string{`OK - CPU load is ok.`},
 	})
 
@@ -204,7 +204,7 @@ func TestDaemonAdminReload(t *testing.T) {
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-p", localDaemonPassword, "-r", "-u", baseURL + "/api/v1/admin/reload"},
+		Args: []string{"run", "check_snclient", "-p", localDaemonPassword, "-r", "-u", baseURL + "/api/v1/admin/reload"},
 		Like: []string{`RESPONSE-ERROR: http request failed: 403 Forbidden`},
 		Exit: 3,
 	})

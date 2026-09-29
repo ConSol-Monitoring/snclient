@@ -79,19 +79,19 @@ func TestOSXinstaller(t *testing.T) {
 	// verify response
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
 		Like: []string{`^SNClient v`},
 	})
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_uptime", "crit=uptime<2s", "warn=uptime<1s"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_uptime", "crit=uptime<2s", "warn=uptime<1s"},
 		Like: []string{"OK - uptime"},
 	})
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_cpu", "crit=load>101", "warn=load>101"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_cpu", "crit=load>101", "warn=load>101"},
 		Like: []string{"OK - CPU load is ok."},
 	})
 

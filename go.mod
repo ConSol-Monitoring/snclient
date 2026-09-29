@@ -6,7 +6,7 @@ require (
 	github.com/beevik/ntp v1.6.0
 	github.com/bi-zone/go-fileversion v1.0.0
 	github.com/bmatcuk/doublestar/v4 v4.10.2
-	github.com/consol-monitoring/check_nsc_web v0.7.6
+	github.com/consol-monitoring/check_snclient v0.7.7-0.20260929110318-359ac04609f8
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-chi/chi/v5 v5.3.2

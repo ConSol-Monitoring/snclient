@@ -348,9 +348,13 @@ func verifyRequestPassword(snc *Agent, req *http.Request, requiredPassword strin
 func (l *HandlerWeb) runCheck(req *http.Request, command string) (result *CheckResult) {
 	args := queryParam2CommandArgs(req)
 
-	// extend timeout from check_nsc_web
+	// extend timeout from check_snclient / check_nsc_web
 	timeoutOverride := time.Duration(0)
 	timeout := req.Header.Get("X-Nsc-Web-Timeout")
+	timeout2 := req.Header.Get("X-Snclient-Timeout") // takes precedence if both are supplied
+	if timeout2 != "" {
+		timeout = timeout2
+	}
 	if timeout != "" {
 		dur, err := utils.ExpandDuration(timeout)
 		if err == nil {

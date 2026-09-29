@@ -92,7 +92,7 @@ func TestMSIinstaller(t *testing.T) {
 	// verify response
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
 		Like: []string{`^SNClient v`},
 	})
 
@@ -128,12 +128,12 @@ func TestMSIinstaller(t *testing.T) {
 	// verify response
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
 		Like: []string{`^SNClient v`},
 	})
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_uptime", "crit=uptime<2s", "warn=uptime<1s"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_uptime", "crit=uptime<2s", "warn=uptime<1s"},
 		Like: []string{"OK - uptime"},
 	})
 
@@ -141,7 +141,7 @@ func TestMSIinstaller(t *testing.T) {
 	for _, num := range []string{"1", "2", "3", "4", "5"} {
 		runCmd(t, &cmd{
 			Cmd:  bin,
-			Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_win_snclient_test" + num},
+			Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_win_snclient_test" + num},
 			Like: []string{`testpattern`},
 			Exit: 3,
 		})
@@ -150,7 +150,7 @@ func TestMSIinstaller(t *testing.T) {
 	// run check with known not-existing path which contains spaces
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_win_not_exist1"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_win_not_exist1"},
 		Like: []string{`UNKNOWN - Return code of 127 is out of bounds.`},
 		Exit: 3,
 	})
@@ -159,14 +159,14 @@ func TestMSIinstaller(t *testing.T) {
 	runCmd(t, &cmd{Cmd: "net", Args: []string{"stop", "Spooler"}})
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-a", "legacy", "-u", "https://localhost:8443", "check_service", "service=Spooler", "warn=state!=started", "crit=none"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-a", "legacy", "-u", "https://localhost:8443", "check_service", "service=Spooler", "warn=state!=started", "crit=none"},
 		Like: []string{"Spooler=stopped", "'Spooler rss'=U"},
 		Exit: 1,
 	})
 	runCmd(t, &cmd{
 		Cmd: bin,
 		Args: []string{
-			"run", "check_nsc_web", "-k", "-p", "test", "-a", "1", "-u", "https://localhost:8443",
+			"run", "check_snclient", "-k", "-p", "test", "-a", "1", "-u", "https://localhost:8443",
 			"check_service", "service=Spooler", "warn=state!=started", "crit=none",
 		},
 		Like: []string{"Spooler=stopped", "'Spooler rss'=U"},
@@ -175,7 +175,7 @@ func TestMSIinstaller(t *testing.T) {
 	runCmd(t, &cmd{
 		Cmd: bin,
 		Args: []string{
-			"run", "check_nsc_web", "-k", "-p", "test", "-a", "1", "-u", "https://localhost:8443",
+			"run", "check_snclient", "-k", "-p", "test", "-a", "1", "-u", "https://localhost:8443",
 			"check_service", "service=Spooler", "warn=state!=started", "crit=none", "perf-config=*(magic:2)",
 		},
 		Like: []string{"Spooler=stopped", "'Spooler rss'=U"},

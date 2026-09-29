@@ -45,8 +45,8 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			log.Debugf("check_process: CreateTime error: %s", err.Error())
 		}
 
-		// skip very young ( < 3000ms ) check_nsc_web processes, they might be checking us and screwing process counts
-		if strings.Contains(cmdLine, "check_nsc_web") && time.Now().UnixMilli()-ctimeMilli < 3000 {
+		// skip very young ( < 3000ms ) check_snclient / check_nsc_web processes, they might be checking us and screwing process counts
+		if (strings.Contains(cmdLine, "check_nsc_web") || strings.Contains(cmdLine, "check_snclient")) && time.Now().UnixMilli()-ctimeMilli < 3000 {
 			continue
 		}
 

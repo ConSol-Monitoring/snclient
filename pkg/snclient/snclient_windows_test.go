@@ -168,7 +168,7 @@ func TestPowershellScriptArg1(t *testing.T) {
 	config := snclientConfigFileWithScript(t, scriptsDir, scriptName, scriptFilename)
 	snc := StartTestAgent(t, config)
 
-	// simulate a call from check_nsc_web. this calls the (snc *Agent).runCheck directly, skipping over RunCheck
+	// simulate a call from check_snclient / check_nsc_web. this calls the (snc *Agent).runCheck directly, skipping over RunCheck
 	// argument macros are evaluated after this function,
 
 	checkResult, checkData := snc.runCheck(context.TODO(), scriptName+scriptMacroType, scriptArgs, 0, nil, false, false)

@@ -746,7 +746,7 @@ func (snc *Agent) PrintVersion() {
 	fmt.Fprintf(os.Stdout, "internal check libraries:\n")
 	for _, lib := range info.Deps {
 		switch {
-		case strings.Contains(lib.Path, "/check_nsc_web"),
+		case strings.Contains(lib.Path, "/check_snclient"),
 			strings.Contains(lib.Path, "/check_prometheus"),
 			snc.Flags.Verbose >= 2:
 			fmt.Fprintf(os.Stdout, "  - %-50s - %s\n", lib.Path, lib.Version)
