@@ -13,6 +13,6 @@ For example:
 
     ./snclient run check_cpu help
 
-The list of built-in check plugins can be found [here](../plugins/).
+The list of built-in check plugins can be found [here](../plugins/). They are also linked in the list below.
 
 ## Available Commands

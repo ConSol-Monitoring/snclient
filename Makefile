@@ -759,7 +759,6 @@ DOC_COMMANDS=\
 DOC_PLUGINS=\
 	check_dns \
 	check_http \
-	check_nsc_web \
 	check_snclient \
 	check_tcp \
 	check_ssh \
@@ -769,7 +768,7 @@ DOC_EXCLUDES=\
 	check_alias \
 	check_wrap \
 
-docs: build docs_checks docs_check_service docs_plugins
+docs: build docs_checks docs_check_service docs_plugins docs_plugin_links
 
 docs_checks:
 	set -e; \
@@ -786,6 +785,14 @@ docs_plugins:
 		./snclient --config snclient_docs.ini -logfile stderr run $$CHK help=md > docs/checks/plugins/$$CHK.md ; \
 	done
 	rm -f snclient_docs.ini
+
+# generate link pages for the builtin plugins in the commands docs
+docs_plugin_links:
+	set -e; \
+	for CHK in $(DOC_PLUGINS); do \
+		echo "updating docs/checks/commands/$$CHK.md"; \
+		printf -- '---\ntitle: %s\n---\n\n%s is a built-in check plugin. Its documentation is in the [plugins section](../plugins/%s/).\n' "$${CHK#check_}" "$$CHK" "$$CHK" > docs/checks/commands/$$CHK.md ; \
+	done
 
 docs_check_service:
 	# create fake linux check_service with help from the windows one to update the markdown file
