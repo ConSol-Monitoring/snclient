@@ -29,7 +29,7 @@ Have a look at the [installation](./install/) page for first steps.
 
 ## Nagios / Naemon and Prometheus
 
-- SNClient supports the [Nagios / Naemon stack](./checks/) with nrpe or check_snclient (formerly check_nsc_web.
+- SNClient supports the [Nagios / Naemon stack](./checks/) with nrpe or check_snclient (formerly check_nsc_web).
 - Prometheus is also supported with the [builtin node_exporter and windows_exporter](./prometheus/)
 
 ## Releases
