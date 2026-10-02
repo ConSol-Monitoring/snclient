@@ -90,6 +90,9 @@ type exchange struct {
 	expectReg          *regexp.Regexp
 }
 
+// maxBytesCap bounds the caller-controlled size of the slurp buffer (10 MiB).
+const maxBytesCap = 10 << 20
+
 func parseArgs(args []string) (*tcpOpts, error) {
 	opts := &tcpOpts{}
 	psr := flags.NewParser(opts, flags.HelpFlag|flags.PassDoubleDash) // default flags without flags.PrintErrors
@@ -107,6 +110,9 @@ func parseArgs(args []string) (*tcpOpts, error) {
 	}
 	if opts.IPv4 && opts.IPv6 {
 		return nil, fmt.Errorf("cannot use both -4 and -6 at the same time")
+	}
+	if opts.MaxBytes > maxBytesCap {
+		opts.MaxBytes = maxBytesCap
 	}
 	return opts, nil
 }

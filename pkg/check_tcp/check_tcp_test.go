@@ -18,6 +18,7 @@ func TestParseArgs(t *testing.T) {
 		ipv4     bool
 		ipv6     bool
 		port     int
+		maxBytes int
 		wantErr  bool
 	}{
 		{name: "alias form -4 -p 22 host", args: []string{"-4", "-p", "22", "localhost"}, hostname: "localhost", ipv4: true, port: 22},
@@ -26,6 +27,8 @@ func TestParseArgs(t *testing.T) {
 		{name: "-H host with -4", args: []string{"-H", "h", "-4"}, hostname: "h", ipv4: true},
 		{name: "-4 and -6 together", args: []string{"-H", "h", "-4", "-6"}, wantErr: true},
 		{name: "unknown extra argument", args: []string{"-H", "h", "-4", "extra"}, wantErr: true},
+		{name: "maxbytes below cap", args: []string{"-H", "h", "-m", "1024"}, hostname: "h", maxBytes: 1024},
+		{name: "maxbytes above cap is clamped", args: []string{"-H", "h", "-m", "999999999"}, hostname: "h", maxBytes: maxBytesCap},
 	}
 
 	for _, test := range tests {
@@ -42,6 +45,7 @@ func TestParseArgs(t *testing.T) {
 			assert.Equal(t, test.ipv4, opts.IPv4)
 			assert.Equal(t, test.ipv6, opts.IPv6)
 			assert.Equal(t, test.port, opts.Port)
+			assert.Equal(t, test.maxBytes, opts.MaxBytes)
 		})
 	}
 }
