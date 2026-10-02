@@ -159,6 +159,8 @@ func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config
 			}
 			uri, _ := url.Parse(proxyURL)
 			proxyReq.Out.URL = uri
+			// never forward the scraper's credentials to the backend
+			stripProxyAuthHeaders(proxyReq.Out)
 		},
 		ErrorHandler: getReverseProxyErrorHandlerFunc(l.Type()),
 	}

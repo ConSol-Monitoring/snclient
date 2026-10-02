@@ -533,6 +533,13 @@ func (cfg *exporterHTTPConfig) getTLSConfig() (*tls.Config, error) {
 	return config, nil
 }
 
+// stripProxyAuthHeaders removes the scraper's own credentials from a proxied
+// request so they are never forwarded to the backend, where they could be replayed.
+func stripProxyAuthHeaders(req *http.Request) {
+	req.Header.Del("Authorization")
+	req.Header.Del("Password")
+}
+
 func (cfg *exporterModuleConfig) getReverseProxyRewriteFunc() (func(*httputil.ProxyRequest), error) {
 	base, err := url.Parse(cfg.HTTP.Path)
 	if err != nil {
@@ -543,6 +550,9 @@ func (cfg *exporterModuleConfig) getReverseProxyRewriteFunc() (func(*httputil.Pr
 
 	return func(proxyReq *httputil.ProxyRequest) {
 		req := proxyReq.Out
+		// never forward the scraper's credentials to the backend
+		stripProxyAuthHeaders(req)
+
 		qvs := req.URL.Query()
 		for k, vs := range cvs {
 			for _, v := range vs {

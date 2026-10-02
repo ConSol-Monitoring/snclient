@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -561,4 +562,52 @@ file:
 	assert.Containsf(t, body, "first", "original module should still be listed")
 	assert.Containsf(t, body, "picked_up", "yml file should be picked up by watcher")
 	assert.NotContainsf(t, body, "ignored", "non-yml/yaML file should be ignored by watcher")
+}
+
+func TestExporterExporterProxyStripsScrapersCredentials(t *testing.T) {
+	for _, testcase := range []struct {
+		name          string
+		basicUser     string
+		basicPass     string
+		wantAuthEmpty bool
+		wantUser      string
+		wantPass      string
+	}{
+		{name: "backend basic auth replaces scraper creds", basicUser: "backenduser", basicPass: "backendpass", wantUser: "backenduser", wantPass: "backendpass"},
+		{name: "no backend basic auth strips scraper creds", wantAuthEmpty: true},
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			cfg := &exporterModuleConfig{
+				Method: "http",
+				HTTP: exporterHTTPConfig{
+					Port:              9090,
+					Path:              "/metrics",
+					Address:           "localhost",
+					Scheme:            "http",
+					BasicAuthUsername: testcase.basicUser,
+					BasicAuthPassword: testcase.basicPass,
+				},
+			}
+			rewrite, err := cfg.getReverseProxyRewriteFunc()
+			require.NoError(t, err)
+
+			outReq, err := http.NewRequestWithContext(t.Context(), http.MethodGet,
+				"http://snclient/proxy?module=foo", http.NoBody)
+			require.NoError(t, err)
+			outReq.Header.Set("Authorization", "Basic c2NyYXBlcjpwYXNz")
+			outReq.Header.Set("Password", "scraper-password")
+
+			rewrite(&httputil.ProxyRequest{Out: outReq})
+
+			assert.Empty(t, outReq.Header.Get("Password"), "scraper Password must never be forwarded")
+			if testcase.wantAuthEmpty {
+				assert.Empty(t, outReq.Header.Get("Authorization"), "scraper Authorization must be stripped")
+			} else {
+				user, pass, ok := outReq.BasicAuth()
+				require.True(t, ok, "backend basic auth should be set")
+				assert.Equal(t, testcase.wantUser, user)
+				assert.Equal(t, testcase.wantPass, pass)
+			}
+		})
+	}
 }
