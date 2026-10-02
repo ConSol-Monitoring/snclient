@@ -401,11 +401,6 @@ func performHTTPRequest(req *http.Request, client *http.Client, opts *commandOpt
 		}
 	}
 
-	if opts.flags.Verbose {
-		resDump, _ := httputil.DumpResponse(res, true)
-		opts.tracef("response:\n%s", resDump)
-	}
-
 	var (
 		buffer = &capWriter{Cap: opts.bufferSize, NoDiscard: opts.flags.NoDiscard}
 		body   string
@@ -420,6 +415,13 @@ func performHTTPRequest(req *http.Request, client *http.Client, opts *commandOpt
 		}
 
 		body = string(buffer.Bytes())
+	}
+
+	// header-only dump: DumpResponse(res, true) would buffer the full response
+	// body before the capWriter limit is applied
+	if opts.flags.Verbose && res != nil {
+		resDump, _ := httputil.DumpResponse(res, false)
+		opts.tracef("response:\n%s%s", resDump, body)
 	}
 
 	// the returned err might be of type clientRedirectError

@@ -1,10 +1,12 @@
 package check_http
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -497,4 +499,38 @@ func TestHTTPProxySSLSelfSignedProxy(t *testing.T) {
 	assert.Equalf(t, CRITICAL, code, "expected exit code CRITICAL (2), got %d, output: %s", code, output.String())
 	assert.Containsf(t, output.String(), "failed to verify certificate", "expected a proxy certificate verification error, output: %s", output.String())
 	assert.Containsf(t, output.String(), "unknown authority", "expected an untrusted certificate error, output: %s", output.String())
+}
+
+func TestPerformHTTPRequestVerboseBodyCapped(t *testing.T) {
+	// a body larger than the cap with a marker beyond it; the verbose dump
+	// must stay capped (regression: the dump once buffered the full body
+	// before the capWriter limit was applied).
+	fullBody := strings.Repeat("x", 64*1024) + "END_OF_BODY_MARKER"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(fullBody))
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL, http.NoBody)
+	require.NoError(t, err)
+
+	const capSize = 1024
+	opts := &commandOpts{}
+	opts.bufferSize = capSize
+	opts.flags.Verbose = true
+
+	var logBuf bytes.Buffer
+	prev := log.Writer()
+	log.SetOutput(&logBuf)
+	defer log.SetOutput(prev)
+
+	meta, err := performHTTPRequest(req, &http.Client{}, opts)
+	require.NoError(t, err)
+
+	assert.LessOrEqualf(t, len(meta.body), int(capSize), "retained body must not exceed max-buffer-size")
+	assert.Containsf(t, logBuf.String(), "HTTP/1.1", "verbose dump should include the status line")
+	assert.NotContainsf(t, logBuf.String(), "END_OF_BODY_MARKER", "verbose dump must not leak the uncapped body")
 }
