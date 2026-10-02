@@ -349,6 +349,75 @@ require password = false
 		"JSON output should contain the module name")
 }
 
+func TestExporterExporterListJSONOmitsSecrets(t *testing.T) {
+	modulesDir := t.TempDir()
+
+	httpModule := `
+method: http
+http:
+  port: 9090
+  path: /metrics
+  basic_auth_username: admin
+  basic_auth_password: hunter2-secret
+  headers:
+    Authorization: Bearer token-secret
+`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(modulesDir, "http_module.yaml"),
+		[]byte(httpModule), 0o600,
+	))
+
+	execModule := `
+method: exec
+exec:
+  command: /usr/bin/prometheus-foo
+  env:
+    API_TOKEN: env-secret
+`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(modulesDir, "exec_module.yaml"),
+		[]byte(execModule), 0o600,
+	))
+
+	testPort := getRandomFreeTCPPort(t)
+	config := fmt.Sprintf(`
+[/modules]
+WEBServer = enabled
+ExporterExporterServer = enabled
+
+[/settings/WEB/server]
+port = %d
+use ssl = false
+require password = false
+
+[/settings/ExporterExporter/server]
+port = ${/settings/WEB/server/port}
+use ssl = ${/settings/WEB/server/use ssl}
+url prefix = /
+modules dir = `+modulesDir+`
+require password = false
+`, testPort)
+
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet,
+		fmt.Sprintf("http://127.0.0.1:%d/list", testPort), http.NoBody)
+	require.NoError(t, err)
+	req.Header.Set("Accept", "application/json")
+	jsonRes, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	jsonBody, err := io.ReadAll(jsonRes.Body)
+	require.NoError(t, err)
+	jsonRes.Body.Close()
+
+	for _, secret := range []string{"hunter2-secret", "Bearer token-secret", "env-secret", "admin"} {
+		assert.NotContainsf(t, string(jsonBody), secret, "secret %q must not leak via /list JSON", secret)
+	}
+	assert.Contains(t, string(jsonBody), "http_module")
+	assert.Contains(t, string(jsonBody), "exec_module")
+}
+
 func TestExporterExporterConfigDirectoryReload(t *testing.T) {
 	modulesDir := t.TempDir()
 
