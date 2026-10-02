@@ -35,7 +35,6 @@ type HandlerManagedExporter struct {
 	agentExtraArgs  string
 	agentUser       string
 	cmd             *exec.Cmd
-	pid             int
 	snc             *Agent
 	conf            *ConfigSection
 	keepRunningA    atomic.Bool
@@ -100,7 +99,6 @@ func (l *HandlerManagedExporter) StopProc() {
 	}
 
 	l.cmd = nil
-	l.pid = 0
 }
 
 func (l *HandlerManagedExporter) Init(snc *Agent, conf *ConfigSection, _ *Config, runSet *AgentRunSet) error {
@@ -265,14 +263,14 @@ func (l *HandlerManagedExporter) procMainLoop() {
 		}
 
 		runtime.UnlockOSThread()
-		l.pid = cmd.Process.Pid
 		l.cmd = cmd
 
 		if l.agentMaxMem > 0 {
+			pid := cmd.Process.Pid
 			go func() {
 				defer l.snc.logPanicExit()
 
-				l.procMemWatcher()
+				l.procMemWatcher(pid)
 			}()
 		}
 
@@ -308,22 +306,22 @@ func (l *HandlerManagedExporter) buildCmd() (*exec.Cmd, []string, error) {
 	return cmd, args, nil
 }
 
-func (l *HandlerManagedExporter) procMemWatcher() {
+func (l *HandlerManagedExporter) procMemWatcher(pid int) {
+	// watch the process we were launched for; exit once it is gone so the
+	// watcher does not outlive its generation and rebind to the next one
+	pid32, err := convert.Int32E(pid)
+	if err != nil {
+		log.Debugf("failed to convert pid %d: %s", pid, err.Error())
+
+		return
+	}
+
 	ticker := time.NewTicker(managedExporterMemWatchInterval)
 	defer ticker.Stop()
 
 	for {
 		<-ticker.C
 		if !l.keepRunning() {
-			return
-		}
-		if l.cmd == nil {
-			return
-		}
-		pid32, err := convert.Int32E(l.pid)
-		if err != nil {
-			log.Debugf("failed to convert pid %d: %s", l.pid, err.Error())
-
 			return
 		}
 
