@@ -12,7 +12,13 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
-func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckEventlog) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+
+	queryWhereLines, err := l.buildQueryWhereLines()
+	if err != nil {
+		return nil, fmt.Errorf("error when building query WHERE filter: %s", err.Error())
+	}
+
 	if len(l.files) == 0 {
 		filenames, err2 := eventlog.GetFileNames()
 		if err2 != nil {
@@ -44,7 +50,8 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 
 	for _, file := range l.files {
 		log.Tracef("fetching eventlog: %s", file)
-		fileEvent, err := eventlog.GetLog(file, scanLookBack)
+		ctxWithLogger := utils.ContextWithLogger(ctx, log)
+		fileEvent, err := eventlog.GetLog(ctxWithLogger, file, scanLookBack, queryWhereLines)
 		if err != nil {
 			log.Warnf("eventlog query failed, file: %s: %s", file, err.Error())
 
@@ -185,4 +192,75 @@ func (l *CheckEventlog) checkRange(name string, value int, err error, minVal, ma
 	}
 
 	return nil
+}
+
+func (l *CheckEventlog) buildQueryWhereLines() (queryWhereStringLines []string, err error) {
+
+	splitIntJoinWithLogicalOr := func(original, filterName string) (ret string, count int, err error) {
+		splits := strings.Split(original, ",")
+
+		ints := make([]int64, 0, len(splits))
+		for _, split := range splits {
+			splitInt, err := strconv.ParseInt(split, 10, 64)
+			if err != nil {
+				return "", 0, fmt.Errorf("can not parse string '%s' into int64: %w", split, err)
+			}
+			ints = append(ints, splitInt)
+		}
+
+		filters := make([]string, 0, len(splits))
+		for _, splitInt := range ints {
+			filters = append(filters, fmt.Sprintf("%s = %d", filterName, splitInt))
+		}
+
+		return strings.Join(filters, " OR "), len(splits), nil
+	}
+
+	splitStringJoinWithLogicalOr := func(original, filterName string) (ret string, count int, err error) {
+		splits := strings.Split(original, ",")
+
+		filters := make([]string, 0, len(splits))
+		for _, split := range splits {
+			filters = append(filters, fmt.Sprintf("%s LIKE '%s'", filterName, split))
+		}
+
+		return strings.Join(filters, " OR "), len(splits), nil
+	}
+
+	queryWhereLines := []string{}
+
+	for _, eventCodeFilter := range l.eventCodesFilters {
+		eventCodesFilter, eventCodeCount, err := splitIntJoinWithLogicalOr(eventCodeFilter, "EventCode")
+		if err != nil {
+			return []string{}, fmt.Errorf("error when building eventCode filter: %w", err)
+		}
+		if eventCodeCount > 1 {
+			eventCodesFilter = fmt.Sprintf("( %s )", eventCodesFilter)
+		}
+		queryWhereLines = append(queryWhereLines, eventCodesFilter)
+	}
+
+	for _, eventTypesFilters := range l.eventTypesFilters {
+		eventTypesFilter, eventTypesCount, err := splitIntJoinWithLogicalOr(eventTypesFilters, "EventType")
+		if err != nil {
+			return []string{}, fmt.Errorf("error when building eventTypes filter: %w", err)
+		}
+		if eventTypesCount > 1 {
+			eventTypesFilter = fmt.Sprintf("( %s )", eventTypesFilter)
+		}
+		queryWhereLines = append(queryWhereLines, eventTypesFilter)
+	}
+
+	for _, sourceNamesFilters := range l.sourceNamesFilters {
+		sourceNamesFilter, sourceNamesCount, err := splitStringJoinWithLogicalOr(sourceNamesFilters, "SourceName")
+		if err != nil {
+			return []string{}, fmt.Errorf("error when building eventTypes filter: %w", err)
+		}
+		if sourceNamesCount > 1 {
+			sourceNamesFilter = fmt.Sprintf("( %s )", sourceNamesFilter)
+		}
+		queryWhereLines = append(queryWhereLines, sourceNamesFilter)
+	}
+
+	return queryWhereLines, nil
 }
