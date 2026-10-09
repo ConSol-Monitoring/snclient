@@ -21,7 +21,7 @@ type EventLog struct {
 func GetFileNames() ([]string, error) {
 	filenames := []EventLog{}
 	query := "SELECT LogfileName FROM Win32_NTEventLogFile"
-	err := wmi.QueryDefaultRetry(query, &filenames)
+	err := wmi.QueryIsolatedDefaultRetry(query, &filenames)
 	if err != nil {
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}
@@ -48,6 +48,7 @@ type Event struct {
 	EventType       uint64
 }
 
+// GetLog fetches events from a single event log via the Win32_NTLogEvent WMI class.
 func GetLog(ctx context.Context, file string, newerThan time.Time, queryWhereLines []string) ([]Event, error) {
 	logger := utils.LoggerFromContext(ctx)
 	tryLogDebug := func(logline string) {
@@ -101,7 +102,7 @@ func GetLog(ctx context.Context, file string, newerThan time.Time, queryWhereLin
 
 	tryLogDebug(fmt.Sprintf("wmi query string:\n%s", query))
 
-	err := wmi.QueryDefaultRetry(query, &messages)
+	err := wmi.QueryIsolatedDefaultRetry(query, &messages)
 	if err != nil {
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}

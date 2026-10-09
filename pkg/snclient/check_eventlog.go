@@ -1,10 +1,17 @@
 package snclient
 
+import "time"
+
 func init() {
 	AvailableChecks["check_eventlog"] = CheckEntry{"check_eventlog", NewCheckEventlog}
 }
 
 const DefaultUniqueIndex = "${log}-${source}-${id}"
+
+// DefaultEventlogTimeout is the default check timeout. Event log WMI queries can
+// be slow, so it is more generous than DefaultCheckTimeout. It is overridable
+// with the timeout argument.
+const DefaultEventlogTimeout = 180 * time.Second
 
 type CheckEventlog struct {
 	files              []string
@@ -48,6 +55,7 @@ See https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlog
 a description of the provided fields.
 `,
 		implemented: Windows,
+		timeout:     DefaultEventlogTimeout,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},

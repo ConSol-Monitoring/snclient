@@ -53,11 +53,9 @@ func (l *CheckEventlog) Check(ctx context.Context, _ *Agent, check *CheckData, _
 	for _, file := range l.files {
 		log.Tracef("fetching eventlog: %s", file)
 		ctxWithLogger := utils.ContextWithLogger(ctx, log)
-		fileEvent, err := eventlog.GetLog(ctxWithLogger, file, scanLookBack, queryWhereLines)
+		fileEvent, err := l.queryLog(ctxWithLogger, file, scanLookBack, queryWhereLines)
 		if err != nil {
-			log.Warnf("eventlog query failed, file: %s: %s", file, err.Error())
-
-			continue
+			return nil, err
 		}
 
 		for i := range fileEvent {
@@ -99,6 +97,33 @@ func (l *CheckEventlog) Check(ctx context.Context, _ *Agent, check *CheckData, _
 	}
 
 	return check.Finalize()
+}
+
+type eventlogQueryResult struct {
+	events []eventlog.Event
+	err    error
+}
+
+// queryLog runs the WMI query on a separate goroutine and bounds the wait by the
+// check context. The goroutine may keep running in the background after a timeout,
+// which is acceptable because it uses a dedicated WMI connection.
+func (l *CheckEventlog) queryLog(ctx context.Context, file string, scanLookBack time.Time, queryWhereLines []string) ([]eventlog.Event, error) {
+	resultCh := make(chan eventlogQueryResult, 1)
+	go func() {
+		events, err := eventlog.GetLog(ctx, file, scanLookBack, queryWhereLines)
+		resultCh <- eventlogQueryResult{events: events, err: err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("eventlog query timed out, file: %s: %w", file, ctx.Err())
+	case res := <-resultCh:
+		if res.err != nil {
+			return nil, fmt.Errorf("eventlog query failed, file: %s: %w", file, res.err)
+		}
+
+		return res.events, nil
+	}
 }
 
 // ParseWMIDateTime parses a WMI datetime string into a time.Time object.
