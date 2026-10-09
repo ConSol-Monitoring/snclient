@@ -60,12 +60,12 @@ a description of the provided fields.
 			"truncate-message": {value: &l.truncateMessage, description: "Maximum length of message for each event log message text"},
 			"unique-index":     {value: &l.uniqueIndex, description: "Combination of fields that identifies unique events, set to 0 to disable. Default is \"" + DefaultUniqueIndex + "\""},
 			"unique":           {value: &l.uniqueIndex, description: "Alias for unique-index"},
-			"event-codes": {value: &l.eventCodesFilters, description: "Event code Filter to use when querying event logs. Specify multiple alternatives (logical OR) with commas." +
-				" Can be specified multiple times."},
-			"event-types": {value: &l.eventTypesFilters, description: "Event type filter to use when querying event logs. Specify multiple alternatives (logical OR) with commas. " +
-				" Can be specified multiple times."},
-			"source-names": {value: &l.sourceNamesFilters, description: "Event source name filter to use when querying event logs. Specify multiple alternatives (logical OR) with commas. " +
-				"Can be specified multiple times."},
+			"event-codes": {value: &l.eventCodesFilters, isFilter: true, description: "Event codes to query for, comma separated values are combined with OR. " +
+				"Valid range is 0-65535. Can be specified multiple times."},
+			"event-types": {value: &l.eventTypesFilters, isFilter: true, description: "Event types to query for, comma separated values are combined with OR. " +
+				"Accepts names (error, warning, information, success audit, failure audit) or numbers 1-5. Can be specified multiple times."},
+			"source-names": {value: &l.sourceNamesFilters, isFilter: true, description: "Event source names to query for, comma separated values are combined with OR. " +
+				"Wildcards % and _ are supported, single quotes are not allowed. Can be specified multiple times."},
 		},
 		defaultFilter:   "level in ('warning', 'error', 'critical')",
 		defaultWarning:  "level = 'warning' or problem_count > 0",

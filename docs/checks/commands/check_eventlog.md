@@ -82,12 +82,12 @@ Naemon Config
 
 | Argument         | Description                                                                                        |
 | ---------------- | -------------------------------------------------------------------------------------------------- |
-| event-codes      | Event code Filter to use when querying event logs. Specify multiple alternatives (logical OR) with commas. Can be specified multiple times. |
-| event-types      | Event type filter to use when querying event logs. Specify multiple alternatives (logical OR) with commas.  Can be specified multiple times. |
+| event-codes      | Event codes to query for, comma separated values are combined with OR. Valid range is 0-65535. Can be specified multiple times. |
+| event-types      | Event types to query for, comma separated values are combined with OR. Accepts names (error, warning, information, success audit, failure audit) or numbers 1-5. Can be specified multiple times. |
 | file             | File to read (can be specified multiple times to check multiple files)                             |
 | log              | Alias for file                                                                                     |
 | scan-range       | Sets time range to scan for message (default is 24h)                                               |
-| source-names     | Event source name filter to use when querying event logs. Specify multiple alternatives (logical OR) with commas. Can be specified multiple times. |
+| source-names     | Event source names to query for, comma separated values are combined with OR. Wildcards % and _ are supported, single quotes are not allowed. Can be specified multiple times. |
 | timezone         | Sets the timezone for time metrics (default is local time)                                         |
 | truncate-message | Maximum length of message for each event log message text                                          |
 | unique           | Alias for unique-index                                                                             |
