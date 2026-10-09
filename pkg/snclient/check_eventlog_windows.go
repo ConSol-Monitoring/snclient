@@ -319,14 +319,14 @@ func (l *CheckEventlog) parseEventType(value string) (uint64, error) {
 }
 
 func (l *CheckEventlog) normalizeEventTypeName(name string) string {
-	var eventNameReplacer = strings.NewReplacer(" ", "", "_", "", "-", "")
+	eventNameReplacer := strings.NewReplacer(" ", "", "_", "", "-", "")
 
 	return eventNameReplacer.Replace(strings.ToLower(name))
 }
 
 func (l *CheckEventlog) checkWQLString(value string) error {
 	// single quotes would end the WQL string literal and allow query injection
-	var wqlBlacklistRunes = []rune{'\'', '\\'}
+	wqlBlacklistRunes := []rune{'\'', '\\'}
 
 	if strings.ContainsFunc(value, func(r rune) bool { return slices.Contains(wqlBlacklistRunes, r) }) {
 		return fmt.Errorf("source name %q contains one of the blacklisted characters: %q", value, string(wqlBlacklistRunes))
