@@ -49,7 +49,6 @@ type Event struct {
 }
 
 func GetLog(ctx context.Context, file string, newerThan time.Time, queryWhereLines []string) ([]Event, error) {
-
 	logger := utils.LoggerFromContext(ctx)
 	tryLogDebug := func(logline string) {
 		if logger != nil {

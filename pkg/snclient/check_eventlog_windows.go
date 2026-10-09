@@ -12,8 +12,8 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/utils"
 )
 
+//nolint:funlen // is not too long now to require splitting
 func (l *CheckEventlog) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-
 	queryWhereLines, err := l.buildQueryWhereLines()
 	if err != nil {
 		return nil, fmt.Errorf("error when building query WHERE filter: %s", err.Error())
@@ -195,7 +195,6 @@ func (l *CheckEventlog) checkRange(name string, value int, err error, minVal, ma
 }
 
 func (l *CheckEventlog) buildQueryWhereLines() (queryWhereStringLines []string, err error) {
-
 	splitIntJoinWithLogicalOr := func(original, filterName string) (ret string, count int, err error) {
 		splits := strings.Split(original, ",")
 
@@ -216,7 +215,7 @@ func (l *CheckEventlog) buildQueryWhereLines() (queryWhereStringLines []string, 
 		return strings.Join(filters, " OR "), len(splits), nil
 	}
 
-	splitStringJoinWithLogicalOr := func(original, filterName string) (ret string, count int, err error) {
+	splitStringJoinWithLogicalOr := func(original, filterName string) (ret string, count int) {
 		splits := strings.Split(original, ",")
 
 		filters := make([]string, 0, len(splits))
@@ -224,7 +223,7 @@ func (l *CheckEventlog) buildQueryWhereLines() (queryWhereStringLines []string, 
 			filters = append(filters, fmt.Sprintf("%s LIKE '%s'", filterName, split))
 		}
 
-		return strings.Join(filters, " OR "), len(splits), nil
+		return strings.Join(filters, " OR "), len(splits)
 	}
 
 	queryWhereLines := []string{}
@@ -252,10 +251,7 @@ func (l *CheckEventlog) buildQueryWhereLines() (queryWhereStringLines []string, 
 	}
 
 	for _, sourceNamesFilters := range l.sourceNamesFilters {
-		sourceNamesFilter, sourceNamesCount, err := splitStringJoinWithLogicalOr(sourceNamesFilters, "SourceName")
-		if err != nil {
-			return []string{}, fmt.Errorf("error when building eventTypes filter: %w", err)
-		}
+		sourceNamesFilter, sourceNamesCount := splitStringJoinWithLogicalOr(sourceNamesFilters, "SourceName")
 		if sourceNamesCount > 1 {
 			sourceNamesFilter = fmt.Sprintf("( %s )", sourceNamesFilter)
 		}
