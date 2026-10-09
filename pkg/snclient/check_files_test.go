@@ -109,7 +109,7 @@ func TestCheckFilesNoPermission(t *testing.T) {
 	tmpPath := t.TempDir()
 
 	for _, char := range []string{"a", "b", "c"} {
-		err := os.WriteFile(filepath.Join(tmpPath, "file "+char+".txt`"), []byte(strings.Repeat(char, 2000)), 0o600)
+		err := os.WriteFile(filepath.Join(tmpPath, "file "+char+".txt"), []byte(strings.Repeat(char, 2000)), 0o600)
 		require.NoErrorf(t, err, "writing worked")
 
 		err = os.Mkdir(filepath.Join(tmpPath, "dir "+char), 0o700)
