@@ -1,6 +1,6 @@
 module github.com/consol-monitoring/snclient
 
-go 1.26.6
+go 1.27.2
 
 require (
 	github.com/beevik/ntp v1.6.0
