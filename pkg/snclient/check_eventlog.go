@@ -8,9 +8,8 @@ func init() {
 
 const DefaultUniqueIndex = "${log}-${source}-${id}"
 
-// DefaultEventlogTimeout is the default check timeout. Event log WMI queries can
-// be slow, so it is more generous than DefaultCheckTimeout. It is overridable
-// with the timeout argument.
+// DefaultEventlogTimeout is the default check timeout.
+// Event log WMI queries can be slow, so it is more generous than DefaultCheckTimeout.
 const DefaultEventlogTimeout = 180 * time.Second
 
 type CheckEventlog struct {
