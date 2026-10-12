@@ -109,9 +109,8 @@ type eventlogQueryResult struct {
 	err    error
 }
 
-// queryLog runs the WMI query on a separate goroutine and bounds the wait by the
-// check context. The goroutine may keep running in the background after a timeout,
-// which is acceptable because it uses a dedicated WMI connection.
+// queryLog runs the WMI query on a separate goroutine and bounds the wait by the check context.
+// The goroutine may keep running in the background after a timeout, which is acceptable because it uses a dedicated WMI connection.
 func (l *CheckEventlog) queryLog(ctx context.Context, file string, scanLookBack time.Time, queryWhereLines []string) ([]eventlog.Event, error) {
 	resultCh := make(chan eventlogQueryResult, 1)
 	go func() {
@@ -132,7 +131,6 @@ func (l *CheckEventlog) queryLog(ctx context.Context, file string, scanLookBack 
 }
 
 // ParseWMIDateTime parses a WMI datetime string into a time.Time object.
-// returns parsed time or an error
 func (l *CheckEventlog) ParseWMIDateTime(wmiDateTime string) (time.Time, error) {
 	// Check if the string has at least 22 characters to avoid slicing errors
 	if len(wmiDateTime) < 22 {
@@ -382,7 +380,6 @@ func (l *CheckEventlog) splitFilterValues(filter string) []string {
 }
 
 // joinConditions combines conditions with the given logical operator.
-// Multiple conditions are wrapped in brackets, a single one is returned as is.
 func (l *CheckEventlog) joinConditions(conditions []string, operator GroupOperator) string {
 	switch len(conditions) {
 	case 0:

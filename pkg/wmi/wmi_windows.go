@@ -48,13 +48,12 @@ func QueryWithRetries(query string, dst any, namespace string, retries int, dela
 	return err
 }
 
-// QueryIsolatedDefaultRetry is like QueryDefaultRetry but runs on a dedicated connection.
+// QueryIsolatedDefaultRetry is like QueryDefaultRetry but runs on a dedicated WMI connection.
 func QueryIsolatedDefaultRetry(query string, dst any) (err error) {
 	return QueryIsolatedWithRetries(query, dst, 3, 1*time.Second)
 }
 
-// QueryIsolatedWithRetries executes the given query on a dedicated connection
-// with specified retries and delay between retries.
+// QueryIsolatedWithRetries executes the given query on a dedicated WMI connection, with specified retries and delay between retries.
 func QueryIsolatedWithRetries(query string, dst any, retries int, delay time.Duration) (err error) {
 	for retries > 0 {
 		err = QueryIsolated(query, dst)
@@ -71,9 +70,9 @@ func QueryIsolatedWithRetries(query string, dst any, retries int, delay time.Dur
 	return err
 }
 
-// QueryIsolated runs a query on a dedicated WMI connection instead of the
-// shared client, so a slow query cannot block the WMI service used by other checks.
+// QueryIsolated runs a query on a dedicated WMI connection instead of the shared client.
 func QueryIsolated(query string, dst any) (err error) {
+	// A slow query cannot block the WMI service used by other checks in this isolated client.
 	client := &ywmi.Client{AllowMissingFields: true}
 	query = strings.TrimSpace(query)
 	if err = client.Query(query, dst, nil, nil, nil, nil, "MS_409"); err != nil {

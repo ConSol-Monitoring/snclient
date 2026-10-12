@@ -154,8 +154,7 @@ func (l *CheckEventlog) stringConditionToWQL(column string, cond *Condition) (st
 
 		conditions := make([]string, 0, len(values))
 		for _, value := range values {
-			// missing wmi columns are empty strings in the check, but they
-			// never match an empty wql string literal
+			// missing wmi columns are empty strings in the check, but they never match an empty wql string literal
 			if value == "" || l.checkWQLString(value) != nil {
 				return "", false
 			}
@@ -165,9 +164,8 @@ func (l *CheckEventlog) stringConditionToWQL(column string, cond *Condition) (st
 		return l.joinConditions(conditions, GroupOr), true
 	case Contains, ContainsCase:
 		value, ok := cond.value.(string)
-		// like is a substring match in the check, so it translates into
-		// %value% . wql cannot match missing values or the [ ] pattern
-		// characters with this translation.
+		// like is a substring match in the check, so it translates into:  '%value%'
+		// wql cannot match missing values or the [ ] pattern characters with this translation.
 		if !ok || value == "" || strings.ContainsAny(value, "[]") || l.checkWQLString(value) != nil {
 			return "", false
 		}
