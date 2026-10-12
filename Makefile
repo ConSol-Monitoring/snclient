@@ -9,8 +9,8 @@ GOVERSION:=$(shell \
 )
 # also update other go.mod files when changing minimum version
 # find . -name go.mod -o -name Dockerfile
-MINGOVERSION:=00010026
-MINGOVERSIONSTR:=1.26
+MINGOVERSION:=00010027
+MINGOVERSIONSTR:=1.27
 BUILD:=$(shell git rev-parse --short HEAD)
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 REVISION:=$(shell ./buildtools/get_version | awk -F . '{ print $$3 }')
