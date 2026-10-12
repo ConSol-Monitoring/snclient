@@ -53,6 +53,10 @@ FROM
 
 See https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlogprov/win32-ntlogevent for
 a description of the provided fields.
+
+Filter conditions on id, level, source, computer, file and message are added to
+the WHERE clause of the wmi query when possible, the filter is still applied to
+the returned events.
 `,
 		implemented: Windows,
 		timeout:     DefaultEventlogTimeout,

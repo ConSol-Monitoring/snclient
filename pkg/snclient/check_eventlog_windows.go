@@ -21,6 +21,11 @@ func (l *CheckEventlog) Check(ctx context.Context, _ *Agent, check *CheckData, _
 		return nil, fmt.Errorf("error when building query WHERE filter: %w", err)
 	}
 
+	if filterWhereLine := l.buildFilterQueryWhereLine(check.filter); filterWhereLine != "" {
+		log.Tracef("pushing filter conditions into the wmi query: %s", filterWhereLine)
+		queryWhereLines = append(queryWhereLines, filterWhereLine)
+	}
+
 	if len(l.files) == 0 {
 		filenames, err2 := eventlog.GetFileNames()
 		if err2 != nil {
@@ -289,7 +294,7 @@ func (l *CheckEventlog) buildEventCodeCondition(filter string) (string, error) {
 		conditions = append(conditions, fmt.Sprintf("EventCode = %d", eventCode))
 	}
 
-	return l.orConditions(conditions), nil
+	return l.joinConditions(conditions, GroupOr), nil
 }
 
 func (l *CheckEventlog) buildEventTypeCondition(filter string) (string, error) {
@@ -307,7 +312,7 @@ func (l *CheckEventlog) buildEventTypeCondition(filter string) (string, error) {
 		conditions = append(conditions, fmt.Sprintf("EventType = %d", eventType))
 	}
 
-	return l.orConditions(conditions), nil
+	return l.joinConditions(conditions, GroupOr), nil
 }
 
 func (l *CheckEventlog) buildSourceNameCondition(filter string) (string, error) {
@@ -324,7 +329,7 @@ func (l *CheckEventlog) buildSourceNameCondition(filter string) (string, error) 
 		conditions = append(conditions, fmt.Sprintf("SourceName LIKE '%s'", value))
 	}
 
-	return l.orConditions(conditions), nil
+	return l.joinConditions(conditions, GroupOr), nil
 }
 
 func (l *CheckEventlog) parseEventType(value string) (uint64, error) {
@@ -376,10 +381,20 @@ func (l *CheckEventlog) splitFilterValues(filter string) []string {
 	return values
 }
 
-func (l *CheckEventlog) orConditions(conditions []string) string {
-	if len(conditions) == 1 {
+// joinConditions combines conditions with the given logical operator.
+// Multiple conditions are wrapped in brackets, a single one is returned as is.
+func (l *CheckEventlog) joinConditions(conditions []string, operator GroupOperator) string {
+	switch len(conditions) {
+	case 0:
+		return ""
+	case 1:
 		return conditions[0]
 	}
 
-	return fmt.Sprintf("(%s)", strings.Join(conditions, " OR "))
+	logicalOperator := " AND "
+	if operator == GroupOr {
+		logicalOperator = " OR "
+	}
+
+	return fmt.Sprintf("(%s)", strings.Join(conditions, logicalOperator))
 }
