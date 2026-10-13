@@ -70,7 +70,7 @@ Naemon Config
 
 | Argument               | Description                                                                                  |
 | ---------------------- | -------------------------------------------------------------------------------------------- |
-| -m\|--max-metadata-age | Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, ex.: 24h (default: disabled) |
+| -m\|--max-metadata-age | Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, ex.: 48h (default: 24h) |
 | -s\|--system           | Package system: auto, apt, yum, osx and windows (default: auto)                              |
 | -u\|--update           | Update package list (if supported, ex.: apt-get update)                                      |
 

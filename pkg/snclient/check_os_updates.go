@@ -41,7 +41,7 @@ func (l *CheckOSUpdates) Build() *CheckData {
 			"-u|--update": {value: &l.update, description: "Update package list (if supported, ex.: apt-get update)"},
 			"-m|--max-metadata-age": {
 				value:       &l.maxMetadataAge,
-				description: "Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, ex.: 24h (default: disabled)",
+				description: "Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, ex.: 48h (default: 24h)",
 			},
 		},
 		defaultWarning:  "count > 0",
