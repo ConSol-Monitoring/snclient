@@ -149,6 +149,13 @@ func TestMacroConditionalsMulti(t *testing.T) {
 	}
 }
 
+func TestMacroConditionalsEmpty(t *testing.T) {
+	// empty conditional clause must not panic
+	res, err := ReplaceConditionals("{{}}", nil)
+	require.Error(t, err)
+	assert.Equal(t, "{{}}", res)
+}
+
 func TestMacroSpecials(t *testing.T) {
 	snc := StartTestAgent(t, "")
 

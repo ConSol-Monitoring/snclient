@@ -79,7 +79,8 @@ In addition to standard thresholds, SNClient added support for ranges, ex.: `10:
 See examples here:
 [threshold format](https://www.monitoring-plugins.org/doc/guidelines.html#THRESHOLDFORMAT)
 
-It is advised to always use the latest [check_nsc_web plugin](https://github.com/ConSol-Monitoring/check_nsc_web) to do the checks.
+It is advised to always use the latest [check_snclient plugin](https://github.com/ConSol-Monitoring/check_snclient)
+(formerly check_nsc_web) to do the checks.
 Previous releases did not fully support those ranges.
 
 ### Bytes

@@ -19,6 +19,7 @@ type winProcess struct {
 	HandleCount        uint32
 	KernelModeTime     uint64
 	PageFileUsage      uint32
+	ParentProcessId    uint32 //nolint:revive // var-naming: struct field ParentProcessId should be ParentProcessID, but that's how the this field was named in windows
 	PeakPageFileUsage  uint32
 	PeakVirtualSize    uint64
 	PeakWorkingSetSize uint32
@@ -40,6 +41,7 @@ func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
 			HandleCount,
 			KernelModeTime,
 			PageFileUsage,
+			ParentProcessId,
 			PeakPageFileUsage,
 			PeakVirtualSize,
 			PeakWorkingSetSize,
@@ -89,6 +91,7 @@ func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
 			"peak_virtual":     fmt.Sprintf("%d", proc.PeakVirtualSize),
 			"peak_working_set": fmt.Sprintf("%d", proc.PeakWorkingSetSize),
 			"pid":              fmt.Sprintf("%d", proc.ProcessId),
+			"ppid":             fmt.Sprintf("%d", proc.ParentProcessId),
 			"user":             fmt.Sprintf("%f", float64(proc.UserModeTime)/1e7), // values are multiple of 100ns
 			"virtual":          fmt.Sprintf("%d", proc.VirtualSize),
 			"working_set":      fmt.Sprintf("%d", proc.WorkingSetSize),

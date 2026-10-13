@@ -55,8 +55,24 @@ func (ic *InvCache) Get(ctx context.Context, snc *Agent) *Inventory {
 	ic.updating = true
 	ic.mutex.Unlock()
 
-	// do the update outside of lock
-	newInv := snc.buildInventory(ctx, nil)
+	// do the update outside of lock. If it panics, re-acquire the lock before
+	// the panic propagates so the deferred Unlock above stays balanced;
+	// otherwise that Unlock runs on an already-unlocked mutex, which is an
+	// unrecoverable "sync: unlock of unlocked mutex" that kills the daemon.
+	// Re-panicking keeps it recoverable for the caller's panic handler.
+	newInv := func() (inv *Inventory) {
+		defer func() {
+			if r := recover(); r != nil {
+				ic.mutex.Lock()
+				ic.updating = false
+				ic.cond.Broadcast()
+
+				panic(r)
+			}
+		}()
+
+		return snc.buildInventory(ctx, nil)
+	}()
 
 	ic.mutex.Lock()
 	defer ic.cond.Broadcast() // wake all waiting goroutines
@@ -130,8 +146,15 @@ func (snc *Agent) buildInventory(ctx context.Context, modules []string) *Invento
 			meta.output = OutputInventory
 			meta.filter = ConditionList{{isNone: true}}
 			data, err := handler.Check(ctx, snc, meta, []Argument{})
-			if err != nil && (data == nil || data.Raw == nil) {
-				log.Tracef("inventory %s returned error: %s", check.Name, err.Error())
+			// A check may return a non-nil result with a nil error but without
+			// Raw (e.g. check_service on SCM failure returns early before
+			// Finalize), so guard on the data, not the error.
+			if data == nil || data.Raw == nil {
+				if err != nil {
+					log.Tracef("inventory %s returned error: %s", check.Name, err.Error())
+				} else {
+					log.Tracef("inventory %s returned no data", check.Name)
+				}
 
 				continue
 			}

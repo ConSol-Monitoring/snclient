@@ -10,12 +10,12 @@ Each plugin usually has a help page which can be accessed by the `-h` or `--help
 For example:
 
 ```bash
-./snclient run check_nsc_web --help
+./snclient run check_snclient --help
 ```
 
 Check plugins cannot use filtering as the normal checks.
 
-The list of built-in checks can be found [here](../commands/).
+The list of built-in checks can be found [in the commands section](../commands/).
 
 ## Enabling Builtin Plugins
 

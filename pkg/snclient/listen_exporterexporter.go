@@ -390,18 +390,19 @@ type exporterModuleConfig struct {
 }
 
 type exporterHTTPConfig struct {
-	Verify                 bool              `yaml:"verify"`                   // false, not implemented
-	TLSInsecureSkipVerify  bool              `yaml:"tls_insecure_skip_verify"` // false
-	TLSCertFile            *string           `yaml:"tls_cert_file"`            // no default
-	TLSKeyFile             *string           `yaml:"tls_key_file"`             // no default
-	TLSCACertFile          *string           `yaml:"tls_ca_cert_file"`         // no default
-	Port                   int               `yaml:"port"`                     // no default
-	Path                   string            `yaml:"path"`                     // /metrics
-	Scheme                 string            `yaml:"scheme"`                   // http
-	Address                string            `yaml:"address"`                  // localhost
-	Headers                map[string]string `yaml:"headers"`                  // no default
-	BasicAuthUsername      string            `yaml:"basic_auth_username"`      // no default
-	BasicAuthPassword      string            `yaml:"basic_auth_password"`      // no default
+	Verify                bool    `yaml:"verify"`                   // false, not implemented
+	TLSInsecureSkipVerify bool    `yaml:"tls_insecure_skip_verify"` // false
+	TLSCertFile           *string `yaml:"tls_cert_file"`            // no default
+	TLSKeyFile            *string `yaml:"tls_key_file"`             // no default
+	TLSCACertFile         *string `yaml:"tls_ca_cert_file"`         // no default
+	Port                  int     `yaml:"port"`                     // no default
+	Path                  string  `yaml:"path"`                     // /metrics
+	Scheme                string  `yaml:"scheme"`                   // http
+	Address               string  `yaml:"address"`                  // localhost
+	// json:"-" keeps backend credentials out of the /list JSON output.
+	Headers                map[string]string `json:"-"       yaml:"headers"`             // no default
+	BasicAuthUsername      string            `json:"-"       yaml:"basic_auth_username"` // no default
+	BasicAuthPassword      string            `json:"-"       yaml:"basic_auth_password"` // no default
 	XXX                    map[string]any    `yaml:",inline"`
 	tlsConfig              *tls.Config
 	mcfg                   *exporterModuleConfig
@@ -409,11 +410,12 @@ type exporterHTTPConfig struct {
 }
 
 type exporterExecConfig struct {
-	Command string            `yaml:"command"`
-	Args    []string          `yaml:"args"`
-	Env     map[string]string `yaml:"env"`
-	XXX     map[string]any    `yaml:",inline"`
-	mcfg    *exporterModuleConfig
+	Command string   `yaml:"command"`
+	Args    []string `yaml:"args"`
+	// json:"-" keeps env secrets out of the /list JSON output.
+	Env  map[string]string `json:"-"       yaml:"env"`
+	XXX  map[string]any    `yaml:",inline"`
+	mcfg *exporterModuleConfig
 }
 
 type exporterFileConfig struct {
@@ -531,6 +533,13 @@ func (cfg *exporterHTTPConfig) getTLSConfig() (*tls.Config, error) {
 	return config, nil
 }
 
+// stripProxyAuthHeaders removes the scraper's own credentials from a proxied
+// request so they are never forwarded to the backend, where they could be replayed.
+func stripProxyAuthHeaders(req *http.Request) {
+	req.Header.Del("Authorization")
+	req.Header.Del("Password")
+}
+
 func (cfg *exporterModuleConfig) getReverseProxyRewriteFunc() (func(*httputil.ProxyRequest), error) {
 	base, err := url.Parse(cfg.HTTP.Path)
 	if err != nil {
@@ -541,6 +550,9 @@ func (cfg *exporterModuleConfig) getReverseProxyRewriteFunc() (func(*httputil.Pr
 
 	return func(proxyReq *httputil.ProxyRequest) {
 		req := proxyReq.Out
+		// never forward the scraper's credentials to the backend
+		stripProxyAuthHeaders(req)
+
 		qvs := req.URL.Query()
 		for k, vs := range cvs {
 			for _, v := range vs {

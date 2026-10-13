@@ -7,7 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
@@ -69,6 +71,30 @@ func startSilentDNSServer(t *testing.T, listenAddr string) string {
 	require.True(t, ok, "local addr is a udp addr")
 
 	return strconv.Itoa(udpAddr.Port)
+}
+
+// startDroppingDNSServer silently drops the first drop packets and answers
+// every following query with an A record, like a lossy network path does.
+// It returns the port it has started on and a counter of received packets.
+func startDroppingDNSServer(t *testing.T, listenAddr string, drop int64) (string, *atomic.Int64) {
+	t.Helper()
+
+	var received atomic.Int64
+	port := startTestDNSServerHandler(t, listenAddr, dns.HandlerFunc(func(writer dns.ResponseWriter, req *dns.Msg) {
+		if received.Add(1) <= drop {
+			return
+		}
+
+		reply := new(dns.Msg)
+		reply.SetReply(req)
+		rr, rrErr := dns.NewRR(req.Question[0].Name + " 60 IN A 1.2.3.4")
+		if rrErr == nil {
+			reply.Answer = append(reply.Answer, rr)
+		}
+		_ = writer.WriteMsg(reply)
+	}))
+
+	return port, &received
 }
 
 func TestCheckDNS(t *testing.T) {
@@ -386,6 +412,75 @@ CheckBuiltinPlugins = enabled
 			string(res.BuildPluginOutput()),
 			"output matches",
 		)
+	})
+
+	t.Run("single lost packet is retransmitted", func(t *testing.T) {
+		port, received := startDroppingDNSServer(t, "127.0.0.1:0", 1)
+		res := snc.RunCheck("check_dns", []string{
+			"-H", "lossy.example.com.",
+			"-s", "127.0.0.1", "-p", port,
+			"-T", "2",
+		})
+		assert.Equalf(t, CheckExitOK, res.State, "state ok")
+		assert.Regexpf(
+			t,
+			`^OK - lossy\.example\.com\. returns 1\.2\.3\.4 \(A\)`,
+			string(res.BuildPluginOutput()),
+			"output matches",
+		)
+		assert.Equalf(t, int64(2), received.Load(), "packets sent")
+	})
+
+	t.Run("timeout and attempts from resolv.conf", func(t *testing.T) {
+		port, received := startDroppingDNSServer(t, "127.0.0.1:0", 2)
+
+		resolvConf := filepath.Join(t.TempDir(), "resolv.conf")
+		require.NoError(t, os.WriteFile(resolvConf, []byte("nameserver 127.0.0.1\noptions timeout:1 attempts:3\n"), 0o600))
+
+		res := snc.RunCheck("check_dns", []string{
+			"-H", "lossy.example.com.",
+			"-s", "127.0.0.1", "-p", port,
+			"--resolv-conf-file", resolvConf,
+		})
+		assert.Equalf(t, CheckExitOK, res.State, "state ok")
+		assert.Equalf(t, int64(3), received.Load(), "packets sent")
+	})
+
+	t.Run("retries use up the query timeout", func(t *testing.T) {
+		port := startSilentDNSServer(t, "127.0.0.1:0")
+
+		startTimestamp := time.Now()
+		res := snc.RunCheck("check_dns", []string{
+			"-H", "silent.example.com.",
+			"-s", "127.0.0.1", "-p", port,
+			"-T", "1", "--attempts", "3",
+		})
+		elapsed := time.Since(startTimestamp)
+
+		assert.Equalf(t, CheckExitCritical, res.State, "state critical")
+		assert.Regexpf(
+			t,
+			`^CRITICAL - DNS lookup failed for host 'silent\.example\.com': 127\.0\.0\.1:`+port+`: query failed: timeout$`,
+			string(res.BuildPluginOutput()),
+			"output matches",
+		)
+		assert.Lessf(t, elapsed, 2500*time.Millisecond, "three attempts of 1 second stay within the query timeout")
+	})
+
+	StopTestAgent(t, snc)
+}
+
+func TestCheckDNSAttemptsValidation(t *testing.T) {
+	config := `
+[/modules]
+CheckBuiltinPlugins = enabled
+	`
+	snc := StartTestAgent(t, config)
+
+	t.Run("invalid attempts", func(t *testing.T) {
+		res := snc.RunCheck("check_dns", []string{"-H", "labs.consol.de", "--attempts", "0"})
+		assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
+		assert.Containsf(t, string(res.BuildPluginOutput()), "attempts must be between 1 and 10", "output matches")
 	})
 
 	StopTestAgent(t, snc)

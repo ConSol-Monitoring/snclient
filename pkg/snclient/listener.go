@@ -470,8 +470,14 @@ func (l *Listener) LogWrapHTTPHandler(next http.Handler, res http.ResponseWriter
 	}
 
 	duration := time.Since(startTime)
-	promReqURL := req.URL.Path
+	// route pattern, not raw path: raw paths are attacker-chosen (e.g.
+	// /query/{command} returns 200/UNKNOWN for unknown commands) and would
+	// create unbounded, retained metric series
+	promReqURL := chi.RouteContext(req.Context()).RoutePattern()
 	if resCapture.statusCode >= 400 && resCapture.statusCode <= 499 {
+		promReqURL = "(invalid)"
+	}
+	if promReqURL == "" {
 		promReqURL = "(invalid)"
 	}
 	promHTTPRequestsTotal.WithLabelValues(fmt.Sprintf("%d", resCapture.statusCode), promReqURL).Add(1)

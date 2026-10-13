@@ -79,6 +79,9 @@ func ReplaceConditionals(value string, macroSets ...map[string]string) (string, 
 			piece = strings.TrimSuffix(piece, endPattern)
 			piece = strings.TrimSpace(piece)
 			fields := utils.FieldsN(piece, 2)
+			if len(fields) == 0 {
+				return value, fmt.Errorf("empty conditional clause in: %s", value)
+			}
 
 			switch strings.ToLower(fields[0]) {
 			case "if":

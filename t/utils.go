@@ -226,7 +226,7 @@ func waitUntilResponse(t *testing.T, bin string) {
 	for time.Now().Before(waitUntil) {
 		res := runCmd(t, &cmd{
 			Cmd:  bin,
-			Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
+			Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
 			Exit: -1,
 		})
 		if res.ExitCode == 0 {

@@ -111,19 +111,19 @@ func TestDEBinstaller(t *testing.T) {
 	// verify response
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_snclient_version"},
 		Like: []string{`^SNClient v`},
 	})
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_uptime", "crit=uptime<2s", "warn=uptime<1s"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_uptime", "crit=uptime<2s", "warn=uptime<1s"},
 		Like: []string{"OK - uptime"},
 	})
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_cpu", "crit=load>101", "warn=load>101"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_cpu", "crit=load>101", "warn=load>101"},
 		Like: []string{"OK - CPU load is ok."},
 	})
 
@@ -195,41 +195,41 @@ func localContainerTests(t *testing.T, bin string) {
 
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "sudo_id"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "sudo_id"},
 		Like: []string{"uid=0\\(root\\)"},
 	})
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "nosudo_id"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "nosudo_id"},
 		Like: []string{"uid=\\d*\\(snclient\\)"},
 	})
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "capsh"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "capsh"},
 		Like: []string{"Current: ="},
 	})
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_service", "service=snclient"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_service", "service=snclient"},
 		Like: []string{"OK - All 1 service\\(s\\) are ok.*snclient"},
 	})
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_service", "service='snc\ntest'"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_service", "service='snc\ntest'"},
 		Like: []string{"request contained illegal control characters"},
 		Exit: 3,
 	})
 	// check if check_omd still works
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_omd"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_omd"},
 		Like: []string{"UNKNOWN - failed to fetch omd sites"},
 		Exit: 3,
 	})
 	// but not like this
 	runCmd(t, &cmd{
 		Cmd:  bin,
-		Args: []string{"run", "check_nsc_web", "-k", "-p", "test", "-u", "https://localhost:8443", "check_omd", "site='te\rst'"},
+		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_omd", "site='te\rst'"},
 		Like: []string{"request contained illegal control characters"},
 		Exit: 3,
 	})
