@@ -4,6 +4,7 @@ next:
          - check_dns: resend lost packets and use the timeout and attempts settings of the resolv.conf
          - fix remaining zombie processes after automatic updates
          - check_service: add wildcard support for exclude argument
+         - check_drivesize: add support for hidden shares
          - check_process: make parent pid (ppid) available
          - check_snclient: add support for check_snclient (formerly check_nsc_web)
          - exporter_exporter: fix leaking secrets on /list
