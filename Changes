@@ -4,8 +4,6 @@ next:
          - check_dns: resend lost packets and use the timeout and attempts settings of the resolv.conf
          - fix remaining zombie processes after automatic updates
          - check_service: add wildcard support for exclude argument
-         - add credential storing system to the config
-         - check_drivesize: windows only, add support for connecting to shares using credentials
          - check_drivesize: add support for hidden shares
          - check_process: make parent pid (ppid) available
          - check_snclient: add support for check_snclient (formerly check_nsc_web)

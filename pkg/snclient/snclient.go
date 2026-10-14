@@ -517,9 +517,6 @@ func (snc *Agent) Init(mode InitMode) (*AgentRunSet, error) {
 		return initSet, err
 	}
 
-	// load credentials configured with the on-start strategy
-	applyCredentialsOnStart(initSet.config)
-
 	initSet.mode = mode
 
 	initSet.tasks = NewModuleSet("tasks")

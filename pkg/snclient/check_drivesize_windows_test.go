@@ -198,17 +198,10 @@ func TestMatchNetworkShare(t *testing.T) {
 		`Z:\`: {
 			"remote_name": `\\server\share`,
 			"drive":       `Z:\`,
-			"connected":   "1",
 		},
 		`Y:\`: {
 			"remote_name": `\\server\share2`,
 			"drive":       `Y:\`,
-			"connected":   "1",
-		},
-		`X:\`: {
-			"remote_name": `\\offline\share`,
-			"drive":       `X:\`,
-			"connected":   "0",
 		},
 	}
 	checkDrivesize := CheckDrivesize{}
@@ -250,14 +243,28 @@ func TestMatchNetworkShare(t *testing.T) {
 	assert.Truef(t, matched, "share2 subfolder matches")
 	assert.Equalf(t, `Y:\`, key, "share2 subfolder key")
 
-	// disconnected persistent drives are skipped
-	_, _, matched = checkDrivesize.matchNetworkShare(`\\offline\share`, shares)
-	assert.Falsef(t, matched, "disconnected drive skipped")
-
 	// no match at all
 	//nolint:misspell // it thinks that '\\other' is actually 'ther' due to backslash
 	_, _, matched = checkDrivesize.matchNetworkShare(`\\other\share`, shares)
 	assert.Falsef(t, matched, "no match")
+}
+
+func TestIsNetworkSharePath(t *testing.T) {
+	tests := []struct {
+		path string
+		want bool
+	}{
+		{`\\server\share`, true},
+		{`//server/share`, true},
+		{`\\server`, true},
+		{`C:\folder`, false},
+		{`C:`, false},
+		{`/`, false},
+		{``, false},
+	}
+	for _, test := range tests {
+		assert.Equalf(t, test.want, isNetworkSharePath(test.path), "isNetworkSharePath(%q)", test.path)
+	}
 }
 
 func TestCleanupPathString(t *testing.T) {
