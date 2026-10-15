@@ -72,10 +72,24 @@ func QueryIsolatedWithRetries(query string, dst any, retries int, delay time.Dur
 
 // QueryIsolated runs a query on a dedicated WMI connection instead of the shared client.
 func QueryIsolated(query string, dst any) (err error) {
-	// A slow query cannot block the WMI service used by other checks in this isolated client.
+	// A dedicated SWbemServices instance is required here
+	// (*ywmi.Client).Query locks a package global mutex for the whole query, so even a fresh client would block other checks.
+	// SWbemServices has its own mutex and worker goroutine per instance.
 	client := &ywmi.Client{AllowMissingFields: true}
+	service, svcErr := ywmi.InitializeSWbemServices(client)
+	if svcErr != nil {
+		return fmt.Errorf("ywmi InitializeSWbemServices failed: %s", svcErr.Error())
+	}
+
+	// Close waits for a running query to finish, so it has to run in the same goroutine.
+	defer func() {
+		if closeErr := service.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("ywmi close failed: %s", closeErr.Error())
+		}
+	}()
+
 	query = strings.TrimSpace(query)
-	if err = client.Query(query, dst, nil, nil, nil, nil, "MS_409"); err != nil {
+	if err = service.Query(query, dst, nil, nil, nil, nil, "MS_409"); err != nil {
 		return fmt.Errorf("ywmi query failed: %s", err.Error())
 	}
 
