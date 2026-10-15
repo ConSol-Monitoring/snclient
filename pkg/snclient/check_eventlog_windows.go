@@ -380,6 +380,8 @@ func (l *CheckEventlog) splitFilterValues(filter string) []string {
 }
 
 // joinConditions combines conditions with the given logical operator.
+//
+//nolint:unparam // operator is always GroupOr after simplification
 func (l *CheckEventlog) joinConditions(conditions []string, operator GroupOperator) string {
 	switch len(conditions) {
 	case 0:
