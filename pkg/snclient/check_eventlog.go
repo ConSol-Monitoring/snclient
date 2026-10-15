@@ -13,13 +13,11 @@ const DefaultUniqueIndex = "${log}-${source}-${id}"
 const DefaultEventlogTimeout = 180 * time.Second
 
 type CheckEventlog struct {
-	files              []string
-	scanRange          string
-	truncateMessage    int
-	uniqueIndex        string
-	eventCodesFilters  []string
-	eventTypesFilters  []string
-	sourceNamesFilters []string
+	files             []string
+	scanRange         string
+	truncateMessage   int
+	uniqueIndex       string
+	eventCodesFilters []string
 }
 
 func NewCheckEventlog() CheckHandler {
@@ -53,9 +51,8 @@ FROM
 See https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlogprov/win32-ntlogevent for
 a description of the provided fields.
 
-Filter conditions on id, level, source, computer, file and message are added to
-the WHERE clause of the wmi query when possible, the filter is still applied to
-the returned events.
+Filter conditions on id are added to the WHERE clause of the wmi query when possible,
+the filter is still applied to the returned events.
 `,
 		implemented: Windows,
 		timeout:     DefaultEventlogTimeout,
@@ -73,10 +70,6 @@ the returned events.
 			"unique":           {value: &l.uniqueIndex, description: "Alias for unique-index"},
 			"event-codes": {value: &l.eventCodesFilters, isFilter: true, description: "Event codes to query for, comma separated values are combined with OR. " +
 				"Valid range is 0-65535. Can be specified multiple times."},
-			"event-types": {value: &l.eventTypesFilters, isFilter: true, description: "Event types to query for, comma separated values are combined with OR. " +
-				"Accepts names (error, warning, information, success audit, failure audit) or numbers 1-5. Can be specified multiple times."},
-			"source-names": {value: &l.sourceNamesFilters, isFilter: true, description: "Event source names to query for, comma separated values are combined with OR. " +
-				"Wildcards % and _ are supported, single quotes are not allowed. Can be specified multiple times."},
 		},
 		defaultFilter:   "level in ('warning', 'error', 'critical')",
 		defaultWarning:  "level = 'warning' or problem_count > 0",

@@ -11,8 +11,8 @@ next:
          - exporter: fix goroutine leak in memory watcher
          - check_tcp: add read cap of 10MB when reading from remote sockets
          - check_ssh: add read cap of 10MB when reading from remote sockets
-         - check_eventlog: add event-codes, event-types and source-names filters for the WMI query
-         - check_eventlog: use translatable filter conditions in the WMI query
+         - check_eventlog: add event-codes argument for the WMI query
+         - check_eventlog: use event id filter conditions in the WMI query
          - update golang build chain to 1.27.2
 
 0.49     Fri Aug 21 08:50:54 CEST 2026

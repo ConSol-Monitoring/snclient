@@ -3,11 +3,9 @@ package snclient
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/eventlog"
@@ -224,28 +222,8 @@ func (l *CheckEventlog) checkRange(name string, value int, err error, minVal, ma
 	return nil
 }
 
-// Win32_NTLogEvent.EventType values, the numbers are consecutive, see the Win32_NTLogEvent class documentation.
-const (
-	CheckEventlogEventTypeError = iota + 1
-	CheckEventlogEventTypeWarning
-	CheckEventlogEventTypeInformation
-	CheckEventlogEventTypeSuccessAudit
-	CheckEventlogEventTypeFailureAudit
-)
-
 // EventCode is a uint16 property of Win32_NTLogEvent.
 const CheckEventlogMaxEventCode = 65535
-
-// CheckEventlogEventTypeNameMap keys must match normalizeEventTypeName() output.
-var CheckEventlogEventTypeNameMap = map[string]uint64{
-	"error":        CheckEventlogEventTypeError,
-	"warning":      CheckEventlogEventTypeWarning,
-	"information":  CheckEventlogEventTypeInformation,
-	"successaudit": CheckEventlogEventTypeSuccessAudit,
-	"auditsuccess": CheckEventlogEventTypeSuccessAudit,
-	"failureaudit": CheckEventlogEventTypeFailureAudit,
-	"auditfailure": CheckEventlogEventTypeFailureAudit,
-}
 
 func (l *CheckEventlog) buildQueryWhereLines() ([]string, error) {
 	queryWhereLines := []string{}
@@ -254,22 +232,6 @@ func (l *CheckEventlog) buildQueryWhereLines() ([]string, error) {
 		whereLine, err := l.buildEventCodeCondition(filter)
 		if err != nil {
 			return []string{}, fmt.Errorf("event-codes: %w", err)
-		}
-		queryWhereLines = append(queryWhereLines, whereLine)
-	}
-
-	for _, filter := range l.eventTypesFilters {
-		whereLine, err := l.buildEventTypeCondition(filter)
-		if err != nil {
-			return []string{}, fmt.Errorf("event-types: %w", err)
-		}
-		queryWhereLines = append(queryWhereLines, whereLine)
-	}
-
-	for _, filter := range l.sourceNamesFilters {
-		whereLine, err := l.buildSourceNameCondition(filter)
-		if err != nil {
-			return []string{}, fmt.Errorf("source-names: %w", err)
 		}
 		queryWhereLines = append(queryWhereLines, whereLine)
 	}
@@ -292,78 +254,7 @@ func (l *CheckEventlog) buildEventCodeCondition(filter string) (string, error) {
 		conditions = append(conditions, fmt.Sprintf("EventCode = %d", eventCode))
 	}
 
-	return l.joinConditions(conditions, GroupOr), nil
-}
-
-func (l *CheckEventlog) buildEventTypeCondition(filter string) (string, error) {
-	values := l.splitFilterValues(filter)
-	if len(values) == 0 {
-		return "", fmt.Errorf("no event types specified")
-	}
-
-	conditions := make([]string, 0, len(values))
-	for _, value := range values {
-		eventType, err := l.parseEventType(value)
-		if err != nil {
-			return "", err
-		}
-		conditions = append(conditions, fmt.Sprintf("EventType = %d", eventType))
-	}
-
-	return l.joinConditions(conditions, GroupOr), nil
-}
-
-func (l *CheckEventlog) buildSourceNameCondition(filter string) (string, error) {
-	values := l.splitFilterValues(filter)
-	if len(values) == 0 {
-		return "", fmt.Errorf("no source names specified")
-	}
-
-	conditions := make([]string, 0, len(values))
-	for _, value := range values {
-		if err := l.checkWQLString(value); err != nil {
-			return "", err
-		}
-		conditions = append(conditions, fmt.Sprintf("SourceName LIKE '%s'", value))
-	}
-
-	return l.joinConditions(conditions, GroupOr), nil
-}
-
-func (l *CheckEventlog) parseEventType(value string) (uint64, error) {
-	if eventType, err := strconv.ParseUint(value, 10, 8); err == nil {
-		if eventType >= CheckEventlogEventTypeError && eventType <= CheckEventlogEventTypeFailureAudit {
-			return eventType, nil
-		}
-
-		return 0, fmt.Errorf("invalid event type %d: valid event types are: error, warning, information, success audit, failure audit, or the numbers 1 to 5", eventType)
-	}
-
-	if eventType, ok := CheckEventlogEventTypeNameMap[l.normalizeEventTypeName(value)]; ok {
-		return eventType, nil
-	}
-
-	return 0, fmt.Errorf("invalid event type %q: valid event types are: error, warning, information, success audit, failure audit, or the numbers 1 to 5", value)
-}
-
-func (l *CheckEventlog) normalizeEventTypeName(name string) string {
-	eventNameReplacer := strings.NewReplacer(" ", "", "_", "", "-", "")
-
-	return eventNameReplacer.Replace(strings.ToLower(name))
-}
-
-func (l *CheckEventlog) checkWQLString(value string) error {
-	// single quotes would end the WQL string literal and allow query injection
-	wqlBlacklistRunes := []rune{'\'', '\\'}
-
-	if strings.ContainsFunc(value, func(r rune) bool { return slices.Contains(wqlBlacklistRunes, r) }) {
-		return fmt.Errorf("source name %q contains one of the blacklisted characters: %q", value, string(wqlBlacklistRunes))
-	}
-	if strings.ContainsFunc(value, func(r rune) bool { return !unicode.IsPrint(r) }) {
-		return fmt.Errorf("source name %q contains non printable characters", value)
-	}
-
-	return nil
+	return l.joinConditions(conditions), nil
 }
 
 func (l *CheckEventlog) splitFilterValues(filter string) []string {
@@ -379,10 +270,8 @@ func (l *CheckEventlog) splitFilterValues(filter string) []string {
 	return values
 }
 
-// joinConditions combines conditions with the given logical operator.
-//
-//nolint:unparam // operator is always GroupOr after simplification
-func (l *CheckEventlog) joinConditions(conditions []string, operator GroupOperator) string {
+// joinConditions combines multiple conditions with OR and wraps them in brackets.
+func (l *CheckEventlog) joinConditions(conditions []string) string {
 	switch len(conditions) {
 	case 0:
 		return ""
@@ -390,10 +279,5 @@ func (l *CheckEventlog) joinConditions(conditions []string, operator GroupOperat
 		return conditions[0]
 	}
 
-	logicalOperator := " AND "
-	if operator == GroupOr {
-		logicalOperator = " OR "
-	}
-
-	return fmt.Sprintf("(%s)", strings.Join(conditions, logicalOperator))
+	return fmt.Sprintf("(%s)", strings.Join(conditions, " OR "))
 }

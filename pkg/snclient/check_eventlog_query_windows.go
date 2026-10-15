@@ -1,40 +1,51 @@
 package snclient
 
-import (
-	"fmt"
-	"strings"
-)
-
 // The generic filter is applied to the events after the wmi query in CheckData.Finalize,
-// so pushing filter conditions into the query is only an optimization.
-// The collected conditions are joined with OR, which selects a superset of the filter.
-// It does not filter completely, only to a superset of the actual results,  therefore safe.
-// Snclient filters the returned events again.
+// so pushing filter conditions into the query is only an optimization. Only event ids are
+// translated, all collected conditions are joined with OR, which selects a superset of the
+// filter. Snclient filters the returned events again.
 
-// buildFilterQueryWhereLine collects the values of all translatable filter conditions and
-// joins them into a single WQL OR expression for the Win32_NTLogEvent query.
-// An empty string is returned when a condition cannot be translated.
+// buildFilterQueryWhereLine collects the event ids of the check filter and joins them
+// into a single WQL OR expression for the Win32_NTLogEvent query.
+// An empty string is returned when the filter cannot be translated safely.
 func (l *CheckEventlog) buildFilterQueryWhereLine(filter ConditionList) string {
 	conditions := []string{}
 	translatable := true
 
+	// top level filter conditions are combined with OR, filter=none conditions are ignored
+	topLevel := 0
+	for _, cond := range filter {
+		if !cond.isNone {
+			topLevel++
+		}
+	}
+	hasOr := topLevel > 1
+
 	err := filter.applyFuncToConditions(func(cond *Condition) error {
 		// groups only hold sub conditions, they are visited by the recursion
-		if cond.isNone || len(cond.group) > 0 {
+		if cond.isNone {
 			return nil
 		}
-
-		where, ok := l.conditionToWQL(cond)
-		if !ok {
-			translatable = false
+		if len(cond.group) > 0 {
+			hasOr = hasOr || cond.groupOperator == GroupOr
 
 			return nil
 		}
-		conditions = append(conditions, where...)
+
+		where, ok := l.eventCodeConditionToWQL(cond)
+		if ok {
+			conditions = append(conditions, where...)
+
+			return nil
+		}
+		translatable = false
 
 		return nil
 	})
-	if err != nil || !translatable {
+	// without an OR in the filter all conditions have to match, so conditions that cannot
+	// be translated can simply be ignored. With an OR they would have to be part of the
+	// query, otherwise events matching only them would get lost.
+	if err != nil || (hasOr && !translatable) {
 		log.Tracef("filter conditions not pushed into the wmi query: %s", filter.String())
 
 		return ""
@@ -44,33 +55,16 @@ func (l *CheckEventlog) buildFilterQueryWhereLine(filter ConditionList) string {
 		return ""
 	}
 
-	return l.joinConditions(conditions, GroupOr)
+	return l.joinConditions(conditions)
 }
 
-// conditionToWQL translates a single filter condition into a list of WQL conditions.
-// returns false if the condition cannot be translated.
-func (l *CheckEventlog) conditionToWQL(cond *Condition) ([]string, bool) {
-	switch cond.keyword {
-	case "id":
-		return l.eventCodeConditionsToWQL(cond)
-	case "level":
-		return l.levelConditionsToWQL(cond)
-	case "source", "provider":
-		return l.stringConditionsToWQL("SourceName", cond)
-	case "file", "log":
-		return l.stringConditionsToWQL("LogFile", cond)
-	case "computer":
-		return l.stringConditionsToWQL("ComputerName", cond)
-	case "message":
-		return l.stringConditionsToWQL("Message", cond)
+// eventCodeConditionToWQL translates the event ids of an "id" filter condition into EventCode conditions.
+func (l *CheckEventlog) eventCodeConditionToWQL(cond *Condition) ([]string, bool) {
+	if cond.keyword != "id" {
+		return nil, false
 	}
 
-	return nil, false
-}
-
-// eventCodeConditionsToWQL translates id conditions into EventCode conditions.
-func (l *CheckEventlog) eventCodeConditionsToWQL(cond *Condition) ([]string, bool) {
-	values, ok := l.conditionEqualityValues(cond)
+	values, ok := l.eventCodeValues(cond)
 	if !ok {
 		return nil, false
 	}
@@ -87,62 +81,8 @@ func (l *CheckEventlog) eventCodeConditionsToWQL(cond *Condition) ([]string, boo
 	return conditions, true
 }
 
-// levelConditionsToWQL translates level conditions into Type conditions.
-// level is the lowercase Type property.
-// EventType must not be used instead, because Win32_NTLogEvent reports EventType 0 for some information events.
-func (l *CheckEventlog) levelConditionsToWQL(cond *Condition) ([]string, bool) {
-	values, ok := l.conditionEqualityValues(cond)
-	if !ok {
-		return nil, false
-	}
-
-	conditions := make([]string, 0, len(values))
-	for _, value := range values {
-		// a missing Type is an empty string in the check, but it never matches an empty wql string literal
-		if value == "" || l.checkWQLString(value) != nil {
-			return nil, false
-		}
-		conditions = append(conditions, fmt.Sprintf("Type = '%s'", strings.ToLower(value)))
-	}
-
-	return conditions, true
-}
-
-// stringConditionsToWQL translates equality and substring conditions into conditions for the given WQL string column.
-func (l *CheckEventlog) stringConditionsToWQL(column string, cond *Condition) ([]string, bool) {
-	switch cond.operator {
-	case Equal, InList:
-		values, ok := l.conditionEqualityValues(cond)
-		if !ok {
-			return nil, false
-		}
-
-		conditions := make([]string, 0, len(values))
-		for _, value := range values {
-			// missing wmi columns are empty strings in the check, but they never match an empty wql string literal
-			if value == "" || l.checkWQLString(value) != nil {
-				return nil, false
-			}
-			conditions = append(conditions, fmt.Sprintf("%s = '%s'", column, value))
-		}
-
-		return conditions, true
-	case Contains, ContainsCase:
-		value, ok := cond.value.(string)
-		// like is a substring match in the check, so it translates into: '%value%'
-		// wql cannot match missing values or the [ ] pattern characters with this translation.
-		if !ok || value == "" || strings.ContainsAny(value, "[]") || l.checkWQLString(value) != nil {
-			return nil, false
-		}
-
-		return []string{fmt.Sprintf("%s LIKE '%%%s%%'", column, value)}, true
-	default:
-		return nil, false
-	}
-}
-
-// conditionEqualityValues returns the values of an "=" or "in" condition.
-func (l *CheckEventlog) conditionEqualityValues(cond *Condition) ([]string, bool) {
+// eventCodeValues returns the event ids of an "=" or "in" condition.
+func (l *CheckEventlog) eventCodeValues(cond *Condition) ([]string, bool) {
 	switch cond.operator {
 	case Equal:
 		value, ok := cond.value.(string)
