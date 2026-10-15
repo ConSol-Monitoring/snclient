@@ -44,6 +44,12 @@ func TestCheckEventlogFilterQueryWhereLine(t *testing.T) {
 	}{
 		{test: "no filter", filters: nil, expected: ""},
 		{test: "none filter", filters: []string{"none"}, expected: ""},
+		{test: "none filter combined with filter", filters: []string{"none", "source like 'Firefox'"}, expected: "SourceName LIKE '%Firefox%'"},
+		{
+			test:     "none filter combined with two filters",
+			filters:  []string{"none", "id = 1", "source like 'Firefox'"},
+			expected: "(EventCode = 1 OR SourceName LIKE '%Firefox%')",
+		},
 		{test: "single event code", filters: []string{"id = 823"}, expected: "EventCode = 823"},
 		{test: "event code zero", filters: []string{"id = 0"}, expected: "EventCode = 0"},
 		{test: "event code max", filters: []string{"id = 65535"}, expected: "EventCode = 65535"},
@@ -52,11 +58,7 @@ func TestCheckEventlogFilterQueryWhereLine(t *testing.T) {
 			filters:  []string{"id in (823,824,825,5173)"},
 			expected: "(EventCode = 823 OR EventCode = 824 OR EventCode = 825 OR EventCode = 5173)",
 		},
-		{
-			test:     "event codes in list with invalid value",
-			filters:  []string{"id in (823,'abc')"},
-			expected: "EventCode = 823",
-		},
+		{test: "event codes in list with invalid value", filters: []string{"id in (823,'abc')"}, expected: ""},
 		{test: "event code out of range", filters: []string{"id = 65536"}, expected: ""},
 		{test: "event code not numeric", filters: []string{"id = 'abc'"}, expected: ""},
 		{test: "event code invalid list", filters: []string{"id in ('abc')"}, expected: ""},
@@ -76,35 +78,33 @@ func TestCheckEventlogFilterQueryWhereLine(t *testing.T) {
 		{test: "log equal", filters: []string{"log = 'System'"}, expected: "LogFile = 'System'"},
 		{test: "computer equal", filters: []string{"computer = 'host'"}, expected: "ComputerName = 'host'"},
 		{test: "written greater", filters: []string{"written > 0"}, expected: ""},
-		{test: "level equal", filters: []string{"level = 'error'"}, expected: "EventType = 1"},
-		{test: "level unknown", filters: []string{"level = 'critical'"}, expected: ""},
-		{
-			test:     "level list with unknown level",
-			filters:  []string{"level in ('critical','error')"},
-			expected: "EventType = 1",
-		},
+		{test: "level equal", filters: []string{"level = 'error'"}, expected: "Type = 'error'"},
+		{test: "level uppercase value", filters: []string{"level = 'Error'"}, expected: "Type = 'error'"},
+		{test: "level unknown", filters: []string{"level = 'critical'"}, expected: "Type = 'critical'"},
 		{
 			test:     "level list",
-			filters:  []string{"level in ('warning','information')"},
-			expected: "(EventType = 2 OR EventType = 3)",
+			filters:  []string{"level in ('critical','error')"},
+			expected: "(Type = 'critical' OR Type = 'error')",
 		},
+		{
+			test:     "level list with information",
+			filters:  []string{"level in ('warning','information')"},
+			expected: "(Type = 'warning' OR Type = 'information')",
+		},
+		{test: "level empty value", filters: []string{"level = ''"}, expected: ""},
 		{test: "level not in", filters: []string{"level not in ('error')"}, expected: ""},
 		{test: "level regex", filters: []string{"level ~ /err/"}, expected: ""},
 		{
 			test:     "default filter",
 			filters:  []string{"level in ('warning', 'error', 'critical')"},
-			expected: "(EventType = 2 OR EventType = 1)",
+			expected: "(Type = 'warning' OR Type = 'error' OR Type = 'critical')",
 		},
 		{
 			test:     "and group",
 			filters:  []string{"provider = 'x' and id = 903 and message like 'foo'"},
-			expected: "(SourceName = 'x' AND EventCode = 903 AND Message LIKE '%foo%')",
+			expected: "(SourceName = 'x' OR EventCode = 903 OR Message LIKE '%foo%')",
 		},
-		{
-			test:     "and group with condition not translatable",
-			filters:  []string{"provider = 'x' and id < 0"},
-			expected: "SourceName = 'x'",
-		},
+		{test: "and group with condition not translatable", filters: []string{"provider = 'x' and id < 0"}, expected: ""},
 		{
 			test:     "or group",
 			filters:  []string{"provider = 'x' or id = 5"},
@@ -114,7 +114,7 @@ func TestCheckEventlogFilterQueryWhereLine(t *testing.T) {
 		{
 			test:     "nested group",
 			filters:  []string{"provider = 'abc' and (id = 123 or message like 'foo')"},
-			expected: "(SourceName = 'abc' AND (EventCode = 123 OR Message LIKE '%foo%'))",
+			expected: "(SourceName = 'abc' OR EventCode = 123 OR Message LIKE '%foo%')",
 		},
 		{
 			test:     "multiple top level filters",
@@ -125,7 +125,7 @@ func TestCheckEventlogFilterQueryWhereLine(t *testing.T) {
 		{
 			test:     "all translatable conditions combined",
 			filters:  []string{"id IN (823,824) AND source like 'MSSQL' AND source like 'SQL17' AND level IN ('critical','error')"},
-			expected: "((EventCode = 823 OR EventCode = 824) AND SourceName LIKE '%MSSQL%' AND SourceName LIKE '%SQL17%' AND EventType = 1)",
+			expected: "(EventCode = 823 OR EventCode = 824 OR SourceName LIKE '%MSSQL%' OR SourceName LIKE '%SQL17%' OR Type = 'critical' OR Type = 'error')",
 		},
 	}
 
