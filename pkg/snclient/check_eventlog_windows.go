@@ -10,6 +10,7 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/eventlog"
 	"github.com/consol-monitoring/snclient/pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/wmi"
 )
 
 //nolint:funlen // is not too long now to require splitting
@@ -25,9 +26,9 @@ func (l *CheckEventlog) Check(ctx context.Context, _ *Agent, check *CheckData, _
 	}
 
 	if len(l.files) == 0 {
-		filenames, err2 := eventlog.GetFileNames()
+		filenames, err2 := getFileNames(ctx)
 		if err2 != nil {
-			return nil, fmt.Errorf("wmi query failed: %s", err2.Error())
+			return nil, fmt.Errorf("wmi query failed: %w", err2)
 		}
 		l.files = append(l.files, filenames...)
 	}
@@ -102,26 +103,68 @@ func (l *CheckEventlog) Check(ctx context.Context, _ *Agent, check *CheckData, _
 	return check.Finalize()
 }
 
-type eventlogQueryResult struct {
-	events []eventlog.Event
-	err    error
+func getFileNames(ctx context.Context) ([]string, error) {
+	type logfileNameResult struct {
+		LogfileName string
+	}
+
+	type channelType struct {
+		filenames []string
+		err       error
+	}
+
+	resultCh := make(chan channelType, 1)
+	query := "SELECT LogfileName FROM Win32_NTEventLogFile"
+
+	go func() {
+		queryResults := []logfileNameResult{}
+		err := wmi.QueryIsolatedDefaultRetry(query, &queryResults)
+		if err != nil {
+			resultCh <- channelType{nil, err}
+
+			return
+		}
+
+		filenames := make([]string, 0, len(queryResults))
+		for _, queryResult := range queryResults {
+			filenames = append(filenames, queryResult.LogfileName)
+		}
+
+		resultCh <- channelType{filenames, nil}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("get logfile names query: '%s' , timed out: %w", query, ctx.Err())
+	case res := <-resultCh:
+		if res.err != nil {
+			return nil, fmt.Errorf("get logfile names query: '%s' , got an error: %w", query, res.err)
+		}
+
+		return res.filenames, nil
+	}
 }
 
 // queryLog runs the WMI query on a separate goroutine and bounds the wait by the check context.
 // The goroutine may keep running in the background after a timeout, which is acceptable because it uses a dedicated WMI connection.
 func (l *CheckEventlog) queryLog(ctx context.Context, file string, scanLookBack time.Time, queryWhereLines []string) ([]eventlog.Event, error) {
-	resultCh := make(chan eventlogQueryResult, 1)
+	type channelType struct {
+		events []eventlog.Event
+		err    error
+	}
+
+	resultCh := make(chan channelType, 1)
 	go func() {
 		events, err := eventlog.GetLog(ctx, file, scanLookBack, queryWhereLines)
-		resultCh <- eventlogQueryResult{events: events, err: err}
+		resultCh <- channelType{events: events, err: err}
 	}()
 
 	select {
 	case <-ctx.Done():
-		return nil, fmt.Errorf("eventlog query timed out, file: %s: %w", file, ctx.Err())
+		return nil, fmt.Errorf("eventlog query, file: '%s' , timed out: %w", file, ctx.Err())
 	case res := <-resultCh:
 		if res.err != nil {
-			return nil, fmt.Errorf("eventlog query failed, file: %s: %w", file, res.err)
+			return nil, fmt.Errorf("eventlog query, file: '%s' , got an error: %w", file, res.err)
 		}
 
 		return res.events, nil

@@ -14,26 +14,6 @@ const (
 	WMIDateFormat = "20060102150405.000000"
 )
 
-type EventLog struct {
-	LogfileName string
-}
-
-func GetFileNames() ([]string, error) {
-	filenames := []EventLog{}
-	query := "SELECT LogfileName FROM Win32_NTEventLogFile"
-	err := wmi.QueryIsolatedDefaultRetry(query, &filenames)
-	if err != nil {
-		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
-	}
-
-	files := make([]string, 0, len(filenames))
-	for _, row := range filenames {
-		files = append(files, row.LogfileName)
-	}
-
-	return files, nil
-}
-
 type Event struct {
 	ComputerName    string
 	LogFile         string

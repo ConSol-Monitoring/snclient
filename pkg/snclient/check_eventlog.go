@@ -1,16 +1,10 @@
 package snclient
 
-import "time"
-
 func init() {
 	AvailableChecks["check_eventlog"] = CheckEntry{"check_eventlog", NewCheckEventlog}
 }
 
 const DefaultUniqueIndex = "${log}-${source}-${id}"
-
-// DefaultEventlogTimeout is the default check timeout.
-// Event log WMI queries can be slow, so it is more generous than DefaultCheckTimeout.
-const DefaultEventlogTimeout = 180 * time.Second
 
 type CheckEventlog struct {
 	files             []string
@@ -55,7 +49,6 @@ Filter conditions on id are added to the WHERE clause of the wmi query when poss
 the filter is still applied to the returned events.
 `,
 		implemented: Windows,
-		timeout:     DefaultEventlogTimeout,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
