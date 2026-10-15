@@ -70,15 +70,16 @@ func (l *CheckEventlog) Check(ctx context.Context, _ *Agent, check *CheckData, _
 				message = event.Message[:l.truncateMessage]
 			}
 			listData := map[string]string{
-				"computer": event.ComputerName,
-				"file":     event.LogFile,
-				"log":      event.LogFile,
-				"id":       fmt.Sprintf("%d", event.EventCode),
-				"level":    strings.ToLower(event.Type),
-				"message":  message,
-				"provider": event.SourceName,
-				"source":   event.SourceName,
-				"written":  fmt.Sprintf("%d", timeWritten.Unix()),
+				"computer":   event.ComputerName,
+				"file":       event.LogFile,
+				"log":        event.LogFile,
+				"id":         fmt.Sprintf("%d", event.EventCode),
+				"identifier": fmt.Sprintf("%d", event.EventIdentifier),
+				"level":      strings.ToLower(event.Type),
+				"message":    message,
+				"provider":   event.SourceName,
+				"source":     event.SourceName,
+				"written":    fmt.Sprintf("%d", timeWritten.Unix()),
 			}
 			if !filterUnique {
 				check.listData = append(check.listData, listData)
