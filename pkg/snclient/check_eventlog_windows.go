@@ -118,7 +118,7 @@ func getFileNames(ctx context.Context) ([]string, error) {
 
 	go func() {
 		queryResults := []logfileNameResult{}
-		err := wmi.QueryIsolatedDefaultRetry(query, &queryResults)
+		err := wmi.QueryDefaultRetry(query, &queryResults)
 		if err != nil {
 			resultCh <- channelType{nil, err}
 

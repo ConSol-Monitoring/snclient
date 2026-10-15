@@ -82,7 +82,7 @@ func GetLog(ctx context.Context, file string, newerThan time.Time, queryWhereLin
 
 	tryLogDebug(fmt.Sprintf("wmi query string:\n%s", query))
 
-	err := wmi.QueryIsolatedDefaultRetry(query, &messages)
+	err := wmi.QueryDefaultRetry(query, &messages)
 	if err != nil {
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}

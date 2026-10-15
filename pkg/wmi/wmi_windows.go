@@ -48,54 +48,6 @@ func QueryWithRetries(query string, dst any, namespace string, retries int, dela
 	return err
 }
 
-// QueryIsolatedDefaultRetry is like QueryDefaultRetry but runs on a dedicated WMI connection.
-func QueryIsolatedDefaultRetry(query string, dst any) (err error) {
-	return QueryIsolatedWithRetries(query, dst, 3, 1*time.Second)
-}
-
-// QueryIsolatedWithRetries executes the given query on a dedicated WMI connection, with specified retries and delay between retries.
-func QueryIsolatedWithRetries(query string, dst any, retries int, delay time.Duration) (err error) {
-	for retries > 0 {
-		err = QueryIsolated(query, dst)
-		if err == nil {
-			return nil
-		}
-		retries--
-		if retries == 0 {
-			break
-		}
-		time.Sleep(delay)
-	}
-
-	return err
-}
-
-// QueryIsolated runs a query on a dedicated WMI connection instead of the shared client.
-func QueryIsolated(query string, dst any) (err error) {
-	// A dedicated SWbemServices instance is required here
-	// (*ywmi.Client).Query locks a package global mutex for the whole query, so even a fresh client would block other checks.
-	// SWbemServices has its own mutex and worker goroutine per instance.
-	client := &ywmi.Client{AllowMissingFields: true}
-	service, svcErr := ywmi.InitializeSWbemServices(client)
-	if svcErr != nil {
-		return fmt.Errorf("ywmi InitializeSWbemServices failed: %s", svcErr.Error())
-	}
-
-	// Close waits for a running query to finish, so it has to run in the same goroutine.
-	defer func() {
-		if closeErr := service.Close(); closeErr != nil && err == nil {
-			err = fmt.Errorf("ywmi close failed: %s", closeErr.Error())
-		}
-	}()
-
-	query = strings.TrimSpace(query)
-	if err = service.Query(query, dst, nil, nil, nil, nil, "MS_409"); err != nil {
-		return fmt.Errorf("ywmi query failed: %s", err.Error())
-	}
-
-	return nil
-}
-
 // Query sends a single query, the namespace is optional and can be empty
 func Query(query string, dst any, namespace string) (err error) {
 	query = strings.TrimSpace(query)
