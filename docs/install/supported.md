@@ -32,7 +32,7 @@ Successfully tested on:
 - Windows ARM 11 Preview
 - It should work on any Windows newer than Windows 10 / Windows Server 2016.
 
-The Go version required by SNClient (>= 1.23) does not support anything older than Windows 10 or Windows Server 2016.
+The Go version required by SNClient (>= 1.27) does not support anything older than Windows 10 or Windows Server 2016.
 
 ## Linux
 
