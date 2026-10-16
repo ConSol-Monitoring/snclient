@@ -1026,20 +1026,14 @@ func (cd *CheckData) checkThresholdKeywordsAgainstAttributeNames() {
 // Not matching an attribute name means the condition has no effect, and is likely wrong
 func (cd *CheckData) checkFilterKeywordsAgainstAttributeNames() (err error) {
 	attributeNames := cd.getAttributeNames()
-	regexes := make([]*regexp.Regexp, 0, len(attributeNames)+len(cd.extraFilterAttributes))
-
-	for _, attributeName := range attributeNames {
-		regexes = append(regexes, regexp.MustCompile(regexp.QuoteMeta(attributeName)))
-	}
-
-	regexes = append(regexes, cd.extraFilterAttributes...)
 
 	filterKeywords, err := cd.filter.GetListOfKeywords()
 
 	filterKeywordsUnmatched := []string{}
 	if err == nil && len(filterKeywords) > 0 {
 		for _, filterKeyword := range filterKeywords {
-			if !slices.ContainsFunc(regexes, func(r *regexp.Regexp) bool { return r.MatchString(filterKeyword) }) {
+			if !slices.ContainsFunc(attributeNames, func(name string) bool { return strings.Contains(filterKeyword, name) }) &&
+				!slices.ContainsFunc(cd.extraFilterAttributes, func(r *regexp.Regexp) bool { return r.MatchString(filterKeyword) }) {
 				filterKeywordsUnmatched = append(filterKeywordsUnmatched, filterKeyword)
 			}
 		}
