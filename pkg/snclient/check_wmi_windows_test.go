@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,7 @@ func TestCheckWMINamespace(t *testing.T) {
 	})
 	output := string(res.BuildPluginOutput())
 	assert.Equalf(t, CheckExitOK, res.State, "unexpected result: %s", output)
-	assert.Contains(t, output, "cimv2")
+	assert.Contains(t, strings.ToLower(output), "cimv2")
 
 	StopTestAgent(t, snc)
 }

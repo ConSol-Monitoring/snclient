@@ -26,8 +26,8 @@ func FieldsFuncN(str string, fun func(rune) bool, maxV int) []string {
 	fields := make([]string, 0, maxV)
 	index := 0
 	fieldStart := -1
-	for idx, rune := range str {
-		if fun(rune) {
+	for idx, r := range str {
+		if fun(r) {
 			if fieldStart >= 0 {
 				fields = append(fields, str[fieldStart:idx])
 				index++
