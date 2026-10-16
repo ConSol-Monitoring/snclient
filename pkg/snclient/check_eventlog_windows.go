@@ -10,13 +10,25 @@ import (
 	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/eventlog"
 	"github.com/consol-monitoring/snclient/pkg/utils"
+	"github.com/consol-monitoring/snclient/pkg/wmi"
 )
 
-func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+//nolint:funlen // is not too long now to require splitting
+func (l *CheckEventlog) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	queryWhereLines, err := l.buildQueryWhereLines()
+	if err != nil {
+		return nil, fmt.Errorf("error when building query WHERE filter: %w", err)
+	}
+
+	if filterWhereLine := l.buildFilterQueryWhereLine(check.filter); filterWhereLine != "" {
+		log.Tracef("pushing filter conditions into the wmi query: %s", filterWhereLine)
+		queryWhereLines = append(queryWhereLines, filterWhereLine)
+	}
+
 	if len(l.files) == 0 {
-		filenames, err2 := eventlog.GetFileNames()
+		filenames, err2 := getFileNames(ctx)
 		if err2 != nil {
-			return nil, fmt.Errorf("wmi query failed: %s", err2.Error())
+			return nil, fmt.Errorf("wmi query failed: %w", err2)
 		}
 		l.files = append(l.files, filenames...)
 	}
@@ -44,11 +56,10 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 
 	for _, file := range l.files {
 		log.Tracef("fetching eventlog: %s", file)
-		fileEvent, err := eventlog.GetLog(file, scanLookBack)
+		ctxWithLogger := utils.ContextWithLogger(ctx, log)
+		fileEvent, err := l.queryLog(ctxWithLogger, file, scanLookBack, queryWhereLines)
 		if err != nil {
-			log.Warnf("eventlog query failed, file: %s: %s", file, err.Error())
-
-			continue
+			return nil, err
 		}
 
 		for i := range fileEvent {
@@ -59,15 +70,16 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 				message = event.Message[:l.truncateMessage]
 			}
 			listData := map[string]string{
-				"computer": event.ComputerName,
-				"file":     event.LogFile,
-				"log":      event.LogFile,
-				"id":       fmt.Sprintf("%d", event.EventCode),
-				"level":    strings.ToLower(event.Type),
-				"message":  message,
-				"provider": event.SourceName,
-				"source":   event.SourceName,
-				"written":  fmt.Sprintf("%d", timeWritten.Unix()),
+				"computer":   event.ComputerName,
+				"file":       event.LogFile,
+				"log":        event.LogFile,
+				"id":         fmt.Sprintf("%d", event.EventCode),
+				"identifier": fmt.Sprintf("%d", event.EventIdentifier),
+				"level":      strings.ToLower(event.Type),
+				"message":    message,
+				"provider":   event.SourceName,
+				"source":     event.SourceName,
+				"written":    fmt.Sprintf("%d", timeWritten.Unix()),
 			}
 			if !filterUnique {
 				check.listData = append(check.listData, listData)
@@ -92,8 +104,75 @@ func (l *CheckEventlog) Check(_ context.Context, _ *Agent, check *CheckData, _ [
 	return check.Finalize()
 }
 
+func getFileNames(ctx context.Context) ([]string, error) {
+	type logfileNameResult struct {
+		LogfileName string
+	}
+
+	type channelType struct {
+		filenames []string
+		err       error
+	}
+
+	resultCh := make(chan channelType, 1)
+	query := "SELECT LogfileName FROM Win32_NTEventLogFile"
+
+	go func() {
+		queryResults := []logfileNameResult{}
+		err := wmi.QueryDefaultRetry(query, &queryResults)
+		if err != nil {
+			resultCh <- channelType{nil, err}
+
+			return
+		}
+
+		filenames := make([]string, 0, len(queryResults))
+		for _, queryResult := range queryResults {
+			filenames = append(filenames, queryResult.LogfileName)
+		}
+
+		resultCh <- channelType{filenames, nil}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("get logfile names query: '%s' , timed out: %w", query, ctx.Err())
+	case res := <-resultCh:
+		if res.err != nil {
+			return nil, fmt.Errorf("get logfile names query: '%s' , got an error: %w", query, res.err)
+		}
+
+		return res.filenames, nil
+	}
+}
+
+// queryLog runs the WMI query on a separate goroutine and bounds the wait by the check context.
+// The goroutine may keep running in the background after a timeout, which is acceptable because it uses a dedicated WMI connection.
+func (l *CheckEventlog) queryLog(ctx context.Context, file string, scanLookBack time.Time, queryWhereLines []string) ([]eventlog.Event, error) {
+	type channelType struct {
+		events []eventlog.Event
+		err    error
+	}
+
+	resultCh := make(chan channelType, 1)
+	go func() {
+		events, err := eventlog.GetLog(ctx, file, scanLookBack, queryWhereLines)
+		resultCh <- channelType{events: events, err: err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("eventlog query, file: '%s' , timed out: %w", file, ctx.Err())
+	case res := <-resultCh:
+		if res.err != nil {
+			return nil, fmt.Errorf("eventlog query, file: '%s' , got an error: %w", file, res.err)
+		}
+
+		return res.events, nil
+	}
+}
+
 // ParseWMIDateTime parses a WMI datetime string into a time.Time object.
-// returns parsed time or an error
 func (l *CheckEventlog) ParseWMIDateTime(wmiDateTime string) (time.Time, error) {
 	// Check if the string has at least 22 characters to avoid slicing errors
 	if len(wmiDateTime) < 22 {
@@ -185,4 +264,64 @@ func (l *CheckEventlog) checkRange(name string, value int, err error, minVal, ma
 	}
 
 	return nil
+}
+
+// EventCode is a uint16 property of Win32_NTLogEvent.
+const CheckEventlogMaxEventCode = 65535
+
+func (l *CheckEventlog) buildQueryWhereLines() ([]string, error) {
+	queryWhereLines := []string{}
+
+	for _, filter := range l.eventCodesFilters {
+		whereLine, err := l.buildEventCodeCondition(filter)
+		if err != nil {
+			return []string{}, fmt.Errorf("event-codes: %w", err)
+		}
+		queryWhereLines = append(queryWhereLines, whereLine)
+	}
+
+	return queryWhereLines, nil
+}
+
+func (l *CheckEventlog) buildEventCodeCondition(filter string) (string, error) {
+	values := l.splitFilterValues(filter)
+	if len(values) == 0 {
+		return "", fmt.Errorf("no event codes specified")
+	}
+
+	conditions := make([]string, 0, len(values))
+	for _, value := range values {
+		eventCode, err := strconv.ParseUint(value, 10, 16)
+		if err != nil {
+			return "", fmt.Errorf("invalid event code %q: must be an integer between 0 and %d", value, CheckEventlogMaxEventCode)
+		}
+		conditions = append(conditions, fmt.Sprintf("EventCode = %d", eventCode))
+	}
+
+	return l.joinConditions(conditions), nil
+}
+
+func (l *CheckEventlog) splitFilterValues(filter string) []string {
+	values := []string{}
+	for value := range strings.SplitSeq(filter, ",") {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		values = append(values, value)
+	}
+
+	return values
+}
+
+// joinConditions combines multiple conditions with OR and wraps them in brackets.
+func (l *CheckEventlog) joinConditions(conditions []string) string {
+	switch len(conditions) {
+	case 0:
+		return ""
+	case 1:
+		return conditions[0]
+	}
+
+	return fmt.Sprintf("(%s)", strings.Join(conditions, " OR "))
 }
