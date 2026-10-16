@@ -90,34 +90,34 @@ func (l *CheckNetwork) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	}
 
 	found := map[string]bool{}
-	for intnr, int := range interfaceList {
+	for intnr, iface := range interfaceList {
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return nil, fmt.Errorf("network interface scan canceled: %w", ctxErr)
 		}
-		if slices.Contains(l.excludes, int.Name) {
-			log.Tracef("device %s excluded by 'exclude' argument", int.Name)
+		if slices.Contains(l.excludes, iface.Name) {
+			log.Tracef("device %s excluded by 'exclude' argument", iface.Name)
 
 			continue
 		}
-		if len(l.names) > 0 && !slices.Contains(l.names, int.Name) {
-			log.Tracef("device %s excluded by 'name' argument", int.Name)
+		if len(l.names) > 0 && !slices.Contains(l.names, iface.Name) {
+			log.Tracef("device %s excluded by 'name' argument", iface.Name)
 
 			continue
 		}
-		found[int.Name] = true
+		found[iface.Name] = true
 
-		speed, err := l.interfaceSpeed(int.Index, int.Name)
+		speed, err := l.interfaceSpeed(iface.Index, iface.Name)
 		if err != nil {
-			log.Debugf("failed to get interface speed for %s: %s", int.Name, err.Error())
+			log.Debugf("failed to get interface speed for %s: %s", iface.Name, err.Error())
 			speed = -1
 		}
 
-		recvRate, sentRate := l.getTrafficRates(int.Name)
+		recvRate, sentRate := l.getTrafficRates(iface.Name)
 
 		totalReceived := uint64(0)
 		totalSent := uint64(0)
 		if len(IOList) <= intnr {
-			log.Debugf("failed to get interface counters for %s, only have %d io counters", int.Name, len(IOList))
+			log.Debugf("failed to get interface counters for %s, only have %d io counters", iface.Name, len(IOList))
 		} else {
 			totalReceived = IOList[intnr].BytesRecv
 			totalSent = IOList[intnr].BytesSent
@@ -130,11 +130,11 @@ func (l *CheckNetwork) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		}
 
 		entry := map[string]string{
-			"MAC":               int.HardwareAddr,
-			"enabled":           strconv.FormatBool(slices.Contains(int.Flags, "up")),
-			"device":            int.Name,
-			"name":              int.Name,
-			"net_connection_id": int.Name,
+			"MAC":               iface.HardwareAddr,
+			"enabled":           strconv.FormatBool(slices.Contains(iface.Flags, "up")),
+			"device":            iface.Name,
+			"name":              iface.Name,
+			"net_connection_id": iface.Name,
 			"received":          humanize.IBytes(uint64(recvRate)) + "/s",
 			"received_bytes":    fmt.Sprintf("%d", uint64(recvRate)),
 			"total_received":    fmt.Sprintf("%d", totalReceived),
@@ -145,14 +145,14 @@ func (l *CheckNetwork) Check(ctx context.Context, snc *Agent, check *CheckData, 
 			"total_bytes":       fmt.Sprintf("%d", uint64(recvRate)+uint64(sentRate)),
 			"speed":             fmt.Sprintf("%d Mb/s", speed),
 			"speed_bytes":       speedBytes,
-			"flags":             strings.Join(int.Flags, ","),
+			"flags":             strings.Join(iface.Flags, ","),
 		}
 		if speed == -1 {
 			entry["speed"] = ""
 		}
 
 		if !check.MatchMapCondition(check.filter, entry, true) {
-			log.Tracef("device %s excluded by filter", int.Name)
+			log.Tracef("device %s excluded by filter", iface.Name)
 
 			continue
 		}
@@ -160,16 +160,16 @@ func (l *CheckNetwork) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		check.listData = append(check.listData, entry)
 
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-			ThresholdName: int.Name,
-			Name:          fmt.Sprintf("%s_traffic_in", int.Name),
+			ThresholdName: iface.Name,
+			Name:          fmt.Sprintf("%s_traffic_in", iface.Name),
 			Value:         totalReceived,
 			Unit:          "c",
 			Warning:       check.warnThreshold,
 			Critical:      check.critThreshold,
 		})
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
-			ThresholdName: int.Name,
-			Name:          fmt.Sprintf("%s_traffic_out", int.Name),
+			ThresholdName: iface.Name,
+			Name:          fmt.Sprintf("%s_traffic_out", iface.Name),
 			Value:         totalSent,
 			Unit:          "c",
 			Warning:       check.warnThreshold,

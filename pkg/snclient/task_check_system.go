@@ -260,9 +260,9 @@ func (c *CheckSystemHandler) fetch() (data map[string]float64, cputimes *cpuinfo
 		return nil, nil, nil, fmt.Errorf("net.IOCounters failed: %s", err.Error())
 	}
 
-	for intnr, int := range IOList {
-		netdata[int.Name+"_recv"] = float64(IOList[intnr].BytesRecv)
-		netdata[int.Name+"_sent"] = float64(IOList[intnr].BytesSent)
+	for intnr, iface := range IOList {
+		netdata[iface.Name+"_recv"] = float64(IOList[intnr].BytesRecv)
+		netdata[iface.Name+"_sent"] = float64(IOList[intnr].BytesSent)
 	}
 
 	return data, &times[0], netdata, nil

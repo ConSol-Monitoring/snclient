@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/otiai10/copy"
+	cpcopy "github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,7 +57,7 @@ func TestCheckExternalUnixShellPathWithSpaces(t *testing.T) {
 
 	teardown := setupTeardown(t, holesDir)
 	defer teardown()
-	_ = copy.Copy(scriptsDir, holesDir)
+	_ = cpcopy.Copy(scriptsDir, holesDir)
 
 	config := setupConfig(t, holesDir, "sh")
 	snc := StartTestAgent(t, config)
@@ -74,7 +74,7 @@ func TestCheckExternalWrappedUnixShellPathWithSpaces(t *testing.T) {
 
 	teardown := setupTeardown(t, holesDir)
 	defer teardown()
-	_ = copy.Copy(scriptsDir, holesDir)
+	_ = cpcopy.Copy(scriptsDir, holesDir)
 
 	config := setupConfig(t, holesDir, "sh")
 	snc := StartTestAgent(t, config)

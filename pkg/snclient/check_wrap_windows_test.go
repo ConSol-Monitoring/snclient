@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/otiai10/copy"
+	cpcopy "github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,7 +43,7 @@ func TestCheckExternalWindowsBatPathWithSpaces(t *testing.T) {
 
 	teardown := setupTeardown(t, holesDir)
 	defer teardown()
-	_ = copy.Copy(scriptsDir, holesDir)
+	_ = cpcopy.Copy(scriptsDir, holesDir)
 
 	config := setupConfig(t, holesDir, "bat")
 	snc := StartTestAgent(t, config)
@@ -60,7 +60,7 @@ func TestCheckExternalWrappedWindowsBatPathWithSpaces(t *testing.T) {
 
 	teardown := setupTeardown(t, holesDir)
 	defer teardown()
-	_ = copy.Copy(scriptsDir, holesDir)
+	_ = cpcopy.Copy(scriptsDir, holesDir)
 
 	config := setupConfig(t, holesDir, "bat")
 	snc := StartTestAgent(t, config)
@@ -106,7 +106,7 @@ func TestCheckExternalWindowsPsPathWithSpaces(t *testing.T) {
 
 	teardown := setupTeardown(t, holesDir)
 	defer teardown()
-	_ = copy.Copy(scriptsDir, holesDir)
+	_ = cpcopy.Copy(scriptsDir, holesDir)
 
 	config := setupConfig(t, holesDir, "ps1")
 	snc := StartTestAgent(t, config)
@@ -123,7 +123,7 @@ func TestCheckExternalWrappedWindowsPsPathWithSpaces(t *testing.T) {
 
 	teardown := setupTeardown(t, holesDir)
 	defer teardown()
-	_ = copy.Copy(scriptsDir, holesDir)
+	_ = cpcopy.Copy(scriptsDir, holesDir)
 
 	config := setupConfig(t, holesDir, "ps1")
 	snc := StartTestAgent(t, config)

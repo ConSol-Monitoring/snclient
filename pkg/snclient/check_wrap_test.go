@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/otiai10/copy"
+	cpcopy "github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -257,7 +257,7 @@ func TestCheckExternalArgSpaces(t *testing.T) {
 
 	teardown := setupTeardown(t, holesDir)
 	defer teardown()
-	_ = copy.Copy(scriptsDir, holesDir)
+	_ = cpcopy.Copy(scriptsDir, holesDir)
 
 	config := setupConfig(t, holesDir, "sh")
 	snc := StartTestAgent(t, config)
@@ -296,7 +296,7 @@ func TestCheckExternalExePathWithSpaces(t *testing.T) {
 
 	teardown := setupTeardown(t, holesDir)
 	defer teardown()
-	_ = copy.Copy(scriptsDir, holesDir)
+	_ = cpcopy.Copy(scriptsDir, holesDir)
 
 	config := setupConfig(t, holesDir, "exe")
 	snc := StartTestAgent(t, config)
