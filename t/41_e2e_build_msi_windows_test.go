@@ -14,6 +14,15 @@ const (
 
 	installMSITimeout = 1 * time.Minute
 	buildMSITimeout   = 3 * time.Minute
+
+	wmiPoolINI = `
+[/settings/wmi]
+worker pool = 3
+`
+	wmiNoPoolINI = `
+[/settings/wmi]
+worker pool = 1
+`
 )
 
 var requiredFiles = []string{
@@ -80,7 +89,7 @@ func TestMSIinstaller(t *testing.T) {
 
 	// add custom .ini
 	writeFile(t, localINIPath, localTestINI)
-	writeFile(t, `snclient.ini`, localDaemonINI)
+	writeFile(t, `snclient.ini`, localDaemonINI+wmiPoolINI)
 
 	// restart with new config
 	runCmd(t, &cmd{Cmd: "net", Args: []string{"stop", "snclient"}})
@@ -136,6 +145,23 @@ func TestMSIinstaller(t *testing.T) {
 		Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_uptime", "crit=uptime<2s", "warn=uptime<1s"},
 		Like: []string{"OK - uptime"},
 	})
+
+	// run a wmi based check with and without the wmi worker pool
+	wmiCheck := func() {
+		runCmd(t, &cmd{
+			Cmd:  bin,
+			Args: []string{"run", "check_snclient", "-k", "-p", "test", "-u", "https://localhost:8443", "check_process", "process=snclient.exe"},
+			Like: []string{`OK - all \d+ processes are ok`, `'count'=\d+`},
+		})
+	}
+	wmiCheck()
+
+	// restart daemon without worker pool and run the same check
+	writeFile(t, `snclient.ini`, localDaemonINI+wmiNoPoolINI)
+	runCmd(t, &cmd{Cmd: "net", Args: []string{"stop", "snclient"}})
+	runCmd(t, &cmd{Cmd: "net", Args: []string{"start", "snclient"}})
+	waitUntilResponse(t, bin)
+	wmiCheck()
 
 	// run check with known path which contains spaces
 	for _, num := range []string{"1", "2", "3", "4", "5"} {
