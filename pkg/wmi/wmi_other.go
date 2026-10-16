@@ -4,7 +4,6 @@ package wmi
 
 import (
 	"fmt"
-	"time"
 )
 
 func InitWbem() error {
@@ -12,18 +11,6 @@ func InitWbem() error {
 }
 
 func QueryDefaultRetry(_ string, _ any) (err error) {
-	return fmt.Errorf("requires windows os")
-}
-
-func QueryIsolatedDefaultRetry(_ string, _ any) (err error) {
-	return fmt.Errorf("requires windows os")
-}
-
-func QueryIsolatedWithRetries(_ string, _ any, _ int, _ time.Duration) (err error) {
-	return fmt.Errorf("requires windows os")
-}
-
-func QueryIsolated(_ string, _ any) (err error) {
 	return fmt.Errorf("requires windows os")
 }
 
