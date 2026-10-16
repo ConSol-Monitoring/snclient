@@ -4,9 +4,11 @@ package wmi
 
 import (
 	"fmt"
+
+	"github.com/kdar/factorlog"
 )
 
-func InitWbem() error {
+func InitWbem(_ *factorlog.FactorLog, _ int) error {
 	return nil
 }
 

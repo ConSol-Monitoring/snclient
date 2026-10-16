@@ -306,8 +306,14 @@ func (snc *Agent) Run() {
 	signal.Notify(snc.osSignalChannel, syscall.SIGINT)
 	setupUsrSignalChannel(snc.osSignalChannel)
 
+	// how many WMI queries may run in parallel
+	poolSize, ok, err := snc.config.Section("/settings/wmi").GetInt("worker pool")
+	if err != nil || !ok {
+		poolSize = min(0, int64(wmi.DefaultPoolSize))
+	}
+
 	doOnce.Do(func() {
-		if err := wmi.InitWbem(); err != nil {
+		if err := wmi.InitWbem(log, int(poolSize)); err != nil {
 			LogStderrf("ERROR: wmi initialization failed: %s", err.Error())
 			snc.CleanExit(ExitCodeError)
 		}

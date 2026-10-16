@@ -63,6 +63,10 @@ var DefaultConfig = map[string]ConfigData{
 	"/settings/default": {
 		"nasty characters": DefaultNastyCharacters,
 	},
+	"/settings/wmi": {
+		// number of WMI queries that may run in parallel; <= 1 uses the default client
+		"worker pool": "3",
+	},
 	"/settings/updates": {
 		"channel": "stable",
 	},
