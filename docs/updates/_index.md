@@ -17,12 +17,12 @@ Then install the file as described on the [install page](../install/).
 
 ### SNClient Automatic Updates
 
-If possible, use the OS own solution to automatically install updates.
-If not, SNClient can install periodic update itself.
+If possible, use the operating system's own update mechanism to automatically install updates.
+If not, SNClient can update itself periodically.
 
 Configuration:
 
-Create or edit `/etc/snclient/snclient_local.ini` (on windows: `C:\Program Files\snclient\snclient_local.ini`)
+Create or edit `/etc/snclient/snclient_local.ini` (on Windows: `C:\Program Files\snclient\snclient_local.ini`)
 
 ```ini
 [/settings/updates]
@@ -32,7 +32,7 @@ automatic restart = enabled
 
 This will update SNClient to the latest stable release.
 
-In case you want to use the development builds, ex. on test systems you can
+If you want to use development builds, for example on test systems, you can
 add the dev channel as well.
 
 ```ini
@@ -46,11 +46,11 @@ channel = stable,dev
 github token = GITHUB-TOKEN...
 ```
 
-In order to use the dev channel, you need to create a github token here: [github.com/settings/tokens](https://github.com/settings/tokens)
+In order to use the dev channel, you need to create a GitHub token here: [github.com/settings/tokens](https://github.com/settings/tokens)
 
 Unfortunately it is not possible to download the build artifacts without a token.
 
-**Note:** The SNClient self update works on linux, but cannot safely transfer the required capabilities. So it will
+**Note:** The SNClient self-update works on Linux, but cannot safely transfer the required capabilities. So it will
 only fully work if you don't require any capabilities.
 
 ### Debian / Ubuntu
@@ -81,6 +81,6 @@ And add:
 
     0 * * * * /usr/bin/apt-get -qq update && /bin/bash -lc "/usr/bin/unattended-upgrade"
 
-To install updates every full hour.
+To install updates at the start of every hour.
 
 Or see the [wiki.debian.org](https://wiki.debian.org/UnattendedUpgrades) for other ways.

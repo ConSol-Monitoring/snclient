@@ -42,6 +42,6 @@ The firewall should be configured to allow these ports:
 
 ## Uninstall
 
-Uninstall is available with `pacman`.
+Uninstall SNClient using `pacman`.
 
     #> pacman -R snclient

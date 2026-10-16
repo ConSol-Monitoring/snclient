@@ -8,10 +8,10 @@ We are trying to build the SNClient to be as compatible as possible. Due to
 limited hardware, we are not able to test the agent on all operating systems.
 
 If you are using SNClient anywhere not listed here, feel free to open an issue
-on github to update this page.
+on GitHub to update this page.
 
-If there are no installer package for your system available for download, you might still succeed
-by [building snclient from source](../build).
+If no installer package is available for your system, you might still succeed
+by [building SNClient from source](../build).
 
 ## CPU Architectures
 
@@ -20,7 +20,7 @@ by [building snclient from source](../build).
 | **Linux**     |   X  |    X   |   X           |
 | **Windows**   |   X  |    X   |   X           |
 | **FreeBSD**   |   X  |    X   |   X           |
-| **MacOS**     |      |    X   |   X           |
+| **macOS**     |      |    X   |   X           |
 
 ## Windows
 
@@ -30,9 +30,9 @@ Successfully tested on:
 - Windows 11
 - Windows Server 2019
 - Windows ARM 11 Preview
-- It should work on any windows newer than Windows 10 / Windows Server 2016.
+- It should work on any Windows newer than Windows 10 / Windows Server 2016.
 
-SNClients required Go (>= 1.23) does not support anything older than Windows 10 or Windows Server 2016.
+The Go version required by SNClient (>= 1.23) does not support anything older than Windows 10 or Windows Server 2016.
 
 ## Linux
 
@@ -41,7 +41,7 @@ Debian:
 - Debian >= 8
 - Ubuntu >= 16.04
 
-RedHat:
+Red Hat:
 
 - RHEL >= 7
 
@@ -51,9 +51,9 @@ Arch Linux:
 
 Others will quite likely work as well, but haven't been tested yet.
 
-## Mac OSX / Darwin
+## macOS / Darwin
 
-- OSX >= 13
+- macOS >= 13
 
 Others will quite likely work as well, but haven't been tested yet.
 
@@ -65,5 +65,5 @@ Others will quite likely work as well, but haven't been tested yet.
 
 ## Other
 
-Feel free to open an issue on github if you are running the agent somewhere not
+Feel free to open an issue on GitHub if you are running the agent somewhere not
 listed here.

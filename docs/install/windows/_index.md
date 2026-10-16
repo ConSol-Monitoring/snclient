@@ -17,8 +17,8 @@ Then start the .msi installer and follow the instructions.
 
 ### Firewall
 
-The windows .msi package will add the firewall exceptions automatically. in
-case you need to re-install the firewall exception, you can run this command:
+The Windows .msi package will add the firewall exceptions automatically. If
+you need to reinstall the firewall exceptions, you can run this command:
 
     C:\Program Files\snclient> .\snclient.exe install firewall
 
@@ -32,44 +32,44 @@ Running the .msi installer manually lets you choose some basic options. The idea
 here is to set the ports, so the following firewall setup will know which ports
 to open.
 
-All none basic options should go into a local custom ini file which can be
+All additional options should go into a local custom INI file which can be
 provided during installation as well.
 
-Installing the msi from the terminal with `msiexec.exe` provides those options
-as public property.
+Running the MSI installer from the terminal with `msiexec.exe` exposes these options
+as public properties.
 
-ex.:
+For example:
 
     msiexec.exe /i snclient.msi /l*V snclient_installer.log /qn PASSWORD="test" INCLUDES="https://company.local/snclient_local.ini"
 
-Installs the .msi and logs everything into the snclient_installer.log logfile. It
-also sets the initial password and includes a ini file fetched by https.
+This installs the MSI package and logs everything to the snclient_installer.log file. It
+also sets the initial password and includes an INI file fetched over HTTPS.
 
 Here is a table of all available properties:
 
 | Property             | Default Value             | Description |
 | -------------------- | ------------------------- | ----------- |
-| INSTALLDIR           | C:\Program Files\snclient | Set custom install location. |
+| INSTALLDIR           | C:\Program Files\snclient | Set a custom install location. |
 | INCLUDES             |                           | Adds include files to the /Includes section. |
 | ALLOWEDHOSTS         | 127.0.0.1, ::1            | Sets the 'allowed hosts'. |
-| PASSWORD             | CHANGEME                  | Sets the password (will be written to the .ini encrytped). |
+| PASSWORD             | CHANGEME                  | Sets the password (will be written to the .ini encrypted). |
 | WEBSERVER            | 1                         | Enable/Disable the REST web server. |
-| WEBSERVERPORT        | 8443                      | Set port for web server. |
+| WEBSERVERPORT        | 8443                      | Set the port for web server. |
 | WEBSERVERSSL         | 1                         | Enable/Disable TLS/SSL for the web server. |
 | NRPESERVER           | 0                         | Enable/Disable the NRPE server. |
-| NRPESERVERPORT       | 5666                      | Set port for NRPE server. |
+| NRPESERVERPORT       | 5666                      | Set the port for NRPE server. |
 | NRPESERVERSSL        | 1                         | Enable/Disable TLS/SSL for the NRPE server. |
 | PROMETHEUSSERVER     | 0                         | Enable/Disable the Prometheus web server. |
-| PROMETHEUSSERVERPORT | 9999                      | Set port for prometheus web server. |
+| PROMETHEUSSERVERPORT | 9999                      | Set the port for the Prometheus web server. |
 | PROMETHEUSSERVERSSL  | 0                         | Enable/Disable TLS/SSL for the Prometheus web server. |
 
-To install snclient into a custom folder automated, use the following command:
+To install SNClient automatically into a custom folder, use the following command:
 
     msiexec.exe /i snclient.msi /qn INSTALLDIR="D:\Apps\snclient"
 
 ## Uninstall
 
-Uninstall is available either by starting the `snclient.msi installer` again. If the installer has the same version as the
-installed one, it will offer a uninstall` option.
+To uninstall SNClient, run the `snclient.msi` installer again. If the installer has the same version as the
+installed one, it will offer an uninstall option.
 
-Another way is to use the `windows software center` and uninstall the agent from there.
+Another way is to use the Windows software center and uninstall the agent from there.

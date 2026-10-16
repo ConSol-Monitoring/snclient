@@ -11,22 +11,22 @@
 [![License](https://img.shields.io/github/license/Consol-Monitoring/snclient)](https://github.com/Consol-Monitoring/snclient/blob/main/LICENSE)
 [![IRC](https://img.shields.io/badge/IRC-libera.chat%2F%23snclient-blue)](https://web.libera.chat/?nick=Guest?#snclient)
 
-SNClient (Secure Naemon Client) is a general purpose monitoring agent designed as replacement for NRPE and NSClient++.
+SNClient (Secure Naemon Client) is a general-purpose monitoring agent designed as a replacement for NRPE and NSClient++.
 
 ## Contact
 
 * Report a Security Advisory via [GitHub Security](https://github.com/Consol-Monitoring/snclient/security).
 * Mailing list on [Google Groups](https://groups.google.com/group/snclient).
-* Ask a question on [Stack Overflow](https://stackoverflow.com/questions/tagged/snclient)
+* Ask a question on [Stack Overflow](https://stackoverflow.com/questions/tagged/snclient).
 * File a Bug in [GitHub Issues](https://github.com/Consol-Monitoring/snclient/issues).
 * Chat with developers on [IRC Libera #snclient](irc://irc.libera.chat/snclient) ([Webchat](https://web.libera.chat/?nick=Guest?#snclient)).
-* Professional Support from [ConSol*](https://www.consol.com/product-solutions/open-source-monitoring/)
+* Professional Support from [ConSol*](https://www.consol.com/product-solutions/open-source-monitoring/).
 
 ## Documentation
 
 The documentation can be found on [omd.consol.de](https://omd.consol.de/docs/snclient/).
 
-It is maintained in [docs/](docs/)
+It is maintained in [docs/](docs/).
 
 ## Supported Operating Systems
 
@@ -35,28 +35,28 @@ It is maintained in [docs/](docs/)
 | **Linux**     |   X  |    X   |   X           |
 | **Windows**\* |   X  |    X   |   X           |
 | **FreeBSD**   |   X  |    X   |   X           |
-| **MacOS**     |      |    X   |   X           |
+| **macOS**     |      |    X   |   X           |
 
 \* Only Windows 10 / Windows Server 2016 or newer.
 
-A more detailed list of [supported operating systems](docs/install/supported.md).
+See the detailed list of [supported operating systems](docs/install/supported.md).
 
 ## Supported Protocols
 
-* Prometheus HTTP(s)
+* Prometheus HTTP(S)
 * NRPE (v2/v4)
-* NSCP Rest API via HTTP(s) (checks only)
+* NSCP REST API via HTTP(S) (checks only)
 
 ## Installation
 
-There are pre-build binaries and packages for the all supported systems (see above) on the
+There are prebuilt binaries and packages for all supported systems (see above) on the
 [release page](https://github.com/Consol-Monitoring/snclient/releases).
 
 Further details are covered in the [documentation](https://omd.consol.de/docs/snclient/install/).
 
 ## Check Plugin Status
 
-|                                   | Windows |  Linux  |   OSX   |   BSD   |
+|                                   | Windows |  Linux  |  macOS  |   BSD   |
 |-----------------------------------|:-------:|:-------:|:-------:|:-------:|
 | **check_alias**                   |    X    |    X    |    X    |    X    |
 | **check_connections**             |    X    |    X    |    X    |    X    |
@@ -72,7 +72,7 @@ Further details are covered in the [documentation](https://omd.consol.de/docs/sn
 | **check_index**                   |    X    |    X    |    X    |    X    |
 | **check_kernel_stats**            |         |    X    |         |         |
 | **check_load**                    |    X    |    X    |    X    |    X    |
-| **check_log**                     |    X    |    X    |    X    |    X    |
+| **check_logfile**                 |    X    |    X    |    X    |    X    |
 | **check_mailq**                   |         |    X    |    X    |    X    |
 | **check_memory**                  |    X    |    X    |    X    |    X    |
 | **check_mount**                   |    X    |    X    |    X    |    X    |
@@ -102,23 +102,23 @@ Further details are covered in the [documentation](https://omd.consol.de/docs/sn
 
 Find a brief overview of what is planned:
 
-* [ ] add time support in threshold, ex.: warn=time > 18:00 && load > 10
-* [ ] open telemetry
+* [ ] add time support in thresholds, e.g. warn=time > 18:00 && load > 10
+* [ ] OpenTelemetry
 * [ ] improve configuration
   * [ ] add config validator
-  * [ ] use strong typed config items
+  * [ ] use strongly typed configuration items
   * [ ] add module enable/disable option directly in the module section
 
 ## Not gonna happen
 
-The following things will most likely not be part of snclient any time:
+The following features will most likely not be included in SNClient:
 
 * CheckMK support
-* Embedded LUA support
+* Embedded Lua support
 * Embedded Python support
 * Graphite support
 * NRDP support
 * NSCA support
 * SMTP support
-* Website/Rest API (except doing checks)
+* Website/REST API (except doing checks)
 * check_nt support

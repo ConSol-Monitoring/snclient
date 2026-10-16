@@ -6,13 +6,13 @@ weight: 400
 
 ## Installation
 
-There is a OS specific installation documentation available for:
+OS-specific installation instructions are available for:
 
 - [Windows](windows)
 - [RHEL/Rocky/Alma](rhel)
 - [Debian/Ubuntu](debian)
 - [Arch Linux](archlinux)
-- [Mac OSX](osx)
+- [macOS](osx)
 
 ## Using Binary Packages
 
@@ -31,23 +31,23 @@ You might need to expand the assets to find the download links.
 
 ### Development Snapshots
 
-During development each code commit produces build artifacts if all tests were
+During development, each code commit produces build artifacts if all tests were
 successful.
 
-Usually you should stick to the stable releases unless told otherwise or you want
+Usually, you should stick to the stable releases unless told otherwise or you want
 to test something.
 
-Installing the development snapshot is straight forward:
+Installing the development snapshot is straightforward:
 
-1. Open the [SNClient Github Actions](https://github.com/ConSol-Monitoring/snclient/actions/workflows/builds.yml?query=branch%3Amain) page
-2. Choose first green build like in
+1. Open the [SNClient GitHub Actions](https://github.com/ConSol-Monitoring/snclient/actions/workflows/builds.yml?query=branch%3Amain) page
+2. Choose the first successful build, as shown below:
    ![Actions](actions.png "Choose latest green build")
 3. Scroll down and choose the download which matches your architecture:
    ![Actions](action_download.png "Choose download")
 4. Install just like the stable release files.
 
-**Note:** In order to download the snapshot artifacts, you need a github account you must be logged in.
+**Note:** In order to download the snapshot artifacts, you need a GitHub account and must be logged in.
 
 ## Building SNClient From Source
 
-Building snclient from source is covered in detail here: [Building from source](build)
+Building SNClient from source is covered in detail here: [Building from source](build)

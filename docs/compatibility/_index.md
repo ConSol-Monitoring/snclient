@@ -3,11 +3,10 @@ title: Compatibility
 linkTitle: Compatibility
 ---
 
-SNClient tries hard to be backwards compatible with the NSClient++, however
-there are a couple of things different. Some things which seemed useful and do
-no harm, others do not make sense anymore.
+SNClient aims to remain compatible with NSClient++, but some behavior differs.
+Useful features have been retained, while others are no longer supported.
 
-So here is a list of things different to NSClient++.
+The differences are listed below.
 
 ## Configuration
 
@@ -42,14 +41,14 @@ is the same as
 NodeExporterServer = enabled
 ```
 
-If the later setting in the specific category exists, it will always override the
+If the latter setting in the specific category exists, it will always override the
 value from the modules section.
 
 ### Includes
 
-The SNClient supports including configuration files, either from a local folder or by https.
+The SNClient supports including configuration files, either from a local folder or over HTTPS.
 
-This helps keeping your configuration organized. Best practice is to keep the
+This helps keep your configuration organized. Best practice is to keep the
 default configuration as it is and override custom values from a separate new
 file.
 
@@ -71,10 +70,10 @@ Read more about includes on the [configuration page](../configuration/#includes)
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
 
-SNClient supports standard monitoring-plugins compatible performance data as
+SNClient supports performance data compatible with the Monitoring Plugins guidelines as
 described in [the official plugin developer guidelines](https://www.monitoring-plugins.org/doc/guidelines.html#AEN201).
 
-In addition to standard thresholds, SNClient added support for ranges, ex.: `10:20` or `@10:20`.
+In addition to standard thresholds, SNClient added support for ranges, for example: `10:20` or `@10:20`.
 
 See examples here:
 [threshold format](https://www.monitoring-plugins.org/doc/guidelines.html#THRESHOLDFORMAT)
@@ -87,7 +86,7 @@ Previous releases did not fully support those ranges.
 
 ![Change](../icons/changed.png "this is different in SNClient")
 
-All bytes related performance data uses bytes in the performance data now.
+All byte-related performance data is now reported in bytes.
 
 ### SI Units
 
@@ -111,7 +110,7 @@ in order and only the first match is applied.
 
 A detailed description can be found on the [performance configuration page](../checks/perfconfig/).
 
-SNClients perf-config has an additional `magic` option to apply a magic factor.
+SNClient's perf-config has an additional `magic` option to apply a magic factor.
 
 ## Allow Arguments Handling
 
@@ -120,14 +119,14 @@ SNClients perf-config has an additional `magic` option to apply a magic factor.
 SNClient allows arguments from alias definitions, even if `allow arguments` is not allowed. Only additional arguments
 are not allowed in this case.
 
-Ex.: this works, even with `allow arguments` disabled.
+For example: this works, even with `allow arguments` disabled.
 
 ```ini
 [/settings/external scripts/alias]
 alias_test = check_cpu warn=load=80 crit=load=90
 ```
 
-When enabling arguments, make sure using quoted arguments like `$ARGS"$`. Using unquoted
+When enabling arguments, make sure to use quoted arguments like `$ARGS"$`. Using unquoted
 arguments leads to command injection vulnerabilities.
 
 ## Allow Nasty Characters Handling
@@ -136,7 +135,7 @@ arguments leads to command injection vulnerabilities.
 
 In addition to the existing characters, SNClient does not allow the `$`, `;` and newline characters.
 
-The list of not allowed nasty characters is therefore:
+The list of disallowed characters is therefore:
 
 ```txt
 $|`&><'"\[]{};\n\r
@@ -150,13 +149,13 @@ nasty characters = $|`&><'"\\[]{};\n\r
 ```
 
 It is not advised to remove any of the default characters. Each of them is there
-for a reason and removing might lead to command injection vulnerabilities.
+for a reason and removing them might lead to command injection vulnerabilities.
 
 ## Allow Control Characters Handling
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
 
-In addition to the existing nasty characters, SNClient does not allow ascii control characters.
+In addition to the existing nasty characters, SNClient does not allow ASCII control characters.
 
 Change the default value with the `allow control characters` configuration option if you need to.
 
@@ -176,18 +175,18 @@ of it as well.
 
 ![Change](../icons/changed.png "this is different in SNClient")
 
-The tls configuration has been simplified. Instead of setting specific ciphers, you can now set a
-minimum required tls version.
+The TLS configuration has been simplified. Instead of setting specific ciphers, you can now set a
+minimum required TLS version.
 
-ex.:
+For example:
 
 ```ini
 [/settings/default]
 tls min version = "tls1.3"
 ```
 
-Allowing tls 1.2 or higher (default) disables known insecure ciphers. Allowing
-tls lower than 1.2 enables all ciphers (even the insecure ones).
+Allowing TLS 1.2 or higher (default) disables known insecure ciphers. Allowing
+TLS lower than 1.2 enables all ciphers (even the insecure ones).
 
 The list of ciphers can be found on [go.dev](https://pkg.go.dev/crypto/tls#pkg-constants).
 
@@ -219,7 +218,7 @@ Check specific changes and enhancements:
 
 ![Change](../icons/changed.png "this is different in SNClient")
 
-The `check_drivesize` handles multiple drives different if some are not available. SNClient requires all specified paths to exist.
+The `check_drivesize` handles multiple drives differently if some are not available. SNClient requires all specified paths to exist.
 
 Example:
 
@@ -253,7 +252,7 @@ check_files path=c:/windows warn=size>2MB max-depth=1 timezone=Europe/Berlin
 
 ![Change](../icons/changed.png "this is different in SNClient")
 
-The `check_process` behaves a bit different when checking for not running processes.
+The `check_process` behaves differently when checking for processes that are not running.
 
 ```bash
 check_process process=noneexisting.exe crit="state = 'started'" empty-state=0
@@ -267,7 +266,7 @@ case there is a process, the normal critical expression will be used.
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
 
-The `check_service` adds memory and cpu metrics if the service is running.
+The `check_service` adds memory and CPU metrics if the service is running.
 
 ```bash
 check_service service=snclient

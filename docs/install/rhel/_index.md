@@ -3,16 +3,16 @@ linkTitle: RHEL
 weight: 200
 ---
 
-# Redhat / Rocky / AlmaLinux
+# Red Hat / Rocky / AlmaLinux
 
 ## Installation
 
 Stable release installation packages can be found here:
 
 - [ConSol Software Repository](https://labs.consol.de/repo/stable/) (recommended)
-- [Github Releases](https://github.com/ConSol-Monitoring/snclient/releases)
+- [GitHub Releases](https://github.com/ConSol-Monitoring/snclient/releases)
 
-Add the repository as described on the link itself.
+Add the repository as described on the linked repository page.
 
     #> dnf install snclient
 
@@ -26,6 +26,6 @@ The firewall should be configured to allow these ports:
 
 ## Uninstall
 
-Uninstall is available possible with `dnf`.
+Uninstall SNClient using `dnf`.
 
     #> dnf remove snclient
