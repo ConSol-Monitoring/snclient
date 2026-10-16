@@ -111,18 +111,18 @@ This check supports specifying different usage thresholds for each drive. Use '[
 	check_drivesize "drive=/" "drive=/tmp" "warn='/ used_pct' gt 70" "crit='/tmp used %' > 1"
 	CRITICAL - / 428.040 GiB/935.929 GiB (45.7%), /tmp 471.496 MiB/31.127 GiB (1.5%) |'/ used'=459604856832B;;;0;1004946423808 '/ used %'=45.7%;70;;0;100 '/tmp used'=494399488B;;;0;33422544896 '/tmp used %'=1.5%;;1;0;100
 
-### Example using NRPE and Naemon
+### Example using check_snclient and Naemon
 
 Naemon Config
 
     define command{
-        command_name         check_nrpe
-        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_snclient
+        command_line         $USER1$/check_snclient -k -p 'your-password' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
     }
 
     define service {
         host_name            testhost
         service_description  check_drivesize
         use                  generic-service
-        check_command        check_nrpe!check_drivesize!'warn=used_pct > 90' 'crit=used_pct > 95'
+        check_command        check_snclient!check_drivesize!'warn=used_pct > 90' 'crit=used_pct > 95'
     }

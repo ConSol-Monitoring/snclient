@@ -62,18 +62,18 @@ Show all temperature sensors and apply custom thresholds:
     check_temperature filter=none warn="temperature > 85" crit="temperature > 90"
     OK - Package id 0: 65.0 °C, Core 0: 62.0 °C, Core 1: 61.0 °C, Core 2: 65.0 °C |...
 
-### Example using NRPE and Naemon
+### Example using check_snclient and Naemon
 
 Naemon Config
 
     define command{
-        command_name         check_nrpe
-        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_snclient
+        command_line         $USER1$/check_snclient -k -p 'your-password' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
     }
 
     define service {
         host_name            testhost
         service_description  check_temperature
         use                  generic-service
-        check_command        check_nrpe!check_temperature!
+        check_command        check_snclient!check_temperature!
     }

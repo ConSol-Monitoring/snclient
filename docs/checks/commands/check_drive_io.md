@@ -79,18 +79,18 @@ Check a UNIX drive and alert if for the last 30 seconds written bytes/second is 
     check_drive_io lookback=30 warn="write_bytes_rate > 10Mb"
 	OK - dm-0 >1.8 MiB/s/s <815.0 B/s/s 0.0%, sda1 >0 B/s/s <0 B/s/s 0.0% |'dm-0_read_count'=396738362c;;;0; 'dm-0_read_bytes'=33871348975616c;;;0; 'dm-0_read_time'=2990729692ms;;;0; 'dm-0_write_count'=624158141c;;;0; 'dm-0_write_bytes'=36083702012416c;;;0; 'dm-0_write_time'=1412729952ms;;;0; 'dm-0_utilization'=0%;95;;0; 'dm-0_io_time'=738627512ms;;;0; 'dm-0_weighted_io'=108492348;;;0; 'dm-0_iops_in_progress'=0;;;0; 'sda1_read_count'=3178c;;;0; 'sda1_read_bytes'=67430400c;;;0; 'sda1_read_time'=13572ms;;;0; 'sda1_write_count'=3193c;;;0; 'sda1_write_bytes'=282012672c;;;0; 'sda1_write_time'=9446ms;;;0; 'sda1_utilization'=0%;95;;0; 'sda1_io_time'=10832ms;;;0; 'sda1_weighted_io'=23019;;;0; 'sda1_iops_in_progress'=0;;;0;
 
-### Example using NRPE and Naemon
+### Example using check_snclient and Naemon
 
 Naemon Config
 
     define command{
-        command_name         check_nrpe
-        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_snclient
+        command_line         $USER1$/check_snclient -k -p 'your-password' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
     }
 
     define service {
         host_name            testhost
         service_description  check_drive_io
         use                  generic-service
-        check_command        check_nrpe!check_drive_io!
+        check_command        check_snclient!check_drive_io!
     }

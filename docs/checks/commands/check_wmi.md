@@ -59,18 +59,18 @@ Use perf-config to format the performance data and apply thresholds:
     check_wmi query="select DeviceID, FreeSpace FROM Win32_LogicalDisk" perf-config="*(unit:B)" warn="FreeSpace > 1000000"
 	C:, 27199328256 |'C: FreeSpace'=27199328256B;1000000
 
-### Example using NRPE and Naemon
+### Example using check_snclient and Naemon
 
 Naemon Config
 
     define command{
-        command_name         check_nrpe
-        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_snclient
+        command_line         $USER1$/check_snclient -k -p 'your-password' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
     }
 
     define service {
         host_name            testhost
         service_description  check_wmi
         use                  generic-service
-        check_command        check_nrpe!check_wmi!
+        check_command        check_snclient!check_wmi!
     }

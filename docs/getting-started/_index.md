@@ -69,8 +69,8 @@ to `~/lib/monitoring-plugins`.
 
 ```text
 define command {
-    command_name         check_windows_snclient
-    command_line         $USER1$/check_snclient -k -p '$_HOSTSNCLIENT_PASSWORD$' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
+    command_name         check_snclient
+    command_line         $USER1$/check_snclient -k -p 'your-password' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
 }
 
 define host {
@@ -78,29 +78,28 @@ define host {
     host_name            windows-server
     alias                Windows Server
     address              192.0.2.20
-    _SNCLIENT_PASSWORD   your-password
-    check_command        check_windows_snclient
+    check_command        check_snclient
 }
 
 define service {
     use                  generic-service
     host_name            windows-server
     service_description  CPU
-    check_command        check_windows_snclient!check_cpu!'warn=load > 80' 'crit=load > 90'
+    check_command        check_snclient!check_cpu!'warn=load > 80' 'crit=load > 90'
 }
 
 define service {
     use                  generic-service
     host_name            windows-server
     service_description  Memory
-    check_command        check_windows_snclient!check_memory!type=physical 'warn=used > 80%' 'crit=used > 90%'
+    check_command        check_snclient!check_memory!type=physical 'warn=used > 80%' 'crit=used > 90%'
 }
 
 define service {
     use                  generic-service
     host_name            windows-server
     service_description  Drive C
-    check_command        check_windows_snclient!check_drivesize!drive=C: 'warn=used > 80%' 'crit=used > 90%'
+    check_command        check_snclient!check_drivesize!drive=C: 'warn=used > 80%' 'crit=used > 90%'
 }
 ```
 

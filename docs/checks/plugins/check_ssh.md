@@ -59,18 +59,18 @@ Help Options:
     check_ssh --hostname github.com --warning 1
     SSH OK - 0.262 seconds response time on github.com port 22 [SSH-2.0-8ad108e] | time=0.262048s;;;1.000000;10.000000
 
-### Example using NRPE and Naemon
+### Example using check_snclient and Naemon
 
 Naemon Config
 
     define command{
-        command_name         check_nrpe
-        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_snclient
+        command_line         $USER1$/check_snclient -k -p 'your-password' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
     }
 
     define service {
         host_name            testhost
         service_description  check_ssh
         use                  generic-service
-        check_command        check_nrpe!check_ssh!'-H' '192.168.178.100' '-p' '2323'
+        check_command        check_snclient!check_ssh!'-H' '192.168.178.100' '-p' '2323'
     }

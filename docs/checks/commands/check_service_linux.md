@@ -77,18 +77,18 @@ Check memory usage of specific service:
     check_service service=docker warn='rss > 1GB' crit='rss > 2GB'
     OK - All 1 service(s) are ok. |'docker'=4 'docker rss'=59691008B;;;0 'docker vms'=3166244864B;;;0 'docker cpu'=0.7%;;;0 'docker tasks'=20;;;0
 
-### Example using NRPE and Naemon
+### Example using check_snclient and Naemon
 
 Naemon Config
 
     define command{
-        command_name         check_nrpe
-        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_snclient
+        command_line         $USER1$/check_snclient -k -p 'your-password' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
     }
 
     define service {
         host_name            testhost
         service_description  check_service
         use                  generic-service
-        check_command        check_nrpe!check_service!service=docker
+        check_command        check_snclient!check_service!service=docker
     }

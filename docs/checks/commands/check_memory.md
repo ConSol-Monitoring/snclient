@@ -77,18 +77,18 @@ Changing the return syntax to get more information:
     check_memory 'top-syntax=${list}' 'detail-syntax=${type} free: ${free} used: ${used} size: ${size}'
     physical free: 35.00 B used: 7.01 GiB size: 31.09 GiB, committed free: 27.00 B used: 705.57 MiB size: 977.00 MiB |...
 
-### Example using NRPE and Naemon
+### Example using check_snclient and Naemon
 
 Naemon Config
 
     define command{
-        command_name         check_nrpe
-        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_snclient
+        command_line         $USER1$/check_snclient -k -p 'your-password' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
     }
 
     define service {
         host_name            testhost
         service_description  check_memory
         use                  generic-service
-        check_command        check_nrpe!check_memory!'warn=used > 80%' 'crit=used > 90%'
+        check_command        check_snclient!check_memory!'warn=used > 80%' 'crit=used > 90%'
     }
