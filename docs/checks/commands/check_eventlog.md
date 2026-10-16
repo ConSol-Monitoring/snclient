@@ -100,15 +100,15 @@ Naemon Config
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute       | Description                                         |
-| --------------- | --------------------------------------------------- |
-| computer        | Which computer generated the message (ComputerName) |
-| file            | The logfile name                                    |
-| log             | Alias for file                                      |
-| id              | Eventlog id (EventCode)                             |
-| eventidentifier | Event identifier (EventIdentifier)                  |
-| level           | Severity level (lowercase Type)                     |
-| message         | The message as a string                             |
-| source          | The source system (SourceName)                      |
-| provider        | Alias for source                                    |
-| written         | Time of the message being written( TimeWritten)     |
+| Attribute  | Description                                         |
+| ---------- | --------------------------------------------------- |
+| computer   | Which computer generated the message (ComputerName) |
+| file       | The logfile name                                    |
+| log        | Alias for file                                      |
+| id         | Eventlog id (EventCode)                             |
+| identifier | Event identifier (EventIdentifier)                  |
+| level      | Severity level (lowercase Type)                     |
+| message    | The message as a string                             |
+| source     | The source system (SourceName)                      |
+| provider   | Alias for source                                    |
+| written    | Time of the message being written( TimeWritten)     |

@@ -77,7 +77,7 @@ the filter is still applied to the returned events.
 			{name: "file", description: "The logfile name"},
 			{name: "log", description: "Alias for file"},
 			{name: "id", description: "Eventlog id (EventCode)"},
-			{name: "eventidentifier", description: "Event identifier (EventIdentifier)"},
+			{name: "identifier", description: "Event identifier (EventIdentifier)"},
 			{name: "level", description: "Severity level (lowercase Type)"},
 			{name: "message", description: "The message as a string"},
 			{name: "source", description: "The source system (SourceName)"},
