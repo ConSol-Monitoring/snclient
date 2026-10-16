@@ -119,7 +119,7 @@ func Query(query string, dst any, namespace string) (err error) {
 		worker := <-pool
 		defer func() { pool <- worker }()
 		if debugLog != nil {
-			debugLog.Debugf("wmi query waited %s for a pooled client: %s", time.Since(t1), query)
+			debugLog.Debugf("wmi query waited %s for a pooled client", time.Since(t1))
 		}
 		t2 := time.Now()
 		err = worker.query(query, dst, args...)
