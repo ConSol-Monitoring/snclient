@@ -36,6 +36,7 @@ type ProcessMemoryWatcherHandler struct {
 	memoryLimit   uint64
 	checkInterval time.Duration
 	running       atomic.Bool
+	proc          *process.Process
 }
 
 func NewProcessMemoryWatcherHandler() Module {
@@ -127,17 +128,20 @@ func (p *ProcessMemoryWatcherHandler) mainLoop() {
 }
 
 func (p *ProcessMemoryWatcherHandler) currentRSS() (uint64, error) {
-	pid32, err := convert.Int32E(os.Getpid())
-	if err != nil {
-		return 0, fmt.Errorf("pid conversion failed: %s", err.Error())
+	if p.proc == nil {
+		pid32, err := convert.Int32E(os.Getpid())
+		if err != nil {
+			return 0, fmt.Errorf("pid conversion failed: %s", err.Error())
+		}
+
+		proc, err := process.NewProcess(pid32)
+		if err != nil {
+			return 0, fmt.Errorf("process lookup failed: %s", err.Error())
+		}
+		p.proc = proc
 	}
 
-	proc, err := process.NewProcess(pid32)
-	if err != nil {
-		return 0, fmt.Errorf("process lookup failed: %s", err.Error())
-	}
-
-	memInfo, err := proc.MemoryInfo()
+	memInfo, err := p.proc.MemoryInfo()
 	if err != nil {
 		return 0, fmt.Errorf("memory info failed: %s", err.Error())
 	}
