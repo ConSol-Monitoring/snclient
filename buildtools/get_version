@@ -5,7 +5,7 @@ if [ ! -e .git ]; then
     exit 1
 fi
 
-# anything but the main branch gets a "dev" version to separate it from official versions
+# anything but the main / upstream branch gets a "dev" version to separate it from official versions
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 # find an exact match, if found use that one
@@ -17,7 +17,7 @@ if [ $? -eq 0 ]; then
 fi
 
 LASTTAG=$(git describe --tags --abbrev=0 2>/dev/null)
-if [ -z "$LASTTAG" -o "x$BRANCH" != "xmain" ]; then
+if [ -z "$LASTTAG" ] || [ "x$BRANCH" != "xmain" -a "x$BRANCH" != "xupstream" ]; then
     # no tag yet
     COMMITS=$(printf "%05d" $( git rev-list --all --count ))
     echo 0.01.${COMMITS}
