@@ -15,7 +15,6 @@ require (
 	github.com/kdar/factorlog v0.0.0-20211012144011-6ea75a169038
 	github.com/mackerelio/checkers v0.2.1
 	github.com/miekg/dns v1.1.73
-	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.25.0
 	github.com/reeflective/readline v1.3.0
 	github.com/sasha-s/go-deadlock v0.3.9
@@ -29,9 +28,9 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/subuk/csrtool v0.0.0-20250413213651-887255723652
 	github.com/yusufpapurcu/wmi v1.2.4
+	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/sys v0.49.0
 	golang.org/x/term v0.47.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -49,7 +48,6 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/petermattis/goid v0.0.0-20260918085751-abfca077860b // indirect
 	github.com/power-devops/perfstat v0.0.0-20260916203055-22a1a467d9f0 // indirect
 	github.com/prometheus/client_model v0.6.3 // indirect
@@ -60,7 +58,6 @@ require (
 	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/ulikunitz/xz v0.5.17 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
