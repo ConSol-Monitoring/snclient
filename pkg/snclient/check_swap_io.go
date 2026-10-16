@@ -34,7 +34,7 @@ func NewCheckSwapIO() CheckHandler {
 func (l *CheckSwapIO) Build() *CheckData {
 	return &CheckData{
 		name:         "check_swap_io",
-		description:  `Checks the swap Input / Output rate on the host.`,
+		description:  `Checks the swap I/O rate on the host.`,
 		implemented:  Linux | FreeBSD | Darwin,
 		hasInventory: ListInventory,
 		result: &CheckResult{
@@ -50,10 +50,10 @@ func (l *CheckSwapIO) Build() *CheckData {
 		topSyntax:       "%(status) - %(list)",
 		attributes: []CheckAttribute{
 			{name: "swap_count", description: "Count of swap partitions"},
-			{name: "swap_in_rate_bytes", description: "Swap/Pages being brought in", unit: UByte},
-			{name: "swap_in_rate", description: "Swap/Pages being sent out", unit: UByte},
-			{name: "swap_out_rate_bytes", description: "Swap/Pages being brought in", unit: UByte},
-			{name: "swap_out_rate", description: "Swap/Pages being sent out", unit: UByte},
+			{name: "swap_in_rate_bytes", description: "Bytes swapped in per second", unit: UByte},
+			{name: "swap_in_rate", description: "Bytes swapped in per second in human-readable format", unit: UByte},
+			{name: "swap_out_rate_bytes", description: "Bytes swapped out per second", unit: UByte},
+			{name: "swap_out_rate", description: "Bytes swapped out per second in human-readable format", unit: UByte},
 		},
 		exampleDefault: `
 	check_swap_io

@@ -34,10 +34,10 @@ func (l *CheckOSVersion) Build() *CheckData {
 			{name: "platform", description: "Platform of the OS"},
 			{name: "family", description: "OS Family"},
 			{name: "version", description: "Full version number"},
-			{name: "arch", description: "OS architecture (go arch, ex.: amd64)"},
+			{name: "arch", description: "OS architecture (go arch, e.g. amd64)"},
 			{name: "os", description: "OS name"},
-			{name: "hostname", description: "hostname (probably without fqdn)"},
-			{name: "kernel_arch", description: "kernel architecture, ex.: x86_64"},
+			{name: "hostname", description: "hostname (probably without FQDN)"},
+			{name: "kernel_arch", description: "kernel architecture, e.g. x86_64"},
 			{name: "kernel_version", description: "kernel version"},
 		},
 		exampleDefault: `

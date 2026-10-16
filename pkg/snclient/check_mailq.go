@@ -39,7 +39,7 @@ func (l *CheckMailq) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"mta": {value: &l.mta, isFilter: true, description: "Set source mta for checking mailq instead of auto detect. Can be postfix or auto"},
+			"mta": {value: &l.mta, isFilter: true, description: "Set the source MTA for checking the mail queue instead of automatic detection. Can be postfix or auto"},
 		},
 		defaultFilter:   "none",
 		defaultWarning:  "active > 5 || active_size > 10MB || deferred > 0 || deferred_size > 10MB",
@@ -49,7 +49,7 @@ func (l *CheckMailq) Build() *CheckData {
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - could not get any mailq data",
 		attributes: []CheckAttribute{
-			{name: "mta", description: "name of the mta"},
+			{name: "mta", description: "name of the MTA"},
 			{name: "folder", description: "checked spool folder"},
 			{name: "active", description: "number of active mails"},
 			{name: "active_size", description: "size of active mails in bytes", unit: UByte},

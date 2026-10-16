@@ -35,15 +35,15 @@ func NewCheckNTPOffset() CheckHandler {
 func (l *CheckNTPOffset) Build() *CheckData {
 	return &CheckData{
 		name:         "check_ntp_offset",
-		description:  "Checks the ntp offset.",
+		description:  "Checks the NTP offset.",
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"server": {value: &l.ntpserver, description: "Fetch offset from this ntp server(s). First valid response is used."},
-			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of auto detect. Valid values are: auto, timedatectl, ntpq, chronyc, osx, w32tm."},
+			"server": {value: &l.ntpserver, description: "Fetch offset from these NTP servers. First valid response is used."},
+			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, osx, w32tm."},
 		},
 		defaultFilter:   "none",
 		defaultWarning:  "offset > 50 || offset < -50",
@@ -53,12 +53,12 @@ func (l *CheckNTPOffset) Build() *CheckData {
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - could not get any ntp data",
 		attributes: []CheckAttribute{
-			{name: "source", description: "source of the ntp metrics"},
-			{name: "server", description: "ntp server name"},
-			{name: "stratum", description: "stratum value (distance to root ntp server)"},
+			{name: "source", description: "source of the NTP metrics"},
+			{name: "server", description: "NTP server name"},
+			{name: "stratum", description: "stratum value (distance to root NTP server)"},
 			{name: "jitter", description: "jitter of the clock in milliseconds"},
-			{name: "offset", description: "time offset to ntp server in milliseconds. This will be added as a metric."},
-			{name: "offset_seconds", description: "time offset to ntp server in seconds. This will not be added as a metric. " +
+			{name: "offset", description: "time offset to NTP server in milliseconds. This will be added as a metric."},
+			{name: "offset_seconds", description: "time offset to NTP server in seconds. This will not be added as a metric. " +
 				" Any thresholds using 'offset_seconds' will be converted to 'offset' silently.", unit: UDuration},
 		},
 		exampleDefault: `

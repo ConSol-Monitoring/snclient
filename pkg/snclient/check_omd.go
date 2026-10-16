@@ -35,12 +35,12 @@ func NewCheckOMD() CheckHandler {
 func (l *CheckOMD) Build() *CheckData {
 	return &CheckData{
 		name:         "check_omd",
-		description:  "Check omd site status.",
+		description:  "Check OMD site status.",
 		implemented:  Linux,
 		hasInventory: ListInventory,
 		args: map[string]CheckArgument{
 			"site":    {value: &l.siteFilter, isFilter: true, description: "Show this site only"},
-			"exclude": {value: &l.serviceFilter, description: "Skip this omd service"},
+			"exclude": {value: &l.serviceFilter, description: "Skip this OMD service"},
 		},
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -55,7 +55,7 @@ func (l *CheckOMD) Build() *CheckData {
 		attributes: []CheckAttribute{
 			{name: "site", description: "OMD site name"},
 			{name: "autostart", description: "Configuration value of 'autostart': 0/1"},
-			{name: "state", description: "Return code of omd status, 0 - running, 1 - partially running, 2 - stopped, 3 - unknown"},
+			{name: "state", description: "Return code of OMD status, 0 - running, 1 - partially running, 2 - stopped, 3 - unknown"},
 			{name: "status", description: "Text status: (running, partially running, stopped, unknown)"},
 			{name: "failed_services", description: "List of failed services"},
 			{name: "failed_services_txt", description: "More usable form of failed services list"},

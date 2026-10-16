@@ -44,11 +44,11 @@ func (l *CheckMemory) Build() *CheckData {
 There are several types of memory that can be checked:
 
     physical: physical memory
-    swap: swap memory (pagefile on windows)
-    committed: committed memory as shown in the windows task manager (windows only, basically this is the physical + swap)
-    virtual: available windows virtual address space (windows only)
+    swap: swap memory (pagefile on Windows)
+    committed: committed memory as shown in the Windows task manager (Windows only, basically this is the physical + swap)
+    virtual: available Windows virtual address space (Windows only)
 
-read more on windows virtual address space:
+read more on Windows virtual address space:
 
     https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex`,
 		implemented:  ALL,
@@ -67,7 +67,7 @@ read more on windows virtual address space:
 		topSyntax:       "%(status) - ${list}",
 		attributes: []CheckAttribute{
 			{name: "<type>", description: "used bytes with the type as key", unit: UByte},
-			{name: "type", description: "checked type, either 'physical' or 'committed', 'swap' or 'virtual' (windows only)"},
+			{name: "type", description: "checked type, either 'physical' or 'committed', 'swap' or 'virtual' (Windows only)"},
 			{name: "used", description: "Used memory in human readable bytes (IEC)", unit: UByte},
 			{name: "used_bytes", description: "Used memory in bytes (IEC)", unit: UByte},
 			{name: "used_pct", description: "Used memory in percent", unit: UPercent},

@@ -138,7 +138,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 
 			{name: "inodes_free", description: "Number of free inodes"},
 			{name: "inodes_free_pct", description: "Number of free inodes in percent", unit: UPercent},
-			{name: "inodes_total", description: "Number of total free inodes"},
+			{name: "inodes_total", description: "Total number of inodes"},
 			{name: "inodes_used", description: "Number of used inodes"},
 			{name: "inodes_used_pct", description: "Number of used inodes in percent", unit: UPercent},
 
@@ -147,8 +147,8 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "readable", description: "Windows only: flag drive is readable (0/1)", unit: UBool},
 			{name: "writable", description: "Windows only: flag drive is writable (0/1)", unit: UBool},
 			{name: "removable", description: "Windows only: flag drive is removable (0/1)", unit: UBool},
-			{name: "erasable", description: "Windows only: flag whether if drive is erasable (0/1)", unit: UBool},
-			{name: "hotplug", description: "Windows only: flag drive is hotplugable (0/1)", unit: UBool},
+			{name: "erasable", description: "Windows only: flag whether the drive is erasable (0/1)", unit: UBool},
+			{name: "hotplug", description: "Windows only: flag drive is hot-pluggable (0/1)", unit: UBool},
 
 			{name: "remote_name", description: "Windows only: the remote name of the drive, if it uses a network name"},
 			{name: "persistent", description: "Windows only: if the network drive is mounted as persistent (0/1)", unit: UBool},

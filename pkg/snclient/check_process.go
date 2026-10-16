@@ -47,25 +47,25 @@ func (l *CheckProcess) Build() *CheckData {
 			{name: "exe", description: "Name of the executable (without path)"},
 			{name: "filename", description: "Name of the executable with path"},
 			{name: "command_line", description: "Full command line of process"},
-			{name: "state", description: "Current state (windows: started, stopped, hung - linux: idle, lock, running, sleep, stop, wait and zombie)"},
+			{name: "state", description: "Current state (Windows: started, stopped, hung - Linux: idle, lock, running, sleep, stop, wait and zombie)"},
 			{name: "creation", description: "Start time of process", unit: UDate},
 			{name: "pid", description: "Process id"},
 			{name: "ppid", description: "Parent process id"},
-			{name: "uid", description: "User id of process owner (linux only)"},
-			{name: "username", description: "User name of process owner (linux only)"},
+			{name: "uid", description: "User id of process owner (Linux only)"},
+			{name: "username", description: "User name of process owner (Linux only)"},
 			{name: "cpu", description: "CPU usage in percent (over total lifetime of process)", unit: UPercent},
 			{name: "cpu_seconds", description: "CPU usage in seconds", unit: UDuration},
 			{name: "virtual", description: "Virtual memory usage in bytes", unit: UByte},
 			{name: "rss", description: "Resident memory usage in bytes", unit: UByte},
 			{name: "pagefile", description: "Swap memory usage in bytes", unit: UByte},
 			{name: "oldest", description: "Unix timestamp of oldest process", unit: UTimestamp},
-			{name: "peak_pagefile", description: "Peak swap memory usage in bytes (windows only)", unit: UByte},
-			{name: "handles", description: "Number of handles (windows only)"},
-			{name: "kernel", description: "Kernel time in seconds (windows only)", unit: UDuration},
-			{name: "peak_virtual", description: "Peak virtual size in bytes (windows only)", unit: UByte},
-			{name: "peak_working_set", description: "Peak working set in bytes (windows only)", unit: UByte},
-			{name: "user", description: "User time in seconds (windows only)", unit: UDuration},
-			{name: "working_set", description: "Working set in bytes (windows only)", unit: UByte},
+			{name: "peak_pagefile", description: "Peak swap memory usage in bytes (Windows only)", unit: UByte},
+			{name: "handles", description: "Number of handles (Windows only)"},
+			{name: "kernel", description: "Kernel time in seconds (Windows only)", unit: UDuration},
+			{name: "peak_virtual", description: "Peak virtual size in bytes (Windows only)", unit: UByte},
+			{name: "peak_working_set", description: "Peak working set in bytes (Windows only)", unit: UByte},
+			{name: "user", description: "User time in seconds (Windows only)", unit: UDuration},
+			{name: "working_set", description: "Working set in bytes (Windows only)", unit: UByte},
 		},
 		exampleDefault: `
     check_process
@@ -78,7 +78,7 @@ Check specific process(es) by name (adding some metrics as well)
         warn='count < 1 || count > 10' \
         crit='count < 0 || count > 20' \
         top-syntax='%{status} - %{count} processes, memory %{rss|h}B, cpu %{cpu:fmt=%.1f}%, started %{oldest:age|duration} ago'
-    WARNING - 12 processes, memory 62.58 MB, started 01:11h ago |...
+    WARNING - 12 processes, memory 62.58 MB, cpu 0.7%, started 01:11h ago |...
 
 If zero is a valid threshold, set thresholds accordingly
 

@@ -42,7 +42,7 @@ func NewCheckCPUUtilization() CheckHandler {
 func (l *CheckCPUUtilization) Build() *CheckData {
 	return &CheckData{
 		name:         "check_cpu_utilization",
-		description:  "Checks the cpu utilization metrics.",
+		description:  "Checks the CPU utilization metrics.",
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
@@ -58,17 +58,17 @@ func (l *CheckCPUUtilization) Build() *CheckData {
 		topSyntax:       "${status} - ${list}",
 		detailSyntax:    "user: ${user}% - system: ${system}% - iowait: ${iowait}% - steal: ${steal}% - guest: ${guest} - idle: %{idle}%",
 		attributes: []CheckAttribute{
-			{name: "total", description: "Sum of user,system,iowait,steal and guest in percent", unit: UPercent},
-			{name: "user", description: "User cpu utilization in percent", unit: UPercent},
-			{name: "system", description: "System cpu utilization in percent", unit: UPercent},
-			{name: "iowait", description: "IOWait cpu utilization in percent", unit: UPercent},
-			{name: "steal", description: "Steal cpu utilization in percent", unit: UPercent},
-			{name: "guest", description: "Guest cpu utilization in percent", unit: UPercent},
-			{name: "idle", description: "Idle cpu utilization in percent", unit: UPercent},
+			{name: "total", description: "Sum of user, system, iowait, steal and guest in percent", unit: UPercent},
+			{name: "user", description: "User CPU utilization in percent", unit: UPercent},
+			{name: "system", description: "System CPU utilization in percent", unit: UPercent},
+			{name: "iowait", description: "IOWait CPU utilization in percent", unit: UPercent},
+			{name: "steal", description: "Steal CPU utilization in percent", unit: UPercent},
+			{name: "guest", description: "Guest CPU utilization in percent", unit: UPercent},
+			{name: "idle", description: "Idle CPU utilization in percent", unit: UPercent},
 		},
 		exampleDefault: `
-	check_cpu_utilization
-OK - user: 2% - system: 1% - iowait: 0% - steal: 0% - guest: 0 - idle: 96% |'total'=3.4%;90;95;0; 'user'=2.11%;;;0;...
+    check_cpu_utilization
+    OK - user: 2% - system: 1% - iowait: 0% - steal: 0% - guest: 0 - idle: 96% |'total'=3.4%;90;95;0; 'user'=2.11%;;;0;...
 	`,
 		exampleArgs: `'warn=total > 90%' 'crit=total > 95%'`,
 	}

@@ -121,7 +121,7 @@ func (l *CheckMulti) Build() *CheckData {
 	[check_process] OK - all 1 processes are ok.
 	[check_memory] OK - physical = 12.59 GiB/16.00 GiB (78.7%)
 
-	You can define 'warning' and 'critical' conditions based on the number of checks in a certain state (see attributes below):
+	You can define 'warning' and 'critical' conditions based on the number of checks in a certain state (see attributes above):
 
 	check_multi "command[check_dummy1]=check_dummy 0 'OK - check works'" "command[check_dummy2]=check_dummy 1 'WARNING - problem found'" "critical=problem_count gt 0"
 	CRITICAL - 2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown - warning(check_dummy2: WARNING - problem found)

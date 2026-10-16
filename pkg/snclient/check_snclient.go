@@ -15,7 +15,7 @@ func init() {
 func NewCheckSNClient() CheckHandler {
 	return &CheckBuiltin{
 		name: "check_snclient",
-		description: `Runs check_snclient (formerly check_nsc_web) to perform checks on other snclient agents.
+		description: `Runs check_snclient (formerly check_nsc_web) to perform checks on other SNClient agents.
 It basically wraps the plugin from https://github.com/ConSol-Monitoring/check_snclient`,
 		check:    checkSNClientWrapper,
 		docTitle: `check_snclient`,
@@ -29,7 +29,7 @@ Check specific plugin:
     check_snclient -p ... -u https://localhost:8443 -c check_process process=snclient.exe
     OK - all 1 processes are ok. | ...
 `,
-		exampleArgs: `'-H' 'omd.consol.de' '--uri=/docs' '-S'`,
+		exampleArgs: `'-p' 'PASSWORD' '-u' 'https://localhost:8443' '-c' 'check_process' 'process=snclient.exe'`,
 	}
 }
 

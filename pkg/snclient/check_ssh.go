@@ -17,17 +17,17 @@ func init() {
 func NewCheckSSH() CheckHandler {
 	return &CheckBuiltin{
 		name: "check_ssh",
-		description: `Runs check_tcp with an SSH configururation to check for a running SSH server.
+		description: `Runs check_tcp with an SSH configuration to check for a running SSH server.
 It basically wraps the plugin from https://github.com/taku-k/go-check-plugins/tree/master/check-tcp`,
 		check:    checkSSH,
 		docTitle: `check_ssh`,
 		usage:    `check_ssh [<options>]`,
 		exampleDefault: `
-		check_ssh github.com
-SSH OK - 0.234 seconds response time on github.com port 22 [SSH-2.0-8ad108e] | time=0.234029s;;;0.000000;10.000000
+    check_ssh github.com
+    SSH OK - 0.234 seconds response time on github.com port 22 [SSH-2.0-8ad108e] | time=0.234029s;;;0.000000;10.000000
 
-		check_ssh --hostname github.com --warning 1
-SSH OK - 0.262 seconds response time on github.com port 22 [SSH-2.0-8ad108e] | time=0.262048s;;;1.000000;10.000000
+    check_ssh --hostname github.com --warning 1
+    SSH OK - 0.262 seconds response time on github.com port 22 [SSH-2.0-8ad108e] | time=0.262048s;;;1.000000;10.000000
 	`,
 		exampleArgs: `'-H' '192.168.178.100' '-p' '2323'`,
 	}

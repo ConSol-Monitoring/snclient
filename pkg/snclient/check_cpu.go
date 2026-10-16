@@ -30,7 +30,7 @@ func NewCheckCPU() CheckHandler {
 func (l *CheckCPU) Build() *CheckData {
 	return &CheckData{
 		name:         "check_cpu",
-		description:  "Checks the cpu usage metrics.",
+		description:  "Checks the CPU usage metrics.",
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{

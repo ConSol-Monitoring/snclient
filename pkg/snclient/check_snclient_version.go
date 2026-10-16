@@ -21,7 +21,7 @@ func NewCheckSNClientVersion() CheckHandler {
 func (l *CheckSNClientVersion) Build() *CheckData {
 	return &CheckData{
 		name:        "check_snclient_version",
-		description: "Check and return snclient version.",
+		description: "Check and return SNClient version.",
 		implemented: ALL,
 		result: &CheckResult{
 			State: CheckExitOK,
