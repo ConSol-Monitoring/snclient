@@ -45,9 +45,9 @@ func (l *CheckService) Build() *CheckData {
 
 	return &CheckData{
 		name: "check_service",
-		description: `Checks the state of one or multiple linux (systemctl) services.
+		description: `Checks the state of one or multiple Linux (systemctl) services.
 
-There is a specific [check_service for windows](../check_service_windows) as well.`,
+There is a specific [check_service for Windows](../check_service_windows) as well.`,
 		implemented:  Linux,
 		docTitle:     "service (linux)",
 		hasInventory: ListInventory,
@@ -81,11 +81,11 @@ There is a specific [check_service for windows](../check_service_windows) as wel
 			{name: "desc", description: "Description of the service"},
 			{name: "active", description: "The active attribute of a service, one of: active, inactive or failed"},
 			{name: "state", description: "The state of the service, one of: stopped, starting, oneshot, running, static or unknown"},
-			{name: "pid", description: "The pid of the service"},
+			{name: "pid", description: "The PID of the service"},
 			{name: "created", description: "Date when service was started", unit: UDate},
 			{name: "age", description: "Seconds since service was started", unit: UDuration},
-			{name: "rss", description: "Memory rss in bytes (main process)", unit: UByte},
-			{name: "vms", description: "Memory vms in bytes (main process)", unit: UByte},
+			{name: "rss", description: "Memory RSS in bytes (main process)", unit: UByte},
+			{name: "vms", description: "Memory VMS in bytes (main process)", unit: UByte},
 			{name: "cpu", description: "CPU usage in percent (main process)", unit: UPercent},
 			{name: "preset", description: "The preset attribute of the service, one of: enabled or disabled"},
 			{name: "tasks", description: "Number of tasks for this service"},
@@ -99,11 +99,11 @@ Checking all services except some excluded ones:
 Or check a specific service and get some metrics:
 
     check_service service=docker ok-syntax='${top-syntax}' top-syntax='%(status) - %(list)' detail-syntax='%(name) %(state) - memory: %(rss:h)B - age: %(age:duration)'
-    OK - docker running - memory: 805.2MB - created: Fri 2023-11-17 20:34:01 CET |'docker'=4 'docker rss'=805200000B
+    OK - docker running - memory: 805.2MB - age: 01:11h |'docker'=4 'docker rss'=805200000B
 
 Check memory usage of specific service:
 
-    check_service service=docker warn='rss > 1GB' warn='rss > 2GB'
+    check_service service=docker warn='rss > 1GB' crit='rss > 2GB'
     OK - All 1 service(s) are ok. |'docker'=4 'docker rss'=59691008B;;;0 'docker vms'=3166244864B;;;0 'docker cpu'=0.7%;;;0 'docker tasks'=20;;;0
 	`,
 		exampleArgs: "service=docker",

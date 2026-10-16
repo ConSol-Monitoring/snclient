@@ -66,30 +66,30 @@ type commandOpts struct {
 		URI                      string        `short:"u" long:"uri"               default:"/"           description:"URI to request"`
 		ExpectStr                string        `short:"e" long:"expect"            default:""            description:"Comma-delimited list of expected HTTP response status. By default, 1XX, 2XX are OK, 3XX depends on --onredirect option, 4XX are WARNING, 5XX are CRITICAL"`
 		ExpectContent            string        `short:"s" long:"string"                                  description:"String to expect in the content"`
-		Base64ExpectContent      string        `          long:"base64-string"                           description:"Base64 Encoded string to expect the content"`
+		Base64ExpectContent      string        `          long:"base64-string"                           description:"Base64-encoded string to expect in the content"`
 		UserAgent                string        `short:"A" long:"useragent"         default:"check_http"  description:"UserAgent to be sent"`
 		Authorization            string        `short:"a" long:"authorization"                           description:"Pass '[username]:[password]' formatted string to be used as basic authorization header"`
-		Header                   []string      `short:"k" long:"header"                                  description:"Any other tags to be sent in http header. Use multiple times for additional headers"`
+		Header                   []string      `short:"k" long:"header"                                  description:"Any other tags to be sent in HTTP header. Use multiple times for additional headers"`
 		Certificate              string        `short:"C" long:"certificate"                             description:"Check certificates instead of content. Specified in mandatory days left to warn and optional days to crit with a comma: warn_days[,<crit_days>]" `
-		TLSMinVersion            string        `          long:"tls-min"                                 description:"Minimum supported TLS version. Values with plus set the max tls version as well to latest version: 1.3" choice:"1.0" choice:"1.0+" choice:"1.1" choice:"1.1+" choice:"1.2" choice:"1.2+" choice:"1.3"`
+		TLSMinVersion            string        `          long:"tls-min"                                 description:"Minimum supported TLS version. Values with plus set the maximum TLS version as well to latest version: 1.3" choice:"1.0" choice:"1.0+" choice:"1.1" choice:"1.1+" choice:"1.2" choice:"1.2+" choice:"1.3"`
 		TLSMaxVersion            string        `          long:"tls-max"                                 description:"Maximum supported TLS version" choice:"1.0" choice:"1.1" choice:"1.2" choice:"1.3"`
 		Proxy                    string        `          long:"proxy"                                   description:"Proxy that should be used"`
 		RegexStr                 string        `short:"r" long:"regex"                                   description:"Search page for case-sensitive regex string"`
 		RegexiStr                string        `short:"R" long:"regexi"                                  description:"Search page for case-insensitive regex string"`
-		Onredirect               string        `short:"f" long:"onredirect"                              description:"What strategy to use when encountering a redirect. ok/warning/critical returns immediately. follow uses the new URL returned by golang HTTP client. Sticky keeps the hostname to be same after redirect, and stickyport persists the port as well." choice:"ok" choice:"warning" choice:"critical" choice:"follow" choice:"sticky" choice:"stickyport"`
+		Onredirect               string        `short:"f" long:"onredirect"                              description:"What strategy to use when encountering a redirect. ok/warning/critical returns immediately. follow uses the new URL returned by golang HTTP client. Sticky keeps the hostname the same after redirect, and stickyport persists the port as well." choice:"ok" choice:"warning" choice:"critical" choice:"follow" choice:"sticky" choice:"stickyport"`
 		MaxBufferSize            string        `          long:"max-buffer-size"   default:"1MB"         description:"Max buffer size to read response body (max.: 100MB)"`
 		TimeoutStr               string        `short:"t" long:"timeout"           default:"10"          description:"Timeout to wait for connection. If no time unit is given at the end, default of seconds is assumed"`
-		WarningThresholdStr      string        `short:"w" long:"warning"           default:"30"          description:"If the request+response takes longer specified warning threshold, raises a warning. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
-		CriticalThresholdStr     string        `short:"c" long:"critical"          default:"60"          description:"If the request+response takes longer specified critical threshold, raises a critical. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
+		WarningThresholdStr      string        `short:"w" long:"warning"           default:"30"          description:"If the request+response takes longer than the specified warning threshold, raises a warning. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
+		CriticalThresholdStr     string        `short:"c" long:"critical"          default:"60"          description:"If the request+response takes longer than the specified critical threshold, raises a critical. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
 		WaitForInterval          time.Duration `          long:"wait-for-interval" default:"2s"          description:"Retry interval"`
 		WaitForMax               time.Duration `          long:"wait-for-max"                            description:"Time to wait for success (max.: 180s)"`
 		Interim                  time.Duration `          long:"interim"           default:"1s"          description:"Interval time after successful request for consecutive mode"`
 		Consecutive              int           `          long:"consecutive"       default:"1"           description:"Number of consecutive successful requests required (max.: 5)"`
 		Port                     int           `short:"p" long:"port"                                    description:"Port number"`
 		MaxRedirects             int           `          long:"max-redirs"                              description:"Maximum redirects before giving up on following"`
-		NoDiscard                bool          `          long:"no-discard"                              description:"Raise error when the response body is larger then max-buffer-size"`
+		NoDiscard                bool          `          long:"no-discard"                              description:"Raise error when the response body is larger than max-buffer-size"`
 		WaitFor                  bool          `          long:"wait-for"                                description:"Retry until successful when enabled"`
-		SSL                      bool          `short:"S" long:"ssl"                                     description:"Use https"`
+		SSL                      bool          `short:"S" long:"ssl"                                     description:"Use HTTPS"`
 		SNI                      bool          `          long:"sni"                                     description:"Enable SNI"`
 		TCP4                     bool          `short:"4"                                                description:"Use tcp4 only"`
 		TCP6                     bool          `short:"6"                                                description:"Use tcp6 only"`

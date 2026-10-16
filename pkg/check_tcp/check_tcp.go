@@ -64,7 +64,7 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 // Apache-2.0 license
 type tcpOpts struct {
 	Service  string `long:"service" description:"Service name. e.g. ftp, smtp, pop, imap and so on"`
-	Hostname string `short:"H" long:"hostname" description:"Host name or IP Address"`
+	Hostname string `short:"H" long:"hostname" description:"Host name or IP address"`
 	IPv4     bool   `short:"4" long:"ipv4" description:"Resolve and connect using IPv4 only"`
 	IPv6     bool   `short:"6" long:"ipv6" description:"Resolve and connect using IPv6 only"`
 	exchange
@@ -74,7 +74,7 @@ type tcpOpts struct {
 	Warning      float64 `short:"w" long:"warning" description:"Response time to result in warning status (seconds)"`
 	Critical     float64 `short:"c" long:"critical" description:"Response time to result in critical status (seconds)" default:"10"`
 	Escape       bool    `short:"E" long:"escape" description:"Can use \\n, \\r, \\t or \\ in send or quit string. Must come before send or quit option. By default, nothing added to send, \\r\\n added to end of quit"`
-	ErrWarning   bool    `short:"W" long:"error-warning" description:"Set the error level to warning when exiting with unexpected error (default: critical). In the case of request succeeded, evaluation result of -c option eval takes priority."`
+	ErrWarning   bool    `short:"W" long:"error-warning" description:"Set the error level to warning when exiting with unexpected error (default: critical). If the request succeeds, evaluation of the -c option takes priority."`
 	ExpectClosed bool    `short:"C" long:"expect-closed" description:"Verify that the port/unixsock is closed. If the port/unixsock is closed, OK; if open, follow the ErrWarning flag. This option only verifies the connection."`
 	Verbose      bool    `short:"v" long:"verbose" description:"Enables verbose logging of the actions taken."`
 }

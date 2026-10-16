@@ -1,5 +1,5 @@
 ---
-title: Check Plugins
+title: Built-in plugins
 weight: 2000
 ---
 

@@ -80,7 +80,7 @@ func NewCheckConnections() CheckHandler {
 func (l *CheckConnections) Build() *CheckData {
 	return &CheckData{
 		name:         "check_connections",
-		description:  "Checks the number of tcp connections.",
+		description:  "Checks the number of TCP connections.",
 		implemented:  Linux | Windows | Darwin,
 		hasInventory: ListInventory,
 		result: &CheckResult{

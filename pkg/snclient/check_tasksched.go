@@ -74,8 +74,8 @@ func (l *CheckTasksched) Build() *CheckData {
 			{name: "comment", description: "Comment or description for the work item"},
 			{name: "creator", description: "Creator of the work item"},
 			{name: "enabled", description: "Flag whether this job is enabled (true/false)", unit: UBool},
-			{name: "exit_code", description: "The last jobs exit code"},
-			{name: "exit_string", description: "The last jobs exit code as string"},
+			{name: "exit_code", description: "The last job's exit code"},
+			{name: "exit_string", description: "The last job's exit code as string"},
 			{name: "folder", description: "Task folder"},
 			{name: "uri", description: "Fully qualified path to the task, includes folder and the task title"},
 			{name: "uri_clean", description: "Remove the leading backslash from the URI, only for tasks directly saved at root and not for ones saved inside folders."},
@@ -88,9 +88,9 @@ func (l *CheckTasksched) Build() *CheckData {
 			{name: "missed_runs", description: "Number of times the registered task has missed a scheduled run"},
 			{name: "task_status", description: "Task status as string"},
 			{name: "next_run_time", description: "Time when the registered task is next scheduled to run", unit: UDate},
-			{name: "parameters", description: "Last actions command line parameters"},
-			{name: "execute", description: "Last actions executed program"},
-			{name: "working_directory", description: "Last actions working directory"},
+			{name: "parameters", description: "Last action's command line parameters"},
+			{name: "execute", description: "Last action's executed program"},
+			{name: "working_directory", description: "Last action's working directory"},
 		},
 		exampleDefault: `
     check_tasksched

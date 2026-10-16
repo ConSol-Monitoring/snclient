@@ -21,7 +21,7 @@ func NewCheckIndex() CheckHandler {
 func (l *CheckIndex) Build() *CheckData {
 	return &CheckData{
 		name:          "check_index",
-		description:   "returns list of known checks.",
+		description:   "Returns list of all known checks.",
 		implemented:   ALL,
 		detailSyntax:  "${name}",
 		topSyntax:     "${list}",
@@ -33,10 +33,10 @@ func (l *CheckIndex) Build() *CheckData {
 			{name: "name", description: "name of the check"},
 			{name: "description", description: "description of the check"},
 			{name: "implemented", description: "check is available on current platform: 0 / 1"},
-			{name: "windows", description: "check is available on windows: 0 / 1"},
-			{name: "linux", description: "check is available on linux: 0 / 1"},
-			{name: "osx", description: "check is available on mac osx: 0 / 1"},
-			{name: "freebsd", description: "check is available on freebsd: 0 / 1"},
+			{name: "windows", description: "check is available on Windows: 0 / 1"},
+			{name: "linux", description: "check is available on Linux: 0 / 1"},
+			{name: "osx", description: "check is available on macOS: 0 / 1"},
+			{name: "freebsd", description: "check is available on FreeBSD: 0 / 1"},
 			{name: "alias", description: "check is an alias: 0 / 1"},
 			{name: "script", description: "check is a (wrapped) script: 0 / 1"},
 		},

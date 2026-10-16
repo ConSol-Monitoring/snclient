@@ -40,9 +40,9 @@ func NewCheckService() CheckHandler {
 func (l *CheckService) Build() *CheckData {
 	return &CheckData{
 		name: "check_service",
-		description: `Checks the state of one or multiple windows services.
+		description: `Checks the state of one or multiple Windows services.
 
-There is a specific [check_service for linux](../check_service_linux) as well.`,
+There is a specific [check_service for Linux](../check_service_linux) as well.`,
 		implemented:  Windows,
 		docTitle:     "service (windows)",
 		hasInventory: ListInventory,
@@ -85,11 +85,11 @@ There is a specific [check_service for linux](../check_service_linux) as well.`,
 			{name: "desc", description: "Alias for display (not a typo). When used as filter, looks only in display."},
 			{name: "description", description: "Description of the service"},
 			{name: "state", description: "The state of the service, one of: stopped, starting, stopping, running, continuing, pausing, paused or unknown"},
-			{name: "pid", description: "The pid of the service"},
+			{name: "pid", description: "The PID of the service"},
 			{name: "created", description: "Date when service was started", unit: UDate},
 			{name: "age", description: "Seconds since service was started", unit: UDuration},
-			{name: "rss", description: "Memory rss in bytes", unit: UByte},
-			{name: "vms", description: "Memory vms in bytes", unit: UByte},
+			{name: "rss", description: "Memory RSS in bytes", unit: UByte},
+			{name: "vms", description: "Memory VMS in bytes", unit: UByte},
 			{name: "cpu", description: "CPU usage in percent", unit: UPercent},
 			{name: "delayed", description: "If the service is delayed, can be 0 or 1 "},
 			{name: "classification", description: "Classification of the service, one of: " +

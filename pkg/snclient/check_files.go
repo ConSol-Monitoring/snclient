@@ -82,7 +82,7 @@ func (l *CheckFiles) Build() *CheckData {
 			"file":    {value: &l.paths, description: "Alias for path", isFilter: true},
 			"paths":   {value: &l.pathList, description: "A comma separated list of paths", isFilter: true},
 			"pattern": {value: &l.pattern, description: "Pattern of files to search for", isFilter: true},
-			"max-depth": {value: &l.maxDepth, description: fmt.Sprintf("Maximum recursion depth. '0' and '1' disable recursion into subfolders and only include files/directories directly under path."+
+			"max-depth": {value: &l.maxDepth, description: fmt.Sprintf("Maximum recursion depth. '0' and '1' disable recursion into subfolders and only include files/directories directly under path"+
 				", '2' starts to include files/directories of subdirectories with given depth. '%d' disables depth checks. Default: %d ", CheckFilesMaxDepthUnlimited, CheckFilesDefaultMaxDepth)},
 			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
 			"follow-symlinks": {value: &l.followSymlinks, description: fmt.Sprintf("Follow symlinks of files and subdirectories while traversing. "+
@@ -115,7 +115,7 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "written", description: "Unix timestamp when file was last written to", unit: UDate},
 			{name: "write", description: "Alias for written", unit: UDate},
 			{name: "age", description: "Seconds since file was last written", unit: UDuration},
-			{name: "version", description: "Windows exe/dll file version (windows only)"},
+			{name: "version", description: "Windows exe/dll file version (Windows only)"},
 			{name: "line_count", description: "Number of lines in the files (text files)"},
 			{name: "total_bytes", description: "Total size over all files in bytes", unit: UByte},
 			{name: "total_size", description: "Total size over all files as human readable bytes", unit: UByte},
@@ -131,8 +131,8 @@ func (l *CheckFiles) Build() *CheckData {
 		exampleDefault: `
 Alert if there are logs older than 1 hour in /tmp:
 
-    check_files path="/tmp" pattern="*.log" "filter=age > 1h" crit="count > 0" empty-state=0 empty-syntax="no old files found" top-syntax="found %(count) too old logs"
-    OK - All 138 files are ok: (29.22 MiB) |'count'=138;500;600;0 'size'=30642669B;;;0
+    check_files path="/tmp" pattern="*.log" "filter=age > 1h" crit="count > 0" empty-state=0 empty-syntax="no old files found" top-syntax="%(status) - found %(count) old log files"
+    CRITICAL - found 138 old log files |'count'=138;;0;0 'size'=30642669B;;;0
 
 Check for folder size:
 

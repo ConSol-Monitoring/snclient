@@ -30,7 +30,7 @@ func NewCheckWMI() CheckHandler {
 func (l *CheckWMI) Build() *CheckData {
 	return &CheckData{
 		name: "check_wmi",
-		description: `Check status and metrics by running wmi queries.
+		description: `Check status and metrics by running WMI queries.
 
     In order to use this plugin, you need to enable 'CheckWMI' in the '[/modules]' section of the snclient_local.ini.
 `,

@@ -40,7 +40,7 @@ func NewCheckLoad() CheckHandler {
 func (l *CheckLoad) Build() *CheckData {
 	return &CheckData{
 		name:         "check_load",
-		description:  "Checks the cpu load metrics.",
+		description:  "Checks the CPU load metrics.",
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{

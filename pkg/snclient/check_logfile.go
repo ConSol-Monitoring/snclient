@@ -96,22 +96,22 @@ func (c *CheckLogFile) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		attributes: []CheckAttribute{
-			{name: "count ", description: "Number of items matching the filter. Common option for all checks."},
-			{name: "filename ", description: "The name of the file"},
+			{name: "count", description: "Number of items matching the filter. Common option for all checks."},
+			{name: "filename", description: "The name of the file"},
 			{name: "line", description: "Match the content of an entire line"},
-			{name: "columnN", description: "Match the content of the N-th column only if enough columns exists"},
+			{name: "columnN", description: "Match the content of the N-th column only if enough columns exist"},
 		},
 		extraFilterAttributes: []*regexp.Regexp{
 			regexp.MustCompile(`^column.*`),
 		},
 		exampleDefault: `
-Alert if there are errors in the snclient log file:
+Alert if there are errors in the SNClient log file:
 
-    check_files files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'"
+    check_logfile files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'
     OK - 134 line(s) found
 
 Non-OK output example
-	check_files files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'"
+	check_logfile files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'
     CRITICAL - 23/548 line(s) found
 	`,
 		exampleArgs: `'files=/var/log/snclient/snclient.log' 'warn=line like Warn'`,

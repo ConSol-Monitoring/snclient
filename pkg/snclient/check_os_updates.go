@@ -38,10 +38,10 @@ func (l *CheckOSUpdates) Build() *CheckData {
 		result:       &CheckResult{},
 		args: map[string]CheckArgument{
 			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum, osx and windows (default: auto)"},
-			"-u|--update": {value: &l.update, description: "Update package list (if supported, ex.: apt-get update)"},
+			"-u|--update": {value: &l.update, description: "Update package list (if supported, e.g. apt-get update)"},
 			"-m|--max-metadata-age": {
 				value:       &l.maxMetadataAge,
-				description: "Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, ex.: 48h (default: 24h)",
+				description: "Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, e.g. 48h (default: 24h)",
 			},
 		},
 		defaultWarning:  "count > 0",
@@ -78,7 +78,7 @@ The DNF check returns **UNKNOWN** if an enabled repository is unavailable, becau
 otherwise an incomplete repository set could be reported as having no updates.
 
 Use **--max-metadata-age** to make the check return **UNKNOWN** if the repository
-metadata has not been refreshed within the given duration, ex.: --max-metadata-age=24h
+metadata has not been refreshed within the given duration, e.g. --max-metadata-age=24h
 	`,
 		exampleArgs: `warn='count > 0' crit='count_security > 0'`,
 	}

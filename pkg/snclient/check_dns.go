@@ -15,7 +15,7 @@ It basically wraps the plugin from https://github.com/mackerelio/go-check-plugin
 		docTitle: `check_dns`,
 		usage:    `check_dns [<options>]`,
 		exampleDefault: `
-Alert if dns server does not respond:
+Alert if DNS server does not respond:
 
     check_dns -H labs.consol.de
     OK - labs.consol.de returns 94.185.89.33 (A)

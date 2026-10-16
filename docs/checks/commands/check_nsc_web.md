@@ -1,5 +1,6 @@
 ---
-title: nsc_web
+title: check_nsc_web
+comment: manually created
 ---
 
-check_nsc_web is a built-in check plugin. Its documentation is in the [plugins section](../plugins/check_snclient/).
+check_nsc_web is an alias for check_snclient. See the [check_snclient](../plugins/check_snclient) documentation.

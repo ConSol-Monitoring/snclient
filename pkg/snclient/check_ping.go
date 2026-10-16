@@ -33,14 +33,14 @@ func NewCheckPing() CheckHandler {
 func (l *CheckPing) Build() *CheckData {
 	return &CheckData{
 		name:         "check_ping",
-		description:  "Checks the icmp ping connection.",
+		description:  "Checks the ICMP ping connection.",
 		implemented:  ALL,
 		hasInventory: NoInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"host":    {value: &l.hostname, description: "host name or ip address to ping"},
+			"host":    {value: &l.hostname, description: "host name or IP address to ping"},
 			"packets": {value: &l.packets, description: "number of ICMP ECHO packets to send (default: 5)"},
 			"-t":      {value: &l.timeout, description: "timeout in seconds for each ICMP ECHO packet"},
 			"-4":      {value: &l.ipv4, description: "Force using IPv4."},
@@ -65,7 +65,7 @@ func (l *CheckPing) Build() *CheckData {
     check_ping host=localhost
     OK - Packet loss = 0%, RTA = 0.113ms |...
 	`,
-		exampleArgs: `'warn=rta > 1000 || pl > 30' 'crit=rta > 5000 || pl > 80'`,
+		exampleArgs: `'host=localhost' 'warn=rta > 1000 || pl > 30' 'crit=rta > 5000 || pl > 80'`,
 	}
 }
 

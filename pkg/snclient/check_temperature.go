@@ -50,9 +50,9 @@ func (l *CheckTemperature) Build() *CheckData {
 		emptyState:      3,
 		emptySyntax:     "check_temperature failed to find any sensors.",
 		attributes: []CheckAttribute{
-			{name: "sensor", description: "full name of this sensor, ex.: coretemp_core_0"},
-			{name: "name", description: "name of this sensor, ex.: coretemp"},
-			{name: "label", description: "label for this sensor, ex.: core 0"},
+			{name: "sensor", description: "full name of this sensor, e.g. coretemp_core_0"},
+			{name: "name", description: "name of this sensor, e.g. coretemp"},
+			{name: "label", description: "label for this sensor, e.g. core 0"},
 			{name: "temperature", description: "current temperature"},
 			{name: "crit", description: "critical value supplied from sensor"},
 			{name: "max", description: "max value supplied from sensor"},

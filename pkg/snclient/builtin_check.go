@@ -96,6 +96,7 @@ func (l *CheckBuiltin) Help(ctx context.Context, snc *Agent, check *CheckData, f
 		out += "```"
 		out += usage
 		out += "```\n"
+		out += "\n" + check.helpExamplesMarkdown()
 	} else {
 		out += "Usage:\n\n    "
 		usage = "    " + strings.Join(strings.Split(usage, "\n"), "\n    ")

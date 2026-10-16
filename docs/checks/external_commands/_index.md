@@ -1,5 +1,5 @@
 ---
-title: External Check Commands
+title: External scripts
 weight: 2000
 ---
 

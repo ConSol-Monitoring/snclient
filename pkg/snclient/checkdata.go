@@ -1683,6 +1683,9 @@ func (cd *CheckData) Help(format ShowHelp) string {
 	out += cd.helpDefaultArguments(format)
 	out += cd.helpSpecificArguments(format)
 	out += cd.helpAttributes(format)
+	if format == Markdown {
+		out += cd.helpExamplesMarkdown()
+	}
 
 	out = strings.TrimSpace(out)
 
@@ -1714,14 +1717,13 @@ func (cd *CheckData) helpHeader(format ShowHelp, usageHeader bool) string {
 
 func (cd *CheckData) helpHeaderMarkdown(format ShowHelp, usageHeader bool) string {
 	out := ""
-	title := strings.TrimPrefix(cd.name, "check_")
+	title := cd.name
 	if cd.docTitle != "" {
 		title = cd.docTitle
 	}
+	title = "check_" + strings.TrimPrefix(title, "check_")
 	out += fmt.Sprintf("---\ntitle: %s\n---\n\n", strings.TrimSpace(title))
-	out += fmt.Sprintf("## %s\n\n", cd.name)
 	out += fmt.Sprintf("%s\n\n", cd.description)
-	out += "- [Examples](#examples)\n"
 	if usageHeader {
 		out += "- [Usage](#usage)\n"
 	}
@@ -1731,13 +1733,18 @@ func (cd *CheckData) helpHeaderMarkdown(format ShowHelp, usageHeader bool) strin
 	if len(cd.attributes) > 0 {
 		out += "- [Attributes](#attributes)\n"
 	}
+	out += "- [Examples](#examples)\n"
 	out += "\n"
 
 	if cd.implemented > 0 {
 		out += cd.helpImplemented(format)
 	}
 
-	out += "## Examples\n\n"
+	return out
+}
+
+func (cd *CheckData) helpExamplesMarkdown() string {
+	out := "## Examples\n\n"
 	if cd.exampleDefault != "" {
 		out += "### Default Check\n\n"
 		out += fmt.Sprintf("%s\n\n", cd.exampleDefault)

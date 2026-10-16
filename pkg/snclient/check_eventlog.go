@@ -24,9 +24,9 @@ func NewCheckEventlog() CheckHandler {
 func (l *CheckEventlog) Build() *CheckData {
 	return &CheckData{
 		name: "check_eventlog",
-		description: `Checks the windows eventlog entries.
+		description: `Checks the Windows eventlog entries.
 
-Basically, this check wraps this wmi query:
+Basically, this check wraps this WMI query:
 SELECT
 	ComputerName,
 	LogFile,
@@ -45,7 +45,7 @@ FROM
 See https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlogprov/win32-ntlogevent for
 a description of the provided fields.
 
-Filter conditions on id are added to the WHERE clause of the wmi query when possible,
+Filter conditions on id are added to the WHERE clause of the WMI query when possible,
 the filter is still applied to the returned events.
 `,
 		implemented: Windows,
@@ -82,7 +82,7 @@ the filter is still applied to the returned events.
 			{name: "message", description: "The message as a string"},
 			{name: "source", description: "The source system (SourceName)"},
 			{name: "provider", description: "Alias for source"},
-			{name: "written", description: "Time of the message being written( TimeWritten)", unit: UDate},
+			{name: "written", description: "Time of the message being written (TimeWritten)", unit: UDate},
 		},
 		exampleDefault: `
     check_eventlog

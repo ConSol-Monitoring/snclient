@@ -50,8 +50,8 @@ Check a network share directly via its UNC path, no drive letter mapping require
 	check_drivesize drive=\\server\C$ show-all
 	OK - \\server\C$ 100.000 GiB/500.000 GiB (20.0%) |'\\server\C$ used'=...
 
-Shares in general are only accessible if the snclient has sufficient credentials on the remote server. Otherwise the check reports an error for that drive.
-The connection has to be established beforehand, the snclient does not authenticate on its own.
+Shares in general are only accessible if SNClient has sufficient credentials on the remote server. Otherwise the check reports an error for that drive.
+The connection has to be established beforehand, SNClient does not authenticate on its own.
 
 If the UNC path is mapped to a drive letter, the mapped drive is used and the localised path is available in the localised_remote_path attribute:
 
