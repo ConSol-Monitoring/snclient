@@ -38,7 +38,7 @@ func (l *CheckWMI) Build() *CheckData {
 		args: map[string]CheckArgument{
 			"query":     {value: &l.query, description: "The WMI query to execute"},
 			"target":    {value: &l.target, description: "Unused and not supported for now"},
-			"namespace": {value: &l.namespace, description: "Unused and not supported for now"},
+			"namespace": {value: &l.namespace, description: "The WMI namespace to query (default: root\\cimv2)"},
 			"user":      {value: &l.user, description: "Unused and not supported for now"},
 			"password":  {value: &l.password, description: "Unused and not supported for now"},
 		},
@@ -89,7 +89,7 @@ func (l *CheckWMI) Check(_ context.Context, snc *Agent, check *CheckData, _ []Ar
 	}
 
 	//nolint:staticcheck,nolintlint // error is always true, but only when not on a windows system
-	queryData, err := wmi.RawQuery(l.query)
+	queryData, err := wmi.RawQuery(l.query, l.namespace)
 	if err != nil { //nolint:staticcheck,nolintlint // error is always true, but only when not on a windows system
 		return nil, fmt.Errorf("wmi query failed: %s", err.Error())
 	}

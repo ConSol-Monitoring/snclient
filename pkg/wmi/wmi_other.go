@@ -14,6 +14,6 @@ func QueryDefaultRetry(_ string, _ any) (err error) {
 	return fmt.Errorf("requires windows os")
 }
 
-func RawQuery(_ string) ([][]Data, error) {
+func RawQuery(_, _ string) ([][]Data, error) {
 	return nil, fmt.Errorf("requires windows os")
 }

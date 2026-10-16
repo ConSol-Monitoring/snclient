@@ -69,10 +69,10 @@ Naemon Config
 
 ## Check Specific Arguments
 
-| Argument  | Description                      |
-| --------- | -------------------------------- |
-| namespace | Unused and not supported for now |
-| password  | Unused and not supported for now |
-| query     | The WMI query to execute         |
-| target    | Unused and not supported for now |
-| user      | Unused and not supported for now |
+| Argument  | Description                                      |
+| --------- | ------------------------------------------------ |
+| namespace | The WMI namespace to query (default: root\cimv2) |
+| password  | Unused and not supported for now                 |
+| query     | The WMI query to execute                         |
+| target    | Unused and not supported for now                 |
+| user      | Unused and not supported for now                 |

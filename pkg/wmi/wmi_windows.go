@@ -66,8 +66,9 @@ func Query(query string, dst any, namespace string) (err error) {
 	return nil
 }
 
-// RawQuery sends a query and returns a 2dimensional data array or any error encountered
-func RawQuery(query string) (res [][]Data, err error) {
+// RawQuery sends a query and returns a 2dimensional data array or any error encountered.
+// The namespace is optional and can be empty.
+func RawQuery(query, namespace string) (res [][]Data, err error) {
 	query = strings.TrimSpace(query)
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -89,8 +90,14 @@ func RawQuery(query string) (res [][]Data, err error) {
 	}
 	defer wmi.Release()
 
-	// service is a SWbemServices
-	serviceRaw, err := oleutil.CallMethod(wmi, "ConnectServer")
+	// service is a SWbemServices. ConnectServer args are [server, namespace, ...];
+	// nil keeps the local machine and default namespace.
+	var serviceRaw *ole.VARIANT
+	if namespace != "" {
+		serviceRaw, err = oleutil.CallMethod(wmi, "ConnectServer", nil, namespace)
+	} else {
+		serviceRaw, err = oleutil.CallMethod(wmi, "ConnectServer")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("wmi: CallMethod ConnectServer failed: %s", err.Error())
 	}

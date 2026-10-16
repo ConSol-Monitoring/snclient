@@ -20,6 +20,21 @@ func TestCheckWMI(t *testing.T) {
 	StopTestAgent(t, snc)
 }
 
+func TestCheckWMINamespace(t *testing.T) {
+	config := `
+	[/modules]
+	CheckWMI = enabled
+	`
+	snc := StartTestAgent(t, config)
+
+	// AntiVirusProduct only exists in root\SecurityCenter2 (not the default
+	// root\cimv2), so this only passes if the namespace is actually used.
+	res := snc.RunCheck("check_wmi", []string{"query='select displayName FROM AntiVirusProduct'", `namespace=root\SecurityCenter2`})
+	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+
+	StopTestAgent(t, snc)
+}
+
 func TestCheckWMIPerfCounterAvailableMBytes(t *testing.T) {
 	config := `
 	[/modules]
