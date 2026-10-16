@@ -1,10 +1,6 @@
 ﻿---
-title: Macros
+title: Macro Operators
 ---
-
-Macros can be used to modify raw SNClient values.
-
-## Macro Operators
 
 Values can be altered by adding a colon-separated suffix.
 

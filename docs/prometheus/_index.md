@@ -11,8 +11,8 @@ There are several Prometheus integrations in SNClient.
 
 ## Overview
 
-- [Builtin Windows Exporter](#windows-exporter)
-- [Builtin Node Exporter](#node-exporter)
+- [Built-in Windows Exporter](#windows-exporter)
+- [Built-in Node Exporter](#node-exporter)
 - [Managed Exporters](#managed-exporters)
 - [ExporterExporter](#exporter-exporter)
 - [Prometheus Metrics of SNClient](#metrics)

@@ -13,8 +13,8 @@ tags:
 ---
 
 [![CICD Pipeline](https://github.com/Consol-Monitoring/snclient/actions/workflows/builds.yml/badge.svg?branch=main)](https://github.com/Consol-Monitoring/snclient/actions/workflows/builds.yml)
-[![Downloads](https://img.shields.io/github/downloads/Consol-Monitoring/snclient/total?color=yellow)](https://github.com/Consol-Monitoring/snclient/releases)
 [![Latest Release](https://img.shields.io/github/v/release/Consol-Monitoring/snclient?sort=semver)](https://github.com/Consol-Monitoring/snclient/releases)
+[![Downloads](https://img.shields.io/github/downloads/Consol-Monitoring/snclient/total?color=yellow)](https://github.com/Consol-Monitoring/snclient/releases)
 [![License](https://img.shields.io/github/license/Consol-Monitoring/snclient)](https://github.com/Consol-Monitoring/snclient/blob/main/LICENSE)
 [![IRC](https://img.shields.io/badge/IRC-libera.chat%2F%23snclient-blue)](https://web.libera.chat/?nick=Guest?#snclient)
 <a href="logo/"><img src="logo/snclient.svg" style="float:right; margin: 3px; height: auto; width: 200px; float: right;"></a>
@@ -25,7 +25,8 @@ It was written from scratch in [Go](https://go.dev/) using today's state-of-the-
 
 It's available for Linux, Windows and macOS for i386, x86_64 and arm64 ([detailed list of supported operating systems](./install/supported/)).
 
-Have a look at the [installation](./install/) page to get started.
+Follow the [Getting Started](./getting-started/) guide to set up basic Windows monitoring with OMD and Naemon,
+or see the [installation](./install/) page for all supported platforms.
 
 ## Nagios / Naemon and Prometheus
 

@@ -1,5 +1,5 @@
 ﻿---
-title: Common Check Arguments
+title: Common arguments
 ---
 
 | Option                          | Description |

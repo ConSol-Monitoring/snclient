@@ -1,5 +1,5 @@
 ﻿---
-title: Filter
+title: Filters
 ---
 
 Filters can be used to select specific objects from a result list. So if a filter
