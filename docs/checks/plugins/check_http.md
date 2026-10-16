@@ -125,11 +125,6 @@ Check for specific string and response code:
     check_http -H omd.consol.de -S -u "/docs/snclient/" -e 200,304 -s "consol" -vvv
     HTTP OK - Status line output "HTTP/2.0 200 OK" matched "200,304", Response body matched "consol"...
 
-It can be a bit tricky to set the -u/--uri on Windows, since the / is considered as the start of
-a command line parameter.
-
-To avoid this issue, simply use the long form --uri=/path so the parameter does not start with a slash.
-
 ### Example using NRPE and Naemon
 
 Naemon Config
