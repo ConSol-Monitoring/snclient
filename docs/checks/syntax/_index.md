@@ -4,11 +4,11 @@ title: Template Syntax
 
 The \*-syntax options can be used to customize the plugin output.
 
-Here is a list of available syntax options which are common for all check plugins.
+Here is a list of available syntax options which are common to all check plugins.
 
 | Option          | Description |
 | --------------- | ----------- |
-| `top-syntax`    | Top level syntax |
+| `top-syntax`    | Top-level syntax |
 | `ok-syntax`     | Ok syntax |
 | `empty-syntax`  | Template syntax used when no item matches a filter. |
 | `detail-syntax` | Detailed syntax for list items. |
@@ -21,7 +21,7 @@ Templates may contain text, conditionals and macros.
 Macros can be used to access attributes of the current check. The form is the same
 as used in the config file (snclient.ini)
 
-The macro syntax is explained in detail the [macro section](../../configuration/#macros) of
+The macro syntax is explained in detail in the [macro section](../../configuration/#macros) of
 the configuration page.
 
 Supported macro variants:
@@ -38,14 +38,14 @@ check_memory 'detail-syntax=%(type) = %(used)/%(size) (%(used_pct)%)'
 
 All macros can also make use of [macro operators](../../configuration/#macro-operators).
 
-For example, the default output applies floating point format to make the output more readable:
+For example, the default output applies floating-point formatting to make the output more readable:
 
 ```bash
 check_memory 'detail-syntax=%(type) = %(used)/%(size) (%(used_pct | fmt=%.1f)%)'
 ```
 
-The list of available macros for each check is available in the help page of each check.
-Another way is to run the check with `-vv` verbose mode, which prints the list details
+Each check's help page lists its available macros.
+Another way is to run the check in verbose mode using `-vv`, which prints the list details
 as well.
 
 ### Conditionals
@@ -65,7 +65,7 @@ check_service \
     show-all
 ```
 
-That way, in case of errors a useful message can be displayed and performance details otherwise.
+This displays a useful message when an error occurs, and performance details otherwise.
 
 For better readability, here is the template again in multiple lines:
 

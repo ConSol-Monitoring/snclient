@@ -56,24 +56,24 @@ allow arguments = true
 
 Arguments are available in macros:
 
-- `$ARGS$` contains all macros space separated **without** quotes.
-- `$ARGS"$` contains all macros space separated **with quotes**.
+- `$ARGS$` contains all arguments, separated by spaces, **without** quotes.
+- `$ARGS"$` contains all arguments, separated by spaces, **with** quotes.
 - `$ARGSn$` contains the value of the argument at position `n`.
-- `$ARGSn"$` contains the value of the argument at position `n` **with quotes**.
+- `$ARGSn"$` contains the value of the argument at position `n` **with** quotes.
 
-Using arguments is not recommend for security reasons. If arguments are required, at least
+Using arguments is not recommended for security reasons. If arguments are required, at least
 make sure to use quoted arguments as in `$ARGS"$`. Using unquoted arguments almost always
 leads to a command injection vulnerability.
 
 ### Configuration Reference
 
-Below, you'll find a reference section for configuring the External Script Integration feature of SNClient
+Below, you'll find a reference section for configuring the External Script Integration feature of SNClient.
 
 #### External Script Integration Settings
 
 - **allow arguments**: Allow or disallow script arguments when executing external scripts. Default is `false`.
 - **allow nasty characters**: Permit or restrict certain characters (```|`&><'"\[]{}...```) in arguments. Default is `false`.
-- **allow control characters**: Permit or restrict ascii control characters in arguments. Default is `false`.
+- **allow control characters**: Permit or restrict ASCII control characters in arguments. Default is `false`.
 - **timeout**: Set the maximum execution time for commands (in seconds). This applies to external commands only, not internal ones.
 
 ```ini
@@ -103,7 +103,7 @@ Define scripts available for execution via the External Script Integration featu
 command = custom_script.bat
 ```
 
-Scripts with an extension of .bat, .ps1 and .exe (Windows) or .sh and no extension at all (Unix) can be defined as follows.
+Scripts with the extensions .bat, .ps1, or .exe (Windows), or .sh or no extension (Unix), can be defined as follows.
 
 ```ini
 check_dummy = check_dummy.bat
@@ -125,14 +125,14 @@ If your scripts are located within the `${scripts}` folder, you can specify them
 
 ```
 ; Load all scripts in a given folder - Load all (${script path}/*) scripts in a given directory and use them as commands.
-; Any executable file is considered a script. They do not have end with an script like extension.
-; In windows, executable files cannot be discerned. It will add every file under the directory.
-; Links are followed, and if they end up under script path, they will be added as a script.
-; If path ends with ** its subdirectories will be searched as well.
+; Any executable file is considered a script. They do not need to have a script extension.
+; On Windows, executable files cannot be identified this way, so SNClient adds every file in the directory.
+; Links are followed, and if they end up under the script path, they will be added as a script.
+; If the path ends with **, its subdirectories will be searched as well.
 script path = ${scripts}/autoinclude
 ```
 
-Scripts can also be automatically discovered and added, without defining them individually. This uses the `script path` setting. There is no way to change the alias, as they will use the scripts name and extension for their alias.
+Scripts can also be automatically discovered and added, without defining them individually. This uses the `script path` setting. There is no way to change the alias, as they will use the script's name and extension for their alias.
 
 #### Wrapped Scripts
 
@@ -151,4 +151,4 @@ check_dummy_wrapped_ok = check_dummy.bat 0 "i am ok wrapped"
 check_dummy_wrapped_critical = check_dummy.vbs 2 "i am critical wrapped"
 ```
 
-**Note:** Unlike NSClient++, you don't need to use wrapping for Powershell scripts.
+**Note:** Unlike NSClient++, you don't need to use wrapping for PowerShell scripts.

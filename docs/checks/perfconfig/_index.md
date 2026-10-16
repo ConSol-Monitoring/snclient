@@ -3,7 +3,7 @@ title: Performance Data Configuration
 ---
 
 Sometimes you might want to tweak performance data and therefore all checks
-support the `perf-conf` argument to apply tweaks to them.
+support the `perf-config` argument to apply tweaks to them.
 
 ## Syntax
 
@@ -17,7 +17,7 @@ For example:
 check_drivesize "perf-config= used %(ignored:true) used(unit:G)"
 ```
 
-This will convert used disk space bytes into gigabytes. It als removes the percent
+This will convert used disk space bytes into gigabytes. It also removes the percent
 performance data from the output completely.
 
 ## Configuration
@@ -34,13 +34,13 @@ The following keys are available:
 
 ## Selector
 
-The perf-conf selector supports wildcards, so something like this will work:
+The perf-config selector supports wildcards, so something like this will work:
 
 ```bash
 check_plugin perf-config="*(unit:G)"
 ```
 
-The snclient will use the options in order and apply the first matching configuration, so for ex.:
+SNClient will use the options in order and apply the first matching configuration, for example:
 
 ```bash
 check_plugin perf-config="used(ignored:true) *(unit:G)"
@@ -50,11 +50,11 @@ will hide `used` performance data and apply unit G to everything else.
 
 ## Units
 
-There are several possible and useful conversion available.
+There are several useful conversions available.
 
 ### Bytes
 
-The base unit `B` for bytes can be converted into more human readable units.
+The base unit `B` for bytes can be converted into more human-readable units.
 
 A common pattern is `*(unit:G)` to simply convert all performance data into gigabytes.
 
@@ -66,36 +66,36 @@ You can choose from these units:
 
 | Unit | Description |
 | ---- | ----------- |
-| K    | KByte       |
-| KB   | KByte       |
-| KiB  | KiByte      |
-| Kb   | KiByte      |
-| KI   | KiByte      |
-| M    | MByte       |
-| MB   | MByte       |
-| MiB  | MiByte      |
-| Mb   | MiByte      |
-| MI   | MiByte      |
-| G    | GByte       |
-| GB   | GByte       |
-| GiB  | GiByte      |
-| Gb   | GiByte      |
-| GI   | GiByte      |
-| T    | TByte       |
-| TB   | TByte       |
-| TiB  | TiByte      |
-| Tb   | TiByte      |
-| TI   | TiByte      |
-| P    | PByte       |
-| PB   | PByte       |
-| PiB  | PiByte      |
-| Pb   | PiByte      |
-| PI   | PiByte      |
-| E    | EByte       |
-| EB   | EByte       |
-| EiB  | EiByte      |
-| Eb   | EiByte      |
-| EI   | EiByte      |
+| K    | kilobyte       |
+| KB   | kilobyte       |
+| KiB  | kibibyte      |
+| Kb   | kibibyte      |
+| KI   | kibibyte      |
+| M    | megabyte       |
+| MB   | megabyte       |
+| MiB  | mebibyte      |
+| Mb   | mebibyte      |
+| MI   | mebibyte      |
+| G    | gigabyte       |
+| GB   | gigabyte       |
+| GiB  | gibibyte      |
+| Gb   | gibibyte      |
+| GI   | gibibyte      |
+| T    | terabyte       |
+| TB   | terabyte       |
+| TiB  | tebibyte      |
+| Tb   | tebibyte      |
+| TI   | tebibyte      |
+| P    | petabyte       |
+| PB   | petabyte       |
+| PiB  | pebibyte      |
+| Pb   | pebibyte      |
+| PI   | pebibyte      |
+| E    | exabyte       |
+| EB   | exabyte       |
+| EiB  | exbibyte      |
+| Eb   | exbibyte      |
+| EI   | exbibyte      |
 
 ### Seconds / Duration
 
@@ -111,7 +111,7 @@ Durations with the base unit `s` for seconds can be converted into the following
 | w    | weeks        |
 | y    | years        |
 
-For example convert the uptime to days:
+For example, convert the uptime to days:
 
 ```bash
 check_uptime "perf-config=*(unit:d)"
@@ -119,7 +119,7 @@ check_uptime "perf-config=*(unit:d)"
 
 ### Percent
 
-All performance data which have at least a value and a min and max value can be converted to percent.
+Performance data with a value, a minimum, and a maximum can be converted to a percentage.
 
 ```bash
 check_plugin perf-config="*(unit:%)"

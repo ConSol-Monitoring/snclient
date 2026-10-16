@@ -1,18 +1,18 @@
 ---
-linkTitle: OSX
+linkTitle: macOS
 weight: 400
 ---
 
-# OSX
+# macOS
 
 ## Installation
 
 Stable release installation packages can be found here:
 
-- [Github Releases](https://github.com/ConSol-Monitoring/snclient/releases)
+- [GitHub Releases](https://github.com/ConSol-Monitoring/snclient/releases)
 
-Download the .pkg file from the releases page und start it. You might need to
-open the system settings allow opening the package since it is not signed.
+Download the .pkg file from the releases page and start it. You might need to
+open System Settings and allow opening the package since it is not signed.
 
 ![system settings](osx-settings.png "osx system settings")
 
@@ -30,6 +30,6 @@ The firewall should be configured to allow these ports:
 
 ## Uninstall
 
-Uninstall is available possible with the uninstall shell script.
+Uninstall SNClient using the uninstall shell script.
 
     %> sudo /usr/local/bin/snclient_uninstall.sh

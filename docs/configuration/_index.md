@@ -5,7 +5,7 @@ linkTitle: Configuration
 
 ## General
 
-SNClient uses the ini style config format with some enhancements, ([see syntax specification below](#syntax)).
+SNClient uses the INI-style configuration format with some enhancements ([see syntax specification below](#syntax)).
 
 The default configuration is explained in the [packaging file](https://github.com/ConSol-Monitoring/snclient/blob/main/packaging/snclient.ini).
 
@@ -15,7 +15,7 @@ By default SNClient searches for a `snclient.ini` in the following folders:
 
 - `./snclient.ini` (current folder)
 - `/etc/snclient/snclient.ini`
-- `${exe-path}/snclient.ini` (this is `C:\Program Files\snclient\snclient.ini` on windows)
+- `${exe-path}/snclient.ini` (this is `C:\Program Files\snclient\snclient.ini` on Windows)
 
 ## Custom Configuration
 
@@ -27,7 +27,7 @@ in a separate file has a couple of advantages.
 - clean separation of upstream and user configuration.
 - no need to walk through the whole default configuration to see what has been customized.
 
-Best practice is to create a file `snclient_local.ini`, ex.: like this:
+Best practice is to create a `snclient_local.ini` file, for example:
 
 ```ini
 [/modules]
@@ -50,19 +50,19 @@ The location for a custom file would be: `/etc/snclient/snclient_local.ini`
 
 ## Syntax
 
-The configuration uses the ini file format. For example:
+The configuration uses the INI file format. For example:
 
 ```ini
 [/settings/default]
 allowed hosts = 127.0.0.1, ::1
 ```
 
-The maximum length of a single line in the ini file is limited to 1MB.
+The maximum length of a single line in the INI file is limited to 1MB.
 
 ### Comments
 
-Lines starting with `#` or `;` are comments and ignored. You can use
-both characters as value.
+Lines starting with `#` or `;` are treated as comments and ignored. You can use
+both characters in values.
 
 ```ini
 [/settings/external scripts]
@@ -117,9 +117,9 @@ add a comma. (Starting with v0.38 this will be done automatically)
 
 ## Inheritance
 
-The configuration is splitted into multiple sections, but in order to
+The configuration is split into multiple sections, but in order to
 avoid having duplicate password or allowed hosts entries, inheritance can
-be used to only specify central things once.
+be used to define shared settings only once.
 
 ```ini
 [/settings/sub1/other]
@@ -138,8 +138,8 @@ key = value
 key = value
 ```
 
-Each section inherits values from it's default section,
-from parent sections and parents defaults section.
+Each section inherits values from its default section,
+from parent sections and their default sections.
 
 This is the order of inheritance for the example above:
 
@@ -152,9 +152,9 @@ The first defined value will be used.
 
 ## Includes
 
-It is possible and encouraged to include other ini files to organize your settings.
+It is possible and encouraged to include other INI files to organize your settings.
 
-Includes can either be local files or http(s) urls to load remote configuration files.
+Includes can either be local files or HTTP(S) URLs to load remote configuration files.
 
 ### Local Includes
 
@@ -167,8 +167,8 @@ local = snclient_local*.ini
 
 ### HTTPS Includes
 
-Besides that it is possible to use https urls to use central managed configuration
-files. It is recommended to use https links and use some sort of authentication.
+HTTPS URLs can also be used to load centrally managed configuration
+files. It is recommended to use HTTPS links and use some sort of authentication.
 
 The simple way:
 
@@ -178,7 +178,7 @@ remote = https://user:password@central.company/snclient/default.ini
 ```
 
 If you want to configure more details, create a new section for each include and
-adjust all default http client options:
+adjust all default HTTP client options:
 
 ```ini
 [/includes/company]
@@ -191,18 +191,18 @@ url                  = https://central.company/snclient/default.ini
 #certificate key     = client1.key # private key for client certificate
 ```
 
-The http include will be locally cached, so SNClient will still start, even if the
-remove server is temporarily not available. The agent will try to update the include
+The HTTP include will be locally cached, so SNClient will still start, even if the
+remote server is temporarily not available. The agent will try to update the include
 on reload and daemon startup. The SNClient will not try to update the include
-for simple commands, ex.: snclient run ... or snclient hash unless the include
+for simple commands, such as `snclient run ...` or `snclient hash`, unless the include
 has never been downloaded.
 
-In case the include cannot be download and no local cache is present, the agent
+In case the include cannot be downloaded and no local cache is present, the agent
 will refuse to start.
 
 ## Macros
 
-Macros can be used in the ini file configuration to access path variables.
+Macros can be used in the INI file configuration to access path variables.
 
 Supported macro variants:
 
@@ -223,18 +223,18 @@ List of available macros:
 | `${exe-file}`         | snclient or snclient.exe                   | Basename of executable                          |
 | `${exe-full}`         | /usr/bin/snclient                          | Full path to executable                         |
 | `${exe-path}`         | /usr/bin or c:\Program Files\snclient      | Directory of executable                         |
-| `${file-ext}`         | .exe or empty                              | File extension of agents executable file        |
-| `${goarch}`           | x86_64, aarch64, i386, ...                 | The value of Golangs runtime.GOARCH             |
-| `${goos}`             | linux, windows, darwin, ...                | The value of Golangs runtime.GOOS               |
+| `${file-ext}`         | .exe or empty                              | File extension of agent's executable file        |
+| `${goarch}`           | x86_64, aarch64, i386, ...                 | The value of Go's runtime.GOARCH             |
+| `${goos}`             | linux, windows, darwin, ...                | The value of Go's runtime.GOOS               |
 | `${hostname}`         | machine.local                              | Name of the host running the agent              |
 | `${pkgarch}`          | amd64, arm64, 386, ...                     | Architecture as used in package file names      |
 | `${scripts}`          | usually `${shared-path}/scripts`           | Directory of script files (set by snclient.ini) |
 | `${shared-path}`      | /etc/snclient or c:\Program Files\snclient | Directory of shared files (set by snclient.ini) |
 
-## On Demand Macros
+## On-Demand Macros
 
 Besides the path macros, you can access and reference any configuration value
-with on demand macros:
+with on-demand macros:
 
 - `${/settings/section/attribute}`
 - `%(/settings/section/attribute)`
@@ -247,14 +247,14 @@ webserver component:
 alias_allowed_hosts = check_dummy 0 "weballowed:${/settings/WEB/server/allowed hosts}"
 ```
 
-On demand macros are only available during the initial config parsing and will
+On-demand macros are only available during the initial config parsing and will
 not be used for plugin arguments for security reasons.
 
 ## Macro Operators
 
-The list of available macro operators is defined [here](../checks/macros/)
+The list of available macro operators is defined [here](../checks/macros/).
 
-For example, to define a dummy command which prints the hostname in lower case letters:
+For example, to define a dummy command which prints the hostname in lowercase letters:
 
 ```ini
 [/settings/external scripts/alias]

@@ -6,12 +6,12 @@ weight: 600
 
 ## General
 
-SNClient is written in golang which comes which some benefits regarding security.
+SNClient is written in Go, which offers several security benefits.
 
 - Native TLS/SSL Support
 
-  Since there are no external ssl/tls libraries, SNClient always comes with
-  latest TLS support even on legacy systems (if you regularly update SNClient).
+  Since there are no external TLS/SSL libraries, SNClient always comes with
+  the latest TLS support even on legacy systems (if you regularly update SNClient).
 
 - Strong Encryption and Security Standards
 
@@ -26,8 +26,8 @@ SNClient is written in golang which comes which some benefits regarding security
 
 ## Code Signing
 
-The windows builds (both snclient.exe and the .msi installer) and can be verified
-with the signtool.exe from the windows developer sdk, ex.:
+The Windows builds (both snclient.exe and the .msi installer) can be verified
+with signtool.exe from the Windows SDK, for example:
 
 ```powershell
 signtool.exe verify /pa snclient.exe
@@ -37,13 +37,13 @@ signtool.exe verify /pa snclient.exe
 
 ### Update Regularly
 
-Always keep SNClient on the latest release version to benefit from security
+Always keep SNClient on the latest release version to benefit from security fixes.
 
 See the [updates page](../updates/) for instructions.
 
 ### Use SSL
 
-Use ssl/tls whenever possible.
+Use TLS/SSL whenever possible.
 
 ```ini
 [/settings/default]
@@ -53,15 +53,14 @@ use ssl = true
 ### HSTS Header
 
 SNClient supports sending HTTP Strict Transport Security (HSTS) headers.
-This is disabled by default, since this addresses browser und human interaction
+This is disabled by default, since this addresses browser and human interaction
 issues which usually do not apply to the SNClient scenarios.
 
-The HSTS header tells browsers to automatically use HTTPS for all future connections
-to the server, which is totally useless in SNClient context because it usually
-won't be directly accessed from a browser. But this makes super smart penetration tests
-happy.
+The HSTS header tells browsers to automatically use HTTPS for future connections
+to the server. SNClient is usually accessed by monitoring tools rather than browsers,
+so this header generally has limited relevance.
 
-So this can be enabled if it pops up during security auditions. Make sure you
+You can enable it if required by a security audit. Make sure you
 use valid certificates before enabling it.
 
 The header is set to:
@@ -84,7 +83,7 @@ use hsts header = false
 
 ### TLS 1.3
 
-If possible, set minimum required TLS version to 1.3. Since the number of
+If possible, set the minimum required TLS version to 1.3. Since the number of
 clients is limited there is no need to support old browsers.
 
 ```ini
@@ -95,11 +94,11 @@ tls min version = "tls1.3"
 ### Client certificate verification
 
 You can enable client certificate verification using `ca` or `client certificates` options
-(both options has the same meaning, `ca` option was added for backward compatibility with NSclient).
-You can find example how to generate certificates bellow.
+(both options have the same meaning; the `ca` option was added for backward compatibility with NSClient++).
+You can find an example of how to generate certificates below.
 
-- `certificate` specify server certificate
-- `certificate key` specify server key
+- `certificate` specifies the server certificate
+- `certificate key` specifies the server key
 - `ca` and/or `client certificates` specify the CA certificate for certificate verification and enable verification itself.
 
 ```ini
@@ -179,7 +178,7 @@ be necessary in certain scenarios, read more in the [allow arguments](#allow-arg
 ### Allow Nasty Characters
 
 It is recommended to **not** enable `allow nasty characters` or `allow control
-characters` as this allows to exploit existing commands.
+characters` as this allows exploitation of existing commands.
 
 Removing some of the `nasty characters` is also not a good idea. Each of them
 is there for a reason and removing any of them probably allows command injection
@@ -196,7 +195,7 @@ allow control characters = false
 Normally arguments for external commands are not allowed because they are forwarded
 to the shell which makes them easy to exploit.
 
-When enabling arguments, make sure using quoted arguments like `$ARGS"$`. Using unquoted
+When enabling arguments, make sure to use quoted arguments like `$ARGS"$`. Using unquoted
 arguments leads to command injection vulnerabilities.
 
 A better approach would be to use aliased commands.

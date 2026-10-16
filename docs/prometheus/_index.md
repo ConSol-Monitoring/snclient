@@ -7,32 +7,32 @@ tags:
   - exporter
 ---
 
-There are several prometheus integrations in SNClient.
+There are several Prometheus integrations in SNClient.
 
 ## Overview
 
-- [Builtin Windows Exporter](#windows-exporter)
-- [Builtin Node Exporter](#node-exporter)
+- [Built-in Windows Exporter](#windows-exporter)
+- [Built-in Node Exporter](#node-exporter)
 - [Managed Exporters](#managed-exporters)
 - [ExporterExporter](#exporter-exporter)
 - [Prometheus Metrics of SNClient](#metrics)
 
 ## Windows Exporter
 
-When running SNClient on windows there is a builtin windows exporter.
+When running SNClient on Windows there is a built-in Windows exporter.
 
 [Read more about the windows_exporter](windows).
 
 ## Node Exporter
 
-When running SNClient on linux or osx there is a builtin node exporter.
+When running SNClient on Linux or macOS there is a built-in node exporter.
 
 [Read more about the node_exporter](node).
 
 ## Managed Exporters
 
 Managed exporters are exporters started and managed by SNClient. They will get
-a unique assigned url in the main webserver of SNClient.
+a uniquely assigned URL in the main webserver of SNClient.
 
 [Read more about managed exporters](managed).
 
@@ -45,7 +45,7 @@ The exporter exporter is for exporters not managed by SNClient.
 
 ## Metrics
 
-SNClient itself is a prometheus exporter as well and provides some metrics
+SNClient itself is a Prometheus exporter as well and provides some metrics
 about the agent process.
 
 It can be enabled in the modules section of the `snclient.ini`.
@@ -60,4 +60,4 @@ use ssl = false
 password =
 ```
 
-You can then scrape prometheus metrics from `http://<ip>:9999/metrics`.
+You can then scrape Prometheus metrics from `http://<ip>:9999/metrics`.

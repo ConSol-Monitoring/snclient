@@ -1,5 +1,5 @@
 ﻿---
-title: Common Check Arguments
+title: Common arguments
 ---
 
 | Option                          | Description |
@@ -12,11 +12,11 @@ title: Common Check Arguments
 | [critical](#critical)           | Threshold when to generate a critical state |
 | [crit](#critical)               | Short alias for critical |
 | [critical+](#critical-1)        | Same as critical but extend default critical instead of overwriting it |
-| [ok](#ok)                       | Threshold when to generate an ok state |
-| [top-syntax](#top-syntax)       | Top level syntax. |
-| [ok-syntax](#ok-syntax)         | Syntax used for ok states. |
+| [ok](#ok)                       | Threshold when to generate an OK state |
+| [top-syntax](#top-syntax)       | Top-level syntax. |
+| [ok-syntax](#ok-syntax)         | Syntax used for OK states. |
 | [empty-syntax](#empty-syntax)   | Template syntax used when no item matches a filter. |
-| [empty-state](#empty-state)     | Status to return when no items matches the filter. |
+| [empty-state](#empty-state)     | Status to return when no items match the filter. |
 | [detail-syntax](#detail-syntax) | Detailed syntax for list items. |
 | [perf-syntax](#perf-syntax)     | Performance data syntax. |
 | [perf-config](#perf-config)     | Performance data tweaks. |
@@ -26,84 +26,84 @@ title: Common Check Arguments
 Filter for items which will be included in the check. Unwanted items will be ignored
 and won't trigger a warning or critical state.
 
-ex.:
+For example:
 
     'filter=service = snclient'
 
-Filter are explained in detail here: [check filter](../filter/)
+Filters are explained in detail here: [check filter](../filter/)
 
 ### Filter+
 
-Extend default filter.
+Extend the default filter.
 
-ex.:
+For example:
 
     'filter+=service = snclient'
 
 ### Warning
 
-Filter which sets a threshold when to generate a warning state. If any wanted item
-matches this filter the return state will be escalated to warning.
+Expression that defines when to return a WARNING state. If any selected item
+matches this expression, the return state will be escalated to WARNING.
 
 The syntax works the same way as [filter](#filter) except matching items are not
-removed but escalate the status to warning state.
+removed, but instead set the status to WARNING.
 
-ex.:
+For example:
 
     'warn=load > 90%'
 
-Syntax is explained in details on the [expressions page](../expressions).
+Syntax is explained in detail on the [expressions page](../expressions).
 
 ### Warning+
 
-Extend default warning threshold.
+Extend the default warning threshold.
 
-ex.:
+For example:
 
     'warn+=load > 90%'
 
 ### Critical
 
-Filter which sets a threshold when to generate a critical state. If any wanted item
-matches this filter the return state will be escalated to critical.
+Expression that defines when to return a CRITICAL state. If any selected item
+matches this expression, the return state will be escalated to CRITICAL.
 
 The syntax works the same way as [filter](#filter) except matching items are not
-removed but escalate the status to critical state.
+removed, but instead set the status to CRITICAL.
 
-ex.:
+For example:
 
     'crit=load > 98%'
 
-Syntax is explained in details on the [expressions page](../expressions).
+Syntax is explained in detail on the [expressions page](../expressions).
 
 ### Critical+
 
-Extend default critical threshold.
+Extend the default critical threshold.
 
-ex.:
+For example:
 
     'crit+=load > 90%'
 
-### Ok
+### OK
 
-Filter which sets a threshold when to generate an ok state. If any wanted item
-matches this filter its state will be reset to ok regardless of its previous state.
+Expression that defines when to return an OK state. If any selected item
+matches this expression, its state will be reset to OK regardless of its previous state.
 
 The syntax works the same way as [filter](#filter) except matching items are not
-removed but the status is reset to ok state.
+removed but the status is reset to OK.
 
-ex.:
+For example:
 
     'ok=enabled = 0'
 
-Syntax is explained in details on the [expressions page](../expressions).
+Syntax is explained in detail on the [expressions page](../expressions).
 
 ### Empty-State
 
 Status to be returned when no item matches the filter. If no filter is given this won't happen.
-Empty-State won't be used at all if there is a `count` warning/critical/ok threshold used.
+Empty-State won't be used at all if a `count` warning/critical/ok threshold is used.
 
-ex.:
+For example:
 
     'empty-state=3'
 
@@ -114,18 +114,18 @@ as special keywords that will be replaced by information from the check.
 
 Details are explained on the [template syntax page](../syntax/).
 
-ex.:
+For example:
 
     'top-syntax=%(status) - %(crit_list)'
 
-### Ok-Syntax
+### OK-Syntax
 
 Overrides the `top-syntax` if the state is OK. Can include text as well as special
 keywords that will be replaced by information from the check.
 
 Details are explained on the [template syntax page](../syntax/).
 
-ex.:
+For example:
 
     'ok-syntax=%(status) - everything is fine'
 
@@ -136,7 +136,7 @@ Sets the format for the return message if no item matched the filter. Overrides 
 
 Details are explained on the [template syntax page](../syntax/).
 
-ex.:
+For example:
 
     'empty-syntax=%(status) - nothing found'
 
@@ -146,7 +146,7 @@ Sets the format for each individual list item in the message.
 
 Details are explained on the [template syntax page](../syntax/).
 
-ex.:
+For example:
 
     'detail-syntax=%(name): Memory: %(mem:h) - CPU: %(cpu)%'
 
@@ -154,7 +154,7 @@ ex.:
 
 Sets the format for the base names of the performance data. The default is `%(key)`.
 
-ex.:
+For example:
 
     'perf-syntax=%(key | lc)'
 
@@ -164,6 +164,6 @@ Apply tweaks to performance data, like unit conversion.
 
 `perf-config` syntax is explained in detail here: [Perf Config](../perfconfig/)
 
-ex.:
+For example:
 
     'perf-config=used(unit:G)'

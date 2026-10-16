@@ -1,66 +1,67 @@
 ﻿---
-title: Filter
+title: Filters
 ---
 
-Filter can be uses to select specific objects from a result list. So if a filter
+Filters can be used to select specific objects from a result list. So if a filter
 is specified, only those elements matching the filter will be considered when
 building the final result.
 
 The same syntax is used for warning/critical/ok thresholds, except when used
-as threshold, the corresponding status will be set.
+as a threshold, the corresponding status will be set.
 
 ## Syntax
 
-All filter follow the syntax `<attribute> <operator> <value>`. For a list and explanation
+All filters follow the syntax `<attribute> <operator> <value>`. For a list and explanation
 of allowed operators see [the operator list](../expressions).
 
 The list of possible attributes is documented along with each [check plugin](../plugins).
 
 [Common attributes](#common-filter-attributes) are listed at the end of this page.
 
-ex.:
+For example:
 
     filter="status = 'started'"
 
-Syntax is explained in details on the [expressions page](../expressions).
+Syntax is explained in detail on the [expressions page](../expressions).
 
-Multiple filter can be used and will be combined with an logical `OR`.
+Multiple filters can be used and will be combined with a logical `OR`.
 
-ex.:
+For example:
 
     filter="drive = 'C:'" filter="drive = 'D:'"
 
 ## Filter As Excludes
 
-By default filters are a positive include list. But with the right operator
-they can be used as exclude as well.
+By default, filters form an inclusion list. With the appropriate operator,
+they can also exclude items.
 
-ex.:
+For example:
 
     filter="fstype not in ('tmpfs', 'debugfs')"
 
 ## Default Filter
 
-Some checks do have default filter, which will be used if no filter is supplied
-as check argument.
+Some checks have a default filter, which will be used if no filter is supplied
+as a check argument.
 
-Default filter are documented along with each [check plugins](../plugins).
+Default filters are documented along with each [check plugin](../plugins).
 
-The default filter can be unset by using a `none` filter, ex.:
+The default filter can be unset by using a `none` filter, for example:
 
     filter="none"
 
-Default filter will be overwritten if a new filter is set.
+The default filter will be overwritten if a new filter is set.
 
 ## Extending Filters
 
-Existing default filter can be extended by using a `filter+="..."` syntax, ex.:
+An existing default filter can be extended using the `filter+="..."` syntax, for example:
 
     filter+="status = 'started'"
 
-In case of extending the default filter, all filter will be combined with an logical `AND`.
+When extending the default filter, all filters will be combined with a logical `AND`.
 
-ex.:
+For example:
+
     default filter="fstype is not tmpfs"
 
     filter += "fstype is not debugfs"
@@ -69,9 +70,10 @@ results in:
 
     fstype is not tmpfs AND fstype is not debugfs
 
-Same applies to appending to previously set filters:
+The same applies to appending to previously set filters:
 
-ex.:
+For example:
+
     filter="fstype is not tmpfs"    filter+="fstype is not debugfs"
 
 also results in:
@@ -90,8 +92,8 @@ Expressions are explained on the [expressions page](../expressions).
 | count         | Number of items matching the filter. |
 | total         | Total number of items |
 | list          | List of all items matching the filter. |
-| ok_count      | Number of items that are ok |
-| ok_list       | List of items that are ok |
+| ok_count      | Number of items that are OK |
+| ok_list       | List of items that are OK |
 | warn_count    | Number of items that matched the warning threshold |
 | warn_list     | List of items that matched the warning threshold |
 | crit_count    | Number of items that matched the critical threshold |

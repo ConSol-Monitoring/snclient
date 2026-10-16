@@ -10,13 +10,13 @@ weight: 300
 Stable release installation packages can be found here:
 
 - [ConSol Software Repository](https://labs.consol.de/repo/stable/) (recommended)
-- [Github Releases](https://github.com/ConSol-Monitoring/snclient/releases)
+- [GitHub Releases](https://github.com/ConSol-Monitoring/snclient/releases)
 
-Add the repository as described on the link itself.
+Add the repository as described on the linked repository page.
 
     #> apt install snclient
 
-![apt install snclient](apt.png "apt install snclient")
+![apt install SNClient](apt.png "apt install snclient")
 
 ### Firewall
 
@@ -28,6 +28,6 @@ The firewall should be configured to allow these ports:
 
 ## Uninstall
 
-Uninstall is available possible with `apt`.
+Uninstall SNClient using `apt`.
 
     #> apt remove snclient

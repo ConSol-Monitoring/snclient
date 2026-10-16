@@ -63,18 +63,18 @@ Send something and expect specific string:
     check_tcp -H outlook.com -p 25 -s "HELO" -e "Microsoft ESMTP MAIL Service ready" -q "QUIT"
     TCP OK - 0.197 seconds response time on outlook.com port 25
 
-### Example using NRPE and Naemon
+### Example using check_snclient and Naemon
 
 Naemon Config
 
     define command{
-        command_name         check_nrpe
-        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_snclient
+        command_line         $USER1$/check_snclient -k -p 'your-password' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
     }
 
     define service {
         host_name            testhost
         service_description  check_tcp
         use                  generic-service
-        check_command        check_nrpe!check_tcp!'-H' 'omd.consol.de' '-p' '80'
+        check_command        check_snclient!check_tcp!'-H' 'omd.consol.de' '-p' '80'
     }

@@ -95,18 +95,18 @@ Check specific plugin:
     check_snclient -p ... -u https://localhost:8443 -c check_process process=snclient.exe
     OK - all 1 processes are ok. | ...
 
-### Example using NRPE and Naemon
+### Example using check_snclient and Naemon
 
 Naemon Config
 
     define command{
-        command_name         check_nrpe
-        command_line         $USER1$/check_nrpe -H $HOSTADDRESS$ -n -c $ARG1$ -a $ARG2$
+        command_name         check_snclient
+        command_line         $USER1$/check_snclient -k -p 'your-password' -u 'https://$HOSTADDRESS$:8443' $ARG1$ $ARG2$
     }
 
     define service {
         host_name            testhost
         service_description  check_snclient
         use                  generic-service
-        check_command        check_nrpe!check_snclient!'-p' 'PASSWORD' '-u' 'https://localhost:8443' '-c' 'check_process' 'process=snclient.exe'
+        check_command        check_snclient!check_snclient!'-p' 'PASSWORD' '-u' 'https://localhost:8443' '-c' 'check_process' 'process=snclient.exe'
     }

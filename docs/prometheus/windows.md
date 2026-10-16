@@ -11,7 +11,7 @@ tags:
 
 ## Windows Exporter
 
-When running SNClient on windows there is a builtin windows exporter which can be
+When running SNClient on Windows there is a built-in Windows exporter which can be
 enabled by:
 
 ```ini
@@ -29,9 +29,9 @@ require password = false
 ;agent args = --collectors.enabled=[defaults],time,license
 ```
 
-You can then scrape windows metrics from `http://<ip>:8443/node/metrics`.
+You can then scrape Windows metrics from `http://<ip>:8443/node/metrics`.
 
-The prometheus scrape config might look like this:
+The Prometheus scrape config might look like this:
 
 ```yaml
 - job_name: 'windows'
@@ -50,5 +50,5 @@ The prometheus scrape config might look like this:
   - targets: ['<ip>:8443']
 ```
 
-SNClient will monitor the windows exporter memory usage and restart the exporter if
-it exceeds the `agent max memory`. The default is 256MB.
+SNClient will monitor the Windows exporter's memory usage and restart the exporter if
+it exceeds the `agent max memory` limit. The default is 256MB.
