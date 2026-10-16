@@ -90,7 +90,7 @@ read more on Windows virtual address space:
 Changing the return syntax to get more information:
 
     check_memory 'top-syntax=${list}' 'detail-syntax=${type} free: ${free} used: ${used} size: ${size}'
-    physical free: 24.08 GiB used: 7.01 GiB size: 31.09 GiB, committed free: 271.43 MiB used: 705.57 MiB size: 977.00 MiB |...
+    physical free: 35.00 B used: 7.01 GiB size: 31.09 GiB, committed free: 27.00 B used: 705.57 MiB size: 977.00 MiB |...
 	`,
 		exampleArgs: `'warn=used > 80%' 'crit=used > 90%'`,
 	}

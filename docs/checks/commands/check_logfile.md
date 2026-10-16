@@ -70,12 +70,12 @@ these can be used in filters and thresholds (along with the default attributes):
 
 Alert if there are errors in the SNClient log file:
 
-    check_logfile files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'
+    check_logfile files=/var/log/snclient/snclient.log "warn=line like 'Warn'" "crit=line like 'Error'"
     OK - 134 line(s) found
 
 Non-OK output example
-	check_logfile files=/var/log/snclient/snclient.log 'warn=line like Warn' 'crit=line like Error'
-    CRITICAL - 23/548 line(s) found
+		check_logfile files=/var/log/snclient/snclient.log "warn=line like 'Warn'" "crit=line like 'Error'"
+		CRITICAL - 23/548 line(s) found
 
 ### Example using NRPE and Naemon
 
@@ -90,5 +90,5 @@ Naemon Config
         host_name            testhost
         service_description  check_logfile
         use                  generic-service
-        check_command        check_nrpe!check_logfile!'files=/var/log/snclient/snclient.log' 'warn=line like Warn'
+        check_command        check_nrpe!check_logfile!'files=/var/log/snclient/snclient.log' "warn=line like 'Warn'" "crit=line like 'Error'"
     }
