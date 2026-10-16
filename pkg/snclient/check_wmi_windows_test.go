@@ -27,10 +27,14 @@ func TestCheckWMINamespace(t *testing.T) {
 	`
 	snc := StartTestAgent(t, config)
 
-	// AntiVirusProduct only exists in root\SecurityCenter2 (not the default
-	// root\cimv2), so this only passes if the namespace is actually used.
-	res := snc.RunCheck("check_wmi", []string{"query='select displayName FROM AntiVirusProduct'", "namespace='root\\SecurityCenter2'"})
-	assert.Equalf(t, CheckExitOK, res.State, "state ok")
+	// cimv2 is a child of root, not of the default root\cimv2 namespace.
+	res := snc.RunCheck("check_wmi", []string{
+		`query=SELECT Name FROM __NAMESPACE WHERE Name = 'cimv2'`,
+		`namespace=root`,
+	})
+	output := string(res.BuildPluginOutput())
+	assert.Equalf(t, CheckExitOK, res.State, "unexpected result: %s", output)
+	assert.Contains(t, output, "cimv2")
 
 	StopTestAgent(t, snc)
 }
