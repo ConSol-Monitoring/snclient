@@ -36,3 +36,4 @@ go.work.sum
 scripts/
 .codex
 *.*~
+win/
