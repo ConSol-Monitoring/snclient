@@ -8,7 +8,7 @@ GOVERSION:=$(shell \
     awk -F'go| ' '{ split($$5, a, /\./); printf ("%04d%04d", a[1], a[2]); exit; }' \
 )
 # also update other go.mod files when changing minimum version
-# find . -name go.mod -o -name Dockerfile
+# find . -name go.mod -o -name Dockerfile -o supported.md
 MINGOVERSION:=00010027
 MINGOVERSIONSTR:=1.27
 BUILD:=$(shell git rev-parse --short HEAD)
