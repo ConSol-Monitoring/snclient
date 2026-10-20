@@ -43,14 +43,12 @@ func (l *CheckMemory) Build() *CheckData {
 
 There are several types of memory that can be checked:
 
-    physical: physical memory
-    swap: swap memory (pagefile on Windows)
-    committed: committed memory as shown in the Windows task manager (Windows only, basically this is the physical + swap)
-    virtual: available Windows virtual address space (Windows only)
+- physical: physical memory
+- swap: swap memory (pagefile on Windows)
+- committed: committed memory as shown in the Windows task manager (Windows only, basically this is the physical + swap)
+- virtual: available Windows virtual address space (Windows only)
 
-read more on Windows virtual address space:
-
-    https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex`,
+Read more on Windows virtual address space [here](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex).`,
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{

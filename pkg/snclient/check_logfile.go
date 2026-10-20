@@ -64,18 +64,18 @@ func (c *CheckLogFile) Build() *CheckData {
 		name:        "check_logfile",
 		description: `Checks logfiles or any other text format file for errors or other general patterns
 
-    In order to use this plugin, you need to enable 'CheckLogFile' in the '[/modules]' section of the snclient_local.ini.
+In order to use this plugin, you need to enable 'CheckLogFile' in the '[/modules]' section of the snclient_local.ini.
 
-    Also, to avoid security issues, you need to set 'allowed pattern' in the '[/settings/check/logfile]'
-    section of the snclient_local.ini to a comma separated list of allowed glob patterns.
+Also, to avoid security issues, you need to set 'allowed pattern' in the '[/settings/check/logfile]'
+section of the snclient_local.ini to a comma separated list of allowed glob patterns.
 
-    Example:
+Example:
+
     [/settings/check/logfile]
     allowed pattern  = /var/log/**      # This allows all files recursively in /var/log/
     allowed pattern += /opt/logs/*.log  # This allows all files with .log extension in /opt/logs/
 
-    See https://github.com/bmatcuk/doublestar#patterns for details on the pattern syntax.
-`,
+See [here](https://github.com/bmatcuk/doublestar#patterns) for details on the pattern syntax.`,
 		detailSyntax: "%(line | chomp | cut=200)", // cut after 200 chars
 		listCombine:  "\n",
 		okSyntax:     "%(status) - %(count) line(s) found",

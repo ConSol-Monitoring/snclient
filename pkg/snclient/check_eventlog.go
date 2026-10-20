@@ -27,27 +27,27 @@ func (l *CheckEventlog) Build() *CheckData {
 		description: `Checks the Windows eventlog entries.
 
 Basically, this check wraps this WMI query:
-SELECT
-	ComputerName,
-	LogFile,
-	Category,
-	EventCode,
-	EventIdentifier,
-	EventType,
-	Message,
-	SourceName,
-	Type,
-	TimeWritten,
-	TimeGenerated
-FROM
-	Win32_NTLogEvent
 
-See https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlogprov/win32-ntlogevent for
+    SELECT
+        ComputerName,
+        LogFile,
+        Category,
+        EventCode,
+        EventIdentifier,
+        EventType,
+        Message,
+        SourceName,
+        Type,
+        TimeWritten,
+        TimeGenerated
+    FROM
+        Win32_NTLogEvent
+
+See [here](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlogprov/win32-ntlogevent) for
 a description of the provided fields.
 
 Filter conditions on id are added to the WHERE clause of the WMI query when possible,
-the filter is still applied to the returned events.
-`,
+the filter is still applied to the returned events.`,
 		implemented: Windows,
 		result: &CheckResult{
 			State: CheckExitOK,
