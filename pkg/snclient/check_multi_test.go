@@ -11,6 +11,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestCheckMultiLineContinuation(t *testing.T) {
+	config := `
+[/settings/check/multi/multiline]
+command[ok] = check_dummy \
+          0 \
+          'multiline ok'
+command[warning] = check_dummy \
+          1 \
+          'multiline warning'
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{"config=multiline"})
+	assert.Equal(t, CheckExitWarning, res.State)
+	assert.Contains(t, res.Output, "2 plugins checked: 1 ok, 1 warning, 0 critical, 0 unknown")
+	assert.Contains(t, res.Details, "[ok] multiline ok")
+	assert.Contains(t, res.Details, "[warning] multiline warning")
+}
+
 func TestCheckMultiInline(t *testing.T) {
 	config := `
 [/modules]

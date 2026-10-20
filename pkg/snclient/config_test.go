@@ -61,6 +61,57 @@ test4 += c
 	assert.Equalf(t, expData, cfg.Section("/test").data, "config parsed")
 }
 
+func TestConfigLineContinuation(t *testing.T) {
+	configText := `[/settings/external scripts/scripts]
+check_ext = snclient run check_dummy \
+          0 \
+          $ARGS$
+[/test]
+quoted = "hello \
+          world"
+path = C:\scripts\
+next = unchanged
+append = first
+append += \
+	second
+`
+	for _, newline := range []string{"\n", "\r\n"} {
+		t.Run(fmt.Sprintf("newline=%q", newline), func(t *testing.T) {
+			cfg := NewConfig(false)
+			err := cfg.ParseINI(strings.ReplaceAll(configText, "\n", newline), "testfile.ini", nil)
+			require.NoError(t, err)
+			command, _ := cfg.Section("/settings/external scripts/scripts").GetString("check_ext")
+			assert.Equal(t, "snclient run check_dummy 0 $ARGS$", command)
+			assert.Equal(t, ConfigData{
+				"quoted": "hello world",
+				"path":   `C:\scripts\`,
+				"next":   "unchanged",
+				"append": "firstsecond",
+			}, cfg.Section("/test").data)
+		})
+	}
+}
+
+func TestConfigLineContinuationErrors(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		config string
+		error  string
+	}{
+		{"unfinished", "[/test]\nkey = value \\", "testfile.ini:2: unfinished line continuation"},
+		{"blank line", "[/test]\nkey = value \\\n\nnext = value\n", "testfile.ini:2: unfinished line continuation"},
+		{"whitespace line", "[/test]\r\nkey = value \\\r\n \t\r\nnext = value\r\n", "testfile.ini:2: unfinished line continuation"},
+		{"trailing blank line", "[/test]\nkey = value \\\n\n", "testfile.ini:2: unfinished line continuation"},
+		{"line number", "[/test]\nkey = value \\\n more\nbad\n", "testfile.ini:4: found key without '='"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := NewConfig(false)
+			err := cfg.ParseINI(test.config, "testfile.ini", nil)
+			require.ErrorContains(t, err, test.error)
+		})
+	}
+}
+
 func TestConfigErrorI(t *testing.T) {
 	configText := `
 [/test]

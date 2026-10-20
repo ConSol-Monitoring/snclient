@@ -282,9 +282,9 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 		lines = lines[:len(lines)-1]
 	}
 
-	for x, line := range lines {
-		lineNr := x + 1
-		line = strings.TrimSpace(line)
+	for lineIndex := 0; lineIndex < len(lines); lineIndex++ {
+		lineNr := lineIndex + 1
+		line := strings.TrimSpace(lines[lineIndex])
 		if line == "" || line[0] == ';' || line[0] == '#' {
 			currentComments = append(currentComments, line)
 
@@ -337,6 +337,17 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 			continue
 		}
 		val[0] = strings.TrimSpace(val[0])
+
+		// Require whitespace before continuation to preserve trailing Windows path separators.
+		for strings.HasSuffix(val[1], " \\") || strings.HasSuffix(val[1], "\t\\") {
+			if lineIndex+1 == len(lines) || strings.TrimSpace(lines[lineIndex+1]) == "" {
+				parseErrors = append(parseErrors, fmt.Errorf("config error in %s:%d: unfinished line continuation", iniPath, lineNr))
+
+				break
+			}
+			lineIndex++
+			val[1] = strings.TrimSpace(strings.TrimSuffix(val[1], "\\")) + " " + strings.TrimSpace(lines[lineIndex])
+		}
 		val[1] = strings.TrimSpace(val[1])
 
 		// silently skip UNKNOWN values which were placeholder in nsclient
