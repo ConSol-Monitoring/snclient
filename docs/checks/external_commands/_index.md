@@ -44,6 +44,22 @@ Both formats achieve the same outcome by adding two new commands, `my_check1` an
 the `check_custom.bat` script. Usually you use the short format, but if you want to provide individual options
 to a command, the long format is the way to go.
 
+### Multiline Commands
+
+Long commands can be split across lines using a space or tab followed by `\` at
+the end of each continued line. For example:
+
+```ini
+[/settings/external scripts/scripts]
+check_myscript = ${scripts}/myscript.sh \
+          --arg1 foo \
+          --arg2 bar
+```
+
+Run `snclient run check_myscript`.
+The lines are joined with a single space before the command is parsed.
+See [multiline values](../../configuration/#multiline-values) for the syntax rules.
+
 ### Handling Script Arguments
 
 You can manage script arguments in two ways: embedding them directly into the command or allowing for argument pass-through.

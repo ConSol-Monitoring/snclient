@@ -100,6 +100,32 @@ check_also_keep = "part 1" something else "part 2"
 check_wrong = "unclosed quotes
 ```
 
+### Multiline Values
+
+End a line with a space or tab followed by `\` to continue its value on the next
+line. The backslash and surrounding whitespace, including indentation on the next
+line, are replaced with a single space. This works for configuration values in
+all sections, including external commands and `check_multi` commands.
+
+For example, check the size of a backup folder:
+
+```ini
+[/settings/check/multi/backups]
+command[size] = check_files \
+          "path=/srv/backups" \
+          "warn=total_size > 10GiB"
+```
+
+Run `snclient run check_multi config=backups`.
+
+A continuation must be followed immediately by a nonempty line. A blank or
+whitespace-only line, or the end of the file, causes an `unfinished line
+continuation` error. Windows paths such as `C:\scripts\` remain unchanged because
+the final backslash is not preceded by a space or tab.
+
+See [external commands](../checks/external_commands/#multiline-commands) for an
+external command example.
+
 ### Appending Values
 
 You may use the `+=` operator to append to existing values and write
