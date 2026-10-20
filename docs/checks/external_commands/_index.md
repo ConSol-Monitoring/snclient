@@ -25,7 +25,7 @@ You can add your custom scripts to SNClient using either a concise or verbose fo
 **Concise Format**:
 
 ```ini
-[/settings/external scripts]
+[/settings/external scripts/scripts]
 my_check1 = check_custom.bat
 my_check2 = myscripts\check_custom.bat
 ```
@@ -34,15 +34,20 @@ my_check2 = myscripts\check_custom.bat
 
 ```ini
 [/settings/external scripts/scripts/my_check1]
-my_check1 = check_custom.bat
+command = check_custom.bat
 
 [/settings/external scripts/scripts/my_check2]
-my_check2 = myscripts\check_custom.bat
+command = myscripts\check_custom.bat
 ```
 
 Both formats achieve the same outcome by adding two new commands, `my_check1` and `my_check2`, which execute
 the `check_custom.bat` script. Usually you use the short format, but if you want to provide individual options
 to a command, the long format is the way to go.
+
+In the concise format, the key is the command name. In the verbose format, the last
+part of the section path is the command name and the `command` key specifies what
+to execute. Settings such as `timeout` and `allow arguments` can be set in that
+section to override the global external script settings for that command.
 
 ### Multiline Commands
 
