@@ -61,7 +61,6 @@ check_myscript = ${scripts}/myscript.sh \
           --arg2 bar
 ```
 
-Run `snclient run check_myscript`.
 The lines are joined with a single space before the command is parsed.
 See [multiline values](../../configuration/#multiline-values) for the syntax rules.
 

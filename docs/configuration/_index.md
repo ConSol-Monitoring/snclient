@@ -116,8 +116,6 @@ command[size] = check_files \
           "warn=total_size > 10GiB"
 ```
 
-Run `snclient run check_multi config=backups`.
-
 A continuation must be followed immediately by a nonempty line. A blank or
 whitespace-only line, or the end of the file, causes an `unfinished line
 continuation` error. Windows paths such as `C:\scripts\` remain unchanged because
