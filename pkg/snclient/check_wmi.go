@@ -32,7 +32,7 @@ func (l *CheckWMI) Build() *CheckData {
 		name: "check_wmi",
 		description: `Check status and metrics by running WMI queries.
 
-In order to use this plugin, you need to enable 'CheckWMI' in the '[/modules]' section of the snclient_local.ini.`,
+In order to use this plugin, you need to enable <code>CheckWMI</code> in the <code>[/modules]</code> section of the snclient_local.ini.`,
 		implemented: Windows,
 		args: map[string]CheckArgument{
 			"query":     {value: &l.query, description: "The WMI query to execute"},
