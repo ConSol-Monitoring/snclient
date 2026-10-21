@@ -54,8 +54,8 @@ func (l *CheckLoad) Build() *CheckData {
 			"--show-args":        {value: &l.showArgs, description: "Show arguments when listing the top N processes"},
 		},
 		defaultFilter: "none",
-		detailSyntax:  "${type} load average: ${load1}, ${load5}, ${load15}",
-		topSyntax:     "%(status) - ${list} on ${cores} cores",
+		detailSyntax:  "%(type) load average: %(load1), %(load5), %(load15)",
+		topSyntax:     "%(status) - %(list) on %(cores) cores",
 		listCombine:   " - ",
 		attributes: []CheckAttribute{
 			{name: "type", description: "type will be either 'total' or 'scaled'"},

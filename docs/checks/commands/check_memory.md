@@ -32,7 +32,7 @@ Read more on Windows virtual address space [here](https://learn.microsoft.com/en
 | critical      | used > 90%                                            |
 | empty-state   | 0 (OK)                                                |
 | empty-syntax  |                                                       |
-| top-syntax    | %(status) - \${list}                                  |
+| top-syntax    | %(status) - %(list)                                   |
 | ok-syntax     |                                                       |
 | detail-syntax | %(type) = %(used)/%(size) (%(used_pct \| fmt=%.1f )%) |
 
@@ -72,7 +72,7 @@ these can be used in filters and thresholds (along with the default attributes):
 
 Changing the return syntax to get more information:
 
-    check_memory 'top-syntax=${list}' 'detail-syntax=${type} free: ${free} used: ${used} size: ${size}'
+    check_memory 'top-syntax=%(list)' 'detail-syntax=%(type) free: %(free) used: %(used) size: %(size)'
     physical free: 35.00 B used: 7.01 GiB size: 31.09 GiB, committed free: 27.00 B used: 705.57 MiB size: 977.00 MiB |...
 
 ### Example using check_snclient and Naemon

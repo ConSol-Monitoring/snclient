@@ -31,8 +31,8 @@ func (l *CheckUptime) Build() *CheckData {
 		},
 		defaultWarning:  "uptime < 2d",
 		defaultCritical: "uptime < 1d",
-		topSyntax:       "%(status) - ${list}",
-		detailSyntax:    "uptime: ${uptime}, boot: ${boot | utc}",
+		topSyntax:       "%(status) - %(list)",
+		detailSyntax:    "uptime: %(uptime), boot: %(boot | utc)",
 		attributes: []CheckAttribute{
 			{name: "uptime", description: "Human readable time since last boot", unit: UDuration},
 			{name: "uptime_value", description: "Uptime in seconds", unit: UDuration},

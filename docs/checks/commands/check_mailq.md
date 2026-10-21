@@ -24,9 +24,9 @@ Checks the mailq.
 | critical      | active > 10 \|\| active_size > 20MB \|\| deferred > 10 \|\| deferred_size > 20MB |
 | empty-state   | 3 (UNKNOWN)                                                                      |
 | empty-syntax  | %(status) - could not get any mailq data                                         |
-| top-syntax    | %(status) - \${list}                                                             |
+| top-syntax    | %(status) - %(list)                                                              |
 | ok-syntax     |                                                                                  |
-| detail-syntax | \${mta}: active \${active} / deferred \${deferred}                               |
+| detail-syntax | %(mta): active %(active) / deferred %(deferred)                                  |
 
 ## Check Specific Arguments
 

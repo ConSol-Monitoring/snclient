@@ -23,9 +23,9 @@ Checks the status for a mounted filesystem
 | critical      | issues like 'not mounted'                             |
 | empty-state   | 3 (UNKNOWN)                                           |
 | empty-syntax  | check_mount failed to find anything with this filter. |
-| top-syntax    | \${status} - \${problem_list}                         |
-| ok-syntax     | \${status} - \${count} mount(s) found                 |
-| detail-syntax | mount \${mount} \${issues}                            |
+| top-syntax    | %(status) - %(problem_list)                           |
+| ok-syntax     | %(status) - %(count) mount(s) found                   |
+| detail-syntax | mount %(mount) %(issues)                              |
 
 ## Check Specific Arguments
 

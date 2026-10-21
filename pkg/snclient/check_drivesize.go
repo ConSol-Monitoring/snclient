@@ -106,7 +106,7 @@ func (l *CheckDrivesize) Build() *CheckData {
 		defaultCritical: "used_pct > 90",
 		okSyntax:        "%(status) - All %(count) drive(s) are ok",
 		detailSyntax:    "%(drive_or_name) %(used)/%(size) (%(used_pct | fmt=%.1f )%)",
-		topSyntax:       "%(status) - ${problem_list}",
+		topSyntax:       "%(status) - %(problem_list)",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - No drives found",
 		attributes: []CheckAttribute{

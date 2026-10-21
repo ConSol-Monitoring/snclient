@@ -17,16 +17,16 @@ Check temperature sensors.
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                                  |
-| ------------- | ------------------------------------------------------------------------------ |
-| filter        | temperature != 0 and temperature != 1                                          |
-| warning       | (min != 0 && temperature < \${min}) \|\| (crit != 0 && temperature > \${crit}) |
-| critical      | (min != 0 && temperature < \${min}) \|\| (crit != 0 && temperature > \${crit}) |
-| empty-state   | 3 (UNKNOWN)                                                                    |
-| empty-syntax  | check_temperature failed to find any sensors.                                  |
-| top-syntax    | \${status} - \${list}                                                          |
-| ok-syntax     |                                                                                |
-| detail-syntax | \${sensor}: \${temperature:fmt=%.1f} °C                                        |
+| Argument      | Default Value                                                                |
+| ------------- | ---------------------------------------------------------------------------- |
+| filter        | temperature != 0 and temperature != 1                                        |
+| warning       | (min != 0 && temperature < %(min)) \|\| (crit != 0 && temperature > %(crit)) |
+| critical      | (min != 0 && temperature < %(min)) \|\| (crit != 0 && temperature > %(crit)) |
+| empty-state   | 3 (UNKNOWN)                                                                  |
+| empty-syntax  | check_temperature failed to find any sensors.                                |
+| top-syntax    | %(status) - %(list)                                                          |
+| ok-syntax     |                                                                              |
+| detail-syntax | %(sensor): %(temperature:fmt=%.1f) °C                                        |
 
 ## Check Specific Arguments
 

@@ -4,7 +4,7 @@ func init() {
 	AvailableChecks["check_eventlog"] = CheckEntry{"check_eventlog", NewCheckEventlog}
 }
 
-const DefaultUniqueIndex = "${log}-${source}-${id}"
+const DefaultUniqueIndex = "%(log)-%(source)-%(id)"
 
 type CheckEventlog struct {
 	files             []string

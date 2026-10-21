@@ -728,8 +728,17 @@ func (c *Condition) conditionValue(token []string) (remaining []string, err erro
 	str := token[0]
 	token = token[1:]
 
+	macroEnd := 0
+	if strings.HasPrefix(str, "%(") || strings.HasPrefix(str, "$(") {
+		parts, splitErr := splitToken(str, macroSplitBy)
+		if splitErr != nil {
+			return nil, splitErr
+		}
+		macroEnd = len(parts[0])
+	}
+
 	// check for trailing closing brackets
-	for strings.HasSuffix(str, ")") {
+	for len(str) > macroEnd && strings.HasSuffix(str, ")") {
 		str = strings.TrimSuffix(str, ")")
 		token = append([]string{")"}, token...)
 	}

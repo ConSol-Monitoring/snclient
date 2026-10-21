@@ -43,10 +43,10 @@ func (l *CheckTemperature) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		defaultFilter:   "temperature != 0 and temperature != 1", // seems like disabled sensors return 1.0000 or 0.0000
-		defaultWarning:  "(min != 0 && temperature < ${min}) || (crit != 0 && temperature > ${crit})",
-		defaultCritical: "(min != 0 && temperature < ${min}) || (crit != 0 && temperature > ${crit})",
-		topSyntax:       "${status} - ${list}",
-		detailSyntax:    "${sensor}: ${temperature:fmt=%.1f} °C",
+		defaultWarning:  "(min != 0 && temperature < %(min)) || (crit != 0 && temperature > %(crit))",
+		defaultCritical: "(min != 0 && temperature < %(min)) || (crit != 0 && temperature > %(crit))",
+		topSyntax:       "%(status) - %(list)",
+		detailSyntax:    "%(sensor): %(temperature:fmt=%.1f) °C",
 		emptyState:      3,
 		emptySyntax:     "check_temperature failed to find any sensors.",
 		attributes: []CheckAttribute{

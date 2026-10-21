@@ -24,9 +24,9 @@ Check OMD site status.
 | critical      | state >= 2                                          |
 | empty-state   | 3 (UNKNOWN)                                         |
 | empty-syntax  | check_omd failed to find any site with this filter. |
-| top-syntax    | \${status} - \${list}                               |
+| top-syntax    | %(status) - %(list)                                 |
 | ok-syntax     |                                                     |
-| detail-syntax | site \${site}: \${status}\${failed_services_txt}    |
+| detail-syntax | site %(site): %(status)%(failed_services_txt)       |
 
 ## Check Specific Arguments
 

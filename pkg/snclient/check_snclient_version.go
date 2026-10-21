@@ -26,8 +26,8 @@ func (l *CheckSNClientVersion) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		detailSyntax: "${name} ${version} (Build: ${build}, ${go})",
-		topSyntax:    "${list}",
+		detailSyntax: "%(name) %(version) (Build: %(build), %(go))",
+		topSyntax:    "%(list)",
 		attributes: []CheckAttribute{
 			{name: "name", description: "The name of this agent"},
 			{name: "version", description: "Version string"},

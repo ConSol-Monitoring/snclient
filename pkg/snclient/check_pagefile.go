@@ -28,8 +28,8 @@ func (l *CheckPagefile) Build() *CheckData {
 		defaultFilter:   "name = 'total'",
 		defaultWarning:  "used > 60%",
 		defaultCritical: "used > 80%",
-		detailSyntax:    "${name} ${used}/${size} (%(used_pct | fmt=%.1f )%)",
-		topSyntax:       "%(status) - ${list}",
+		detailSyntax:    "%(name) %(used)/%(size) (%(used_pct | fmt=%.1f )%)",
+		topSyntax:       "%(status) - %(list)",
 		attributes: []CheckAttribute{
 			{name: "name", description: "The name of the page file (location)"},
 			{name: "used", description: "Used memory in human readable bytes", unit: UByte},

@@ -47,7 +47,7 @@ In order to use this plugin, you need to enable <code>CheckWMI</code> in the <co
 		emptyState:    ExitCodeUnknown,
 		emptySyntax:   "query did not return any result row.",
 		hasArgsFilter: true, // otherwise empty-syntax won't be applied
-		topSyntax:     "${list}",
+		topSyntax:     "%(list)",
 		detailSyntax:  "%(line)",
 		extraFilterAttributes: []*regexp.Regexp{
 			regexp.MustCompile(`.*`),

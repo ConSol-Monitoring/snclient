@@ -25,9 +25,9 @@ There is a specific [check_service for Windows](../check_service_windows) as wel
 | critical      | ( state not in ('running', 'oneshot', 'static') \|\| active = 'failed' )  && preset != 'disabled' |
 | empty-state   | 3 (UNKNOWN)                                                                                       |
 | empty-syntax  | %(status) - No services found                                                                     |
-| top-syntax    | %(status) - %(crit_list \|\| 'found \${count} services')                                          |
+| top-syntax    | %(status) - %(crit_list \|\| 'found %(count) services')                                           |
 | ok-syntax     | %(status) - All %(count) service(s) are ok.                                                       |
-| detail-syntax | \${name}=\${state}                                                                                |
+| detail-syntax | %(name)=%(state)                                                                                  |
 
 ## Check Specific Arguments
 
@@ -69,7 +69,7 @@ Checking all services except some excluded ones:
 
 Or check a specific service and get some metrics:
 
-    check_service service=docker ok-syntax='${top-syntax}' top-syntax='%(status) - %(list)' detail-syntax='%(name) %(state) - memory: %(rss:h)B - age: %(age:duration)'
+    check_service service=docker ok-syntax='%(top-syntax)' top-syntax='%(status) - %(list)' detail-syntax='%(name) %(state) - memory: %(rss:h)B - age: %(age:duration)'
     OK - docker running - memory: 805.2MB - age: 01:11h |'docker'=4 'docker rss'=805200000B
 
 Check memory usage of specific service:

@@ -70,8 +70,8 @@ There is a specific [check_service for Windows](../check_service_windows) as wel
 		},
 		defaultFilter:   "active != inactive",
 		defaultCritical: stateCondition + " && preset != 'disabled'",
-		detailSyntax:    "${name}=${state}",
-		topSyntax:       "%(status) - %(crit_list || 'found ${count} services')",
+		detailSyntax:    "%(name)=%(state)",
+		topSyntax:       "%(status) - %(crit_list || 'found %(count) services')",
 		okSyntax:        "%(status) - All %(count) service(s) are ok.",
 		emptySyntax:     "%(status) - No services found",
 		emptyState:      CheckExitUnknown,
@@ -98,7 +98,7 @@ Checking all services except some excluded ones:
 
 Or check a specific service and get some metrics:
 
-    check_service service=docker ok-syntax='${top-syntax}' top-syntax='%(status) - %(list)' detail-syntax='%(name) %(state) - memory: %(rss:h)B - age: %(age:duration)'
+    check_service service=docker ok-syntax='%(top-syntax)' top-syntax='%(status) - %(list)' detail-syntax='%(name) %(state) - memory: %(rss:h)B - age: %(age:duration)'
     OK - docker running - memory: 805.2MB - age: 01:11h |'docker'=4 'docker rss'=805200000B
 
 Check memory usage of specific service:

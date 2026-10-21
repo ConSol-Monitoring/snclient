@@ -28,8 +28,8 @@ func (l *CheckOSVersion) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		topSyntax:    "%(status) - ${list}",
-		detailSyntax: "${platform} ${version} (arch: ${arch})",
+		topSyntax:    "%(status) - %(list)",
+		detailSyntax: "%(platform) %(version) (arch: %(arch))",
 		attributes: []CheckAttribute{
 			{name: "platform", description: "Platform of the OS"},
 			{name: "family", description: "OS Family"},

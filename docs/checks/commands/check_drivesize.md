@@ -24,7 +24,7 @@ Checks the disk drive/volumes usage on a host.
 | critical      | used_pct > 90                                                                                         |
 | empty-state   | 3 (UNKNOWN)                                                                                           |
 | empty-syntax  | %(status) - No drives found                                                                           |
-| top-syntax    | %(status) - \${problem_list}                                                                          |
+| top-syntax    | %(status) - %(problem_list)                                                                           |
 | ok-syntax     | %(status) - All %(count) drive(s) are ok                                                              |
 | detail-syntax | %(drive_or_name) %(used)/%(size) (%(used_pct \| fmt=%.1f )%)                                          |
 

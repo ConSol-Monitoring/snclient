@@ -55,8 +55,8 @@ func (l *CheckCPUUtilization) Build() *CheckData {
 		},
 		defaultWarning:  "total > 90",
 		defaultCritical: "total > 95",
-		topSyntax:       "${status} - ${list}",
-		detailSyntax:    "user: ${user}% - system: ${system}% - iowait: ${iowait}% - steal: ${steal}% - guest: ${guest} - idle: %{idle}%",
+		topSyntax:       "%(status) - %(list)",
+		detailSyntax:    "user: %(user)% - system: %(system)% - iowait: %(iowait)% - steal: %(steal)% - guest: %(guest) - idle: %(idle)%",
 		attributes: []CheckAttribute{
 			{name: "total", description: "Sum of user, system, iowait, steal and guest in percent", unit: UPercent},
 			{name: "user", description: "User CPU utilization in percent", unit: UPercent},

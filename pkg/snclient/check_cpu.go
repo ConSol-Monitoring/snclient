@@ -44,9 +44,9 @@ func (l *CheckCPU) Build() *CheckData {
 		defaultFilter:   "core = 'total'",
 		defaultWarning:  "load > 80",
 		defaultCritical: "load > 90",
-		okSyntax:        "%(status) - CPU load is ok. %{total:fmt=%d}% on %{core_num} cores",
-		detailSyntax:    "${time}: ${load}%",
-		topSyntax:       "%(status) - ${problem_list} on %{core_num} cores",
+		okSyntax:        "%(status) - CPU load is ok. %(total:fmt=%d)% on %(core_num) cores",
+		detailSyntax:    "%(time): %(load)%",
+		topSyntax:       "%(status) - %(problem_list) on %(core_num) cores",
 		emptyState:      3,
 		emptySyntax:     "check_cpu failed to find anything with this filter.",
 		attributes: []CheckAttribute{

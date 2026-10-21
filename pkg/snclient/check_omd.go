@@ -48,8 +48,8 @@ func (l *CheckOMD) Build() *CheckData {
 		defaultWarning:  "state == 1",
 		defaultCritical: "state >= 2",
 		defaultFilter:   "autostart = 1",
-		topSyntax:       "${status} - ${list}",
-		detailSyntax:    "site ${site}: ${status}${failed_services_txt}",
+		topSyntax:       "%(status) - %(list)",
+		detailSyntax:    "site %(site): %(status)%(failed_services_txt)",
 		emptyState:      3,
 		emptySyntax:     "check_omd failed to find any site with this filter.",
 		attributes: []CheckAttribute{

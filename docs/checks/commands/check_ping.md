@@ -17,16 +17,16 @@ Checks the ICMP ping connection.
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                     |
-| ------------- | ----------------------------------------------------------------- |
-| filter        | none                                                              |
-| warning       | rta > 1000 \|\| pl > 30                                           |
-| critical      | rta > 5000 \|\| pl > 80                                           |
-| empty-state   | 3 (UNKNOWN)                                                       |
-| empty-syntax  | %(status) - could not get any ping data                           |
-| top-syntax    | %(status) - \${list}                                              |
-| ok-syntax     |                                                                   |
-| detail-syntax | Packet loss = \${pl}%{{ IF rta != '' }}, RTA = \${rta}ms{{ END }} |
+| Argument      | Default Value                                                   |
+| ------------- | --------------------------------------------------------------- |
+| filter        | none                                                            |
+| warning       | rta > 1000 \|\| pl > 30                                         |
+| critical      | rta > 5000 \|\| pl > 80                                         |
+| empty-state   | 3 (UNKNOWN)                                                     |
+| empty-syntax  | %(status) - could not get any ping data                         |
+| top-syntax    | %(status) - %(list)                                             |
+| ok-syntax     |                                                                 |
+| detail-syntax | Packet loss = %(pl)%{{ IF rta != '' }}, RTA = %(rta)ms{{ END }} |
 
 ## Check Specific Arguments
 

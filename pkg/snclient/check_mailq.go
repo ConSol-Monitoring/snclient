@@ -44,8 +44,8 @@ func (l *CheckMailq) Build() *CheckData {
 		defaultFilter:   "none",
 		defaultWarning:  "active > 5 || active_size > 10MB || deferred > 0 || deferred_size > 10MB",
 		defaultCritical: "active > 10 || active_size > 20MB || deferred > 10 || deferred_size > 20MB",
-		detailSyntax:    "${mta}: active ${active} / deferred ${deferred}",
-		topSyntax:       "%(status) - ${list}",
+		detailSyntax:    "%(mta): active %(active) / deferred %(deferred)",
+		topSyntax:       "%(status) - %(list)",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - could not get any mailq data",
 		attributes: []CheckAttribute{

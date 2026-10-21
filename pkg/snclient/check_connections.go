@@ -92,8 +92,8 @@ func (l *CheckConnections) Build() *CheckData {
 		defaultFilter:   "inet=total",
 		defaultWarning:  "total > 1000",
 		defaultCritical: "total > 2000",
-		detailSyntax:    "total ${prefix}connections: ${total}",
-		topSyntax:       "%(status) - ${list}",
+		detailSyntax:    "total %(prefix)connections: %(total)",
+		topSyntax:       "%(status) - %(list)",
 		attributes: []CheckAttribute{
 			{name: "inet", description: "address family, can be total (sum of any), all (any+total), any (v4+v6), inet4 or inet6"},
 			{name: "prefix", description: "address family as prefix, will be empty, inet4 or inet6"},

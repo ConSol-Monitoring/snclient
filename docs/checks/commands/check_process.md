@@ -17,15 +17,15 @@ Checks the state and metrics of one or multiple processes.
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                 |
-| ------------- | ------------------------------------------------------------- |
-| warning       | count = 0                                                     |
-| critical      | state = 'stopped' or count = 0                                |
-| empty-state   | 2 (CRITICAL)                                                  |
-| empty-syntax  | %(status) - no processes found with this filter.              |
-| top-syntax    | %(status) - \${problem_list \|\| 'found \${count} processes'} |
-| ok-syntax     | %(status) - all %{count} processes are ok.                    |
-| detail-syntax | \${exe}=\${state}                                             |
+| Argument      | Default Value                                               |
+| ------------- | ----------------------------------------------------------- |
+| warning       | count = 0                                                   |
+| critical      | state = 'stopped' or count = 0                              |
+| empty-state   | 2 (CRITICAL)                                                |
+| empty-syntax  | %(status) - no processes found with this filter.            |
+| top-syntax    | %(status) - %(problem_list \|\| 'found %(count) processes') |
+| ok-syntax     | %(status) - all %(count) processes are ok.                  |
+| detail-syntax | %(exe)=%(state)                                             |
 
 ## Check Specific Arguments
 
@@ -79,7 +79,7 @@ Check specific process(es) by name (adding some metrics as well)
         process=httpd \
         warn='count < 1 || count > 10' \
         crit='count < 0 || count > 20' \
-        top-syntax='%{status} - %{count} processes, memory %{rss|h}B, cpu %{cpu:fmt=%.1f}%, started %{oldest:age|duration} ago'
+        top-syntax='%(status) - %(count) processes, memory %(rss|h)B, cpu %(cpu:fmt=%.1f)%, started %(oldest:age|duration) ago'
     WARNING - 12 processes, memory 62.58 MB, cpu 0.7%, started 01:11h ago |...
 
 If zero is a valid threshold, set thresholds accordingly

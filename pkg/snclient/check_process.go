@@ -35,9 +35,9 @@ func (l *CheckProcess) Build() *CheckData {
 			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
 		},
 		conditionAlias:  l.buildConditionAlias(),
-		okSyntax:        "%(status) - all %{count} processes are ok.",
-		detailSyntax:    "${exe}=${state}",
-		topSyntax:       "%(status) - ${problem_list || 'found ${count} processes'}",
+		okSyntax:        "%(status) - all %(count) processes are ok.",
+		detailSyntax:    "%(exe)=%(state)",
+		topSyntax:       "%(status) - %(problem_list || 'found %(count) processes')",
 		emptyState:      2,
 		emptySyntax:     "%(status) - no processes found with this filter.",
 		defaultWarning:  "count = 0",
@@ -77,7 +77,7 @@ Check specific process(es) by name (adding some metrics as well)
         process=httpd \
         warn='count < 1 || count > 10' \
         crit='count < 0 || count > 20' \
-        top-syntax='%{status} - %{count} processes, memory %{rss|h}B, cpu %{cpu:fmt=%.1f}%, started %{oldest:age|duration} ago'
+        top-syntax='%(status) - %(count) processes, memory %(rss|h)B, cpu %(cpu:fmt=%.1f)%, started %(oldest:age|duration) ago'
     WARNING - 12 processes, memory 62.58 MB, cpu 0.7%, started 01:11h ago |...
 
 If zero is a valid threshold, set thresholds accordingly
