@@ -48,7 +48,7 @@ func TestCheckEventlogFilterQueryWhereLine(t *testing.T) {
 		{
 			test:     "none filter combined with id and source",
 			filters:  []string{"none", "id in (823,824) and source like 'Firefox'"},
-			expected: "(EventCode = 823 OR EventCode = 824)",
+			expected: "(EventCode = 823 OR EventCode = 824 OR SourceName LIKE '%Firefox%')",
 		},
 		{test: "single event code", filters: []string{"id = 823"}, expected: "EventCode = 823"},
 		{test: "event code zero", filters: []string{"id = 0"}, expected: "EventCode = 0"},
@@ -62,16 +62,35 @@ func TestCheckEventlogFilterQueryWhereLine(t *testing.T) {
 		{test: "event code out of range", filters: []string{"id = 65536"}, expected: ""},
 		{test: "event code not numeric", filters: []string{"id = 'abc'"}, expected: ""},
 		{test: "event code lower than", filters: []string{"id < 0"}, expected: ""},
-		{test: "source only", filters: []string{"source like 'Firefox'"}, expected: ""},
+		{test: "source equal", filters: []string{"source = 'MSSQL'"}, expected: "SourceName = 'MSSQL'"},
+		{test: "provider equal", filters: []string{"provider = 'MSSQL'"}, expected: "SourceName = 'MSSQL'"},
+		{
+			test:     "source in list",
+			filters:  []string{"source in ('MSSQL','SQL17')"},
+			expected: "(SourceName = 'MSSQL' OR SourceName = 'SQL17')",
+		},
+		{test: "source like", filters: []string{"source like 'Firefox'"}, expected: "SourceName LIKE '%Firefox%'"},
+		{test: "source slike", filters: []string{"source slike 'Firefox'"}, expected: "SourceName LIKE '%Firefox%'"},
+		{test: "source with backslash", filters: []string{`source = 'foo\bar'`}, expected: ""},
+		{test: "source unlike", filters: []string{"source unlike 'Firefox'"}, expected: ""},
+		{test: "level equal", filters: []string{"level = 'error'"}, expected: "Type = 'error'"},
+		{
+			test:     "level in list",
+			filters:  []string{"level in ('warning','error','critical')"},
+			expected: "(Type = 'warning' OR Type = 'error' OR Type = 'critical')",
+		},
+		{test: "level like", filters: []string{"level like 'err'"}, expected: "Type LIKE '%err%'"},
+		{test: "level not in", filters: []string{"level not in ('error')"}, expected: ""},
+		{test: "level regex", filters: []string{"level ~ /err/"}, expected: ""},
 		{test: "written greater", filters: []string{"written > 0"}, expected: ""},
 		{
 			test:     "event code and condition not translatable",
-			filters:  []string{"id = 1 and source like 'Firefox'"},
+			filters:  []string{"id = 1 and written > 0"},
 			expected: "EventCode = 1",
 		},
 		{
 			test:     "event code or condition not translatable",
-			filters:  []string{"id = 1 or source like 'Firefox'"},
+			filters:  []string{"id = 1 or written > 0"},
 			expected: "",
 		},
 		{
@@ -89,11 +108,21 @@ func TestCheckEventlogFilterQueryWhereLine(t *testing.T) {
 			filters:  []string{"id = 1", "id = 2"},
 			expected: "(EventCode = 1 OR EventCode = 2)",
 		},
-		{test: "multiple top level filters with one not translatable", filters: []string{"id = 1", "source like 'Firefox'"}, expected: ""},
+		{test: "multiple top level filters with one not translatable", filters: []string{"id = 1", "written > 0"}, expected: ""},
+		{
+			test:     "source and level combined with id",
+			filters:  []string{"id = 903 and source like 'MSSQL' and level = 'error'"},
+			expected: "(EventCode = 903 OR SourceName LIKE '%MSSQL%' OR Type = 'error')",
+		},
+		{
+			test:     "message condition is ignored",
+			filters:  []string{"id = 903 and message like 'foo'"},
+			expected: "EventCode = 903",
+		},
 		{
 			test:     "mssql example",
 			filters:  []string{"id IN (823,824,825,5173) AND source like 'MSSQL' AND level IN ('critical','error')"},
-			expected: "(EventCode = 823 OR EventCode = 824 OR EventCode = 825 OR EventCode = 5173)",
+			expected: "(EventCode = 823 OR EventCode = 824 OR EventCode = 825 OR EventCode = 5173 OR SourceName LIKE '%MSSQL%' OR Type = 'critical' OR Type = 'error')",
 		},
 	}
 

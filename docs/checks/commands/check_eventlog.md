@@ -25,8 +25,8 @@ Basically, this check wraps this WMI query:
 See [here](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlogprov/win32-ntlogevent) for
 a description of the provided fields.
 
-Filter conditions on id are added to the WHERE clause of the WMI query when possible,
-the filter is still applied to the returned events.
+Filter conditions on id, level and source (or provider) are added to the WHERE clause
+of the WMI query when possible, the filter is still applied to the returned events.
 
 - [Argument Defaults](#argument-defaults)
 - [Attributes](#attributes)
