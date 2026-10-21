@@ -23,9 +23,9 @@ Checks for OS system updates.
 | critical      | count_security > 0                                                                    |
 | empty-state   | 0 (OK)                                                                                |
 | empty-syntax  | %(status) - no updates available                                                      |
-| top-syntax    | %(status) - %{count_security} security updates / %{count} updates available.\n%{list} |
+| top-syntax    | %(status) - %(count_security) security updates / %(count) updates available.\n%(list) |
 | ok-syntax     |                                                                                       |
-| detail-syntax | \${prefix}\${package}: \${version}                                                    |
+| detail-syntax | %(prefix)%(package): %(version)                                                       |
 
 ## Check Specific Arguments
 

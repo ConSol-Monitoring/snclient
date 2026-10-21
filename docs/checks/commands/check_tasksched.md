@@ -17,16 +17,16 @@ Check status of scheduled jobs
 
 ## Argument Defaults
 
-| Argument      | Default Value                                                          |
-| ------------- | ---------------------------------------------------------------------- |
-| filter        | enabled = true                                                         |
-| warning       | exit_code != 0                                                         |
-| critical      | exit_code < 0                                                          |
-| empty-state   | 3 (UNKNOWN)                                                            |
-| empty-syntax  | %(status) - No tasks found                                             |
-| top-syntax    | %(status) - \${problem_list}                                           |
-| ok-syntax     | %(status) - All tasks are ok                                           |
-| detail-syntax | \${uri_clean} (%{most_recent_run_time:date}) exited with \${exit_code} |
+| Argument      | Default Value                                                        |
+| ------------- | -------------------------------------------------------------------- |
+| filter        | enabled = true                                                       |
+| warning       | exit_code != 0                                                       |
+| critical      | exit_code < 0                                                        |
+| empty-state   | 3 (UNKNOWN)                                                          |
+| empty-syntax  | %(status) - No tasks found                                           |
+| top-syntax    | %(status) - %(problem_list)                                          |
+| ok-syntax     | %(status) - All tasks are ok                                         |
+| detail-syntax | %(uri_clean) (%(most_recent_run_time:date)) exited with %(exit_code) |
 
 ## Check Specific Arguments
 

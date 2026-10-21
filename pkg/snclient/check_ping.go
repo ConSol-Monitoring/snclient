@@ -49,8 +49,8 @@ func (l *CheckPing) Build() *CheckData {
 		defaultFilter:   "none",
 		defaultWarning:  "rta > 1000 || pl > 30",
 		defaultCritical: "rta > 5000 || pl > 80",
-		detailSyntax:    "Packet loss = ${pl}%{{ IF rta != '' }}, RTA = ${rta}ms{{ END }}",
-		topSyntax:       "%(status) - ${list}",
+		detailSyntax:    "Packet loss = %(pl)%{{ IF rta != '' }}, RTA = %(rta)ms{{ END }}",
+		topSyntax:       "%(status) - %(list)",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - could not get any ping data",
 		attributes: []CheckAttribute{

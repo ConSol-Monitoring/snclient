@@ -26,9 +26,9 @@ There is a specific [check_service for Linux](../check_service_linux) as well.
 | critical      | state != 'running' && start_type = 'auto'                                                             |
 | empty-state   | 3 (UNKNOWN)                                                                                           |
 | empty-syntax  | %(status) - No services found                                                                         |
-| top-syntax    | %(status) - %(crit_list){{ IF crit_list != '' and warn_list != '' }}, {{ END }}{{ IF warn_list != '' }}delayed (%(warn_list)){{ END }}{{ IF crit_list == '' and warn_list == '' }}found \${count} services{{ END }} |
+| top-syntax    | %(status) - %(crit_list){{ IF crit_list != '' and warn_list != '' }}, {{ END }}{{ IF warn_list != '' }}delayed (%(warn_list)){{ END }}{{ IF crit_list == '' and warn_list == '' }}found %(count) services{{ END }} |
 | ok-syntax     | %(status) - All %(count) service(s) are ok.                                                           |
-| detail-syntax | \${name}=\${state} (\${start_type})                                                                   |
+| detail-syntax | %(name)=%(state) (%(start_type))                                                                      |
 
 ## Check Specific Arguments
 

@@ -24,9 +24,9 @@ Checks the CPU usage metrics.
 | critical      | load > 90                                                         |
 | empty-state   | 3 (UNKNOWN)                                                       |
 | empty-syntax  | check_cpu failed to find anything with this filter.               |
-| top-syntax    | %(status) - \${problem_list} on %{core_num} cores                 |
-| ok-syntax     | %(status) - CPU load is ok. %{total:fmt=%d}% on %{core_num} cores |
-| detail-syntax | \${time}: \${load}%                                               |
+| top-syntax    | %(status) - %(problem_list) on %(core_num) cores                  |
+| ok-syntax     | %(status) - CPU load is ok. %(total:fmt=%d)% on %(core_num) cores |
+| detail-syntax | %(time): %(load)%                                                 |
 
 ## Check Specific Arguments
 

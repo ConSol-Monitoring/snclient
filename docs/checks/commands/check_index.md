@@ -22,9 +22,9 @@ Returns list of all known checks.
 | filter        | implemented = 1 |
 | empty-state   | 3 (UNKNOWN)     |
 | empty-syntax  | no checks found |
-| top-syntax    | \${list}        |
+| top-syntax    | %(list)         |
 | ok-syntax     |                 |
-| detail-syntax | \${name}        |
+| detail-syntax | %(name)         |
 
 ## Check Specific Arguments
 

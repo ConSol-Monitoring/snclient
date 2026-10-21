@@ -48,8 +48,8 @@ func (l *CheckNTPOffset) Build() *CheckData {
 		defaultFilter:   "none",
 		defaultWarning:  "offset > 50 || offset < -50",
 		defaultCritical: "offset > 100 || offset < -100",
-		detailSyntax:    "offset ${offset_seconds:duration} from ${server}",
-		topSyntax:       "%(status) - ${list}",
+		detailSyntax:    "offset %(offset_seconds:duration) from %(server)",
+		topSyntax:       "%(status) - %(list)",
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - could not get any ntp data",
 		attributes: []CheckAttribute{

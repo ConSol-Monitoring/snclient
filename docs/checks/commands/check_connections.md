@@ -17,16 +17,16 @@ Checks the number of TCP connections.
 
 ## Argument Defaults
 
-| Argument      | Default Value                          |
-| ------------- | -------------------------------------- |
-| filter        | inet=total                             |
-| warning       | total > 1000                           |
-| critical      | total > 2000                           |
-| empty-state   | 0 (OK)                                 |
-| empty-syntax  |                                        |
-| top-syntax    | %(status) - \${list}                   |
-| ok-syntax     |                                        |
-| detail-syntax | total \${prefix}connections: \${total} |
+| Argument      | Default Value                        |
+| ------------- | ------------------------------------ |
+| filter        | inet=total                           |
+| warning       | total > 1000                         |
+| critical      | total > 2000                         |
+| empty-state   | 0 (OK)                               |
+| empty-syntax  |                                      |
+| top-syntax    | %(status) - %(list)                  |
+| ok-syntax     |                                      |
+| detail-syntax | total %(prefix)connections: %(total) |
 
 ## Check Specific Arguments
 

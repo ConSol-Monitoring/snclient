@@ -17,13 +17,13 @@ Check and return SNClient version.
 
 ## Argument Defaults
 
-| Argument      | Default Value                                   |
-| ------------- | ----------------------------------------------- |
-| empty-state   | 0 (OK)                                          |
-| empty-syntax  |                                                 |
-| top-syntax    | \${list}                                        |
-| ok-syntax     |                                                 |
-| detail-syntax | \${name} \${version} (Build: \${build}, \${go}) |
+| Argument      | Default Value                               |
+| ------------- | ------------------------------------------- |
+| empty-state   | 0 (OK)                                      |
+| empty-syntax  |                                             |
+| top-syntax    | %(list)                                     |
+| ok-syntax     |                                             |
+| detail-syntax | %(name) %(version) (Build: %(build), %(go)) |
 
 ## Check Specific Arguments
 

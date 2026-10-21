@@ -17,14 +17,14 @@ Checks the CPU load metrics.
 
 ## Argument Defaults
 
-| Argument      | Default Value                                           |
-| ------------- | ------------------------------------------------------- |
-| filter        | none                                                    |
-| empty-state   | 0 (OK)                                                  |
-| empty-syntax  |                                                         |
-| top-syntax    | %(status) - \${list} on \${cores} cores                 |
-| ok-syntax     |                                                         |
-| detail-syntax | \${type} load average: \${load1}, \${load5}, \${load15} |
+| Argument      | Default Value                                       |
+| ------------- | --------------------------------------------------- |
+| filter        | none                                                |
+| empty-state   | 0 (OK)                                              |
+| empty-syntax  |                                                     |
+| top-syntax    | %(status) - %(list) on %(cores) cores               |
+| ok-syntax     |                                                     |
+| detail-syntax | %(type) load average: %(load1), %(load5), %(load15) |
 
 ## Check Specific Arguments
 

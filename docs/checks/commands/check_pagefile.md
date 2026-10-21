@@ -17,16 +17,16 @@ Checks the pagefile usage.
 
 ## Argument Defaults
 
-| Argument      | Default Value                                          |
-| ------------- | ------------------------------------------------------ |
-| filter        | name = 'total'                                         |
-| warning       | used > 60%                                             |
-| critical      | used > 80%                                             |
-| empty-state   | 0 (OK)                                                 |
-| empty-syntax  |                                                        |
-| top-syntax    | %(status) - \${list}                                   |
-| ok-syntax     |                                                        |
-| detail-syntax | \${name} \${used}/\${size} (%(used_pct \| fmt=%.1f )%) |
+| Argument      | Default Value                                       |
+| ------------- | --------------------------------------------------- |
+| filter        | name = 'total'                                      |
+| warning       | used > 60%                                          |
+| critical      | used > 80%                                          |
+| empty-state   | 0 (OK)                                              |
+| empty-syntax  |                                                     |
+| top-syntax    | %(status) - %(list)                                 |
+| ok-syntax     |                                                     |
+| detail-syntax | %(name) %(used)/%(size) (%(used_pct \| fmt=%.1f )%) |
 
 ## Check Specific Arguments
 

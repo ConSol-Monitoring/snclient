@@ -70,11 +70,11 @@ There is a specific [check_service for Linux](../check_service_linux) as well.`,
 		defaultFilter:   "none",
 		defaultCritical: "state != 'running' && start_type = 'auto'",
 		defaultWarning:  "state != 'running' && start_type = 'delayed'",
-		detailSyntax:    "${name}=${state} (${start_type})",
+		detailSyntax:    "%(name)=%(state) (%(start_type))",
 		topSyntax: `%(status) - ` +
 			`%(crit_list){{ IF crit_list != '' and warn_list != '' }}, {{ END }}` +
 			`{{ IF warn_list != '' }}delayed (%(warn_list)){{ END }}` +
-			`{{ IF crit_list == '' and warn_list == '' }}found ${count} services{{ END }}`,
+			`{{ IF crit_list == '' and warn_list == '' }}found %(count) services{{ END }}`,
 		okSyntax:    "%(status) - All %(count) service(s) are ok.",
 		emptySyntax: "%(status) - No services found",
 		emptyState:  CheckExitUnknown,

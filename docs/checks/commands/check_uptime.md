@@ -17,15 +17,15 @@ Check computer uptime (time since last reboot).
 
 ## Argument Defaults
 
-| Argument      | Default Value                             |
-| ------------- | ----------------------------------------- |
-| warning       | uptime < 2d                               |
-| critical      | uptime < 1d                               |
-| empty-state   | 0 (OK)                                    |
-| empty-syntax  |                                           |
-| top-syntax    | %(status) - \${list}                      |
-| ok-syntax     |                                           |
-| detail-syntax | uptime: \${uptime}, boot: \${boot \| utc} |
+| Argument      | Default Value                           |
+| ------------- | --------------------------------------- |
+| warning       | uptime < 2d                             |
+| critical      | uptime < 1d                             |
+| empty-state   | 0 (OK)                                  |
+| empty-syntax  |                                         |
+| top-syntax    | %(status) - %(list)                     |
+| ok-syntax     |                                         |
+| detail-syntax | uptime: %(uptime), boot: %(boot \| utc) |
 
 ## Check Specific Arguments
 

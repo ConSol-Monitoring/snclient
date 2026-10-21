@@ -46,9 +46,9 @@ func (l *CheckOSUpdates) Build() *CheckData {
 		},
 		defaultWarning:  "count > 0",
 		defaultCritical: "count_security > 0",
-		detailSyntax:    "${prefix}${package}: ${version}",
+		detailSyntax:    "%(prefix)%(package): %(version)",
 		listCombine:     "\n",
-		topSyntax:       "%(status) - %{count_security} security updates / %{count} updates available.\n%{list}",
+		topSyntax:       "%(status) - %(count_security) security updates / %(count) updates available.\n%(list)",
 		emptyState:      CheckExitOK,
 		emptySyntax:     "%(status) - no updates available",
 		attributes: []CheckAttribute{

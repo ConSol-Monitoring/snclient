@@ -22,7 +22,7 @@ In order to use this plugin, you need to enable <code>CheckWMI</code> in the <co
 | ------------- | ------------------------------------ |
 | empty-state   | 3 (UNKNOWN)                          |
 | empty-syntax  | query did not return any result row. |
-| top-syntax    | \${list}                             |
+| top-syntax    | %(list)                              |
 | ok-syntax     |                                      |
 | detail-syntax | %(line)                              |
 

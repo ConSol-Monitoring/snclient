@@ -23,9 +23,9 @@ Checks the CPU utilization metrics.
 | critical      | total > 95                                                                                            |
 | empty-state   | 0 (OK)                                                                                                |
 | empty-syntax  |                                                                                                       |
-| top-syntax    | \${status} - \${list}                                                                                 |
+| top-syntax    | %(status) - %(list)                                                                                   |
 | ok-syntax     |                                                                                                       |
-| detail-syntax | user: \${user}% - system: \${system}% - iowait: \${iowait}% - steal: \${steal}% - guest: \${guest} - idle: %{idle}% |
+| detail-syntax | user: %(user)% - system: %(system)% - iowait: %(iowait)% - steal: %(steal)% - guest: %(guest) - idle: %(idle)% |
 
 ## Check Specific Arguments
 

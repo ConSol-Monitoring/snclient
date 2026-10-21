@@ -17,16 +17,16 @@ Checks the NTP offset.
 
 ## Argument Defaults
 
-| Argument      | Default Value                                      |
-| ------------- | -------------------------------------------------- |
-| filter        | none                                               |
-| warning       | offset > 50 \|\| offset < -50                      |
-| critical      | offset > 100 \|\| offset < -100                    |
-| empty-state   | 3 (UNKNOWN)                                        |
-| empty-syntax  | %(status) - could not get any ntp data             |
-| top-syntax    | %(status) - \${list}                               |
-| ok-syntax     |                                                    |
-| detail-syntax | offset \${offset_seconds:duration} from \${server} |
+| Argument      | Default Value                                    |
+| ------------- | ------------------------------------------------ |
+| filter        | none                                             |
+| warning       | offset > 50 \|\| offset < -50                    |
+| critical      | offset > 100 \|\| offset < -100                  |
+| empty-state   | 3 (UNKNOWN)                                      |
+| empty-syntax  | %(status) - could not get any ntp data           |
+| top-syntax    | %(status) - %(list)                              |
+| ok-syntax     |                                                  |
+| detail-syntax | offset %(offset_seconds:duration) from %(server) |
 
 ## Check Specific Arguments
 

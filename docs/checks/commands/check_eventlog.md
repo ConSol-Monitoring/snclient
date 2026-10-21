@@ -62,7 +62,7 @@ the filter is still applied to the returned events.
 | timezone         | Sets the timezone for time metrics (default is local time)                                         |
 | truncate-message | Maximum length of message for each event log message text                                          |
 | unique           | Alias for unique-index                                                                             |
-| unique-index     | Combination of fields that identifies unique events, set to 0 to disable. Default is "\${log}-\${source}-\${id}" |
+| unique-index     | Combination of fields that identifies unique events, set to 0 to disable. Default is "%(log)-%(source)-%(id)" |
 
 ## Attributes
 
