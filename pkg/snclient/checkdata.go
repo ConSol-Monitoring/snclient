@@ -1698,8 +1698,9 @@ func (cd *CheckData) helpHeader(format ShowHelp, usageHeader bool) string {
 	if format == Markdown {
 		out += cd.helpHeaderMarkdown(format, usageHeader)
 	} else {
+		description := strings.NewReplacer("<code>", "'", "</code>", "'").Replace(cd.description)
 		out += fmt.Sprintf("Usage:\n\n    %s\n\n", cd.usage)
-		out += fmt.Sprintf("    %s\n\n", cd.description)
+		out += fmt.Sprintf("    %s\n\n", description)
 		if cd.exampleDefault != "" {
 			out += "Example:\n\n"
 			out += fmt.Sprintf("%s\n\n", cd.exampleDefault)
