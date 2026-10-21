@@ -5,7 +5,6 @@ next:
          - support multiline external commands and check_multi config
 
 1.00     Fri Oct 16 16:47:03 CEST 2026
-         - add backslash line continuation for configuration values, including external commands and check_multi
          - add check_multi: execute multiple subchecks and evaluate the overall result
          - check_dns: resend lost packets and use the timeout and attempts settings of the resolv.conf
          - fix remaining zombie processes after automatic updates
