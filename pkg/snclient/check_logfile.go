@@ -64,9 +64,9 @@ func (c *CheckLogFile) Build() *CheckData {
 		name:        "check_logfile",
 		description: `Checks logfiles or any other text format file for errors or other general patterns
 
-In order to use this plugin, you need to enable 'CheckLogFile' in the '[/modules]' section of the snclient_local.ini.
+In order to use this plugin, you need to enable <code>CheckLogFile</code> in the <code>[/modules]</code> section of the snclient_local.ini.
 
-Also, to avoid security issues, you need to set 'allowed pattern' in the '[/settings/check/logfile]'
+Also, to avoid security issues, you need to set <code>allowed pattern</code> in the <code>[/settings/check/logfile]</code>
 section of the snclient_local.ini to a comma separated list of allowed glob patterns.
 
 Example:

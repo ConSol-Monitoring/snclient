@@ -68,11 +68,11 @@ func (l *CheckMulti) Build() *CheckData {
 		name: "check_multi",
 		description: `Runs multiple checks and aggregates their status, output and performance data.
 
-By default 'CheckMulti' is enabled, but you can disable it in the '[/modules]' section of the snclient_local.ini.
-You can also set 'max checks' in the '[/settings/check/multi]' section of the snclient_local.ini, which limits
+By default <code>CheckMulti</code> is enabled, but you can disable it in the <code>[/modules]</code> section of the snclient_local.ini.
+You can also set <code>max checks</code> in the <code>[/settings/check/multi]</code> section of the snclient_local.ini, which limits
 the number of checks that can be configured.
 
-When using the inline mode, you can only use available commands (run 'check_index' to get a full list).
+When using the inline mode, you can only use available commands (run <code>check_index</code> to get a full list).
 
 You can also define custom check sections in the config file, for example:
 
@@ -80,7 +80,7 @@ You can also define custom check sections in the config file, for example:
     command[alias1] = check_process process=123
     command[alias2] = check_process process=345
 
-This can be executed with 'check_multi "config=mycheck"'.
+This can be executed with <code>check_multi "config=mycheck"</code>.
 
 It's also possible to use custom scripts in the config section, for example:
 
@@ -89,7 +89,7 @@ It's also possible to use custom scripts in the config section, for example:
     command[alias2] = /path/to/plugin2
     command[alias3] = /path/to/plugin3
 
-This can be executed with 'check_multi "config=myscript"'.`,
+This can be executed with <code>check_multi "config=myscript"</code>.`,
 		implemented: ALL,
 		result: &CheckResult{
 			State: CheckExitOK,
