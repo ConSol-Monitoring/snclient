@@ -182,6 +182,11 @@ build-linux-i386: vendor
 		( cd ./cmd/$$CMD && GOOS=linux GOARCH=386 CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.linux.i386 ) ; \
 	done
 
+build-linux-ppc64le: vendor
+	set -e; for CMD in $(CMDS); do \
+		( cd ./cmd/$$CMD && GOOS=linux GOARCH=ppc64le CGO_ENABLED=0 $(GO) build $(BUILD_FLAGS) -o ../../$$CMD.linux.ppc64le ) ; \
+	done
+
 build-windows-i386: vendor rsrc_windows_386.syso
 	cp rsrc_windows_386.syso cmd/snclient/
 	set -e; for CMD in $(CMDS); do \
@@ -285,6 +290,8 @@ citest: tools vendor
 	# Test cross compilation
 	#
 	$(MAKE) build-linux-amd64
+	$(MAKE) build-linux-arm64
+	$(MAKE) build-linux-ppc64le
 	$(MAKE) build-windows-amd64
 	$(MAKE) build-windows-i386
 	$(MAKE) build-freebsd-i386
@@ -865,5 +872,6 @@ updatenodeexportersums:
 	grep linux-amd64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
 	grep linux-arm64.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
 	grep linux-armv7.tar.gz  sha256sums_node_exporter.txt >> sha256sums.txt
+	grep linux-ppc64le.tar.gz sha256sums_node_exporter.txt >> sha256sums.txt
 	mv sha256sums.txt packaging/sha256sums.txt
 	rm -f sha256sums_node_exporter.txt

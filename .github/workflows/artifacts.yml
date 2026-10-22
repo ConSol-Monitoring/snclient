@@ -42,10 +42,12 @@ jobs:
       fail-fast: false
       matrix:
         go-os: [linux, freebsd]
-        go-arch: [i386, x86_64, aarch64, armv7]
+        go-arch: [i386, x86_64, aarch64, armv7, ppc64le]
         exclude:
           - go-os: freebsd
             go-arch: armv7
+          - go-os: freebsd
+            go-arch: ppc64le
     needs: [get-version]
     runs-on: ubuntu-latest
     env:

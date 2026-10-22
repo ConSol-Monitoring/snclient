@@ -7,3 +7,4 @@ f73265ec28077b3449c72a83c3297b99692bb00bf578c3009ce42198c563e9ad  windows_export
 b51d8a76aa2a9156a55d501aca6276fae09e262259a5e4e831d2c2222f084e63  node_exporter-1.12.1.linux-amd64.tar.gz
 ad35b605f9954b9f1ffddf5ba054bdc5a98d790b9eae5291e1eeb83f1ecbd0e7  node_exporter-1.12.1.linux-arm64.tar.gz
 ae3d72fbf77f9ebed553c24465310e0880383f45d3d1566357ce7a31a997acb2  node_exporter-1.12.1.linux-armv7.tar.gz
+0465fa56bcb1eeae2f817aa6794ffe8ea8b1d3c96ecb50ea71f248e725bead6c  node_exporter-1.12.1.linux-ppc64le.tar.gz
