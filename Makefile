@@ -60,6 +60,9 @@ endif
 ifeq ($(DEB_ARCH),arm)
 	DEB_ARCH := armhf
 endif
+ifeq ($(DEB_ARCH),ppc64le)
+	DEB_ARCH := ppc64el
+endif
 DEBFILE ?= snclient-$(VERSION)-$(RPM_ARCH).deb
 
 GITBASE=github.com/consol-monitoring/snclient
