@@ -22,7 +22,7 @@ import (
 
 const (
 	testHost = "omd.consol.de"
-	testURI  = "/impressum/"
+	testURI  = "/legal-notice/"
 )
 
 func TestHTTP(t *testing.T) {
