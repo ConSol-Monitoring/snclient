@@ -46,6 +46,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | --------- | -------------------------------------------------------------- |
 | core      | Core to check (total or core ##)                               |
 | core_id   | Core to check (total or core_##)                               |
+| core_nr   | Core number of the without prefix (e.g., core_1 -> 1)          |
 | idle      | Current idle load for a given core (currently not supported)   |
 | kernel    | Current kernel load for a given core (currently not supported) |
 | load      | Current load for a given core                                  |

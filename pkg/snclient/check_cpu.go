@@ -12,6 +12,8 @@ import (
 	cpuinfo "github.com/shirou/gopsutil/v4/cpu"
 )
 
+var cpuKeyNum = regexp.MustCompile(`\d+$`)
+
 func init() {
 	AvailableChecks["check_cpu"] = CheckEntry{"check_cpu", NewCheckCPU}
 }
@@ -54,7 +56,8 @@ func (l *CheckCPU) Build() *CheckData {
 		emptySyntax:     "check_cpu failed to find anything with this filter.",
 		attributes: []CheckAttribute{
 			{name: "core", description: "Core to check (total or core ##)"},
-			{name: "core_id", description: "Core to check (total or core_##) "},
+			{name: "core_id", description: "Core to check (total or core_##)"},
+			{name: "core_nr", description: "Core number of the without prefix (e.g., core_1 -> 1)"},
 			{name: "idle", description: "Current idle load for a given core (currently not supported)"},
 			{name: "kernel", description: "Current kernel load for a given core (currently not supported)"},
 			{name: "load", description: "Current load for a given core"},
@@ -88,7 +91,11 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 	// total: average load of the largest time range (last after ascending sort)
 	maxIdx := len(times) - 1
 	for _, name := range sortedCPUKeys(snc.Counter.Keys("cpu")) {
-		if res, ok := check.MatchFilterMap(map[string]string{"core": name, "core_id": name}); !res && ok {
+		coreNr := ""
+		if matches := cpuKeyNum.FindStringSubmatch(name); len(matches) > 0 {
+			coreNr = matches[0]
+		}
+		if res, ok := check.MatchFilterMap(map[string]string{"core": name, "core_id": name, "core_nr": coreNr}); !res && ok {
 			continue
 		}
 
@@ -106,6 +113,7 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 				"time":    durStr,
 				"core":    name,
 				"core_id": name,
+				"core_nr": coreNr,
 				"load":    fmt.Sprintf("%.3f", utils.ToPrecision(avg, 3)),
 				"cores":   fmt.Sprintf("%d", numCPU),
 			})
@@ -160,8 +168,6 @@ func sortedCPUTimes(times []string) []string {
 
 	return times
 }
-
-var cpuKeyNum = regexp.MustCompile(`\d+$`)
 
 // sorts counter keys with "total" first, then core keys numerically (core10 after core9)
 func sortedCPUKeys(keys []string) []string {
