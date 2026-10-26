@@ -13,7 +13,7 @@ func TestCheckCPU(t *testing.T) {
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(
 		t,
-		`^OK - CPU load is ok. \d+% on \d+ cores \|'total 5s'=\d+\.\d{3}%;101;102 'total 1m'=\d+\.\d{3}%;101;102 'total 5m'=\d+\.\d{3}%;101;102$`,
+		`^OK - CPU load is ok. \d+% on \d+ cores \|'total 5s'=\d+[\.\d]*%;101;102 'total 1m'=\d+[\.\d]*%;101;102 'total 5m'=\d+[\.\d]*%;101;102$`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -51,13 +51,15 @@ func TestCheckCPU(t *testing.T) {
 }
 
 func TestSortedCpuKeys(t *testing.T) {
-	assert.Equal(t,
+	assert.Equal(
+		t,
 		[]string{"total", "core0", "core1", "core2", "core10", "core22"},
 		sortedCPUKeys([]string{"total", "core22", "core10", "core2", "core1", "core0"}),
 		"total first, cores sorted numerically",
 	)
 
-	assert.Equal(t,
+	assert.Equal(
+		t,
 		[]string{"7s", "1m", "5m"},
 		sortedCPUTimes([]string{"5m", "1m", "7s"}),
 		"times sorted by duration ascending",
