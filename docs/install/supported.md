@@ -1,5 +1,7 @@
 ---
-linkTitle: Supported OS
+title: Supported Systems
+linkTitle: Supported Systems
+description: Review supported operating systems and CPU architectures for SNClient.
 ---
 
 # Supported Systems

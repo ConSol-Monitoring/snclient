@@ -1,5 +1,7 @@
 ---
+title: macOS
 linkTitle: macOS
+description: Install SNClient on macOS using the package installer.
 weight: 400
 ---
 

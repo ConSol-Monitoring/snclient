@@ -1,5 +1,7 @@
 ---
+title: Windows
 linkTitle: Windows
+description: Install SNClient on Windows using the MSI package and configure its firewall and installation options.
 weight: 100
 ---
 

@@ -1,6 +1,7 @@
 ---
-title: ManagedExporter
-linkTitle: Managed
+title: Managed Exporters
+linkTitle: Managed Exporters
+description: Configure SNClient to start, monitor, and expose managed Prometheus exporters.
 weight: 350
 tags:
   - prometheus
