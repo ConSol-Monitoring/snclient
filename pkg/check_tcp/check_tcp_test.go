@@ -9,8 +9,6 @@ import (
 )
 
 func TestParseArgs(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name     string
 		args     []string
@@ -33,7 +31,6 @@ func TestParseArgs(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
 			opts, err := parseArgs(test.args)
 			if test.wantErr {
 				require.Error(t, err)
