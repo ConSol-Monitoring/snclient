@@ -34,7 +34,7 @@ This can be executed with <code>check_multi "config=myscript"</code>.
 
 ## Implementation
 
-| Windows            | Linux              | FreeBSD            | MacOSX             |
+| Windows            | Linux              | FreeBSD            | macOS              |
 |:------------------:|:------------------:|:------------------:|:------------------:|
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 

@@ -160,7 +160,7 @@ next:
          - update windows exporter to 0.31.3
          - chore: update dependencies
          - change minimum golang requirement to 1.24.6
-         - osx:
+         - macOS:
            - fix corrupted json output (invalid character '\x00' looking for beginning of object key string)
 
 0.36     Tue Jul 29 14:24:04 CEST 2025
@@ -296,7 +296,7 @@ next:
 
 0.21     Thu Mar 28 17:18:25 CET 2024
          - add http config ini includes
-         - add osx pkg uninstaller
+         - add macOS pkg uninstaller
          - add check_eventlog support for unique-index (mlueckert)
          - add check_os_version add os name
          - add os and version to inventory
@@ -392,12 +392,12 @@ next:
          - add /api/v1/admin/reload rest endpoint to initialize config changes
          - add /api/v1/admin/certs/replace rest endpoint to replace certificates
          - support different allowed hosts settings for each web handler
-         - fix cpu check on osx not returning metrics
+         - fix cpu check on macOS not returning metrics
 
 0.13     Thu Nov 23 22:20:21 CET 2023
          - drop privileges when running node exporter
          - update node exporter to 1.7.0
-         - add node exporter to osx packages
+         - add node exporter to macOS packages
          - add check_load plugin
          - improve docs and help pages
          - add folder size support to check_files (#38)
@@ -459,7 +459,7 @@ next:
          - add conf.d directory support for includes
          - added check_tasksched
          - added nrpe mode to test cmd
-         - fix osx installer (#27)
+         - fix macOS installer (#27)
          - fix linux check_drivesize (#14)
          - fix missing byte in nrpe response (#21)
 

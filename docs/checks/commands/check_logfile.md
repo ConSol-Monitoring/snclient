@@ -24,7 +24,7 @@ See [here](https://github.com/bmatcuk/doublestar#patterns) for details on the pa
 
 ## Implementation
 
-| Windows            | Linux              | FreeBSD            | MacOSX             |
+| Windows            | Linux              | FreeBSD            | macOS              |
 |:------------------:|:------------------:|:------------------:|:------------------:|
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 

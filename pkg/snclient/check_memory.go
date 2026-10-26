@@ -122,7 +122,7 @@ func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ [
 			if err != nil {
 				return nil, fmt.Errorf("fetching swap failed: %w", err)
 			}
-			// osx changes swap total on demand, so always return something in inventory mode
+			// macOS changes swap total on demand, so always return something in inventory mode
 			if swap.Total > 0 || check.hasArgsSupplied["type"] || (runtime.GOOS == "darwin" && check.output == OutputInventory) {
 				l.addMemType(check, "swap", swap.Used, swap.Free, swap.Total)
 			}

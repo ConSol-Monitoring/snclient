@@ -43,7 +43,7 @@ func (l *CheckNTPOffset) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"server": {value: &l.ntpserver, description: "Fetch offset from these NTP servers. First valid response is used."},
-			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, osx, w32tm."},
+			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, macOS, w32tm."},
 		},
 		defaultFilter:   "none",
 		defaultWarning:  "offset > 50 || offset < -50",
@@ -175,10 +175,10 @@ func (l *CheckNTPOffset) addSources(ctx context.Context, check *CheckData) (err 
 		}
 	}
 
-	if l.source == "auto" || l.source == "osx" {
-		err = l.addOSX(ctx, check, l.source == "osx")
+	if l.source == "auto" || l.source == "macOS" || l.source == "osx" {
+		err = l.addOSX(ctx, check, l.source != "auto")
 		if err != nil {
-			log.Debugf("failed: osx: %s", err.Error())
+			log.Debugf("failed: macOS: %s", err.Error())
 			if l.source != "auto" {
 				return err
 			}
@@ -458,10 +458,10 @@ func (l *CheckNTPOffset) parseW32AnyLang(text string) (valid bool, source, offse
 	return valid, source, offset, stratum, errorStr
 }
 
-// get offset on Mac OSX
+// get offset on macOS
 func (l *CheckNTPOffset) addOSX(ctx context.Context, check *CheckData, force bool) error {
 	if !force && runtime.GOOS != "darwin" {
-		return fmt.Errorf("this is a mac osx command")
+		return fmt.Errorf("this is a macOS command")
 	}
 
 	entry := l.defaultEntry("osx")

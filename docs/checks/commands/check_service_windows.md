@@ -13,9 +13,9 @@ There is a specific [check_service for Linux](../check_service_linux) as well.
 
 ## Implementation
 
-| Windows            | Linux | FreeBSD | MacOSX |
-|:------------------:|:-----:|:-------:|:------:|
-| :white_check_mark: |       |         |        |
+| Windows            | Linux | FreeBSD | macOS |
+|:------------------:|:-----:|:-------:|:-----:|
+| :white_check_mark: |       |         |       |
 
 ## Argument Defaults
 

@@ -11,9 +11,9 @@ Check status of scheduled jobs
 
 ## Implementation
 
-| Windows            | Linux | FreeBSD | MacOSX |
-|:------------------:|:-----:|:-------:|:------:|
-| :white_check_mark: |       |         |        |
+| Windows            | Linux | FreeBSD | macOS |
+|:------------------:|:-----:|:-------:|:-----:|
+| :white_check_mark: |       |         |       |
 
 ## Argument Defaults
 

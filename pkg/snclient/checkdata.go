@@ -1792,7 +1792,7 @@ func (cd *CheckData) helpImplemented(format ShowHelp) string {
 		{Name: "Windows", Field: "windows", Alignment: "centered"},
 		{Name: "Linux", Field: "linux", Alignment: "centered"},
 		{Name: "FreeBSD", Field: "freebsd", Alignment: "centered"},
-		{Name: "MacOSX", Field: "osx", Alignment: "centered"},
+		{Name: "macOS", Field: "osx", Alignment: "centered"},
 	}
 	implemented := implTableData{}
 	if cd.implemented&Windows > 0 {

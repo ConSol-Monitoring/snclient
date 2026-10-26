@@ -274,7 +274,7 @@ jobs:
       - run: sudo apt-get update
       - run: sudo apt-get install help2man tofrodos
       - run: |
-          echo "Creating dist folder for linux/osx"
+          echo "Creating dist folder for Linux/macOS"
           make dist
           rm dist/snclient
       - uses: actions/upload-artifact@main
@@ -692,7 +692,7 @@ jobs:
       - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.pkg"
-      - name: "OSX Integration Tests"
+      - name: "macOS Integration Tests"
         run: |
           mv ${{ env.BIN }}.pkg t/snclient.pkg
           cd t

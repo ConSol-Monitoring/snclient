@@ -414,7 +414,7 @@ Network Time Server: time.euro.apple.com`,
 		}`,
 	})
 	defer os.RemoveAll(tmpPath)
-	res := snc.RunCheck("check_ntp_offset", []string{"source=osx"})
+	res := snc.RunCheck("check_ntp_offset", []string{"source=macOS"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Equalf(t, "OK - offset -7.587ms from time.euro.apple.com (10.1.1.1) |'offset'=-7.587078ms;-50:50;-100:100 'stratum'=2;;;0",
 		string(res.BuildPluginOutput()), "output matches")
