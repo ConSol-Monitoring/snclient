@@ -3,6 +3,9 @@ package snclient
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"slices"
+	"strconv"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
@@ -59,12 +62,12 @@ func (l *CheckCPU) Build() *CheckData {
 		},
 		exampleDefault: `
     check_cpu
-    OK - CPU load is ok. |'total 5m'=13%;80;90 'total 1m'=13%;80;90 'total 5s'=13%;80;90
+    OK - CPU load is ok. |'total 5s'=13.450%;80;90 'total 1m'=13.450%;80;90 'total 5m'=13.450%;80;90
 
 Checking **each core** by adding filter=none (disabling the filter):
 
     check_cpu filter=none
-    OK - CPU load is ok. |'core1 5m'=13%;80;90 'core1 1m'=12%;80;90 'core1 5s'=9%;80;90...
+    OK - CPU load is ok. |'core1 5s'=9.010%;80;90 'core1 1m'=12.340%;80;90 'core1 5m'=13.450%;80;90...
 	`,
 		exampleArgs: `'warn=load > 80' 'crit=load > 95'`,
 	}
@@ -81,7 +84,10 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 	}
 
 	var total float64
-	for _, name := range snc.Counter.Keys("cpu") {
+	times := sortedCPUTimes(l.times)
+	// total: average load of the largest time range (last after ascending sort)
+	maxIdx := len(times) - 1
+	for _, name := range sortedCPUKeys(snc.Counter.Keys("cpu")) {
 		if res, ok := check.MatchFilterMap(map[string]string{"core": name, "core_id": name}); !res && ok {
 			continue
 		}
@@ -90,23 +96,23 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 		if counter == nil {
 			continue
 		}
-		for i, durStr := range l.times {
+		for i, durStr := range times {
 			dur, _ := utils.ExpandDuration(durStr)
 			avg := counter.AvgForDuration(time.Duration(dur) * time.Second)
-			if i == 0 {
+			if name == "total" && i == maxIdx {
 				total = avg
 			}
 			check.listData = append(check.listData, map[string]string{
 				"time":    durStr,
 				"core":    name,
 				"core_id": name,
-				"load":    fmt.Sprintf("%.0f", utils.ToPrecision(avg, 0)),
+				"load":    fmt.Sprintf("%.3f", utils.ToPrecision(avg, 3)),
 				"cores":   fmt.Sprintf("%d", numCPU),
 			})
 			check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 				ThresholdName: "load",
 				Name:          fmt.Sprintf("%s %s", name, durStr),
-				Value:         utils.ToPrecision(avg, 0),
+				Value:         utils.ToPrecision(avg, 3),
 				Unit:          "%",
 				Warning:       check.warnThreshold,
 				Critical:      check.critThreshold,
@@ -141,4 +147,36 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 	}
 
 	return check.Finalize()
+}
+
+// sorts the time arguments by duration, ascending
+func sortedCPUTimes(times []string) []string {
+	slices.SortStableFunc(times, func(a, b string) int {
+		da, _ := utils.ExpandDuration(a)
+		db, _ := utils.ExpandDuration(b)
+
+		return int(da - db)
+	})
+
+	return times
+}
+
+var cpuKeyNum = regexp.MustCompile(`\d+$`)
+
+// sorts counter keys with "total" first, then core keys numerically (core10 after core9)
+func sortedCPUKeys(keys []string) []string {
+	slices.SortStableFunc(keys, func(a, b string) int {
+		switch {
+		case a == "total":
+			return -1
+		case b == "total":
+			return 1
+		}
+		numA, _ := strconv.Atoi(cpuKeyNum.FindString(a))
+		numB, _ := strconv.Atoi(cpuKeyNum.FindString(b))
+
+		return numA - numB
+	})
+
+	return keys
 }

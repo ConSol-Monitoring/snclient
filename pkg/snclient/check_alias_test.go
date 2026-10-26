@@ -59,7 +59,7 @@ allow arguments = yes
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(
 		t,
-		`^OK - CPU load is ok. \d+% on \d+ cores \|'total 5m'=\d+%;101;102 'total 1m'=\d+%;101;102 'total 5s'=\d+%;101;102$`,
+		`^OK - CPU load is ok. \d+% on \d+ cores \|'total 5s'=\d+\.\d{3}%;101;102 'total 1m'=\d+\.\d{3}%;101;102 'total 5m'=\d+\.\d{3}%;101;102$`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
@@ -73,7 +73,7 @@ allow arguments = yes
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(
 		t,
-		`^OK - CPU load is ok. \d+% on \d+ cores \|'total 5m'=\d+%;101;102 'total 1m'=\d+%;101;102 'total 5s'=\d+%;101;102$`,
+		`^OK - CPU load is ok. \d+% on \d+ cores \|'total 5s'=\d+\.\d{3}%;101;102 'total 1m'=\d+\.\d{3}%;101;102 'total 5m'=\d+\.\d{3}%;101;102$`,
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)

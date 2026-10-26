@@ -56,12 +56,12 @@ these can be used in filters and thresholds (along with the default attributes):
 ### Default Check
 
     check_cpu
-    OK - CPU load is ok. |'total 5m'=13%;80;90 'total 1m'=13%;80;90 'total 5s'=13%;80;90
+    OK - CPU load is ok. |'total 5s'=13.450%;80;90 'total 1m'=13.450%;80;90 'total 5m'=13.450%;80;90
 
 Checking **each core** by adding filter=none (disabling the filter):
 
     check_cpu filter=none
-    OK - CPU load is ok. |'core1 5m'=13%;80;90 'core1 1m'=12%;80;90 'core1 5s'=9%;80;90...
+    OK - CPU load is ok. |'core1 5s'=9.010%;80;90 'core1 1m'=12.340%;80;90 'core1 5m'=13.450%;80;90...
 
 ### Example using check_snclient and Naemon
 
