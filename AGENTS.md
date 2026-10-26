@@ -27,6 +27,7 @@ Besides classical Naemon/Nagios plugins, it supports Prometheus by shipping expo
 - Keep comments short. Do not comment the obvious. Only comment exceptional non-obvious things.
 - Avoid duplicate code.
 - Do not add unnecessary tests.
+- Do not use "t.Parallel()" it makes test output less readable.
 - Existing metrics / performancedata must not change.
 - Follow clean code principle and avoid bad practice like ex.: `goto`.
 - The final acceptance test is `make citest`.
