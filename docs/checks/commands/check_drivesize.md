@@ -11,7 +11,7 @@ Checks the disk drive/volumes usage on a host.
 
 ## Implementation
 
-| Windows            | Linux              | FreeBSD            | MacOSX             |
+| Windows            | Linux              | FreeBSD            | macOS              |
 |:------------------:|:------------------:|:------------------:|:------------------:|
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 

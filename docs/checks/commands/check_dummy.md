@@ -9,7 +9,7 @@ This check simply sets the state to the given value and outputs the remaining ar
 
 ## Implementation
 
-| Windows            | Linux              | FreeBSD            | MacOSX             |
+| Windows            | Linux              | FreeBSD            | macOS              |
 |:------------------:|:------------------:|:------------------:|:------------------:|
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 

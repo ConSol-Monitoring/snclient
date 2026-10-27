@@ -229,7 +229,7 @@ func (l *CheckPing) parsePingRTA(entry map[string]string, output string) {
 		return
 	}
 
-	// osx 14.7
+	// macOS 14.7
 	// round-trip min/avg/max/stddev = 0.040/0.066/0.095/0.021 ms
 	reRTA = regexp.MustCompile(`round-trip min/avg/max/stddev = ([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+) ms`)
 	rtaList = reRTA.FindStringSubmatch(output)
@@ -288,7 +288,7 @@ func (l *CheckPing) parsePingPackets(entry map[string]string, output string) {
 		return
 	}
 
-	// osx 14.7
+	// macOS 14.7
 	// 5 packets transmitted, 5 packets received, 0.0% packet loss
 	rePackets = regexp.MustCompile(`(\d+) packets transmitted, (\d+) packets received, ([\d.]+)% packet loss`)
 	packetsList = rePackets.FindStringSubmatch(output)

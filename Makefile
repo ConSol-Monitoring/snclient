@@ -93,7 +93,7 @@ SED=sed -i
 GO=go
 CGO_ENABLED=0
 
-# OSX must be build with CGO enabled, otherwise we don't get cpu metrics
+# macOS must be build with CGO enabled, otherwise we don't get cpu metrics
 DARWIN=0
 ifeq ($(shell uname),Darwin)
   DARWIN=1

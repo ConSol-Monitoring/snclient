@@ -11,7 +11,7 @@ Check computer uptime (time since last reboot).
 
 ## Implementation
 
-| Windows            | Linux              | FreeBSD            | MacOSX             |
+| Windows            | Linux              | FreeBSD            | macOS              |
 |:------------------:|:------------------:|:------------------:|:------------------:|
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 

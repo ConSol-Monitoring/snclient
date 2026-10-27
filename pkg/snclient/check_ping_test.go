@@ -259,7 +259,7 @@ func TestPingParserOSXOK(t *testing.T) {
 		"pl":        "0.0",
 		"ttl":       "64",
 	}
-	// osx 14.7
+	// macOS 14.7
 	out := `
 PING localhost (127.0.0.1): 56 data bytes
 64 bytes from 127.0.0.1: icmp_seq=0 ttl=64 time=0.040 ms
@@ -287,7 +287,7 @@ func TestPingParserOSXBad(t *testing.T) {
 		"pl":        "100.0",
 		"ttl":       "",
 	}
-	// osx 14.7
+	// macOS 14.7
 	out := `
 PING 10.99.99.99 (10.99.99.99): 56 data bytes
 Request timeout for icmp_seq 0

@@ -12,9 +12,9 @@ In order to use this plugin, you need to enable <code>CheckWMI</code> in the <co
 
 ## Implementation
 
-| Windows            | Linux | FreeBSD | MacOSX |
-|:------------------:|:-----:|:-------:|:------:|
-| :white_check_mark: |       |         |        |
+| Windows            | Linux | FreeBSD | macOS |
+|:------------------:|:-----:|:-------:|:-----:|
+| :white_check_mark: |       |         |       |
 
 ## Argument Defaults
 

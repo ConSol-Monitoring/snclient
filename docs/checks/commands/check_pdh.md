@@ -10,9 +10,9 @@ Checks PDH paths and handles wildcard expansion.
 
 ## Implementation
 
-| Windows            | Linux | FreeBSD | MacOSX |
-|:------------------:|:-----:|:-------:|:------:|
-| :white_check_mark: |       |         |        |
+| Windows            | Linux | FreeBSD | macOS |
+|:------------------:|:-----:|:-------:|:-----:|
+| :white_check_mark: |       |         |       |
 
 ## Check Specific Arguments
 

@@ -11,7 +11,7 @@ Checks the NTP offset.
 
 ## Implementation
 
-| Windows            | Linux              | FreeBSD            | MacOSX             |
+| Windows            | Linux              | FreeBSD            | macOS              |
 |:------------------:|:------------------:|:------------------:|:------------------:|
 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
@@ -33,7 +33,7 @@ Checks the NTP offset.
 | Argument | Description                                                                                                |
 | -------- | ---------------------------------------------------------------------------------------------------------- |
 | server   | Fetch offset from these NTP servers. First valid response is used.                                         |
-| source   | Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, osx, w32tm. |
+| source   | Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, macos, w32tm. |
 
 ## Attributes
 

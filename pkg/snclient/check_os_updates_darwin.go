@@ -24,13 +24,13 @@ func (l *CheckOSUpdates) addOSBackends(ctx context.Context, check *CheckData) (i
 		addedCount++
 	}
 	if osxErr != nil {
-		err = fmt.Errorf("error when adding osx: %w", err)
+		err = fmt.Errorf("error when adding macOS: %w", err)
 	}
 
 	return addedCount, err
 }
 
-// get packages from osx softwareupdate
+// get packages from macOS softwareupdate
 func (l *CheckOSUpdates) addOSX(ctx context.Context, check *CheckData) (bool, error) {
 	switch l.system {
 	case "auto":
@@ -41,7 +41,7 @@ func (l *CheckOSUpdates) addOSX(ctx context.Context, check *CheckData) (bool, er
 		if os.IsNotExist(err) {
 			return false, nil
 		}
-	case "osx":
+	case "macos", "osx":
 	default:
 		return false, nil
 	}
