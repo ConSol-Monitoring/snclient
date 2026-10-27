@@ -3,13 +3,13 @@ title: SNClient
 linkTitle: SNClient
 weight: 400
 tags:
-  - nsclient
   - snclient
+  - nsclient
   - naemon
   - prometheus
   - windows
   - linux
-  - osx
+  - macos
 ---
 
 [![CICD Pipeline](https://github.com/Consol-Monitoring/snclient/actions/workflows/builds.yml/badge.svg?branch=main)](https://github.com/Consol-Monitoring/snclient/actions/workflows/builds.yml)

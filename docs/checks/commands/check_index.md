@@ -43,7 +43,8 @@ these can be used in filters and thresholds (along with the default attributes):
 | implemented | check is available on current platform: 0 / 1 |
 | windows     | check is available on Windows: 0 / 1          |
 | linux       | check is available on Linux: 0 / 1            |
-| osx         | check is available on macOS: 0 / 1            |
+| macos       | check is available on macOS: 0 / 1            |
+| osx         | alias for macos: 0 / 1                        |
 | freebsd     | check is available on FreeBSD: 0 / 1          |
 | alias       | check is an alias: 0 / 1                      |
 | script      | check is a (wrapped) script: 0 / 1            |

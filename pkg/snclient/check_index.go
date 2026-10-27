@@ -35,7 +35,8 @@ func (l *CheckIndex) Build() *CheckData {
 			{name: "implemented", description: "check is available on current platform: 0 / 1"},
 			{name: "windows", description: "check is available on Windows: 0 / 1"},
 			{name: "linux", description: "check is available on Linux: 0 / 1"},
-			{name: "osx", description: "check is available on macOS: 0 / 1"},
+			{name: "macos", description: "check is available on macOS: 0 / 1"},
+			{name: "osx", description: "alias for macos: 0 / 1"},
 			{name: "freebsd", description: "check is available on FreeBSD: 0 / 1"},
 			{name: "alias", description: "check is an alias: 0 / 1"},
 			{name: "script", description: "check is a (wrapped) script: 0 / 1"},
@@ -73,7 +74,7 @@ func (l *CheckIndex) Check(_ context.Context, snc *Agent, check *CheckData, _ []
 			"implemented": "0",
 			"windows":     "0",
 			"linux":       "0",
-			"osx":         "0",
+			"macos":       "0",
 			"freebsd":     "0",
 			"alias":       "0",
 			"script":      "0",
@@ -95,10 +96,11 @@ func (l *CheckIndex) Check(_ context.Context, snc *Agent, check *CheckData, _ []
 			entry["implemented"] = bool2Str[chk.isImplemented(runtime.GOOS)]
 			entry["windows"] = bool2Str[chk.isImplemented("windows")]
 			entry["linux"] = bool2Str[chk.isImplemented("linux")]
-			entry["osx"] = bool2Str[chk.isImplemented("darwin")]
+			entry["macos"] = bool2Str[chk.isImplemented("darwin")]
 			entry["freebsd"] = bool2Str[chk.isImplemented("freebsd")]
 		}
 
+		entry["osx"] = entry["macos"]
 		check.listData = append(check.listData, entry)
 	}
 
