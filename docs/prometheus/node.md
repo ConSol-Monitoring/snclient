@@ -6,7 +6,7 @@ weight: 340
 tags:
   - prometheus
   - linux
-  - osx
+  - macos
   - node_exporter
   - exporter
 ---

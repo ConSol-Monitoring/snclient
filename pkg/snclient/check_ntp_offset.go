@@ -464,7 +464,7 @@ func (l *CheckNTPOffset) addOSX(ctx context.Context, check *CheckData, force boo
 		return fmt.Errorf("this is a macOS command")
 	}
 
-	entry := l.defaultEntry("osx")
+	entry := l.defaultEntry("macos")
 
 	reBrackets := regexp.MustCompile(`\((.*)\)\s*$`)
 	output, server, err := l.getOSXData(ctx)
