@@ -1,5 +1,7 @@
 ---
+title: Building SNClient From Source
 linkTitle: From Source
+description: Build SNClient binaries and platform packages from source.
 ---
 
 # Building SNClient From Source

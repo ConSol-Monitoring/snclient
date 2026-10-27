@@ -1,6 +1,7 @@
 ---
-title: Windows
-linkTitle: Windows
+title: Windows Exporter
+linkTitle: Windows Exporter
+description: Enable SNClient's built-in Windows exporter to expose Windows metrics.
 weight: 330
 tags:
   - prometheus

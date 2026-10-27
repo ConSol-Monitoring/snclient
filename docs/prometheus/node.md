@@ -1,6 +1,7 @@
 ---
-title: Linux/macOS
-linkTitle: Linux/macOS
+title: Node Exporter (Linux/macOS)
+linkTitle: Node Exporter (Linux/macOS)
+description: Enable SNClient's built-in node exporter to expose Linux and macOS metrics.
 weight: 340
 tags:
   - prometheus

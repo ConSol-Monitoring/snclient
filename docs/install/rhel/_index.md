@@ -1,5 +1,7 @@
 ---
-linkTitle: RHEL
+title: Red Hat / Rocky / AlmaLinux
+linkTitle: RHEL / Rocky / AlmaLinux
+description: Install SNClient on RHEL, Rocky Linux, and AlmaLinux from packages.
 weight: 200
 ---
 

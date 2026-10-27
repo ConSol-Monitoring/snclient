@@ -1,5 +1,7 @@
 ---
-linkTitle: Debian
+title: Debian / Ubuntu
+linkTitle: Debian / Ubuntu
+description: Install SNClient on Debian and Ubuntu using DEB packages.
 weight: 300
 ---
 

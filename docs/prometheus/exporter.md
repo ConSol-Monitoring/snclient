@@ -1,6 +1,7 @@
 ---
-title: ExporterExporter
-linkTitle: ExpExp
+title: Exporter Exporter
+linkTitle: Exporter Exporter
+description: Proxy requests to Prometheus exporters that are not managed by SNClient.
 weight: 360
 tags:
   - prometheus

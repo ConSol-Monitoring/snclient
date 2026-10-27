@@ -1,5 +1,7 @@
 ---
+title: Arch Linux
 linkTitle: Arch Linux
+description: Install SNClient from the Arch User Repository (AUR).
 weight: 350
 ---
 
