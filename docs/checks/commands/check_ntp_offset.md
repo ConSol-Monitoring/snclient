@@ -33,7 +33,7 @@ Checks the NTP offset.
 | Argument | Description                                                                                                |
 | -------- | ---------------------------------------------------------------------------------------------------------- |
 | server   | Fetch offset from these NTP servers. First valid response is used.                                         |
-| source   | Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, macOS, w32tm. |
+| source   | Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, macos, w32tm. |
 
 ## Attributes
 

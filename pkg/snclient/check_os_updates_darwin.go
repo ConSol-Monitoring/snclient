@@ -41,7 +41,7 @@ func (l *CheckOSUpdates) addOSX(ctx context.Context, check *CheckData) (bool, er
 		if os.IsNotExist(err) {
 			return false, nil
 		}
-	case "macOS", "osx":
+	case "macos", "osx":
 	default:
 		return false, nil
 	}

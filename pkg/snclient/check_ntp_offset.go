@@ -43,7 +43,7 @@ func (l *CheckNTPOffset) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"server": {value: &l.ntpserver, description: "Fetch offset from these NTP servers. First valid response is used."},
-			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, macOS, w32tm."},
+			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, macos, w32tm."},
 		},
 		defaultFilter:   "none",
 		defaultWarning:  "offset > 50 || offset < -50",
@@ -175,7 +175,7 @@ func (l *CheckNTPOffset) addSources(ctx context.Context, check *CheckData) (err 
 		}
 	}
 
-	if l.source == "auto" || l.source == "macOS" || l.source == "osx" {
+	if l.source == "auto" || l.source == "macos" || l.source == "osx" {
 		err = l.addOSX(ctx, check, l.source != "auto")
 		if err != nil {
 			log.Debugf("failed: macOS: %s", err.Error())
