@@ -32,7 +32,7 @@ Checks for OS system updates.
 | Argument               | Description                                                                                  |
 | ---------------------- | -------------------------------------------------------------------------------------------- |
 | -m\|--max-metadata-age | Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, e.g. 48h (default: 24h) |
-| -s\|--system           | Package system: auto, apt, yum, macOS and windows (default: auto)                            |
+| -s\|--system           | Package system: auto, apt, yum, macos and windows (default: auto)                            |
 | -u\|--update           | Update package list (if supported, e.g. apt-get update)                                      |
 
 ## Attributes

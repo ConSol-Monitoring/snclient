@@ -37,7 +37,7 @@ func (l *CheckOSUpdates) Build() *CheckData {
 		hasInventory: NoCallInventory,
 		result:       &CheckResult{},
 		args: map[string]CheckArgument{
-			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum, macOS and windows (default: auto)"},
+			"-s|--system": {value: &l.system, description: "Package system: auto, apt, yum, macos and windows (default: auto)"},
 			"-u|--update": {value: &l.update, description: "Update package list (if supported, e.g. apt-get update)"},
 			"-m|--max-metadata-age": {
 				value:       &l.maxMetadataAge,
@@ -90,7 +90,7 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 	addedOsBackendCount, osBackendAddErr := l.addOSBackends(ctx, check)
 
 	if addedOsBackendCount == 0 {
-		return nil, fmt.Errorf("no suitable package system found, supported systems are apt, yum, macOS and windows. found errors: %w", osBackendAddErr)
+		return nil, fmt.Errorf("no suitable package system found, supported systems are apt, yum, macos and windows. found errors: %w", osBackendAddErr)
 	}
 	if osBackendAddErr != nil {
 		return nil, osBackendAddErr
