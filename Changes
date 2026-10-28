@@ -6,6 +6,7 @@ next:
          - check_eventlog: translate event type and source filter conditions into the WMI query
          - add ppc64le rpm/deb builds
          - update windows exporter to 0.32.0
+         - check_http: add -P/--post to send request data
 
 1.00     Fri Oct 16 16:47:03 CEST 2026
          - add check_multi: execute multiple subchecks and evaluate the overall result
