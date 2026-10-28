@@ -37,7 +37,7 @@ func TestHTTPPost(t *testing.T) {
 		{name: "default GET", method: http.MethodGet},
 		{
 			name: "short option", args: []string{"-P", "name=value&other=a+b"},
-			method: http.MethodPost, body: "name=value&other=a+b", contentType: "application/x-www-form-urlencoded",
+			method: http.MethodPost, body: "name=value&other=a+b",
 		},
 		{
 			name: "JSON", args: []string{"--post=" + jsonData, "-k", "Content-Type: application/json"},
@@ -45,15 +45,15 @@ func TestHTTPPost(t *testing.T) {
 		},
 		{
 			name: "empty POST", args: []string{"--post="},
-			method: http.MethodPost, contentType: "application/x-www-form-urlencoded",
+			method: http.MethodPost,
 		},
 		{
 			name: "explicit PUT", args: []string{"-j", "PUT", "--post=payload"},
-			method: http.MethodPut, body: "payload", contentType: "application/x-www-form-urlencoded",
+			method: http.MethodPut, body: "payload",
 		},
 		{
 			name: "explicit GET", args: []string{"--post=payload", "--method=GET"},
-			method: http.MethodGet, body: "payload", contentType: "application/x-www-form-urlencoded",
+			method: http.MethodGet, body: "payload",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {

@@ -63,7 +63,7 @@ type commandOpts struct {
 		Hostname                 string        `short:"H" long:"hostname"                                description:"Host name using Host headers"`
 		IPAddress                string        `short:"I" long:"IP-address"                              description:"IP address or Host name"`
 		Method                   string        `short:"j" long:"method"            default:"GET"         description:"Set HTTP Method"`
-		Post                     *string       `short:"P" long:"post"                                    description:"Data to send in the request body. Defaults to POST unless --method is set, and Content-Type to application/x-www-form-urlencoded unless overridden by --header"`
+		Post                     *string       `short:"P" long:"post"                                    description:"Data to send in the request body. Defaults to POST unless --method is set. Set the Content-Type header using --header (e.g. --header 'Content-Type: application/json')"`
 		URI                      string        `short:"u" long:"uri"               default:"/"           description:"URI to request"`
 		ExpectStr                string        `short:"e" long:"expect"            default:""            description:"Comma-delimited list of expected HTTP response status. By default, 1XX, 2XX are OK, 3XX depends on --onredirect option, 4XX are WARNING, 5XX are CRITICAL"`
 		ExpectContent            string        `short:"s" long:"string"                                  description:"String to expect in the content"`
@@ -320,9 +320,6 @@ func buildRequest(ctx context.Context, opts *commandOpts) (*http.Request, error)
 	}
 
 	req.Header.Set("User-Agent", opts.flags.UserAgent)
-	if opts.flags.Post != nil {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	}
 
 	// set additional headers
 	for _, hdr := range opts.flags.Header {

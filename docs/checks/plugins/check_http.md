@@ -25,8 +25,8 @@ Application Options:
   -I, --IP-address=                                 IP address or Host name
   -j, --method=                                     Set HTTP Method (default: GET)
   -P, --post=                                       Data to send in the request body. Defaults to POST unless --method
-                                                    is set, and Content-Type to application/x-www-form-urlencoded
-                                                    unless overridden by --header
+                                                    is set. Set the Content-Type header using --header (e.g. --header
+                                                    'Content-Type: application/json')
   -u, --uri=                                        URI to request (default: /)
   -e, --expect=                                     Comma-delimited list of expected HTTP response status. By default,
                                                     1XX, 2XX are OK, 3XX depends on --onredirect option, 4XX are
