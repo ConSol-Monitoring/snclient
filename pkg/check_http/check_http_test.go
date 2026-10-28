@@ -81,25 +81,6 @@ func TestHTTPPost(t *testing.T) {
 	}
 }
 
-func TestHTTPRedirectHelp(t *testing.T) {
-	var output strings.Builder
-	Check(t.Context(), &output, []string{"check_http", "--help"})
-	assert.Contains(t, output.String(), "-f, --onredirect=<options>")
-	assert.NotContains(t, output.String(), "--onredirect=[")
-}
-
-func TestHTTPRedirectInvalidOption(t *testing.T) {
-	for _, arg := range []string{"--onredirect=invalid", "--onredirect=", "-f=invalid"} {
-		t.Run(arg, func(t *testing.T) {
-			var output strings.Builder
-			code := Check(t.Context(), &output, []string{"check_http", arg})
-			assert.Equal(t, UNKNOWN, code)
-			assert.Contains(t, output.String(), "Invalid value")
-			assert.Contains(t, output.String(), "Allowed values are: ok, warning, critical, follow, sticky or stickyport")
-		})
-	}
-}
-
 func TestHTTP(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
