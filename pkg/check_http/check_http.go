@@ -63,6 +63,7 @@ type commandOpts struct {
 		Hostname                 string        `short:"H" long:"hostname"                                description:"Host name using Host headers"`
 		IPAddress                string        `short:"I" long:"IP-address"                              description:"IP address or Host name"`
 		Method                   string        `short:"j" long:"method"            default:"GET"         description:"Set HTTP Method"`
+		Post                     *string       `short:"P" long:"post"                                    description:"Data to send in the request body. Defaults to POST unless --method is set, and Content-Type to application/x-www-form-urlencoded unless overridden by --header"`
 		URI                      string        `short:"u" long:"uri"               default:"/"           description:"URI to request"`
 		ExpectStr                string        `short:"e" long:"expect"            default:""            description:"Comma-delimited list of expected HTTP response status. By default, 1XX, 2XX are OK, 3XX depends on --onredirect option, 4XX are WARNING, 5XX are CRITICAL"`
 		ExpectContent            string        `short:"s" long:"string"                                  description:"String to expect in the content"`
@@ -76,7 +77,7 @@ type commandOpts struct {
 		Proxy                    string        `          long:"proxy"                                   description:"Proxy that should be used"`
 		RegexStr                 string        `short:"r" long:"regex"                                   description:"Search page for case-sensitive regex string"`
 		RegexiStr                string        `short:"R" long:"regexi"                                  description:"Search page for case-insensitive regex string"`
-		Onredirect               string        `short:"f" long:"onredirect"                              description:"What strategy to use when encountering a redirect. ok/warning/critical returns immediately. follow uses the new URL returned by golang HTTP client. Sticky keeps the hostname the same after redirect, and stickyport persists the port as well." choice:"ok" choice:"warning" choice:"critical" choice:"follow" choice:"sticky" choice:"stickyport"`
+		Onredirect               string        `short:"f" long:"onredirect"        value-name:"<options>" description:"Redirect strategy: ok, warning, critical, follow, sticky, stickyport. ok/warning/critical returns immediately. follow uses the new URL returned by golang HTTP client. sticky keeps the hostname the same after redirect, and stickyport persists the port as well."`
 		MaxBufferSize            string        `          long:"max-buffer-size"   default:"1MB"         description:"Max buffer size to read response body (max.: 100MB)"`
 		TimeoutStr               string        `short:"t" long:"timeout"           default:"10"          description:"Timeout to wait for connection. If no time unit is given at the end, default of seconds is assumed"`
 		WarningThresholdStr      string        `short:"w" long:"warning"           default:"30"          description:"If the request+response takes longer than the specified warning threshold, raises a warning. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
@@ -293,13 +294,16 @@ func buildRequest(ctx context.Context, opts *commandOpts) (*http.Request, error)
 
 	uri := fmt.Sprintf("%s://%s%s", schema, host, opts.flags.URI)
 
-	var buffer bytes.Buffer
+	var body io.Reader = http.NoBody
+	if opts.flags.Post != nil {
+		body = strings.NewReader(*opts.flags.Post)
+	}
 
 	req, err := http.NewRequestWithContext(
 		ctx,
 		opts.flags.Method,
 		uri,
-		&buffer,
+		body,
 	)
 	if err != nil {
 		//nolint:wrapcheck // 3rd party source code imported
@@ -316,6 +320,9 @@ func buildRequest(ctx context.Context, opts *commandOpts) (*http.Request, error)
 	}
 
 	req.Header.Set("User-Agent", opts.flags.UserAgent)
+	if opts.flags.Post != nil {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
 
 	// set additional headers
 	for _, hdr := range opts.flags.Header {
@@ -997,6 +1004,21 @@ func Check(ctx context.Context, output io.Writer, osArgs []string) int {
 		fmt.Fprintf(output, "%s\n", err.Error())
 
 		return UNKNOWN
+	}
+
+	if option := psr.FindOptionByLongName("onredirect"); option.IsSet() {
+		switch opts.flags.Onredirect {
+		case "ok", "warning", "critical", "follow", "sticky", "stickyport":
+		default:
+			fmt.Fprintf(output, "Invalid value `%s' for option `%s'. Allowed values are: ok, warning, critical, follow, sticky or stickyport\n",
+				opts.flags.Onredirect, option)
+
+			return UNKNOWN
+		}
+	}
+
+	if opts.flags.Post != nil && psr.FindOptionByLongName("method").IsSetDefault() {
+		opts.flags.Method = http.MethodPost
 	}
 
 	var loggerCastOk bool

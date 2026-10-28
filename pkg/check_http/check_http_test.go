@@ -25,6 +25,81 @@ const (
 	testURI  = "/legal-notice/"
 )
 
+func TestHTTPPost(t *testing.T) {
+	jsonData := "{\n  \"name\": \"example\",\n  \"enabled\": true\n}"
+	for _, test := range []struct {
+		name        string
+		args        []string
+		method      string
+		body        string
+		contentType string
+	}{
+		{name: "default GET", method: http.MethodGet},
+		{
+			name: "short option", args: []string{"-P", "name=value&other=a+b"},
+			method: http.MethodPost, body: "name=value&other=a+b", contentType: "application/x-www-form-urlencoded",
+		},
+		{
+			name: "JSON", args: []string{"--post=" + jsonData, "-k", "Content-Type: application/json"},
+			method: http.MethodPost, body: jsonData, contentType: "application/json",
+		},
+		{
+			name: "empty POST", args: []string{"--post="},
+			method: http.MethodPost, contentType: "application/x-www-form-urlencoded",
+		},
+		{
+			name: "explicit PUT", args: []string{"-j", "PUT", "--post=payload"},
+			method: http.MethodPut, body: "payload", contentType: "application/x-www-form-urlencoded",
+		},
+		{
+			name: "explicit GET", args: []string{"--post=payload", "--method=GET"},
+			method: http.MethodGet, body: "payload", contentType: "application/x-www-form-urlencoded",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
+				body, err := io.ReadAll(req.Body)
+				assert.NoError(t, err)
+				assert.Equal(t, test.method, req.Method)
+				assert.Equal(t, test.body, string(body))
+				assert.Equal(t, test.contentType, req.Header.Get("Content-Type"))
+				assert.Equal(t, "/submit", req.URL.Path)
+				fmt.Fprint(writer, "request received")
+			}))
+			defer srv.Close()
+
+			target, err := url.Parse(srv.URL)
+			require.NoError(t, err)
+			args := make([]string, 0, 7+len(test.args))
+			args = append(args, "check_http", "-H", target.Host, "-u", "/submit", "-s", "request received")
+			args = append(args, test.args...)
+
+			var output strings.Builder
+			code := Check(t.Context(), &output, args)
+			assert.Equal(t, OK, code, output.String())
+		})
+	}
+}
+
+func TestHTTPRedirectHelp(t *testing.T) {
+	var output strings.Builder
+	Check(t.Context(), &output, []string{"check_http", "--help"})
+	assert.Contains(t, output.String(), "-f, --onredirect=<options>")
+	assert.NotContains(t, output.String(), "--onredirect=[")
+}
+
+func TestHTTPRedirectInvalidOption(t *testing.T) {
+	for _, arg := range []string{"--onredirect=invalid", "--onredirect=", "-f=invalid"} {
+		t.Run(arg, func(t *testing.T) {
+			var output strings.Builder
+			code := Check(t.Context(), &output, []string{"check_http", arg})
+			assert.Equal(t, UNKNOWN, code)
+			assert.Contains(t, output.String(), "Invalid value")
+			assert.Contains(t, output.String(), "Allowed values are: ok, warning, critical, follow, sticky or stickyport")
+		})
+	}
+}
+
 func TestHTTP(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping network test in short mode")
