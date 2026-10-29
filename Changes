@@ -1,15 +1,15 @@
 This file documents the revision history for the SNClient agent.
 
-next:
-         - update golang build chain to 1.27.3
+1.01     Thu Oct 29 14:52:12 CET 2026
+         - add ppc64le rpm/deb builds
          - support multiline external commands and check_multi config
          - check_multi: fix aggregating child performance data with the command tag prefix
          - check_multi: support config variables with defaults and required values
          - check_eventlog: translate event type and source filter conditions into the WMI query
          - check_uptime: fix display glitch when uptime is exactly 3 weeks
-         - add ppc64le rpm/deb builds
-         - update windows exporter to 0.32.0
          - check_http: add -P/--post to send request data
+         - windows exporter: update to 0.32.0
+         - update golang build chain to 1.27.3
 
 1.00     Fri Oct 16 16:47:03 CEST 2026
          - add check_multi: execute multiple subchecks and evaluate the overall result
