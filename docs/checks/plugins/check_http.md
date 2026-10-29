@@ -21,94 +21,87 @@ It basically wraps the plugin from https://github.com/sni/check_http_go
   check_http [OPTIONS]
 
 Application Options:
-  -H, --hostname=                                                 Host name using Host headers
-  -I, --IP-address=                                               IP address or Host name
-  -j, --method=                                                   Set HTTP Method (default: GET)
-  -u, --uri=                                                      URI to request (default: /)
-  -e, --expect=                                                   Comma-delimited list of expected HTTP response
-                                                                  status. By default, 1XX, 2XX are OK, 3XX depends on
-                                                                  --onredirect option, 4XX are WARNING, 5XX are CRITICAL
-  -s, --string=                                                   String to expect in the content
-      --base64-string=                                            Base64-encoded string to expect in the content
-  -A, --useragent=                                                UserAgent to be sent (default: check_http)
-  -a, --authorization=                                            Pass '[username]:[password]' formatted string to be
-                                                                  used as basic authorization header
-  -k, --header=                                                   Any other tags to be sent in HTTP header. Use
-                                                                  multiple times for additional headers
-  -C, --certificate=                                              Check certificates instead of content. Specified in
-                                                                  mandatory days left to warn and optional days to crit
-                                                                  with a comma: warn_days[,<crit_days>]
-      --tls-min=[1.0|1.0+|1.1|1.1+|1.2|1.2+|1.3]                  Minimum supported TLS version. Values with plus set
-                                                                  the maximum TLS version as well to latest version: 1.3
-      --tls-max=[1.0|1.1|1.2|1.3]                                 Maximum supported TLS version
-      --proxy=                                                    Proxy that should be used
-  -r, --regex=                                                    Search page for case-sensitive regex string
-  -R, --regexi=                                                   Search page for case-insensitive regex string
-  -f, --onredirect=[ok|warning|critical|follow|sticky|stickyport] What strategy to use when encountering a redirect.
-                                                                  ok/warning/critical returns immediately. follow uses
-                                                                  the new URL returned by golang HTTP client. Sticky
-                                                                  keeps the hostname the same after redirect, and
-                                                                  stickyport persists the port as well.
-      --max-buffer-size=                                          Max buffer size to read response body (max.: 100MB)
-                                                                  (default: 1MB)
-  -t, --timeout=                                                  Timeout to wait for connection. If no time unit is
-                                                                  given at the end, default of seconds is assumed
-                                                                  (default: 10)
-  -w, --warning=                                                  If the request+response takes longer than the
-                                                                  specified warning threshold, raises a warning. If no
-                                                                  time unit is given at the end, default of seconds is
-                                                                  assumed. Value is truncated to milliseconds.
-                                                                  (default: 30)
-  -c, --critical=                                                 If the request+response takes longer than the
-                                                                  specified critical threshold, raises a critical. If
-                                                                  no time unit is given at the end, default of seconds
-                                                                  is assumed. Value is truncated to milliseconds.
-                                                                  (default: 60)
-      --wait-for-interval=                                        Retry interval (default: 2s)
-      --wait-for-max=                                             Time to wait for success (max.: 180s)
-      --interim=                                                  Interval time after successful request for
-                                                                  consecutive mode (default: 1s)
-      --consecutive=                                              Number of consecutive successful requests required
-                                                                  (max.: 5) (default: 1)
-  -p, --port=                                                     Port number
-      --max-redirs=                                               Maximum redirects before giving up on following
-      --no-discard                                                Raise error when the response body is larger than
-                                                                  max-buffer-size
-      --wait-for                                                  Retry until successful when enabled
-  -S, --ssl                                                       Use HTTPS
-      --sni                                                       Enable SNI
-  -4                                                              Use tcp4 only
-  -6                                                              Use tcp6 only
-  -v, --verbose                                                   Show verbose output
-      --show-body                                                 Print body content below status line
-      --ignore-certificate-chain                                  During certificate check, all certificates are
-                                                                  checked in many aspects. Toggle this option to only
-                                                                  check the leaf (final) certificate.
-      --check-cn                                                  Subject Common Name of leaf certificate can be
-                                                                  checked to match hostname exactly. Common Name field
-                                                                  is now largely unused in modern web, with Subject
-                                                                  Alternative Name fields being more prevalent and used
-                                                                  instead of Common Name when present. It is not
-                                                                  checked by default, use this flag to enable it.
-      --check-san                                                 Subject Alternative Names can be checked against the
-                                                                  hostname. SANs contain the hostnames and IP addresses
-                                                                  this certificate is valid for. They are ignored if
-                                                                  the certificate is a Certificate Authority type,
-                                                                  meaning they are used to sign other certificates and
-                                                                  not for proving security for a hostname. It is not
-                                                                  checked by default, use this flag to enable it.
-      --ignore-not-after                                          Certificates are invalid after the timestamp in their
-                                                                  NotAfter has passed. This field can be ignored with
-                                                                  this flag.
-      --ignore-not-before                                         Certificates are invalid before the timestamp in
-                                                                  their NotBefore is reached. This field can be ignored
-                                                                  with this flag.
-      --ignore-signature-algorithm                                Some signature algorithms are deemed insecure, and
-                                                                  are deprecated. The algorithm used can be ignored
-                                                                  with this flag.
+  -H, --hostname=                                   Host name using Host headers
+  -I, --IP-address=                                 IP address or Host name
+  -j, --method=                                     Set HTTP Method (default: GET)
+  -P, --post=                                       Data to send in the request body. Defaults to POST unless --method
+                                                    is set. Set the Content-Type header using --header (e.g. --header
+                                                    'Content-Type: application/json')
+  -u, --uri=                                        URI to request (default: /)
+  -e, --expect=                                     Comma-delimited list of expected HTTP response status. By default,
+                                                    1XX, 2XX are OK, 3XX depends on --onredirect option, 4XX are
+                                                    WARNING, 5XX are CRITICAL
+  -s, --string=                                     String to expect in the content
+      --base64-string=                              Base64-encoded string to expect in the content
+  -A, --useragent=                                  UserAgent to be sent (default: check_http)
+  -a, --authorization=                              Pass '[username]:[password]' formatted string to be used as basic
+                                                    authorization header
+  -k, --header=                                     Any other tags to be sent in HTTP header. Use multiple times for
+                                                    additional headers
+  -C, --certificate=                                Check certificates instead of content. Specified in mandatory days
+                                                    left to warn and optional days to crit with a comma:
+                                                    warn_days[,<crit_days>]
+      --tls-min=[1.0|1.0+|1.1|1.1+|1.2|1.2+|1.3]    Minimum supported TLS version. Values with plus set the maximum TLS
+                                                    version as well to latest version: 1.3
+      --tls-max=[1.0|1.1|1.2|1.3]                   Maximum supported TLS version
+      --proxy=                                      Proxy that should be used
+  -r, --regex=                                      Search page for case-sensitive regex string
+  -R, --regexi=                                     Search page for case-insensitive regex string
+  -f, --onredirect=<options>                        Redirect strategy: ok, warning, critical, follow, sticky,
+                                                    stickyport. ok/warning/critical returns immediately. follow uses
+                                                    the new URL returned by golang HTTP client. sticky keeps the
+                                                    hostname the same after redirect, and stickyport persists the port
+                                                    as well.
+      --max-buffer-size=                            Max buffer size to read response body (max.: 100MB) (default: 1MB)
+  -t, --timeout=                                    Timeout to wait for connection. If no time unit is given at the
+                                                    end, default of seconds is assumed (default: 10)
+  -w, --warning=                                    If the request+response takes longer than the specified warning
+                                                    threshold, raises a warning. If no time unit is given at the end,
+                                                    default of seconds is assumed. Value is truncated to milliseconds.
+                                                    (default: 30)
+  -c, --critical=                                   If the request+response takes longer than the specified critical
+                                                    threshold, raises a critical. If no time unit is given at the end,
+                                                    default of seconds is assumed. Value is truncated to milliseconds.
+                                                    (default: 60)
+      --wait-for-interval=                          Retry interval (default: 2s)
+      --wait-for-max=                               Time to wait for success (max.: 180s)
+      --interim=                                    Interval time after successful request for consecutive mode
+                                                    (default: 1s)
+      --consecutive=                                Number of consecutive successful requests required (max.: 5)
+                                                    (default: 1)
+  -p, --port=                                       Port number
+      --max-redirs=                                 Maximum redirects before giving up on following
+      --no-discard                                  Raise error when the response body is larger than max-buffer-size
+      --wait-for                                    Retry until successful when enabled
+  -S, --ssl                                         Use HTTPS
+      --sni                                         Enable SNI
+  -4                                                Use tcp4 only
+  -6                                                Use tcp6 only
+  -v, --verbose                                     Show verbose output
+      --show-body                                   Print body content below status line
+      --ignore-certificate-chain                    During certificate check, all certificates are checked in many
+                                                    aspects. Toggle this option to only check the leaf (final)
+                                                    certificate.
+      --check-cn                                    Subject Common Name of leaf certificate can be checked to match
+                                                    hostname exactly. Common Name field is now largely unused in modern
+                                                    web, with Subject Alternative Name fields being more prevalent and
+                                                    used instead of Common Name when present. It is not checked by
+                                                    default, use this flag to enable it.
+      --check-san                                   Subject Alternative Names can be checked against the hostname. SANs
+                                                    contain the hostnames and IP addresses this certificate is valid
+                                                    for. They are ignored if the certificate is a Certificate Authority
+                                                    type, meaning they are used to sign other certificates and not for
+                                                    proving security for a hostname. It is not checked by default, use
+                                                    this flag to enable it.
+      --ignore-not-after                            Certificates are invalid after the timestamp in their NotAfter has
+                                                    passed. This field can be ignored with this flag.
+      --ignore-not-before                           Certificates are invalid before the timestamp in their NotBefore is
+                                                    reached. This field can be ignored with this flag.
+      --ignore-signature-algorithm                  Some signature algorithms are deemed insecure, and are deprecated.
+                                                    The algorithm used can be ignored with this flag.
 
 Help Options:
-  -h, --help                                                      Show this help message
+  -h, --help                                        Show this help message
 ```
 
 ## Examples

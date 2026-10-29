@@ -7,6 +7,7 @@ next:
          - check_uptime: fix display glitch when uptime is exactly 3 weeks
          - add ppc64le rpm/deb builds
          - update windows exporter to 0.32.0
+         - check_http: add -P/--post to send request data
 
 1.00     Fri Oct 16 16:47:03 CEST 2026
          - add check_multi: execute multiple subchecks and evaluate the overall result
