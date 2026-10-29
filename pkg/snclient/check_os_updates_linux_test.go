@@ -189,6 +189,34 @@ func TestCheckYUMMetadataAge(t *testing.T) {
 	assert.NotEqual(t, CheckExitUnknown, res.State)
 }
 
+func TestNewestMTimePermissionErrors(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("cannot simulate permission errors as root")
+	}
+
+	// Permission errors are ignored when readable (and newer) files exist
+	base := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(base, "meta"), []byte("x"), 0o600))
+	blocked := filepath.Join(base, "blocked")
+	require.NoError(t, os.Mkdir(blocked, 0o000))
+	t.Cleanup(func() { require.NoError(t, os.Chmod(blocked, 0o755)) })
+
+	newest, err := newestMTime(base)
+	require.NoError(t, err)
+	assert.False(t, newest.IsZero())
+
+	// With no readable files, the permission error is included in the message
+	empty := t.TempDir()
+	blockedEmpty := filepath.Join(empty, "blocked")
+	require.NoError(t, os.Mkdir(blockedEmpty, 0o000))
+	t.Cleanup(func() { require.NoError(t, os.Chmod(blockedEmpty, 0o755)) })
+
+	_, err = newestMTime(empty)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no metadata files found")
+	assert.Contains(t, err.Error(), "permission denied")
+}
+
 func TestDedupeListData(t *testing.T) {
 	entries := []map[string]string{
 		{"package": "pkg1", "arch": "amd64", "security": "0"},

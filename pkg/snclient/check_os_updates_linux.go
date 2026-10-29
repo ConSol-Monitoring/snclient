@@ -2,6 +2,7 @@ package snclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -318,9 +319,18 @@ func (l *CheckOSUpdates) checkMetadataAge(dir string) error {
 func newestMTime(dir string) (time.Time, error) {
 	var newest time.Time
 	found := false
+	var accessErrs []error
 
-	err := filepath.WalkDir(dir, func(_ string, entry fs.DirEntry, err error) error {
+	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
+			// Permission and similar errors do not stop the walk: other files may
+			// still be readable and newer than the threshold.
+			if errors.Is(err, fs.ErrPermission) {
+				accessErrs = append(accessErrs, err)
+
+				return filepath.SkipDir
+			}
+
 			return err
 		}
 		if entry.IsDir() {
@@ -336,7 +346,9 @@ func newestMTime(dir string) (time.Time, error) {
 
 		info, err := entry.Info()
 		if err != nil {
-			return fmt.Errorf("failed to retrieve file info for %s: %w", entry.Name(), err)
+			accessErrs = append(accessErrs, fmt.Errorf("failed to retrieve file info for %s: %w", path, err))
+
+			return nil
 		}
 		if !found || info.ModTime().After(newest) {
 			newest = info.ModTime()
@@ -349,6 +361,10 @@ func newestMTime(dir string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("dir walk failed for %s: %w", dir, err)
 	}
 	if !found {
+		if len(accessErrs) > 0 {
+			return time.Time{}, fmt.Errorf("no metadata files found (%s)", errors.Join(accessErrs...).Error())
+		}
+
 		return time.Time{}, fmt.Errorf("no metadata files found")
 	}
 
