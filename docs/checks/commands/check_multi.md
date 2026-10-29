@@ -14,10 +14,24 @@ When using the inline mode, you can only use available commands (run <code>check
 You can also define custom check sections in the config file, for example:
 
     [/settings/check/multi/mycheck]
-    command[alias1] = check_process process=123
+    var[PROCESS] = 123
+    command[alias1] = check_process process=$PROCESS$
     command[alias2] = check_process process=345
 
 This can be executed with <code>check_multi "config=mycheck"</code>.
+
+Use <code>check_multi "config=mycheck" "var[PROCESS]=456"</code> to override a variable's default value.
+Variable names are case-sensitive. Every occurrence of a declared variable is replaced; undeclared placeholders stay unchanged.
+Shell metacharacters and control characters are forbidden in values. Quote placeholders to preserve spaces.
+
+Variables without defaults must be declared as required (comma-separated):
+
+    [/settings/check/multi/required]
+    required vars = MESSAGE
+    command[message] = check_dummy 0 '$MESSAGE$'
+
+Run this with <code>check_multi "config=required" "var[MESSAGE]=Service is healthy"</code>.
+A required variable must have a default or be explicitly supplied; an empty value counts as supplied.
 
 It's also possible to use custom scripts in the config section, for example:
 
@@ -54,10 +68,11 @@ This can be executed with <code>check_multi "config=myscript"</code>.
 
 ## Check Specific Arguments
 
-| Argument | Description                                                               |
-| -------- | ------------------------------------------------------------------------- |
-| command  | Check command to execute with mandatory unique tag, e.g. command[tag]=... |
-| config   | Config section name under [/settings/check/multi/< section >] to execute  |
+| Argument | Description                                                                         |
+| -------- | ----------------------------------------------------------------------------------- |
+| command  | Check command to execute with mandatory unique tag, e.g. command[tag]=...           |
+| config   | Config section name under [/settings/check/multi/< section >] to execute            |
+| var      | Config variable override, e.g. var[KEY]=VALUE, replacing \$KEY\$ in config commands |
 
 ## Attributes
 

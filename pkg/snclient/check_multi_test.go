@@ -2,14 +2,120 @@ package snclient
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestCheckMultiTCPPerformanceData(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer listener.Close()
+	_, port, err := net.SplitHostPort(listener.Addr().String())
+	require.NoError(t, err)
+
+	snc := StartTestAgent(t, "[/modules]\nCheckBuiltinPlugins = enabled\n")
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_multi", []string{
+		"command[P01]=check_tcp -H 127.0.0.1 -p " + port + " -t 2",
+		"command[P02]=check_dummy 2 'TCP CRITICAL - connection failed'",
+		"crit=ok_count eq 0",
+	})
+	assert.Equal(t, CheckExitOK, res.State)
+	assert.Contains(t, res.Output, "2 plugins checked: 1 ok, 0 warning, 1 critical, 0 unknown")
+	require.Len(t, res.Metrics, 8)
+	assert.Equal(t, "P01::time", res.Metrics[0].Name)
+	assert.Equal(t, "s", res.Metrics[0].Unit)
+	assert.True(t, res.Metrics[0].SkipStateCheck)
+	assert.Equal(t, "time", res.Metrics[7].Name)
+	firstLine, _, _ := strings.Cut(string(res.BuildPluginOutput()), "\n")
+	assert.Contains(t, firstLine, "'P01::time'=")
+	assert.Contains(t, res.Details, "[P01] TCP OK -")
+	assert.NotContains(t, res.Details, "|")
+}
+
+func TestCheckMultiPerformanceData(t *testing.T) {
+	config := `
+[/modules]
+CheckExternalScripts = enabled
+
+[/settings/external scripts/alias]
+parsed = check_dummy 0 'OK | time=0.003234s;1;2;0;10'
+
+[/settings/external scripts/alias/ignored]
+command = check_dummy 0 'OK | time=0.003234s;1;2;0;10'
+ignore perfdata = yes
+
+[/settings/check/multi/inner]
+command[leaf] = check_dummy 0 'OK | time=0.003234s;1;2;0;10'
+`
+	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+
+	for _, testCase := range []struct {
+		name         string
+		args         []string
+		metric       string
+		details      string
+		metricsCount int
+	}{
+		{
+			name:         "raw",
+			args:         []string{"command[child]=check_dummy 0 'OK | time=0.003234s;1;2;0;10'"},
+			metric:       "'child::time'=0.003234s;1;2;0;10",
+			details:      "[child] OK",
+			metricsCount: 8,
+		},
+		{
+			name:         "already parsed",
+			args:         []string{"command[child]=parsed"},
+			metric:       "'child::time'=0.003234s;1;2;0;10",
+			details:      "[child] OK",
+			metricsCount: 8,
+		},
+		{
+			name:         "ignored",
+			args:         []string{"command[child]=ignored"},
+			details:      "[child] OK | time=0.003234s;1;2;0;10",
+			metricsCount: 7,
+		},
+		{
+			name: "filtered",
+			args: []string{
+				"command[visible]=check_dummy 0 OK",
+				"command[hidden]=check_dummy 0 'OK | time=0.003234s;1;2;0;10'",
+				"filter=name eq 'visible'",
+			},
+			details:      "[visible] OK",
+			metricsCount: 7,
+		},
+		{
+			name:         "nested",
+			args:         []string{"command[outer]=check_multi config=inner"},
+			metric:       "'outer::leaf::time'=0.003234s;1;2;0;10",
+			details:      "[outer] OK - 1 plugins checked, 1 ok\n[leaf] OK",
+			metricsCount: 15,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			res := snc.RunCheck("check_multi", testCase.args)
+			assert.Equal(t, CheckExitOK, res.State)
+			assert.Len(t, res.Metrics, testCase.metricsCount)
+			assert.Equal(t, testCase.details, res.Details)
+			if testCase.metric != "" {
+				firstLine, _, _ := strings.Cut(string(res.BuildPluginOutput()), "\n")
+				assert.Contains(t, firstLine, testCase.metric)
+			}
+		})
+	}
+}
 
 func TestCheckMultiLineContinuation(t *testing.T) {
 	config := `
@@ -598,6 +704,79 @@ command[next] = check_multi config=depth6
 	res := snc.RunCheck("check_multi", []string{"config=depth0"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN when exceeding recursion limit")
 	assert.Contains(t, res.BuildOutputString(), "UNKNOWN - recursion limit exceeded for check_multi")
+}
+
+func TestCheckMultiConfigVariables(t *testing.T) {
+	snc := StartTestAgent(t, `
+[/settings/check/multi/defaults]
+var[abc] = default value
+command[test] = check_dummy 0 '$abc$ / $abc$'
+
+[/settings/check/multi/required]
+required vars = abc, host
+var[host] = localhost
+command[test] = check_dummy 0 '$abc$@$host$'
+
+[/settings/check/multi/literal]
+command[test] = check_dummy 0 '$VALUE$'
+`)
+	defer StopTestAgent(t, snc)
+
+	tests := []struct {
+		name   string
+		args   []string
+		state  int64
+		output string
+	}{
+		{"default", []string{"config=defaults"}, CheckExitOK, "[test] default value / default value"},
+		{"override", []string{"config=defaults", "var[abc]=new value"}, CheckExitOK, "[test] new value / new value"},
+		{"required missing", []string{"config=required"}, CheckExitUnknown, "missing required variable: abc"},
+		{"required supplied", []string{"config=required", "var[abc]=value"}, CheckExitOK, "[test] value@localhost"},
+		{"undeclared", []string{"config=literal"}, CheckExitOK, "[test] $VALUE$"},
+		{"undeclared override", []string{"config=literal", "var[VALUE]=$(ignored)"}, CheckExitOK, "[test] $VALUE$"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			res := snc.RunCheck("check_multi", test.args)
+			assert.Equal(t, test.state, res.State)
+			assert.Contains(t, res.BuildOutputString(), test.output)
+			if test.state == CheckExitUnknown {
+				assert.Empty(t, res.Details)
+			}
+		})
+	}
+}
+
+func TestCheckMultiRejectsUnsafeVariableValues(t *testing.T) {
+	snc := StartTestAgent(t, `
+[/settings/check/multi/injection]
+var[VALUE] = safe default
+command[external] = /does/not/exist '$VALUE$'
+`)
+	defer StopTestAgent(t, snc)
+
+	values := []string{
+		"safe; echo INJECTED", "$(echo INJECTED)", "`echo INJECTED`",
+		"safe & echo INJECTED", "safe | echo INJECTED", "safe > file", "safe < file",
+		"safe' 'extra", `safe" "extra`, `safe\ extra`,
+		"%COMSPEC%", "!COMSPEC!", "safe^&echo INJECTED", "(echo INJECTED)",
+		"$OTHER$", "*", "?", "~", "#", "[abc]", "{a,b}",
+		"safe\nextra", "safe\rextra", "safe\textra", "safe\x00extra", "safe\x1bextra",
+	}
+	for _, value := range values {
+		t.Run(fmt.Sprintf("%q", value), func(t *testing.T) {
+			res := snc.RunCheck("check_multi", []string{"config=injection", "var[VALUE]=" + value})
+			assert.Equal(t, CheckExitUnknown, res.State)
+			assert.Equal(t, "UNKNOWN - variable VALUE contains illegal characters", res.Output)
+			assert.Empty(t, res.Details)
+		})
+	}
+	if runtime.GOOS != "windows" {
+		snc.config.Section("/settings/check/multi/injection").Set("command[external]", "/bin/echo '$VALUE$'")
+		res := snc.RunCheck("check_multi", []string{"config=injection", "var[VALUE]=safe text 123 /path/file -arg=value@example.com:42,+"})
+		assert.Equal(t, CheckExitOK, res.State)
+		assert.Equal(t, "[external] safe text 123 /path/file -arg=value@example.com:42,+", res.Details)
+	}
 }
 
 func TestCheckMultiConfigSection(t *testing.T) {
