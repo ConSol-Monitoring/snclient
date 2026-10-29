@@ -609,14 +609,20 @@ func (l *CheckMulti) runChildCheck(ctx context.Context, snc *Agent, chk multiChi
 	cmdName := tokens[0]
 	cmdArgs := tokens[1:]
 
-	_, isKnown := snc.getCheck(cmdName, false)
+	childCheck, isKnown := snc.getCheck(cmdName, false)
 
 	if chk.isInline && !isKnown {
 		return nil, fmt.Errorf("unknown check command: %s (inline checks only support existing check commands)", cmdName)
 	}
 
 	if isKnown {
-		return snc.RunCheckWithContext(ctx, cmdName, cmdArgs, 0, nil, false), nil
+		res := snc.RunCheckWithContext(ctx, cmdName, cmdArgs, 0, nil, false)
+		// Aliases already apply their own performance data settings.
+		if _, isAlias := childCheck.Handler().(*CheckAlias); !isAlias {
+			res.ParsePerformanceDataFromOutput()
+		}
+
+		return res, nil
 	}
 
 	timeout := l.externalScriptTimeout(snc)
