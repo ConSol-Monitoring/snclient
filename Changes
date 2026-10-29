@@ -4,6 +4,7 @@ next:
          - update golang build chain to 1.27.3
          - support multiline external commands and check_multi config
          - check_multi: fix aggregating child performance data with the command tag prefix
+         - check_multi: support config variables with defaults and required values
          - check_eventlog: translate event type and source filter conditions into the WMI query
          - check_uptime: fix display glitch when uptime is exactly 3 weeks
          - add ppc64le rpm/deb builds
