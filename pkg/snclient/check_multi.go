@@ -37,8 +37,9 @@ type checkMultiCounter struct {
 }
 
 type CheckMulti struct {
-	commands TaggedCommandList
-	config   string
+	commands  TaggedCommandList
+	config    string
+	variables map[string]string
 }
 
 var checkMultiAttributes = []CheckAttribute{
@@ -59,14 +60,12 @@ var checkMultiAttributes = []CheckAttribute{
 
 func NewCheckMulti() CheckHandler {
 	return &CheckMulti{
-		commands: make(TaggedCommandList, 0),
+		commands:  make(TaggedCommandList, 0),
+		variables: make(map[string]string),
 	}
 }
 
-func (l *CheckMulti) Build() *CheckData {
-	return &CheckData{
-		name: "check_multi",
-		description: `Runs multiple checks and aggregates their status, output and performance data.
+const checkMultiDescription = `Runs multiple checks and aggregates their status, output and performance data.
 
 By default <code>CheckMulti</code> is enabled, but you can disable it in the <code>[/modules]</code> section of the snclient_local.ini.
 You can also set <code>max checks</code> in the <code>[/settings/check/multi]</code> section of the snclient_local.ini, which limits
@@ -77,10 +76,24 @@ When using the inline mode, you can only use available commands (run <code>check
 You can also define custom check sections in the config file, for example:
 
     [/settings/check/multi/mycheck]
-    command[alias1] = check_process process=123
+    var[PROCESS] = 123
+    command[alias1] = check_process process=$PROCESS$
     command[alias2] = check_process process=345
 
 This can be executed with <code>check_multi "config=mycheck"</code>.
+
+Use <code>check_multi "config=mycheck" "var[PROCESS]=456"</code> to override a variable's default value.
+Variable names are case-sensitive. Every occurrence of a declared variable is replaced; undeclared placeholders stay unchanged.
+Shell metacharacters and control characters are forbidden in values. Quote placeholders to preserve spaces.
+
+Variables without defaults must be declared as required (comma-separated):
+
+    [/settings/check/multi/required]
+    required vars = MESSAGE
+    command[message] = check_dummy 0 '$MESSAGE$'
+
+Run this with <code>check_multi "config=required" "var[MESSAGE]=Service is healthy"</code>.
+A required variable must have a default or be explicitly supplied; an empty value counts as supplied.
 
 It's also possible to use custom scripts in the config section, for example:
 
@@ -89,7 +102,12 @@ It's also possible to use custom scripts in the config section, for example:
     command[alias2] = /path/to/plugin2
     command[alias3] = /path/to/plugin3
 
-This can be executed with <code>check_multi "config=myscript"</code>.`,
+This can be executed with <code>check_multi "config=myscript"</code>.`
+
+func (l *CheckMulti) Build() *CheckData {
+	return &CheckData{
+		name:        "check_multi",
+		description: checkMultiDescription,
 		implemented: ALL,
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -97,6 +115,7 @@ This can be executed with <code>check_multi "config=myscript"</code>.`,
 		args: map[string]CheckArgument{
 			"command": {value: &l.commands, description: "Check command to execute with mandatory unique tag, e.g. command[tag]=..."},
 			"config":  {value: &l.config, description: "Config section name under [/settings/check/multi/< section >] to execute"},
+			"var":     {value: &l.variables, description: "Config variable override, e.g. var[KEY]=VALUE, replacing $KEY$ in config commands"},
 		},
 		conditionAlias: map[string]map[string]string{
 			"warning_count":  {"warn_count": "warning_count"},
@@ -317,11 +336,23 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, error) {
 	}
 
 	childChecks := make([]multiChildCheck, 0, len(sec.keys))
+	variables, err := l.configVariables(sec)
+	if err != nil {
+		return nil, err
+	}
+	replacements := make([]string, 0, 2*len(variables))
+	for key, value := range variables {
+		replacements = append(replacements, "$"+key+"$", value)
+	}
+	replacer := strings.NewReplacer(replacements...)
 
 	for _, key := range sec.keys {
+		if key == "required vars" || (strings.HasPrefix(key, "var[") && strings.HasSuffix(key, "]")) {
+			continue
+		}
 		rawVal := sec.data[key]
 		if !strings.HasPrefix(key, "command[") || !strings.HasSuffix(key, "]") {
-			return nil, fmt.Errorf("invalid check_multi config entry: %s (must be in format command[tag]=<command>)", key)
+			return nil, fmt.Errorf("invalid check_multi config entry: %s (expected command[tag], var[KEY], or required vars)", key)
 		}
 		tag := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(key, "command["), "]"))
 		if strings.ContainsAny(tag, DefaultNastyCharacters+"=") {
@@ -335,12 +366,50 @@ func (l *CheckMulti) buildConfigChecks(snc *Agent) ([]multiChildCheck, error) {
 		}
 		childChecks = append(childChecks, multiChildCheck{
 			tag:      tag,
-			cmdStr:   rawVal,
+			cmdStr:   replacer.Replace(rawVal),
 			isInline: false,
 		})
 	}
 
 	return childChecks, nil
+}
+
+func (l *CheckMulti) configVariables(sec *ConfigSection) (map[string]string, error) {
+	variables := make(map[string]string)
+	for _, key := range sec.keys {
+		if strings.HasPrefix(key, "var[") && strings.HasSuffix(key, "]") {
+			if err := setTaggedVariable(variables, key[4:len(key)-1], sec.data[key]); err != nil {
+				return nil, err
+			}
+		}
+	}
+	required, _ := sec.GetStringList("required vars")
+	for _, name := range required {
+		if _, ok := variables[name]; ok {
+			continue
+		}
+		value, ok := l.variables[name]
+		if !ok {
+			return nil, fmt.Errorf("missing required variable: %s", name)
+		}
+		if err := setTaggedVariable(variables, name, value); err != nil {
+			return nil, err
+		}
+	}
+	for name, value := range l.variables {
+		if _, ok := variables[name]; !ok {
+			continue
+		}
+		variables[name] = value
+	}
+	// Only declared values enter command strings, including on Windows.
+	for name, value := range variables {
+		if containsNastyCharacters(value, DefaultNastyCharacters+"%!^()*?~#") || containsControlCharacters(value) {
+			return nil, fmt.Errorf("variable %s contains illegal characters", name)
+		}
+	}
+
+	return variables, nil
 }
 
 type childRecord struct {

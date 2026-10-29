@@ -706,6 +706,79 @@ command[next] = check_multi config=depth6
 	assert.Contains(t, res.BuildOutputString(), "UNKNOWN - recursion limit exceeded for check_multi")
 }
 
+func TestCheckMultiConfigVariables(t *testing.T) {
+	snc := StartTestAgent(t, `
+[/settings/check/multi/defaults]
+var[abc] = default value
+command[test] = check_dummy 0 '$abc$ / $abc$'
+
+[/settings/check/multi/required]
+required vars = abc, host
+var[host] = localhost
+command[test] = check_dummy 0 '$abc$@$host$'
+
+[/settings/check/multi/literal]
+command[test] = check_dummy 0 '$VALUE$'
+`)
+	defer StopTestAgent(t, snc)
+
+	tests := []struct {
+		name   string
+		args   []string
+		state  int64
+		output string
+	}{
+		{"default", []string{"config=defaults"}, CheckExitOK, "[test] default value / default value"},
+		{"override", []string{"config=defaults", "var[abc]=new value"}, CheckExitOK, "[test] new value / new value"},
+		{"required missing", []string{"config=required"}, CheckExitUnknown, "missing required variable: abc"},
+		{"required supplied", []string{"config=required", "var[abc]=value"}, CheckExitOK, "[test] value@localhost"},
+		{"undeclared", []string{"config=literal"}, CheckExitOK, "[test] $VALUE$"},
+		{"undeclared override", []string{"config=literal", "var[VALUE]=$(ignored)"}, CheckExitOK, "[test] $VALUE$"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			res := snc.RunCheck("check_multi", test.args)
+			assert.Equal(t, test.state, res.State)
+			assert.Contains(t, res.BuildOutputString(), test.output)
+			if test.state == CheckExitUnknown {
+				assert.Empty(t, res.Details)
+			}
+		})
+	}
+}
+
+func TestCheckMultiRejectsUnsafeVariableValues(t *testing.T) {
+	snc := StartTestAgent(t, `
+[/settings/check/multi/injection]
+var[VALUE] = safe default
+command[external] = /does/not/exist '$VALUE$'
+`)
+	defer StopTestAgent(t, snc)
+
+	values := []string{
+		"safe; echo INJECTED", "$(echo INJECTED)", "`echo INJECTED`",
+		"safe & echo INJECTED", "safe | echo INJECTED", "safe > file", "safe < file",
+		"safe' 'extra", `safe" "extra`, `safe\ extra`,
+		"%COMSPEC%", "!COMSPEC!", "safe^&echo INJECTED", "(echo INJECTED)",
+		"$OTHER$", "*", "?", "~", "#", "[abc]", "{a,b}",
+		"safe\nextra", "safe\rextra", "safe\textra", "safe\x00extra", "safe\x1bextra",
+	}
+	for _, value := range values {
+		t.Run(fmt.Sprintf("%q", value), func(t *testing.T) {
+			res := snc.RunCheck("check_multi", []string{"config=injection", "var[VALUE]=" + value})
+			assert.Equal(t, CheckExitUnknown, res.State)
+			assert.Equal(t, "UNKNOWN - variable VALUE contains illegal characters", res.Output)
+			assert.Empty(t, res.Details)
+		})
+	}
+	if runtime.GOOS != "windows" {
+		snc.config.Section("/settings/check/multi/injection").Set("command[external]", "/bin/echo '$VALUE$'")
+		res := snc.RunCheck("check_multi", []string{"config=injection", "var[VALUE]=safe text 123 /path/file -arg=value@example.com:42,+"})
+		assert.Equal(t, CheckExitOK, res.State)
+		assert.Equal(t, "[external] safe text 123 /path/file -arg=value@example.com:42,+", res.Details)
+	}
+}
+
 func TestCheckMultiConfigSection(t *testing.T) {
 	// Create temporary scripts to test external scripts in config
 	tmpDir := t.TempDir()

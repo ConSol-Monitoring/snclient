@@ -1113,6 +1113,19 @@ func (cd *CheckData) parseTaggedCommand(argRef *TaggedCommandList, tag, argValue
 	return nil
 }
 
+func setTaggedVariable(variables map[string]string, tag, value string) error {
+	tag = strings.TrimSpace(tag)
+	if tag == "" {
+		return fmt.Errorf("variable argument requires a name, e.g. var[KEY]=VALUE")
+	}
+	if strings.ContainsAny(tag, DefaultNastyCharacters+"=$[]") {
+		return fmt.Errorf("variable name contains invalid characters: %s", tag)
+	}
+	variables[tag] = value
+
+	return nil
+}
+
 // parseAnyArg parses args into the args map with custom arguments
 func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error) {
 	lookupKey := keyword
@@ -1132,7 +1145,9 @@ func (cd *CheckData) parseAnyArg(argExpr, keyword, argValue string) (bool, error
 		}
 	}
 	if hasTag {
-		if _, tagged := arg.value.(*TaggedCommandList); !tagged {
+		switch arg.value.(type) {
+		case *TaggedCommandList, *map[string]string:
+		default:
 			return false, fmt.Errorf("argument %s does not support tags", lookupKey)
 		}
 	}
@@ -1151,6 +1166,8 @@ func (cd *CheckData) parseArgValue(argExpr, keyword, argValue, tag string, arg *
 	switch argRef := arg.value.(type) {
 	case *TaggedCommandList:
 		return cd.parseTaggedCommand(argRef, tag, argValue)
+	case *map[string]string:
+		return setTaggedVariable(*argRef, tag, argValue)
 	case *[]string:
 		if _, ok := cd.hasArgsSupplied[keyword]; !ok {
 			// first time this arg occurs, empty default lists
