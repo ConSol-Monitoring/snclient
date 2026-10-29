@@ -1,5 +1,6 @@
 ---
 title: SNClient
+description: "Monitor Linux, Windows, and macOS with a flexible agent for Nagios, Naemon, and Prometheus."
 linkTitle: SNClient
 weight: 400
 tags:
@@ -12,12 +13,13 @@ tags:
   - macos
 ---
 
+<span class="project-logo project-logo--snclient"><a href="logo/"><img class="project-logo-light" src="/docs/snclient/logo/snclient.svg" alt="SNClient" width="200" height="141"><img class="project-logo-dark" src="/docs/snclient/logo/snclient_dark.svg" alt="SNClient" width="200" height="141"></a></span>
+
 [![CICD Pipeline](https://github.com/Consol-Monitoring/snclient/actions/workflows/builds.yml/badge.svg?branch=main)](https://github.com/Consol-Monitoring/snclient/actions/workflows/builds.yml)
 [![Latest Release](https://img.shields.io/github/v/release/Consol-Monitoring/snclient?sort=semver)](https://github.com/Consol-Monitoring/snclient/releases)
 [![Downloads](https://img.shields.io/github/downloads/Consol-Monitoring/snclient/total?color=yellow)](https://github.com/Consol-Monitoring/snclient/releases)
 [![License](https://img.shields.io/github/license/Consol-Monitoring/snclient)](https://github.com/Consol-Monitoring/snclient/blob/main/LICENSE)
 [![IRC](https://img.shields.io/badge/IRC-libera.chat%2F%23snclient-blue)](https://web.libera.chat/?nick=Guest?#snclient)
-<a href="logo/"><img src="logo/snclient.svg" style="float:right; margin: 3px; height: auto; width: 200px; float: right;"></a>
 
 **SNClient** is an open-source, general-purpose monitoring agent designed as a replacement for NSClient++. It is a drop-in replacement for most use cases.
 

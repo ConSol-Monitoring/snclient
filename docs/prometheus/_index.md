@@ -1,7 +1,6 @@
 ---
 title: Prometheus
 linkTitle: Prometheus
-description: Explore SNClient's built-in Prometheus metrics and exporter integrations.
 weight: 300
 tags:
   - prometheus
