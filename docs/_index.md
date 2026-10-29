@@ -13,7 +13,7 @@ tags:
   - macos
 ---
 
-<span class="project-logo project-logo--snclient"><a href="logo/"><img class="project-logo-light" src="/docs/snclient/logo/snclient.svg" alt="SNClient" width="200" height="141"><img class="project-logo-dark" src="/docs/snclient/logo/snclient_dark.svg" alt="SNClient" width="200" height="141"></a></span>
+<span class="project-logo project-logo--snclient"><a href="logo/"><img class="project-logo-light" src="logo/snclient.svg" alt="SNClient" width="200" height="141"><img class="project-logo-dark" src="logo/snclient_dark.svg" alt="SNClient" width="200" height="141"></a></span>
 
 [![CICD Pipeline](https://github.com/Consol-Monitoring/snclient/actions/workflows/builds.yml/badge.svg?branch=main)](https://github.com/Consol-Monitoring/snclient/actions/workflows/builds.yml)
 [![Latest Release](https://img.shields.io/github/v/release/Consol-Monitoring/snclient?sort=semver)](https://github.com/Consol-Monitoring/snclient/releases)
