@@ -96,6 +96,8 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 		return nil, osBackendAddErr
 	}
 
+	check.listData = dedupeListData(check.listData)
+
 	count := 0
 	countSecurity := 0
 	for _, entry := range check.listData {
@@ -151,4 +153,26 @@ func (l *CheckOSUpdates) Check(ctx context.Context, snc *Agent, check *CheckData
 	)
 
 	return check.Finalize()
+}
+
+// dedupeListData removes duplicate entries (same package and arch),
+// preferring security updates.
+func dedupeListData(listData []map[string]string) []map[string]string {
+	seen := make(map[string]int, len(listData))
+	written := 0
+	for _, entry := range listData {
+		key := entry["package"] + "\x00" + entry["arch"]
+		if i, ok := seen[key]; ok {
+			if entry["security"] > listData[i]["security"] {
+				listData[i] = entry
+			}
+
+			continue
+		}
+		seen[key] = written
+		listData[written] = entry
+		written++
+	}
+
+	return listData[:written]
 }

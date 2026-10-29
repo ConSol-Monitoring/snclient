@@ -189,6 +189,23 @@ func TestCheckYUMMetadataAge(t *testing.T) {
 	assert.NotEqual(t, CheckExitUnknown, res.State)
 }
 
+func TestDedupeListData(t *testing.T) {
+	entries := []map[string]string{
+		{"package": "pkg1", "arch": "amd64", "security": "0"},
+		{"package": "pkg1", "arch": "amd64", "security": "1"},
+		{"package": "pkg2", "arch": "i386", "security": "0"},
+		{"package": "pkg2", "arch": "i386", "security": "1"},
+		{"package": "pkg3", "arch": "amd64", "security": "0"},
+	}
+
+	result := dedupeListData(entries)
+
+	require.Len(t, result, 3)
+	assert.Equal(t, "1", result[0]["security"])
+	assert.Equal(t, "1", result[1]["security"])
+	assert.Equal(t, "0", result[2]["security"])
+}
+
 func mockYUMUtility(t *testing.T, stdout, stderr string, exitCode int) string {
 	t.Helper()
 
