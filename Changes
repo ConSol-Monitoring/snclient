@@ -2,6 +2,7 @@ This file documents the revision history for the SNClient agent.
 
 next:
          - check_process/check_service: report recent CPU usage (average since the last check) instead of the lifetime average
+         - windows exporter: update to 0.32.1
 
 1.01     Thu Oct 29 14:52:12 CET 2026
          - add ppc64le rpm/deb builds
