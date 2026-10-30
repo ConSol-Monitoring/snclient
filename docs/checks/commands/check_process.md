@@ -52,7 +52,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | ppid             | Parent process id                                                                                  |
 | uid              | User id of process owner (Linux only)                                                              |
 | username         | User name of process owner (Linux only)                                                            |
-| cpu              | CPU usage in percent (over total lifetime of process)                                              |
+| cpu              | CPU usage in percent (average since the last check, or since process start if no previous sample is available) |
 | cpu_seconds      | CPU usage in seconds                                                                               |
 | virtual          | Virtual memory usage in bytes                                                                      |
 | rss              | Resident memory usage in bytes                                                                     |

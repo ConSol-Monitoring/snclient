@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/consol-monitoring/snclient/pkg/wmi"
 )
 
@@ -30,7 +31,7 @@ type winProcess struct {
 	ThreadCount        uint32
 }
 
-func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
+func (l *CheckProcess) fetchProcs(_ context.Context, snc *Agent, check *CheckData) error {
 	processData := []winProcess{}
 	query := `
 		Select
@@ -70,11 +71,14 @@ func (l *CheckProcess) fetchProcs(_ context.Context, check *CheckData) error {
 			state = "started"
 		}
 
-		cpu := float64(0)
 		cpuSec := float64(proc.UserModeTime+proc.KernelModeTime) / 1e7 // values are multiple of 100ns
-		age := time.Since(proc.CreationDate).Seconds()
-		if age > 0 {
-			cpu = (cpuSec / age) * 100
+		pid := convert.Int32(proc.ProcessId)
+		cpu, got := snc.cpuUsageSince(pid, proc.CreationDate.UnixMilli(), cpuSec, time.Now())
+		if !got {
+			age := time.Since(proc.CreationDate).Seconds()
+			if age > 0 {
+				cpu = (cpuSec / age) * 100
+			}
 		}
 
 		check.listData = append(check.listData, map[string]string{

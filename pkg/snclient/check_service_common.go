@@ -18,7 +18,7 @@ func (l *CheckService) addProcMetrics(ctx context.Context, pidStr string, listEn
 	if pidStr == "" {
 		return nil
 	}
-	cpu := float64(0)
+	cpuTotal := float64(0)
 	rss := uint64(0)
 	vms := uint64(0)
 	createTimeUnix := int64(0)
@@ -38,17 +38,6 @@ func (l *CheckService) addProcMetrics(ctx context.Context, pidStr string, listEn
 			return nil
 		}
 
-		cpuP, err := proc.CPUPercentWithContext(ctx)
-		if err == nil {
-			cpu += cpuP
-		}
-
-		mem, _ := proc.MemoryInfoWithContext(ctx)
-		if mem != nil {
-			rss += mem.RSS
-			vms += mem.VMS
-		}
-
 		createTimeMillis, err := proc.CreateTimeWithContext(ctx)
 		if err == nil {
 			ctMillis := createTimeMillis / 1e3
@@ -56,9 +45,17 @@ func (l *CheckService) addProcMetrics(ctx context.Context, pidStr string, listEn
 				createTimeUnix = ctMillis
 			}
 		}
+
+		cpuTotal += l.procCPUPercent(ctx, proc, createTimeMillis)
+
+		mem, _ := proc.MemoryInfoWithContext(ctx)
+		if mem != nil {
+			rss += mem.RSS
+			vms += mem.VMS
+		}
 	}
 
-	listEntry["cpu"] = fmt.Sprintf("%.1f", cpu)
+	listEntry["cpu"] = fmt.Sprintf("%f", cpuTotal)
 	listEntry["rss"] = fmt.Sprintf("%d", rss)
 	listEntry["vms"] = fmt.Sprintf("%d", vms)
 	if createTimeUnix > 0 {
@@ -67,6 +64,32 @@ func (l *CheckService) addProcMetrics(ctx context.Context, pidStr string, listEn
 	}
 
 	return nil
+}
+
+// procCpuPercent returns the CPU usage of a process in percent since the last
+// sample at least one minute old, falling back to the lifetime average.
+func (l *CheckService) procCPUPercent(ctx context.Context, proc *process.Process, createTimeMillis int64) float64 {
+	cpuT, err := proc.TimesWithContext(ctx)
+	if err != nil {
+		cpuP, err := proc.CPUPercentWithContext(ctx)
+		if err != nil {
+			return 0
+		}
+
+		return cpuP
+	}
+	cpuSeconds := cpuTimesTotal(cpuT)
+	cpuP, ok := l.snc.cpuUsageSince(proc.Pid, createTimeMillis, cpuSeconds, time.Now())
+	if ok || createTimeMillis == 0 {
+		return cpuP
+	}
+
+	age := time.Since(time.UnixMilli(createTimeMillis)).Seconds()
+	if age <= 0 {
+		return 0
+	}
+
+	return 100 * cpuSeconds / age
 }
 
 func (l *CheckService) addServiceMetrics(service string, serviceState float64, check *CheckData, listEntry map[string]string) { //nolint:funlen //makes no sense splitting

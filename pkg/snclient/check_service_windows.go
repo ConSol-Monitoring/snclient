@@ -28,6 +28,7 @@ type WindowsServiceDetails struct {
 }
 
 type CheckService struct {
+	snc         *Agent
 	AllServices []WindowsService
 	services    CommaStringList
 	excludes    CommaStringList
@@ -122,7 +123,9 @@ func MgrConnectReadOnly() (*mgr.Mgr, error) {
 	return &mgr.Mgr{Handle: h}, nil
 }
 
-func (l *CheckService) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckService) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+	l.snc = snc
+
 	// make excludes case insensitive
 	for i := range l.excludes {
 		l.excludes[i] = strings.ToLower(l.excludes[i])

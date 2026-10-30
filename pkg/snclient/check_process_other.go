@@ -12,7 +12,7 @@ import (
 	"github.com/shirou/gopsutil/v4/process"
 )
 
-func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error { //nolint:funlen // the length comes from many fields to fetch
+func (l *CheckProcess) fetchProcs(ctx context.Context, snc *Agent, check *CheckData) error { //nolint:funlen // the length comes from many fields to fetch
 	procs, err := process.ProcessesWithContext(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching processes failed: %s", err.Error())
@@ -81,11 +81,6 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 			mem = &process.MemoryInfoStat{}
 		}
 
-		cpu, err := proc.CPUPercentWithContext(ctx)
-		if err != nil {
-			log.Debugf("check_process: cpuinfo error: %s", err.Error())
-		}
-
 		ppid := int32(-1)
 		p, err := proc.PpidWithContext(ctx)
 		if err != nil {
@@ -99,7 +94,19 @@ func (l *CheckProcess) fetchProcs(ctx context.Context, check *CheckData) error {
 		if err != nil {
 			log.Debugf("check_process: cpuinfo error: %s", err.Error())
 		} else {
-			cpuSeconds = cpuT.User + cpuT.System + cpuT.Idle + cpuT.Nice + cpuT.Iowait + cpuT.Irq + cpuT.Softirq + cpuT.Steal + cpuT.Guest + cpuT.GuestNice
+			cpuSeconds = cpuTimesTotal(cpuT)
+		}
+
+		cpu := float64(0)
+		if err == nil {
+			var got bool
+			cpu, got = snc.cpuUsageSince(proc.Pid, ctimeMilli, cpuSeconds, time.Now())
+			if !got && ctimeMilli > 0 {
+				age := time.Since(time.UnixMilli(ctimeMilli)).Seconds()
+				if age > 0 {
+					cpu = 100 * cpuSeconds / age
+				}
+			}
 		}
 
 		check.listData = append(check.listData, map[string]string{

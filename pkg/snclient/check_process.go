@@ -53,7 +53,7 @@ func (l *CheckProcess) Build() *CheckData {
 			{name: "ppid", description: "Parent process id"},
 			{name: "uid", description: "User id of process owner (Linux only)"},
 			{name: "username", description: "User name of process owner (Linux only)"},
-			{name: "cpu", description: "CPU usage in percent (over total lifetime of process)", unit: UPercent},
+			{name: "cpu", description: "CPU usage in percent (average since the last check, or since process start if no previous sample is available)", unit: UPercent},
 			{name: "cpu_seconds", description: "CPU usage in seconds", unit: UDuration},
 			{name: "virtual", description: "Virtual memory usage in bytes", unit: UByte},
 			{name: "rss", description: "Resident memory usage in bytes", unit: UByte},
@@ -113,13 +113,13 @@ func (l *CheckProcess) buildConditionAlias() map[string]map[string]string {
 	}
 }
 
-func (l *CheckProcess) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
+func (l *CheckProcess) Check(ctx context.Context, snc *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
 	// make process arg lowercase
 	for i := range l.processes {
 		l.processes[i] = strings.ToLower(l.processes[i])
 	}
 
-	err := l.fetchProcs(ctx, check)
+	err := l.fetchProcs(ctx, snc, check)
 	if err != nil {
 		return nil, err
 	}

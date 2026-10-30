@@ -201,6 +201,7 @@ type Agent struct {
 	profileServer         *http.Server
 	invCache              *InvCache
 	alreadyParsedLogfiles sync.Map
+	procCPU               *cpuSampleStore
 }
 
 type ParsedFile struct {
@@ -268,6 +269,7 @@ func NewAgentSimple(flags *AgentFlags) *Agent {
 	snc.checkFlags()
 	snc.createLogger(nil)
 	snc.invCache = NewInvCache()
+	snc.procCPU = newCPUSampleStore()
 
 	return snc
 }
