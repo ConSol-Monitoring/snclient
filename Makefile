@@ -66,7 +66,7 @@ endif
 DEBFILE ?= snclient-$(VERSION)-$(RPM_ARCH).deb
 
 GITBASE=github.com/consol-monitoring/snclient
-BUILD_FLAGS=\
+BUILD_FLAGS ?= \
 	-ldflags \
 	"-s -w -X $(GITBASE)/pkg/snclient.Build=$(BUILD) -X $(GITBASE)/pkg/snclient.Revision=$(REVISION) -X $(GITBASE)/pkg/snclient.Branch=$(BRANCH)"
 TEST_FLAGS=-timeout=5m $(BUILD_FLAGS)
