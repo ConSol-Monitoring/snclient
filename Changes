@@ -9,6 +9,7 @@ next:
          - check_drive_io: pick up newly mounted or connected drives and forget removed ones after 5 minutes
          - check_cpu_utilization: emit zero metrics while the cpuinfo counter is cold so perfdata is not missing
          - check_memory: add page cache (caches) metrics when a caches/caches_pct threshold is used
+         - check_ntp_offset: new source w32time reads the Windows time status directly from w32time.dll
          - windows exporter: update to 0.32.1
          - checks: perf-config can add metrics the check calculates but does not emit by default, partial wildcards supported
          - update dependencies

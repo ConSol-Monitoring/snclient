@@ -33,7 +33,7 @@ Checks the NTP offset.
 | Argument | Description                                                                                                |
 | -------- | ---------------------------------------------------------------------------------------------------------- |
 | server   | Fetch the offset from these NTP servers. Uses the first valid response.                                    |
-| source   | Choose the time data source instead of automatic detection. Valid values: auto, timedatectl, ntpq, chronyc, macos, w32tm. |
+| source   | Choose the time data source instead of automatic detection. Valid values: auto, timedatectl, ntpq, chronyc, macos, w32time, w32tm. |
 
 ## Attributes
 
@@ -41,14 +41,22 @@ Checks the NTP offset.
 
 Use these attributes in filters and thresholds, along with the default attributes:
 
-| Attribute      | Description                                                                                          |
-| -------------- | ---------------------------------------------------------------------------------------------------- |
-| source         | source of the NTP metrics                                                                            |
-| server         | NTP server name                                                                                      |
-| stratum        | stratum value (distance to root NTP server)                                                          |
-| jitter         | jitter of the clock in milliseconds                                                                  |
-| offset         | Time offset to the NTP server in milliseconds. SNClient adds this value as a metric.                 |
-| offset_seconds | Time offset to the NTP server in seconds. SNClient does not add this value as a metric. SNClient converts thresholds from 'offset_seconds' to 'offset' without a message. |
+| Attribute             | Description                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| source                | source of the NTP metrics                                                                     |
+| server                | NTP server name                                                                               |
+| stratum               | stratum value (distance to root NTP server)                                                   |
+| jitter                | jitter of the clock in milliseconds                                                           |
+| offset                | Time offset to the NTP server in milliseconds. SNClient adds this value as a metric.          |
+| offset_seconds        | Time offset to the NTP server in seconds. SNClient does not add this value as a metric. SNClient converts thresholds from 'offset_seconds' to 'offset' without a message. |
+| leap_indicator        | NTP leap indicator: 0 no warning, 1 last minute has 61 seconds, 2 last minute has 59 seconds, 3 not synchronized. SNClient sets this value only for the w32time source. |
+| state                 | Clock discipline state: 0 unset, 1 hold, 2 sync, 3 spike. SNClient sets this value only for the w32time source. |
+| state_name            | Name of the clock discipline state. w32tm shows this name. SNClient sets this value only for the w32time source. |
+| last_sync_result      | Result of the last synchronization: 0 success, 1 no data, 2 stale data, 3 change too big, 4 shutdown. SNClient sets this value only for the w32time source. |
+| last_sync_result_name | Name of the last synchronization result. SNClient sets this value only for the w32time source. |
+| root_delay            | Round-trip delay to the primary time source in milliseconds. SNClient sets this value only for the w32time source. |
+| root_dispersion       | Maximum error relative to the primary time source in milliseconds. SNClient sets this value only for the w32time source. |
+| last_sync             | Time of the last successful synchronization in RFC 3339 format. SNClient sets this value only for the w32time source. |
 
 ## Examples
 
