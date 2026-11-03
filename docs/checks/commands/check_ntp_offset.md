@@ -33,7 +33,7 @@ Checks the NTP offset.
 | Argument | Description                                                                                                |
 | -------- | ---------------------------------------------------------------------------------------------------------- |
 | server   | Fetch offset from these NTP servers. First valid response is used.                                         |
-| source   | Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, macos, w32tm. |
+| source   | Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, macos, w32time, w32tm. |
 
 ## Attributes
 
@@ -41,14 +41,22 @@ Checks the NTP offset.
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute      | Description                                                                                          |
-| -------------- | ---------------------------------------------------------------------------------------------------- |
-| source         | source of the NTP metrics                                                                            |
-| server         | NTP server name                                                                                      |
-| stratum        | stratum value (distance to root NTP server)                                                          |
-| jitter         | jitter of the clock in milliseconds                                                                  |
-| offset         | time offset to NTP server in milliseconds. This will be added as a metric.                           |
-| offset_seconds | time offset to NTP server in seconds. This will not be added as a metric.  Any thresholds using 'offset_seconds' will be converted to 'offset' silently. |
+| Attribute             | Description                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| source                | source of the NTP metrics                                                                     |
+| server                | NTP server name                                                                               |
+| stratum               | stratum value (distance to root NTP server)                                                   |
+| jitter                | jitter of the clock in milliseconds                                                           |
+| offset                | time offset to NTP server in milliseconds. This will be added as a metric.                    |
+| offset_seconds        | time offset to NTP server in seconds. This will not be added as a metric.  Any thresholds using 'offset_seconds' will be converted to 'offset' silently. |
+| leap_indicator        | ntp leap indicator: 0 no warning, 1 last minute has 61 seconds, 2 last minute has 59 seconds, 3 not synchronized. Only set with source w32time. |
+| state                 | state of the clock discipline: 0 unset, 1 hold, 2 sync, 3 spike. Only set with source w32time. |
+| state_name            | name of the clock discipline state, as shown by w32tm. Only set with source w32time.          |
+| last_sync_result      | result of the last synchronization attempt: 0 success, 1 no data, 2 stale data, 3 change too big, 4 shutdown. Only set with source w32time. |
+| last_sync_result_name | name of the last synchronization result. Only set with source w32time.                        |
+| root_delay            | total round-trip delay to the primary time source in milliseconds. Only set with source w32time. |
+| root_dispersion       | root dispersion, the maximum error relative to the primary time source in milliseconds. Only set with source w32time. |
+| last_sync             | time of the last successful synchronization in RFC 3339 format. Only set with source w32time. |
 
 ## Examples
 
