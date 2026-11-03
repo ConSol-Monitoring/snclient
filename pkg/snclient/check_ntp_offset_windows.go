@@ -62,7 +62,7 @@ var (
 	procW32TimeBufferFree  = w32timeDLL.NewProc("W32TimeBufferFree")
 
 	loadW32TimeOnce sync.Once
-	loadW32TimeErr  error
+	errW32TimeLoad  error
 )
 
 // loadW32Time checks that w32time.dll exports every function this file calls,
@@ -71,14 +71,14 @@ func loadW32Time() error {
 	loadW32TimeOnce.Do(func() {
 		for _, proc := range []*windows.LazyProc{procW32TimeQueryStatus, procW32TimeBufferFree} {
 			if err := proc.Find(); err != nil {
-				loadW32TimeErr = fmt.Errorf("w32time.dll: %w", err)
+				errW32TimeLoad = fmt.Errorf("w32time.dll: %w", err)
 
 				return
 			}
 		}
 	})
 
-	return loadW32TimeErr
+	return errW32TimeLoad
 }
 
 // w32timeStatusInfo mirrors W32TIME_STATUS_INFO ([MS-W32T] 2.2.17) as the
