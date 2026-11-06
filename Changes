@@ -4,6 +4,7 @@ next:
          - update golang build chain to 1.27.4
          - check_os_updates: use JSON for Windows update data and expose update metadata and driver attributes, tolerating unavailable properties
          - check_os_updates: exclude optional Windows updates by default, add --include-optional to include them
+         - support environment variables with $ENV{NAME} in ini config values
          - check_process/check_service: report recent CPU usage (average since the last check) instead of the lifetime average
          - check_drive_io: do not report duplicate entries for devices mounted multiple times
          - check_drive_io: pick up newly mounted or connected drives and forget removed ones after 5 minutes
