@@ -16,6 +16,7 @@
     <Product Name="SNClient" Id="*" UpgradeCode="F4BF03F6-D3DA-44FF-A444-9B64119DA0CE" Language="1033" Codepage="1252" Version="$(var.MajorVersion).$(var.MinorVersion).$(var.RevisionNumber)" Manufacturer="ConSol Consulting and Solutions Software GmbH">
         <Package InstallScope="perMachine" InstallerVersion="$(var.InstallerVersion)" Compressed="yes" />
         <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed. It must be uninstalled for downgrades." />
+        <Icon Id="SNClientIcon.ico" SourceFile="packaging\windows\snclient.ico" />
         <Property Id="REBOOT" Value="ReallySuppress" />
         <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
         <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
@@ -27,6 +28,10 @@
         <Property Id="PROMETHEUSSERVERPORT" Value="9999" />
         <Property Id="PASSWORD" Value="CHANGEME" />
         <Property Id="ALLOWEDHOSTS" Value="127.0.0.1, ::1" />
+        <Property Id="ARPPRODUCTICON" Value="SNClientIcon.ico" />
+        <SetProperty Id="ARPINSTALLLOCATION" Value="[INSTALLDIR]" After="CostFinalize" />
+        <Property Id="ARPHELPLINK" Value="https://omd.consol.de/docs/snclient/" />
+        <Property Id="ARPURLINFOABOUT" Value="https://github.com/ConSol-Monitoring/snclient" />
         <UI Id="InstallDialog">
             <UIRef Id="MyWixUI_InstallDir" />
         </UI>
