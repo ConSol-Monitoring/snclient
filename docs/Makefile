@@ -6,7 +6,7 @@ server: .omd-consol-de
 
 test: .bin/muffet .omd-consol-de
 	docker compose --progress=quiet --ansi=never up -d --build --wait --no-color --no-recreate --quiet-pull
-	docker compose exec site chmod -R 777 public
+	docker compose exec site chmod -R a+rwX public node_modules
 	./.bin/muffet \
 		http://localhost:1313/docs/snclient/ \
 		-i 'http://localhost:1313/docs/snclient/' \
@@ -23,8 +23,5 @@ test: .bin/muffet .omd-consol-de
 
 clean:
 	docker compose down --rmi all
-	docker compose kill -s INT
-	docker compose kill
-	docker compose rm -f
 	rm -rf .omd-consol-de
 	rm -rf .bin
