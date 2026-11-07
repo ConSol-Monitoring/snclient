@@ -375,7 +375,9 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 
 		// create the counters if they are missing, e.g. the drive was connected after start
 		if create || c.snc.Counter.Get(category, "write_bytes") == nil {
-			log.Infof("creating disk stat counters for new device: %s", diskName)
+			if !create {
+				log.Infof("creating disk stat counters for new device: %s", diskName)
+			}
 			c.snc.counterCreate(category, "write_bytes", c.bufferLength, c.metricsInterval)
 			c.snc.counterCreate(category, "write_count", c.bufferLength, c.metricsInterval)
 			c.snc.counterCreate(category, "read_bytes", c.bufferLength, c.metricsInterval)
