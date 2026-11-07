@@ -44,6 +44,7 @@ func init() {
 	partitions, err := disk.Partitions(true)
 	partitionTypesToExclude := defaultExcludedFsTypes()
 	if err == nil {
+		seen := map[string]bool{}
 		for _, partition := range partitions {
 			if partition.Device == "none" {
 				continue
@@ -57,6 +58,12 @@ func init() {
 			if partition.Fstype == "iso9660" && strings.HasPrefix(partition.Device, "/dev/loop") {
 				continue
 			}
+
+			// a device can be mounted multiple times; watch it only once
+			if seen[partition.Device] {
+				continue
+			}
+			seen[partition.Device] = true
 
 			StorageDevicesToWatch = append(StorageDevicesToWatch, partition.Device)
 		}
