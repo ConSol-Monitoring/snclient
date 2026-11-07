@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/convert"
@@ -19,6 +20,12 @@ import (
 const (
 	// DefaultSystemMetricsMeasureInterval sets the ticker measuring the CPU counter
 	DefaultSystemMetricsMeasureInterval = 1 * time.Second
+
+	// storageDeviceRescanInterval is how often the system task scans for new or removed storage devices
+	storageDeviceRescanInterval = time.Minute
+
+	// storageDeviceForgetDuration is how long a removed device stays in StorageDevicesToWatch before it is forgotten
+	storageDeviceForgetDuration = 5 * time.Minute
 )
 
 // DefaultSystemTaskConfig sets defaults for windows and unix system task
@@ -38,36 +45,98 @@ var StorageDevicesToWatch []string
 // save them here and then print them out in CheckSystemHandler.Init
 var taskCheckSystemInitLogs []string
 
+// storageMu guards StorageDevicesToWatch and storageDeviceSeen.
+// Written by the CheckSystem task's rescan goroutine, read by check_drive_io.
+var storageMu sync.RWMutex
+
+// storageDeviceSeen holds when a device was last seen, so removed devices can be forgotten
+var storageDeviceSeen = map[string]time.Time{}
+
+// storageInitialized is true after the first rescanStorageDevices call (in init).
+// Logging is suppressed during init because stdout would pollute test output.
+var storageInitialized = false
+
 func init() {
+	rescanStorageDevices()
+	storageInitialized = true
+}
+
+// rescanStorageDevices discovers new storage devices and forgets removed ones.
+// It refreshes StorageDevicesToWatch from the platform's current device list.
+func rescanStorageDevices() {
+	now := time.Now()
+
+	// refresh platform-specific device detection (Windows IOCTL physical drives), no-op on unix
+	refreshPlatformStorage()
+
 	// gopsutil on Linux seems to be reading /proc/partitions
 	// Then it adds more info according to /sys/class/block/<device>/*
 	partitions, err := disk.Partitions(true)
-	partitionTypesToExclude := defaultExcludedFsTypes()
-	if err == nil {
-		seen := map[string]bool{}
-		for _, partition := range partitions {
-			if partition.Device == "none" {
-				continue
-			}
+	if err != nil {
+		log.Debugf("rescanStorageDevices: error when getting disk partitions: %s", err.Error())
 
-			if slices.Contains(partitionTypesToExclude, partition.Fstype) {
-				continue
-			}
-
-			// /dev/loop22 ***
-			if partition.Fstype == "iso9660" && strings.HasPrefix(partition.Device, "/dev/loop") {
-				continue
-			}
-
-			// a device can be mounted multiple times; watch it only once
-			if seen[partition.Device] {
-				continue
-			}
-			seen[partition.Device] = true
-
-			StorageDevicesToWatch = append(StorageDevicesToWatch, partition.Device)
-		}
+		return
 	}
+
+	partitionTypesToExclude := defaultExcludedFsTypes()
+	seen := map[string]bool{}
+	fresh := []string{}
+	for _, partition := range partitions {
+		if partition.Device == "none" {
+			continue
+		}
+
+		if slices.Contains(partitionTypesToExclude, partition.Fstype) {
+			continue
+		}
+
+		// /dev/loop22 ***
+		if partition.Fstype == "iso9660" && strings.HasPrefix(partition.Device, "/dev/loop") {
+			continue
+		}
+
+		// a device can be mounted multiple times; watch it only once
+		if seen[partition.Device] {
+			continue
+		}
+		seen[partition.Device] = true
+
+		fresh = append(fresh, partition.Device)
+	}
+
+	storageMu.Lock()
+	for _, device := range fresh {
+		if !slices.Contains(StorageDevicesToWatch, device) {
+			if storageInitialized {
+				log.Infof("new storage device detected: %s", device)
+			}
+			StorageDevicesToWatch = append(StorageDevicesToWatch, device)
+		}
+		storageDeviceSeen[device] = now
+	}
+	// forget devices not seen within the forget window
+	cutoff := now.Add(-storageDeviceForgetDuration)
+	StorageDevicesToWatch = forgetUnseenStorageDevices(StorageDevicesToWatch, storageDeviceSeen, cutoff)
+	storageMu.Unlock()
+}
+
+// forgetUnseenStorageDevices returns watch devices seen after cutoff, dropping the rest.
+func forgetUnseenStorageDevices(watch []string, seen map[string]time.Time, cutoff time.Time) []string {
+	kept := make([]string, 0, len(watch))
+	for _, device := range watch {
+		seenAt, ok := seen[device]
+		if !ok || seenAt.Before(cutoff) {
+			if storageInitialized {
+				log.Infof("forgotten removed storage device: %s", device)
+			}
+			delete(seen, device)
+
+			continue
+		}
+		kept = append(kept, device)
+	}
+
+	return kept
 }
 
 func diskEligibleForWatch(diskName string) bool {
@@ -81,9 +150,8 @@ func diskEligibleForWatch(diskName string) bool {
 
 	diskEligible := false
 
-	// Calculated in init() function
-	// it uses disk.Partitions and excludes some filesystem types
-	// directly and uses other heuristics to exclude some more
+	// populated by rescanStorageDevices, which refreshes it periodically
+	storageMu.RLock()
 	for _, storageDeviceToWatch := range StorageDevicesToWatch {
 		if strings.Contains(storageDeviceToWatch, diskName) {
 			diskEligible = true
@@ -91,6 +159,7 @@ func diskEligibleForWatch(diskName string) bool {
 			break
 		}
 	}
+	storageMu.RUnlock()
 
 	return diskEligible
 }
@@ -161,6 +230,8 @@ func (c *CheckSystemHandler) Stop() {
 func (c *CheckSystemHandler) mainLoop() {
 	ticker := time.NewTicker(c.metricsInterval)
 	defer ticker.Stop()
+	rescanTicker := time.NewTicker(storageDeviceRescanInterval)
+	defer rescanTicker.Stop()
 
 	for {
 		select {
@@ -168,10 +239,34 @@ func (c *CheckSystemHandler) mainLoop() {
 			log.Tracef("stopping CheckSystem mainLoop")
 
 			return
+		case <-rescanTicker.C:
+			c.rescan()
+
+			continue
 		case <-ticker.C:
 			c.update(false)
 
 			continue
+		}
+	}
+}
+
+// rescan discovers new storage devices and forgets removed ones, then removes
+// the counters of the forgotten devices. Counters for new devices are created
+// on the fly by addDiskStats on the next tick.
+func (c *CheckSystemHandler) rescan() {
+	rescanStorageDevices()
+
+	for _, category := range c.snc.Counter.Categories() {
+		if !strings.HasPrefix(category, "disk_") {
+			continue
+		}
+		if diskEligibleForWatch(strings.TrimPrefix(category, "disk_")) {
+			continue
+		}
+		log.Infof("removed counters for forgotten storage device: %s", category)
+		for _, key := range c.snc.Counter.Keys(category) {
+			c.snc.Counter.Delete(category, key)
 		}
 	}
 }

@@ -7,6 +7,9 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
+// refreshPlatformStorage is a no-op on unix, the gopsutil rescan in rescanStorageDevices is enough
+func refreshPlatformStorage() {}
+
 // Unix uses the function from gopsutil disk.IOCounters()
 // The function reports these attributes correctly
 func (c *CheckSystemHandler) addDiskStats(create bool) {
@@ -16,29 +19,22 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 		return
 	}
 
-	if create {
-		for diskName := range diskIOCounters {
-			if !diskEligibleForWatch(diskName) {
-				log.Tracef("not adding disk stat counter since it is not found to be eligible for watch: %s", diskName)
-
-				continue
-			}
-
-			category := "disk_" + diskName
-			c.snc.counterCreate(category, "write_bytes", c.bufferLength, c.metricsInterval)
-			c.snc.counterCreate(category, "write_count", c.bufferLength, c.metricsInterval)
-			c.snc.counterCreate(category, "read_bytes", c.bufferLength, c.metricsInterval)
-			c.snc.counterCreate(category, "read_count", c.bufferLength, c.metricsInterval)
-			c.snc.counterCreate(category, "io_time", c.bufferLength, c.metricsInterval)
-		}
-	}
-
 	for diskName := range diskIOCounters {
 		if !diskEligibleForWatch(diskName) {
 			continue
 		}
 
 		category := "disk_" + diskName
+
+		// create the counters if they are missing, e.g. the device was mounted after start
+		if create || c.snc.Counter.Get(category, "write_bytes") == nil {
+			log.Infof("creating disk stat counters for new device: %s", diskName)
+			c.snc.counterCreate(category, "write_bytes", c.bufferLength, c.metricsInterval)
+			c.snc.counterCreate(category, "write_count", c.bufferLength, c.metricsInterval)
+			c.snc.counterCreate(category, "read_bytes", c.bufferLength, c.metricsInterval)
+			c.snc.counterCreate(category, "read_count", c.bufferLength, c.metricsInterval)
+			c.snc.counterCreate(category, "io_time", c.bufferLength, c.metricsInterval)
+		}
 
 		c.snc.Counter.Set(category, "write_bytes", float64(diskIOCounters[diskName].WriteBytes))
 		c.snc.Counter.Set(category, "write_count", float64(diskIOCounters[diskName].WriteCount))

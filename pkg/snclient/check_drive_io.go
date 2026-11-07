@@ -127,8 +127,10 @@ func (l *CheckDriveIO) Check(ctx context.Context, snc *Agent, check *CheckData, 
 	drivesToCheck := append([]string{}, l.drives...)
 
 	if len(l.drives) == 0 {
-		// This value is calculated during the initialization of TaskSystemCheck
+		// refreshed periodically by the CheckSystem task's rescan
+		storageMu.RLock()
 		drivesToCheck = append(drivesToCheck, StorageDevicesToWatch...)
+		storageMu.RUnlock()
 	}
 
 	sort.Strings(drivesToCheck)
