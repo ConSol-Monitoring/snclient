@@ -173,9 +173,10 @@ func (cr *CheckResult) BuildPluginOutput() []byte {
 	return output
 }
 
-// SynthesizePerfConfigMetrics adds metrics for perf-config entries that name
-// a key present in the check's listData but don't yet exist as a metric.
+// SynthesizePerfConfigMetrics adds metrics for perf-config selectors matching
+// keys present in the check's listData but not yet emitted as metrics.
 // This lets a user surface values a check computes but doesn't emit by default.
+// A bare "*" selector must not synthesize anything.
 func (cr *CheckResult) SynthesizePerfConfigMetrics(perfCfg []PerfConfig) {
 	if cr.Raw == nil || len(cr.Raw.listData) != 1 {
 		return
@@ -183,30 +184,30 @@ func (cr *CheckResult) SynthesizePerfConfigMetrics(perfCfg []PerfConfig) {
 	entry := cr.Raw.listData[0]
 	for i := range perfCfg {
 		perf := perfCfg[i]
-		// only exact keys trigger synthesis; wildcards are skipped
-		if strings.ContainsAny(perf.Selector, "*") {
+		if perf.Selector == "*" {
 			continue
 		}
-		value, ok := entry[perf.Selector]
-		if !ok {
-			continue
-		}
-		// if a metric with this exact name already exists, skip
-		exists := false
-		for _, m := range cr.Metrics {
-			if m.Name == perf.Selector {
-				exists = true
+		for name, value := range entry {
+			if !perf.Match(name) {
+				continue
 			}
+			// if a metric with this name already exists, skip
+			exists := false
+			for _, m := range cr.Metrics {
+				if m.Name == name {
+					exists = true
+				}
+			}
+			if exists {
+				continue
+			}
+			cr.Metrics = append(cr.Metrics, &CheckMetric{
+				Name:       name,
+				Value:      value,
+				Unit:       perf.Unit,
+				PerfConfig: &perf,
+			})
 		}
-		if exists {
-			continue
-		}
-		cr.Metrics = append(cr.Metrics, &CheckMetric{
-			Name:       perf.Selector,
-			Value:      value,
-			Unit:       perf.Unit,
-			PerfConfig: &perf,
-		})
 	}
 }
 

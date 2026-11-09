@@ -51,8 +51,10 @@ will hide `used` performance data and apply unit G to everything else.
 ## Adding a metric
 
 Some checks calculate values they do not emit as performance data by default.
-A perf-config with an exact selector (no wildcard) that matches a value the
-check already knows can add that value as a new performance metric.
+A perf-config selector that matches a value the check already knows can add
+that value as a new performance metric. Partial wildcards work as in regular
+selectors, for example `perf-config="*wait(unit:%)"` adds every value whose
+name contains `wait`.
 
 ```bash
 check_load perf-config="load(unit:)"
@@ -63,9 +65,7 @@ check_load perf-config="load(unit:)"
 the performance data and applies the same unit/prefix/suffix/magic tweaks as
 any other matched metric.
 
-Only a single exact key is used. Wildcard selectors are ignored for this
-purpose and the value is only added if the check is reporting a single result
-line.
+A bare `*` selector does not synthesize any metric.
 
 ## Units
 
