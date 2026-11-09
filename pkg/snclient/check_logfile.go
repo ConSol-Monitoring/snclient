@@ -198,7 +198,7 @@ func (c *CheckLogFile) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		"file_search_paths": strings.Join(c.FilePathPatterns, " , "),
 	}
 
-	if check.HasThreshold("count") {
+	if check.HasMetric("count") {
 		check.addCountMetrics = true
 		check.addCountMetricsToFront = true
 	}

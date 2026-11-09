@@ -162,7 +162,7 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 		}
 	}
 
-	if check.HasThreshold("cores") || check.HasFilter("cores") {
+	if check.HasMetric("cores") {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:          "cores",
 			ThresholdName: "cores",

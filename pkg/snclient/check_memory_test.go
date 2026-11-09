@@ -113,6 +113,24 @@ func TestCheckMemory(t *testing.T) {
 		assert.Containsf(t, string(res.BuildPluginOutput()), "UNKNOWN - virtual memory is only supported on windows", "output matches")
 	}
 
+	res = snc.RunCheck("check_memory", []string{"type=physical", "detail-syntax=%(type) = %(used)/%(size) free: %(free) caches: %(caches) (%(caches_pct | fmt=%.1f )%)", "warn=none", "crit=none"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	memoryValue := `\d+(\.\d+)? [KMGTi]*B`
+	assert.Regexpf(t, `^OK - physical = `+memoryValue+`/`+memoryValue+` free: `+memoryValue+` caches: `+memoryValue+` \(\d+\.\d%\)$`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_memory", []string{"type=physical", "warn=caches > 101", "crit=caches > 102"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(t, `'physical_caches'=\d+B;`, string(res.BuildPluginOutput()), "output matches")
+	assert.Regexpf(t, `'physical_caches %'=\d+(\.\d+)?%;`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_memory", []string{"type=physical", "warn=none", "crit=none", "perf-config=caches(unit:K)"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(t, `'physical_caches'=[\d.]+K;`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_memory", []string{"type=physical", "warn=none", "crit=none", "perf-config=*(unit:K)"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "physical_caches", "bare wildcard must not enable metrics")
+
 	res = snc.RunCheck("check_memory", []string{"type=physical", "warn=none", "crit=none", "-n", "10", "--show-args"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "RSS", "output matches")

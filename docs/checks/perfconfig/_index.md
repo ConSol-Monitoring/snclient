@@ -48,6 +48,25 @@ check_plugin perf-config="used(ignored:true) *(unit:G)"
 
 will hide `used` performance data and apply unit G to everything else.
 
+## Adding a metric
+
+Some checks calculate values they do not emit as performance data by default.
+A perf-config selector that matches a value the check already knows can add
+that value as a new performance metric. Partial wildcards work as in regular
+selectors, for example `perf-config="*wait(unit:%)"` adds every value whose
+name contains `wait`.
+
+```bash
+check_load perf-config="load(unit:)"
+```
+
+`check_load` reports `load1`, `load5` and `load15` but also calculates `load`
+(the maximum of the three) internally. The `load(...)` selector adds `load` to
+the performance data and applies the same unit/prefix/suffix/magic tweaks as
+any other matched metric.
+
+A bare `*` selector does not synthesize any metric.
+
 ## Units
 
 There are several useful conversions available.
