@@ -302,7 +302,8 @@ func (l *CheckPing) parsePingPackets(entry map[string]string, output string) {
 
 	// windows 10
 	// Packets: Sent = 3, Received = 3, Lost = 0 (0% loss),
-	rePackets = regexp.MustCompile(` = (\d+),.*? = (\d+),.*? = (\d+)\s+\(([\d.]+)%`)
+	// french windows: Paquets : envoyés = 5, reçus = 5, perdus = 0 (perte 0%),
+	rePackets = regexp.MustCompile(` = (\d+),.*? = (\d+),.*? = (\d+)\s+\((?:[^()\n]*?)([\d.]+)%`)
 	packetsList = rePackets.FindStringSubmatch(output)
 	if len(packetsList) >= 5 {
 		entry["sent"] = packetsList[1]

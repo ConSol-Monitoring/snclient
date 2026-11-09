@@ -250,6 +250,35 @@ Ca. Zeitangaben in Millisek.:
 	assert.Equalf(t, exp, entry, "parsed ping ok output")
 }
 
+func TestPingParserWindowsOKFR(t *testing.T) {
+	exp := map[string]string{
+		"host_name": "",
+		"sent":      "5",
+		"received":  "5",
+		"rta":       "0",
+		"pl":        "0",
+		"ttl":       "128",
+	}
+	// french windows server 2025
+	out := `
+Envoi d'une requête 'Ping'  127.0.0.1 avec 32 octets de données :
+Réponse de 127.0.0.1 : octets=32 temps<1ms TTL=128
+Réponse de 127.0.0.1 : octets=32 temps<1ms TTL=128
+Réponse de 127.0.0.1 : octets=32 temps<1ms TTL=128
+Réponse de 127.0.0.1 : octets=32 temps<1ms TTL=128
+Réponse de 127.0.0.1 : octets=32 temps<1ms TTL=128
+
+Statistiques Ping pour 127.0.0.1:
+    Paquets : envoyés = 5, reçus = 5, perdus = 0 (perte 0%),
+Durée approximative des boucles en millisecondes :
+    Minimum = 0ms, Maximum = 0ms, Moyenne = 0ms
+`
+	chk := &CheckPing{}
+	entry := chk.parsePingOutput(out, "")
+	delete(entry, "_error")
+	assert.Equalf(t, exp, entry, "parsed ping ok output")
+}
+
 func TestPingParserOSXOK(t *testing.T) {
 	exp := map[string]string{
 		"host_name": "",
