@@ -24,7 +24,7 @@ require (
 	github.com/sni/go-flags v0.0.0-20260728085005-7fabf5946d2e
 	github.com/sni/shelltoken v0.0.0-20260824150518-ba5b457dfc8c
 	github.com/spf13/cobra v1.10.2
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 	github.com/stretchr/testify v1.12.1
 	github.com/subuk/csrtool v0.0.0-20250413213651-887255723652
 	github.com/yusufpapurcu/wmi v1.2.4
