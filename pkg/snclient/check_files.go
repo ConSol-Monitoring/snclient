@@ -652,7 +652,7 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 			check.details["total_disksize"] = humanize.IBytesF(convert.UInt64(totalDiskSize), 2)
 		}
 
-		if check.HasThreshold("total_disksize") {
+		if check.HasMetric("total_disksize") {
 			check.result.Metrics = append(check.result.Metrics,
 				&CheckMetric{
 					ThresholdName: "total_disksize",
@@ -667,7 +667,7 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 	}
 
 	// files do not have a 'count' atrribute, so this wont collide like 'size' would. No need for 'totalCount'
-	if check.HasThreshold("count") {
+	if check.HasMetric("count") {
 		check.result.Metrics = append(check.result.Metrics,
 			&CheckMetric{
 				Name:     "count",
@@ -680,7 +680,7 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 
 	// entries in listData have a 'size' attribute. This is filled for files directly, with folders they have to be calculated after the walk has ended.
 	// total_size argument is the recommended way for thresholds, if they want to work with size summation of matched entries
-	if check.HasThreshold("total_size") {
+	if check.HasMetric("total_size") {
 		check.result.Metrics = append(check.result.Metrics,
 			&CheckMetric{
 				ThresholdName: "total_size",
@@ -780,12 +780,12 @@ func (l *CheckFiles) addSubDirMetrics(check *CheckData) {
 
 //nolint:funlen // the length is ok, function is not complex
 func (l *CheckFiles) addFileMetrics(check *CheckData) {
-	needSize := check.HasThreshold("size")
-	needDiskSize := l.addDiskSize && check.HasThreshold("disksize")
-	needAge := check.HasThreshold("age")
-	needAccess := check.HasThreshold("access")
-	needWritten := check.HasThreshold("written")
-	needLineCount := check.HasThreshold("line_count")
+	needSize := check.HasMetric("size")
+	needDiskSize := l.addDiskSize && check.HasMetric("disksize")
+	needAge := check.HasMetric("age")
+	needAccess := check.HasMetric("access")
+	needWritten := check.HasMetric("written")
+	needLineCount := check.HasMetric("line_count")
 
 	for _, data := range check.listData {
 		if needSize {

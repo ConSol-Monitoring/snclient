@@ -161,7 +161,7 @@ func (l *CheckProcess) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		"youngest":    fmt.Sprintf("%d", youngest),
 	}
 
-	if check.HasThreshold("rss") || len(l.processes) > 0 || len(check.filter) > 0 {
+	if check.HasMetric("rss") || len(l.processes) > 0 || len(check.filter) > 0 {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:     "rss",
 			Unit:     "B",
@@ -172,7 +172,7 @@ func (l *CheckProcess) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		})
 	}
 
-	if check.HasThreshold("virtual") || len(l.processes) > 0 || len(check.filter) > 0 {
+	if check.HasMetric("virtual") || len(l.processes) > 0 || len(check.filter) > 0 {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:     "virtual",
 			Unit:     "B",
@@ -183,7 +183,7 @@ func (l *CheckProcess) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		})
 	}
 
-	if check.HasThreshold("cpu") || len(l.processes) > 0 || len(check.filter) > 0 {
+	if check.HasMetric("cpu") || len(l.processes) > 0 || len(check.filter) > 0 {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:     "cpu",
 			Unit:     "%",
@@ -193,7 +193,7 @@ func (l *CheckProcess) Check(ctx context.Context, snc *Agent, check *CheckData, 
 			Critical: check.critThreshold,
 		})
 	}
-	if check.HasThreshold("cpu_seconds") {
+	if check.HasMetric("cpu_seconds") {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:     "cpu_seconds",
 			Unit:     "s",

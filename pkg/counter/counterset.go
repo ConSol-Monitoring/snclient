@@ -42,6 +42,15 @@ func (cs *Set) Delete(category, key string) {
 	}
 }
 
+// Categories returns all category names
+func (cs *Set) Categories() (categories []string) {
+	for category := range cs.counter {
+		categories = append(categories, category)
+	}
+
+	return categories
+}
+
 // Keys returns all keys for category
 func (cs *Set) Keys(category string) (keys []string) {
 	if cat, ok := cs.counter[category]; ok {
