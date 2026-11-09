@@ -373,7 +373,7 @@ func (l *CheckDrivesize) addMetrics(metricPrefix string, drive map[string]string
 	}
 
 	driveFreeMetricLabel := fmt.Sprintf("%s free %%", metricPrefix)
-	if check.HasThreshold(driveFreeMetricLabel) || check.HasThreshold("free") || check.HasThreshold("free_pct") || check.HasThreshold("free_bytes") || check.HasThreshold("free %") {
+	if check.HasMetric(driveFreeMetricLabel) || check.HasMetric("free") || check.HasMetric("free_pct") || check.HasMetric("free_bytes") || check.HasMetric("free %") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct", "free_bytes", "free %"}, "free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct", "free_bytes", "free %"}, "free", check.critThreshold)
 		perfLabel := fmt.Sprintf("%s free", metricPrefix)
@@ -382,7 +382,7 @@ func (l *CheckDrivesize) addMetrics(metricPrefix string, drive map[string]string
 	}
 
 	driveUsagePctMetricLabel := fmt.Sprintf("%s used %%", metricPrefix)
-	if check.HasThreshold(driveUsagePctMetricLabel) || check.HasThreshold("used") || check.HasThreshold("used_pct") || check.HasThreshold("used_bytes") || check.HasThreshold("used %") {
+	if check.HasMetric(driveUsagePctMetricLabel) || check.HasMetric("used") || check.HasMetric("used_pct") || check.HasMetric("used_bytes") || check.HasMetric("used %") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes", "used %"}, "used", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct", "used_bytes", "used %"}, "used", check.critThreshold)
 		perfLabel := fmt.Sprintf("%s used", metricPrefix)
@@ -391,8 +391,8 @@ func (l *CheckDrivesize) addMetrics(metricPrefix string, drive map[string]string
 	}
 
 	driveInodesUsedPctMetricLabel := fmt.Sprintf("%s inodes_used %%", metricPrefix)
-	if check.HasThreshold(driveInodesUsedPctMetricLabel) || check.HasThreshold("inodes") || check.HasThreshold("inodes_used") || check.HasThreshold("inodes_used_pct") ||
-		check.HasThreshold("inodes_used %") {
+	if check.HasMetric(driveInodesUsedPctMetricLabel) || check.HasMetric("inodes") || check.HasMetric("inodes_used") || check.HasMetric("inodes_used_pct") ||
+		check.HasMetric("inodes_used %") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used %"}, "inodes_used", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_used_pct", "inodes_used %"}, "inodes_used", check.critThreshold)
 		perfLabel := fmt.Sprintf("%s inodes_used", metricPrefix)
@@ -401,7 +401,7 @@ func (l *CheckDrivesize) addMetrics(metricPrefix string, drive map[string]string
 	}
 
 	driveInodesFreePctMetricLabel := fmt.Sprintf("%s inodes_free %%", metricPrefix)
-	if check.HasThreshold(driveInodesFreePctMetricLabel) || check.HasThreshold("inodes_free") || check.HasThreshold("inodes_free_pct") || check.HasThreshold("inodes_free %") {
+	if check.HasMetric(driveInodesFreePctMetricLabel) || check.HasMetric("inodes_free") || check.HasMetric("inodes_free_pct") || check.HasMetric("inodes_free %") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct", "inodes_free %"}, "inodes_free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"inodes_free_pct", "inodes_free %"}, "inodes_free", check.critThreshold)
 		perfLabel := fmt.Sprintf("%s inodes_free", metricPrefix)
@@ -463,10 +463,10 @@ func (l *CheckDrivesize) addTotal(check *CheckData) {
 		return
 	}
 
-	if check.HasThreshold("free") || check.HasThreshold("free_bytes") {
+	if check.HasMetric("free") || check.HasMetric("free_bytes") {
 		check.AddBytePercentMetrics("free", drive["drive"]+" free", float64(free), float64(total), map[string]string{})
 	}
-	if check.HasThreshold("used") || check.HasThreshold("used_bytes") {
+	if check.HasMetric("used") || check.HasMetric("used_bytes") {
 		check.AddBytePercentMetrics("used", drive["drive"]+" used", float64(used), float64(total), map[string]string{})
 	}
 }

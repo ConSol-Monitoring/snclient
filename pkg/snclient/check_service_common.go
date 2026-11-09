@@ -93,7 +93,7 @@ func (l *CheckService) procCPUPercent(ctx context.Context, proc *process.Process
 }
 
 func (l *CheckService) addServiceMetrics(service string, serviceState float64, check *CheckData, listEntry map[string]string) { //nolint:funlen //makes no sense splitting
-	if check.HasThreshold("state") {
+	if check.HasMetric("state") {
 		check.result.Metrics = append(
 			check.result.Metrics,
 			&CheckMetric{
@@ -103,10 +103,10 @@ func (l *CheckService) addServiceMetrics(service string, serviceState float64, c
 		)
 	}
 
-	rssNeeded := check.HasThreshold("rss") || check.showAll || len(l.services) > 0
-	vmsNeeded := check.HasThreshold("vms") || check.showAll || len(l.services) > 0
-	cpuNeeded := check.HasThreshold("cpu") || check.showAll || len(l.services) > 0
-	tasksNeeded := check.HasThreshold("tasks") || check.showAll || len(l.services) > 0
+	rssNeeded := check.HasMetric("rss") || check.showAll || len(l.services) > 0
+	vmsNeeded := check.HasMetric("vms") || check.showAll || len(l.services) > 0
+	cpuNeeded := check.HasMetric("cpu") || check.showAll || len(l.services) > 0
+	tasksNeeded := check.HasMetric("tasks") || check.showAll || len(l.services) > 0
 
 	if rssNeeded || vmsNeeded {
 		if _, ok := listEntry["rss"]; ok {
