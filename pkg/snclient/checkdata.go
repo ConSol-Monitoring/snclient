@@ -1402,6 +1402,27 @@ func (cd *CheckData) HasThreshold(name string) bool {
 	return false
 }
 
+// HasPerfConfig returns true if any perf-config item matches the given name.
+// A bare wildcard '*' does not count, since it would enable every metric.
+func (cd *CheckData) HasPerfConfig(name string) bool {
+	for i := range cd.perfConfig {
+		if cd.perfConfig[i].Selector == "*" {
+			continue
+		}
+		if cd.perfConfig[i].Match(name) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// HasMetric returns true if a threshold or perf-config uses the given name,
+// meaning metrics with that name should be emitted.
+func (cd *CheckData) HasMetric(name string) bool {
+	return cd.HasThreshold(name) || cd.HasPerfConfig(name)
+}
+
 // GetAllThresholdKeywords returns a list of all keywords used in warn/crit/unknown/ok thresholds.
 func (cd *CheckData) GetAllThresholdKeywords() []string {
 	keywords := make([]string, 0, len(cd.warnThreshold)+len(cd.critThreshold)+len(cd.unknownThreshold)+len(cd.okThreshold))

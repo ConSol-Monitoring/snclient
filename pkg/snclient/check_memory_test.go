@@ -123,6 +123,14 @@ func TestCheckMemory(t *testing.T) {
 	assert.Regexpf(t, `'physical_caches'=\d+B;`, string(res.BuildPluginOutput()), "output matches")
 	assert.Regexpf(t, `'physical_caches %'=\d+(\.\d+)?%;`, string(res.BuildPluginOutput()), "output matches")
 
+	res = snc.RunCheck("check_memory", []string{"type=physical", "warn=none", "crit=none", "perf-config=caches(unit:K)"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(t, `'physical_caches'=[\d.]+K;`, string(res.BuildPluginOutput()), "output matches")
+
+	res = snc.RunCheck("check_memory", []string{"type=physical", "warn=none", "crit=none", "perf-config=*(unit:K)"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "physical_caches", "bare wildcard must not enable metrics")
+
 	res = snc.RunCheck("check_memory", []string{"type=physical", "warn=none", "crit=none", "-n", "10", "--show-args"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Contains(t, string(res.BuildPluginOutput()), "RSS", "output matches")

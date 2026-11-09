@@ -183,17 +183,17 @@ func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, tota
 		entry["free_pct"] = "0"
 	}
 	check.listData = append(check.listData, entry)
-	if check.HasThreshold("free") || check.HasThreshold("free_pct") {
+	if check.HasMetric("free") || check.HasMetric("free_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.critThreshold)
 		check.AddBytePercentMetrics("free", name+"_free", float64(free), float64(total), entry)
 	}
-	if check.HasThreshold("used") || check.HasThreshold("used_pct") {
+	if check.HasMetric("used") || check.HasMetric("used_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.critThreshold)
 		check.AddBytePercentMetrics("used", name, float64(used), float64(total), entry)
 	}
-	if len(caches) > 0 && (check.HasThreshold("caches") || check.HasThreshold("caches_pct")) {
+	if len(caches) > 0 && (check.HasMetric("caches") || check.HasMetric("caches_pct")) {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"caches_pct"}, "caches", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"caches_pct"}, "caches", check.critThreshold)
 		check.AddBytePercentMetrics("caches", name+"_caches", float64(caches[0]), float64(total), entry)
