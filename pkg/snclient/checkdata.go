@@ -251,6 +251,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	} else {
 		finalMacros = cd.buildListMacros()
 	}
+	cd.result.SynthesizePerfConfigMetrics(cd.perfConfig)
 	err := cd.result.ApplyPerfConfig(cd.perfConfig)
 	if err != nil {
 		return nil, fmt.Errorf("%s", err.Error())

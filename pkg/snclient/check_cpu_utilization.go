@@ -120,8 +120,11 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLoo
 	check.listData = append(check.listData, entry)
 
 	cpuMetrics, ok := l.getMetrics(scanLookBack)
+	// when the counter is cold (e.g. right after start) getMetrics returns nil,
+	// so fall back to the zero values the entry was initialized with. This keeps
+	// the metrics mirroring the human readable output instead of being omitted.
 	if !ok {
-		return
+		cpuMetrics = &CPUUtilizationResult{}
 	}
 
 	entry["total"] = fmt.Sprintf("%.f", cpuMetrics.total)
