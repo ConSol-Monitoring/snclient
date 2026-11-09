@@ -381,6 +381,32 @@ Zeit seit der letzten erfolgr. Synchronisierungszeit: 831.4054861s`,
 	assert.Equalf(t, "OK - offset -7.842999ms from ntp.company.lan |'offset'=-7.8433ms;-50:50;-100:100 'stratum'=4;;;0",
 		string(res.BuildPluginOutput()), "output matches")
 
+	// french not synchronized
+	MockSystemUtilities(t, map[string]string{
+		"w32tm.exe": `Indicateur de dérive : 3(Non synchronisé)
+Couche : 0 (Non spécifié)
+Précision : -23 (119.209ns par battement)
+Délai de racine : 0.0000000s
+Dispersion de racine : 0.0000000s
+ID de référence : 0x00000000 (Non spécifié)
+Heure de la dernière synchronisation réussie : Non spécifié
+Source : Local CMOS Clock
+Intervalle d'interrogation : 6 (64s)
+
+Décalage de phase : 0.0000000s
+Fréquence d'horloge : 0.0156250s
+Ordinateur d'état : 0 (Non défini)
+Indicateur de source de temps : 0 (Aucun)
+Rôle de serveur : 0 (Aucun)
+Erreur lors de la dernière synchronisation : 1 (L'ordinateur ne s'est pas resynchronisé car aucune donnée de temps n'était
+disponible.)
+Durée écoulée depuis l'heure de la dernière synchronisation réussie : 121.1471153s`,
+	})
+	res = snc.RunCheck("check_ntp_offset", []string{"source=w32tm"})
+	assert.Equalf(t, CheckExitCritical, res.State, "state Critical")
+	assert.Equalf(t, "CRITICAL - w32tm.exe: Ordinateur d'état : 0 (Non défini)",
+		string(res.BuildPluginOutput()), "output matches")
+
 	StopTestAgent(t, snc)
 }
 

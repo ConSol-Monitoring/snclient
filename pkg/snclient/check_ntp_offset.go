@@ -508,24 +508,23 @@ func (l *CheckNTPOffset) addW32TM(ctx context.Context, check *CheckData, force b
 
 func (l *CheckNTPOffset) parseW32English(text string) (valid bool, source, offset, stratum, errorStr string) {
 	for line := range strings.SplitSeq(text, "\n") {
-		cols := utils.TokenizeBy(line, ":", false, false)
-		if len(cols) < 2 {
+		key, val, ok := splitW32Line(line)
+		if !ok {
 			continue
 		}
-		cols[1] = strings.TrimSpace(cols[1])
-		switch cols[0] {
+		switch key {
 		case "Source":
-			servers := utils.TokenizeBy(cols[1], ",", false, false)
+			servers := utils.TokenizeBy(val, ",", false, false)
 			source = servers[0]
 		case "Phase Offset":
-			value, _ := time.ParseDuration(cols[1])
+			value, _ := time.ParseDuration(val)
 			offset = fmt.Sprintf("%f", float64(value.Nanoseconds())/1e6)
 			valid = true
 		case "Stratum":
-			stratas := strings.Fields(cols[1])
+			stratas := strings.Fields(val)
 			stratum = stratas[0]
 		case "State Machine":
-			fields := strings.Fields(cols[1])
+			fields := strings.Fields(val)
 			if fields[0] != "2" {
 				errorStr = fmt.Sprintf("w32tm.exe: %s", line)
 			}
@@ -533,6 +532,16 @@ func (l *CheckNTPOffset) parseW32English(text string) (valid bool, source, offse
 	}
 
 	return valid, source, offset, stratum, errorStr
+}
+
+// splitW32Line splits a "key: value" line on the first colon, ignoring quotes.
+func splitW32Line(line string) (key, val string, ok bool) {
+	key, val, ok = strings.Cut(line, ":")
+	if !ok {
+		return "", "", false
+	}
+
+	return strings.TrimSpace(key), strings.TrimSpace(val), true
 }
 
 func (l *CheckNTPOffset) parseW32AnyLang(text string) (valid bool, source, offset, stratum, errorStr string) {
@@ -543,12 +552,11 @@ func (l *CheckNTPOffset) parseW32AnyLang(text string) (valid bool, source, offse
 	}
 	attributes := []attr{}
 	for line := range strings.SplitSeq(text, "\n") {
-		cols := utils.TokenizeBy(line, ":", false, false)
-		if len(cols) < 2 {
+		key, val, ok := splitW32Line(line)
+		if !ok {
 			continue
 		}
-		cols[1] = strings.TrimSpace(cols[1])
-		attributes = append(attributes, attr{cols[0], cols[1], line})
+		attributes = append(attributes, attr{key, val, line})
 	}
 
 	if len(attributes) < 12 {
