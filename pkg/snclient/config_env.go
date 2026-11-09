@@ -21,11 +21,12 @@ func ReplaceEnvMacros(value string) (string, error) {
 	for pos := 0; pos < len(value); {
 		switch {
 		case strings.HasPrefix(value[pos:], envMacroEscape):
+			// add it to the result literally, and then move the index after it
 			result.WriteString(envMacroStart)
 			pos += len(envMacroEscape)
 		case strings.HasPrefix(value[pos:], envMacroStart):
-			end := strings.IndexByte(value[pos+len(envMacroStart):], '}')
-			if end == -1 {
+			closingBracePos := strings.IndexByte(value[pos+len(envMacroStart):], '}')
+			if closingBracePos == -1 {
 				// no closing brace, keep the rest as is
 				result.WriteString(value[pos:])
 
@@ -33,18 +34,18 @@ func ReplaceEnvMacros(value string) (string, error) {
 
 				continue
 			}
-			end += pos + len(envMacroStart)
+			closingBracePos += pos + len(envMacroStart)
 
-			nameStart := pos + len(envMacroStart)
-			name := strings.TrimSpace(value[nameStart:end])
+			nameStartPos := pos + len(envMacroStart)
+			name := strings.TrimSpace(value[nameStartPos:closingBracePos])
 
 			if name == "" {
 				if firstErr == nil {
 					firstErr = fmt.Errorf("empty environment variable name")
 				}
-				result.WriteString(value[pos : end+1])
+				result.WriteString(value[pos : closingBracePos+1])
 
-				pos = end + 1
+				pos = closingBracePos + 1
 
 				continue
 			}
@@ -54,15 +55,15 @@ func ReplaceEnvMacros(value string) (string, error) {
 				if firstErr == nil {
 					firstErr = fmt.Errorf("environment variable %q is not set", name)
 				}
-				result.WriteString(value[pos : end+1])
+				result.WriteString(value[pos : closingBracePos+1])
 
-				pos = end + 1
+				pos = closingBracePos + 1
 
 				continue
 			}
 			result.WriteString(envValue)
 
-			pos = end + 1
+			pos = closingBracePos + 1
 		default:
 			result.WriteByte(value[pos])
 

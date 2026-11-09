@@ -855,6 +855,7 @@ func (cs *ConfigSection) String() string {
 // Set sets a raw single key/value pair. Existing keys will be overwritten.
 // Raw means this value will be stored parsed (stripping quotes) but also
 // be stored as is, including quotes.
+// Environment variable macros are replaced, if they can be resolved.
 func (cs *ConfigSection) SetRaw(key, value string) error {
 	rawValue := value
 	newRawValue := []string{rawValue}
@@ -870,7 +871,7 @@ func (cs *ConfigSection) SetRaw(key, value string) error {
 		return err
 	}
 
-	// keep the unexpanded value on error so the setting is not lost when the config gets written
+	// keep the unexpanded value on env errors, so the setting survives config rewrites
 	parsedValue := value
 	expandedValue, envErr := ReplaceEnvMacros(value)
 	if envErr == nil {
