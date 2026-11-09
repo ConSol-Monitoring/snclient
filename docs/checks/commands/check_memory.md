@@ -50,18 +50,21 @@ Read more on Windows virtual address space [here](https://learn.microsoft.com/en
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute  | Description                                                                        |
-| ---------- | ---------------------------------------------------------------------------------- |
-| <type>     | used bytes with the type as key                                                    |
-| type       | checked type, either 'physical' or 'committed', 'swap' or 'virtual' (Windows only) |
-| used       | Used memory in human readable bytes (IEC)                                          |
-| used_bytes | Used memory in bytes (IEC)                                                         |
-| used_pct   | Used memory in percent                                                             |
-| free       | Free memory in human readable bytes (IEC)                                          |
-| free_bytes | Free memory in bytes (IEC)                                                         |
-| free_pct   | Free memory in percent                                                             |
-| size       | Total memory in human readable bytes (IEC)                                         |
-| size_bytes | Total memory in bytes (IEC)                                                        |
+| Attribute    | Description                                                                        |
+| ------------ | ---------------------------------------------------------------------------------- |
+| <type>       | used bytes with the type as key                                                    |
+| type         | checked type, either 'physical' or 'committed', 'swap' or 'virtual' (Windows only) |
+| used         | Used memory in human readable bytes (IEC)                                          |
+| used_bytes   | Used memory in bytes (IEC)                                                         |
+| used_pct     | Used memory in percent                                                             |
+| free         | Free memory in human readable bytes (IEC)                                          |
+| free_bytes   | Free memory in bytes (IEC)                                                         |
+| free_pct     | Free memory in percent                                                             |
+| size         | Total memory in human readable bytes (IEC)                                         |
+| size_bytes   | Total memory in bytes (IEC)                                                        |
+| caches       | Memory used by the page cache in human readable bytes (IEC, physical type only)    |
+| caches_bytes | Memory used by the page cache in bytes (IEC, physical type only)                   |
+| caches_pct   | Memory used by the page cache in percent (physical type only)                      |
 
 ## Examples
 
