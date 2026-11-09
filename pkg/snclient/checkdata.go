@@ -1417,10 +1417,10 @@ func (cd *CheckData) HasPerfConfig(name string) bool {
 	return false
 }
 
-// HasMetric returns true if a threshold or perf-config uses the given name,
-// meaning metrics with that name should be emitted.
+// HasMetric returns true if a threshold, filter or perf-config uses the given
+// name, meaning metrics with that name should be emitted.
 func (cd *CheckData) HasMetric(name string) bool {
-	return cd.HasThreshold(name) || cd.HasPerfConfig(name)
+	return cd.HasThreshold(name) || cd.HasFilter(name) || cd.HasPerfConfig(name)
 }
 
 // GetAllThresholdKeywords returns a list of all keywords used in warn/crit/unknown/ok thresholds.
