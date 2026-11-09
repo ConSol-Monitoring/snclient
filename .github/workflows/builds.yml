@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   get-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       minor:    ${{ steps.get-minor-version.outputs.minor }}
       major:    ${{ steps.get-major-version.outputs.major }}
@@ -45,7 +45,7 @@ jobs:
 
 
   test-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@main
       - uses: actions/setup-go@main
@@ -79,7 +79,7 @@ jobs:
       - run: make test
 
   test-bsd:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 40
     steps:
     - uses: actions/checkout@main
@@ -127,7 +127,7 @@ jobs:
           - go-os: freebsd
             go-arch: ppc64le
     needs: [get-version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
@@ -181,7 +181,7 @@ jobs:
         go-os: [windows]
         go-arch: [i386, x86_64, aarch64]
     needs: [get-version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
@@ -265,7 +265,7 @@ jobs:
 
   dist-linux-osx:
     needs: [get-version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@main
       - uses: actions/setup-go@main
@@ -286,7 +286,7 @@ jobs:
 
   dist-win:
     needs: [get-version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@main
       - uses: actions/setup-go@main
@@ -385,7 +385,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [i386, x86_64, aarch64, armv7, ppc64le]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version, build, dist-linux-osx]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -424,7 +424,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [x86_64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: debian:13
     needs: [get-version, pkg-deb]
@@ -446,7 +446,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [i386, x86_64, aarch64, ppc64le]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version, build, dist-linux-osx]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -480,7 +480,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [x86_64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: rockylinux:9
     needs: [get-version, pkg-rpm]
@@ -501,7 +501,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [x86_64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: alpine:latest
     needs: [get-version, build, dist-linux-osx]
@@ -557,7 +557,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [x86_64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: alpine:latest
     needs: [get-version, pkg-apk]
@@ -618,7 +618,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [i386, x86_64, aarch64, armv7, ppc64le]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version,pkg-rpm,pkg-deb]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -634,7 +634,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [x86_64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version,pkg-deb]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -659,7 +659,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [x86_64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version,pkg-deb]
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
@@ -737,7 +737,7 @@ jobs:
 
   # remove tmp artifacts
   clean-tmp-dist:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [integration-test-linux, integration-test-osx, integration-test-windows]
     steps:
       - uses: geekyeggo/delete-artifact@v6
@@ -763,7 +763,7 @@ jobs:
 
   make-release:
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version,pkg-msi,pkg-deb,pkg-rpm,pkg-osx,integration-test-linux,integration-test-windows, integration-test-osx, test-linux, test-win, test-osx, test-bsd]
     permissions:
       contents: write
@@ -788,7 +788,7 @@ jobs:
       matrix:
         go-os: [windows]
         go-arch: [i386, x86_64, aarch64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version,make-release]
     permissions:
       contents: write
@@ -810,7 +810,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [i386, x86_64, aarch64, armv7, ppc64le]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version,make-release]
     permissions:
       contents: write
@@ -832,7 +832,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [i386, x86_64, aarch64, ppc64le]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version,make-release]
     permissions:
       contents: write
@@ -854,7 +854,7 @@ jobs:
       matrix:
         go-os: [linux]
         go-arch: [x86_64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version,make-release]
     permissions:
       contents: write
@@ -876,7 +876,7 @@ jobs:
       matrix:
         go-os: [darwin]
         go-arch: [x86_64, aarch64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version,make-release]
     permissions:
       contents: write
@@ -898,7 +898,7 @@ jobs:
       matrix:
         go-os: [freebsd]
         go-arch: [i386, x86_64, aarch64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [get-version,make-release]
     permissions:
       contents: write
