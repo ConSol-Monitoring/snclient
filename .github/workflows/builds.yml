@@ -52,7 +52,6 @@ jobs:
         with:
           go-version-file: './go.mod'
       - run: |
-          make
           make fmtcheck
           make todocheck
           make debugcheck
@@ -67,7 +66,6 @@ jobs:
         with:
           go-version-file: './go.mod'
       - run: |
-          make
           make benchmark
           make racetest
 
@@ -80,7 +78,6 @@ jobs:
         with:
           go-version-file: './go.mod'
       - run: |
-          make
           make crosscheck
 
 
@@ -92,7 +89,6 @@ jobs:
         with:
           go-version-file: './go.mod'
       - run: |
-          make
           make docscheck
 
 
