@@ -4,7 +4,11 @@ next:
          - check_process/check_service: report recent CPU usage (average since the last check) instead of the lifetime average
          - check_drive_io: do not report duplicate entries for devices mounted multiple times
          - check_drive_io: pick up newly mounted or connected drives and forget removed ones after 5 minutes
+         - check_cpu_utilization: emit zero metrics while the cpuinfo counter is cold so perfdata is not missing
+         - check_memory: add page cache (caches) metrics when a caches/caches_pct threshold is used
          - windows exporter: update to 0.32.1
+         - checks: perf-config can add metrics the check calculates but does not emit by default, partial wildcards supported
+         - update dependencies
 
 1.01     Thu Oct 29 14:52:12 CET 2026
          - add ppc64le rpm/deb builds
