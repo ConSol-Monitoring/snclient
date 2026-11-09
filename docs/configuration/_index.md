@@ -307,8 +307,8 @@ The variable is read from the environment of the running SNClient process when
 the configuration is loaded. This makes it possible to distribute the same
 configuration files and only change the environment per node.
 
-- An unset variable is a configuration error. `snclient config check` reports the
-  variable name and config location.
+- An unset variable is a configuration error. `snclient config check` reports
+  the variable name and config location.
 - A variable that is set but empty expands to an empty string.
 - Values are expanded once. `$ENV{...}` inside the value of an environment
   variable is not expanded again.
@@ -317,12 +317,12 @@ configuration files and only change the environment per node.
 - The syntax is only available in configuration files, not in check output
   templates or runtime macros.
 - Environment variables are not re-read on config reload. Restart the service
-  after changing them.
+  after changing them. One-shot commands pick up the environment of the new
+  process automatically.
 
 On Linux with systemd, set variables with `Environment=` or `EnvironmentFile=` in
 the service unit. On Windows, set them in the service or system environment and
-restart the service. A variable exported in a shell is not automatically visible
-to an already running service.
+restart the service.
 
-HTTP includes are parsed by the local agent, so environment variables in remote
+HTTP(S) includes are parsed by the local agent, so environment variables in remote
 config files are resolved on the client.
