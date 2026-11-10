@@ -9,18 +9,18 @@ func init() {
 func NewCheckDNS() CheckHandler {
 	return &CheckBuiltin{
 		name: "check_dns",
-		description: `Runs check_dns to perform nameserver checks.
-It basically wraps the plugin from https://github.com/mackerelio/go-check-plugins/tree/master/check-dns`,
+		description: `Runs check_dns to check nameservers.
+It wraps the plugin from https://github.com/mackerelio/go-check-plugins/tree/master/check-dns`,
 		check:    check_dns.Check,
 		docTitle: `check_dns`,
 		usage:    `check_dns [<options>]`,
 		exampleDefault: `
-Alert if DNS server does not respond:
+Alert if the DNS server does not respond:
 
     check_dns -H labs.consol.de
     OK - labs.consol.de returns 94.185.89.33 (A)
 
-Check for specific type from specific server:
+Check a specific record type on a specific server:
 
     check_dns -H consol.de -q MX -s 1.1.1.1
     OK - consol.de returns mail.consol.de. (MX)

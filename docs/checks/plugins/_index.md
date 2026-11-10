@@ -3,9 +3,9 @@ title: Built-in plugins
 weight: 2000
 ---
 
-This is the list of built-in check plugins. They work like the official [monitoring-plugins](https://www.monitoring-plugins.org/).
+Built-in check plugins work like the official [monitoring-plugins](https://www.monitoring-plugins.org/).
 
-Each plugin usually has a help page which can be accessed by the `-h` or `--help` argument.
+Most plugins have a help page. To open it, use `-h` or `--help`.
 
 For example:
 
@@ -13,13 +13,13 @@ For example:
 ./snclient run check_snclient --help
 ```
 
-Check plugins cannot use filtering as the normal checks.
+Unlike normal checks, check plugins do not support filtering.
 
-The list of built-in checks can be found [in the commands section](../commands/).
+See the built-in checks [in the commands section](../commands/).
 
 ## Enabling Builtin Plugins
 
-To enable the builtin plugins feature in SNClient, you need to activate them in the config file as follows:
+Enable built-in plugins in the configuration file:
 
 ```ini
 [/modules]

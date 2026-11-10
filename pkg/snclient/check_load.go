@@ -50,8 +50,8 @@ func (l *CheckLoad) Build() *CheckData {
 			"-w|--warning":       {value: &l.warning, description: "Warning threshold: WLOAD1,WLOAD5,WLOAD15"},
 			"-c|--critical":      {value: &l.critical, description: "Critical threshold: CLOAD1,CLOAD5,CLOAD15"},
 			"-r|--percpu":        {value: &l.perCPU, description: "Divide the load averages by the number of CPUs"},
-			"-n|--procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
-			"--show-args":        {value: &l.showArgs, description: "Show arguments when listing the top N processes"},
+			"-n|--procs-to-show": {value: &l.numProcs, description: "Number of top resource-consuming processes to show"},
+			"--show-args":        {value: &l.showArgs, description: "Show arguments for the top N processes"},
 		},
 		defaultFilter: "none",
 		detailSyntax:  "%(type) load average: %(load1), %(load5), %(load15)",
@@ -162,7 +162,7 @@ func (l *CheckLoad) Check(ctx context.Context, _ *Agent, check *CheckData, _ []A
 		}
 	}
 
-	if check.HasThreshold("cores") || check.HasFilter("cores") {
+	if check.HasMetric("cores") {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:          "cores",
 			ThresholdName: "cores",

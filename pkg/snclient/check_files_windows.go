@@ -21,8 +21,8 @@ type fileStandardInfo struct {
 }
 
 // getFileDiskSize returns the actual disk size of the file or directory.
-// The win32 file attributes used by os.FileInfo.Sys() do not include the allocated size, so an additional API call is required.
-// The file is opened without FILE_FLAG_OPEN_REPARSE_POINT, so symlinks are resolved and the size of the target is returned.
+// The Win32 attributes from os.FileInfo.Sys() omit the allocated size, so this requires another API call.
+// Open the file without FILE_FLAG_OPEN_REPARSE_POINT to resolve symlinks and return the target's size.
 func getFileDiskSize(_ fs.FileInfo, path string) (uint64, error) {
 	// 8.3 short names (ex.: C:\Users\RUNNER~1) are resolved to their long form first, since short paths can also cause the query to fail.
 	longPath, err := resolveLongPath(path)

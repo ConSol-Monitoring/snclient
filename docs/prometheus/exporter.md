@@ -11,7 +11,7 @@ tags:
 The exporter exporter is a simple reverse proxy for Prometheus exporters not
 managed by SNClient.
 
-It makes multiple exporters accessible via a single proxy url.
+It exposes multiple exporters through a single proxy URL.
 
 Example configuration:
 
@@ -33,13 +33,11 @@ url prefix = /
 modules dir = ${shared-path}/exporter_modules
 ```
 
-The exporter uses the standard HTTP settings with an additional `modules dir` to
-configure the exported modules.
+The exporter uses the standard HTTP settings. Set `modules dir` to specify the folder that contains the exported module definitions.
 
-For compatibility reasons, the modules themselves are in YAML format as described
-on [GitHub](https://github.com/QubitProducts/exporter_exporter#configuration).
+For compatibility, modules use the YAML format described on [GitHub](https://github.com/QubitProducts/exporter_exporter#configuration).
 
-A simple HTTP exporter module file could look like this:
+Example HTTP exporter module file:
 
 exporter_modules/name.yaml:
 
@@ -50,7 +48,7 @@ http:
     path: '/metrics'
 ```
 
-Using the default ports, you can test the exporter above with the command:
+If you use the default ports, test the exporter with this command:
 
 ```sh
 %> curl 'https://hostname:8443/proxy?module=name'
@@ -63,22 +61,20 @@ The exporter provides the following endpoints:
 - `/proxy`: used to query the selected exporter. Accepts these parameters:
   - `module`: use `?module=name` parameter to specify the exporter.
   - `args`: arguments for exec exporters.
-  - other arguments are passed through to HTTP exporters.
+  - SNClient passes other arguments through to HTTP exporters.
 - `/list`: list available exporters.
 
 ## Incompatibilities
 
 ### No Verification
 
-This module basically works the same as the standalone exporter exporter, except
-it does not implement verification. Files and requests are passed through unchanged,
-without checking whether they contain valid Prometheus metrics.
+This module works like the standalone exporter exporter, except that it does not verify metrics.
+It passes files and requests through unchanged, without checking for valid Prometheus metrics.
 
 ### Changed Index Path
 
-Since this exporter exporter (optionally) shares the web server with the rest of
-the SNClient, the `/` URL path is in use already. The available exporter
-modules can therefore be requested with the `/list` path.
+The embedded exporter exporter can share SNClient's web server, where the `/` URL path is already in use.
+Use `/list` to request the available exporter modules.
 
 ### No separate /metrics endpoint
 

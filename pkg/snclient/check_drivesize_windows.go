@@ -45,20 +45,22 @@ func (l *CheckDrivesize) getExample() string {
     check_drivesize folder=c:\Temp show-all
     OK - c: 36.801 GiB/63.075 GiB (58.3%) |...
 
-Check a network share directly via its UNC path, no drive letter mapping required. This also works for hidden shares like the administrative share C$:
+Check a network share directly with its UNC path. You do not need to map a drive letter.
+This also works for hidden shares such as the administrative share C$:
 
 	check_drivesize drive=\\server\C$ show-all
 	OK - \\server\C$ 100.000 GiB/500.000 GiB (20.0%) |'\\server\C$ used'=...
 
-Shares in general are only accessible if SNClient has sufficient credentials on the remote server. Otherwise the check reports an error for that drive.
-The connection has to be established beforehand, SNClient does not authenticate on its own.
+SNClient needs sufficient credentials on the remote server to access shares. Otherwise, the check reports an error for that drive.
+Establish the connection before you run the check. SNClient does not authenticate on its own.
 
-If the UNC path is mapped to a drive letter, the mapped drive is used and the localised path is available in the localised_remote_path attribute:
+If the UNC path maps to a drive letter, the check uses the mapped drive.
+The localised_remote_path attribute contains the localised path:
 
 	check_drivesize drive=\\server\share\folder show-all
 	OK - Z:\ 100.000 GiB/500.000 GiB (20.0%) |...
 
-Hidden shares can be accessed if their path is specified.
+To access a hidden share, specify its path.
 
 	check_drivesize drive='\\192.168.178.21\TestHidden$'
 	`
@@ -70,9 +72,8 @@ Hidden shares can be accessed if their path is specified.
 // Volume: A logical abstraction of a storage, formatted with a file system. It can be a virtual file, a RAID disk or one partition -> \\?\Volume{GUID}\
 // Drive: This term is not defined well. Here, it means a logical access point with an assigned drive letter.
 
-// For a given path, it may correspond to a mounted disk, like a normal C:\ drive
-// Or it could be a network drive like \\SERVER\SHARENAME being mounted to K:\ drive
-// Checks the given path, resolves the alias and calls the corresponding function that adds the details
+// getRequiredDrives checks the path, resolves its alias, and calls the function that adds its details.
+// A path can refer to a mounted disk, such as C:\, or a network share, such as \\SERVER\SHARENAME mounted at K:\.
 func (l *CheckDrivesize) getRequiredDrives(paths []string, parentFallback bool) (requiredDrives map[string]map[string]string, err error) {
 	// create map of required disks/volmes/network_shares
 	// this map will be populated piece by piece
@@ -467,9 +468,8 @@ func (l *CheckDrivesize) setVolumes(requiredDrives map[string]map[string]string)
 	}
 }
 
-// this function is used to further process the volume GUID path returned from Windows API calls
-// takes a GUID path of a volume, then finds its path name.
-// it may or may not be mounted directly on a drive letter
+// Process the volume GUID path from Windows API calls to find its path name.
+// The volume may or may not be mounted directly at a drive letter.
 //
 //nolint:funlen,nestif // there are a lot of entry attributes, error checks while determining 'mounted' attribute
 func (l *CheckDrivesize) setVolume(requiredDrives map[string]map[string]string, volumeGUIDPath string, buffer []uint16) {
@@ -596,12 +596,9 @@ func getPerflabelPrefix(path string) (perflabelPrefix string, err error) {
 	return perflabelPrefix, nil
 }
 
-// cleans up an absolute path
-// changes all slashes to be backwards
-// compacts slashes that come one after another
-// changes the drive letter to be uppercase, if present
-// adds a colon after the drive letter if its not present
-// adds a backward slash after colon if not present
+// Clean an absolute path: use backslashes and combine consecutive slashes.
+// If a drive letter is present, make it uppercase.
+// Add a colon after the drive letter and a backslash after the colon if either is missing.
 func (l *CheckDrivesize) cleanupPathString(path string) (cleanedPath string, isDrive bool, err error) {
 	if path == "" {
 		return "", false, fmt.Errorf("path to cleanup is empty")
@@ -650,9 +647,7 @@ func (l *CheckDrivesize) cleanupPathString(path string) (cleanedPath string, isD
 	return cleanedPath, isDrive, nil
 }
 
-// This function is called when a custom path needs to be added
-// This is used if folders are given
-// c:/, d:/volume, f:/folder/with/slash
+// Add a custom path when the caller specifies folders, such as c:/, d:/volume, or f:/folder/with/slash.
 //
 //nolint:funlen,nestif // can not split this function up, it has to check if its network drive, normal drive, a custom path under a volume etc.
 func (l *CheckDrivesize) setCustomPath(path string, requiredDrives map[string]map[string]string, parentFallback bool) (err error) {

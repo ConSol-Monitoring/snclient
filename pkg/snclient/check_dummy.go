@@ -23,7 +23,7 @@ func (l *CheckDummy) Build() *CheckData {
 	return &CheckData{
 		name:            "check_dummy",
 		usage:           "check_dummy <exit code> <plugin output...>",
-		description:     "This check simply sets the state to the given value and outputs the remaining arguments.",
+		description:     "Sets the state to the given value and outputs the remaining arguments.",
 		argsPassthrough: true,
 		implemented:     ALL,
 		exampleDefault: `

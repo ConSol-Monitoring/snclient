@@ -28,19 +28,19 @@ Checks the CPU load metrics.
 
 ## Check Specific Arguments
 
-| Argument            | Description                                                           |
-| ------------------- | --------------------------------------------------------------------- |
-| --show-args         | Show arguments when listing the top N processes                       |
-| -c\|--critical      | Critical threshold: CLOAD1,CLOAD5,CLOAD15                             |
-| -n\|--procs-to-show | Number of processes to show when printing the top consuming processes |
-| -r\|--percpu        | Divide the load averages by the number of CPUs                        |
-| -w\|--warning       | Warning threshold: WLOAD1,WLOAD5,WLOAD15                              |
+| Argument            | Description                                        |
+| ------------------- | -------------------------------------------------- |
+| --show-args         | Show arguments for the top N processes             |
+| -c\|--critical      | Critical threshold: CLOAD1,CLOAD5,CLOAD15          |
+| -n\|--procs-to-show | Number of top resource-consuming processes to show |
+| -r\|--percpu        | Divide the load averages by the number of CPUs     |
+| -w\|--warning       | Warning threshold: WLOAD1,WLOAD5,WLOAD15           |
 
 ## Attributes
 
 ### Filter Keywords
 
-these can be used in filters and thresholds (along with the default attributes):
+Use these attributes in filters and thresholds, along with the default attributes:
 
 | Attribute | Description                              |
 | --------- | ---------------------------------------- |

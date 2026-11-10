@@ -41,23 +41,23 @@ func (l *CheckMemory) Build() *CheckData {
 		name: "check_memory",
 		description: `Checks the memory usage on the host.
 
-There are several types of memory that can be checked:
+You can check these memory types:
 
 - physical: physical memory
 - swap: swap memory (pagefile on Windows)
-- committed: committed memory as shown in the Windows task manager (Windows only, basically this is the physical + swap)
+- committed: committed memory as shown in the Windows task manager (Windows only, physical + swap)
 - virtual: available Windows virtual address space (Windows only)
 
-Read more on Windows virtual address space [here](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex).`,
+Read more about [Windows virtual address space](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex).`,
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"type":            {value: &l.memType, description: "Type of memory to check. Default: physical,committed (win) or physical,swap (other)"},
-			"n|procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
-			"show-args":       {value: &l.showArgs, description: "Show arguments when listing the top N processes"},
+			"type":            {value: &l.memType, description: "Memory types to check. Default: physical,committed (Windows) or physical,swap (other systems)"},
+			"n|procs-to-show": {value: &l.numProcs, description: "Number of top resource-consuming processes to show"},
+			"show-args":       {value: &l.showArgs, description: "Show arguments for the top N processes"},
 		},
 		defaultWarning:  "used > 80%",
 		defaultCritical: "used > 90%",
@@ -74,6 +74,9 @@ Read more on Windows virtual address space [here](https://learn.microsoft.com/en
 			{name: "free_pct", description: "Free memory in percent", unit: UPercent},
 			{name: "size", description: "Total memory in human readable bytes (IEC)", unit: UByte},
 			{name: "size_bytes", description: "Total memory in bytes (IEC)", unit: UByte},
+			{name: "caches", description: "Memory used by the page cache in human readable bytes (IEC, physical type only)", unit: UByte},
+			{name: "caches_bytes", description: "Memory used by the page cache in bytes (IEC, physical type only)", unit: UByte},
+			{name: "caches_pct", description: "Memory used by the page cache in percent (physical type only)", unit: UPercent},
 		},
 		extraFilterAttributes: []*regexp.Regexp{
 			regexp.MustCompile(`^(?i)physical$`),
@@ -85,7 +88,7 @@ Read more on Windows virtual address space [here](https://learn.microsoft.com/en
     check_memory
     OK - physical = 6.98 GiB, committed = 719.32 MiB|...
 
-Changing the return syntax to get more information:
+Change the output template to show more information:
 
     check_memory 'top-syntax=%(list)' 'detail-syntax=%(type) free: %(free) used: %(used) size: %(size)'
     physical free: 35.00 B used: 7.01 GiB size: 31.09 GiB, committed free: 27.00 B used: 705.57 MiB size: 977.00 MiB |...
@@ -95,7 +98,7 @@ Changing the return syntax to get more information:
 }
 
 func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ []Argument) (*CheckResult, error) {
-	check.SetDefaultThresholdUnit("%", []string{"used", "free"})
+	check.SetDefaultThresholdUnit("%", []string{"used", "free", "caches"})
 
 	physical, err := mem.VirtualMemoryWithContext(ctx)
 	if err != nil {
@@ -116,7 +119,7 @@ func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ [
 	for _, memType := range l.memType {
 		switch memType {
 		case "physical":
-			l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total)
+			l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total, physical.Cached)
 		case "swap":
 			swap, err := mem.SwapMemoryWithContext(ctx)
 			if err != nil {
@@ -151,7 +154,7 @@ func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ [
 	return check.Finalize()
 }
 
-func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, total uint64) {
+func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, total uint64, caches ...uint64) {
 	entry := map[string]string{
 		name:         fmt.Sprintf("%d", used),
 		"type":       name,
@@ -164,20 +167,35 @@ func (l *CheckMemory) addMemType(check *CheckData, name string, used, free, tota
 		"size":       humanize.IBytesF(total, 2),
 		"size_bytes": fmt.Sprintf("%d", total),
 	}
+	if len(caches) > 0 {
+		entry["caches"] = humanize.IBytesF(caches[0], 2)
+		entry["caches_bytes"] = fmt.Sprintf("%d", caches[0])
+		// avoid NaN values in percentages when total is zero
+		if total == 0 {
+			entry["caches_pct"] = "0"
+		} else {
+			entry["caches_pct"] = fmt.Sprintf("%.3f", (float64(caches[0]) * 100 / float64(total)))
+		}
+	}
 	// avoid NaN values in percentages when total is zero
 	if total == 0 {
 		entry["used_pct"] = "0"
 		entry["free_pct"] = "0"
 	}
 	check.listData = append(check.listData, entry)
-	if check.HasThreshold("free") || check.HasThreshold("free_pct") {
+	if check.HasMetric("free") || check.HasMetric("free_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"free_pct"}, "free", check.critThreshold)
 		check.AddBytePercentMetrics("free", name+"_free", float64(free), float64(total), entry)
 	}
-	if check.HasThreshold("used") || check.HasThreshold("used_pct") {
+	if check.HasMetric("used") || check.HasMetric("used_pct") {
 		check.warnThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.warnThreshold)
 		check.critThreshold = check.TransformMultipleKeywords([]string{"used_pct"}, "used", check.critThreshold)
 		check.AddBytePercentMetrics("used", name, float64(used), float64(total), entry)
+	}
+	if len(caches) > 0 && (check.HasMetric("caches") || check.HasMetric("caches_pct")) {
+		check.warnThreshold = check.TransformMultipleKeywords([]string{"caches_pct"}, "caches", check.warnThreshold)
+		check.critThreshold = check.TransformMultipleKeywords([]string{"caches_pct"}, "caches", check.critThreshold)
+		check.AddBytePercentMetrics("caches", name+"_caches", float64(caches[0]), float64(total), entry)
 	}
 }

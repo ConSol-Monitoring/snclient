@@ -18,7 +18,7 @@ func NewCheckSSH() CheckHandler {
 	return &CheckBuiltin{
 		name: "check_ssh",
 		description: `Runs check_tcp with an SSH configuration to check for a running SSH server.
-It basically wraps the plugin from https://github.com/taku-k/go-check-plugins/tree/master/check-tcp`,
+It wraps the plugin from https://github.com/taku-k/go-check-plugins/tree/master/check-tcp`,
 		check:    checkSSH,
 		docTitle: `check_ssh`,
 		usage:    `check_ssh [<options>]`,

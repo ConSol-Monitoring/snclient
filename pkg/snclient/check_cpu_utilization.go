@@ -49,9 +49,9 @@ func (l *CheckCPUUtilization) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"range":           {value: &l.avgRange, description: "Sets time range to calculate average (default is 1m)"},
-			"n|procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
-			"show-args":       {value: &l.showArgs, description: "Show arguments when listing the top N processes"},
+			"range":           {value: &l.avgRange, description: "Time range for the average (default is 1m)"},
+			"n|procs-to-show": {value: &l.numProcs, description: "Number of top resource-consuming processes to show"},
+			"show-args":       {value: &l.showArgs, description: "Show arguments for the top N processes"},
 		},
 		defaultWarning:  "total > 90",
 		defaultCritical: "total > 95",
@@ -120,8 +120,11 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLoo
 	check.listData = append(check.listData, entry)
 
 	cpuMetrics, ok := l.getMetrics(scanLookBack)
+	// when the counter is cold (e.g. right after start) getMetrics returns nil,
+	// so fall back to the zero values the entry was initialized with. This keeps
+	// the metrics mirroring the human readable output instead of being omitted.
 	if !ok {
-		return
+		cpuMetrics = &CPUUtilizationResult{}
 	}
 
 	entry["total"] = fmt.Sprintf("%.f", cpuMetrics.total)
@@ -192,7 +195,7 @@ func (l *CheckCPUUtilization) addCPUUtilizationMetrics(check *CheckData, scanLoo
 		},
 	)
 
-	if check.HasThreshold("cores") || check.HasFilter("cores") {
+	if check.HasMetric("cores") {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:          "cores",
 			ThresholdName: "cores",

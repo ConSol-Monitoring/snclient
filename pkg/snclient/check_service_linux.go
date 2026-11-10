@@ -45,9 +45,9 @@ func (l *CheckService) Build() *CheckData {
 
 	return &CheckData{
 		name: "check_service",
-		description: `Checks the state of one or multiple Linux (systemctl) services.
+		description: `Checks the state of one or more Linux (systemctl) services.
 
-There is a specific [check_service for Windows](../check_service_windows) as well.`,
+For Windows services, use [check_service for Windows](../check_service_windows).`,
 		implemented:  Linux,
 		docTitle:     "service (linux)",
 		hasInventory: ListInventory,
@@ -63,10 +63,10 @@ There is a specific [check_service for Windows](../check_service_windows) as wel
 			"service": {
 				value:           &l.services,
 				isFilter:        true,
-				description:     "List of services to check (set to * to check all services). (case insensitive) Default: *",
+				description:     "Services to check (case insensitive). Set to * to check all services. Default: *",
 				defaultCritical: stateCondition,
 			},
-			"exclude": {value: &l.excludes, description: "List of case-insensitive services to exclude from the check (mainly used when service is set to *). Supports wildcards."},
+			"exclude": {value: &l.excludes, description: "Services to exclude, mainly when service is set to *. Names are case insensitive and support wildcards."},
 		},
 		defaultFilter:   "active != inactive",
 		defaultCritical: stateCondition + " && preset != 'disabled'",
@@ -91,17 +91,17 @@ There is a specific [check_service for Windows](../check_service_windows) as wel
 			{name: "tasks", description: "Number of tasks for this service"},
 		},
 		exampleDefault: `
-Checking all services except some excluded ones:
+Check all services except those excluded:
 
     check_service exclude=bluetooth
     OK - All 74 service(s) are ok.
 
-Or check a specific service and get some metrics:
+Check a specific service and show its metrics:
 
     check_service service=docker ok-syntax='%(top-syntax)' top-syntax='%(status) - %(list)' detail-syntax='%(name) %(state) - memory: %(rss:h)B - age: %(age:duration)'
     OK - docker running - memory: 805.2MB - age: 01:11h |'docker'=4 'docker rss'=805200000B
 
-Check memory usage of specific service:
+Check the memory usage of a specific service:
 
     check_service service=docker warn='rss > 1GB' crit='rss > 2GB'
     OK - All 1 service(s) are ok. |'docker'=4 'docker rss'=59691008B;;;0 'docker vms'=3166244864B;;;0 'docker cpu'=0.7%;;;0 'docker tasks'=20;;;0

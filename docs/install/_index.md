@@ -6,7 +6,7 @@ weight: 400
 
 ## Installation
 
-OS-specific installation instructions are available for:
+Choose the instructions for your operating system:
 
 - [Windows](windows)
 - [RHEL/Rocky/Alma](rhel)
@@ -16,13 +16,13 @@ OS-specific installation instructions are available for:
 
 ## Using Binary Packages
 
-Using packages is the recommended way to install SNClient.
+Use packages to install SNClient unless you need to build from source.
 
-Find a list of [supported OS distributions](supported) here.
+See the list of [supported OS distributions](supported).
 
 ### Stable Releases
 
-Stable release installation packages can be found here:
+Download stable release packages from:
 
 - [SNClient Releases Page](https://github.com/ConSol-Monitoring/snclient/releases)
 
@@ -31,13 +31,11 @@ You might need to expand the assets to find the download links.
 
 ### Development Snapshots
 
-During development, each code commit produces build artifacts if all tests were
-successful.
+During development, each code commit produces build artifacts if all tests pass.
 
-Usually, you should stick to the stable releases unless told otherwise or you want
-to test something.
+Use stable releases unless you need to test a change or receive instructions to use a development snapshot.
 
-Installing the development snapshot is straightforward:
+To install a development snapshot:
 
 1. Open the [SNClient GitHub Actions](https://github.com/ConSol-Monitoring/snclient/actions/workflows/builds.yml?query=branch%3Amain) page
 2. Choose the first successful build, as shown below:
@@ -46,8 +44,8 @@ Installing the development snapshot is straightforward:
    ![Actions](action_download.png "Choose download")
 4. Install just like the stable release files.
 
-**Note:** In order to download the snapshot artifacts, you need a GitHub account and must be logged in.
+**Note:** You must log in to a GitHub account to download snapshot artifacts.
 
 ## Building SNClient From Source
 
-Building SNClient from source is covered in detail here: [Building from source](build)
+See [Building from source](build) for instructions.

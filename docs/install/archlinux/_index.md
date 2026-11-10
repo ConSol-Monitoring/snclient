@@ -18,25 +18,24 @@ SNClient is available from the Arch User Repository (AUR) in three variants:
 - [`snclient-git`](https://aur.archlinux.org/packages/snclient-git) builds the
   latest development revision and is intended for testing current changes.
 
-Packages in the AUR are community-created user content. They are unofficial and
-have not been thoroughly vetted. Manually verify the `PKGBUILD` and all other
-files in the package repository before building or installing them. Refer to the
+The community creates AUR packages. These packages are unofficial and do not receive thorough checks.
+Before you build or install a package, manually verify its `PKGBUILD` and all other files in the package repository. See the
 [Arch User Repository documentation](https://wiki.archlinux.org/title/Arch_User_Repository)
 for general installation instructions and security guidance.
 
-Install `git` and the `base-devel` package, then clone the package repository:
+Install `git` and the `base-devel` package. Then clone the package repository:
 
     #> pacman -S --needed git base-devel
     %> git clone https://aur.archlinux.org/snclient.git
     %> cd snclient
 
-Review the package files and, as a regular user, build and install SNClient:
+Review the package files. As a regular user, build and install SNClient:
 
     %> makepkg -si
 
 ### Firewall
 
-The firewall should be configured to allow these ports:
+Configure the firewall to allow these ports:
 
 - `8443` : if you enabled the webserver (the default is enabled)
 - `5666` : if you enabled the NRPE server (disabled by default)

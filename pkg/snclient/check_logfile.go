@@ -62,12 +62,12 @@ func (c *CheckLogFile) Build() *CheckData {
 	return &CheckData{
 		implemented: ALL,
 		name:        "check_logfile",
-		description: `Checks logfiles or any other text format file for errors or other general patterns
+		description: `Checks log files or other text files for errors or general patterns.
 
-In order to use this plugin, you need to enable <code>CheckLogFile</code> in the <code>[/modules]</code> section of the snclient_local.ini.
+To use this plugin, enable <code>CheckLogFile</code> in the <code>[/modules]</code> section of snclient_local.ini.
 
-Also, to avoid security issues, you need to set <code>allowed pattern</code> in the <code>[/settings/check/logfile]</code>
-section of the snclient_local.ini to a comma separated list of allowed glob patterns.
+To avoid security issues, set <code>allowed pattern</code> to a comma-separated list of allowed glob patterns.
+Use the <code>[/settings/check/logfile]</code> section of snclient_local.ini.
 
 Example:
 
@@ -75,7 +75,7 @@ Example:
     allowed pattern  = /var/log/**      # This allows all files recursively in /var/log/
     allowed pattern += /opt/logs/*.log  # This allows all files with .log extension in /opt/logs/
 
-See [here](https://github.com/bmatcuk/doublestar#patterns) for details on the pattern syntax.`,
+See the [pattern syntax](https://github.com/bmatcuk/doublestar#patterns) for details.`,
 		detailSyntax: "%(line | chomp | cut=200)", // cut after 200 chars
 		listCombine:  "\n",
 		okSyntax:     "%(status) - %(count) line(s) found",
@@ -84,13 +84,13 @@ See [here](https://github.com/bmatcuk/doublestar#patterns) for details on the pa
 		emptyState:   CheckExitOK,
 		args: map[string]CheckArgument{
 			"file":           {value: &c.FilePathPatterns, description: "The file pattern that should be checked", isFilter: true},
-			"files":          {value: &c.FilePathPatternsCS, description: "Comma separated list of file patterns", isFilter: true},
-			"offset":         {value: &c.Offset, description: "Starting position (in bytes) for scanning the file (0 for beginning). This overrides any saved offset"},
-			"line-split":     {value: &c.LineDelimiter, description: "Character string used to split a file into several lines (default: \\n)"},
+			"files":          {value: &c.FilePathPatternsCS, description: "Comma-separated list of file patterns", isFilter: true},
+			"offset":         {value: &c.Offset, description: "Start position in bytes (0 for the beginning). Overrides any saved offset"},
+			"line-split":     {value: &c.LineDelimiter, description: "String that separates lines in the file (default: \\n)"},
 			"column-split":   {value: &c.ColumnDelimiter, description: "Tab split (default: \\t)"},
-			"label":          {value: &c.LabelPattern, description: "label:pattern => If the pattern is matched in a line the line will have the label set as detail"},
+			"label":          {value: &c.LabelPattern, description: "label:pattern => If a line matches the pattern, use the label as its detail"},
 			"max-lines":      {value: &c.MaxLinesPerFile, description: fmt.Sprintf("Maximum number of lines to read from each file (default: %d)", defaultMaxLinesPerFile)},
-			"ignore-missing": {value: &c.IgnoreMissing, description: "Ignore the error if file pattern does not match any file"},
+			"ignore-missing": {value: &c.IgnoreMissing, description: "If the file pattern matches no files, ignore the error"},
 		},
 		result: &CheckResult{
 			State: CheckExitOK,
@@ -198,7 +198,7 @@ func (c *CheckLogFile) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		"file_search_paths": strings.Join(c.FilePathPatterns, " , "),
 	}
 
-	if check.HasThreshold("count") {
+	if check.HasMetric("count") {
 		check.addCountMetrics = true
 		check.addCountMetricsToFront = true
 	}

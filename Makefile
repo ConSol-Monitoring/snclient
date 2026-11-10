@@ -257,19 +257,15 @@ citest: tools vendor
 	#
 	# Checking gofmt errors
 	#
-	if [ $$(gofmt -s -l ./cmd/ ./pkg/ | wc -l) -gt 0 ]; then \
-		echo "found format errors in these files:"; \
-		gofmt -s -l ./cmd/ ./pkg/ ; \
-		exit 1; \
-	fi
+	$(MAKE) fmtcheck
 	#
 	# Checking TODO items
 	#
-	if grep -Irn TODO: ./cmd/ ./pkg/ ./packaging/ ; then exit 1; fi
+	$(MAKE) todocheck
 	#
 	# Checking remaining debug calls
 	#
-	if grep -Irn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump | grep -v opts.tracef; then exit 1; fi
+	$(MAKE) debugcheck
 	#
 	# Run other subtests
 	#
@@ -292,6 +288,29 @@ citest: tools vendor
 	#
 	# Test cross compilation
 	#
+	$(MAKE) crosscheck
+	#
+	# Check docs are updated
+	#
+	$(MAKE) docscheck
+	#
+	# All CI tests successful
+	#
+
+fmtcheck:
+	if [ $$(gofmt -s -l ./cmd/ ./pkg/ | wc -l) -gt 0 ]; then \
+		echo "found format errors in these files:"; \
+		gofmt -s -l ./cmd/ ./pkg/ ; \
+		exit 1; \
+	fi
+
+todocheck:
+	if grep -Irn TODO: ./cmd/ ./pkg/ ./packaging/ ; then exit 1; fi
+
+debugcheck:
+	if grep -Irn Dump ./cmd/ ./pkg/ | grep -v dump.go | grep -v DumpRe | grep -v ThreadDump | grep -v opts.tracef; then exit 1; fi
+
+crosscheck:
 	$(MAKE) build-linux-amd64
 	$(MAKE) build-linux-arm64
 	$(MAKE) build-linux-ppc64le
@@ -299,9 +318,8 @@ citest: tools vendor
 	$(MAKE) build-windows-i386
 	$(MAKE) build-freebsd-i386
 	$(MAKE) build-darwin-aarch64
-	#
-	# Check docs are updated
-	#
+
+docscheck:
 	$(MAKE) docs
 	$(MAKE) gitcleandocs
 	$(MAKE) docs_test_checks_missing
@@ -310,9 +328,6 @@ citest: tools vendor
 	else \
 		echo "Docker is not installed. Please install docker to run full docs test." ; \
 	fi
-	#
-	# All CI tests successful
-	#
 
 benchmark:
 	CGO_ENABLED=$(CGO_ENABLED) $(GO) test $(TEST_FLAGS) -v -bench=B\* -run=^$$ -benchmem ./pkg/* ./pkg/*/commands

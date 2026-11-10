@@ -2,7 +2,7 @@
 title: Macro Operators
 ---
 
-Values can be altered by adding a colon-separated suffix.
+To change a value, add a colon-separated suffix.
 
 Supported operators are:
 
@@ -21,7 +21,7 @@ Supported operators are:
 | `:trim`               | " test " -> "test"                    | remove leading and trailing whitespace |
 | `:chomp`              | " test " -> " test"                   | remove trailing whitespace only |
 
-Operators can be put together (spaces are optional):
+Combine operators as follows. Spaces are optional:
 
 ```txt
 $(datemacro:date : uc)

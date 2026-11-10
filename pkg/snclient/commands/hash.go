@@ -15,15 +15,15 @@ import (
 func init() {
 	hashCmd := &cobra.Command{
 		Use:   "hash",
-		Short: "Hash password string",
-		Long: `Hash can be used to create hashed password strings.
+		Short: "Hash a password string",
+		Long: `Create a password hash.
 
 Examples:
 
-# simply convert text to hash:
+# Convert text to a hash:
 snclient hash <password>
 
-# ask password from user input and convert this:
+# Ask for a password and hash it:
 snclient hash
 `,
 		Run: func(cmd *cobra.Command, args []string) {

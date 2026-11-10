@@ -80,19 +80,19 @@ func (l *CheckFiles) Build() *CheckData {
 		args: map[string]CheckArgument{
 			"path":    {value: &l.paths, description: "Path in which to search for files", isFilter: true},
 			"file":    {value: &l.paths, description: "Alias for path", isFilter: true},
-			"paths":   {value: &l.pathList, description: "A comma separated list of paths", isFilter: true},
+			"paths":   {value: &l.pathList, description: "A comma-separated list of paths", isFilter: true},
 			"pattern": {value: &l.pattern, description: "Pattern of files to search for", isFilter: true},
-			"max-depth": {value: &l.maxDepth, description: fmt.Sprintf("Maximum recursion depth. '0' and '1' disable recursion into subfolders and only include files/directories directly under path"+
-				", '2' starts to include files/directories of subdirectories with given depth. '%d' disables depth checks. Default: %d ", CheckFilesMaxDepthUnlimited, CheckFilesDefaultMaxDepth)},
-			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
-			"follow-symlinks": {value: &l.followSymlinks, description: fmt.Sprintf("Follow symlinks of files and subdirectories while traversing. "+
-				"The file paths will be registered originating from search path. Default: %t", CheckFilesDefaultFollowSymlinks)},
-			"add-files-only-once": {value: &l.addFilesOnlyOnce, description: fmt.Sprintf("When following symlinks, same file can be added multiple times. "+
-				" Enable this to track added files and stop adding them twice. Files will be added using the first path they were encountered with. Default: %t", CheckFilesDefaultAddFilesOnlyOnce)},
-			"calculate-subdirectory-sizes": {value: &l.calculateSubdirectorySizes, description: "For subdirectories that are found under the search paths, " +
-				"calculate the subdirectory sizes based on found files. This calculation may be expensive. Default: false"},
-			"add-disk-size": {value: &l.addDiskSize, description: "Add the disk size used on disk for each file and directory. On unix systems this is " +
-				"calculated from the allocated blocks, on windows an additional API call is required for each entry. This calculation may be expensive. Default: false"},
+			"max-depth": {value: &l.maxDepth, description: fmt.Sprintf("Maximum recursion depth. '0' and '1' include only files and directories directly under path. "+
+				"From '2', include subdirectory contents up to the given depth. '%d' disables depth checks. Default: %d", CheckFilesMaxDepthUnlimited, CheckFilesDefaultMaxDepth)},
+			"timezone": {description: "Set the timezone for time metrics (default is local time)"},
+			"follow-symlinks": {value: &l.followSymlinks, description: fmt.Sprintf("Follow symlinks to files and subdirectories during the search. "+
+				"Record file paths from the search path. Default: %t", CheckFilesDefaultFollowSymlinks)},
+			"add-files-only-once": {value: &l.addFilesOnlyOnce, description: fmt.Sprintf("Symlinks can cause the same file to appear multiple times. "+
+				"Enable this option to track files and add each file only once, using the first path found. Default: %t", CheckFilesDefaultAddFilesOnlyOnce)},
+			"calculate-subdirectory-sizes": {value: &l.calculateSubdirectorySizes, description: "Calculate sizes for subdirectories under the search paths, " +
+				"using the files found. This calculation may be expensive. Default: false"},
+			"add-disk-size": {value: &l.addDiskSize, description: "Add the disk space used by each file and directory. " +
+				"Unix uses allocated blocks. Windows requires an additional API call for each entry. This calculation may be expensive. Default: false"},
 			"max-files": {value: &l.maxFiles, description: fmt.Sprintf("Maximum number of files to process. Default: %d", CheckFilesDefaultMaxFiles)},
 		},
 		detailSyntax: "%(name)",
@@ -107,7 +107,7 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "file", description: "Alias for filename"},
 			{name: "fullname", description: "Full name of the file including path"},
 			{name: "type", description: "Type of item (file or dir)"},
-			{name: "check_path", description: "Check path argument whose search led to finding this file/directory."},
+			{name: "check_path", description: "Check path argument used to find this file or directory."},
 			{name: "access", description: "Unix timestamp of last access time", unit: UDate},
 			{name: "creation", description: "Unix timestamp when file was created", unit: UDate},
 			{name: "size", description: "File size in bytes", unit: UByte},
@@ -129,12 +129,12 @@ func (l *CheckFiles) Build() *CheckData {
 			{name: "is_symlink", description: "The file/directory is a symlink", unit: UBool},
 		},
 		exampleDefault: `
-Alert if there are logs older than 1 hour in /tmp:
+Alert if /tmp contains logs older than 1 hour:
 
     check_files path="/tmp" pattern="*.log" "filter=age > 1h" crit="count > 0" empty-state=0 empty-syntax="no old files found" top-syntax="%(status) - found %(count) old log files"
     CRITICAL - found 138 old log files |'count'=138;;0;0 'size'=30642669B;;;0
 
-Check for folder size:
+Check the folder size:
 
     check_files 'path=/tmp' 'warn=total_size > 200MiB' 'crit=total_size > 300MiB'
     OK - All 145 files are ok: (34.72 MiB) |'count'=145;;;0 'size'=36406741B;209715200;314572800;0
@@ -229,10 +229,10 @@ type fileWalker struct {
 	seenInodes map[uint64]bool // track inodes to skip hard links, unix only
 }
 
-// realRoot is the canonical path on the filesystem
-// displayRoot is what the check was started with
+// realRoot is the canonical filesystem path.
+// displayRoot is the path supplied to the check.
 // isSymlink marks whether realRoot was reached via a symlink.
-// walk uses realRoot on disk but the paths are registered as if they are under displayRoot
+// walk uses realRoot on disk but records paths under displayRoot.
 //
 //nolint:wrapcheck,gocognit,gocyclo // filepath walker functions need to return an error, wrapping and appending a header to each call would return a large error message
 func (w *fileWalker) walk(realRoot, displayRoot string, usedSymlink bool) error {
@@ -339,10 +339,10 @@ func resolveLink(linkPath string) (string, error) {
 	return filepath.Clean(target), nil
 }
 
-// handleSymlink resolves the symlink at linkPath
-// if its a file, add it as a file entry
-// if its a directory, record it and let WalkDir descend normally
-// keep a list of visited directories to prevent infinite recursion
+// handleSymlink resolves the symlink at linkPath.
+// If the target is a file, add a file entry.
+// If the target is a directory, record it and let WalkDir descend normally.
+// Track visited directories to prevent infinite recursion.
 func (w *fileWalker) handleSymlink(linkPath, displayPath string) error {
 	// os.Stat follows the link and therefore also resolves relative targets correctly
 	info, err := os.Stat(linkPath)
@@ -652,7 +652,7 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 			check.details["total_disksize"] = humanize.IBytesF(convert.UInt64(totalDiskSize), 2)
 		}
 
-		if check.HasThreshold("total_disksize") {
+		if check.HasMetric("total_disksize") {
 			check.result.Metrics = append(check.result.Metrics,
 				&CheckMetric{
 					ThresholdName: "total_disksize",
@@ -667,7 +667,7 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 	}
 
 	// files do not have a 'count' atrribute, so this wont collide like 'size' would. No need for 'totalCount'
-	if check.HasThreshold("count") {
+	if check.HasMetric("count") {
 		check.result.Metrics = append(check.result.Metrics,
 			&CheckMetric{
 				Name:     "count",
@@ -680,7 +680,7 @@ func (l *CheckFiles) addGeneralMetrics(check *CheckData) {
 
 	// entries in listData have a 'size' attribute. This is filled for files directly, with folders they have to be calculated after the walk has ended.
 	// total_size argument is the recommended way for thresholds, if they want to work with size summation of matched entries
-	if check.HasThreshold("total_size") {
+	if check.HasMetric("total_size") {
 		check.result.Metrics = append(check.result.Metrics,
 			&CheckMetric{
 				ThresholdName: "total_size",
@@ -730,10 +730,10 @@ func (l *CheckFiles) addSearchPathMetrics(check *CheckData) {
 	}
 }
 
-// if specified, calculate the sizes of the subdirectories, that are not exactly search paths
-// this function modifies the entries in the listData. It does not add metrics
-// the sizes it calculcates are not accurate. it is just a sum of files under them.
-// there are logical/physical sizes, disk block size, indexing, compression etc. to consider.
+// If requested, calculate sizes for subdirectories that are not search paths themselves.
+// Modify listData entries without adding metrics.
+// These sizes only sum the files below each directory and are not exact.
+// They do not account for logical and physical sizes, disk block size, indexing, compression, or similar factors.
 func (l *CheckFiles) addSubdirectorySizes(check *CheckData) {
 	for _, subDirData := range check.listData {
 		if subDirData["type"] != "dir" {
@@ -780,12 +780,12 @@ func (l *CheckFiles) addSubDirMetrics(check *CheckData) {
 
 //nolint:funlen // the length is ok, function is not complex
 func (l *CheckFiles) addFileMetrics(check *CheckData) {
-	needSize := check.HasThreshold("size")
-	needDiskSize := l.addDiskSize && check.HasThreshold("disksize")
-	needAge := check.HasThreshold("age")
-	needAccess := check.HasThreshold("access")
-	needWritten := check.HasThreshold("written")
-	needLineCount := check.HasThreshold("line_count")
+	needSize := check.HasMetric("size")
+	needDiskSize := l.addDiskSize && check.HasMetric("disksize")
+	needAge := check.HasMetric("age")
+	needAccess := check.HasMetric("access")
+	needWritten := check.HasMetric("written")
+	needLineCount := check.HasMetric("line_count")
 
 	for _, data := range check.listData {
 		if needSize {

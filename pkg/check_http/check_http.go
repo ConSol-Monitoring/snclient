@@ -63,31 +63,31 @@ type commandOpts struct {
 		Hostname                 string        `short:"H" long:"hostname"                                description:"Host name using Host headers"`
 		IPAddress                string        `short:"I" long:"IP-address"                              description:"IP address or Host name"`
 		Method                   string        `short:"j" long:"method"            default:"GET"         description:"Set HTTP Method"`
-		Post                     *string       `short:"P" long:"post"                                    description:"Data to send in the request body. Defaults to POST unless --method is set. Set the Content-Type header using --header (e.g. --header 'Content-Type: application/json')"`
+		Post                     *string       `short:"P" long:"post"                                    description:"Data to send in the request body. Uses POST unless --method is set. Set Content-Type with --header (for example --header 'Content-Type: application/json')"`
 		URI                      string        `short:"u" long:"uri"               default:"/"           description:"URI to request"`
-		ExpectStr                string        `short:"e" long:"expect"            default:""            description:"Comma-delimited list of expected HTTP response status. By default, 1XX, 2XX are OK, 3XX depends on --onredirect option, 4XX are WARNING, 5XX are CRITICAL"`
+		ExpectStr                string        `short:"e" long:"expect"            default:""            description:"Comma-separated list of expected HTTP response statuses. Defaults: 1XX and 2XX are OK. 3XX depends on --onredirect. 4XX is WARNING. 5XX is CRITICAL"`
 		ExpectContent            string        `short:"s" long:"string"                                  description:"String to expect in the content"`
 		Base64ExpectContent      string        `          long:"base64-string"                           description:"Base64-encoded string to expect in the content"`
-		UserAgent                string        `short:"A" long:"useragent"         default:"check_http"  description:"UserAgent to be sent"`
-		Authorization            string        `short:"a" long:"authorization"                           description:"Pass '[username]:[password]' formatted string to be used as basic authorization header"`
-		Header                   []string      `short:"k" long:"header"                                  description:"Any other tags to be sent in HTTP header. Use multiple times for additional headers"`
-		Certificate              string        `short:"C" long:"certificate"                             description:"Check certificates instead of content. Specified in mandatory days left to warn and optional days to crit with a comma: warn_days[,<crit_days>]" `
-		TLSMinVersion            string        `          long:"tls-min"                                 description:"Minimum supported TLS version. Values with plus set the maximum TLS version as well to latest version: 1.3" choice:"1.0" choice:"1.0+" choice:"1.1" choice:"1.1+" choice:"1.2" choice:"1.2+" choice:"1.3"`
+		UserAgent                string        `short:"A" long:"useragent"         default:"check_http"  description:"UserAgent to send"`
+		Authorization            string        `short:"a" long:"authorization"                           description:"Basic authorization header in the format '[username]:[password]'"`
+		Header                   []string      `short:"k" long:"header"                                  description:"Additional HTTP header. Repeat this option to add more headers"`
+		Certificate              string        `short:"C" long:"certificate"                             description:"Check certificates instead of content. Give the warning threshold in days remaining and an optional critical threshold: warn_days[,<crit_days>]" `
+		TLSMinVersion            string        `          long:"tls-min"                                 description:"Minimum supported TLS version. A plus suffix also sets the maximum to the latest version: 1.3" choice:"1.0" choice:"1.0+" choice:"1.1" choice:"1.1+" choice:"1.2" choice:"1.2+" choice:"1.3"`
 		TLSMaxVersion            string        `          long:"tls-max"                                 description:"Maximum supported TLS version" choice:"1.0" choice:"1.1" choice:"1.2" choice:"1.3"`
-		Proxy                    string        `          long:"proxy"                                   description:"Proxy that should be used"`
+		Proxy                    string        `          long:"proxy"                                   description:"Proxy to use"`
 		RegexStr                 string        `short:"r" long:"regex"                                   description:"Search page for case-sensitive regex string"`
 		RegexiStr                string        `short:"R" long:"regexi"                                  description:"Search page for case-insensitive regex string"`
-		Onredirect               string        `short:"f" long:"onredirect"        value-name:"<options>" description:"Redirect strategy: ok, warning, critical, follow, sticky, stickyport. ok/warning/critical returns immediately. follow uses the new URL returned by golang HTTP client. sticky keeps the hostname the same after redirect, and stickyport persists the port as well."`
+		Onredirect               string        `short:"f" long:"onredirect"        value-name:"<options>" description:"Redirect strategy: ok, warning, critical, follow, sticky, stickyport. ok/warning/critical returns immediately. follow uses the new URL from Go's HTTP client. sticky keeps the hostname after a redirect. stickyport also keeps the port."`
 		MaxBufferSize            string        `          long:"max-buffer-size"   default:"1MB"         description:"Max buffer size to read response body (max.: 100MB)"`
-		TimeoutStr               string        `short:"t" long:"timeout"           default:"10"          description:"Timeout to wait for connection. If no time unit is given at the end, default of seconds is assumed"`
-		WarningThresholdStr      string        `short:"w" long:"warning"           default:"30"          description:"If the request+response takes longer than the specified warning threshold, raises a warning. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
-		CriticalThresholdStr     string        `short:"c" long:"critical"          default:"60"          description:"If the request+response takes longer than the specified critical threshold, raises a critical. If no time unit is given at the end, default of seconds is assumed. Value is truncated to milliseconds."`
+		TimeoutStr               string        `short:"t" long:"timeout"           default:"10"          description:"Connection timeout. Without a time unit suffix, the value is in seconds"`
+		WarningThresholdStr      string        `short:"w" long:"warning"           default:"30"          description:"If the request and response take longer than this threshold, return a warning. Without a time unit suffix, use seconds. The check truncates the value to milliseconds."`
+		CriticalThresholdStr     string        `short:"c" long:"critical"          default:"60"          description:"If the request and response take longer than this threshold, return critical. Without a time unit suffix, use seconds. The check truncates the value to milliseconds."`
 		WaitForInterval          time.Duration `          long:"wait-for-interval" default:"2s"          description:"Retry interval"`
 		WaitForMax               time.Duration `          long:"wait-for-max"                            description:"Time to wait for success (max.: 180s)"`
 		Interim                  time.Duration `          long:"interim"           default:"1s"          description:"Interval time after successful request for consecutive mode"`
 		Consecutive              int           `          long:"consecutive"       default:"1"           description:"Number of consecutive successful requests required (max.: 5)"`
 		Port                     int           `short:"p" long:"port"                                    description:"Port number"`
-		MaxRedirects             int           `          long:"max-redirs"                              description:"Maximum redirects before giving up on following"`
+		MaxRedirects             int           `          long:"max-redirs"                              description:"Maximum number of redirects to follow"`
 		NoDiscard                bool          `          long:"no-discard"                              description:"Raise error when the response body is larger than max-buffer-size"`
 		WaitFor                  bool          `          long:"wait-for"                                description:"Retry until successful when enabled"`
 		SSL                      bool          `short:"S" long:"ssl"                                     description:"Use HTTPS"`
@@ -96,12 +96,12 @@ type commandOpts struct {
 		TCP6                     bool          `short:"6"                                                description:"Use tcp6 only"`
 		Verbose                  bool          `short:"v" long:"verbose"                                 description:"Show verbose output"`
 		ShowBody                 bool          `          long:"show-body"                               description:"Print body content below status line"`
-		IgnoreCertificateChain   bool          `          long:"ignore-certificate-chain"                description:"During certificate check, all certificates are checked in many aspects. Toggle this option to only check the leaf (final) certificate."`
-		CheckCN                  bool          `          long:"check-cn"                                description:"Subject Common Name of leaf certificate can be checked to match hostname exactly. Common Name field is now largely unused in modern web, with Subject Alternative Name fields being more prevalent and used instead of Common Name when present. It is not checked by default, use this flag to enable it."`
-		CheckSAN                 bool          `          long:"check-san"                               description:"Subject Alternative Names can be checked against the hostname. SANs contain the hostnames and IP addresses this certificate is valid for. They are ignored if the certificate is a Certificate Authority type, meaning they are used to sign other certificates and not for proving security for a hostname. It is not checked by default, use this flag to enable it."`
-		IgnoreNotAfter           bool          `          long:"ignore-not-after"                        description:"Certificates are invalid after the timestamp in their NotAfter has passed. This field can be ignored with this flag."`
-		IgnoreNotBefore          bool          `          long:"ignore-not-before"                       description:"Certificates are invalid before the timestamp in their NotBefore is reached. This field can be ignored with this flag."`
-		IgnoreSignatureAlgorithm bool          `          long:"ignore-signature-algorithm"              description:"Some signature algorithms are deemed insecure, and are deprecated. The algorithm used can be ignored with this flag."`
+		IgnoreCertificateChain   bool          `          long:"ignore-certificate-chain"                description:"By default, certificate checks examine all certificates. Use this option to check only the leaf (final) certificate."`
+		CheckCN                  bool          `          long:"check-cn"                                description:"Check that the leaf certificate's Subject Common Name matches the hostname exactly. Modern websites rarely use Common Name. Subject Alternative Name fields are more common and take priority when present. Disabled by default."`
+		CheckSAN                 bool          `          long:"check-san"                               description:"Check Subject Alternative Names against the hostname. SANs list the hostnames and IP addresses valid for the certificate. Ignore SANs on Certificate Authority certificates, which sign other certificates instead of verifying hostnames. Disabled by default."`
+		IgnoreNotAfter           bool          `          long:"ignore-not-after"                        description:"Ignore NotAfter. Certificates are invalid after this timestamp."`
+		IgnoreNotBefore          bool          `          long:"ignore-not-before"                       description:"Ignore NotBefore. Certificates are invalid before this timestamp."`
+		IgnoreSignatureAlgorithm bool          `          long:"ignore-signature-algorithm"              description:"Ignore the signature algorithm. Some algorithms are deprecated because they are insecure."`
 	}
 }
 
@@ -736,9 +736,9 @@ func buildPerfdataString(opts *commandOpts, meta *RequestMetadata) string {
 	)
 }
 
-// if this function does not return an error, the redirection can continue
-// The arguments req and via are the upcoming request and the requests made already, oldest first.
-// This function is used to continue following, or encapsulate the follow strategy in an custom error type.
+// If this function returns no error, the redirect can continue.
+// req is the next request. via contains previous requests, oldest first.
+// Continue following the redirect, or return a custom error that contains the follow strategy.
 func clientRedirectHandler(req *http.Request, via []*http.Request, opts *commandOpts) (err error) {
 	clientHandlerErr := &clientRedirectError{
 		followOption:  opts.flags.Onredirect,

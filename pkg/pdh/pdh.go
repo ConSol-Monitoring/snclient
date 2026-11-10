@@ -238,11 +238,11 @@ func init() {
 	pdh_PdhGetCounterInfoW = libpdhDll.NewProc("PdhGetCounterInfoW")
 }
 
-// Adds the specified counter to the query. This is the internationalized version. Preferably, use the
-// function PdhAddEnglishCounter instead. hQuery is the query handle, which has been fetched by PdhOpenQuery.
-// szFullCounterPath is a full, internationalized counter path (this will differ per Windows language version).
-// dwUserData is a 'user-defined value', which becomes part of the counter information. To retrieve this value
-// later, call PdhGetCounterInfo() and access dwQueryUserData of the PDH_COUNTER_INFO structure.
+// PdhAddCounter adds the specified counter to the query using internationalized names.
+// Prefer PdhAddEnglishCounter. hQuery is the query handle from PdhOpenQuery.
+// szFullCounterPath is the full counter path. It differs between Windows language versions.
+// dwUserData is a user-defined value stored with the counter information.
+// To retrieve it, call PdhGetCounterInfo() and read dwQueryUserData in PDH_COUNTER_INFO.
 //
 // Examples of szFullCounterPath (in an English version of Windows):
 //
@@ -250,14 +250,13 @@ func init() {
 //	\\Processor(_Total)\\% Processor Time
 //	\\LogicalDisk(C:)\% Free Space
 //
-// To view all (internationalized...) counters on a system, there are three non-programmatic ways: perfmon utility,
-// the typeperf command, and the the registry editor. perfmon.exe is perhaps the easiest way, because it's basically a
-// full implemention of the pdh.dll API, except with a GUI and all that. The registry setting also provides an
-// interface to the available counters, and can be found at the following key:
+// To view all internationalized counters without code, use perfmon, typeperf, or the registry editor.
+// perfmon.exe may be easiest because it provides a GUI for the full pdh.dll API.
+// The registry also lists available counters at this key:
 //
 //	HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Perflib\CurrentLanguage
 //
-// This registry key contains several values as follows:
+// This registry key contains values such as:
 //
 //	1
 //	1847
@@ -269,11 +268,11 @@ func init() {
 //	% Processor Time
 //	... many, many more
 //
-// Somehow, these numeric values can be used as szFullCounterPath too:
+// You can also use these numeric values as szFullCounterPath:
 //
 //	\2\6 will correspond to \\System\% Processor Time
 //
-// The typeperf command may also be pretty easy. To find all performance counters, simply execute:
+// The typeperf command is another simple option. To list all performance counters, run:
 //
 //	typeperf -qx
 func PdhAddCounter(hQuery PDH_HQUERY, szFullCounterPath string, dwUserData uintptr, phCounter *PDH_HCOUNTER) uint32 {
@@ -288,8 +287,8 @@ func PdhAddCounter(hQuery PDH_HQUERY, szFullCounterPath string, dwUserData uintp
 	return uint32(ret)
 }
 
-// Adds the specified language-neutral counter to the query. See the PdhAddCounter function. This function only exists on
-// Windows versions higher than Vista.
+// PdhAddEnglishCounter adds the specified language-neutral counter to the query.
+// See PdhAddCounter. This function exists only on Windows versions newer than Vista.
 func PdhAddEnglishCounter(hQuery PDH_HQUERY, szFullCounterPath string, dwUserData uintptr, phCounter *PDH_HCOUNTER) uint32 {
 	if pdh_AddEnglishCounterW.Find() != nil {
 		return ERROR_INVALID_FUNCTION
@@ -306,18 +305,18 @@ func PdhAddEnglishCounter(hQuery PDH_HQUERY, szFullCounterPath string, dwUserDat
 	return uint32(ret)
 }
 
-// Closes all counters contained in the specified query, closes all handles related to the query,
-// and frees all memory associated with the query.
+// PdhCloseQuery closes all counters and handles for the query.
+// It frees all memory associated with the query.
 func PdhCloseQuery(hQuery PDH_HQUERY) uint32 {
 	ret, _, _ := pdh_CloseQuery.Call(uintptr(hQuery))
 
 	return uint32(ret)
 }
 
-// Collects the current raw data value for all counters in the specified query and updates the status
-// code of each counter. With some counters, this function needs to be repeatedly called before the value
-// of the counter can be extracted with PdhGetFormattedCounterValue(). For example, the following code
-// requires at least two calls:
+// PdhCollectQueryData collects the current raw value for all counters in the query.
+// It updates each counter's status code.
+// Some counters need repeated calls before PdhGetFormattedCounterValue() can extract a value.
+// For example, this code requires at least two calls:
 //
 //	var handle win.PDH_HQUERY
 //	var counterHandle win.PDH_HCOUNTER
@@ -333,16 +332,16 @@ func PdhCloseQuery(hQuery PDH_HQUERY) uint32 {
 //	fmt.Printf("Collect return code is %x\n", ret) // return code will be ERROR_SUCCESS
 //	ret = win.PdhGetFormattedCounterValueDouble(counterHandle, 0, &derp)
 //
-// The PdhCollectQueryData will return an error in the first call because it needs two values for
-// displaying the correct data for the processor idle time. The second call will have a 0 return code.
+// PdhCollectQueryData needs two values to display the correct processor idle time.
+// The first call returns an error. The second call returns 0.
 func PdhCollectQueryData(hQuery PDH_HQUERY) uint32 {
 	ret, _, _ := pdh_CollectQueryData.Call(uintptr(hQuery))
 
 	return uint32(ret)
 }
 
-// Formats the given hCounter using a 'double'. The result is set into the specialized union struct pValue.
-// This function does not directly translate to a Windows counterpart due to union specialization tricks.
+// PdhGetFormattedCounterValueDouble formats hCounter as a 'double' and stores the result in pValue.
+// Its specialized union struct prevents a direct match with a Windows function.
 func PdhGetFormattedCounterValueDouble(hCounter PDH_HCOUNTER, lpdwType *uint32, pValue *PDH_FMT_COUNTERVALUE_DOUBLE) uint32 {
 	ret, _, _ := pdh_GetFormattedCounterValue.Call(
 		uintptr(hCounter),
@@ -354,8 +353,8 @@ func PdhGetFormattedCounterValueDouble(hCounter PDH_HCOUNTER, lpdwType *uint32, 
 	return uint32(ret)
 }
 
-// Formats the given hCounter using a large int (int64). The result is set into the specialized union struct pValue.
-// This function does not directly translate to a Windows counterpart due to union specialization tricks.
+// PdhGetFormattedCounterValueLarge formats hCounter as a large int (int64) and stores the result in pValue.
+// Its specialized union struct prevents a direct match with a Windows function.
 func PdhGetFormattedCounterValueLarge(hCounter PDH_HCOUNTER, lpdwType *uint32, pValue *PDH_FMT_COUNTERVALUE_LARGE) uint32 {
 	ret, _, _ := pdh_GetFormattedCounterValue.Call(
 		uintptr(hCounter),
@@ -367,14 +366,14 @@ func PdhGetFormattedCounterValueLarge(hCounter PDH_HCOUNTER, lpdwType *uint32, p
 	return uint32(ret)
 }
 
-// Formats the given hCounter using a 'long'. The result is set into the specialized union struct pValue.
-// This function does not directly translate to a Windows counterpart due to union specialization tricks.
+// PdhGetFormattedCounterValueLong formats hCounter as a 'long' and stores the result in pValue.
+// Its specialized union struct prevents a direct match with a Windows function.
 //
-// BUG(krpors): Testing this function on multiple systems yielded inconsistent results. For instance,
-// the pValue.LongValue kept the value '192' on test system A, but on B this was '0', while the padding
-// bytes of the struct got the correct value. Until someone can figure out this behaviour, prefer to use
-// the Double or Large counterparts instead. These functions provide actually the same data, except in
-// a different, working format.
+// BUG(krpors): Tests on multiple systems gave inconsistent results.
+// pValue.LongValue kept '192' on test system A, but was '0' on system B.
+// On system B, the struct's padding bytes held the correct value.
+// Until this behavior is understood, prefer the Double or Large functions.
+// They return the same data in a different format that works.
 func PdhGetFormattedCounterValueLong(hCounter PDH_HCOUNTER, lpdwType *uint32, pValue *PDH_FMT_COUNTERVALUE_LONG) uint32 {
 	ret, _, _ := pdh_GetFormattedCounterValue.Call(
 		uintptr(hCounter),
@@ -386,9 +385,10 @@ func PdhGetFormattedCounterValueLong(hCounter PDH_HCOUNTER, lpdwType *uint32, pV
 	return uint32(ret)
 }
 
-// Returns an array of formatted counter values. Use this function when you want to format the counter values of a
-// counter that contains a wildcard character for the instance name. The itemBuffer must a slice of type PDH_FMT_COUNTERVALUE_ITEM_DOUBLE.
-// An example of how this function can be used:
+// PdhGetFormattedCounterArrayDouble returns an array of formatted counter values.
+// Use it for counters with a wildcard in the instance name.
+// itemBuffer must be a slice of type PDH_FMT_COUNTERVALUE_ITEM_DOUBLE.
+// For example:
 //
 //	okPath := "\\Process(*)\\% Processor Time" // notice the wildcard * character
 //
@@ -435,9 +435,10 @@ func PdhGetFormattedCounterArrayDouble(hCounter PDH_HCOUNTER, lpdwBufferSize *ui
 	return uint32(ret)
 }
 
-// Returns an array of formatted counter values. Use this function when you want to format the counter values of a
-// counter that contains a wildcard character for the instance name. The itemBuffer must a slice of type PDH_FMT_COUNTERVALUE_ITEM_LARGE.
-// For an example usage, see PdhGetFormattedCounterArrayDouble.
+// PdhGetFormattedCounterArrayLarge returns an array of formatted counter values.
+// Use it for counters with a wildcard in the instance name.
+// itemBuffer must be a slice of type PDH_FMT_COUNTERVALUE_ITEM_LARGE.
+// See PdhGetFormattedCounterArrayDouble for an example.
 func PdhGetFormattedCounterArrayLarge(hCounter PDH_HCOUNTER, lpdwBufferSize *uint32, lpdwBufferCount *uint32, itemBuffer *PDH_FMT_COUNTERVALUE_ITEM_LARGE) uint32 {
 	ret, _, _ := pdh_GetFormattedCounterArrayW.Call(
 		uintptr(hCounter),
@@ -450,9 +451,10 @@ func PdhGetFormattedCounterArrayLarge(hCounter PDH_HCOUNTER, lpdwBufferSize *uin
 	return uint32(ret)
 }
 
-// Returns an array of formatted counter values. Use this function when you want to format the counter values of a
-// counter that contains a wildcard character for the instance name. The itemBuffer must a slice of type PDH_FMT_COUNTERVALUE_ITEM_LONG.
-// For an example usage, see PdhGetFormattedCounterArrayDouble.
+// PdhGetFormattedCounterArrayLong returns an array of formatted counter values.
+// Use it for counters with a wildcard in the instance name.
+// itemBuffer must be a slice of type PDH_FMT_COUNTERVALUE_ITEM_LONG.
+// See PdhGetFormattedCounterArrayDouble for an example.
 //
 // BUG(krpors): See description of PdhGetFormattedCounterValueLong().
 func PdhGetFormattedCounterArrayLong(hCounter PDH_HCOUNTER, lpdwBufferSize *uint32, lpdwBufferCount *uint32, itemBuffer *PDH_FMT_COUNTERVALUE_ITEM_LONG) uint32 {
@@ -467,13 +469,13 @@ func PdhGetFormattedCounterArrayLong(hCounter PDH_HCOUNTER, lpdwBufferSize *uint
 	return uint32(ret)
 }
 
-// Creates a new query that is used to manage the collection of performance data.
-// szDataSource is a null terminated string that specifies the name of the log file from which to
-// retrieve the performance data. If 0, performance data is collected from a real-time data source.
-// dwUserData is a user-defined value to associate with this query. To retrieve the user data later,
-// call PdhGetCounterInfo and access dwQueryUserData of the PDH_COUNTER_INFO structure. phQuery is
-// the handle to the query, and must be used in subsequent calls. This function returns a PDH_
-// constant error code, or ERROR_SUCCESS if the call succeeded.
+// PdhOpenQuery creates a query to collect performance data.
+// szDataSource is a null-terminated string with the source log file name.
+// If szDataSource is 0, use a real-time data source.
+// dwUserData is a user-defined value associated with this query.
+// To retrieve it, call PdhGetCounterInfo and read dwQueryUserData in PDH_COUNTER_INFO.
+// Use the query handle phQuery in subsequent calls.
+// This function returns a PDH_ error code, or ERROR_SUCCESS on success.
 func PdhOpenQuery(szDataSource uintptr, dwUserData uintptr, phQuery *PDH_HQUERY) uint32 {
 	ret, _, _ := pdh_OpenQuery.Call(
 		szDataSource,
@@ -484,8 +486,8 @@ func PdhOpenQuery(szDataSource uintptr, dwUserData uintptr, phQuery *PDH_HQUERY)
 	return uint32(ret)
 }
 
-// Validates a path. Will return ERROR_SUCCESS when ok, or PDH_CSTATUS_BAD_COUNTERNAME when the path is
-// erroneous.
+// PdhValidatePath validates a path.
+// It returns ERROR_SUCCESS for a valid path or PDH_CSTATUS_BAD_COUNTERNAME for an invalid path.
 func PdhValidatePath(path string) uint32 {
 	ptxt, _ := syscall.UTF16PtrFromString(path)
 	ret, _, _ := pdh_ValidatePathW.Call(uintptr(unsafe.Pointer(ptxt)))
@@ -493,8 +495,8 @@ func PdhValidatePath(path string) uint32 {
 	return uint32(ret)
 }
 
-// Find the corresponding performance Index By Counterpath
-// returns ERROR_SUCCESS if call was success second return value is the index
+// PdhLookupPerfIndexByName finds the performance index for a counter path.
+// On success, it returns ERROR_SUCCESS and the index.
 func PdhLookupPerfIndexByName(mashineName, szFullCounterPath string) (response_code uint32, index uint32) {
 	counterNamePtr, _ := syscall.UTF16PtrFromString(szFullCounterPath)
 	res, _, _ := pdh_LookupPerfIndexByNameW.Call(0, uintptr(unsafe.Pointer(counterNamePtr)), uintptr(unsafe.Pointer(&index)))
@@ -520,11 +522,11 @@ func PdhLookupPerfNameByIndex(id uint32) (response_code uint32, name string) {
 }
 
 /*
-Wraps the Call To the PdhExpandCounterPathW-Function (pdh.h) and handles the Memory Allocation
-szDataSource leave empty for local mashine
-szWildCardPath full Counter Path with Wildcards
+PdhExpandCounterPath wraps PdhExpandCounterPathW (pdh.h) and allocates memory.
+Leave szDataSource empty for the local machine.
+szWildCardPath is the full counter path with wildcards.
 dwFlags
-returns status of pdh call and a string slice containing all the possible counter paths
+Returns the PDH call status and a string slice with all possible counter paths.
 */
 func PdhExpandCounterPath(szDataSource, szWildCardPath string, dwFlags uintptr) (uint32, []string) {
 	var initBuff [1]uint16

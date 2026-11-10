@@ -251,6 +251,7 @@ func (cd *CheckData) finalizeOutput() (*CheckResult, error) {
 	} else {
 		finalMacros = cd.buildListMacros()
 	}
+	cd.result.SynthesizePerfConfigMetrics(cd.perfConfig)
 	err := cd.result.ApplyPerfConfig(cd.perfConfig)
 	if err != nil {
 		return nil, fmt.Errorf("%s", err.Error())
@@ -979,10 +980,8 @@ func (cd *CheckData) preParseArgs(args []string) (pre *preParsedArgs, err error)
 	return pre, nil
 }
 
-// Threshold keywords do not necessarily have to match an attribute name.
-// They can be written to match perfdata metric names
-// They can also be match to check details, but that is less common
-// Therefore, this function does not return an error
+// Threshold keywords can match attribute names, perfdata metric names, or, less often, check details.
+// This function therefore does not return an error.
 func (cd *CheckData) checkThresholdKeywordsAgainstAttributeNames() {
 	attributeNames := cd.getAttributeNames()
 
@@ -1019,11 +1018,9 @@ func (cd *CheckData) checkThresholdKeywordsAgainstAttributeNames() {
 	}
 }
 
-// Filter keywords should match attribute filters.
-// They are used to filter entries added to the check. Entries use attributes.
-// They are not compared with perfdata metric names.
-// They are not compared with check details.
-// Not matching an attribute name means the condition has no effect, and is likely wrong
+// Filter keywords should match attributes in entries added to the check.
+// They do not match perfdata metric names or check details.
+// If a keyword matches no attribute name, the condition has no effect and is likely wrong.
 func (cd *CheckData) checkFilterKeywordsAgainstAttributeNames() (err error) {
 	attributeNames := cd.getAttributeNames()
 
@@ -1402,6 +1399,27 @@ func (cd *CheckData) HasThreshold(name string) bool {
 	return false
 }
 
+// HasPerfConfig returns true if any perf-config item matches the given name.
+// A bare wildcard '*' does not count, since it would enable every metric.
+func (cd *CheckData) HasPerfConfig(name string) bool {
+	for i := range cd.perfConfig {
+		if cd.perfConfig[i].Selector == "*" {
+			continue
+		}
+		if cd.perfConfig[i].Match(name) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// HasMetric returns true if a threshold, filter or perf-config uses the given
+// name, meaning metrics with that name should be emitted.
+func (cd *CheckData) HasMetric(name string) bool {
+	return cd.HasThreshold(name) || cd.HasFilter(name) || cd.HasPerfConfig(name)
+}
+
 // GetAllThresholdKeywords returns a list of all keywords used in warn/crit/unknown/ok thresholds.
 func (cd *CheckData) GetAllThresholdKeywords() []string {
 	keywords := make([]string, 0, len(cd.warnThreshold)+len(cd.critThreshold)+len(cd.unknownThreshold)+len(cd.okThreshold))
@@ -1620,8 +1638,8 @@ func (cd *CheckData) AddPercentMetrics(threshold, perfLabel string, val, total f
 	)
 }
 
-// processMetricsWithSpecializedKeyword sets the Entry reference and filters Warning/Critical thresholds of the Metric object
-// the thresholds will be filtered using the special keyword. refer to that function for more details, as it uses a heurisic to determine how to filter
+// processMetricsWithSpecializedKeyword sets the Entry reference and filters the Metric object's Warning/Critical thresholds with the special keyword.
+// See the threshold filter function for details about its heuristic.
 //
 //nolint:unparam // this is only used in check_drivesize for now, so keyword is always "drive"
 func (cd *CheckData) processMetricsWithSpecializedKeyword(keyword, metricName string, entry map[string]string) {
@@ -1959,7 +1977,7 @@ func (cd *CheckData) helpAttributes(format ShowHelp) string {
 	} else {
 		out += "Filter Keywords:\n\n    "
 	}
-	out += "these can be used in filters and thresholds (along with the default attributes):\n\n"
+	out += "Use these attributes in filters and thresholds, along with the default attributes:\n\n"
 
 	header := []utils.ASCIITableHeader{
 		{Name: "Attribute", Field: "name"},

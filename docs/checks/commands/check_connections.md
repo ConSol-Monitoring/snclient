@@ -30,20 +30,20 @@ Checks the number of TCP connections.
 
 ## Check Specific Arguments
 
-| Argument | Description                                                        |
-| -------- | ------------------------------------------------------------------ |
-| inet     | Use specific address family only. Can be: total, any, ipv4 or ipv6 |
+| Argument | Description                                                     |
+| -------- | --------------------------------------------------------------- |
+| inet     | Use only the specified address family: total, any, ipv4 or ipv6 |
 
 ## Attributes
 
 ### Filter Keywords
 
-these can be used in filters and thresholds (along with the default attributes):
+Use these attributes in filters and thresholds, along with the default attributes:
 
 | Attribute    | Description                                                                             |
 | ------------ | --------------------------------------------------------------------------------------- |
 | inet         | address family, can be total (sum of any), all (any+total), any (v4+v6), inet4 or inet6 |
-| prefix       | address family as prefix, will be empty, inet4 or inet6                                 |
+| prefix       | Address family prefix: empty, inet4 or inet6                                            |
 | total        | total number of connections                                                             |
 | established  | total number of connections of type: established                                        |
 | syn_sent     | total number of connections of type: syn_sent                                           |
