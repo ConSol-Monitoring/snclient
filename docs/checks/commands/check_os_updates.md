@@ -31,6 +31,7 @@ Checks for OS system updates.
 
 | Argument               | Description                                                                                  |
 | ---------------------- | -------------------------------------------------------------------------------------------- |
+| --include-optional     | Include optional Windows updates (default: false)                                            |
 | -m\|--max-metadata-age | Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, e.g. 48h (default: 24h) |
 | -s\|--system           | Package system: auto, apt, yum, macos and windows (default: auto)                            |
 | -u\|--update           | Update package list (if supported, e.g. apt-get update)                                      |
@@ -58,6 +59,9 @@ If you only want to be notified about security related updates:
 
     check_os_updates warn=none crit='count_security > 0'
     CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0
+
+On Windows, optional updates (DeploymentAction = 4) are excluded by default.
+Use **--include-optional** to include them.
 
 On DNF/APT systems, **--update** refreshes repository metadata in a private cache
 owned by the SNClient service user unless started as root user.

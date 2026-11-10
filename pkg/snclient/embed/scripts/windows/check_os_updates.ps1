@@ -26,6 +26,9 @@ if ($Online) {
 
 $pending = $searcher.Search('IsInstalled=0 AND IsHidden=0')
 foreach($entry in $pending.Updates) {
+    if ($entry.DeploymentAction -eq 4 -and $env:INCLUDE_OPTIONAL -ne "1") {
+        continue
+    }
     Write-host Title: $entry.Title
     foreach($cat in $entry.Categories) {
         Write-host Category: $cat.Name
