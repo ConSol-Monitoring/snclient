@@ -4,10 +4,9 @@ linkTitle: Getting Started
 weight: 300
 ---
 
-This guide sets up basic Windows monitoring with SNClient for CPU usage, physical
-memory usage, and drive C: disk usage.
+Use SNClient to monitor CPU usage, physical memory usage, and drive C: disk usage on Windows.
 
-The recommended way is to use [OMD Labs](https://omd.consol.de/docs/omd/), which already includes
+We recommend [OMD Labs](https://omd.consol.de/docs/omd/). It includes
 [Naemon](https://omd.consol.de/docs/naemon/), the [Thruk](https://omd.consol.de/docs/thruk/) web interface, and the `check_snclient` plugin.
 Naemon uses this plugin to query the SNClient REST API over HTTPS.
 
@@ -19,18 +18,18 @@ During installation:
 
 - Keep the REST web server enabled with HTTPS on port **8443**.
 - Set a password and allow the IP address of your OMD monitoring server.
-- Ensure the monitoring server can reach TCP port 8443 on the Windows host.
+- Make sure that the monitoring server can reach TCP port 8443 on the Windows host.
   The MSI installer creates the Windows firewall exception.
 
-For example, run the following from an elevated command prompt in the directory
-containing the downloaded MSI (replace its filename, IP address, and password):
+Open an elevated command prompt in the directory that contains the downloaded MSI.
+Run this command with your MSI filename, IP address, and password:
 
 ```bat
 msiexec.exe /i snclient.msi ALLOWEDHOSTS="127.0.0.1,::1,192.0.2.10" PASSWORD="your-password"
 ```
 
-Here, `192.0.2.10` is the monitoring server. The built-in CPU and disk checks are
-enabled by default; no external scripts are needed for these checks.
+Here, `192.0.2.10` is the monitoring server. SNClient enables the built-in CPU and disk checks by default.
+These checks do not need external scripts.
 
 ## Prepare OMD
 
@@ -41,9 +40,9 @@ If you do not already have a site, create one and start it.
 Run the following Linux commands as the OMD site user. For an existing site,
 switch to its user with `omd su <site>` instead.
 
-The plugin is located at `~/lib/monitoring-plugins/check_snclient`. Test the
-connection, replacing `192.0.2.20` with the Windows host's address and using the
-password you set during installation:
+The plugin is at `~/lib/monitoring-plugins/check_snclient`.
+To test the connection, replace `192.0.2.20` with the Windows host's address.
+Use the password you set during installation:
 
 ```sh
 ~/lib/monitoring-plugins/check_snclient -k -p 'your-password' -u 'https://192.0.2.20:8443'
@@ -55,9 +54,9 @@ password you set during installation:
 The first command should report that the REST API is reachable. If it fails,
 check the password, allowed hosts, and firewall settings before continuing.
 
-These examples use `-k` for the certificate shipped with SNClient, which skips
-certificate verification. For verified TLS, configure a trusted server
-certificate and remove `-k`; use the plugin's `-ca` option for a private CA.
+These examples use `-k` to skip verification of the certificate shipped with SNClient.
+For verified TLS, configure a trusted server certificate and remove `-k`.
+For a private CA, use the plugin's `-ca` option.
 See the [check_snclient options](../checks/plugins/check_snclient/) for details.
 
 ## Configure Naemon
@@ -105,7 +104,7 @@ define service {
 
 The host check tests REST API connectivity. The three services warn above 80% usage and become critical above 90%.
 
-Validate the configuration and, if validation succeeds, reload Naemon:
+Validate the configuration. If validation succeeds, reload Naemon:
 
 ```sh
 naemon -v ~/etc/naemon/naemon.cfg
@@ -120,4 +119,4 @@ For more options, see [check_cpu](../checks/commands/check_cpu/),
 [check_memory](../checks/commands/check_memory/), and
 [check_drivesize](../checks/commands/check_drivesize/).
 
-A full list of available check commands of SNClient can be found [here](../checks/).
+See the [full list of SNClient check commands](../checks/).

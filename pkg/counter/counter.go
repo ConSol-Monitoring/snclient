@@ -108,10 +108,9 @@ func (c *Counter) AvgForDuration(duration time.Duration) float64 {
 	return sum / count
 }
 
-// GetRate calculates rate for given lookback timerange .
-// only works if values are stored as float64 .
-// returned result is in type <change>/s .
-// It uses the unixMili timestamp that is set alongisde Value on every save.
+// GetRate calculates the rate over the given lookback period.
+// Values must be stored as float64. The result is in <change>/s.
+// It uses the unixMili timestamp stored with Value on each save.
 func (c *Counter) GetRate(lookback time.Duration) (res float64, err error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()

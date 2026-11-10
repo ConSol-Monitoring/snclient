@@ -36,10 +36,10 @@ func (c *CheckPDH) Build() *CheckData {
 		args: map[string]CheckArgument{
 			"counter":      {value: &c.CounterPath, description: "The fully qualified counter name"},
 			"Counter":      {value: &c.CounterPath, description: "The fully qualified counter name"},
-			"host":         {value: &c.HostName, description: "The name of the machine in the network where the counter should be searched, defaults to localhost"},
-			"expand-index": {value: &c.ExpandIndex, description: "Should indices be translated?"},
+			"host":         {value: &c.HostName, description: "Network host to search for the counter (default: localhost)"},
+			"expand-index": {value: &c.ExpandIndex, description: "Translate indices"},
 			"instances":    {value: &c.Instances, description: "Expand wildcards and fetch all instances"},
-			"type":         {value: &c.Type, description: "This can be large or float depending on what you expect, default is large "},
+			"type":         {value: &c.Type, description: "Expected value type: large or float (default: large)"},
 			"english":      {value: &c.EnglishFallBackNames, description: "Use English names regardless of system language (requires Windows Vista or higher)"},
 		},
 		result: &CheckResult{

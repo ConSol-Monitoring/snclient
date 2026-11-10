@@ -8,9 +8,9 @@ import (
 func init() {
 	daemonCmd := &cobra.Command{
 		Use:   "daemon",
-		Short: "Start the agent demonized in background",
-		Long: `daemon mode starts the agent in background.
-All logs will be written to the configured logfile.
+		Short: "Start the agent as a background daemon",
+		Long: `Daemon mode starts the agent in the background.
+The agent writes all logs to the configured log file.
 `,
 		GroupID: "daemon",
 		Run: func(_ *cobra.Command, _ []string) {

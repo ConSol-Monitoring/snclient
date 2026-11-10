@@ -1013,10 +1013,9 @@ func (cs *ConfigSection) GetString(key string) (val string, ok bool) {
 	return val, ok
 }
 
-// GetStringRaw returns the raw string (including quotes)
-// along the clean string from config section.
-// it returns the value if found and sets ok to true.
-// the value is returned as string array because the value could be multiple lines with += syntax.
+// GetStringRaw returns the raw string, including quotes, and the clean string from the configuration section.
+// If it finds the value, it returns it and sets ok to true.
+// It returns an array because += syntax can split a value across multiple lines.
 func (cs *ConfigSection) GetStringRaw(key string) (raw []string, val string, ok bool) {
 	raw = cs.raw[key]
 	val, ok = cs.data[key]

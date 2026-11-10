@@ -1,16 +1,15 @@
 # Tests
 
-This folder contains e2e test cases run against the final binary or installer
-pkg.
+This folder contains end-to-end tests for the final binary or installer package.
 
-Warning: only run on a development machine or in a ci-cd container. The test
-will install and remove a snclient service.
+Warning: Run these tests only on a development machine or in a CI/CD container.
+The tests install and remove an SNClient service.
 
 Run the tests with:
 
     go test -v
 
-Note: this tests will (at least on windows) build and install a .msi file.
+Note: On Windows, these tests build and install a .msi file.
 
 ## Requirements
 
@@ -19,5 +18,5 @@ Note: this tests will (at least on windows) build and install a .msi file.
 ## Requirements Windows
 - go
 - wix.exe
-- prepared `windist` folder with `snclient.exe`, `windows_exporter.exe`
-- put a `snclient.msi` into the `t` folder
+- a prepared `windist` folder with `snclient.exe`, `windows_exporter.exe`
+- a `snclient.msi` file in the `t` folder

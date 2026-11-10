@@ -38,9 +38,9 @@ var listenerNames = []string{"WEB", "NRPE", "Prometheus"}
 func init() {
 	installCmd := &cobra.Command{
 		Use:   "install [cmd]",
-		Short: "Install windows service and firewall exception",
-		Long: `Install is used during msi installation for adding the windows service and a firewall exception.
-It will also change some basic settings from the setup dialog. Ex. the initial password.
+		Short: "Install the Windows service and firewall exception",
+		Long: `The MSI installer uses this command to add the Windows service and a firewall exception.
+It also applies basic settings from the setup dialog, such as the initial password.
 `,
 	}
 	rootCmd.AddCommand(installCmd)
@@ -48,7 +48,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 	// install pkg
 	installCmd.AddCommand(&cobra.Command{
 		Use:    "pkg [args]",
-		Short:  "called from the msi installer, set up firewall and service according to setup dialog",
+		Short:  "Apply firewall and service settings from the MSI setup dialog",
 		Hidden: true,
 		Run:    installPkg,
 	})
@@ -56,7 +56,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 	// install pre
 	installCmd.AddCommand(&cobra.Command{
 		Use:    "pre [args]",
-		Short:  "called from the msi installer, stop services",
+		Short:  "Stop services for the MSI installer",
 		Hidden: true,
 		Run:    installPre,
 	})
@@ -64,7 +64,7 @@ It will also change some basic settings from the setup dialog. Ex. the initial p
 	// install firewall
 	installCmd.AddCommand(&cobra.Command{
 		Use:   "firewall [args]",
-		Short: "add firewall exceptions for enabled tcp listeners, ex.: " + strings.Join(listenerNames, ", "),
+		Short: "Add firewall exceptions for enabled TCP listeners, for example: " + strings.Join(listenerNames, ", "),
 		Run:   installFirewall,
 	})
 }

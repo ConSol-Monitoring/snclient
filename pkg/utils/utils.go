@@ -719,11 +719,11 @@ func SubtractSlice[T comparable](op1, op2 []T) (ret []T) {
 }
 
 // MapsEqual returns true if two map[string]string values refer to the same underlying hash table.
-// In Go, maps are reference types — copying a map copies the header (a pointer to the internal hmap struct),
-// so all copies of the same map share the same underlying data and the same hmap address.
-// Go does not move heap objects (no compacting GC), so the hmap pointer is stable for the map's lifetime.
-// Maps are not directly == comparable, so reflect is used to extract and compare the internal pointer.
-// This is useful for checking whether two maps represent the same logical entry (e.g. skip-list lookups).
+// Copying a Go map copies its header, which points to the internal hmap struct.
+// All copies share the same data and hmap address.
+// Go does not move heap objects or compact them during garbage collection, so the hmap pointer stays stable for the map's lifetime.
+// Maps do not support direct == comparison. This function uses reflect to compare their internal pointers.
+// Use it to identify the same logical entry, for example in skip-list lookups.
 func MapsEqual(a, b map[string]string) bool {
 	return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer()
 }

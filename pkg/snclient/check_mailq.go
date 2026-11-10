@@ -32,14 +32,14 @@ func NewCheckMailq() CheckHandler {
 func (l *CheckMailq) Build() *CheckData {
 	return &CheckData{
 		name:         "check_mailq",
-		description:  "Checks the mailq.",
+		description:  "Checks the mail queue.",
 		implemented:  Linux | FreeBSD | Darwin,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"mta": {value: &l.mta, isFilter: true, description: "Set the source MTA for checking the mail queue instead of automatic detection. Can be postfix or auto"},
+			"mta": {value: &l.mta, isFilter: true, description: "Choose the MTA to check. Use postfix to select it explicitly or auto for automatic detection"},
 		},
 		defaultFilter:   "none",
 		defaultWarning:  "active > 5 || active_size > 10MB || deferred > 0 || deferred_size > 10MB",

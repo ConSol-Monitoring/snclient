@@ -24,9 +24,9 @@ func NewCheckEventlog() CheckHandler {
 func (l *CheckEventlog) Build() *CheckData {
 	return &CheckData{
 		name: "check_eventlog",
-		description: `Checks the Windows eventlog entries.
+		description: `Checks Windows event log entries.
 
-Basically, this check wraps this WMI query:
+This check wraps the following WMI query:
 
     SELECT
         ComputerName,
@@ -43,26 +43,25 @@ Basically, this check wraps this WMI query:
     FROM
         Win32_NTLogEvent
 
-See [here](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlogprov/win32-ntlogevent) for
-a description of the provided fields.
+See the [field descriptions](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlogprov/win32-ntlogevent).
 
-Filter conditions on id, level and source (or provider) are added to the WHERE clause
-of the WMI query when possible, the filter is still applied to the returned events.`,
+When possible, SNClient adds filter conditions on id, level and source (or provider) to the WMI query's WHERE clause.
+SNClient still applies the filter to the returned events.`,
 		implemented: Windows,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		hasInventory: NoCallInventory,
 		args: map[string]CheckArgument{
-			"file":             {value: &l.files, description: "File to read (can be specified multiple times to check multiple files)"},
+			"file":             {value: &l.files, description: "File to read. Repeat this option to check multiple files."},
 			"log":              {value: &l.files, description: "Alias for file"},
-			"timezone":         {description: "Sets the timezone for time metrics (default is local time)"},
-			"scan-range":       {value: &l.scanRange, description: "Sets time range to scan for message (default is 24h)"},
-			"truncate-message": {value: &l.truncateMessage, description: "Maximum length of message for each event log message text"},
-			"unique-index":     {value: &l.uniqueIndex, description: "Combination of fields that identifies unique events, set to 0 to disable. Default is \"" + DefaultUniqueIndex + "\""},
+			"timezone":         {description: "Set the timezone for time metrics (default is local time)"},
+			"scan-range":       {value: &l.scanRange, description: "Time range to search for messages (default is 24h)"},
+			"truncate-message": {value: &l.truncateMessage, description: "Maximum length of each event log message"},
+			"unique-index":     {value: &l.uniqueIndex, description: "Fields that identify unique events. Set to 0 to disable. Default is \"" + DefaultUniqueIndex + "\""},
 			"unique":           {value: &l.uniqueIndex, description: "Alias for unique-index"},
-			"event-codes": {value: &l.eventCodesFilters, isFilter: true, description: "Event codes to query for, comma separated values are combined with OR. " +
-				"Valid range is 0-65535. Can be specified multiple times."},
+			"event-codes": {value: &l.eventCodesFilters, isFilter: true, description: "Event codes to query. SNClient combines comma-separated values with OR. " +
+				"Valid range: 0-65535. You can repeat this option."},
 		},
 		defaultFilter:   "level in ('warning', 'error', 'critical')",
 		defaultWarning:  "level = 'warning' or problem_count > 0",
@@ -88,7 +87,7 @@ of the WMI query when possible, the filter is still applied to the returned even
     check_eventlog
     OK - Event log seems fine
 
-    Return all events, by default only unique events will be returned:
+    Return all events. By default, the check returns only unique events:
 
     check_eventlog "detail-syntax=%(id) %(uniqueindex)" "unique-index=0"
     WARNING - 4 message(s) warning(10010 Application-Microsoft-Windows-RestartManager-10010, 10016 System-Microsoft-Windows-DistributedCOM-10016, 6155 System-LsaSrv-6155, 6147 System-LsaSrv-6147)

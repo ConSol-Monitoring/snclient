@@ -9,7 +9,7 @@ weight: 100
 
 ## Installation
 
-Stable release installation packages can be found here:
+Download stable release packages from:
 
 - [SNClient Releases Page](https://github.com/ConSol-Monitoring/snclient/releases)
 
@@ -19,23 +19,21 @@ Then start the .msi installer and follow the instructions.
 
 ### Firewall
 
-The Windows .msi package will add the firewall exceptions automatically. If
-you need to reinstall the firewall exceptions, you can run this command:
+The Windows .msi package adds firewall exceptions automatically.
+If you need to reinstall the exceptions, run this command:
 
     C:\Program Files\snclient> .\snclient.exe install firewall
 
-If you don't need the exceptions anymore, there is an uninstall command as well:
+If you no longer need the exceptions, remove them with this command:
 
     C:\Program Files\snclient> .\snclient.exe uninstall firewall
 
 ### MSI Installation Parameters
 
-Running the .msi installer manually lets you choose some basic options. The idea
-here is to set the ports, so the following firewall setup will know which ports
-to open.
+When you run the .msi installer manually, you can choose basic options.
+Set the ports so that the firewall setup opens the correct ports.
 
-All additional options should go into a local custom INI file which can be
-provided during installation as well.
+Put all additional options in a local custom INI file. You can provide this file during installation.
 
 Running the MSI installer from the terminal with `msiexec.exe` exposes these options
 as public properties.
@@ -44,10 +42,10 @@ For example:
 
     msiexec.exe /i snclient.msi /l*V snclient_installer.log /qn PASSWORD="test" INCLUDES="https://company.local/snclient_local.ini"
 
-This installs the MSI package and logs everything to the snclient_installer.log file. It
-also sets the initial password and includes an INI file fetched over HTTPS.
+This command installs the MSI package and logs everything to the snclient_installer.log file.
+It also sets the initial password and includes an INI file fetched over HTTPS.
 
-Here is a table of all available properties:
+Available properties:
 
 | Property             | Default Value             | Description |
 | -------------------- | ------------------------- | ----------- |
@@ -71,7 +69,7 @@ To install SNClient automatically into a custom folder, use the following comman
 
 ## Uninstall
 
-To uninstall SNClient, run the `snclient.msi` installer again. If the installer has the same version as the
-installed one, it will offer an uninstall option.
+To uninstall SNClient, run the `snclient.msi` installer again.
+If the installer version matches the installed version, it offers an uninstall option.
 
-Another way is to use the Windows software center and uninstall the agent from there.
+You can also uninstall the agent from the Windows software center.

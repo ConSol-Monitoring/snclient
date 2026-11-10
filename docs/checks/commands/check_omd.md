@@ -39,7 +39,7 @@ Check OMD site status.
 
 ### Filter Keywords
 
-these can be used in filters and thresholds (along with the default attributes):
+Use these attributes in filters and thresholds, along with the default attributes:
 
 | Attribute           | Description                                                                             |
 | ------------------- | --------------------------------------------------------------------------------------- |
@@ -48,7 +48,7 @@ these can be used in filters and thresholds (along with the default attributes):
 | state               | Return code of OMD status, 0 - running, 1 - partially running, 2 - stopped, 3 - unknown |
 | status              | Text status: (running, partially running, stopped, unknown)                             |
 | failed_services     | List of failed services                                                                 |
-| failed_services_txt | More usable form of failed services list                                                |
+| failed_services_txt | Readable list of failed services                                                        |
 
 ## Examples
 
@@ -57,7 +57,7 @@ these can be used in filters and thresholds (along with the default attributes):
     check_omd
     OK - site demo: running |...
 
-Check **specific** site by site filter:
+Use the site filter to check a specific site:
 
     check_omd site=demo
     OK - site demo: running |...

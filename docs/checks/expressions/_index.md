@@ -2,14 +2,14 @@
 title: Expressions
 ---
 
-Expressions are used for the `filter`, `warning`, `critical` and `ok` arguments.
+Use expressions for the `filter`, `warning`, `critical` and `ok` arguments.
 
 ## Syntax
 
-The basic syntax is `<attribute> <operator> <value>`. For a list and explanation
-of allowed operators see [the operator list](#operators).
+The basic syntax is `<attribute> <operator> <value>`.
+See [the operator list](#operators) for the allowed operators and their meanings.
 
-The list of possible attributes is documented along with each [check plugin](../plugins).
+Each [check plugin](../plugins) documents its available attributes.
 
 For example:
 
@@ -19,7 +19,7 @@ For example:
 
 ## Logical Operators
 
-To combine multiple expressions you can use logical operators and brackets.
+Use logical operators and brackets to combine expressions.
 
 | Operator | Alias  | Description              | Example                  |
 | -------- | -------| ------------------------ | ------------------------ |
@@ -53,7 +53,7 @@ For example:
 
 ## Other Operators
 
-For backwards compatibility there are more operators available:
+These additional operators provide backward compatibility:
 
 | Operator | Alias   | Description     | Example                     |
 | -------- | --------| ----------------| --------------------------- |
@@ -62,7 +62,7 @@ For backwards compatibility there are more operators available:
 
 ## Date Keywords
 
-For attributes representing a date or timestamp, the following keywords can be used as values:
+For date or timestamp attributes, use these keywords as values:
 
 | Keyword     | Description |
 | ----------- | ----------- |
@@ -71,4 +71,4 @@ For attributes representing a date or timestamp, the following keywords can be u
 | `thismonth` | Start of the current month (1st, 00:00:00 local time) |
 | `thisyear`  | Start of the current year (Jan 1st, 00:00:00 local time) |
 
-Each keyword can be suffixed with `:utc` to use UTC time instead of local time, e.g., `today:utc`.
+To use UTC instead of local time, add `:utc` to a keyword. For example, use `today:utc`.

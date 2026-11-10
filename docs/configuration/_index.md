@@ -5,13 +5,13 @@ linkTitle: Configuration
 
 ## General
 
-SNClient uses the INI-style configuration format with some enhancements ([see syntax specification below](#syntax)).
+SNClient uses the INI configuration format with extensions. See the [syntax specification](#syntax).
 
 The default configuration is explained in the [packaging file](https://github.com/ConSol-Monitoring/snclient/blob/main/packaging/snclient.ini).
 
 ## File Locations
 
-By default SNClient searches for a `snclient.ini` in the following folders:
+By default, SNClient searches for `snclient.ini` in these locations:
 
 - `./snclient.ini` (current folder)
 - `/etc/snclient/snclient.ini`
@@ -19,15 +19,14 @@ By default SNClient searches for a `snclient.ini` in the following folders:
 
 ## Custom Configuration
 
-The default config file includes a wildcard pattern `snclient_local*.ini` which
-makes it easy to include local custom configuration. Putting custom configuration
-in a separate file has a couple of advantages.
+The default configuration includes local files that match `snclient_local*.ini`.
+Keep custom settings in a separate file to:
 
-- no conflicts during package updates.
-- clean separation of upstream and user configuration.
-- no need to walk through the whole default configuration to see what has been customized.
+- Avoid conflicts during package updates.
+- Separate upstream settings from user settings.
+- Review custom settings without searching the default configuration.
 
-Best practice is to create a `snclient_local.ini` file, for example:
+Create a `snclient_local.ini` file, for example:
 
 ```ini
 [/modules]
@@ -42,11 +41,11 @@ See the [includes section](#includes) for details about including files.
 
 ### Windows
 
-The location for a custom file would be: `C:\Program Files\snclient\snclient_local.ini`
+Put the custom file at: `C:\Program Files\snclient\snclient_local.ini`
 
 ### Linux
 
-The location for a custom file would be: `/etc/snclient/snclient_local.ini`
+Put the custom file at: `/etc/snclient/snclient_local.ini`
 
 ## Syntax
 
@@ -57,12 +56,11 @@ The configuration uses the INI file format. For example:
 allowed hosts = 127.0.0.1, ::1
 ```
 
-The maximum length of a single line in the INI file is limited to 1MB.
+The maximum line length in the INI file is 1MB.
 
 ### Comments
 
-Lines starting with `#` or `;` are treated as comments and ignored. You can use
-both characters in values.
+SNClient ignores lines that start with `#` or `;` as comments. You can use both characters in values.
 
 ```ini
 [/settings/external scripts]
@@ -80,10 +78,9 @@ tls min version = tls1.2
 password        = "CHANGEME"
 ```
 
-There is no difference between single and double quotes. Macros will
-be interpolated in both variants.
+Single and double quotes work the same way. SNClient expands macros in both.
 
-Quotes will be removed from the value if the value starts and ends with them.
+If a value starts and ends with quotes, SNClient removes the surrounding quotes.
 
 ```ini
 [/settings/external scripts]
@@ -102,10 +99,9 @@ check_wrong = "unclosed quotes
 
 ### Multiline Values
 
-End a line with a space or tab followed by `\` to continue its value on the next
-line. The backslash and surrounding whitespace, including indentation on the next
-line, are replaced with a single space. This works for configuration values in
-all sections, including external commands and `check_multi` commands.
+To continue a value on the next line, end the line with a space or tab followed by `\`.
+SNClient replaces the backslash and surrounding whitespace with a single space. This includes indentation on the next line.
+Continuation works in all sections, including external commands and `check_multi` commands.
 
 For example, check the size of a backup folder:
 
@@ -116,18 +112,17 @@ command[size] = check_files \
           "warn=total_size > 10GiB"
 ```
 
-A continuation must be followed immediately by a nonempty line. A blank or
-whitespace-only line, or the end of the file, causes an `unfinished line
-continuation` error. Windows paths such as `C:\scripts\` remain unchanged because
-the final backslash is not preceded by a space or tab.
+After a continuation, the next line must be nonempty.
+A blank or whitespace-only line causes an `unfinished line
+continuation` error. The end of the file causes the same error.
+Windows paths such as `C:\scripts\` remain unchanged because no space or tab precedes the final backslash.
 
 See [external commands](../checks/external_commands/#multiline-commands) for an
 external command example.
 
 ### Appending Values
 
-You may use the `+=` operator to append to existing values and write
-more readable configuration files.
+Use the `+=` operator to append text to existing values.
 
 ```ini
 [/settings/default]
@@ -136,14 +131,12 @@ allowed hosts += , 192.168.0.1
 allowed hosts += , 192.168.0.2,192.168.0.3
 ```
 
-Values will simply be joined as text, so in case you want to create lists, make sure you
-add a comma. (Starting with v0.38 this will be done automatically)
+SNClient joins values as text. To create a list, add a comma between values.
+Starting with v0.38, SNClient adds the comma automatically.
 
 ## Inheritance
 
-The configuration is split into multiple sections, but in order to
-avoid having duplicate password or allowed hosts entries, inheritance can
-be used to define shared settings only once.
+The configuration has multiple sections. Use inheritance to define shared settings, such as passwords or allowed hosts, only once.
 
 ```ini
 [/settings/sub1/other]
@@ -172,17 +165,17 @@ This is the order of inheritance for the example above:
 - /settings/sub1
 - /settings/default (least significant)
 
-The first defined value will be used.
+SNClient uses the first defined value.
 
 ## Includes
 
-It is possible and encouraged to include other INI files to organize your settings.
+Include other INI files to organize your settings.
 
-Includes can either be local files or HTTP(S) URLs to load remote configuration files.
+Use local files or HTTP(S) URLs for includes.
 
 ### Local Includes
 
-For local includes it is recommended to make use of the default include path `snclient_local*.ini`.
+For local includes, use the default include path `snclient_local*.ini`.
 
 ```ini
 [/includes]
@@ -191,8 +184,7 @@ local = snclient_local*.ini
 
 ### HTTPS Includes
 
-HTTPS URLs can also be used to load centrally managed configuration
-files. It is recommended to use HTTPS links and use some sort of authentication.
+Use HTTPS URLs to load centrally managed configuration files. We recommend HTTPS with authentication.
 
 The simple way:
 
@@ -201,8 +193,7 @@ The simple way:
 remote = https://user:password@central.company/snclient/default.ini
 ```
 
-If you want to configure more details, create a new section for each include and
-adjust all default HTTP client options:
+To customize HTTP client options, create a section for each include:
 
 ```ini
 [/includes/company]
@@ -215,18 +206,15 @@ url                  = https://central.company/snclient/default.ini
 #certificate key     = client1.key # private key for client certificate
 ```
 
-The HTTP include will be locally cached, so SNClient will still start, even if the
-remote server is temporarily not available. The agent will try to update the include
-on reload and daemon startup. The SNClient will not try to update the include
-for simple commands, such as `snclient run ...` or `snclient hash`, unless the include
-has never been downloaded.
+SNClient caches HTTP includes locally so that it can start when the remote server is temporarily unavailable.
+The agent tries to update includes on reload and daemon startup.
+For simple commands, such as `snclient run ...` or `snclient hash`, it downloads an include only if no previous download exists.
 
-In case the include cannot be downloaded and no local cache is present, the agent
-will refuse to start.
+If SNClient cannot download an include and no local cache exists, it refuses to start.
 
 ## Macros
 
-Macros can be used in the INI file configuration to access path variables.
+Use macros in INI files to access path variables.
 
 Supported macro variants:
 
@@ -236,8 +224,7 @@ Supported macro variants:
 
 ### Available Macros
 
-Basically all the values from the `[/paths]` section are available as macros
-plus some more.
+All values from the `[/paths]` section are available as macros, along with additional values.
 
 List of available macros:
 
@@ -257,8 +244,7 @@ List of available macros:
 
 ## On-Demand Macros
 
-Besides the path macros, you can access and reference any configuration value
-with on-demand macros:
+Use on-demand macros to access any configuration value:
 
 - `${/settings/section/attribute}`
 - `%(/settings/section/attribute)`
@@ -271,12 +257,12 @@ webserver component:
 alias_allowed_hosts = check_dummy 0 "weballowed:${/settings/WEB/server/allowed hosts}"
 ```
 
-On-demand macros are only available during the initial config parsing and will
-not be used for plugin arguments for security reasons.
+SNClient expands on-demand macros only when it first parses the configuration.
+For security reasons, it does not expand them in plugin arguments.
 
 ## Macro Operators
 
-The list of available macro operators is defined [here](../checks/macros/).
+See the [available macro operators](../checks/macros/).
 
 For example, to define a dummy command which prints the hostname in lowercase letters:
 

@@ -6,8 +6,7 @@ weight: 500
 
 ## Manual Update
 
-Manual updates usually work the same way as the initial installation. So you
-simply download the latest release:
+Manual updates usually follow the same steps as the initial installation. Download the latest release:
 
 - [SNClient Releases Page](https://github.com/ConSol-Monitoring/snclient/releases)
 
@@ -17,8 +16,8 @@ Then install the file as described on the [install page](../install/).
 
 ### SNClient Automatic Updates
 
-If possible, use the operating system's own update mechanism to automatically install updates.
-If not, SNClient can update itself periodically.
+If possible, use the operating system's update mechanism to install updates automatically.
+Otherwise, SNClient can update itself periodically.
 
 Configuration:
 
@@ -30,10 +29,9 @@ automatic updates = enabled
 automatic restart = enabled
 ```
 
-This will update SNClient to the latest stable release.
+These settings update SNClient to the latest stable release.
 
-If you want to use development builds, for example on test systems, you can
-add the dev channel as well.
+To use development builds, for example on test systems, add the dev channel.
 
 ```ini
 [/settings/updates]
@@ -46,16 +44,16 @@ channel = stable,dev
 github token = GITHUB-TOKEN...
 ```
 
-In order to use the dev channel, you need to create a GitHub token here: [github.com/settings/tokens](https://github.com/settings/tokens)
+To use the dev channel, create a GitHub token at [github.com/settings/tokens](https://github.com/settings/tokens).
 
-Unfortunately it is not possible to download the build artifacts without a token.
+You cannot download the build artifacts without a token.
 
-**Note:** The SNClient self-update works on Linux, but cannot safely transfer the required capabilities. So it will
-only fully work if you don't require any capabilities.
+**Note:** SNClient self-update works on Linux, but cannot safely transfer the required capabilities.
+It works fully only if you do not require capabilities.
 
 ### Debian / Ubuntu
 
-On Debian and Ubuntu you can make use of the `unattended-upgrades` package.
+On Debian and Ubuntu, use the `unattended-upgrades` package.
 
 - [wiki.debian.org](https://wiki.debian.org/UnattendedUpgrades)
 
@@ -63,8 +61,7 @@ Install the package:
 
     #> apt install unattended-upgrades
 
-Once installed you can add `labs.consol.de` to the list of sites used
-for automatic updates:
+After installation, add `labs.consol.de` to the list of sites for automatic updates:
 
 /etc/apt/apt.conf.d/50unattended-upgrades
 
@@ -73,14 +70,12 @@ for automatic updates:
         "site=labs.consol.de"
     }
 
-Then activate periodic updates by adding a cronjob entry to the root crontab:
+To activate periodic updates, open the root crontab:
 
     #> crontab -e
 
-And add:
+Add this entry to install updates at the start of every hour:
 
     0 * * * * /usr/bin/apt-get -qq update && /bin/bash -lc "/usr/bin/unattended-upgrade"
 
-To install updates at the start of every hour.
-
-Or see the [wiki.debian.org](https://wiki.debian.org/UnattendedUpgrades) for other ways.
+See [wiki.debian.org](https://wiki.debian.org/UnattendedUpgrades) for other methods.
