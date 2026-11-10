@@ -63,27 +63,27 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 // adopted from https://raw.githubusercontent.com/mackerelio/go-check-plugins/master/check-tcp/lib/
 // Apache-2.0 license
 type tcpOpts struct {
-	Service  string `long:"service" description:"Service name. e.g. ftp, smtp, pop, imap and so on"`
+	Service  string `long:"service" description:"Service name, for example ftp, smtp, pop, or imap"`
 	Hostname string `short:"H" long:"hostname" description:"Host name or IP address"`
 	IPv4     bool   `short:"4" long:"ipv4" description:"Resolve and connect using IPv4 only"`
 	IPv6     bool   `short:"6" long:"ipv6" description:"Resolve and connect using IPv6 only"`
 	exchange
 	Timeout      float64 `short:"t" long:"timeout" default:"10" description:"Seconds before connection times out"`
-	MaxBytes     int     `short:"m" long:"maxbytes" description:"Close connection once more than this number of bytes are received"`
-	Delay        float64 `short:"d" long:"delay" description:"Seconds to wait between sending string and polling for response"`
+	MaxBytes     int     `short:"m" long:"maxbytes" description:"If the received bytes exceed this number, close the connection"`
+	Delay        float64 `short:"d" long:"delay" description:"Seconds to wait after sending the string before polling for a response"`
 	Warning      float64 `short:"w" long:"warning" description:"Response time to result in warning status (seconds)"`
 	Critical     float64 `short:"c" long:"critical" description:"Response time to result in critical status (seconds)" default:"10"`
-	Escape       bool    `short:"E" long:"escape" description:"Can use \\n, \\r, \\t or \\ in send or quit string. Must come before send or quit option. By default, nothing added to send, \\r\\n added to end of quit"`
-	ErrWarning   bool    `short:"W" long:"error-warning" description:"Set the error level to warning when exiting with unexpected error (default: critical). If the request succeeds, evaluation of the -c option takes priority."`
-	ExpectClosed bool    `short:"C" long:"expect-closed" description:"Verify that the port/unixsock is closed. If the port/unixsock is closed, OK; if open, follow the ErrWarning flag. This option only verifies the connection."`
-	Verbose      bool    `short:"v" long:"verbose" description:"Enables verbose logging of the actions taken."`
+	Escape       bool    `short:"E" long:"escape" description:"Allow \\n, \\r, \\t or \\ in the send or quit string. Put this option before send or quit. By default, send adds nothing and quit appends \\r\\n"`
+	ErrWarning   bool    `short:"W" long:"error-warning" description:"On an unexpected error, return warning instead of the default critical status. If the request succeeds, the -c option takes priority."`
+	ExpectClosed bool    `short:"C" long:"expect-closed" description:"Check that the port/unixsock is closed. If closed, return OK. If open, follow the ErrWarning flag. Checks only the connection."`
+	Verbose      bool    `short:"v" long:"verbose" description:"Log the actions taken in verbose mode."`
 }
 
 type exchange struct {
 	Port               int    `short:"p" long:"port" description:"Port number"`
 	Send               string `short:"s" long:"send" description:"String to send to the server"`
-	ExpectPattern      string `short:"e" long:"expect-pattern" description:"Regexp pattern to expect in server response"`
-	Quit               string `short:"q" long:"quit" description:"String to send server to initiate a clean close of the connection"`
+	ExpectPattern      string `short:"e" long:"expect-pattern" description:"Regular expression to match in the server response"`
+	Quit               string `short:"q" long:"quit" description:"String to send to the server to close the connection cleanly"`
 	SSL                bool   `short:"S" long:"ssl" description:"Use SSL for the connection."`
 	UnixSock           string `short:"U" long:"unix-sock" description:"Unix Domain Socket"`
 	NoCheckCertificate bool   `long:"no-check-certificate" description:"Do not check certificate"`

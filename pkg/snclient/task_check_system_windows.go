@@ -116,10 +116,8 @@ func init() {
 		},
 	)
 
-	storageDeviceNumbers = getDriveStorageDeviceNumbers()
-
-	storageDeviceNumbersToWatch = getStorageDeviceNumbersToWatch()
-
+	// storageDeviceNumbers and storageDeviceNumbersToWatch are filled by
+	// refreshPlatformStorage() called from the shared rescanStorageDevices init
 	performanceFrequency = getPerformanceFrequency()
 }
 
@@ -131,9 +129,12 @@ func ioCountersWindows(names ...string) map[string]IOCountersStatWindows {
 	drivemap := make(map[string]IOCountersStatWindows, 0)
 	var dPerformance diskPerformance
 
+	// snapshot the watch map under the lock; the map is reassigned by rescan
+	watch := storageDeviceNumbersSnapshot()
+
 	// For getting a handle to the root of the drive, specify the path as \\.\PhysicalDriveX .
 	// This seems to be better at picking the correct drives that can do IoctlCalls
-	for deviceLetter, sdn := range storageDeviceNumbersToWatch {
+	for deviceLetter, sdn := range watch {
 		handlePath := `\\.\PhysicalDrive` + fmt.Sprintf("%d", sdn.DeviceNumber)
 
 		handle, err := windows.CreateFile(windows.StringToUTF16Ptr(handlePath), 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, 0, 0)
@@ -292,6 +293,24 @@ func getDriveStorageDeviceNumbers() map[string]storageDeviceNumberStruct {
 	return mappings
 }
 
+// storageDeviceNumbersSnapshot returns the physical drives to watch
+// under the storage lock
+func storageDeviceNumbersSnapshot() map[string]storageDeviceNumberStruct {
+	storageMu.RLock()
+	defer storageMu.RUnlock()
+
+	return storageDeviceNumbersToWatch
+}
+
+// refreshPlatformStorage refreshes the Windows IOCTL device maps so new drives
+// can be read by ioCountersWindows. Called by rescanStorageDevices on every rescan.
+func refreshPlatformStorage() {
+	storageMu.Lock()
+	storageDeviceNumbers = getDriveStorageDeviceNumbers()
+	storageDeviceNumbersToWatch = getStorageDeviceNumbersToWatch()
+	storageMu.Unlock()
+}
+
 func getStorageDeviceNumbersToWatch() map[string]storageDeviceNumberStruct {
 	// filter the real physical drives from all gathered storageDeviceNumbers
 	storageDeviceNumbersToWatch := make(map[string]storageDeviceNumberStruct)
@@ -343,15 +362,22 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 	diskIOCounters := ioCountersWindows()
 	// do not create the counters if there is an error
 
-	if create {
-		for diskName := range diskIOCounters {
-			if !diskEligibleForWatch(diskName) {
+	for diskName := range diskIOCounters {
+		if !diskEligibleForWatch(diskName) {
+			if create {
 				log.Tracef("not adding disk stat counter since it is found to be not-physical: %s", diskName)
-
-				continue
 			}
 
-			category := "disk_" + diskName
+			continue
+		}
+
+		category := "disk_" + diskName
+
+		// create the counters if they are missing, e.g. the drive was connected after start
+		if create || c.snc.Counter.Get(category, "write_bytes") == nil {
+			if !create {
+				log.Infof("creating disk stat counters for new device: %s", diskName)
+			}
 			c.snc.counterCreate(category, "write_bytes", c.bufferLength, c.metricsInterval)
 			c.snc.counterCreate(category, "write_count", c.bufferLength, c.metricsInterval)
 			c.snc.counterCreate(category, "read_bytes", c.bufferLength, c.metricsInterval)
@@ -359,15 +385,6 @@ func (c *CheckSystemHandler) addDiskStats(create bool) {
 			c.snc.counterCreate(category, "idle_time", c.bufferLength, c.metricsInterval)
 			c.snc.counterCreate(category, "query_time", c.bufferLength, c.metricsInterval)
 		}
-	}
-
-	// use the no-copy range iteraiton, otherwise we copy the whole struct and linter does not allow it
-	for diskName := range diskIOCounters {
-		if !diskEligibleForWatch(diskName) {
-			continue
-		}
-
-		category := "disk_" + diskName
 
 		c.snc.Counter.Set(category, "write_bytes", float64(diskIOCounters[diskName].WriteBytes))
 		c.snc.Counter.Set(category, "write_count", float64(diskIOCounters[diskName].WriteCount))

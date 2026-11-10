@@ -21,7 +21,7 @@ func NewCheckIndex() CheckHandler {
 func (l *CheckIndex) Build() *CheckData {
 	return &CheckData{
 		name:          "check_index",
-		description:   "Returns list of all known checks.",
+		description:   "Returns a list of all known checks.",
 		implemented:   ALL,
 		detailSyntax:  "%(name)",
 		topSyntax:     "%(list)",

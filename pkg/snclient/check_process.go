@@ -24,15 +24,15 @@ func NewCheckProcess() CheckHandler {
 func (l *CheckProcess) Build() *CheckData {
 	return &CheckData{
 		name:         "check_process",
-		description:  "Checks the state and metrics of one or multiple processes.",
+		description:  "Checks the state and metrics of one or more processes.",
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"process":  {value: &l.processes, description: "The process to check, set to * to check all. (Case insensitive) Default: *", isFilter: true},
-			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
+			"process":  {value: &l.processes, description: "Process to check (case insensitive). Set to * to check all processes. Default: *", isFilter: true},
+			"timezone": {description: "Set the timezone for time metrics (default is local time)"},
 		},
 		conditionAlias:  l.buildConditionAlias(),
 		okSyntax:        "%(status) - all %(count) processes are ok.",
@@ -53,7 +53,7 @@ func (l *CheckProcess) Build() *CheckData {
 			{name: "ppid", description: "Parent process id"},
 			{name: "uid", description: "User id of process owner (Linux only)"},
 			{name: "username", description: "User name of process owner (Linux only)"},
-			{name: "cpu", description: "CPU usage in percent (average since the last check, or since process start if no previous sample is available)", unit: UPercent},
+			{name: "cpu", description: "CPU usage in percent, averaged since the last check. Without a previous sample, the average starts at process start.", unit: UPercent},
 			{name: "cpu_seconds", description: "CPU usage in seconds", unit: UDuration},
 			{name: "virtual", description: "Virtual memory usage in bytes", unit: UByte},
 			{name: "rss", description: "Resident memory usage in bytes", unit: UByte},
@@ -71,7 +71,7 @@ func (l *CheckProcess) Build() *CheckData {
     check_process
     OK - 417 processes. |'count'=417;;;0
 
-Check specific process(es) by name (adding some metrics as well)
+Check specific processes by name and include their metrics:
 
     check_process \
         process=httpd \
@@ -80,12 +80,12 @@ Check specific process(es) by name (adding some metrics as well)
         top-syntax='%(status) - %(count) processes, memory %(rss|h)B, cpu %(cpu:fmt=%.1f)%, started %(oldest:age|duration) ago'
     WARNING - 12 processes, memory 62.58 MB, cpu 0.7%, started 01:11h ago |...
 
-If zero is a valid threshold, set thresholds accordingly
+If zero is a valid threshold, set thresholds accordingly:
 
     check_process process=qemu warn='count < 0 || count > 10' crit='count < 0 || count > 20'
     OK - no processes found with this filter.
 
-In case you want to check if a given process is NOT running use something like:
+To check that a given process is not running:
 
 	check_process process=must_not_run.exe 'crit=count>0' warn=none
 	OK - no processes found with this filter.
@@ -161,7 +161,7 @@ func (l *CheckProcess) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		"youngest":    fmt.Sprintf("%d", youngest),
 	}
 
-	if check.HasThreshold("rss") || len(l.processes) > 0 || len(check.filter) > 0 {
+	if check.HasMetric("rss") || len(l.processes) > 0 || len(check.filter) > 0 {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:     "rss",
 			Unit:     "B",
@@ -172,7 +172,7 @@ func (l *CheckProcess) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		})
 	}
 
-	if check.HasThreshold("virtual") || len(l.processes) > 0 || len(check.filter) > 0 {
+	if check.HasMetric("virtual") || len(l.processes) > 0 || len(check.filter) > 0 {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:     "virtual",
 			Unit:     "B",
@@ -183,7 +183,7 @@ func (l *CheckProcess) Check(ctx context.Context, snc *Agent, check *CheckData, 
 		})
 	}
 
-	if check.HasThreshold("cpu") || len(l.processes) > 0 || len(check.filter) > 0 {
+	if check.HasMetric("cpu") || len(l.processes) > 0 || len(check.filter) > 0 {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:     "cpu",
 			Unit:     "%",
@@ -193,7 +193,7 @@ func (l *CheckProcess) Check(ctx context.Context, snc *Agent, check *CheckData, 
 			Critical: check.critThreshold,
 		})
 	}
-	if check.HasThreshold("cpu_seconds") {
+	if check.HasMetric("cpu_seconds") {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:     "cpu_seconds",
 			Unit:     "s",

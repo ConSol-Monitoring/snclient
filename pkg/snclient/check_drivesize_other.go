@@ -23,17 +23,17 @@ func (l *CheckDrivesize) getExample() string {
     check_drivesize drive=/ show-all
 		OK - / 280.155 GiB/455.948 GiB (64.7%) |...
 
-Check drive including inodes:
+Check a drive, including its inodes:
 
     check_drivesize drive=/ warn="used > 90%" "crit=used > 95%" "warn=inodes > 90%" "crit=inodes > 95%"
     OK - All 1 drive(s) are ok |'/ used'=307515822080B;440613398938;465091921101;0;489570443264 '/ used %'=62.8%;90;95;0;100 '/ inodes'=12.1%;90;95;0;100
 
-Check folder, no matter if it's a mount point itself or not:
+Check a folder, whether or not it is a mount point:
 
     check_drivesize folder=/tmp show-all
 		OK - /tmp 280.155 GiB/455.948 GiB (64.7%) |...
 
-This check supports specifying different usage thresholds for each drive. Use '[drive] used_pct' or '[drive] used %' in the condition:
+Set different usage thresholds for each drive with '[drive] used_pct' or '[drive] used %' in the condition:
 	check_drivesize "drive=/" "drive=/tmp" "warn='/ used_pct' gt 70" "crit='/tmp used %' > 1"
 	CRITICAL - / 428.040 GiB/935.929 GiB (45.7%), /tmp 471.496 MiB/31.127 GiB (1.5%) |'/ used'=459604856832B;;;0;1004946423808 '/ used %'=45.7%;70;;0;100 '/tmp used'=494399488B;;;0;33422544896 '/tmp used %'=1.5%;;1;0;100
 	`

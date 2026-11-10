@@ -4,28 +4,24 @@ linkTitle: Compatibility
 ---
 
 SNClient aims to remain compatible with NSClient++, but some behavior differs.
-Useful features have been retained, while others are no longer supported.
-
-The differences are listed below.
+SNClient keeps useful features but no longer supports some others.
 
 ## Configuration
 
 ![Change](../icons/changed.png "this is different in SNClient")
 
-The way SNClient reads the ini files is different and more intuitive. Config files
-will be read from top to bottom and if the same value is encountered again it
-will be overwritten. The last value wins.
+SNClient reads INI files differently from NSClient++.
+It reads configuration files from top to bottom. If a setting appears more than once, the last value wins.
 
-That way you can have a default config with all default values and use a simple
-include at the end to customize local settings.
+Keep default values in the main configuration. Use an include at the end to customize local settings.
 
 ### Modules
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
 
-In addition to the global `[/modules]` section, most modules which have their
-own configuration section can also be enabled in that section. So you can keep
-related settings in one place.
+You can enable modules in the global `[/modules]` section.
+Most modules with their own configuration section can also use that section to enable the module.
+This keeps related settings in one place.
 
 For example:
 
@@ -41,18 +37,15 @@ is the same as
 NodeExporterServer = enabled
 ```
 
-If the latter setting in the specific category exists, it will always override the
-value from the modules section.
+If a module's own section contains this setting, it overrides the value from the modules section.
 
 ### Includes
 
-The SNClient supports including configuration files, either from a local folder or over HTTPS.
+SNClient supports configuration includes from local folders or HTTPS URLs.
 
-This helps keep your configuration organized. Best practice is to keep the
-default configuration as it is and override custom values from a separate new
-file.
+Use includes to organize your configuration. Keep the default configuration unchanged and override values in a separate file.
 
-Included files from `[/includes]` are evaluated directly in the order of appearance.
+SNClient evaluates files from `[/includes]` directly in the order they appear.
 
 SNClient supports wildcards and folders in includes as well, for example:
 
@@ -70,16 +63,14 @@ Read more about includes on the [configuration page](../configuration/#includes)
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
 
-SNClient supports performance data compatible with the Monitoring Plugins guidelines as
-described in [the official plugin developer guidelines](https://www.monitoring-plugins.org/doc/guidelines.html#AEN201).
+SNClient supports performance data that follows [the official plugin developer guidelines](https://www.monitoring-plugins.org/doc/guidelines.html#AEN201) from Monitoring Plugins.
 
-In addition to standard thresholds, SNClient added support for ranges, for example: `10:20` or `@10:20`.
+In addition to standard thresholds, SNClient supports ranges such as `10:20` or `@10:20`.
 
 See examples here:
 [threshold format](https://www.monitoring-plugins.org/doc/guidelines.html#THRESHOLDFORMAT)
 
-It is advised to always use the latest [check_snclient plugin](https://github.com/ConSol-Monitoring/check_snclient)
-(formerly check_nsc_web) to do the checks.
+Use the latest [check_snclient plugin](https://github.com/ConSol-Monitoring/check_snclient) (formerly check_nsc_web) to run checks.
 Previous releases did not fully support those ranges.
 
 ### Bytes
@@ -105,10 +96,9 @@ SNClient uses IEC units if possible. This means for example:
 
 ![Change](../icons/changed.png "this is different in SNClient")
 
-The `perf-config` option has been simplified. Multiple config options are applied
-in order and only the first match is applied.
+SNClient simplifies `perf-config`. It processes configuration options in order and applies only the first match.
 
-A detailed description can be found on the [performance configuration page](../checks/perfconfig/).
+See the [performance configuration page](../checks/perfconfig/) for details.
 
 SNClient's perf-config has an additional `magic` option to apply a magic factor.
 
@@ -116,8 +106,8 @@ SNClient's perf-config has an additional `magic` option to apply a magic factor.
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
 
-SNClient allows arguments from alias definitions, even if `allow arguments` is not allowed. Only additional arguments
-are not allowed in this case.
+SNClient accepts arguments from alias definitions even when `allow arguments` is disabled.
+In this case, it blocks only additional arguments.
 
 For example: this works, even with `allow arguments` disabled.
 
@@ -126,8 +116,8 @@ For example: this works, even with `allow arguments` disabled.
 alias_test = check_cpu warn=load=80 crit=load=90
 ```
 
-When enabling arguments, make sure to use quoted arguments like `$ARGS"$`. Using unquoted
-arguments leads to command injection vulnerabilities.
+If you enable arguments, use quoted arguments like `$ARGS"$`.
+Unquoted arguments lead to command injection vulnerabilities.
 
 ## Allow Nasty Characters Handling
 
@@ -148,8 +138,8 @@ Change the list of nasty chars with the `nasty characters` configuration option.
 nasty characters = $|`&><'"\\[]{};\n\r
 ```
 
-It is not advised to remove any of the default characters. Each of them is there
-for a reason and removing them might lead to command injection vulnerabilities.
+Do not remove default characters. Each character protects against attacks.
+Removing characters might lead to command injection vulnerabilities.
 
 ## Allow Control Characters Handling
 
@@ -168,15 +158,13 @@ allow control characters = false
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
 
-The `allowed hosts` configuration is available for all network services, not only NRPE. The REST webserver can make use
-of it as well.
+All network services, including NRPE and the REST web server, support `allowed hosts`.
 
 ## TLS/SSL Configuration
 
 ![Change](../icons/changed.png "this is different in SNClient")
 
-The TLS configuration has been simplified. Instead of setting specific ciphers, you can now set a
-minimum required TLS version.
+SNClient simplifies TLS configuration. Set a minimum required TLS version instead of specific ciphers.
 
 For example:
 
@@ -185,10 +173,10 @@ For example:
 tls min version = "tls1.3"
 ```
 
-Allowing TLS 1.2 or higher (default) disables known insecure ciphers. Allowing
-TLS lower than 1.2 enables all ciphers (even the insecure ones).
+The default, TLS 1.2 or higher, disables known insecure ciphers.
+If you allow TLS below 1.2, SNClient enables all ciphers, including insecure ones.
 
-The list of ciphers can be found on [go.dev](https://pkg.go.dev/crypto/tls#pkg-constants).
+See the cipher list on [go.dev](https://pkg.go.dev/crypto/tls#pkg-constants).
 
 ## Passwords
 
@@ -212,13 +200,14 @@ password = SHA256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a
 
 ## Checks
 
-Check specific changes and enhancements:
+The following sections describe changes to individual checks.
 
 ### check_drivesize
 
 ![Change](../icons/changed.png "this is different in SNClient")
 
-The `check_drivesize` handles multiple drives differently if some are not available. SNClient requires all specified paths to exist.
+When some drives are unavailable, `check_drivesize` handles multiple drives differently from NSClient++.
+SNClient requires all specified paths to exist.
 
 Example:
 
@@ -228,7 +217,7 @@ check_drivesize drive=c drive=f
 UNKNOWN - failed to find disk partition: CreateFile f:: The system cannot find the path specified.
 ```
 
-If the drives are optional as long as one drive exists, you could make use of a filter like this:
+If only one of the drives needs to exist, use a filter like this:
 
 ```bash
 check_drivesize filter="letter='C' or letter='F'"
@@ -240,7 +229,8 @@ OK - All 1 drive(s) are ok |....
 
 ![Change](../icons/changed.png "this is different in SNClient")
 
-`check_files` now only has one metric for `access, creation and written` time instead of multiple for local and utc timezones. As a replacement it has the option to set the timezone by using the timezone argument. The default is the local timezone.
+`check_files` has one metric for each of `access, creation and written` time, instead of separate metrics for local and utc timezones.
+Use the timezone argument to set the timezone. The default is the local timezone.
 
 Example:
 
@@ -259,14 +249,14 @@ check_process process=noneexisting.exe crit="state = 'started'" empty-state=0
 OK - no processes found with this filter. |...
 ```
 
-The trick is to add `empty-state=0` so in case there is no process, the result will be OK. And in
-case there is a process, the normal critical expression will be used.
+Add `empty-state=0` to return OK when no process exists.
+If a process exists, SNClient uses the normal critical expression.
 
 ### check_service
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
 
-The `check_service` adds memory and CPU metrics if the service is running.
+If the service is running, `check_service` adds memory and CPU metrics.
 
 ```bash
 check_service service=snclient
@@ -277,5 +267,5 @@ OK - All 1 service(s) are ok. |'snclient'=4;;;; 'snclient rss'=12943360B;;;; 'sn
 
 ![Feature](../icons/feature.png "this is a new thing in SNClient")
 
-`check_tasksched` also has the option to set the timezone using the timezone argument.
-The default is still local time.
+Use the timezone argument to set the timezone for `check_tasksched`.
+The default is local time.

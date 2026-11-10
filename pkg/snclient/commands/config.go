@@ -12,9 +12,9 @@ func init() {
 	configCmd := &cobra.Command{
 		Use:     "config [cmd]",
 		Aliases: []string{"conf"},
-		Short:   "Run configuration test or dump config in use.",
-		Long:    `Config test verifies the current configuration files.`,
-		Example: `  * Run configuration check
+		Short:   "Test the configuration or dump the configuration in use.",
+		Long:    `The configuration test verifies the current configuration files.`,
+		Example: `  * Check the configuration
 
 %> snclient config check
 `,
@@ -25,7 +25,7 @@ func init() {
 	configCmd.AddCommand(&cobra.Command{
 		Use:     "check",
 		Aliases: []string{"test"},
-		Short:   "Checks current configuration files.",
+		Short:   "Check the current configuration files.",
 		Run:     configTest,
 	})
 }

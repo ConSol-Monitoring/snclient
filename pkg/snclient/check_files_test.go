@@ -821,9 +821,13 @@ func TestCheckFilesFilesystemLinks2(t *testing.T) {
 // duBytes returns the on-disk allocated size of a file in bytes as reported by `du`.
 // GNU du interprets -B1 as a 1 byte unit, while BSD/macOS du interprets it as one
 // 512 byte block, so the BSD output is scaled to bytes to stay consistent.
+//
+// BSD du prints the result in units of $BLOCKSIZE, -B only rounds the internal
+// accounting block size up to 512 bytes. FreeBSD's default login class sets
+// BLOCKSIZE=K, which ssh sessions inherit, so pin it to get 512 byte blocks.
 func duBytes(t *testing.T, path string) uint64 {
 	t.Helper()
-	out, err := exec.Command("du", "-B1", path).Output()
+	out, err := exec.Command("env", "BLOCKSIZE=512", "du", "-B1", path).Output()
 	require.NoErrorf(t, err, "du -B1 %s failed: %s", path, err)
 	fields := strings.Fields(string(out))
 	require.Lenf(t, fields, 2, "unexpected du output for %s: %s", path, out)

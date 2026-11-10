@@ -3,8 +3,7 @@ title: Logo
 linkTitle: Logo
 ---
 
-The logo can be used under the same license as SNClient itself to link back to
-the SNClient homepage or source code.
+Use the logo under the same license as SNClient to link to the SNClient homepage or source code.
 
 <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; margin: 1.5rem 0;">
   <section aria-labelledby="logo-light-mode">

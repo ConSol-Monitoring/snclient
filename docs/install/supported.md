@@ -6,11 +6,9 @@ description: Review supported operating systems and CPU architectures for SNClie
 
 # Supported Systems
 
-We are trying to build the SNClient to be as compatible as possible. Due to
-limited hardware, we are not able to test the agent on all operating systems.
+We aim to support as many systems as possible. Limited hardware prevents us from testing SNClient on all operating systems.
 
-If you are using SNClient anywhere not listed here, feel free to open an issue
-on GitHub to update this page.
+If you use SNClient on a system not listed here, open an issue on GitHub so we can update this page.
 
 If no installer package is available for your system, you might still succeed
 by [building SNClient from source](../build).
@@ -51,21 +49,20 @@ Arch Linux:
 
 - Current rolling release
 
-Others will quite likely work as well, but haven't been tested yet.
+Other systems will likely work, but we have not tested them yet.
 
 ## macOS / Darwin
 
 - macOS >= 13
 
-Others will quite likely work as well, but haven't been tested yet.
+Other systems will likely work, but we have not tested them yet.
 
 ## FreeBSD
 
 - FreeBSD >= 14
 
-Others will quite likely work as well, but haven't been tested yet.
+Other systems will likely work, but we have not tested them yet.
 
 ## Other
 
-Feel free to open an issue on GitHub if you are running the agent somewhere not
-listed here.
+If you run the agent on a system not listed here, open an issue on GitHub.

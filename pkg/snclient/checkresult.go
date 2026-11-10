@@ -173,6 +173,43 @@ func (cr *CheckResult) BuildPluginOutput() []byte {
 	return output
 }
 
+// SynthesizePerfConfigMetrics adds metrics for perf-config selectors that match keys in the check's listData.
+// It adds only values that the check computes but does not emit as metrics by default.
+// A bare "*" selector must not add metrics.
+func (cr *CheckResult) SynthesizePerfConfigMetrics(perfCfg []PerfConfig) {
+	if cr.Raw == nil || len(cr.Raw.listData) != 1 {
+		return
+	}
+	entry := cr.Raw.listData[0]
+	for i := range perfCfg {
+		perf := perfCfg[i]
+		if perf.Selector == "*" {
+			continue
+		}
+		for name, value := range entry {
+			if !perf.Match(name) {
+				continue
+			}
+			// if a metric with this name already exists, skip
+			exists := false
+			for _, m := range cr.Metrics {
+				if m.Name == name {
+					exists = true
+				}
+			}
+			if exists {
+				continue
+			}
+			cr.Metrics = append(cr.Metrics, &CheckMetric{
+				Name:       name,
+				Value:      value,
+				Unit:       perf.Unit,
+				PerfConfig: &perf,
+			})
+		}
+	}
+}
+
 // ParsePerformanceDataFromOutputCond checks the 'ignore perfdata' and extracts performance data unless disabled
 func (cr *CheckResult) ParsePerformanceDataFromOutputCond(command string, conf *ConfigSection) {
 	ignorePerfdata, ok, err := conf.GetBool("ignore perfdata")

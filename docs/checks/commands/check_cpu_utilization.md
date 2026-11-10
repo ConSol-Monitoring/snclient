@@ -29,17 +29,17 @@ Checks the CPU utilization metrics.
 
 ## Check Specific Arguments
 
-| Argument         | Description                                                           |
-| ---------------- | --------------------------------------------------------------------- |
-| n\|procs-to-show | Number of processes to show when printing the top consuming processes |
-| range            | Sets time range to calculate average (default is 1m)                  |
-| show-args        | Show arguments when listing the top N processes                       |
+| Argument         | Description                                        |
+| ---------------- | -------------------------------------------------- |
+| n\|procs-to-show | Number of top resource-consuming processes to show |
+| range            | Time range for the average (default is 1m)         |
+| show-args        | Show arguments for the top N processes             |
 
 ## Attributes
 
 ### Filter Keywords
 
-these can be used in filters and thresholds (along with the default attributes):
+Use these attributes in filters and thresholds, along with the default attributes:
 
 | Attribute | Description                                             |
 | --------- | ------------------------------------------------------- |

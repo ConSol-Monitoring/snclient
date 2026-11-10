@@ -2,19 +2,16 @@
 title: Filters
 ---
 
-Filters can be used to select specific objects from a result list. So if a filter
-is specified, only those elements matching the filter will be considered when
-building the final result.
+Filters select objects from a result list. If you specify a filter, SNClient uses only matching items in the final result.
 
-The same syntax is used for warning/critical/ok thresholds, except when used
-as a threshold, the corresponding status will be set.
+The warning/critical/ok thresholds use the same syntax. A matching threshold sets the corresponding status.
 
 ## Syntax
 
-All filters follow the syntax `<attribute> <operator> <value>`. For a list and explanation
-of allowed operators see [the operator list](../expressions).
+All filters follow the syntax `<attribute> <operator> <value>`.
+See [the operator list](../expressions) for the allowed operators and their meanings.
 
-The list of possible attributes is documented along with each [check plugin](../plugins).
+Each [check plugin](../plugins) documents its available attributes.
 
 [Common attributes](#common-filter-attributes) are listed at the end of this page.
 
@@ -22,9 +19,9 @@ For example:
 
     filter="status = 'started'"
 
-Syntax is explained in detail on the [expressions page](../expressions).
+See the [expressions page](../expressions) for syntax details.
 
-Multiple filters can be used and will be combined with a logical `OR`.
+SNClient combines multiple filters with a logical `OR`.
 
 For example:
 
@@ -41,24 +38,23 @@ For example:
 
 ## Default Filter
 
-Some checks have a default filter, which will be used if no filter is supplied
-as a check argument.
+Some checks have a default filter. SNClient uses it if you do not supply a filter as a check argument.
 
-Default filters are documented along with each [check plugin](../plugins).
+Each [check plugin](../plugins) documents its default filters.
 
-The default filter can be unset by using a `none` filter, for example:
+To unset the default filter, use a `none` filter. For example:
 
     filter="none"
 
-The default filter will be overwritten if a new filter is set.
+A new filter replaces the default filter.
 
 ## Extending Filters
 
-An existing default filter can be extended using the `filter+="..."` syntax, for example:
+To extend a default filter, use the `filter+="..."` syntax. For example:
 
     filter+="status = 'started'"
 
-When extending the default filter, all filters will be combined with a logical `AND`.
+When you extend the default filter, SNClient combines all filters with a logical `AND`.
 
 For example:
 
@@ -82,7 +78,7 @@ also results in:
 
 ## Expressions
 
-Expressions are explained on the [expressions page](../expressions).
+See the [expressions page](../expressions) for details.
 
 ## Common Filter Attributes
 

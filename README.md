@@ -11,22 +11,22 @@
 [![License](https://img.shields.io/github/license/Consol-Monitoring/snclient)](https://github.com/Consol-Monitoring/snclient/blob/main/LICENSE)
 [![IRC](https://img.shields.io/badge/IRC-libera.chat%2F%23snclient-blue)](https://web.libera.chat/?nick=Guest?#snclient)
 
-SNClient (Secure Naemon Client) is a general-purpose monitoring agent designed as a replacement for NRPE and NSClient++.
+SNClient (Secure Naemon Client) is a general-purpose monitoring agent that replaces NRPE and NSClient++.
 
 ## Contact
 
-* Report a Security Advisory via [GitHub Security](https://github.com/Consol-Monitoring/snclient/security).
-* Mailing list on [Google Groups](https://groups.google.com/group/snclient).
+* Report a security advisory through [GitHub Security](https://github.com/Consol-Monitoring/snclient/security).
+* Join the mailing list on [Google Groups](https://groups.google.com/group/snclient).
 * Ask a question on [Stack Overflow](https://stackoverflow.com/questions/tagged/snclient).
-* File a Bug in [GitHub Issues](https://github.com/Consol-Monitoring/snclient/issues).
+* Report a bug in [GitHub Issues](https://github.com/Consol-Monitoring/snclient/issues).
 * Chat with developers on [IRC Libera #snclient](irc://irc.libera.chat/snclient) ([Webchat](https://web.libera.chat/?nick=Guest?#snclient)).
-* Professional Support from [ConSol*](https://www.consol.com/product-solutions/open-source-monitoring/).
+* Get professional support from [ConSol*](https://www.consol.com/product-solutions/open-source-monitoring/).
 
 ## Documentation
 
-The documentation can be found on [omd.consol.de](https://omd.consol.de/docs/snclient/).
+Read the documentation on [omd.consol.de](https://omd.consol.de/docs/snclient/).
 
-It is maintained in [docs/](docs/).
+The documentation source is in [docs/](docs/).
 
 ## Supported Operating Systems
 
@@ -49,10 +49,10 @@ See the detailed list of [supported operating systems](docs/install/supported.md
 
 ## Installation
 
-There are prebuilt binaries and packages for all supported systems (see above) on the
+Download prebuilt binaries and packages for all supported systems from the
 [release page](https://github.com/Consol-Monitoring/snclient/releases).
 
-Further details are covered in the [documentation](https://omd.consol.de/docs/snclient/install/).
+Follow the [installation instructions](https://omd.consol.de/docs/snclient/install/).
 
 ## Check Plugin Status
 
@@ -100,18 +100,17 @@ Further details are covered in the [documentation](https://omd.consol.de/docs/sn
 
 ## Roadmap
 
-Find a brief overview of what is planned:
+Planned changes:
 
 * [ ] add time support in thresholds, e.g. warn=time > 18:00 && load > 10
 * [ ] OpenTelemetry
 * [ ] improve configuration
-  * [ ] add config validator
+  * [ ] add a configuration validator
   * [ ] use strongly typed configuration items
-  * [ ] add module enable/disable option directly in the module section
 
 ## Not gonna happen
 
-The following features will most likely not be included in SNClient:
+SNClient will most likely not include these features:
 
 * CheckMK support
 * Embedded Lua support

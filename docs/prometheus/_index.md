@@ -7,7 +7,7 @@ tags:
   - exporter
 ---
 
-There are several Prometheus integrations in SNClient.
+SNClient supports several Prometheus integrations.
 
 ## Overview
 
@@ -19,36 +19,32 @@ There are several Prometheus integrations in SNClient.
 
 ## Windows Exporter
 
-When running SNClient on Windows there is a built-in Windows exporter.
+SNClient includes a built-in Windows exporter on Windows.
 
 [Read more about the windows_exporter](windows).
 
 ## Node Exporter
 
-When running SNClient on Linux or macOS there is a built-in node exporter.
+SNClient includes a built-in node exporter on Linux and macOS.
 
 [Read more about the node_exporter](node).
 
 ## Managed Exporters
 
-Managed exporters are exporters started and managed by SNClient. They will get
-a uniquely assigned URL in the main webserver of SNClient.
+SNClient starts and manages these exporters. Each exporter gets a unique URL on SNClient's main web server.
 
 [Read more about managed exporters](managed).
 
 ## Exporter Exporter
 
-The exporter_exporter (expexp) is a reverse proxy for already existing exporters.
+The exporter_exporter (expexp) is a reverse proxy for existing exporters that SNClient does not manage.
 [Read more about this exporter](exporter).
-
-The exporter exporter is for exporters not managed by SNClient.
 
 ## Metrics
 
-SNClient itself is a Prometheus exporter as well and provides some metrics
-about the agent process.
+SNClient also exports Prometheus metrics about its own process.
 
-It can be enabled in the modules section of the `snclient.ini`.
+Enable these metrics in the modules section of `snclient.ini`:
 
 ```ini
 [/modules]

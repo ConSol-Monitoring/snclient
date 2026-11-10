@@ -13,8 +13,7 @@ tags:
 
 ## Node Exporter
 
-When running SNClient on Linux or macOS there is a built-in node exporter which can be
-enabled by:
+On Linux or macOS, enable the built-in node exporter with these settings:
 
 ```ini
 [/modules]
@@ -30,9 +29,9 @@ require password = false
 
 You can then scrape Linux metrics from `http://<ip>:8443/node/metrics`.
 
-The node exporter will run as user `nobody` unless you set `agent user` otherwise.
+The node exporter runs as user `nobody` unless you set a different `agent user`.
 
-The Prometheus scrape config might look like this:
+Example Prometheus scrape configuration:
 
 ```yaml
 - job_name: 'node'
@@ -51,5 +50,5 @@ The Prometheus scrape config might look like this:
   - targets: ['<ip>:8443']
 ```
 
-SNClient will monitor the node exporter's memory usage and restart the exporter if
-it exceeds the `agent max memory` limit. The default is 256MB.
+SNClient monitors the node exporter's memory usage.
+If usage exceeds `agent max memory`, SNClient restarts the exporter. The default limit is 256MB.

@@ -8,25 +8,26 @@ assignees: ''
 ---
 
 **Describe the bug**
-A clear and concise description of what the bug is.
+Describe the bug clearly and briefly.
 
 **To Reproduce**
-Steps to reproduce the behavior:
+List the steps to reproduce the bug:
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
-4. See error
+4. See the error
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
+Describe what you expected to happen.
 
 **Screenshots**
-If applicable, add screenshots to help explain your problem.
+If screenshots help explain the problem, add them.
 
-**Software (please complete the following information):**
+**Software**
+Provide this information:
  - OS [e.g. Rocky 9.4 / Windows Server 2019]
  - Architecture [e.g. x86, arm]
  - SNClient Version [e.g. v0.29]
 
 **Additional context**
-Add any other context about the problem here.
+Add any other details about the problem.

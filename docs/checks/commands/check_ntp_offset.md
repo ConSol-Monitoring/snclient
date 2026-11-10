@@ -39,7 +39,7 @@ Checks the NTP offset.
 
 ### Filter Keywords
 
-these can be used in filters and thresholds (along with the default attributes):
+Use these attributes in filters and thresholds, along with the default attributes:
 
 | Attribute             | Description                                                                                   |
 | --------------------- | --------------------------------------------------------------------------------------------- |

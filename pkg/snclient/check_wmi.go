@@ -32,7 +32,7 @@ func (l *CheckWMI) Build() *CheckData {
 		name: "check_wmi",
 		description: `Check status and metrics by running WMI queries.
 
-In order to use this plugin, you need to enable <code>CheckWMI</code> in the <code>[/modules]</code> section of the snclient_local.ini.`,
+To use this plugin, enable <code>CheckWMI</code> in the <code>[/modules]</code> section of snclient_local.ini.`,
 		implemented: Windows,
 		args: map[string]CheckArgument{
 			"query":     {value: &l.query, description: "The WMI query to execute"},
@@ -56,12 +56,13 @@ In order to use this plugin, you need to enable <code>CheckWMI</code> in the <co
     check_wmi "query=select DeviceID, FreeSpace FROM Win32_LogicalDisk WHERE DeviceID = 'C:'"
     C:, 27955118080
 
-Same query, but use output template for custom plugin output:
+Use the same query with an output template to customize plugin output:
 
     check_wmi "query=select DeviceID, FreeSpace FROM Win32_LogicalDisk WHERE DeviceID = 'C:'" "detail-syntax= %(DeviceID) %(FreeSpace:h)"
     C: 27.94 G
 
-Performance data will be extracted if the query contains at least 2 attributes. The first one must be a name, the others must be numeric.
+If the query contains at least 2 attributes, SNClient extracts performance data.
+The first attribute must be a name. The other attributes must be numeric.
 
     check_wmi query="select DeviceID, FreeSpace, Size FROM Win32_LogicalDisk"
 	C:, 27199328256 |'C: FreeSpace'=27199328256

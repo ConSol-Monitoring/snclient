@@ -19,19 +19,18 @@ func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "snclient [global flags] [command]",
 		Short: "Multi-platform monitoring agent for Naemon and Prometheus.",
-		Long: `SNClient is a generic monitoring agent available for multiple platforms.
-It aims to provide a basic set of fault monitoring and metrics
-while being easily extendible with own script and checks.`,
-		Example: `  * Start server
+		Long: `SNClient is a general-purpose monitoring agent for multiple platforms.
+It aims to provide basic fault monitoring and metrics. Add your own scripts and checks to extend it.`,
+		Example: `  * Start the server
     %> snclient server
 
-  * Start as daemon in background
+  * Start as a background daemon
     %> snclient daemon
 
-  * Check snclient version with compiled in plugins:
+  * Show the SNClient version and compiled-in plugins:
     %> snclient -vV
 
-  * Check for update in verbose mode
+  * Check for an update in verbose mode
     %> snclient update -v
 `,
 		RunE: func(_ *cobra.Command, _ []string) error {
@@ -62,13 +61,13 @@ func init() {
 func addFlags(cmd *cobra.Command, flags *snclient.AgentFlags) {
 	cmd.PersistentFlags().BoolVarP(&flags.Help, "help", "h", false, "print help and exit")
 	cmd.PersistentFlags().BoolVarP(&flags.Version, "version", "V", false, "print version and exit")
-	cmd.PersistentFlags().StringArrayVarP(&flags.ConfigFiles, "config", "c", []string{}, "path to config file, supports wildcards like *.ini (default is ./snclient.ini) (multiple)")
+	cmd.PersistentFlags().StringArrayVarP(&flags.ConfigFiles, "config", "c", []string{}, "configuration file path. Supports wildcards like *.ini (default is ./snclient.ini). Repeat for multiple files")
 	cmd.PersistentFlags().BoolVarP(&flags.Quiet, "quiet", "q", false, "set loglevel to error")
-	cmd.PersistentFlags().CountVarP(&flags.Verbose, "verbose", "v", "increase loglevel, -v means debug, -vv means trace")
+	cmd.PersistentFlags().CountVarP(&flags.Verbose, "verbose", "v", "increase log level: -v for debug, -vv for trace")
 	cmd.PersistentFlags().StringVarP(&flags.LogLevel, "loglevel", "", "", "set loglevel to one of: off, error, info, debug, trace")
 	cmd.PersistentFlags().StringVarP(&flags.LogFormat, "logformat", "", "", "override logformat, see https://pkg.go.dev/github.com/kdar/factorlog")
 	cmd.PersistentFlags().StringVarP(&flags.LogFile, "logfile", "", "", "Path to log file or stdout/stderr")
-	cmd.PersistentFlags().StringVarP(&flags.ProfilePort, "debug-profiler", "", "", "start pprof profiler on this port, ex. :6060")
+	cmd.PersistentFlags().StringVarP(&flags.ProfilePort, "debug-profiler", "", "", "start the pprof profiler on this port, for example :6060")
 	cmd.PersistentFlags().StringVarP(&flags.ProfileCPU, "cpuprofile", "", "", "write cpu profile to `file")
 	cmd.PersistentFlags().StringVarP(&flags.ProfileMem, "memprofile", "", "", "write memory profile to `file")
 	cmd.PersistentFlags().IntVarP(&flags.DeadlockTimeout, "debug-deadlock", "", 0, "enable deadlock detection with given timeout")

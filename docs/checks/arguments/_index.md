@@ -23,14 +23,13 @@ title: Common arguments
 
 ### Filter
 
-Filter for items which will be included in the check. Unwanted items will be ignored
-and won't trigger a warning or critical state.
+Select the items to include in the check. SNClient ignores other items, so they cannot trigger a warning or critical state.
 
 For example:
 
     'filter=service = snclient'
 
-Filters are explained in detail here: [check filter](../filter/)
+See [check filter](../filter/) for details.
 
 ### Filter+
 
@@ -42,17 +41,16 @@ For example:
 
 ### Warning
 
-Expression that defines when to return a WARNING state. If any selected item
-matches this expression, the return state will be escalated to WARNING.
+This expression defines when to return WARNING.
+If any selected item matches, SNClient escalates the return state to WARNING.
 
-The syntax works the same way as [filter](#filter) except matching items are not
-removed, but instead set the status to WARNING.
+The syntax is the same as [filter](#filter). SNClient keeps matching items and sets the status to WARNING.
 
 For example:
 
     'warn=load > 90%'
 
-Syntax is explained in detail on the [expressions page](../expressions).
+See the [expressions page](../expressions) for syntax details.
 
 ### Warning+
 
@@ -64,17 +62,16 @@ For example:
 
 ### Critical
 
-Expression that defines when to return a CRITICAL state. If any selected item
-matches this expression, the return state will be escalated to CRITICAL.
+This expression defines when to return CRITICAL.
+If any selected item matches, SNClient escalates the return state to CRITICAL.
 
-The syntax works the same way as [filter](#filter) except matching items are not
-removed, but instead set the status to CRITICAL.
+The syntax is the same as [filter](#filter). SNClient keeps matching items and sets the status to CRITICAL.
 
 For example:
 
     'crit=load > 98%'
 
-Syntax is explained in detail on the [expressions page](../expressions).
+See the [expressions page](../expressions) for syntax details.
 
 ### Critical+
 
@@ -86,22 +83,22 @@ For example:
 
 ### OK
 
-Expression that defines when to return an OK state. If any selected item
-matches this expression, its state will be reset to OK regardless of its previous state.
+This expression defines when to return OK.
+If any selected item matches, SNClient resets its state to OK regardless of its previous state.
 
-The syntax works the same way as [filter](#filter) except matching items are not
-removed but the status is reset to OK.
+The syntax is the same as [filter](#filter). SNClient keeps matching items and resets the status to OK.
 
 For example:
 
     'ok=enabled = 0'
 
-Syntax is explained in detail on the [expressions page](../expressions).
+See the [expressions page](../expressions) for syntax details.
 
 ### Empty-State
 
-Status to be returned when no item matches the filter. If no filter is given this won't happen.
-Empty-State won't be used at all if a `count` warning/critical/ok threshold is used.
+This option sets the status to return when no item matches the filter.
+Without a filter, this does not happen.
+If you use a `count` warning/critical/ok threshold, SNClient ignores Empty-State.
 
 For example:
 
@@ -109,10 +106,10 @@ For example:
 
 ### Top-Syntax
 
-Sets the output format template for the return message. Can include text as well
-as special keywords that will be replaced by information from the check.
+This option sets the output template for the return message.
+The template can include text and special keywords. SNClient replaces the keywords with information from the check.
 
-Details are explained on the [template syntax page](../syntax/).
+See the [template syntax page](../syntax/) for details.
 
 For example:
 
@@ -120,10 +117,10 @@ For example:
 
 ### OK-Syntax
 
-Overrides the `top-syntax` if the state is OK. Can include text as well as special
-keywords that will be replaced by information from the check.
+This option overrides `top-syntax` when the state is OK.
+The template can include text and special keywords. SNClient replaces the keywords with information from the check.
 
-Details are explained on the [template syntax page](../syntax/).
+See the [template syntax page](../syntax/) for details.
 
 For example:
 
@@ -131,10 +128,10 @@ For example:
 
 ### Empty-Syntax
 
-Sets the format for the return message if no item matched the filter. Overrides the
-`top-syntax` template for empty lists.
+This option sets the return message format when no item matches the filter.
+It overrides the `top-syntax` template for empty lists.
 
-Details are explained on the [template syntax page](../syntax/).
+See the [template syntax page](../syntax/) for details.
 
 For example:
 
@@ -144,7 +141,7 @@ For example:
 
 Sets the format for each individual list item in the message.
 
-Details are explained on the [template syntax page](../syntax/).
+See the [template syntax page](../syntax/) for details.
 
 For example:
 
@@ -160,9 +157,9 @@ For example:
 
 ### Perf-Config
 
-Apply tweaks to performance data, like unit conversion.
+Adjust performance data, for example with unit conversion.
 
-`perf-config` syntax is explained in detail here: [Perf Config](../perfconfig/)
+See [Perf Config](../perfconfig/) for the `perf-config` syntax.
 
 For example:
 

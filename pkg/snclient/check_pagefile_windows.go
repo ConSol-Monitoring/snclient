@@ -84,22 +84,22 @@ func (l *CheckPagefile) addPagefile(check *CheckData, name string, data map[stri
 	}
 
 	check.listData = append(check.listData, entry)
-	if check.HasThreshold("free") {
+	if check.HasMetric("free") {
 		check.AddBytePercentMetrics("free", name, float64(data["AllocatedBaseSize"]-data["CurrentUsage"]), float64(data["AllocatedBaseSize"]), entry)
 	}
-	if check.HasThreshold("used") {
+	if check.HasMetric("used") {
 		check.AddBytePercentMetrics("used", name, float64(data["CurrentUsage"]), float64(data["AllocatedBaseSize"]), entry)
 	}
-	if check.HasThreshold("peak") {
+	if check.HasMetric("peak") {
 		check.AddBytePercentMetrics("peak", name, float64(data["PeakUsage"]), float64(data["AllocatedBaseSize"]), entry)
 	}
-	if check.HasThreshold("free_pct") {
+	if check.HasMetric("free_pct") {
 		check.AddPercentMetrics("free_pct", name, float64(data["AllocatedBaseSize"]-data["CurrentUsage"]), float64(data["AllocatedBaseSize"]), entry)
 	}
-	if check.HasThreshold("used_pct") {
+	if check.HasMetric("used_pct") {
 		check.AddPercentMetrics("used_pct", name, float64(data["AllocatedBaseSize"]-data["CurrentUsage"]), float64(data["AllocatedBaseSize"]), entry)
 	}
-	if check.HasThreshold("peak_pct") {
+	if check.HasMetric("peak_pct") {
 		check.AddPercentMetrics("used_pct", name, float64(data["AllocatedBaseSize"]-data["PeakUsage"]), float64(data["AllocatedBaseSize"]), entry)
 	}
 }

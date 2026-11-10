@@ -9,8 +9,8 @@ func init() {
 	serverCmd := &cobra.Command{
 		Use:   "server",
 		Short: "Start the agent",
-		Long: `server mode starts the agent in foreground connected to the terminal.
-All logs will be printed to stdout unless flags tell otherwise.
+		Long: `Server mode starts the agent in the foreground, connected to the terminal.
+The agent prints all logs to stdout unless flags specify another destination.
 		`,
 		GroupID: "daemon",
 		Run: func(_ *cobra.Command, _ []string) {

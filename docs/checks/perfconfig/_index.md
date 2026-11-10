@@ -2,8 +2,7 @@
 title: Performance Data Configuration
 ---
 
-Sometimes you might want to tweak performance data and therefore all checks
-support the `perf-config` argument to apply tweaks to them.
+All checks support the `perf-config` argument to adjust performance data.
 
 ## Syntax
 
@@ -17,8 +16,8 @@ For example:
 check_drivesize "perf-config= used %(ignored:true) used(unit:G)"
 ```
 
-This will convert used disk space bytes into gigabytes. It also removes the percent
-performance data from the output completely.
+This command converts used disk space from bytes to gigabytes.
+It also removes the percent performance data from the output.
 
 ## Configuration
 
@@ -34,29 +33,46 @@ The following keys are available:
 
 ## Selector
 
-The perf-config selector supports wildcards, so something like this will work:
+The perf-config selector supports wildcards:
 
 ```bash
 check_plugin perf-config="*(unit:G)"
 ```
 
-SNClient will use the options in order and apply the first matching configuration, for example:
+SNClient processes options in order and applies the first matching configuration. For example:
 
 ```bash
 check_plugin perf-config="used(ignored:true) *(unit:G)"
 ```
 
-will hide `used` performance data and apply unit G to everything else.
+This hides `used` performance data and applies unit G to everything else.
+
+## Adding a metric
+
+Some checks calculate values they do not emit as performance data by default.
+A perf-config selector can add a known check value as a new performance metric.
+Partial wildcards work as in regular selectors.
+For example, `perf-config="*wait(unit:%)"` adds every value whose name contains `wait`.
+
+```bash
+check_load perf-config="load(unit:)"
+```
+
+`check_load` reports `load1`, `load5` and `load15`. It also calculates `load`, the maximum of the three, internally.
+The `load(...)` selector adds `load` to the performance data.
+It applies the same unit/prefix/suffix/magic adjustments as for any other matched metric.
+
+A bare `*` selector does not add metrics.
 
 ## Units
 
-There are several useful conversions available.
+You can convert performance data to the units listed below.
 
 ### Bytes
 
-The base unit `B` for bytes can be converted into more human-readable units.
+Convert the base unit `B` for bytes to more readable units.
 
-A common pattern is `*(unit:G)` to simply convert all performance data into gigabytes.
+Use `*(unit:G)` to convert all performance data to gigabytes.
 
 ```bash
 check_plugin perf-config="*(unit:G)"
@@ -99,7 +115,7 @@ You can choose from these units:
 
 ### Seconds / Duration
 
-Durations with the base unit `s` for seconds can be converted into the following units:
+Convert durations with the base unit `s` for seconds to these units:
 
 | Unit | Description  |
 | ---- | ------------ |
@@ -119,7 +135,7 @@ check_uptime "perf-config=*(unit:d)"
 
 ### Percent
 
-Performance data with a value, a minimum, and a maximum can be converted to a percentage.
+If performance data has a value, a minimum, and a maximum, you can convert it to a percentage.
 
 ```bash
 check_plugin perf-config="*(unit:%)"

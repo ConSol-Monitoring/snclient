@@ -120,7 +120,7 @@ allow arguments = yes
 	// help from aliased check
 	res = snc.RunCheck("check_memory", []string{"help"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state Unknown")
-	assert.Regexpf(t, `There are several types of memory that can be checked`, string(res.BuildPluginOutput()), "output matches")
+	assert.Regexpf(t, `You can check these memory types`, string(res.BuildPluginOutput()), "output matches")
 
 	// recursive uptime check
 	res = snc.RunCheck("check_uptime", []string{})

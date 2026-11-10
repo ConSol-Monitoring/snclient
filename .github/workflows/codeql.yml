@@ -9,7 +9,7 @@ on:
 jobs:
   analyze:
     name: Analyze Go
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     permissions:
       actions: read

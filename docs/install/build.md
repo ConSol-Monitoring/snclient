@@ -20,8 +20,8 @@ description: Build SNClient binaries and platform packages from source.
     %> make dist
     %> make snclient
 
-Certificates and a default .ini file will be in the `dist/` folder then and the
-binary file is in the current folder.
+The build puts certificates and a default .ini file in the `dist/` folder.
+It puts the binary in the current folder.
 
 ### Building RPMs
 
@@ -61,15 +61,11 @@ You will need these additional dependencies:
 
 ### Windows MSI
 
-Building a .msi installer package involves a couple of extra steps.
-
-The package contents are prepared on a Linux host, and the final
-MSI package is then built on a Windows host.
+Prepare the .msi package contents on a Linux host. Then build the final MSI package on a Windows host.
 
 #### Prepare Windist Folder
 
-First you need to prepare a `windist` folder. This can be done on any
-Linux machine by running `make windist`.
+Run `make windist` on any Linux machine to prepare a `windist` folder.
 
 These are the requirements on your Linux host:
 
@@ -77,12 +73,12 @@ These are the requirements on your Linux host:
 - OpenSSL
 - make
 
-Then build the binary. For a 64-bit binary, run `make build-windows-amd64`;
-for an i386 32-bit binary, use `make build-windows-i386`.
+Then build the binary. For a 64-bit binary, run `make build-windows-amd64`.
+For an i386 32-bit binary, use `make build-windows-i386`.
 
 Then move the resulting .exe file into the windist folder and rename it to `snclient.exe`.
 
-You should now have a folder looking like this:
+The folder should now look like this:
 
     %> ls -la windist/
     -rw-r--r--  1 user group     2041 Jul 18 09:30 cacert.pem
@@ -91,7 +87,7 @@ You should now have a folder looking like this:
     -rwxr-xr-x  1 user group 14193152 Jul 18 09:37 snclient.exe
     -rw-r--r--  1 user group     9394 Jul 18 09:30 snclient.ini
 
-Get the current version information; it will be required for the next step:
+Get the current version information for the next step:
 
     %> ./buildtools/get_version
     0.04.0033
@@ -106,7 +102,7 @@ These are the requirements on your Windows host:
 - .NET Framework 3.5 ([download link](https://download.microsoft.com/download/0/6/1/061F001C-8752-4600-A198-53214C69B51F/dotnetfx35setup.exe))
 - WiX Toolset (3.x) ([download link](https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314.exe))
 
-Then build the MSI package like this using the version information (without leading zeros) from the previous step:
+Build the MSI package with the version information from the previous step. Remove leading zeros from the version numbers:
 
     & .\packaging\windows\build_msi.ps1 `
     -out "snclient.msi" `

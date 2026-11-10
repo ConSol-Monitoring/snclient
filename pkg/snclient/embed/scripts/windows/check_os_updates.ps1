@@ -24,10 +24,53 @@ if ($Online) {
     $searcher.Online = 1
 }
 
-$pending = $searcher.Search('IsInstalled=0 AND IsHidden=0')
-foreach($entry in $pending.Updates) {
-    Write-host Title: $entry.Title
-    foreach($cat in $entry.Categories) {
-        Write-host Category: $cat.Name
+function Get-UpdateProperty($Object, $Name) {
+    $ErrorActionPreference = 'Stop'
+    try {
+        $value = $Object.$Name
+        if ($null -ne $value) {
+            if ($value -is [datetime]) {
+                $value.ToUniversalTime().ToString('o')
+            } elseif ($value -is [decimal]) {
+                [long]$value
+            } else {
+                $value
+            }
+        } else {
+            $null
+        }
+    } catch {
+        # Older Windows Update interfaces and non-driver updates may lack properties.
+        $null
     }
 }
+
+$pending = $searcher.Search('IsInstalled=0 AND IsHidden=0')
+$updates = @(foreach($entry in $pending.Updates) {
+    if ($entry.DeploymentAction -eq 4 -and $env:INCLUDE_OPTIONAL -ne "1") {
+        continue
+    }
+    $identity = Get-UpdateProperty $entry 'Identity'
+    [PSCustomObject]@{
+        Title = $entry.Title
+        Categories = @(foreach($cat in $entry.Categories) { $cat.Name })
+        Type = [int]$entry.Type
+        IsBeta = [bool]$entry.IsBeta
+        IsMandatory = [bool]$entry.IsMandatory
+        DeploymentAction = [int]$entry.DeploymentAction
+        KBArticleIDs = @(Get-UpdateProperty $entry 'KBArticleIDs')
+        MsrcSeverity = Get-UpdateProperty $entry 'MsrcSeverity'
+        IsDownloaded = Get-UpdateProperty $entry 'IsDownloaded'
+        RebootRequired = Get-UpdateProperty $entry 'RebootRequired'
+        LastDeploymentChangeTime = Get-UpdateProperty $entry 'LastDeploymentChangeTime'
+        UpdateID = Get-UpdateProperty $identity 'UpdateID'
+        RevisionNumber = Get-UpdateProperty $identity 'RevisionNumber'
+        BrowseOnly = Get-UpdateProperty $entry 'BrowseOnly'
+        CveIDs = @(Get-UpdateProperty $entry 'CveIDs')
+        MaxDownloadSize = Get-UpdateProperty $entry 'MaxDownloadSize'
+        DriverProvider = Get-UpdateProperty $entry 'DriverProvider'
+        DriverModel = Get-UpdateProperty $entry 'DriverModel'
+        DriverVerDate = Get-UpdateProperty $entry 'DriverVerDate'
+    }
+})
+ConvertTo-Json -InputObject $updates -Depth 3 -Compress

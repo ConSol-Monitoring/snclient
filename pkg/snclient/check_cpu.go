@@ -42,9 +42,9 @@ func (l *CheckCPU) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"time":            {value: &l.times, description: "The times to check, default: 5m,1m,5s"},
-			"n|procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
-			"show-args":       {value: &l.showArgs, description: "Show arguments when listing the top N processes"},
+			"time":            {value: &l.times, description: "Time periods to check (default: 5m,1m,5s)"},
+			"n|procs-to-show": {value: &l.numProcs, description: "Number of top resource-consuming processes to show"},
+			"show-args":       {value: &l.showArgs, description: "Show arguments for the top N processes"},
 		},
 		defaultFilter:   "core = 'total'",
 		defaultWarning:  "load > 80",
@@ -57,7 +57,7 @@ func (l *CheckCPU) Build() *CheckData {
 		attributes: []CheckAttribute{
 			{name: "core", description: "Core to check (total or core ##)"},
 			{name: "core_id", description: "Core to check (total or core_##)"},
-			{name: "core_nr", description: "Core number of the without prefix (e.g., core_1 -> 1)"},
+			{name: "core_nr", description: "Core number without the prefix (for example, core_1 -> 1)"},
 			{name: "idle", description: "Current idle load for a given core (currently not supported)"},
 			{name: "kernel", description: "Current kernel load for a given core (currently not supported)"},
 			{name: "load", description: "Current load for a given core"},
@@ -67,7 +67,7 @@ func (l *CheckCPU) Build() *CheckData {
     check_cpu
     OK - CPU load is ok. |'total 5s'=13.450%;80;90 'total 1m'=13.450%;80;90 'total 5m'=13.450%;80;90
 
-Checking **each core** by adding filter=none (disabling the filter):
+To check each core, add filter=none to disable the filter:
 
     check_cpu filter=none
     OK - CPU load is ok. |'core1 5s'=9.010%;80;90 'core1 1m'=12.340%;80;90 'core1 5m'=13.450%;80;90...
@@ -142,7 +142,7 @@ func (l *CheckCPU) Check(ctx context.Context, snc *Agent, check *CheckData, _ []
 		"cores":    fmt.Sprintf("%d", numCPU),
 	}
 
-	if check.HasThreshold("cores") || check.HasFilter("cores") {
+	if check.HasMetric("cores") {
 		check.result.Metrics = append(check.result.Metrics, &CheckMetric{
 			Name:          "cores",
 			ThresholdName: "cores",

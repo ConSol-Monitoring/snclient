@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   get-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       minor:    ${{ steps.get-minor-version.outputs.minor }}
       major:    ${{ steps.get-major-version.outputs.major }}
@@ -49,7 +49,7 @@ jobs:
           - go-os: freebsd
             go-arch: ppc64le
     needs: [get-version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:
@@ -103,7 +103,7 @@ jobs:
         go-os: [windows]
         go-arch: [i386, x86_64, aarch64]
     needs: [get-version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
     steps:

@@ -15,13 +15,12 @@ func init() {
 	testCmd := &cobra.Command{
 		Use:     "test [cmd]",
 		Aliases: []string{"run", "do"},
-		Short:   "Start test mode or run given query",
-		Long: `Test mode can be used to manually test queries.
+		Short:   "Start test mode or run a query",
+		Long: `Use test mode to test queries manually.
 
-If query is given a one shot result will be printed. Without command, snclient
-will start a query prompt.
+If you provide a query, SNClient prints its result once. Without a command, SNClient starts a query prompt.
 
-This command has aliases which slightly change behavior.
+The command aliases change the output format and exit code:
 
 # human readable output
 snclient test ...
