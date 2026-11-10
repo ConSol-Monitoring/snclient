@@ -57,6 +57,23 @@ func (l *CheckOSUpdates) Build() *CheckData {
 			{name: "package", description: "package name"},
 			{name: "security", description: "is this a security update: 0 / 1"},
 			{name: "version", description: "version string of package"},
+			{name: "type", description: "Windows only: update type (1 = software, 2 = driver)"},
+			{name: "is_beta", description: "Windows only: beta update (true / false)"},
+			{name: "is_mandatory", description: "Windows only: mandatory update (true / false)"},
+			{name: "deployment_action", description: "Windows only: deployment action (0 = none, 1 = installation, 2 = uninstallation, 3 = detection, 4 = optional installation)"},
+			{name: "kb_article_ids", description: "Windows only: comma-separated KB article IDs"},
+			{name: "severity", description: "Windows only: MSRC security severity"},
+			{name: "is_downloaded", description: "Windows only: update downloaded (true / false, empty if unavailable)"},
+			{name: "reboot_required", description: "Windows only: update requires a reboot (true / false, empty if unavailable); not the system-wide reboot state"},
+			{name: "last_deployment_change_time", description: "Windows only: deployment metadata change time (UTC, ISO 8601), not when the update became pending"},
+			{name: "update_id", description: "Windows only: update GUID"},
+			{name: "revision_number", description: "Windows only: update revision number (empty if unavailable)"},
+			{name: "browse_only", description: "Windows only: optional update signal (true / false, empty if unavailable)"},
+			{name: "cve_ids", description: "Windows only: comma-separated CVE IDs"},
+			{name: "max_download_size", description: "Windows only: maximum download size in bytes (empty if unavailable)"},
+			{name: "driver_provider", description: "Windows only: driver provider (empty for non-driver updates or if unavailable)"},
+			{name: "driver_model", description: "Windows only: driver model (empty for non-driver updates or if unavailable)"},
+			{name: "driver_ver_date", description: "Windows only: driver version date (UTC, ISO 8601; empty if unavailable)"},
 		},
 		extraFilterAttributes: []*regexp.Regexp{
 			regexp.MustCompile(`^old_version$`),
@@ -75,6 +92,7 @@ If you only want to be notified about security related updates:
 
 On Windows, optional updates (DeploymentAction = 4) are excluded by default.
 Use **--include-optional** to include them.
+Additional Windows metadata attributes are empty when unavailable or unsupported.
 
 On DNF/APT systems, **--update** refreshes repository metadata in a private cache
 owned by the SNClient service user unless started as root user.
