@@ -54,6 +54,7 @@ function New-Object {
         MaxDownloadSize = [decimal]30536537
     }
     $entry | Add-Member ScriptProperty CveIDs { throw 'Unsupported property' }
+    $entry | Add-Member ScriptProperty DriverModel { throw 'Unsupported property' }
     $searcher = [PSCustomObject]@{ Online = 0; Result = [PSCustomObject]@{ Updates = @($entry) } }
     $searcher | Add-Member ScriptMethod Search { param($criteria); $this.Result }
     $session = [PSCustomObject]@{ Searcher = $searcher }
@@ -74,8 +75,10 @@ function New-Object {
 	assert.Equal(t, "30536537", check.listData[0]["max_download_size"])
 	assert.Equal(t, "2026-11-04T00:00:00.0000000Z", check.listData[0]["last_deployment_change_time"])
 	assert.Empty(t, check.listData[0]["cve_ids"])
+	assert.Empty(t, check.listData[0]["severity"])
 	assert.Empty(t, check.listData[0]["reboot_required"])
 	assert.Empty(t, check.listData[0]["driver_provider"])
+	assert.Empty(t, check.listData[0]["driver_model"])
 }
 
 func TestParseWindowsUpdateOptionalProperties(t *testing.T) {

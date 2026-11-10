@@ -36,9 +36,12 @@ function Get-UpdateProperty($Object, $Name) {
             } else {
                 $value
             }
+        } else {
+            $null
         }
     } catch {
         # Older Windows Update interfaces and non-driver updates may lack properties.
+        $null
     }
 }
 
