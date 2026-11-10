@@ -40,20 +40,20 @@ func Check(ctx context.Context, output io.Writer, args []string) int {
 // adopted from https://raw.githubusercontent.com/mackerelio/go-check-plugins/master/check-dns/lib/
 // Apache-2.0 license
 type dnsOpts struct {
-	Host            string   `short:"H" long:"host" required:"true" description:"The name or address you want to query"`
-	Servers         []string `short:"s" long:"server" description:"DNS servers to use for the lookup. This can be specified multiple times."`
-	Port            int      `short:"p" long:"port" default:"53" description:"Port number you want to use"`
+	Host            string   `short:"H" long:"host" required:"true" description:"Name or address to query"`
+	Servers         []string `short:"s" long:"server" description:"DNS servers for the lookup. Repeat this option to specify multiple servers."`
+	Port            int      `short:"p" long:"port" default:"53" description:"Port number to use"`
 	QueryType       string   `short:"q" long:"querytype" default:"A" description:"DNS record query type"`
-	Norec           bool     `long:"norec" description:"Clears the Recursion Desired flag, DNS server answers only from its authoritative data or cache, does not ask other nameservers."`
-	ExpectedString  []string `short:"e" long:"expected-string" description:"IP-ADDRESS string you expect the DNS server to return. If multiple IP addresses are returned at once, you have to specify the whole string"`
-	SearchPaths     []string `long:"search-path" description:"Search paths to add to domains before sending a DNS query. This can be specified multiple times."`
-	ResolvConfFile  string   `long:"resolv-conf-file" default:"/etc/resolv.conf" description:"Path to the resolv.conf file to use. Is not used in Windows."`
+	Norec           bool     `long:"norec" description:"Clear the Recursion Desired flag. The DNS server answers only from authoritative data or its cache, without querying other nameservers."`
+	ExpectedString  []string `short:"e" long:"expected-string" description:"IP-ADDRESS string to expect from the DNS server. If the server returns multiple IP addresses at once, specify the entire string"`
+	SearchPaths     []string `long:"search-path" description:"Search paths to add to domains before a DNS query. Repeat this option to specify multiple paths."`
+	ResolvConfFile  string   `long:"resolv-conf-file" default:"/etc/resolv.conf" description:"Path to the resolv.conf file. Not used on Windows."`
 	Verbose         bool     `short:"v" long:"vv" long:"vvv" long:"verbose" description:"Show verbose output."`
-	WarningTimeout  *int     `short:"w" long:"warning" description:"Return warning if elapsed time to get a successful DNS query exceeds this value in seconds. Default is off."`
-	CriticalTimeout *int     `short:"c" long:"critical" description:"Return critical if elapsed time to get a successful DNS query exceeds this value in seconds. Default is off."`
-	Timeout         int      `short:"t" long:"timeout" default:"30" description:"Global timeout in seconds. Exit early and return unknown if elapsed time to get a successful DNS query exceeds this value."`
-	QueryTimeout    *int     `short:"T" long:"query-timeout" description:"Timeout for each single DNS query in seconds, retransmissions included. If exceeded, the next query is tried instead of exiting. Can be specified in resolv.conf file. Defaults to 5 seconds."`
-	Attempts        *int     `short:"a" long:"attempts" description:"Number of packets sent for each single DNS query before it is considered unanswered. Can be specified in resolv.conf file. Defaults to 2 attempts."`
+	WarningTimeout  *int     `short:"w" long:"warning" description:"If a successful DNS query takes longer than this value in seconds, return warning. Disabled by default."`
+	CriticalTimeout *int     `short:"c" long:"critical" description:"If a successful DNS query takes longer than this value in seconds, return critical. Disabled by default."`
+	Timeout         int      `short:"t" long:"timeout" default:"30" description:"Global timeout in seconds. If a successful DNS query takes longer, exit early and return unknown."`
+	QueryTimeout    *int     `short:"T" long:"query-timeout" description:"Timeout in seconds for each DNS query, including retransmissions. If exceeded, try the next query instead of exiting. Can be set in resolv.conf. Default: 5 seconds."`
+	Attempts        *int     `short:"a" long:"attempts" description:"Packets to send for each DNS query before treating it as unanswered. Can be set in resolv.conf. Default: 2 attempts."`
 }
 
 // same defaults as the resolver in glibc (RES_TIMEOUT / RES_DFLRETRY)
@@ -426,7 +426,7 @@ func (opts *dnsOpts) run(ctx context.Context) *checkers.Checker {
 }
 
 // exchangeWithRetries sends the query and waits for the answer.
-// Answers which do not arrive within a slice of the timeout are considered lost and the very same query is sent again over the same socket.
+// If no answer arrives within a portion of the timeout, send the same query again over the same socket.
 // A late answer to one of the previous packets is still accepted.
 // Retries use up the given timeout instead of extending it.
 func exchangeWithRetries(ctx context.Context, client *dns.Client, message *dns.Msg, nameserver string, timeout time.Duration, attempts int) (*dns.Msg, time.Duration, error) {
@@ -524,8 +524,8 @@ type emptyResult struct {
 	reason     string
 }
 
-// emptyResultsMessage builds a message from the reasons (rcodes or errors) why the DNS queries returned no answer.
-// The first line contains the unique reasons from the first nameserver, each further nameserver gets a line with its own unique reasons.
+// emptyResultsMessage builds a message from the rcodes or errors that explain why DNS queries returned no answer.
+// Each nameserver gets a line with its unique reasons, starting with the first nameserver.
 func emptyResultsMessage(host string, nameservers []string, results []emptyResult) string {
 	nameserverLines := make(map[string]string, 0)
 	for _, nameserver := range nameservers {

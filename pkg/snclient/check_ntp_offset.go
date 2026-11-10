@@ -42,8 +42,8 @@ func (l *CheckNTPOffset) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"server": {value: &l.ntpserver, description: "Fetch offset from these NTP servers. First valid response is used."},
-			"source": {value: &l.source, isFilter: true, description: "Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, macos, w32tm."},
+			"server": {value: &l.ntpserver, description: "Fetch the offset from these NTP servers. Uses the first valid response."},
+			"source": {value: &l.source, isFilter: true, description: "Choose the time data source instead of automatic detection. Valid values: auto, timedatectl, ntpq, chronyc, macos, w32tm."},
 		},
 		defaultFilter:   "none",
 		defaultWarning:  "offset > 50 || offset < -50",
@@ -57,9 +57,9 @@ func (l *CheckNTPOffset) Build() *CheckData {
 			{name: "server", description: "NTP server name"},
 			{name: "stratum", description: "stratum value (distance to root NTP server)"},
 			{name: "jitter", description: "jitter of the clock in milliseconds"},
-			{name: "offset", description: "time offset to NTP server in milliseconds. This will be added as a metric."},
-			{name: "offset_seconds", description: "time offset to NTP server in seconds. This will not be added as a metric. " +
-				" Any thresholds using 'offset_seconds' will be converted to 'offset' silently.", unit: UDuration},
+			{name: "offset", description: "Time offset to the NTP server in milliseconds. SNClient adds this value as a metric."},
+			{name: "offset_seconds", description: "Time offset to the NTP server in seconds. SNClient does not add this value as a metric. " +
+				"SNClient converts thresholds from 'offset_seconds' to 'offset' without a message.", unit: UDuration},
 		},
 		exampleDefault: `
     check_ntp_offset

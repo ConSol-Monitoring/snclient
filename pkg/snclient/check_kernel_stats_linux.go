@@ -33,7 +33,7 @@ func NewCheckKernelStats() CheckHandler {
 func (l *CheckKernelStats) Build() *CheckData {
 	return &CheckData{
 		name:         "check_kernel_stats",
-		description:  "Checks some metrics of the Linux kernel. Currently supports context switches, process creations and total number of threads.",
+		description:  "Checks Linux kernel metrics. Supports context switches, process creations and the total number of threads.",
 		implemented:  Linux,
 		hasInventory: ListInventory,
 		result: &CheckResult{

@@ -109,10 +109,10 @@ func (l *CheckOSUpdates) addAPT(ctx context.Context, check *CheckData) (bool, er
 	return true, nil
 }
 
-// pkgListsDir returns a path to a private cache folder for package manager
-// metadata. It creates the folder if it does not exist and ensures that it has
-// proper permissions, user and is not a symlink.
-// It returns an empty string if no cache folder is required.
+// pkgListsDir returns the private cache folder path for package manager metadata.
+// If the folder does not exist, create it.
+// Check its permissions and owner, and make sure that it is not a symlink.
+// If no cache folder is required, return an empty string.
 func (l *CheckOSUpdates) pkgListsDir(subRoot string, subFolder []string) (string, error) {
 	// root does not require cache folder
 	if os.Geteuid() == 0 {

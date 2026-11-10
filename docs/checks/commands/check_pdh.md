@@ -16,21 +16,21 @@ Checks PDH paths and handles wildcard expansion.
 
 ## Check Specific Arguments
 
-| Argument     | Description                                                                                        |
-| ------------ | -------------------------------------------------------------------------------------------------- |
-| Counter      | The fully qualified counter name                                                                   |
-| counter      | The fully qualified counter name                                                                   |
-| english      | Use English names regardless of system language (requires Windows Vista or higher)                 |
-| expand-index | Should indices be translated?                                                                      |
-| host         | The name of the machine in the network where the counter should be searched, defaults to localhost |
-| instances    | Expand wildcards and fetch all instances                                                           |
-| type         | This can be large or float depending on what you expect, default is large                          |
+| Argument     | Description                                                                        |
+| ------------ | ---------------------------------------------------------------------------------- |
+| Counter      | The fully qualified counter name                                                   |
+| counter      | The fully qualified counter name                                                   |
+| english      | Use English names regardless of system language (requires Windows Vista or higher) |
+| expand-index | Translate indices                                                                  |
+| host         | Network host to search for the counter (default: localhost)                        |
+| instances    | Expand wildcards and fetch all instances                                           |
+| type         | Expected value type: large or float (default: large)                               |
 
 ## Attributes
 
 ### Filter Keywords
 
-these can be used in filters and thresholds (along with the default attributes):
+Use these attributes in filters and thresholds, along with the default attributes:
 
 | Attribute | Description                                                        |
 | --------- | ------------------------------------------------------------------ |

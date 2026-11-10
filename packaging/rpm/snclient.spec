@@ -11,9 +11,9 @@ Summary:       Monitoring Agent
 Requires:      logrotate, systemd
 
 %description
-SNClient (Secure Naemon Client) is a general purpose monitoring agent designed
-as replacement for NRPE and NSClient++.
-It supports Prometheus, NRPE and a REST API HTTP(s) protocol to run checks.
+SNClient (Secure Naemon Client) is a general-purpose monitoring agent.
+It is designed to replace NRPE and NSClient++.
+It supports Prometheus, NRPE and a REST API over HTTP(s) to run checks.
 
 # no debug package required
 %define debug_package %{nil}

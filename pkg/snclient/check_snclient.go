@@ -15,8 +15,8 @@ func init() {
 func NewCheckSNClient() CheckHandler {
 	return &CheckBuiltin{
 		name: "check_snclient",
-		description: `Runs check_snclient (formerly check_nsc_web) to perform checks on other SNClient agents.
-It basically wraps the plugin from https://github.com/ConSol-Monitoring/check_snclient`,
+		description: `Runs check_snclient (formerly check_nsc_web) to run checks on other SNClient agents.
+It wraps the plugin from https://github.com/ConSol-Monitoring/check_snclient`,
 		check:    checkSNClientWrapper,
 		docTitle: `check_snclient`,
 		usage:    `check_snclient [<options>]`,
@@ -24,7 +24,7 @@ It basically wraps the plugin from https://github.com/ConSol-Monitoring/check_sn
     check_snclient -p ... -u https://localhost:8443
     OK - REST API reachable on https://localhost:8443
 
-Check specific plugin:
+Check a specific plugin:
 
     check_snclient -p ... -u https://localhost:8443 -c check_process process=snclient.exe
     OK - all 1 processes are ok. | ...

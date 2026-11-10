@@ -13,8 +13,8 @@ import (
 func init() {
 	uninstallCmd := &cobra.Command{
 		Use:   "uninstall [cmd]",
-		Short: "Uninstall windows service and firewall exception",
-		Long: `Uninstall is used during msi installation for removing the windows service and a firewall exception.
+		Short: "Uninstall the Windows service and firewall exception",
+		Long: `The MSI installer uses this command to remove the Windows service and a firewall exception.
 `,
 	}
 	rootCmd.AddCommand(uninstallCmd)
@@ -22,14 +22,14 @@ func init() {
 	// uninstall stop
 	uninstallCmd.AddCommand(&cobra.Command{
 		Use:   "stop [args]",
-		Short: "called from the msi installer stop the service",
+		Short: "Stop the service for the MSI installer",
 		Run:   uninstallStop,
 	})
 
 	// uninstall pkg
 	uninstallCmd.AddCommand(&cobra.Command{
 		Use:    "pkg [args]",
-		Short:  "called from the msi installer, removes firewall and service if agent gets uninstalled",
+		Short:  "Remove the firewall exception and service when the MSI installer uninstalls the agent",
 		Hidden: true,
 		Run:    uninstallPkg,
 	})
@@ -37,7 +37,7 @@ func init() {
 	// uninstall firewall
 	uninstallCmd.AddCommand(&cobra.Command{
 		Use:    "firewall [args]",
-		Short:  "remove existing firewall rules",
+		Short:  "Remove existing firewall rules",
 		Hidden: true,
 		Run:    uninstallFirewall,
 	})

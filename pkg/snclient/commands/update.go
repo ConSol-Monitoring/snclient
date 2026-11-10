@@ -16,20 +16,18 @@ import (
 func init() {
 	updateCmd := &cobra.Command{
 		Use:   "update [channel|file]",
-		Short: "Fetch and apply update",
-		Long: `Check for updates. If check flag is set, no download will be
-started, but the return will be set so the check can be used
-as a check if there are updates available.
+		Short: "Fetch and apply an update",
+		Long: `Check for updates. If the check flag is set, do not download updates.
+Return an exit code that indicates whether updates are available.
 
-If channel is given, only this update channel will be checked. Otherwise all
-configured and enabled channels.
+If you provide a channel, check only that channel. Otherwise, check all configured and enabled channels.
 
 Examples:
 
 # check and apply updates from the configured release channels:
 snclient update
 
-# check for updates from all available channel including pre releases but do not download:
+# Check all available channels, including prereleases, without downloading:
 snclient update --prerelease --check all
 
 # apply downgrade to version 0.19:
@@ -40,8 +38,8 @@ snclient update --downgrade=0.19
 
 	updateCmd.PersistentFlags().String("channel", "", "Select download channel.")
 	updateCmd.PersistentFlags().Bool("check", false, "Check only, skip download.")
-	updateCmd.PersistentFlags().BoolP("prerelease", "p", false, "Consider pre releases as well.")
-	updateCmd.PersistentFlags().String("downgrade", "", "Force downgrade to given version.")
+	updateCmd.PersistentFlags().BoolP("prerelease", "p", false, "Include prereleases.")
+	updateCmd.PersistentFlags().String("downgrade", "", "Force a downgrade to the given version.")
 	updateCmd.PersistentFlags().BoolP("force", "f", false, "Force update.")
 	rootCmd.AddCommand(updateCmd)
 }

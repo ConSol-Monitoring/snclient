@@ -9,12 +9,12 @@ weight: 400
 
 ## Installation
 
-Stable release installation packages can be found here:
+Download stable release packages from:
 
 - [GitHub Releases](https://github.com/ConSol-Monitoring/snclient/releases)
 
-Download the .pkg file from the releases page and start it. You might need to
-open System Settings and allow opening the package since it is not signed.
+Download the .pkg file from the releases page. Open the file to start the installer.
+Because the package is not signed, you might need to allow it in System Settings.
 
 ![system settings](osx-settings.png "osx system settings")
 
@@ -24,7 +24,7 @@ This should open the installer:
 
 ### Firewall
 
-The firewall should be configured to allow these ports:
+Configure the firewall to allow these ports:
 
 - `8443` : if you enabled the webserver (the default is enabled)
 - `5666` : if you enabled the NRPE server (disabled by default)

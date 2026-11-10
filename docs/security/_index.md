@@ -6,28 +6,24 @@ weight: 600
 
 ## General
 
-SNClient is written in Go, which offers several security benefits.
+SNClient is written in Go, which provides these security features:
 
 - Native TLS/SSL Support
 
-  Since there are no external TLS/SSL libraries, SNClient always comes with
-  the latest TLS support even on legacy systems (if you regularly update SNClient).
+  SNClient does not use external TLS/SSL libraries. Regular SNClient updates provide the latest TLS support, even on legacy systems.
 
 - Strong Encryption and Security Standards
 
-  Go's TLS/SSL implementation supports modern encryption and security
-  standards, ensuring the confidentiality, integrity, and authenticity of
-  data transmitted over the network.
+  Go's TLS/SSL implementation supports modern encryption and security standards.
+  These protect the confidentiality, integrity, and authenticity of data sent over the network.
 
 - Secure Ciphers by Default
 
-  Starting with TLS 1.3 Go automatically selects secure ciphers. There is no
-  need to set them manually.
+  Starting with TLS 1.3, Go selects secure ciphers automatically. You do not need to set them manually.
 
 ## Code Signing
 
-The Windows builds (both snclient.exe and the .msi installer) can be verified
-with signtool.exe from the Windows SDK, for example:
+Use signtool.exe from the Windows SDK to verify Windows builds, both snclient.exe and the .msi installer. For example:
 
 ```powershell
 signtool.exe verify /pa snclient.exe
@@ -37,7 +33,7 @@ signtool.exe verify /pa snclient.exe
 
 ### Update Regularly
 
-Always keep SNClient on the latest release version to benefit from security fixes.
+Keep SNClient at the latest release to receive security fixes.
 
 See the [updates page](../updates/) for instructions.
 
@@ -52,22 +48,17 @@ use ssl = true
 
 ### HSTS Header
 
-SNClient supports sending HTTP Strict Transport Security (HSTS) headers.
-This is disabled by default, since this addresses browser and human interaction
-issues which usually do not apply to the SNClient scenarios.
+SNClient can send HTTP Strict Transport Security (HSTS) headers. HSTS is disabled by default.
+The header tells browsers to use HTTPS automatically for future connections to the server.
+Monitoring tools usually access SNClient, so this browser feature generally has limited relevance.
 
-The HSTS header tells browsers to automatically use HTTPS for future connections
-to the server. SNClient is usually accessed by monitoring tools rather than browsers,
-so this header generally has limited relevance.
-
-You can enable it if required by a security audit. Make sure you
-use valid certificates before enabling it.
+If a security audit requires HSTS, you can enable it. Before you enable HSTS, make sure that your certificates are valid.
 
 The header is set to:
 
 - `max-age=31536000` (1 year)
 
-To disable HSTS headers in case this creates issues somehow:
+If HSTS causes problems, disable it for the web server:
 
 ```ini
 [/settings/WEB/server]
@@ -83,8 +74,8 @@ use hsts header = false
 
 ### TLS 1.3
 
-If possible, set the minimum required TLS version to 1.3. Since the number of
-clients is limited there is no need to support old browsers.
+If possible, set the minimum required TLS version to 1.3.
+SNClient has a limited set of clients, so it does not need to support old browsers.
 
 ```ini
 [/settings/default]
@@ -93,13 +84,13 @@ tls min version = "tls1.3"
 
 ### Client certificate verification
 
-You can enable client certificate verification using `ca` or `client certificates` options
-(both options have the same meaning; the `ca` option was added for backward compatibility with NSClient++).
-You can find an example of how to generate certificates below.
+Use `ca` or `client certificates` to enable client certificate verification. Both options have the same meaning.
+The `ca` option provides backward compatibility with NSClient++.
+The following example shows how to generate certificates.
 
 - `certificate` specifies the server certificate
 - `certificate key` specifies the server key
-- `ca` and/or `client certificates` specify the CA certificate for certificate verification and enable verification itself.
+- `ca` and/or `client certificates` specify the CA certificate and enable certificate verification.
 
 ```ini
 [/settings/default]
@@ -144,11 +135,9 @@ client certificates = ${certificate-path}/ca.pem
 
 ### Allowed Hosts
 
-Using the `allowed hosts` option is a great way to simply block all clients except
-your monitoring hosts. This greatly lowers the number of possible attacks.
+Use `allowed hosts` to block all clients except your monitoring hosts. This reduces the number of possible attacks.
 
-As a tradeoff between security and maintainability you could add the admin net
-here instead of single IPs.
+To balance security and maintenance, you can specify the admin network instead of individual IP addresses.
 
 ```ini
 [/settings/default]
@@ -157,8 +146,8 @@ allowed hosts = 127.0.0.1, ::1, 192.168.56.0/24
 
 ### Hashed Password
 
-SNClient supports using hashed passwords so you do not have clear text passwords
-in the ini files. Use `snclient hash` to generate a new password hash.
+SNClient supports hashed passwords to avoid clear text passwords in INI files.
+Use `snclient hash` to generate a password hash.
 
 ```ini
 [/settings/default]
@@ -172,17 +161,15 @@ Using external commands is safe under certain conditions.
 - [allow arguments](#allow-arguments) is disabled
 - [allow nasty characters](#allow-nasty-characters) is unchanged
 
-Changing nasty characters is almost always a bad idea. Allowing arguments can
-be necessary in certain scenarios, read more in the [allow arguments](#allow-arguments) section.
+Do not change the nasty characters setting. Some scenarios require arguments. See [allow arguments](#allow-arguments) for details.
 
 ### Allow Nasty Characters
 
-It is recommended to **not** enable `allow nasty characters` or `allow control
-characters` as this allows exploitation of existing commands.
+Do not enable `allow nasty characters` or `allow control
+characters`. These settings allow attackers to exploit existing commands.
 
-Removing some of the `nasty characters` is also not a good idea. Each of them
-is there for a reason and removing any of them probably allows command injection
-vulnerabilities.
+Do not remove entries from `nasty characters`. Each entry protects against attacks.
+Removing any entry probably allows command injection vulnerabilities.
 
 ```ini
 [/settings/default]
@@ -192,10 +179,9 @@ allow control characters = false
 
 ### Allow Arguments
 
-Normally arguments for external commands are not allowed because they are forwarded
-to the shell which makes them easy to exploit.
+By default, SNClient blocks arguments for external commands. It forwards these arguments to the shell, where attackers can easily exploit them.
 
-When enabling arguments, make sure to use quoted arguments like `$ARGS"$`. Using unquoted
-arguments leads to command injection vulnerabilities.
+If you enable arguments, use quoted arguments like `$ARGS"$`.
+Unquoted arguments lead to command injection vulnerabilities.
 
-A better approach would be to use aliased commands.
+Prefer aliased commands.

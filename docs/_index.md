@@ -21,11 +21,11 @@ tags:
 [![License](https://img.shields.io/github/license/Consol-Monitoring/snclient)](https://github.com/Consol-Monitoring/snclient/blob/main/LICENSE)
 [![IRC](https://img.shields.io/badge/IRC-libera.chat%2F%23snclient-blue)](https://web.libera.chat/?nick=Guest?#snclient)
 
-**SNClient** is an open-source, general-purpose monitoring agent designed as a replacement for NSClient++. It is a drop-in replacement for most use cases.
+SNClient is an open-source, general-purpose monitoring agent that replaces NSClient++. It is a drop-in replacement for most use cases.
 
-It was written from scratch in [Go](https://go.dev/) using today's state-of-the-art technologies. All the test and build procedures are located on [GitHub](https://github.com/ConSol-Monitoring/snclient).
+SNClient is written from scratch in [Go](https://go.dev/). All test and build procedures are on [GitHub](https://github.com/ConSol-Monitoring/snclient).
 
-It's available for Linux, Windows and macOS for i386, x86_64 and arm64 ([detailed list of supported operating systems](./install/supported/)).
+SNClient is available for Linux, Windows and macOS on i386, x86_64 and arm64. See the [detailed list of supported operating systems](./install/supported/).
 
 Follow the [Getting Started](./getting-started/) guide to set up basic Windows monitoring with OMD and Naemon,
 or see the [installation](./install/) page for all supported platforms.
@@ -33,11 +33,11 @@ or see the [installation](./install/) page for all supported platforms.
 ## Nagios / Naemon and Prometheus
 
 - SNClient supports the [Nagios / Naemon stack](./checks/) with NRPE or check_snclient (formerly check_nsc_web).
-- Prometheus is also supported with the [built-in node_exporter and windows_exporter](./prometheus/).
+- SNClient supports Prometheus with the [built-in node_exporter and windows_exporter](./prometheus/).
 
 ## Releases
 
-The latest release can always be found [here](https://github.com/ConSol-Monitoring/snclient/releases).
+Download the [latest release](https://github.com/ConSol-Monitoring/snclient/releases).
 
 ## Talks
 

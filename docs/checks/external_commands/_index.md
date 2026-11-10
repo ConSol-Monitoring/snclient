@@ -5,13 +5,12 @@ weight: 2000
 
 ## External Script Integration
 
-**Overview:**
-
-The SNClient agent provides a flexible and extensible solution for executing custom scripts and external programs to monitor (plugins) and manage (event handlers) your Windows systems. This guide will walk you through configuring and utilizing this feature, which is equivalent to NSClient++'s `CheckExternalScripts` module.
+SNClient runs custom scripts and external programs to monitor Windows systems with plugins and manage them with event handlers.
+This feature is equivalent to NSClient++'s `CheckExternalScripts` module.
 
 ### Enabling External Script Integration
 
-To enable the external script integration feature in SNClient, you need to activate it in the config file as follows:
+Enable external scripts in the configuration file:
 
 ```ini
 [/modules]
@@ -20,7 +19,7 @@ CheckExternalScripts = enabled
 
 ### Adding Custom Scripts
 
-You can add your custom scripts to SNClient using either a concise or verbose format. Here are examples of both:
+Add custom scripts with either the concise or verbose format:
 
 **Concise Format**:
 
@@ -40,19 +39,18 @@ command = check_custom.bat
 command = myscripts\check_custom.bat
 ```
 
-Both formats achieve the same outcome by adding two new commands, `my_check1` and `my_check2`, which execute
-the `check_custom.bat` script. Usually you use the short format, but if you want to provide individual options
-to a command, the long format is the way to go.
+Both formats add two commands, `my_check1` and `my_check2`, that run the `check_custom.bat` script.
+Use the concise format unless you need options for an individual command. For individual options, use the verbose format.
 
-In the concise format, the key is the command name. In the verbose format, the last
-part of the section path is the command name and the `command` key specifies what
-to execute. Settings such as `timeout` and `allow arguments` can be set in that
-section to override the global external script settings for that command.
+In the concise format, the key is the command name.
+In the verbose format, the last part of the section path is the command name.
+The `command` key specifies what to execute.
+Set options such as `timeout` and `allow arguments` in that section to override the global external script settings for the command.
 
 ### Multiline Commands
 
-Long commands can be split across lines using a space or tab followed by `\` at
-the end of each continued line. For example:
+To split a long command across lines, end each continued line with a space or tab followed by `\`.
+For example:
 
 ```ini
 [/settings/external scripts/scripts]
@@ -61,13 +59,13 @@ check_myscript = ${scripts}/myscript.sh \
           --arg2 bar
 ```
 
-The lines are joined with a single space before the command is parsed.
+SNClient joins the lines with a single space before it parses the command.
 See [multiline values](../../configuration/#multiline-values) for the syntax rules.
 
 ### Handling Script Arguments
 
-You can manage script arguments in two ways: embedding them directly into the command or allowing for argument pass-through.
-To enable argument pass-through, update the configuration as follows:
+Put script arguments directly in the command, or enable argument pass-through.
+To enable argument pass-through, use these settings:
 
 ```ini
 [/settings/external scripts]
@@ -81,13 +79,10 @@ Arguments are available in macros:
 - `$ARGSn$` contains the value of the argument at position `n`.
 - `$ARGSn"$` contains the value of the argument at position `n` **with** quotes.
 
-Using arguments is not recommended for security reasons. If arguments are required, at least
-make sure to use quoted arguments as in `$ARGS"$`. Using unquoted arguments almost always
-leads to a command injection vulnerability.
+For security reasons, avoid argument pass-through. If you need arguments, use quoted arguments such as `$ARGS"$`.
+Unquoted arguments almost always lead to a command injection vulnerability.
 
 ### Configuration Reference
-
-Below, you'll find a reference section for configuring the External Script Integration feature of SNClient.
 
 #### External Script Integration Settings
 
@@ -106,7 +101,7 @@ timeout = 60
 
 #### Command Aliases
 
-You can create aliases for existing commands with arguments to simplify usage. Ensure that you don't create loops in alias definitions.
+Create aliases for existing commands with arguments to simplify their use. Do not create loops in alias definitions.
 
 ```ini
 [/settings/external scripts/alias/sample-alias]
@@ -116,7 +111,7 @@ command = original-command
 
 #### External Scripts
 
-Define scripts available for execution via the External Script Integration feature. Use the format `command = script arguments`.
+Define the external scripts that SNClient can run. Use the format `command = script arguments`.
 
 ```ini
 [/settings/external scripts/scripts/sample-script]
@@ -138,7 +133,9 @@ check_dummy_argsq = ${scripts}/check_dummy.ps1 $ARGS"$
 restart_service = NET START "$ARG1$"
 ```
 
-If your scripts are located within the `${scripts}` folder, you can specify them using relative paths, as demonstrated in the examples. SNClient will automatically obtain the absolute path for these scripts and use it for execution. Prior to running the scripts, SNClient configures the working directory to be ${shared-dir}.
+For scripts in the `${scripts}` folder, use relative paths as shown in the examples.
+SNClient resolves these paths to absolute paths before it runs the scripts.
+Before it runs a script, SNClient sets the working directory to ${shared-dir}.
 
 
 #### Script Discovery
@@ -152,11 +149,14 @@ If your scripts are located within the `${scripts}` folder, you can specify them
 script path = ${scripts}/autoinclude
 ```
 
-Scripts can also be automatically discovered and added, without defining them individually. This uses the `script path` setting. There is no way to change the alias, as they will use the script's name and extension for their alias.
+Use `script path` to let SNClient discover and add scripts automatically.
+Each alias uses the script's name and extension. You cannot change these aliases.
 
 #### Wrapped Scripts
 
-Specify script templates used to define script commands. These templates are expanded by scripts located in the Wrapped Scripts section. Use `%SCRIPT%` to represent the actual script and `%ARGS%` for any provided arguments.
+Define templates for script commands in the wrappings section.
+SNClient expands these templates for scripts in the Wrapped Scripts section.
+Use `%SCRIPT%` for the script and `%ARGS%` for its arguments.
 
 ```ini
 [/settings/external scripts/wrappings]

@@ -8,8 +8,7 @@ tags:
   - exporter
 ---
 
-Managed exporters are exporters started and managed by SNClient. They will get
-a uniquely assigned URL in the main webserver of SNClient.
+SNClient starts and manages these exporters. Each exporter gets a unique URL on SNClient's main web server.
 
 Enable the managed exporters in the modules section:
 
@@ -18,7 +17,7 @@ Enable the managed exporters in the modules section:
 ManagedExporterServer = enabled
 ```
 
-You can then create exporters like this:
+Then configure each exporter. For example:
 
 ```ini
 [/settings/ManagedExporter/example]
@@ -50,9 +49,9 @@ url prefix = /example
 url match = /metrics
 ```
 
-SNClient will then start the exporter automatically and will watch its memory usage.
-The metrics can be scraped from `https://<ip>:8443/example/metrics`.
+SNClient starts the exporter automatically and monitors its memory usage.
+Scrape the metrics from `https://<ip>:8443/example/metrics`.
 
-By default only the `/metrics` URL will be forwarded to the exporter.
-In case the exporter uses a custom path, you have to adjust the `url match`
-attribute or set it to `*` to simply pass through all URLs (under the `url prefix`).
+By default, SNClient forwards only the `/metrics` URL to the exporter.
+If the exporter uses a custom path, adjust `url match`.
+Alternatively, set it to `*` to forward all URLs under `url prefix`.
