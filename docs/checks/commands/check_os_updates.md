@@ -31,6 +31,7 @@ Checks for OS system updates.
 
 | Argument               | Description                                                                                  |
 | ---------------------- | -------------------------------------------------------------------------------------------- |
+| --include-optional     | Include optional Windows updates (default: false)                                            |
 | -m\|--max-metadata-age | Fail with UNKNOWN if the repository metadata (apt/yum/dnf) is older than this duration, e.g. 48h (default: 24h) |
 | -s\|--system           | Package system: auto, apt, yum, macos and windows (default: auto)                            |
 | -u\|--update           | Update package list (if supported, e.g. apt-get update)                                      |
@@ -41,11 +42,28 @@ Checks for OS system updates.
 
 these can be used in filters and thresholds (along with the default attributes):
 
-| Attribute | Description                      |
-| --------- | -------------------------------- |
-| package   | package name                     |
-| security  | is this a security update: 0 / 1 |
-| version   | version string of package        |
+| Attribute                   | Description                                                                             |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| package                     | package name                                                                            |
+| security                    | is this a security update: 0 / 1                                                        |
+| version                     | version string of package                                                               |
+| type                        | Windows only: update type (1 = software, 2 = driver)                                    |
+| is_beta                     | Windows only: beta update (true / false)                                                |
+| is_mandatory                | Windows only: mandatory update (true / false)                                           |
+| deployment_action           | Windows only: deployment action (0 = none, 1 = installation, 2 = uninstallation, 3 = detection, 4 = optional installation) |
+| kb_article_ids              | Windows only: comma-separated KB article IDs                                            |
+| severity                    | Windows only: MSRC security severity                                                    |
+| is_downloaded               | Windows only: update downloaded (true / false, empty if unavailable)                    |
+| reboot_required             | Windows only: update requires a reboot (true / false, empty if unavailable); not the system-wide reboot state |
+| last_deployment_change_time | Windows only: deployment metadata change time (UTC, ISO 8601), not when the update became pending |
+| update_id                   | Windows only: update GUID                                                               |
+| revision_number             | Windows only: update revision number (empty if unavailable)                             |
+| browse_only                 | Windows only: optional update signal (true / false, empty if unavailable)               |
+| cve_ids                     | Windows only: comma-separated CVE IDs                                                   |
+| max_download_size           | Windows only: maximum download size in bytes (empty if unavailable)                     |
+| driver_provider             | Windows only: driver provider (empty for non-driver updates or if unavailable)          |
+| driver_model                | Windows only: driver model (empty for non-driver updates or if unavailable)             |
+| driver_ver_date             | Windows only: driver version date (UTC, ISO 8601; empty if unavailable)                 |
 
 ## Examples
 
@@ -58,6 +76,10 @@ If you only want to be notified about security related updates:
 
     check_os_updates warn=none crit='count_security > 0'
     CRITICAL - 1 security updates / 3 updates available. |'security'=1;;0;0 'updates'=3;0;;0
+
+On Windows, optional updates (DeploymentAction = 4) are excluded by default.
+Use **--include-optional** to include them.
+Additional Windows metadata attributes are empty when unavailable or unsupported.
 
 On DNF/APT systems, **--update** refreshes repository metadata in a private cache
 owned by the SNClient service user unless started as root user.
