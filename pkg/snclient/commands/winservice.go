@@ -12,9 +12,9 @@ import (
 func init() {
 	winSvcCmd := &cobra.Command{
 		Use:   "winservice",
-		Short: "Start the agent from a windows service",
-		Long: `winservice mode starts as windows service.
-All logs will be written to the configured logfile.
+		Short: "Start the agent from a Windows service",
+		Long: `Winservice mode starts the agent as a Windows service.
+The agent writes all logs to the configured log file.
 `,
 		GroupID: "daemon",
 		Run: func(_ *cobra.Command, _ []string) {

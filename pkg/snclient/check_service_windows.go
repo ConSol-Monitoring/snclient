@@ -41,9 +41,9 @@ func NewCheckService() CheckHandler {
 func (l *CheckService) Build() *CheckData {
 	return &CheckData{
 		name: "check_service",
-		description: `Checks the state of one or multiple Windows services.
+		description: `Checks the state of one or more Windows services.
 
-There is a specific [check_service for Linux](../check_service_linux) as well.`,
+For Linux services, use [check_service for Linux](../check_service_linux).`,
 		implemented:  Windows,
 		docTitle:     "service (windows)",
 		hasInventory: ListInventory,
@@ -62,11 +62,11 @@ There is a specific [check_service for Linux](../check_service_linux) as well.`,
 			"service": {
 				value:           &l.services,
 				isFilter:        true,
-				description:     "List of services to check (set to * to check all services). (case insensitive) Default: *",
+				description:     "Services to check (case insensitive). Set to * to check all services. Default: *",
 				defaultWarning:  "state != 'running'",
 				defaultCritical: "state != 'running'",
 			},
-			"exclude": {value: &l.excludes, description: "List of case-insensitive services to exclude from the check (mainly used when service is set to *). Supports wildcards."},
+			"exclude": {value: &l.excludes, description: "Services to exclude, mainly when service is set to *. Names are case insensitive and support wildcards."},
 		},
 		defaultFilter:   "none",
 		defaultCritical: "state != 'running' && start_type = 'auto'",
@@ -80,10 +80,10 @@ There is a specific [check_service for Linux](../check_service_linux) as well.`,
 		emptySyntax: "%(status) - No services found",
 		emptyState:  CheckExitUnknown,
 		attributes: []CheckAttribute{
-			{name: "name", description: "The name of the service. When used as filter, looks in name and display."},
-			{name: "service", description: "Alias for name. When used as filter only looks in name."},
-			{name: "display", description: "Display name of the service. When used as filter, looks in name and display."},
-			{name: "desc", description: "Alias for display (not a typo). When used as filter, looks only in display."},
+			{name: "name", description: "Service name. As a filter, searches name and display."},
+			{name: "service", description: "Alias for name. As a filter, searches only name."},
+			{name: "display", description: "Service display name. As a filter, searches name and display."},
+			{name: "desc", description: "Alias for display (not a typo). As a filter, searches only display."},
 			{name: "description", description: "Description of the service"},
 			{name: "state", description: "The state of the service, one of: stopped, starting, stopping, running, continuing, pausing, paused or unknown"},
 			{name: "pid", description: "The PID of the service"},
@@ -98,12 +98,12 @@ There is a specific [check_service for Linux](../check_service_linux) as well.`,
 			{name: "start_type", description: "The configured start type, one of: boot, system, delayed, auto, demand, disabled or unknown"},
 		},
 		exampleDefault: `
-Checking all services except some excluded ones:
+Check all services except those excluded:
 
     check_service exclude=edgeupdate exclude=RemoteRegistry
     OK - All 15 service(s) are ok |'count'=15;;;0 'failed'=0;;;0
 
-Checking a single service:
+Check a single service:
 
     check_service service=dhcp
     OK - All 1 service(s) are ok.

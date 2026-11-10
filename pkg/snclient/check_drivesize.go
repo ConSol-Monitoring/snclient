@@ -84,7 +84,7 @@ func NewCheckDrivesize() CheckHandler {
 func (l *CheckDrivesize) Build() *CheckData {
 	return &CheckData{
 		name:         "check_drivesize",
-		description:  "Checks the disk drive/volumes usage on a host.",
+		description:  "Checks disk drive and volume usage on a host.",
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
@@ -95,8 +95,8 @@ func (l *CheckDrivesize) Build() *CheckData {
 			"folder":  {value: &l.folders, isFilter: true, description: "The folders to check (parent mountpoint)"},
 			"exclude": {value: &l.excludes, description: "List of drives to exclude from check"},
 			"total":   {value: &l.total, description: "Include the total of all matching drives"},
-			"magic": {value: &l.magic, description: "Magic number for use with scaling drive sizes. " +
-				"Note there is also a more generic magic factor in the perf-config option."},
+			"magic": {value: &l.magic, description: "Magic number to scale drive sizes. " +
+				"The perf-config option also provides a more general magic factor."},
 			"mounted":                   {value: &l.mounted, description: "Deprecated, use filter instead"},          // deprecated and unused, but should not result in unknown argument
 			"ignore-unreadable":         {value: &l.ignoreUnreadable, description: "Deprecated, use filter instead"}, // same
 			"freespace-ignore-reserved": {value: &l.freespaceIgnoreReserved, description: "When false, root-reserved space is subtracted from the total size. Default: true"},
@@ -113,9 +113,9 @@ func (l *CheckDrivesize) Build() *CheckData {
 			{name: "drive", description: "Technical name of drive"},
 			{name: "name", description: "Descriptive name of drive"},
 			{name: "id", description: "Drive or id of drive"},
-			{name: "drive_or_id", description: "Drive letter if present if not use id"},
-			{name: "drive_or_name", description: "Drive letter if present if not use name"},
-			{name: "drive_or_name_or_id", description: "Drive letter if present, if not use drive name, if not use the given ID. Useful for volumes without assigned letters on Windows."},
+			{name: "drive_or_id", description: "Drive letter if available, otherwise the id"},
+			{name: "drive_or_name", description: "Drive letter if available, otherwise the name"},
+			{name: "drive_or_name_or_id", description: "Drive letter if available, otherwise the drive name, then the ID. Useful for Windows volumes without assigned letters."},
 			{name: "fstype", description: "Filesystem type"},
 			{name: "mounted", description: "Flag whether drive is mounted (0/1)", unit: UBool},
 
@@ -152,9 +152,9 @@ func (l *CheckDrivesize) Build() *CheckData {
 
 			{name: "remote_name", description: "Windows only: the remote name of the drive, if it uses a network name"},
 			{name: "persistent", description: "Windows only: if the network drive is mounted as persistent (0/1)", unit: UBool},
-			{name: "hidden", description: "Windows only: if the network share is a hidden share, i.e. the share name ends with a dollar sign like C$ (0/1)", unit: UBool},
-			{name: "localised_remote_path", description: "Windows only: If the path is given as a remote path, and that remote path has an assigned logical drive," +
-				" this is the replaced path under that logical drive."},
+			{name: "hidden", description: "Windows only: hidden network share (0/1). Hidden share names end with a dollar sign, such as C$", unit: UBool},
+			{name: "localised_remote_path", description: "Windows only: path under the assigned logical drive," +
+				" if the given remote path has a logical drive assigned."},
 		},
 		extraFilterAttributes: []*regexp.Regexp{
 			regexp.MustCompile(`^flags$`),

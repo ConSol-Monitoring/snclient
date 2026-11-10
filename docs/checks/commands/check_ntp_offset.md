@@ -32,14 +32,14 @@ Checks the NTP offset.
 
 | Argument | Description                                                                                                |
 | -------- | ---------------------------------------------------------------------------------------------------------- |
-| server   | Fetch offset from these NTP servers. First valid response is used.                                         |
-| source   | Set source of time data instead of automatic detection. Valid values are: auto, timedatectl, ntpq, chronyc, macos, w32tm. |
+| server   | Fetch the offset from these NTP servers. Uses the first valid response.                                    |
+| source   | Choose the time data source instead of automatic detection. Valid values: auto, timedatectl, ntpq, chronyc, macos, w32tm. |
 
 ## Attributes
 
 ### Filter Keywords
 
-these can be used in filters and thresholds (along with the default attributes):
+Use these attributes in filters and thresholds, along with the default attributes:
 
 | Attribute      | Description                                                                                          |
 | -------------- | ---------------------------------------------------------------------------------------------------- |
@@ -47,8 +47,8 @@ these can be used in filters and thresholds (along with the default attributes):
 | server         | NTP server name                                                                                      |
 | stratum        | stratum value (distance to root NTP server)                                                          |
 | jitter         | jitter of the clock in milliseconds                                                                  |
-| offset         | time offset to NTP server in milliseconds. This will be added as a metric.                           |
-| offset_seconds | time offset to NTP server in seconds. This will not be added as a metric.  Any thresholds using 'offset_seconds' will be converted to 'offset' silently. |
+| offset         | Time offset to the NTP server in milliseconds. SNClient adds this value as a metric.                 |
+| offset_seconds | Time offset to the NTP server in seconds. SNClient does not add this value as a metric. SNClient converts thresholds from 'offset_seconds' to 'offset' without a message. |
 
 ## Examples
 

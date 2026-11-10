@@ -28,7 +28,7 @@ func NewCheckMount() CheckHandler {
 func (l *CheckMount) Build() *CheckData {
 	return &CheckData{
 		name:         "check_mount",
-		description:  "Checks the status for a mounted filesystem",
+		description:  "Checks the status of a mounted filesystem.",
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{

@@ -2,9 +2,9 @@
 title: Template Syntax
 ---
 
-The \*-syntax options can be used to customize the plugin output.
+Use the \*-syntax options to customize plugin output.
 
-Here is a list of available syntax options which are common to all check plugins.
+All check plugins support these syntax options:
 
 | Option          | Description |
 | --------------- | ----------- |
@@ -18,11 +18,9 @@ Templates may contain text, conditionals and macros.
 
 ### Macros
 
-Macros can be used to access attributes of the current check. The form is the same
-as used in the config file (snclient.ini)
+Use macros to access attributes of the current check. They use the same form as in the configuration file (snclient.ini).
 
-The macro syntax is explained in detail in the [macro section](../../configuration/#macros) of
-the configuration page.
+See the [macro section](../../configuration/#macros) of the configuration page for syntax details.
 
 Supported macro variants:
 
@@ -36,7 +34,7 @@ Example:
 check_memory 'detail-syntax=%(type) = %(used)/%(size) (%(used_pct)%)'
 ```
 
-All macros can also make use of [macro operators](../../configuration/#macro-operators).
+All macros support [macro operators](../../configuration/#macro-operators).
 
 For example, the default output applies floating-point formatting to make the output more readable:
 
@@ -45,12 +43,11 @@ check_memory 'detail-syntax=%(type) = %(used)/%(size) (%(used_pct | fmt=%.1f)%)'
 ```
 
 Each check's help page lists its available macros.
-Another way is to run the check in verbose mode using `-vv`, which prints the list details
-as well.
+You can also run the check in verbose mode with `-vv` to print the list details.
 
 ### Conditionals
 
-Conditionals can be used to support different output based on expressions.
+Use conditionals to change the output based on expressions.
 
 The basic syntax is:
 
@@ -67,7 +64,7 @@ check_service \
 
 This displays a useful message when an error occurs, and performance details otherwise.
 
-For better readability, here is the template again in multiple lines:
+The same template on multiple lines:
 
     %(name) -
     {{ IF state == running }}

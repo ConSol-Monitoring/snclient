@@ -29,63 +29,63 @@ Checks files and directories.
 
 | Argument                     | Description                                                                            |
 | ---------------------------- | -------------------------------------------------------------------------------------- |
-| add-disk-size                | Add the disk size used on disk for each file and directory. On unix systems this is calculated from the allocated blocks, on windows an additional API call is required for each entry. This calculation may be expensive. Default: false |
-| add-files-only-once          | When following symlinks, same file can be added multiple times.  Enable this to track added files and stop adding them twice. Files will be added using the first path they were encountered with. Default: false |
-| calculate-subdirectory-sizes | For subdirectories that are found under the search paths, calculate the subdirectory sizes based on found files. This calculation may be expensive. Default: false |
+| add-disk-size                | Add the disk space used by each file and directory. Unix uses allocated blocks. Windows requires an additional API call for each entry. This calculation may be expensive. Default: false |
+| add-files-only-once          | Symlinks can cause the same file to appear multiple times. Enable this option to track files and add each file only once, using the first path found. Default: false |
+| calculate-subdirectory-sizes | Calculate sizes for subdirectories under the search paths, using the files found. This calculation may be expensive. Default: false |
 | file                         | Alias for path                                                                         |
-| follow-symlinks              | Follow symlinks of files and subdirectories while traversing. The file paths will be registered originating from search path. Default: true |
-| max-depth                    | Maximum recursion depth. '0' and '1' disable recursion into subfolders and only include files/directories directly under path, '2' starts to include files/directories of subdirectories with given depth. '-1' disables depth checks. Default: -1  |
+| follow-symlinks              | Follow symlinks to files and subdirectories during the search. Record file paths from the search path. Default: true |
+| max-depth                    | Maximum recursion depth. '0' and '1' include only files and directories directly under path. From '2', include subdirectory contents up to the given depth. '-1' disables depth checks. Default: -1 |
 | max-files                    | Maximum number of files to process. Default: 10000                                     |
 | path                         | Path in which to search for files                                                      |
-| paths                        | A comma separated list of paths                                                        |
+| paths                        | A comma-separated list of paths                                                        |
 | pattern                      | Pattern of files to search for                                                         |
-| timezone                     | Sets the timezone for time metrics (default is local time)                             |
+| timezone                     | Set the timezone for time metrics (default is local time)                              |
 
 ## Attributes
 
 ### Filter Keywords
 
-these can be used in filters and thresholds (along with the default attributes):
+Use these attributes in filters and thresholds, along with the default attributes:
 
-| Attribute       | Description                                                          |
-| --------------- | -------------------------------------------------------------------- |
-| path            | Path to the file                                                     |
-| filename        | Name of the file                                                     |
-| name            | Alias for filename                                                   |
-| file            | Alias for filename                                                   |
-| fullname        | Full name of the file including path                                 |
-| type            | Type of item (file or dir)                                           |
-| check_path      | Check path argument whose search led to finding this file/directory. |
-| access          | Unix timestamp of last access time                                   |
-| creation        | Unix timestamp when file was created                                 |
-| size            | File size in bytes                                                   |
-| disksize        | File size on disk in bytes                                           |
-| written         | Unix timestamp when file was last written to                         |
-| write           | Alias for written                                                    |
-| age             | Seconds since file was last written                                  |
-| version         | Windows exe/dll file version (Windows only)                          |
-| line_count      | Number of lines in the files (text files)                            |
-| total_bytes     | Total size over all files in bytes                                   |
-| total_size      | Total size over all files as human readable bytes                    |
-| total_diskbytes | Total disk size over all files in bytes                              |
-| total_disksize  | Total disk size over all files as human readable bytes               |
-| md5_checksum    | MD5 checksum of the file                                             |
-| sha1_checksum   | SHA1 checksum of the file                                            |
-| sha256_checksum | SHA256 checksum of the file                                          |
-| sha384_checksum | SHA384 checksum of the file                                          |
-| sha512_checksum | SHA512 checksum of the file                                          |
-| is_symlink      | The file/directory is a symlink                                      |
+| Attribute       | Description                                              |
+| --------------- | -------------------------------------------------------- |
+| path            | Path to the file                                         |
+| filename        | Name of the file                                         |
+| name            | Alias for filename                                       |
+| file            | Alias for filename                                       |
+| fullname        | Full name of the file including path                     |
+| type            | Type of item (file or dir)                               |
+| check_path      | Check path argument used to find this file or directory. |
+| access          | Unix timestamp of last access time                       |
+| creation        | Unix timestamp when file was created                     |
+| size            | File size in bytes                                       |
+| disksize        | File size on disk in bytes                               |
+| written         | Unix timestamp when file was last written to             |
+| write           | Alias for written                                        |
+| age             | Seconds since file was last written                      |
+| version         | Windows exe/dll file version (Windows only)              |
+| line_count      | Number of lines in the files (text files)                |
+| total_bytes     | Total size over all files in bytes                       |
+| total_size      | Total size over all files as human readable bytes        |
+| total_diskbytes | Total disk size over all files in bytes                  |
+| total_disksize  | Total disk size over all files as human readable bytes   |
+| md5_checksum    | MD5 checksum of the file                                 |
+| sha1_checksum   | SHA1 checksum of the file                                |
+| sha256_checksum | SHA256 checksum of the file                              |
+| sha384_checksum | SHA384 checksum of the file                              |
+| sha512_checksum | SHA512 checksum of the file                              |
+| is_symlink      | The file/directory is a symlink                          |
 
 ## Examples
 
 ### Default Check
 
-Alert if there are logs older than 1 hour in /tmp:
+Alert if /tmp contains logs older than 1 hour:
 
     check_files path="/tmp" pattern="*.log" "filter=age > 1h" crit="count > 0" empty-state=0 empty-syntax="no old files found" top-syntax="%(status) - found %(count) old log files"
     CRITICAL - found 138 old log files |'count'=138;;0;0 'size'=30642669B;;;0
 
-Check for folder size:
+Check the folder size:
 
     check_files 'path=/tmp' 'warn=total_size > 200MiB' 'crit=total_size > 300MiB'
     OK - All 145 files are ok: (34.72 MiB) |'count'=145;;;0 'size'=36406741B;209715200;314572800;0

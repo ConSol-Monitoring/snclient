@@ -22,7 +22,7 @@ func NewCheckOSVersion() CheckHandler {
 func (l *CheckOSVersion) Build() *CheckData {
 	return &CheckData{
 		name:         "check_os_version",
-		description:  "Checks the os system version.",
+		description:  "Checks the operating system version.",
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{

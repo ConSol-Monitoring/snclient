@@ -43,10 +43,10 @@ func (l *CheckDriveIO) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"drive": {value: &l.drives, isFilter: true, description: "Names of the drives to check I/O stats for, e.g. C: or sda. If left empty, all drives are checked"},
+			"drive": {value: &l.drives, isFilter: true, description: "Drives to check for I/O statistics, for example C: or sda. Leave empty to check all drives"},
 			"lookback": {
 				value: &l.lookback, isFilter: true,
-				description: fmt.Sprintf("Lookback period for value change rate and utilization calculations, given in seconds. Default: %d", defaultLookbackDriveIO),
+				description: fmt.Sprintf("Lookback period in seconds for rate and utilization calculations. Default: %d", defaultLookbackDriveIO),
 			},
 		},
 		defaultWarning:  "utilization > 95",
@@ -57,20 +57,20 @@ func (l *CheckDriveIO) Build() *CheckData {
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - No drives found",
 		attributes: []CheckAttribute{
-			{name: "drive", description: "Names of the drives to check I/O stats for. If left empty, it will check all drives. " +
-				"For Windows this is the drive letter. For UNIX it is the logical name of the drive."},
-			{name: "lookback", description: "Lookback period for which the value change rate and utilization are calculated."},
+			{name: "drive", description: "Drives to check for I/O statistics. Leave empty to check all drives. " +
+				"Use the drive letter on Windows or the logical drive name on UNIX."},
+			{name: "lookback", description: "Lookback period for rate and utilization calculations."},
 			{name: "read_count", description: "Total number of read operations completed successfully"},
 			{name: "read_count_rate", description: "Number of read operations per second during the lookback period"},
 			{name: "read_bytes", description: "Total number of bytes read from the disk", unit: UByte},
 			{name: "read_bytes_rate", description: "Average bytes read per second during the lookback period", unit: UByte},
-			{name: "read_bytes_rate_humanized", description: "Average bytes read per second during the lookback period, written in humanized format"},
+			{name: "read_bytes_rate_humanized", description: "Average bytes read per second during the lookback period, in human-readable format"},
 			{name: "read_time", description: "Total time spent on read operations (milliseconds)."},
 			{name: "write_count", description: "Total number of write operations completed successfully"},
 			{name: "write_count_rate", description: "Number of write operations per second during the lookback period"},
 			{name: "write_bytes", description: "Total number of bytes written to the disk", unit: UByte},
 			{name: "write_bytes_rate", description: "Average bytes written per second during the lookback period", unit: UByte},
-			{name: "write_bytes_rate_humanized", description: "Average bytes written per second during the lookback period, written in humanized format"},
+			{name: "write_bytes_rate_humanized", description: "Average bytes written per second during the lookback period, in human-readable format"},
 			{name: "write_time", description: "Total time spent on write operations (milliseconds)."},
 
 			// Windows does not report these
@@ -109,7 +109,8 @@ func (l *CheckDriveIO) Build() *CheckData {
 	OK - C >20.1 MiB/s <1.4 GiB/s 41.2% |'C_read_count'=4791920c;;;0; 'C_read_bytes'=1729039767552c;;;0; 'C_read_time'=119710.31709ms;;;0; 'C_write_count'=2260624c;;;0; 'C_write_bytes'=479384686592c;;;0; 'C_write_time'=89071.67515ms;;;0; 'C
 _utilization'=41.2%;95;;0; 'C_queue_depth'=0;;;0;
 
-Check a UNIX drive and alert if for the last 30 seconds written bytes/second is above 10 Mb/s . Dm-0 is the name of the encrypted volume, it could be nvme0n1 or sdb as well
+Check a UNIX drive. Alert if its write rate over the last 30 seconds exceeds 10 Mb/s.
+Dm-0 is the encrypted volume's name. The name could also be nvme0n1 or sdb.
 
     check_drive_io lookback=30 warn="write_bytes_rate > 10Mb"
 	OK - dm-0 >1.8 MiB/s/s <815.0 B/s/s 0.0%, sda1 >0 B/s/s <0 B/s/s 0.0% |'dm-0_read_count'=396738362c;;;0; 'dm-0_read_bytes'=33871348975616c;;;0; 'dm-0_read_time'=2990729692ms;;;0; 'dm-0_write_count'=624158141c;;;0; 'dm-0_write_bytes'=36083702012416c;;;0; 'dm-0_write_time'=1412729952ms;;;0; 'dm-0_utilization'=0%;95;;0; 'dm-0_io_time'=738627512ms;;;0; 'dm-0_weighted_io'=108492348;;;0; 'dm-0_iops_in_progress'=0;;;0; 'sda1_read_count'=3178c;;;0; 'sda1_read_bytes'=67430400c;;;0; 'sda1_read_time'=13572ms;;;0; 'sda1_write_count'=3193c;;;0; 'sda1_write_bytes'=282012672c;;;0; 'sda1_write_time'=9446ms;;;0; 'sda1_utilization'=0%;95;;0; 'sda1_io_time'=10832ms;;;0; 'sda1_weighted_io'=23019;;;0; 'sda1_iops_in_progress'=0;;;0;

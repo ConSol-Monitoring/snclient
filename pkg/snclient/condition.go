@@ -1045,12 +1045,10 @@ func (c *Condition) GetListOfKeywords() (keywords []string, err error) {
 	return keywords, nil
 }
 
-// pass an argument as a function.
-// the function should have a pointer receiver type, no arguments and return an error.
-// the function will be applied to the current instance.
-// if the current instance is a group condition, this function will be called for every condition in that group.
-// error messages are accumulated during recursion.
-// if at least one error is encountered during recursion, err will not be nil.
+// Pass a function with a pointer receiver, no arguments, and an error return value.
+// Apply it to the current instance.
+// If the instance is a group condition, call the function for each condition in the group.
+// Collect error messages during recursion. If any call fails, err is not nil.
 func (c *Condition) RunFuncRecursively(_func func(c *Condition) error) (err error) {
 	errString := ""
 	thisErr := _func(c)
@@ -1409,10 +1407,10 @@ func replaceStrOp(input string) string {
 	return strings.Join(output, "")
 }
 
-// A condition list can contain some conditions that use a specialized keyword, and generallized keywords.
-// This function only does modifications if there are conditions using the specialized keyword
-// For all others that do not use the specizalied keyword, check if they are using a generallized keyword.
-// After these two rounds of filtering conditions, disable a entry from this condition.
+// A condition list can contain specialized and generalized keywords.
+// Modify the list only if a condition uses the specialized keyword.
+// For other conditions, check whether they use a generalized keyword.
+// After these two filter passes, disable an entry from this condition.
 func (cl *ConditionList) disableGenerallizedConditionsForEntry(entry map[string]string, specializedKeywords, generallizedKeywords []string) {
 	conditionsWithSpecializedKeyword := cl.filterConditionsUsingKeywords(specializedKeywords)
 	if len(conditionsWithSpecializedKeyword) > 0 {
@@ -1443,11 +1441,11 @@ func (cl *ConditionList) filterConditionsUsingKeywords(keywords []string) (ret [
 	return ret
 }
 
-// when filtering for a specialized condition, it is required to see if the condition list should be filtered at all
-// if all conditions are generic and do not use the keyword, there is no need for filtering
-// additionally, if there is a condition that uses the keyword, it might have blacklisted/whitelisted the entry and is not applicable
-// need to find at least one condition that uses this keyword and permits it, that is the specialized condition for that keyword
-// if such a keyword exists, then we can filter out the non-specialized i.e generic conditions
+// Before filtering for a specialized condition, check whether the list needs filtering.
+// If all conditions are generic and omit the keyword, keep them.
+// A condition that uses the keyword may blacklist or whitelist the entry and might not apply.
+// Find at least one condition that uses the keyword and permits the entry.
+// If such a specialized condition exists, filter out the generic conditions.
 func (cl *ConditionList) ifKeywordIsPresentAndPermitsEntry(keyword string, entry map[string]string) (keywordPresent, keywordPresentAndPermitsEntry bool, conditionThatPermitsEntry *Condition) {
 	keywordPresent = false
 	keywordPresentAndPermitsEntry = false
@@ -1476,9 +1474,9 @@ func (cl *ConditionList) ifKeywordIsPresentAndPermitsEntry(keyword string, entry
 	return keywordPresent, keywordPresentAndPermitsEntry, conditionThatPermitsEntry
 }
 
-// If a specialized condition, i.e a condition using the keyword, exists in this condition list, filter to specialized condition
-// If a specialized condition does not exist, every condition is generallized. Keep every generallized condition.
-// metric can be passed as well, this will print out the name of the metric in the trace output
+// If the list has a specialized condition that uses the keyword, filter to that condition.
+// Otherwise, all conditions are generalized. Keep them all.
+// Pass metric to include its name in the trace output.
 func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[string]string, metric *CheckMetric) (result ConditionList) {
 	// If the condition has this keyword, and permits an entry, the condition is specific to this entry
 	// It is specialized in terms of this keyword, it is not generallized
@@ -1526,9 +1524,9 @@ func (cl *ConditionList) filterForSpecializedKeyword(keyword string, entry map[s
 	return result
 }
 
-// blacklistConditionsNotUsingKeywordIfKeywordIsActive blacklists conditions that do not use the keyword, but only if keyword itself is used in the list and matches the entry.
-// This is used when at least one condition in the list has the keyword AND matches the entry, indicating a specialized condition is present.
-// In that case, generic conditions (without the keyword) should not apply to this entry, so they will be blacklisted.
+// blacklistConditionsNotUsingKeywordIfKeywordIsActive blacklists generic conditions when a specialized condition matches the entry.
+// At least one condition in the list must use the keyword and match the entry.
+// Generic conditions omit the keyword and should not apply to that entry.
 func (cl *ConditionList) blacklistConditionsNotUsingKeywordIfKeywordIsActive(keyword string, entry map[string]string) {
 	_, keywordPresentAndPermitsEntry, conditionThatPermitsEntry := cl.ifKeywordIsPresentAndPermitsEntry(keyword, entry)
 	if !keywordPresentAndPermitsEntry {
@@ -1558,9 +1556,9 @@ func (cl *ConditionList) applyFuncToConditions(_func func(c *Condition) error) e
 	return nil
 }
 
-// applies a series of matches to the condition list based on data
-// appends every condition based on its correct/false and conclusive/inconclusive result to a list
-// turn returnOnFirstMatch to skip processing the whole list after the first correct result
+// Match the condition list against data.
+// Add each condition to a list based on its correct/false and conclusive/inconclusive results.
+// Enable returnOnFirstMatch to stop after the first correct result.
 func (cl *ConditionList) performMatches(data map[string]string, returnOnFirstMatch bool) (correctConditions, falseConditions, conclusiveConditions, inconclusiveConditions ConditionList) {
 	correctConditions = make(ConditionList, 0)
 	falseConditions = make(ConditionList, 0)

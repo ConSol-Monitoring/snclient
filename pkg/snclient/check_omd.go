@@ -58,13 +58,13 @@ func (l *CheckOMD) Build() *CheckData {
 			{name: "state", description: "Return code of OMD status, 0 - running, 1 - partially running, 2 - stopped, 3 - unknown"},
 			{name: "status", description: "Text status: (running, partially running, stopped, unknown)"},
 			{name: "failed_services", description: "List of failed services"},
-			{name: "failed_services_txt", description: "More usable form of failed services list"},
+			{name: "failed_services_txt", description: "Readable list of failed services"},
 		},
 		exampleDefault: `
     check_omd
     OK - site demo: running |...
 
-Check **specific** site by site filter:
+Use the site filter to check a specific site:
 
     check_omd site=demo
     OK - site demo: running |...

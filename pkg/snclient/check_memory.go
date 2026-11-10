@@ -41,23 +41,23 @@ func (l *CheckMemory) Build() *CheckData {
 		name: "check_memory",
 		description: `Checks the memory usage on the host.
 
-There are several types of memory that can be checked:
+You can check these memory types:
 
 - physical: physical memory
 - swap: swap memory (pagefile on Windows)
-- committed: committed memory as shown in the Windows task manager (Windows only, basically this is the physical + swap)
+- committed: committed memory as shown in the Windows task manager (Windows only, physical + swap)
 - virtual: available Windows virtual address space (Windows only)
 
-Read more on Windows virtual address space [here](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex).`,
+Read more about [Windows virtual address space](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex).`,
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"type":            {value: &l.memType, description: "Type of memory to check. Default: physical,committed (win) or physical,swap (other)"},
-			"n|procs-to-show": {value: &l.numProcs, description: "Number of processes to show when printing the top consuming processes"},
-			"show-args":       {value: &l.showArgs, description: "Show arguments when listing the top N processes"},
+			"type":            {value: &l.memType, description: "Memory types to check. Default: physical,committed (Windows) or physical,swap (other systems)"},
+			"n|procs-to-show": {value: &l.numProcs, description: "Number of top resource-consuming processes to show"},
+			"show-args":       {value: &l.showArgs, description: "Show arguments for the top N processes"},
 		},
 		defaultWarning:  "used > 80%",
 		defaultCritical: "used > 90%",
@@ -88,7 +88,7 @@ Read more on Windows virtual address space [here](https://learn.microsoft.com/en
     check_memory
     OK - physical = 6.98 GiB, committed = 719.32 MiB|...
 
-Changing the return syntax to get more information:
+Change the output template to show more information:
 
     check_memory 'top-syntax=%(list)' 'detail-syntax=%(type) free: %(free) used: %(used) size: %(size)'
     physical free: 35.00 B used: 7.01 GiB size: 31.09 GiB, committed free: 27.00 B used: 705.57 MiB size: 977.00 MiB |...

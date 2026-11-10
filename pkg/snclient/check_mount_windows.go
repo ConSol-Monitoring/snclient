@@ -5,11 +5,12 @@ import (
 	"slices"
 )
 
-// getVolumes retrieves volumes and their details, excluding specified partitions, and returns a list of drives and any potential errors.
+// getVolumes retrieves volumes and their details, excluding the specified partitions.
+// It returns a list of drives and any errors.
 //
 // ctx - The context of the operation.
-// partitionMap - A map of mounted partitions to exclude from the retrieval.
-// []map[string]string, error - Returns a list of drives and any potential errors.
+// partitionMap - Map of mounted partitions to exclude.
+// []map[string]string, error - List of drives and any errors.
 func (l *CheckMount) getVolumes(ctx context.Context, check *CheckData, partitionMap map[string]bool) (drives []map[string]string, err error) {
 	driveSize := &CheckDrivesize{}
 	volumes := map[string]map[string]string{}

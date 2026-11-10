@@ -173,10 +173,9 @@ func (cr *CheckResult) BuildPluginOutput() []byte {
 	return output
 }
 
-// SynthesizePerfConfigMetrics adds metrics for perf-config selectors matching
-// keys present in the check's listData but not yet emitted as metrics.
-// This lets a user surface values a check computes but doesn't emit by default.
-// A bare "*" selector must not synthesize anything.
+// SynthesizePerfConfigMetrics adds metrics for perf-config selectors that match keys in the check's listData.
+// It adds only values that the check computes but does not emit as metrics by default.
+// A bare "*" selector must not add metrics.
 func (cr *CheckResult) SynthesizePerfConfigMetrics(perfCfg []PerfConfig) {
 	if cr.Raw == nil || len(cr.Raw.listData) != 1 {
 		return

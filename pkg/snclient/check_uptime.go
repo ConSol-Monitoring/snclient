@@ -23,7 +23,7 @@ func NewCheckUptime() CheckHandler {
 func (l *CheckUptime) Build() *CheckData {
 	return &CheckData{
 		name:         "check_uptime",
-		description:  "Check computer uptime (time since last reboot).",
+		description:  "Check computer uptime (time since the last reboot).",
 		implemented:  ALL,
 		hasInventory: ListInventory,
 		result: &CheckResult{

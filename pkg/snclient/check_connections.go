@@ -87,7 +87,7 @@ func (l *CheckConnections) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"inet": {value: &l.addressFamily, isFilter: true, description: "Use specific address family only. Can be: total, any, ipv4 or ipv6"},
+			"inet": {value: &l.addressFamily, isFilter: true, description: "Use only the specified address family: total, any, ipv4 or ipv6"},
 		},
 		defaultFilter:   "inet=total",
 		defaultWarning:  "total > 1000",
@@ -96,7 +96,7 @@ func (l *CheckConnections) Build() *CheckData {
 		topSyntax:       "%(status) - %(list)",
 		attributes: []CheckAttribute{
 			{name: "inet", description: "address family, can be total (sum of any), all (any+total), any (v4+v6), inet4 or inet6"},
-			{name: "prefix", description: "address family as prefix, will be empty, inet4 or inet6"},
+			{name: "prefix", description: "Address family prefix: empty, inet4 or inet6"},
 			{name: "total", description: "total number of connections"},
 			{name: "established", description: "total number of connections of type: established"},
 			{name: "syn_sent", description: "total number of connections of type: syn_sent"},

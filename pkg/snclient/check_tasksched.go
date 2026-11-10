@@ -36,25 +36,25 @@ func NewCheckTasksched() CheckHandler {
 func (l *CheckTasksched) Build() *CheckData {
 	return &CheckData{
 		name:        "check_tasksched",
-		description: "Check status of scheduled jobs",
+		description: "Check the status of scheduled tasks.",
 		implemented: Windows,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"timezone": {description: "Sets the timezone for time metrics (default is local time)"},
+			"timezone": {description: "Set the timezone for time metrics (default is local time)"},
 			"title": {
 				value:       &l.TaskTitle,
-				description: fmt.Sprintf("Sets the task to check. This corresponds to the title of the scheduled task. Default: '%s'", CheckTaskschedDefaultTaskTitle),
+				description: fmt.Sprintf("Title of the scheduled task to check. Default: '%s'", CheckTaskschedDefaultTaskTitle),
 			},
 			"folder": {
 				value: &l.Folder,
-				description: fmt.Sprintf("The folder where the scheduled task is saved. This is used for exact matches, unless recursive option is enabled. Default: '%s'",
+				description: fmt.Sprintf("Folder that contains the scheduled task. Matches this folder exactly unless recursive is enabled. Default: '%s'",
 					CheckTaskschedDefaultFolder),
 			},
 			"recursive": {
 				value:       &l.Recursive,
-				description: fmt.Sprintf("Include the subfolders of the specified folder as well when searching for scheduled tasks. Default: '%t'", CheckTaskschedDefaultRecursive),
+				description: fmt.Sprintf("Search subfolders of the specified folder for scheduled tasks. Default: '%t'", CheckTaskschedDefaultRecursive),
 			},
 			"hidden": {
 				value:       &l.Hidden,
@@ -77,15 +77,15 @@ func (l *CheckTasksched) Build() *CheckData {
 			{name: "exit_code", description: "The last job's exit code"},
 			{name: "exit_string", description: "The last job's exit code as string"},
 			{name: "folder", description: "Task folder"},
-			{name: "uri", description: "Fully qualified path to the task, includes folder and the task title"},
-			{name: "uri_clean", description: "Remove the leading backslash from the URI, only for tasks directly saved at root and not for ones saved inside folders."},
+			{name: "uri", description: "Full path to the task, including the folder and task title"},
+			{name: "uri_clean", description: "URI without the leading backslash for tasks directly at root. Tasks inside folders keep their leading backslash."},
 			{name: "has_run", description: "True if this task has ever been executed", unit: UBool},
 			{name: "max_run_time", description: "Maximum length of time the task can run", unit: UDuration},
 			{name: "most_recent_run_time", description: "Most recent time the work item began running", unit: UDate},
 			{name: "priority", description: "Task priority"},
 			{name: "title", description: "Task title"},
-			{name: "hidden", description: "Indicates that the task will not be visible in the UI (true/false)", unit: UBool},
-			{name: "missed_runs", description: "Number of times the registered task has missed a scheduled run"},
+			{name: "hidden", description: "True if the task is hidden in the UI (true/false)", unit: UBool},
+			{name: "missed_runs", description: "Number of scheduled runs that the registered task missed"},
 			{name: "task_status", description: "Task status as string"},
 			{name: "next_run_time", description: "Time when the registered task is next scheduled to run", unit: UDate},
 			{name: "parameters", description: "Last action's command line parameters"},

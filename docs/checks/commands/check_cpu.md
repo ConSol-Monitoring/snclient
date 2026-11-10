@@ -30,23 +30,23 @@ Checks the CPU usage metrics.
 
 ## Check Specific Arguments
 
-| Argument         | Description                                                           |
-| ---------------- | --------------------------------------------------------------------- |
-| n\|procs-to-show | Number of processes to show when printing the top consuming processes |
-| show-args        | Show arguments when listing the top N processes                       |
-| time             | The times to check, default: 5m,1m,5s                                 |
+| Argument         | Description                                        |
+| ---------------- | -------------------------------------------------- |
+| n\|procs-to-show | Number of top resource-consuming processes to show |
+| show-args        | Show arguments for the top N processes             |
+| time             | Time periods to check (default: 5m,1m,5s)          |
 
 ## Attributes
 
 ### Filter Keywords
 
-these can be used in filters and thresholds (along with the default attributes):
+Use these attributes in filters and thresholds, along with the default attributes:
 
 | Attribute | Description                                                    |
 | --------- | -------------------------------------------------------------- |
 | core      | Core to check (total or core ##)                               |
 | core_id   | Core to check (total or core_##)                               |
-| core_nr   | Core number of the without prefix (e.g., core_1 -> 1)          |
+| core_nr   | Core number without the prefix (for example, core_1 -> 1)      |
 | idle      | Current idle load for a given core (currently not supported)   |
 | kernel    | Current kernel load for a given core (currently not supported) |
 | load      | Current load for a given core                                  |
@@ -59,7 +59,7 @@ these can be used in filters and thresholds (along with the default attributes):
     check_cpu
     OK - CPU load is ok. |'total 5s'=13.450%;80;90 'total 1m'=13.450%;80;90 'total 5m'=13.450%;80;90
 
-Checking **each core** by adding filter=none (disabling the filter):
+To check each core, add filter=none to disable the filter:
 
     check_cpu filter=none
     OK - CPU load is ok. |'core1 5s'=9.010%;80;90 'core1 1m'=12.340%;80;90 'core1 5m'=13.450%;80;90...
