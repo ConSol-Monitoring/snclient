@@ -30,13 +30,13 @@ Checks the ICMP ping connection.
 
 ## Check Specific Arguments
 
-| Argument | Description                                      |
-| -------- | ------------------------------------------------ |
-| -4       | Force using IPv4.                                |
-| -6       | Force using IPv6.                                |
-| -t       | timeout in seconds for each ICMP ECHO packet     |
-| host     | host name or IP address to ping                  |
-| packets  | number of ICMP ECHO packets to send (default: 5) |
+| Argument | Description                                                 |
+| -------- | ----------------------------------------------------------- |
+| -4       | Force using IPv4.                                           |
+| -6       | Force using IPv6.                                           |
+| -t       | timeout in seconds for each ICMP ECHO packet                |
+| host     | host name or IP address to ping                             |
+| packets  | number of ICMP ECHO packets to send (default: 5, max: 1000) |
 
 ## Attributes
 
