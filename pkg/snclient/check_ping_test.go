@@ -6,6 +6,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestPingPacketCap(t *testing.T) {
+	chk := &CheckPing{packets: maxPingPackets + 1}
+	chk.clampPackets()
+	assert.Equal(t, int64(maxPingPackets), chk.packets)
+
+	chk.packets = maxPingPackets
+	chk.clampPackets()
+	assert.Equal(t, int64(maxPingPackets), chk.packets)
+
+	chk.packets = 5
+	chk.clampPackets()
+	assert.Equal(t, int64(5), chk.packets)
+}
+
 func TestCheckPing(t *testing.T) {
 	config := `
 [/modules]

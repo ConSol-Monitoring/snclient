@@ -15,6 +15,8 @@ func init() {
 	AvailableChecks["check_ping"] = CheckEntry{"check_ping", NewCheckPing}
 }
 
+const maxPingPackets = 1000
+
 type CheckPing struct {
 	snc      *Agent
 	hostname string
@@ -41,7 +43,7 @@ func (l *CheckPing) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"host":    {value: &l.hostname, description: "host name or IP address to ping"},
-			"packets": {value: &l.packets, description: "number of ICMP ECHO packets to send (default: 5)"},
+			"packets": {value: &l.packets, description: "number of ICMP ECHO packets to send (default: 5, max: 1000)"},
 			"-t":      {value: &l.timeout, description: "timeout in seconds for each ICMP ECHO packet"},
 			"-4":      {value: &l.ipv4, description: "Force using IPv4."},
 			"-6":      {value: &l.ipv6, description: "Force using IPv6."},
@@ -79,12 +81,21 @@ func (l *CheckPing) Check(ctx context.Context, snc *Agent, check *CheckData, _ [
 		return nil, fmt.Errorf("host name must not contain nasty characters")
 	}
 
+	l.clampPackets()
+
 	err := l.addSources(ctx, check)
 	if err != nil {
 		return nil, err
 	}
 
 	return check.Finalize()
+}
+
+func (l *CheckPing) clampPackets() {
+	if l.packets > maxPingPackets {
+		log.Warnf("check_ping: packets=%d exceeds the maximum of %d, using %d", l.packets, maxPingPackets, maxPingPackets)
+		l.packets = maxPingPackets
+	}
 }
 
 func (l *CheckPing) addSources(ctx context.Context, check *CheckData) (err error) {

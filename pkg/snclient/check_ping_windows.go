@@ -21,7 +21,8 @@ const (
 	icmpDefaultTimeout = 4 * time.Second // ping.exe default
 	icmpPacketSize     = 32              // ping.exe default payload
 	icmpSendInterval   = time.Second
-	icmpReplySlack     = 24 // ICMP error message and IO_STATUS_BLOCK , extend the buffer by this much
+	icmpReplySlack     = 24  // ICMP error message and IO_STATUS_BLOCK
+	icmpPacketLossMax  = 100 // complete packet loss in percent
 
 	ipSuccess        = 0
 	ipStatusMin      = 11001 // IP_BUF_TOO_SMALL
@@ -170,7 +171,7 @@ func (l *CheckPing) resolvePingHost(ctx context.Context) ([]net.IP, error) {
 func (l *CheckPing) addPingResolveError(check *CheckData) error {
 	entry := l.defaultEntry()
 	entry["_error"] = "failed to resolve hostname"
-	entry["pl"] = fmt.Sprintf("%.3f", 100.0)
+	entry["pl"] = fmt.Sprintf("%.3f", float64(icmpPacketLossMax))
 	check.listData = append(check.listData, entry)
 	l.addMetrics(check, entry)
 
