@@ -20,7 +20,7 @@ CheckBuiltinPlugins = enabled
 
 	res = snc.RunCheck("check_ping", []string{"host=10.99.99.99", "packets=2", "-t", "1"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
-	assert.Regexpf(t, `^CRITICAL - Packet loss = 100(|\.0)% \|'rta'=U 'pl'=100%;30;80;0`, string(res.BuildPluginOutput()), "output matches")
+	assert.Regexpf(t, `^CRITICAL - Packet loss = 100(\.0+)?% \|'rta'=U 'pl'=100%;30;80;0`, string(res.BuildPluginOutput()), "output matches")
 
 	res = snc.RunCheck("check_ping", []string{"host=should_not_resolve.nowhere", "packets=1"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
