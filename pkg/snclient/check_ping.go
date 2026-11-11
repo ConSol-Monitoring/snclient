@@ -140,37 +140,6 @@ func (l *CheckPing) addPingLinux(ctx context.Context, check *CheckData) error {
 	return nil
 }
 
-// run ping command on windows
-func (l *CheckPing) addPingWindows(ctx context.Context, check *CheckData) error {
-	cmd := fmt.Sprintf("ping.exe -n %d", l.packets)
-	if l.ipv4 {
-		cmd += " -4"
-	}
-	if l.ipv6 {
-		cmd += " -6"
-	}
-	if l.timeout > 0 {
-		cmd += fmt.Sprintf(" -w %d", l.timeout*1000)
-	}
-	cmd += fmt.Sprintf(" '%s'", l.hostname)
-
-	command, err := l.snc.MakeCmd(ctx, cmd)
-	if err != nil {
-		return err
-	}
-
-	output, stderr, _, _, err := l.snc.runExternalCommand(ctx, command, check.timeout-(1*time.Second))
-	if err != nil {
-		return fmt.Errorf("ping failed: %s\n%s", err.Error(), stderr)
-	}
-
-	entry := l.parsePingOutput(output, stderr)
-	check.listData = append(check.listData, entry)
-	l.addMetrics(check, entry)
-
-	return nil
-}
-
 func (l *CheckPing) parsePingOutput(output, stderr string) (entry map[string]string) {
 	entry = l.defaultEntry()
 
