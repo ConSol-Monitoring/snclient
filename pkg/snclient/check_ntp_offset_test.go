@@ -20,7 +20,7 @@ func TestCheckNTPOffsetW32TimeEntry(t *testing.T) {
 		PhaseOffset:        6151700,
 		State:              w32timeStateSync,
 		LastSyncResult:     w32timeSyncResultSuccess,
-		LastSuccessfulSync: time.Date(2023, 12, 20, 9, 30, 13, 0, time.UTC),
+		LastSuccessfulSync: time.Date(2023, 12, 20, 9, 30, 13, 659032000, time.UTC),
 	})
 
 	assert.Equal(t, map[string]string{
@@ -37,7 +37,7 @@ func TestCheckNTPOffsetW32TimeEntry(t *testing.T) {
 		"last_sync_result_name": "Success",
 		"root_delay":            "38.510100",
 		"root_dispersion":       "28.135000",
-		"last_sync":             "2023-12-20T09:30:13Z",
+		"last_sync":             "1703064613.659",
 	}, entry)
 }
 

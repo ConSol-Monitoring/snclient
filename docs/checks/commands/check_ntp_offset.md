@@ -56,7 +56,7 @@ Use these attributes in filters and thresholds, along with the default attribute
 | last_sync_result_name | name of the last synchronization result. Only set with source w32time.                        |
 | root_delay            | total round-trip delay to the primary time source in milliseconds. Only set with source w32time. |
 | root_dispersion       | root dispersion, the maximum error relative to the primary time source in milliseconds. Only set with source w32time. |
-| last_sync             | time of the last successful synchronization in RFC 3339 format. Only set with source w32time. |
+| last_sync             | Unix timestamp of the last successful synchronization in seconds with millisecond precision. Only set with source w32time. |
 
 ## Examples
 

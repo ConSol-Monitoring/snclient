@@ -71,7 +71,8 @@ func (l *CheckNTPOffset) Build() *CheckData {
 			{name: "root_delay", description: "total round-trip delay to the primary time source in milliseconds. Only set with source w32time."},
 			{name: "root_dispersion", description: "root dispersion, the maximum error relative to the primary time source in milliseconds. " +
 				"Only set with source w32time."},
-			{name: "last_sync", description: "time of the last successful synchronization in RFC 3339 format. Only set with source w32time."},
+			{name: "last_sync", description: "Unix timestamp of the last successful synchronization in seconds " +
+				"with millisecond precision. Only set with source w32time.", unit: UDate},
 		},
 		exampleDefault: `
     check_ntp_offset
@@ -379,9 +380,9 @@ func (result w32timeSyncResult) String() string {
 	return fmt.Sprintf("Unknown(%d)", uint32(result))
 }
 
-// w32timeStatus is the status of the local Windows Time service. It is filled
-// by queryW32TimeStatus, a port of the windows_exporter (Apache-2.0, Copyright
-// The Prometheus Authors), see check_ntp_offset_windows.go for the origin.
+// w32timeStatus is the status of the local Windows Time service.
+// It is filled by queryW32TimeStatus, a port of the windows_exporter (Apache-2.0, Copyright The Prometheus Authors)
+// See check_ntp_offset_windows.go for the origin.
 type w32timeStatus struct {
 	LeapIndicator  uint32
 	Stratum        uint32
@@ -440,7 +441,7 @@ func fillW32TimeEntry(entry map[string]string, status *w32timeStatus) {
 	entry["root_delay"] = fmt.Sprintf("%f", float64(status.RootDelay.Nanoseconds())/1e6)
 	entry["root_dispersion"] = fmt.Sprintf("%f", float64(status.RootDispersion.Nanoseconds())/1e6)
 	if !status.LastSuccessfulSync.IsZero() {
-		entry["last_sync"] = status.LastSuccessfulSync.UTC().Format(time.RFC3339)
+		entry["last_sync"] = fmt.Sprintf("%.3f", float64(status.LastSuccessfulSync.UnixMilli())/1e3)
 	}
 
 	if status.State != w32timeStateSync {
