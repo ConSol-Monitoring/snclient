@@ -56,7 +56,7 @@ Use these attributes in filters and thresholds, along with the default attribute
 | last_sync_result_name | Name of the last synchronization result. SNClient sets this value only for the w32time source. |
 | root_delay            | Round-trip delay to the primary time source in milliseconds. SNClient sets this value only for the w32time source. |
 | root_dispersion       | Maximum error relative to the primary time source in milliseconds. SNClient sets this value only for the w32time source. |
-| last_sync             | Time of the last successful synchronization in RFC 3339 format. SNClient sets this value only for the w32time source. |
+| last_sync             | Time of the last successful synchronization as a Unix timestamp in seconds. SNClient sets this value only for the w32time source. |
 
 ## Examples
 
