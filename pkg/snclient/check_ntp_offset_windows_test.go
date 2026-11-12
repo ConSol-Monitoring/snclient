@@ -1,17 +1,8 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 //
-// Copyright The Prometheus Authors
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// The status sample in this file is reused from the windows_exporter project,
+// which is MIT licensed (Copyright (c) 2016 Martin Lindhe,
+// Copyright (c) 2021 The Prometheus Authors).
 
 // The status sample in this file was recorded by the windows_exporter project
 // and is reused here to test the ported parser.
@@ -35,8 +26,8 @@ import (
 
 // statusSample is the W32TIME_STATUS_INFO that W32TimeQueryStatus returned
 // on a Windows Server 2025 Hyper-V guest, up to the source string. It was
-// recorded by the windows_exporter project (Apache-2.0, Copyright The
-// Prometheus Authors) and is reused to test the ported parser.
+// recorded by the windows_exporter project (MIT, Copyright The Prometheus
+// Authors) and is reused to test the ported parser.
 const statusSample = "" +
 	"78000000 00000000 01000000 06000000" +
 	"564d5450 00000000 f0b7a4eb a867dd01" +

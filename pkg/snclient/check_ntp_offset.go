@@ -385,7 +385,7 @@ func (result w32timeSyncResult) String() string {
 }
 
 // w32timeStatus is the status of the local Windows Time service.
-// It is filled by queryW32TimeStatus, a port of the windows_exporter (Apache-2.0, Copyright The Prometheus Authors)
+// It is filled by queryW32TimeStatus, a port of the windows_exporter (MIT, Copyright The Prometheus Authors).
 // See check_ntp_offset_windows.go for the origin.
 type w32timeStatus struct {
 	LeapIndicator  uint32
