@@ -39,7 +39,7 @@ Use these attributes in filters and thresholds, along with the default attribute
 | --------- | --------------------------- |
 | name      | The name of this agent      |
 | version   | Version string              |
-| build     | git commit id of this build |
+| build     | Git commit ID of this build |
 
 ## Examples
 

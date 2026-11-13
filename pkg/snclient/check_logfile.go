@@ -88,7 +88,7 @@ See the [pattern syntax](https://github.com/bmatcuk/doublestar#patterns) for det
 			"offset":         {value: &c.Offset, description: "Start position in bytes (0 for the beginning). Overrides any saved offset"},
 			"line-split":     {value: &c.LineDelimiter, description: "String that separates lines in the file (default: \\n)"},
 			"column-split":   {value: &c.ColumnDelimiter, description: "Tab split (default: \\t)"},
-			"label":          {value: &c.LabelPattern, description: "label:pattern => If a line matches the pattern, use the label as its detail"},
+			"label":          {value: &c.LabelPattern, description: "Use label:pattern. If a line matches the pattern, use the label as its detail."},
 			"max-lines":      {value: &c.MaxLinesPerFile, description: fmt.Sprintf("Maximum number of lines to read from each file (default: %d)", defaultMaxLinesPerFile)},
 			"ignore-missing": {value: &c.IgnoreMissing, description: "If the file pattern matches no files, ignore the error"},
 		},

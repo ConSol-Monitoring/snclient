@@ -38,16 +38,16 @@ Use these attributes in filters and thresholds, along with the default attribute
 
 | Attribute   | Description                                   |
 | ----------- | --------------------------------------------- |
-| name        | name of the check                             |
-| description | description of the check                      |
-| implemented | check is available on current platform: 0 / 1 |
-| windows     | check is available on Windows: 0 / 1          |
-| linux       | check is available on Linux: 0 / 1            |
-| macos       | check is available on macOS: 0 / 1            |
-| osx         | alias for macos: 0 / 1                        |
-| freebsd     | check is available on FreeBSD: 0 / 1          |
-| alias       | check is an alias: 0 / 1                      |
-| script      | check is a (wrapped) script: 0 / 1            |
+| name        | Name of the check                             |
+| description | Description of the check                      |
+| implemented | Check is available on current platform: 0 / 1 |
+| windows     | Check is available on Windows: 0 / 1          |
+| linux       | Check is available on Linux: 0 / 1            |
+| macos       | Check is available on macOS: 0 / 1            |
+| osx         | Alias for macos: 0 / 1                        |
+| freebsd     | Check is available on FreeBSD: 0 / 1          |
+| alias       | Check is an alias: 0 / 1                      |
+| script      | Check is a (wrapped) script: 0 / 1            |
 
 ## Examples
 

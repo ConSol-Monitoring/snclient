@@ -31,7 +31,7 @@ func (l *CheckSNClientVersion) Build() *CheckData {
 		attributes: []CheckAttribute{
 			{name: "name", description: "The name of this agent"},
 			{name: "version", description: "Version string"},
-			{name: "build", description: "git commit id of this build"},
+			{name: "build", description: "Git commit ID of this build"},
 		},
 		exampleDefault: `
     check_snclient_version

@@ -52,8 +52,8 @@ Use these attributes in filters and thresholds, along with the default attribute
 
 | Attribute    | Description                                                                        |
 | ------------ | ---------------------------------------------------------------------------------- |
-| <type>       | used bytes with the type as key                                                    |
-| type         | checked type, either 'physical' or 'committed', 'swap' or 'virtual' (Windows only) |
+| <type>       | Used bytes with the type as key                                                    |
+| type         | Checked type, either 'physical' or 'committed', 'swap' or 'virtual' (Windows only) |
 | used         | Used memory in human readable bytes (IEC)                                          |
 | used_bytes   | Used memory in bytes (IEC)                                                         |
 | used_pct     | Used memory in percent                                                             |

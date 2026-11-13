@@ -49,7 +49,7 @@ var checkMultiAttributes = []CheckAttribute{
 	{name: "critical_count", description: "Number of checks in CRITICAL state"},
 	{name: "unknown_count", description: "Number of checks in UNKNOWN state"},
 	{name: "problem_count", description: "Number of checks in non-OK state"},
-	{name: "name", description: "Name/Tag of the check"},
+	{name: "name", description: "Name/tag of the check"},
 	{name: "tag", description: "Alias for name"},
 	{name: "command", description: "Command executed"},
 	{name: "state", description: "Exit code of the check (0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN)"},

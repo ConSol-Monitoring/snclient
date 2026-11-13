@@ -57,7 +57,7 @@ func (l *CheckNetwork) Build() *CheckData {
 			{name: "enabled", description: "True if the network interface is enabled (true/false)"},
 			{name: "device", description: "Interface device"},
 			{name: "name", description: "Alias for device"},
-			{name: "net_connection_id", description: "same as name"},
+			{name: "net_connection_id", description: "Same as name"},
 			{name: "received", description: "Bytes received per second over the last " + TrafficRateDuration.String() + ", in human-readable format", unit: UBytesPerSec},
 			{name: "received_bytes", description: "Bytes received in the rate calculation over the last " + TrafficRateDuration.String(), unit: UBytesPerSec},
 			{name: "total_received", description: "Total bytes received", unit: UByte},

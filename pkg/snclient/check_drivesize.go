@@ -112,8 +112,8 @@ func (l *CheckDrivesize) Build() *CheckData {
 		attributes: []CheckAttribute{
 			{name: "drive", description: "Technical name of drive"},
 			{name: "name", description: "Descriptive name of drive"},
-			{name: "id", description: "Drive or id of drive"},
-			{name: "drive_or_id", description: "Drive letter if available, otherwise the id"},
+			{name: "id", description: "Drive or ID of drive"},
+			{name: "drive_or_id", description: "Drive letter if available, otherwise the ID"},
 			{name: "drive_or_name", description: "Drive letter if available, otherwise the name"},
 			{name: "drive_or_name_or_id", description: "Drive letter if available, otherwise the drive name, then the ID. Useful for Windows volumes without assigned letters."},
 			{name: "fstype", description: "Filesystem type"},

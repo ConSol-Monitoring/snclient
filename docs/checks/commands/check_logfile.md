@@ -40,16 +40,16 @@ See the [pattern syntax](https://github.com/bmatcuk/doublestar#patterns) for det
 
 ## Check Specific Arguments
 
-| Argument       | Description                                                                 |
-| -------------- | --------------------------------------------------------------------------- |
-| column-split   | Tab split (default: \t)                                                     |
-| file           | The file pattern that should be checked                                     |
-| files          | Comma-separated list of file patterns                                       |
-| ignore-missing | If the file pattern matches no files, ignore the error                      |
-| label          | label:pattern => If a line matches the pattern, use the label as its detail |
-| line-split     | String that separates lines in the file (default: \n)                       |
-| max-lines      | Maximum number of lines to read from each file (default: 10000)             |
-| offset         | Start position in bytes (0 for the beginning). Overrides any saved offset   |
+| Argument       | Description                                                                    |
+| -------------- | ------------------------------------------------------------------------------ |
+| column-split   | Tab split (default: \t)                                                        |
+| file           | The file pattern that should be checked                                        |
+| files          | Comma-separated list of file patterns                                          |
+| ignore-missing | If the file pattern matches no files, ignore the error                         |
+| label          | Use label:pattern. If a line matches the pattern, use the label as its detail. |
+| line-split     | String that separates lines in the file (default: \n)                          |
+| max-lines      | Maximum number of lines to read from each file (default: 10000)                |
+| offset         | Start position in bytes (0 for the beginning). Overrides any saved offset      |
 
 ## Attributes
 

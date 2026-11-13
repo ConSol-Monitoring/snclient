@@ -74,7 +74,7 @@ Use these attributes in filters and thresholds, along with the default attribute
 | computer        | Which computer generated the message (ComputerName) |
 | file            | The logfile name                                    |
 | log             | Alias for file                                      |
-| id              | Eventlog id (EventCode)                             |
+| id              | Eventlog ID (EventCode)                             |
 | eventidentifier | Event identifier (EventIdentifier)                  |
 | level           | Severity level (lowercase Type)                     |
 | message         | The message as a string                             |

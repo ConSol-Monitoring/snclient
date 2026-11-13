@@ -35,16 +35,16 @@ None
 
 Use these attributes in filters and thresholds, along with the default attributes:
 
-| Attribute      | Description                           |
-| -------------- | ------------------------------------- |
-| platform       | Platform of the OS                    |
-| family         | OS Family                             |
-| version        | Full version number                   |
-| arch           | OS architecture (go arch, e.g. amd64) |
-| os             | OS name                               |
-| hostname       | hostname (probably without FQDN)      |
-| kernel_arch    | kernel architecture, e.g. x86_64      |
-| kernel_version | kernel version                        |
+| Attribute      | Description                                   |
+| -------------- | --------------------------------------------- |
+| platform       | Platform of the OS                            |
+| family         | OS family                                     |
+| version        | Full version number                           |
+| arch           | OS architecture (Go architecture, e.g. amd64) |
+| os             | OS name                                       |
+| hostname       | Hostname (probably without FQDN)              |
+| kernel_arch    | Kernel architecture, e.g. x86_64              |
+| kernel_version | Kernel version                                |
 
 ## Examples
 

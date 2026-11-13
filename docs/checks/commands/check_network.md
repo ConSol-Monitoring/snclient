@@ -48,7 +48,7 @@ Use these attributes in filters and thresholds, along with the default attribute
 | enabled           | True if the network interface is enabled (true/false)                                         |
 | device            | Interface device                                                                              |
 | name              | Alias for device                                                                              |
-| net_connection_id | same as name                                                                                  |
+| net_connection_id | Same as name                                                                                  |
 | received          | Bytes received per second over the last 30s, in human-readable format                         |
 | received_bytes    | Bytes received in the rate calculation over the last 30s                                      |
 | total_received    | Total bytes received                                                                          |

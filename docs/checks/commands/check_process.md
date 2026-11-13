@@ -48,9 +48,9 @@ Use these attributes in filters and thresholds, along with the default attribute
 | command_line     | Full command line of process                                                                       |
 | state            | Current state (Windows: started, stopped, hung - Linux: idle, lock, running, sleep, stop, wait and zombie) |
 | creation         | Start time of process                                                                              |
-| pid              | Process id                                                                                         |
-| ppid             | Parent process id                                                                                  |
-| uid              | User id of process owner (Linux only)                                                              |
+| pid              | Process ID                                                                                         |
+| ppid             | Parent process ID                                                                                  |
+| uid              | User ID of process owner (Linux only)                                                              |
 | username         | User name of process owner (Linux only)                                                            |
 | cpu              | CPU usage in percent, averaged since the last check. Without a previous sample, the average starts at process start. |
 | cpu_seconds      | CPU usage in seconds                                                                               |

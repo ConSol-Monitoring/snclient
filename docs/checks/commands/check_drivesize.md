@@ -51,8 +51,8 @@ Use these attributes in filters and thresholds, along with the default attribute
 | --------------------- | --------------------------------------------------------------------------------------------- |
 | drive                 | Technical name of drive                                                                       |
 | name                  | Descriptive name of drive                                                                     |
-| id                    | Drive or id of drive                                                                          |
-| drive_or_id           | Drive letter if available, otherwise the id                                                   |
+| id                    | Drive or ID of drive                                                                          |
+| drive_or_id           | Drive letter if available, otherwise the ID                                                   |
 | drive_or_name         | Drive letter if available, otherwise the name                                                 |
 | drive_or_name_or_id   | Drive letter if available, otherwise the drive name, then the ID. Useful for Windows volumes without assigned letters. |
 | fstype                | Filesystem type                                                                               |

@@ -54,10 +54,10 @@ func (l *CheckNTPOffset) Build() *CheckData {
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - could not get any ntp data",
 		attributes: []CheckAttribute{
-			{name: "source", description: "source of the NTP metrics"},
+			{name: "source", description: "Source of the NTP metrics"},
 			{name: "server", description: "NTP server name"},
-			{name: "stratum", description: "stratum value (distance to root NTP server)"},
-			{name: "jitter", description: "jitter of the clock in milliseconds"},
+			{name: "stratum", description: "Stratum value (distance to root NTP server)"},
+			{name: "jitter", description: "Jitter of the clock in milliseconds"},
 			{name: "offset", description: "Time offset to the NTP server in milliseconds. SNClient adds this value as a metric."},
 			{name: "offset_seconds", description: "Time offset to the NTP server in seconds. SNClient does not add this value as a metric. " +
 				"SNClient converts thresholds from 'offset_seconds' to 'offset' without a message.", unit: UDuration},

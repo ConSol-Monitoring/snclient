@@ -22,8 +22,8 @@ It wraps the plugin from https://github.com/sni/check_http_go
 
 Application Options:
   -H, --hostname=                                   Host name using Host headers
-  -I, --IP-address=                                 IP address or Host name
-  -j, --method=                                     Set HTTP Method (default: GET)
+  -I, --IP-address=                                 IP address or host name
+  -j, --method=                                     Set HTTP method (default: GET)
   -P, --post=                                       Data to send in the request body. Uses POST unless --method is set.
                                                     Set Content-Type with --header (for example --header 'Content-Type:
                                                     application/json')
@@ -46,9 +46,10 @@ Application Options:
   -r, --regex=                                      Search page for case-sensitive regex string
   -R, --regexi=                                     Search page for case-insensitive regex string
   -f, --onredirect=<options>                        Redirect strategy: ok, warning, critical, follow, sticky,
-                                                    stickyport. ok/warning/critical returns immediately. follow uses
-                                                    the new URL from Go's HTTP client. sticky keeps the hostname after
-                                                    a redirect. stickyport also keeps the port.
+                                                    stickyport. The ok/warning/critical options return immediately. The
+                                                    follow option uses the new URL from Go's HTTP client. The sticky
+                                                    option keeps the hostname after a redirect. The stickyport option
+                                                    also keeps the port.
       --max-buffer-size=                            Max buffer size to read response body (max.: 100MB) (default: 1MB)
   -t, --timeout=                                    Connection timeout. Without a time unit suffix, the value is in
                                                     seconds (default: 10)

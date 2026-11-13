@@ -43,10 +43,10 @@ Use these attributes in filters and thresholds, along with the default attribute
 
 | Attribute             | Description                                                                                   |
 | --------------------- | --------------------------------------------------------------------------------------------- |
-| source                | source of the NTP metrics                                                                     |
+| source                | Source of the NTP metrics                                                                     |
 | server                | NTP server name                                                                               |
-| stratum               | stratum value (distance to root NTP server)                                                   |
-| jitter                | jitter of the clock in milliseconds                                                           |
+| stratum               | Stratum value (distance to root NTP server)                                                   |
+| jitter                | Jitter of the clock in milliseconds                                                           |
 | offset                | Time offset to the NTP server in milliseconds. SNClient adds this value as a metric.          |
 | offset_seconds        | Time offset to the NTP server in seconds. SNClient does not add this value as a metric. SNClient converts thresholds from 'offset_seconds' to 'offset' without a message. |
 | leap_indicator        | NTP leap indicator: 0 no warning, 1 last minute has 61 seconds, 2 last minute has 59 seconds, 3 not synchronized. SNClient sets this value only for the w32time source. |
