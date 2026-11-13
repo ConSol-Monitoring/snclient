@@ -104,7 +104,7 @@ ondemand = ${/settings/default/referenced}
 	onDemand, _ := testSection.GetString("ondemand")
 	assert.Equal(t, "10.1.2.3", onDemand)
 
-	// direct data access is expanded as well (used by check_multi)
+	// direct data access also returns the expanded value (check_multi uses it)
 	assert.Equal(t, "prefix-10.1.2.3-suffix", testSection.data["combined"])
 
 	// raw and serialized config keep the placeholder
@@ -125,7 +125,7 @@ func TestConfigEnvMacrosMissing(t *testing.T) {
 	assert.Contains(t, err.Error(), "testfile.ini:2")
 	assert.Contains(t, err.Error(), `environment variable "SNCLIENT_TEST_ENV_MISSING" is not set`)
 
-	// the unexpanded value is kept so writing the config does not lose the setting
+	// keep the unexpanded value so a config write does not lose the setting
 	val, ok := cfg.Section("/test").GetString("key")
 	require.True(t, ok)
 	assert.Equal(t, "$ENV{SNCLIENT_TEST_ENV_MISSING}", val)

@@ -289,26 +289,26 @@ shared-path = $ENV{SNCLIENT_SHARED_PATH}
 node = $ENV{SNCLIENT_NODE_INI}
 ```
 
-The variable is read from the environment of the running SNClient process when
-the configuration is loaded. This makes it possible to distribute the same
-configuration files and only change the environment per node.
+SNClient reads the variable from the environment of the running process when it
+loads the configuration. You can distribute the same configuration files and
+only change the environment per node.
 
 - An unset variable is a configuration error. `snclient config check` reports
   the variable name and config location.
 - A variable that is set but empty expands to an empty string.
-- Values are expanded once. `$ENV{...}` inside the value of an environment
-  variable is not expanded again.
+- SNClient expands each value only once. It does not expand `$ENV{...}` inside
+  the value of an environment variable again.
 - Use `$$ENV{NAME}` to write a literal `$ENV{NAME}`.
-- Only config values are expanded. Section names and keys are not.
+- SNClient expands only config values. It does not expand section names and keys.
 - The syntax is only available in configuration files, not in check output
   templates or runtime macros.
-- Environment variables are not re-read on config reload. Restart the service
-  after changing them. One-shot commands pick up the environment of the new
-  process automatically.
+- SNClient does not re-read environment variables on config reload. Restart the
+  service after you change them. One-shot commands pick up the environment of
+  the new process automatically.
 
 On Linux with systemd, set variables with `Environment=` or `EnvironmentFile=` in
 the service unit. On Windows, set them in the service or system environment and
 restart the service.
 
-HTTP(S) includes are parsed by the local agent, so environment variables in remote
-config files are resolved on the client.
+The local agent parses HTTP(S) includes, so it resolves environment variables
+in remote config files on the client.
