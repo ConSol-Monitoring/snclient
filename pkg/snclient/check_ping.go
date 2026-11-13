@@ -42,9 +42,9 @@ func (l *CheckPing) Build() *CheckData {
 			State: CheckExitOK,
 		},
 		args: map[string]CheckArgument{
-			"host":    {value: &l.hostname, description: "host name or IP address to ping"},
+			"host":    {value: &l.hostname, description: "Host name or IP address to ping."},
 			"packets": {value: &l.packets, description: "Number of ICMP ECHO packets to send (default: 5, maximum: 1000)."},
-			"-t":      {value: &l.timeout, description: "timeout in seconds for each ICMP ECHO packet"},
+			"-t":      {value: &l.timeout, description: "Timeout in seconds for each ICMP ECHO packet."},
 			"-4":      {value: &l.ipv4, description: "Force using IPv4."},
 			"-6":      {value: &l.ipv6, description: "Force using IPv6."},
 		},
@@ -56,12 +56,12 @@ func (l *CheckPing) Build() *CheckData {
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - could not get any ping data",
 		attributes: []CheckAttribute{
-			{name: "host_name", description: "host name ping was sent to."},
-			{name: "ttl", description: "time to live."},
-			{name: "sent", description: "number of packets sent."},
-			{name: "received", description: "number of packets received."},
-			{name: "rta", description: "average round trip time in milliseconds."},
-			{name: "pl", description: "packet loss in percent.", unit: UPercent},
+			{name: "host_name", description: "Host name ping was sent to."},
+			{name: "ttl", description: "Time to live."},
+			{name: "sent", description: "Number of packets sent."},
+			{name: "received", description: "Number of packets received."},
+			{name: "rta", description: "Average round trip time in milliseconds."},
+			{name: "pl", description: "Packet loss in percent.", unit: UPercent},
 		},
 		exampleDefault: `
     check_ping host=localhost
