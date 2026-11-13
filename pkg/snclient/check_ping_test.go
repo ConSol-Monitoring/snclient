@@ -6,6 +6,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestPingPacketCap(t *testing.T) {
+	chk := &CheckPing{packets: maxPingPackets + 1}
+	chk.clampPackets()
+	assert.Equal(t, int64(maxPingPackets), chk.packets)
+
+	chk.packets = maxPingPackets
+	chk.clampPackets()
+	assert.Equal(t, int64(maxPingPackets), chk.packets)
+
+	chk.packets = 5
+	chk.clampPackets()
+	assert.Equal(t, int64(5), chk.packets)
+}
+
 func TestCheckPing(t *testing.T) {
 	config := `
 [/modules]
@@ -20,7 +34,7 @@ CheckBuiltinPlugins = enabled
 
 	res = snc.RunCheck("check_ping", []string{"host=10.99.99.99", "packets=2", "-t", "1"})
 	assert.Equalf(t, CheckExitCritical, res.State, "state critical")
-	assert.Regexpf(t, `^CRITICAL - Packet loss = 100(|\.0)% \|'rta'=U 'pl'=100%;30;80;0`, string(res.BuildPluginOutput()), "output matches")
+	assert.Regexpf(t, `^CRITICAL - Packet loss = 100(\.0+)?% \|'rta'=U 'pl'=100%;30;80;0`, string(res.BuildPluginOutput()), "output matches")
 
 	res = snc.RunCheck("check_ping", []string{"host=should_not_resolve.nowhere", "packets=1"})
 	assert.Equalf(t, CheckExitUnknown, res.State, "state unknown")
