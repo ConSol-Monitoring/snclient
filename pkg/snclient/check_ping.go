@@ -43,7 +43,7 @@ func (l *CheckPing) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"host":    {value: &l.hostname, description: "host name or IP address to ping"},
-			"packets": {value: &l.packets, description: "number of ICMP ECHO packets to send (default: 5, max: 1000)"},
+			"packets": {value: &l.packets, description: "Number of ICMP ECHO packets to send (default: 5, maximum: 1000)."},
 			"-t":      {value: &l.timeout, description: "timeout in seconds for each ICMP ECHO packet"},
 			"-4":      {value: &l.ipv4, description: "Force using IPv4."},
 			"-6":      {value: &l.ipv6, description: "Force using IPv6."},

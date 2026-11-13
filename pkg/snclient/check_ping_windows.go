@@ -54,7 +54,7 @@ type ipOptionInformation struct {
 }
 
 // icmpEchoReply mirrors ICMP_ECHO_REPLY (ipexport.h).
-// IcmpSendEcho parses the reply buffer itself, so the native layout is used on 64 bit as well.
+// IcmpSendEcho parses the reply buffer itself and uses the native layout on 64-bit systems too.
 type icmpEchoReply struct {
 	Address       uint32
 	Status        uint32
@@ -66,8 +66,8 @@ type icmpEchoReply struct {
 }
 
 // icmpv6EchoReply mirrors ICMPV6_ECHO_REPLY (ipexport.h).
-// Its IPV6_ADDRESS_EX prefix is packed and 26 bytes long, so Status starts at offset 28.
-// Unlike IPv4, the API returns no TTL for IPv6.
+// Its packed IPV6_ADDRESS_EX prefix is 26 bytes long. Status starts at offset 28.
+// The API returns a TTL for IPv4 only.
 type icmpv6EchoReply struct {
 	Address       [26]byte
 	_             [2]byte
@@ -179,7 +179,7 @@ func (l *CheckPing) addPingResolveError(check *CheckData) error {
 }
 
 // pingAddress sends one echo per second, like ping.exe.
-// Every packet runs in its own goroutine because IcmpSendEcho is synchronous.
+// Each packet needs its own goroutine because IcmpSendEcho is synchronous.
 func (l *CheckPing) pingAddress(ctx context.Context, address net.IP, perPacket time.Duration) []pingReply {
 	packets := int(l.packets)
 	replies := make(chan indexedPingReply, packets)
@@ -306,7 +306,7 @@ func icmpEcho4(address net.IP, timeout time.Duration) (rtt uint32, ttl uint8, st
 	if handle == 0 || windows.Handle(handle) == windows.InvalidHandle {
 		return 0, 0, 0, fmt.Errorf("IcmpCreateFile: %w", callErr)
 	}
-	defer procIcmpCloseHandle.Call(handle) //nolint:errcheck // a close failure cannot be handled
+	defer procIcmpCloseHandle.Call(handle) //nolint:errcheck // cannot recover from a close failure
 
 	ip4 := address.To4()
 	if ip4 == nil {
@@ -344,7 +344,7 @@ func icmpEcho6(address net.IP, timeout time.Duration) (rtt uint32, ttl uint8, st
 	if handle == 0 || windows.Handle(handle) == windows.InvalidHandle {
 		return 0, 0, 0, fmt.Errorf("Icmp6CreateFile: %w", callErr)
 	}
-	defer procIcmpCloseHandle.Call(handle) //nolint:errcheck // a close failure cannot be handled
+	defer procIcmpCloseHandle.Call(handle) //nolint:errcheck // cannot recover from a close failure
 
 	ip16 := address.To16()
 	if ip16 == nil {
@@ -387,7 +387,7 @@ func icmpEcho6(address net.IP, timeout time.Duration) (rtt uint32, ttl uint8, st
 }
 
 // icmpStatusFromError returns the IP_STATUS in a failed echo call.
-// A timeout and an unreachable destination are packet loss, not a broken check.
+// A timeout or an unreachable destination counts as packet loss. Neither means the check failed.
 func icmpStatusFromError(err error) (uint32, bool) {
 	var errno syscall.Errno
 	if !errors.As(err, &errno) {
