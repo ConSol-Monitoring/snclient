@@ -114,9 +114,16 @@ jobs:
       - run: |
           go work init
           go work use .
-          $Env:GOWORK = "off"
-          go mod vendor
-          $Env:GOWORK = ""
+      - name: Download dependencies
+        uses: nick-fields/retry@v4
+        env:
+          GOWORK: "off"
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 180
+          command: go mod vendor
+      - run: |
           go test -v ./pkg/... ; if ($LASTEXITCODE -ne 0) { exit 1 }
 
 
@@ -277,8 +284,12 @@ jobs:
 
       - name: "install Azure Sign Tool"
         if: ${{ env.CERTURL != '' }}
-        run: |
-          dotnet tool install --global --version 6.0.1 AzureSignTool
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 180
+          command: dotnet tool install --global --version 6.0.1 AzureSignTool
 
       - name: "Sign snclient.exe"
         if: ${{ env.CERTURL != '' }}
@@ -323,8 +334,13 @@ jobs:
       - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
-      - run: sudo apt-get update
-      - run: sudo apt-get install help2man tofrodos
+      - name: Install dependencies
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 180
+          command: sudo apt-get update && sudo apt-get install -y help2man tofrodos
       - run: |
           echo "Creating dist folder for Linux/macOS"
           make dist
@@ -344,8 +360,13 @@ jobs:
       - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
-      - run: sudo apt-get update
-      - run: sudo apt-get install help2man tofrodos
+      - name: Install dependencies
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 180
+          command: sudo apt-get update && sudo apt-get install -y help2man tofrodos
       - run: |
           echo "Creating dist folder for windows"
           make windist
@@ -393,8 +414,12 @@ jobs:
 
       - name: "install Azure Sign Tool"
         if: ${{ env.CERTURL != '' }}
-        run: |
-          dotnet tool install --global --version 6.0.1 AzureSignTool
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 180
+          command: dotnet tool install --global --version 6.0.1 AzureSignTool
 
       - name: "Sign snclient.msi"
         if: ${{ env.CERTURL != '' }}
@@ -454,8 +479,13 @@ jobs:
         with:
           name: "dist"
           path: "dist"
-      - run: sudo apt-get update
-      - run: sudo apt-get install devscripts
+      - name: Install dependencies
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 180
+          command: sudo apt-get update && sudo apt-get install -y devscripts
       - run: |
           echo "Building ${{ env.BIN }}.deb"
           export DEBEMAIL="Sven Nierlein <sven.nierlein@consol.de>"
@@ -486,9 +516,16 @@ jobs:
       - uses: actions/download-artifact@main
         with:
           name: "${{ env.BIN }}.deb"
+      - name: Update package lists
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 180
+          shell: sh
+          command: apt-get update
       - run: |
           echo "Install test for ${{ env.BIN }}.deb"
-          apt-get update
           apt-get install -y ./${{ env.BIN }}.deb
 
 
@@ -574,17 +611,24 @@ jobs:
           name: "dist"
           path: "dist"
       - name: prepare environment
-        run: |
-          apk update
-          apk add --no-cache bash
-          apk add curl
-          apk add git
-          apk add make
-          apk add openssl
-          apk add abuild
-          apk add logrotate
-          apk add sudo
-          apk add binutils
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 180
+          shell: sh
+          command: |
+            set -e
+            apk update
+            apk add --no-cache bash
+            apk add curl
+            apk add git
+            apk add make
+            apk add openssl
+            apk add abuild
+            apk add logrotate
+            apk add sudo
+            apk add binutils
       - run: |
           mkdir $HOME/.abuild
           RSASERIAL="0001"

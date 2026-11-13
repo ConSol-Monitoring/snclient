@@ -355,9 +355,9 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 			continue
 		}
 
-		err := currentSection.SetRaw(val[0], val[1])
-		if err != nil {
-			parseErrors = append(parseErrors, fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, err.Error()))
+		setErr := currentSection.SetRaw(val[0], val[1])
+		if setErr != nil {
+			parseErrors = append(parseErrors, fmt.Errorf("config error in %s:%d: %s", iniPath, lineNr, setErr.Error()))
 		}
 
 		if len(currentComments) > 0 {
@@ -366,10 +366,15 @@ func (config *Config) ParseINI(configData, iniPath string, snc *Agent) error {
 		}
 
 		// recurse directly when in the /includes section to maintain order of settings
-		if config.recursive && currentSection.name == "/includes" {
-			value, err := configParseString(val[1])
+		if config.recursive && currentSection.name == "/includes" && setErr == nil {
+			value, err := configParseValue(val[1])
 			if err != nil {
 				parseErrors = append(parseErrors, fmt.Errorf("%s (included in %s:%d)", err.Error(), iniPath, lineNr))
+
+				continue
+			}
+			if value == "" {
+				parseErrors = append(parseErrors, fmt.Errorf("config error in %s:%d: empty include path", iniPath, lineNr))
 
 				continue
 			}
@@ -646,6 +651,15 @@ func configParseString(val string) (string, error) {
 	return val, nil
 }
 
+func configParseValue(val string) (string, error) {
+	val, err := configParseString(val)
+	if err != nil {
+		return "", err
+	}
+
+	return ReplaceEnvMacros(val)
+}
+
 func (config *Config) SectionNames() []string {
 	keys := make([]string, 0, len(config.sections))
 	for name := range config.sections {
@@ -714,7 +728,7 @@ func (config *Config) ReplaceOnDemandConfigMacros(value string, timezone *time.L
 }
 
 // ReplaceMacrosDefault replaces default macros in all config data.
-func (config *Config) ReplaceMacrosDefault(section *ConfigSection, timezone *time.Location) {
+func (config *Config) ReplaceMacrosDefault(section *ConfigSection, timezone *time.Location) error {
 	defaultMacros := config.DefaultMacros()
 	for key, val := range section.data {
 		val = ReplaceMacros(val, timezone, defaultMacros)
@@ -722,10 +736,16 @@ func (config *Config) ReplaceMacrosDefault(section *ConfigSection, timezone *tim
 
 		raw := section.raw[key]
 		for i, r := range raw {
-			raw[i] = ReplaceMacros(r, timezone, defaultMacros)
+			envExpanded, err := ReplaceEnvMacros(r)
+			if err != nil {
+				return fmt.Errorf("config error in section %s key %q: %s", section.name, key, err.Error())
+			}
+			raw[i] = ReplaceMacros(envExpanded, timezone, defaultMacros)
 		}
 		section.raw[key] = raw
 	}
+
+	return nil
 }
 
 // DefaultMacros returns a map of default macros.
@@ -835,6 +855,7 @@ func (cs *ConfigSection) String() string {
 // Set sets a raw single key/value pair. Existing keys will be overwritten.
 // Raw means this value will be stored parsed (stripping quotes) but also
 // be stored as is, including quotes.
+// It replaces environment variable macros if it can resolve them.
 func (cs *ConfigSection) SetRaw(key, value string) error {
 	rawValue := value
 	newRawValue := []string{rawValue}
@@ -848,6 +869,15 @@ func (cs *ConfigSection) SetRaw(key, value string) error {
 	value, err := configParseString(value)
 	if err != nil {
 		return err
+	}
+
+	// keep the unexpanded value on env errors, so the setting survives config rewrites
+	parsedValue := value
+	expandedValue, envErr := ReplaceEnvMacros(value)
+	if envErr == nil {
+		value = expandedValue
+	} else {
+		value = parsedValue
 	}
 
 	if useAppend {
@@ -875,7 +905,7 @@ func (cs *ConfigSection) SetRaw(key, value string) error {
 	cs.data[key] = value
 	cs.raw[key] = newRawValue
 
-	return nil
+	return envErr
 }
 
 // Set sets a single key/value pair. Existing keys will be overwritten.
