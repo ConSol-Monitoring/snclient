@@ -12,7 +12,7 @@
 
 set -eu
 
-SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+SCRIPT_DIR=$(CDPATH='' cd "$(dirname "$0")" && pwd)
 ROOT=$(dirname "$SCRIPT_DIR")
 TEMPLATES=${WINGET_TEMPLATES:-$ROOT/packaging/winget/templates}
 
