@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# Print the WinGet package version.
+# This version comes from the MSI ProductVersion and ARP DisplayVersion.
+# The WinGet PackageVersion must match the installed MSI version.
+
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+VERSION=$("$SCRIPT_DIR/get_version")
+PARTS=$(printf '%s' "$VERSION" | awk -F. '{ print NF }')
+
+if [ "$PARTS" -eq 2 ]; then
+    VERSION="${VERSION}.0"
+elif [ "$PARTS" -ne 3 ]; then
+    echo "unsupported version: $VERSION" >&2
+    exit 1
+fi
+
+echo "$VERSION"
