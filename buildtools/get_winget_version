@@ -6,8 +6,9 @@
 
 set -eu
 
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-VERSION=$("$SCRIPT_DIR/get_version")
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+ROOT=$(dirname "$SCRIPT_DIR")
+VERSION=$(cd "$ROOT" && ./buildtools/get_version)
 PARTS=$(printf '%s' "$VERSION" | awk -F. '{ print NF }')
 
 if [ "$PARTS" -eq 2 ]; then

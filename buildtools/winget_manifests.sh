@@ -12,8 +12,8 @@
 
 set -eu
 
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-ROOT=$(dirname -- "$SCRIPT_DIR")
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+ROOT=$(dirname "$SCRIPT_DIR")
 TEMPLATES=${WINGET_TEMPLATES:-$ROOT/packaging/winget/templates}
 
 PACKAGE_VERSION=${WINGET_PACKAGE_VERSION:-}
@@ -25,7 +25,7 @@ if [ -z "$PACKAGE_VERSION" ]; then
     PACKAGE_VERSION=$("$SCRIPT_DIR/get_winget_version")
 fi
 if [ -z "$TAG_VERSION" ]; then
-    TAG_VERSION=$("$SCRIPT_DIR/get_version")
+    TAG_VERSION=$(cd "$ROOT" && ./buildtools/get_version)
 fi
 if [ -z "$RELEASE_DATE" ]; then
     RELEASE_DATE=$(date -u +%Y-%m-%d)
