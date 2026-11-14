@@ -1,0 +1,187 @@
+name: Publish to WinGet
+
+# This workflow publishes the generated WinGet manifests to microsoft/winget-pkgs.
+# It does not generate the manifests.
+# The release workflow attaches the manifest zip to the release.
+# The API creates the commit and PR in the fork without cloning the repository.
+# Set the repository variable WINGET_FORK_OWNER to the account that owns the fork.
+# Set the repository variable WINGET_AUTOPUBLISH to true after the first submission.
+# The WINGET_TOKEN secret needs a classic PAT with public_repo scope.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing release tag to submit (for example v1.02)"
+        required: true
+        type: string
+      dry_run:
+        description: "Print the manifests and do not create a PR"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: winget-${{ github.event.release.tag_name || inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'release' && !github.event.release.prerelease && vars.WINGET_AUTOPUBLISH == 'true')
+    runs-on: windows-2025
+    env:
+      GH_TOKEN: ${{ secrets.WINGET_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+      WINGET_FORK_OWNER: ${{ vars.WINGET_FORK_OWNER }}
+    steps:
+      - name: "Download release manifests"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:RELEASE_TAG
+          if (-not $tag) { throw 'No release tag was provided.' }
+          $tagVersion = $tag -replace '^v', ''
+          $downloadDir = Join-Path $env:RUNNER_TEMP 'winget-download'
+          $manifestDir = Join-Path $env:RUNNER_TEMP 'winget-manifests'
+          New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
+          New-Item -ItemType Directory -Force -Path $manifestDir | Out-Null
+          & gh release download $tag --repo $env:GH_REPO --pattern "snclient-$tagVersion-winget-manifests.zip" --dir $downloadDir
+          if ($LASTEXITCODE -ne 0) { throw "Could not download the manifest asset for $tag." }
+          $zip = Get-ChildItem -Path $downloadDir -Filter '*.zip' | Select-Object -First 1
+          if (-not $zip) { throw 'The manifest zip is missing.' }
+          Expand-Archive -Path $zip.FullName -DestinationPath $manifestDir -Force
+          Get-ChildItem -Path $manifestDir -Filter '*.yaml' | Select-Object Name, Length
+
+      - name: "Dry run"
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == true }}
+        shell: pwsh
+        run: |
+          $manifestDir = Join-Path $env:RUNNER_TEMP 'winget-manifests'
+          Get-ChildItem -Path $manifestDir -Filter '*.yaml' | ForEach-Object {
+            Write-Output "===== $($_.Name) ====="
+            Get-Content -LiteralPath $_.FullName
+          }
+
+      - name: "Publish manifests"
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run != true }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifestDir = Join-Path $env:RUNNER_TEMP 'winget-manifests'
+          $forkOwner = $env:WINGET_FORK_OWNER
+          if (-not $forkOwner) { throw 'Set the WINGET_FORK_OWNER repository variable.' }
+          $repo = 'microsoft/winget-pkgs'
+          $forkRepo = "$forkOwner/winget-pkgs"
+
+          function Invoke-GhJson {
+              param([string[]]$Arguments)
+              $output = & gh @Arguments
+              if ($LASTEXITCODE -ne 0) {
+                  throw "gh api failed: $($Arguments -join ' ')"
+              }
+              if (-not $output) { return $null }
+              return ($output | ConvertFrom-Json)
+          }
+
+          $versionFile = Join-Path $manifestDir 'ConSol.SNClient.yaml'
+          if (-not (Test-Path -LiteralPath $versionFile)) { throw 'ConSol.SNClient.yaml is missing.' }
+          $versionMatch = Select-String -Path $versionFile -Pattern '^PackageVersion:\s*(.+)$'
+          if (-not $versionMatch) { throw 'PackageVersion is missing.' }
+          $packageVersion = $versionMatch.Matches[0].Groups[1].Value.Trim()
+          $identifierMatch = Select-String -Path $versionFile -Pattern '^PackageIdentifier:\s*(.+)$'
+          if (-not $identifierMatch) { throw 'PackageIdentifier is missing.' }
+          $packageIdentifier = $identifierMatch.Matches[0].Groups[1].Value.Trim()
+          if ($packageIdentifier -ne 'ConSol.SNClient') { throw "Unexpected package identifier: $packageIdentifier" }
+
+          Invoke-GhJson -Arguments @('api', "repos/$forkRepo") | Out-Null
+
+          & gh api "repos/$repo/contents/manifests/c/ConSol/SNClient/$packageVersion" 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+              Write-Output "Version $packageVersion already exists in winget-pkgs."
+              exit 0
+          }
+
+          & gh api "repos/$repo/contents/manifests/c/ConSol/SNClient" 2>$null | Out-Null
+          $isNewPackage = $LASTEXITCODE -ne 0
+          $title = if ($isNewPackage) { "New package: $packageIdentifier $packageVersion" } else { "Update $packageIdentifier to $packageVersion" }
+          $message = if ($isNewPackage) { "New package: $packageIdentifier $packageVersion" } else { "Update $packageIdentifier to $packageVersion" }
+
+          $upstreamRef = Invoke-GhJson -Arguments @('api', "repos/$repo/git/ref/heads/master")
+          $forkRef = Invoke-GhJson -Arguments @('api', "repos/$forkRepo/git/ref/heads/master")
+          if ($forkRef.object.sha -ne $upstreamRef.object.sha) {
+              $syncPayload = @{ branch = 'master' } | ConvertTo-Json
+              $syncFile = Join-Path $env:RUNNER_TEMP 'winget-sync.json'
+              [IO.File]::WriteAllText($syncFile, $syncPayload, [Text.UTF8Encoding]::new($false))
+              & gh api --method POST "repos/$forkRepo/merge-upstream" --input $syncFile 2>$null | Out-Null
+              $forkRef = Invoke-GhJson -Arguments @('api', "repos/$forkRepo/git/ref/heads/master")
+          }
+          if ($forkRef.object.sha -ne $upstreamRef.object.sha) {
+              throw 'The winget-pkgs fork is not current. Sync it and retry.'
+          }
+          $parentSha = $forkRef.object.sha
+          $forkCommit = Invoke-GhJson -Arguments @('api', "repos/$forkRepo/git/commits/$parentSha")
+          $baseTree = $forkCommit.tree.sha
+
+          $tempDir = Join-Path $env:RUNNER_TEMP 'winget-pr'
+          New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
+          $utf8 = New-Object System.Text.UTF8Encoding($false)
+          $entries = @()
+          Get-ChildItem -Path $manifestDir -Filter '*.yaml' | ForEach-Object {
+              $content = [Convert]::ToBase64String([IO.File]::ReadAllBytes($_.FullName))
+              $blobPayload = @{ content = $content; encoding = 'base64' } | ConvertTo-Json -Compress
+              $blobFile = Join-Path $tempDir ("blob-" + $_.Name + ".json")
+              [IO.File]::WriteAllText($blobFile, $blobPayload, $utf8)
+              $blob = Invoke-GhJson -Arguments @('api', '--method', 'POST', "repos/$forkRepo/git/blobs", '--input', $blobFile)
+              $entries += @{
+                  path = "manifests/c/ConSol/SNClient/$packageVersion/$($_.Name)"
+                  mode = '100644'
+                  type = 'blob'
+                  sha = $blob.sha
+              }
+          }
+
+          $treePayload = @{ base_tree = $baseTree; tree = $entries } | ConvertTo-Json -Depth 6
+          $treeFile = Join-Path $tempDir 'tree.json'
+          [IO.File]::WriteAllText($treeFile, $treePayload, $utf8)
+          $tree = Invoke-GhJson -Arguments @('api', '--method', 'POST', "repos/$forkRepo/git/trees", '--input', $treeFile)
+
+          $commitPayload = @{
+              message = $message
+              tree = $tree.sha
+              parents = @($parentSha)
+          } | ConvertTo-Json -Depth 4
+          $commitFile = Join-Path $tempDir 'commit.json'
+          [IO.File]::WriteAllText($commitFile, $commitPayload, $utf8)
+          $commit = Invoke-GhJson -Arguments @('api', '--method', 'POST', "repos/$forkRepo/git/commits", '--input', $commitFile)
+
+          $branch = "consol-snclient-$packageVersion-$env:GITHUB_RUN_ID"
+          $refPayload = @{ ref = "refs/heads/$branch"; sha = $commit.sha } | ConvertTo-Json
+          $refFile = Join-Path $tempDir 'ref.json'
+          [IO.File]::WriteAllText($refFile, $refPayload, $utf8)
+          Invoke-GhJson -Arguments @('api', '--method', 'POST', "repos/$forkRepo/git/refs", '--input', $refFile) | Out-Null
+
+          $body = @"
+          $title
+
+          SNClient is a general-purpose monitoring agent.
+          The installer is a per-machine WiX MSI.
+          It installs the snclient Windows service and a firewall rule.
+          ElevationRequirement is elevatesSelf because elevationRequired triggers microsoft/winget-cli#2231.
+          InstallationMetadata runs snclient.exe --version for executable discovery.
+          "@
+          $prPayload = @{
+              title = $title
+              head = "${forkOwner}:${branch}"
+              base = 'master'
+              body = $body
+          } | ConvertTo-Json -Depth 4
+          $prFile = Join-Path $tempDir 'pr.json'
+          [IO.File]::WriteAllText($prFile, $prPayload, $utf8)
+          $pr = Invoke-GhJson -Arguments @('api', '--method', 'POST', "repos/$repo/pulls", '--input', $prFile)
+          Write-Output "Created PR $($pr.html_url)"

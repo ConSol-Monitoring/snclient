@@ -22,6 +22,10 @@ export PATH := $(GOBIN):$(PATH)
 GOLANG_CI_OPTIONS=--show-stats=0 --uniq-by-line=0 --timeout=5m
 
 VERSION ?= $(shell ./buildtools/get_version)
+WINGET_PACKAGE_VERSION ?= $(shell ./buildtools/get_winget_version)
+WINGET_TAG_VERSION ?= $(VERSION)
+WINGET_RELEASE_DATE ?= $(shell git log -1 --format=%cs)
+WINGET_OUTDIR ?= $(if $(WINGET_PACKAGE_VERSION),packaging/winget/$(WINGET_PACKAGE_VERSION),)
 GOARCH  ?= $(shell go env GOARCH)
 GOOS    ?= $(shell go env GOOS)
 
@@ -117,7 +121,7 @@ endif
 
 ENTR=ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr
 
-.PHONY=docs
+.PHONY=docs winget-manifests
 
 all: build snclient.ini server.crt server.key
 
@@ -363,6 +367,7 @@ clean:
 	rm -rf $(TOOLSFOLDER)
 	rm -rf dist/
 	rm -rf windist/
+	rm -rf packaging/winget/[0-9]*.[0-9]*.[0-9]*
 	rm -rf build-deb/
 	rm -rf build-rpm/
 	rm -f release_notes.txt
@@ -472,6 +477,20 @@ windist: | dist
 		-e 's/^max size =.*/max size = 10MiB/g' \
 		windist/snclient.ini
 	todos windist/snclient.ini
+
+# Generate the WinGet manifests for the current version.
+winget-manifests:
+	WINGET_PACKAGE_VERSION="$(WINGET_PACKAGE_VERSION)" \
+	WINGET_TAG_VERSION="$(WINGET_TAG_VERSION)" \
+	WINGET_RELEASE_DATE="$(WINGET_RELEASE_DATE)" \
+	WINGET_OUTDIR="$(WINGET_OUTDIR)" \
+	WINGET_SHA256_X64="$(WINGET_SHA256_X64)" \
+	WINGET_SHA256_X86="$(WINGET_SHA256_X86)" \
+	WINGET_SHA256_ARM64="$(WINGET_SHA256_ARM64)" \
+	WINGET_PRODUCTCODE_X64="$(WINGET_PRODUCTCODE_X64)" \
+	WINGET_PRODUCTCODE_X86="$(WINGET_PRODUCTCODE_X86)" \
+	WINGET_PRODUCTCODE_ARM64="$(WINGET_PRODUCTCODE_ARM64)" \
+	./buildtools/winget_manifests.sh
 
 
 snclient: build snclient.ini

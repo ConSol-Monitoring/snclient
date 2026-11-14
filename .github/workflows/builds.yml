@@ -456,6 +456,54 @@ jobs:
           archive: false
 
 
+  pkg-winget:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: windows-2025
+    needs: [get-version, pkg-msi]
+    steps:
+      - uses: actions/checkout@main
+      - uses: actions/download-artifact@main
+        with:
+          name: "snclient-${{needs.get-version.outputs.version}}-windows-i386.msi"
+          path: "winget-msi/i386"
+      - uses: actions/download-artifact@main
+        with:
+          name: "snclient-${{needs.get-version.outputs.version}}-windows-x86_64.msi"
+          path: "winget-msi/x86_64"
+      - uses: actions/download-artifact@main
+        with:
+          name: "snclient-${{needs.get-version.outputs.version}}-windows-aarch64.msi"
+          path: "winget-msi/aarch64"
+      - name: "Generate and validate WinGet manifests"
+        shell: pwsh
+        run: |
+          $version = "${{ needs.get-version.outputs.version }}"
+          $packageVersion = "${{ needs.get-version.outputs.major }}.${{ needs.get-version.outputs.minor }}.${{ needs.get-version.outputs.revision }}"
+          $msiX86 = "winget-msi/i386/snclient-$version-windows-i386.msi"
+          $msiX64 = "winget-msi/x86_64/snclient-$version-windows-x86_64.msi"
+          $msiArm64 = "winget-msi/aarch64/snclient-$version-windows-aarch64.msi"
+          $releaseDate = git log -1 --format=%cs
+          & .\buildtools\winget_manifests.ps1 `
+            -PackageVersion $packageVersion `
+            -TagVersion $version `
+            -ReleaseDate $releaseDate `
+            -MsiX64 $msiX64 `
+            -MsiX86 $msiX86 `
+            -MsiArm64 $msiArm64 `
+            -OutDir "packaging\winget\$packageVersion"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { throw 'winget is not available.' }
+          winget validate --manifest "packaging\winget\$packageVersion"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Compress-Archive -Path "packaging\winget\$packageVersion\*" -DestinationPath "snclient-$version-winget-manifests.zip" -Force
+      - uses: actions/upload-artifact@main
+        with:
+          name: "winget-manifests"
+          path: "snclient-${{ needs.get-version.outputs.version }}-winget-manifests.zip"
+          if-no-files-found: error
+          archive: false
+
+
   pkg-deb:
     strategy:
       fail-fast: false
@@ -860,7 +908,7 @@ jobs:
   make-release:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-26.04
-    needs: [get-version,pkg-msi,pkg-deb,pkg-rpm,pkg-osx,integration-test-linux,integration-test-windows, integration-test-osx, test-linux, test-win, test-osx, test-bsd, test-common, test-bench, test-cross, test-docs]
+    needs: [get-version,pkg-msi,pkg-winget,pkg-deb,pkg-rpm,pkg-osx,integration-test-linux,integration-test-windows, integration-test-osx, test-linux, test-win, test-osx, test-bsd, test-common, test-bench, test-cross, test-docs]
     permissions:
       contents: write
     outputs:
@@ -897,6 +945,21 @@ jobs:
         with:
           name: "${{ env.BIN }}.msi"
       - run: gh release upload v${{needs.get-version.outputs.version}} ${{ env.BIN }}.msi
+
+
+  upload-winget-manifests:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-26.04
+    needs: [get-version, make-release, pkg-winget]
+    permissions:
+      contents: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/download-artifact@main
+        with:
+          name: "winget-manifests"
+      - run: gh release upload v${{needs.get-version.outputs.version}} snclient-${{needs.get-version.outputs.version}}-winget-manifests.zip
 
 
   upload-linux-deb-assets:
