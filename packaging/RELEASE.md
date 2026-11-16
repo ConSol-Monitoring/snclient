@@ -43,6 +43,8 @@ Set the `WINGET_FORK_OWNER` repository variable to the fork owner.
 Add a classic PAT with `public_repo` as the `WINGET_TOKEN` secret.
 The PAT owner must have write access to the fork.
 The workflow uses the GitHub API and does not clone the fork.
+The fork does not need to be current.
+The PR adds only the new version directory.
 Keep `WINGET_AUTOPUBLISH` false until the first package is merged.
 Set `WINGET_AUTOPUBLISH` to true after the merge.
 The publish workflow creates the next winget-pkgs pull request.
