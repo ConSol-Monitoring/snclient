@@ -3,8 +3,8 @@ name: Publish to WinGet
 # This workflow publishes the generated WinGet manifests to microsoft/winget-pkgs.
 # It does not generate the manifests.
 # The release workflow attaches the manifest zip to the release.
-# WINGET_TOKEN is a fine-grained PAT for the fork.
-# WINGET_TOKEN needs Contents: Read and write on WINGET_FORK_OWNER/winget-pkgs.
+# WINGET_FORK_TOKEN is a fine-grained PAT for the fork.
+# WINGET_FORK_TOKEN needs Contents: Read and write on WINGET_FORK_OWNER/winget-pkgs.
 # WINGET_PR_TOKEN is a classic PAT with public_repo.
 # WINGET_PR_TOKEN opens the PR in microsoft/winget-pkgs.
 # The fork does not need to be current.
@@ -77,7 +77,7 @@ jobs:
         id: create_branch
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run != true }}
         env:
-          GH_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          GH_TOKEN: ${{ secrets.WINGET_FORK_TOKEN }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
