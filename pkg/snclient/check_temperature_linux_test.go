@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/shirou/gopsutil/v4/sensors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -89,6 +90,29 @@ func TestTemperatureMocked(t *testing.T) {
 			assert.Contains(t, string(res.BuildPluginOutput()), test.expectOut)
 		})
 	}
+}
+
+func TestTemperatureSanitizeThresholds(t *testing.T) {
+	check := NewCheckTemperature().(*CheckTemperature)
+	data := check.Build()
+	_, err := data.parseArgs(nil)
+	require.NoError(t, err)
+
+	check.addSensor(data, &temperatureStat{
+		TemperatureStat: sensors.TemperatureStat{
+			SensorKey:   "nvme_composite",
+			Temperature: 65,
+			Critical:    -273.15,
+			High:        65261.85,
+		},
+		Min: -273.15,
+	}, map[string]int{})
+
+	require.Len(t, data.listData, 1)
+	entry := data.listData[0]
+	assert.Equal(t, "0.000000", entry["min"])
+	assert.Equal(t, "0.000000", entry["crit"])
+	assert.Equal(t, "0.000000", entry["max"])
 }
 
 func mockSysFS(t *testing.T, files map[string]string) {
