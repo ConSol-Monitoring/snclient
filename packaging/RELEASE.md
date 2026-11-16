@@ -40,8 +40,12 @@ For later releases, copy the three YAML files from the release zip.
 After the first package is merged, enable automation.
 Create a fork of `microsoft/winget-pkgs` under the fork owner.
 Set the `WINGET_FORK_OWNER` repository variable to the fork owner.
-Add a classic PAT with `public_repo` as the `WINGET_TOKEN` secret.
-The PAT owner must have write access to the fork.
+Add a fine-grained PAT as the `WINGET_TOKEN` secret.
+The fine-grained token needs `Contents: Read and write` on the fork.
+Add a classic PAT with `public_repo` as the `WINGET_PR_TOKEN` secret.
+The classic token opens the pull request in `microsoft/winget-pkgs`.
+The fine-grained token owner must have write access to the fork.
+The classic token owner must own the fork.
 The workflow uses the GitHub API and does not clone the fork.
 The fork does not need to be current.
 The PR adds only the new version directory.
