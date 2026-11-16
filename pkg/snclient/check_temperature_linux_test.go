@@ -60,6 +60,16 @@ func TestTemperatureMocked(t *testing.T) {
 			expectOut:   "nvme_composite: 65.0 °C",
 		},
 		{
+			name: "negative plausible sensor",
+			files: map[string]string{
+				"class/hwmon/hwmon0/name":        "nvme",
+				"class/hwmon/hwmon0/temp1_label": "Composite",
+				"class/hwmon/hwmon0/temp1_input": "-150",
+			},
+			expectState: CheckExitOK,
+			expectOut:   "nvme_composite: -0.1 °C",
+		},
+		{
 			name: "kelvin sentinel",
 			files: map[string]string{
 				"class/hwmon/hwmon0/name":        "nvme",
