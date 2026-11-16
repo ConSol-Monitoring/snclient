@@ -26,6 +26,12 @@ type temperatureStat struct {
 	Min float64 // Temperature min value.
 }
 
+// Plausible temperature range for computer hardware in Celsius.
+const (
+	minPlausibleTemperature = -50.0
+	maxPlausibleTemperature = 150.0
+)
+
 func NewCheckTemperature() CheckHandler {
 	return &CheckTemperature{}
 }
@@ -45,6 +51,7 @@ func (l *CheckTemperature) Build() *CheckData {
 		defaultFilter:   "temperature != 0 and temperature != 1", // seems like disabled sensors return 1.0000 or 0.0000
 		defaultWarning:  "(min != 0 && temperature < %(min)) || (crit != 0 && temperature > %(crit))",
 		defaultCritical: "(min != 0 && temperature < %(min)) || (crit != 0 && temperature > %(crit))",
+		defaultUnknown:  fmt.Sprintf("temperature < %g || temperature > %g", minPlausibleTemperature, maxPlausibleTemperature),
 		topSyntax:       "%(status) - %(list)",
 		detailSyntax:    "%(sensor): %(temperature:fmt=%.1f) °C",
 		emptyState:      3,
@@ -67,6 +74,8 @@ Show all temperature sensors and apply custom thresholds:
 
     check_temperature filter=none warn="temperature > 85" crit="temperature > 90"
     OK - Package id 0: 65.0 °C, Core 0: 62.0 °C, Core 1: 61.0 °C, Core 2: 65.0 °C |...
+
+Sensors outside the plausible temperature range are reported as UNKNOWN.
 	`,
 	}
 }
