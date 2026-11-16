@@ -64,8 +64,8 @@ Read more about [Windows virtual address space](https://learn.microsoft.com/en-u
 		detailSyntax:    "%(type) = %(used)/%(size) (%(used_pct | fmt=%.1f )%)",
 		topSyntax:       "%(status) - %(list)",
 		attributes: []CheckAttribute{
-			{name: "<type>", description: "used bytes with the type as key", unit: UByte},
-			{name: "type", description: "checked type, either 'physical' or 'committed', 'swap' or 'virtual' (Windows only)"},
+			{name: "<type>", description: "Used bytes with the type as key", unit: UByte},
+			{name: "type", description: "Checked type, either 'physical' or 'committed', 'swap' or 'virtual' (Windows only)"},
 			{name: "used", description: "Used memory in human readable bytes (IEC)", unit: UByte},
 			{name: "used_bytes", description: "Used memory in bytes (IEC)", unit: UByte},
 			{name: "used_pct", description: "Used memory in percent", unit: UPercent},

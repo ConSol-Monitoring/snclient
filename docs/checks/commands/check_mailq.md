@@ -42,12 +42,12 @@ Use these attributes in filters and thresholds, along with the default attribute
 
 | Attribute     | Description                     |
 | ------------- | ------------------------------- |
-| mta           | name of the MTA                 |
-| folder        | checked spool folder            |
-| active        | number of active mails          |
-| active_size   | size of active mails in bytes   |
-| deferred      | number of deferred mails        |
-| deferred_size | size of deferred mails in bytes |
+| mta           | Name of the MTA                 |
+| folder        | Checked spool folder            |
+| active        | Number of active mails          |
+| active_size   | Size of active mails in bytes   |
+| deferred      | Number of deferred mails        |
+| deferred_size | Size of deferred mails in bytes |
 
 ## Examples
 

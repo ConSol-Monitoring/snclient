@@ -44,9 +44,9 @@ Use these attributes in filters and thresholds, along with the default attribute
 
 | Attribute                   | Description                                                                             |
 | --------------------------- | --------------------------------------------------------------------------------------- |
-| package                     | package name                                                                            |
-| security                    | is this a security update: 0 / 1                                                        |
-| version                     | version string of package                                                               |
+| package                     | Package name                                                                            |
+| security                    | Is this a security update: 0 / 1                                                        |
+| version                     | Version string of package                                                               |
 | type                        | Windows only: update type (1 = software, 2 = driver)                                    |
 | is_beta                     | Windows only: beta update (true / false)                                                |
 | is_mandatory                | Windows only: mandatory update (true / false)                                           |

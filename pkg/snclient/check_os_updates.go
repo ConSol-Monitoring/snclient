@@ -54,9 +54,9 @@ func (l *CheckOSUpdates) Build() *CheckData {
 		emptyState:      CheckExitOK,
 		emptySyntax:     "%(status) - no updates available",
 		attributes: []CheckAttribute{
-			{name: "package", description: "package name"},
-			{name: "security", description: "is this a security update: 0 / 1"},
-			{name: "version", description: "version string of package"},
+			{name: "package", description: "Package name"},
+			{name: "security", description: "Is this a security update: 0 / 1"},
+			{name: "version", description: "Version string of package"},
 			{name: "type", description: "Windows only: update type (1 = software, 2 = driver)"},
 			{name: "is_beta", description: "Windows only: beta update (true / false)"},
 			{name: "is_mandatory", description: "Windows only: mandatory update (true / false)"},

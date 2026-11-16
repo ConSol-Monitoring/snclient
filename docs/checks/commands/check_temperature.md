@@ -42,13 +42,13 @@ Use these attributes in filters and thresholds, along with the default attribute
 
 | Attribute   | Description                                    |
 | ----------- | ---------------------------------------------- |
-| sensor      | full name of this sensor, e.g. coretemp_core_0 |
-| name        | name of this sensor, e.g. coretemp             |
-| label       | label for this sensor, e.g. core 0             |
-| temperature | current temperature                            |
-| crit        | critical value supplied from sensor            |
-| max         | max value supplied from sensor                 |
-| min         | min value supplied from sensor                 |
+| sensor      | Full name of this sensor, e.g. coretemp_core_0 |
+| name        | Name of this sensor, e.g. coretemp             |
+| label       | Label for this sensor, e.g. core 0             |
+| temperature | Current temperature                            |
+| crit        | Critical value supplied from sensor            |
+| max         | Max value supplied from sensor                 |
+| min         | Min value supplied from sensor                 |
 
 ## Examples
 

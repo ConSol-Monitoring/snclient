@@ -87,7 +87,7 @@ Use these attributes in filters and thresholds, along with the default attribute
 | critical_count | Number of checks in CRITICAL state                              |
 | unknown_count  | Number of checks in UNKNOWN state                               |
 | problem_count  | Number of checks in non-OK state                                |
-| name           | Name/Tag of the check                                           |
+| name           | Name/tag of the check                                           |
 | tag            | Alias for name                                                  |
 | command        | Command executed                                                |
 | state          | Exit code of the check (0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN) |
