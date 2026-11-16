@@ -13,17 +13,24 @@ func (l *CheckTemperature) mergeExclusiveSensors(ctx context.Context, src []sens
 		log.Debugf("(linux)sensors.TemperaturesWithContext: %s", err.Error())
 	}
 
+	// Keep the values in order. Some systems expose the same sensor key more than once.
+	minByKey := make(map[string][]float64, len(exSensors))
+	for idx := range exSensors {
+		key := exSensors[idx].SensorKey
+		minByKey[key] = append(minByKey[key], exSensors[idx].Min)
+	}
+
 	res := make([]temperatureStat, len(src))
 	for idx := range src {
 		minVal := float64(0)
-		if len(exSensors) < idx {
-			minVal = exSensors[idx].Min
+		if values := minByKey[src[idx].SensorKey]; len(values) > 0 {
+			minVal = values[0]
+			minByKey[src[idx].SensorKey] = values[1:]
 		}
-		sens := temperatureStat{
+		res[idx] = temperatureStat{
 			TemperatureStat: src[idx],
 			Min:             minVal,
 		}
-		res[idx] = sens
 	}
 
 	return res, nil

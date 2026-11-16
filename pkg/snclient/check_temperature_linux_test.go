@@ -80,6 +80,17 @@ func TestTemperatureMocked(t *testing.T) {
 			expectState: CheckExitUnknown,
 			expectOut:   "nvme_composite: 200.0 °C",
 		},
+		{
+			name: "thermal zones without hwmon",
+			files: map[string]string{
+				"class/thermal/thermal_zone0/type": "x86_pkg_temp",
+				"class/thermal/thermal_zone0/temp": "65000",
+				"class/thermal/thermal_zone1/type": "acpitz",
+				"class/thermal/thermal_zone1/temp": "40000",
+			},
+			expectState: CheckExitOK,
+			expectOut:   "x86_pkg_temp: 65.0 °C",
+		},
 	}
 
 	for _, test := range tests {
@@ -113,6 +124,63 @@ func TestTemperatureSanitizeThresholds(t *testing.T) {
 	assert.Equal(t, "0.000000", entry["min"])
 	assert.Equal(t, "0.000000", entry["crit"])
 	assert.Equal(t, "0.000000", entry["max"])
+}
+
+func TestMergeExclusiveSensors(t *testing.T) {
+	t.Run("min values", func(t *testing.T) {
+		mockSysFS(t, map[string]string{
+			"class/hwmon/hwmon0/name":        "nvme",
+			"class/hwmon/hwmon0/temp1_label": "Composite",
+			"class/hwmon/hwmon0/temp1_input": "65000",
+			"class/hwmon/hwmon0/temp1_min":   "10000",
+		})
+
+		src, err := sensors.TemperaturesWithContext(context.Background())
+		require.NoError(t, err)
+		merged, err := (&CheckTemperature{}).mergeExclusiveSensors(context.Background(), src)
+		require.NoError(t, err)
+		require.Len(t, merged, 1)
+		assert.InDelta(t, 10.0, merged[0].Min, 0.0001)
+	})
+
+	t.Run("duplicate keys", func(t *testing.T) {
+		mockSysFS(t, map[string]string{
+			"class/hwmon/hwmon0/name":        "nvme",
+			"class/hwmon/hwmon0/temp1_label": "Composite",
+			"class/hwmon/hwmon0/temp1_input": "65000",
+			"class/hwmon/hwmon0/temp1_min":   "10000",
+			"class/hwmon/hwmon1/name":        "nvme",
+			"class/hwmon/hwmon1/temp1_label": "Composite",
+			"class/hwmon/hwmon1/temp1_input": "66000",
+			"class/hwmon/hwmon1/temp1_min":   "20000",
+		})
+
+		src, err := sensors.TemperaturesWithContext(context.Background())
+		require.NoError(t, err)
+		merged, err := (&CheckTemperature{}).mergeExclusiveSensors(context.Background(), src)
+		require.NoError(t, err)
+		require.Len(t, merged, 2)
+		assert.InDelta(t, 10.0, merged[0].Min, 0.0001)
+		assert.InDelta(t, 20.0, merged[1].Min, 0.0001)
+	})
+
+	t.Run("thermal zones without hwmon", func(t *testing.T) {
+		mockSysFS(t, map[string]string{
+			"class/thermal/thermal_zone0/type": "x86_pkg_temp",
+			"class/thermal/thermal_zone0/temp": "65000",
+			"class/thermal/thermal_zone1/type": "acpitz",
+			"class/thermal/thermal_zone1/temp": "40000",
+		})
+
+		src, err := sensors.TemperaturesWithContext(context.Background())
+		require.NoError(t, err)
+		require.Len(t, src, 2)
+		merged, err := (&CheckTemperature{}).mergeExclusiveSensors(context.Background(), src)
+		require.NoError(t, err)
+		require.Len(t, merged, 2)
+		assert.Zero(t, merged[0].Min)
+		assert.Zero(t, merged[1].Min)
+	})
 }
 
 func mockSysFS(t *testing.T, files map[string]string) {
