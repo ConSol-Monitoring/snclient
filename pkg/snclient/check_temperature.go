@@ -26,14 +26,14 @@ type temperatureStat struct {
 	Min float64 // Temperature min value.
 }
 
-// Plausible temperature range for computer hardware in Celsius.
 const (
-	minPlausibleTemperature = -50.0
-	maxPlausibleTemperature = 150.0
+	// Minimum plausible temperature for computer hardware in Celsius.
+	// There is no upper limit. A sensor can theoretically report any higher value.
+	minPlausibleTemperature = -270.0
 )
 
 func isPlausibleTemperature(value float64) bool {
-	return value >= minPlausibleTemperature && value <= maxPlausibleTemperature
+	return value >= minPlausibleTemperature
 }
 
 func NewCheckTemperature() CheckHandler {
@@ -52,10 +52,9 @@ func (l *CheckTemperature) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		defaultFilter:   "temperature != 0 and temperature != 1", // seems like disabled sensors return 1.0000 or 0.0000
+		defaultFilter:   fmt.Sprintf("temperature != 0 and temperature != 1 and temperature >= %g", minPlausibleTemperature), // 0 and 1 mean disabled, below -270 is invalid
 		defaultWarning:  "(min != 0 && temperature < %(min)) || (crit != 0 && temperature > %(crit))",
 		defaultCritical: "(min != 0 && temperature < %(min)) || (crit != 0 && temperature > %(crit))",
-		defaultUnknown:  fmt.Sprintf("temperature < %g || temperature > %g", minPlausibleTemperature, maxPlausibleTemperature),
 		topSyntax:       "%(status) - %(list)",
 		detailSyntax:    "%(sensor): %(temperature:fmt=%.1f) °C",
 		emptyState:      3,
@@ -79,7 +78,7 @@ Show all temperature sensors and apply custom thresholds:
     check_temperature filter=none warn="temperature > 85" crit="temperature > 90"
     OK - Package id 0: 65.0 °C, Core 0: 62.0 °C, Core 1: 61.0 °C, Core 2: 65.0 °C |...
 
-Sensors outside the plausible temperature range are reported as UNKNOWN.
+Sensors with invalid values are filtered out.
 	`,
 	}
 }
@@ -118,7 +117,7 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat, 
 		duplicates[label] = 1
 	}
 
-	// Sanitizing: values outside the plausible range are sentinel or disabled thresholds.
+	// Sanitizing: values below the plausible range are sentinel or disabled thresholds.
 	if !isPlausibleTemperature(sensor.High) {
 		sensor.High = 0
 	}
@@ -127,6 +126,11 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat, 
 	}
 	if !isPlausibleTemperature(sensor.Critical) {
 		sensor.Critical = 0
+	}
+
+	//nolint:mnd // 0xFFFF Kelvin converted to Celsius means the high value is not used
+	if sensor.High >= 65261.850000 {
+		sensor.High = 0
 	}
 
 	entry := map[string]string{

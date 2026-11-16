@@ -23,21 +23,14 @@ func TestTemperature(t *testing.T) {
 		// no sensors found, cannot test
 		return
 	}
-	assert.Regexpf(t, `^(OK|UNKNOWN) - .*: -?[\d.]+ °C`, out, "output matches")
+	assert.Regexpf(t, `^(OK|WARNING|CRITICAL|UNKNOWN) - .*: -?[\d.]+ °C`, out, "output matches")
 	require.NotNil(t, res.Raw)
+	assert.NotEqualf(t, CheckExitUnknown, res.State, "valid sensors must not make the check unknown")
 
-	hasImplausible := false
 	for _, entry := range res.Raw.listData {
 		temp, err := strconv.ParseFloat(entry["temperature"], 64)
 		require.NoError(t, err)
-		if temp < minPlausibleTemperature || temp > maxPlausibleTemperature {
-			hasImplausible = true
-		}
-	}
-	if hasImplausible {
-		assert.Equalf(t, CheckExitUnknown, res.State, "implausible sensor must make the check unknown")
-	} else {
-		assert.NotEqualf(t, CheckExitUnknown, res.State, "plausible sensors must not make the check unknown")
+		assert.GreaterOrEqual(t, temp, minPlausibleTemperature, "invalid sensor must be filtered out")
 	}
 }
 
@@ -47,6 +40,7 @@ func TestTemperatureMocked(t *testing.T) {
 		files       map[string]string
 		expectState int64
 		expectOut   string
+		rejectOut   string
 	}{
 		{
 			name: "plausible sensor",
@@ -78,7 +72,8 @@ func TestTemperatureMocked(t *testing.T) {
 				"class/hwmon/hwmon0/temp1_max":   "69850",
 			},
 			expectState: CheckExitUnknown,
-			expectOut:   "nvme_composite: -273.1 °C",
+			expectOut:   "failed to find any sensors",
+			rejectOut:   "-273.1",
 		},
 		{
 			name: "temperature too high",
@@ -87,8 +82,20 @@ func TestTemperatureMocked(t *testing.T) {
 				"class/hwmon/hwmon0/temp1_label": "Composite",
 				"class/hwmon/hwmon0/temp1_input": "200000",
 			},
-			expectState: CheckExitUnknown,
+			expectState: CheckExitOK,
 			expectOut:   "nvme_composite: 200.0 °C",
+		},
+		{
+			name: "invalid and valid sensor",
+			files: map[string]string{
+				"class/hwmon/hwmon0/name":        "nvme",
+				"class/hwmon/hwmon0/temp1_input": "-273150",
+				"class/hwmon/hwmon1/name":        "coretemp",
+				"class/hwmon/hwmon1/temp1_input": "65000",
+			},
+			expectState: CheckExitOK,
+			expectOut:   "coretemp: 65.0 °C",
+			rejectOut:   "-273.1",
 		},
 		{
 			name: "thermal zones without hwmon",
@@ -107,8 +114,12 @@ func TestTemperatureMocked(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			mockSysFS(t, test.files)
 			res := runTemperatureCheck(t)
+			out := string(res.BuildPluginOutput())
 			assert.Equal(t, test.expectState, res.State)
-			assert.Contains(t, string(res.BuildPluginOutput()), test.expectOut)
+			assert.Contains(t, out, test.expectOut)
+			if test.rejectOut != "" {
+				assert.NotContains(t, out, test.rejectOut)
+			}
 		})
 	}
 }
@@ -128,12 +139,27 @@ func TestTemperatureSanitizeThresholds(t *testing.T) {
 		},
 		Min: -273.15,
 	}, map[string]int{})
+	check.addSensor(data, &temperatureStat{
+		TemperatureStat: sensors.TemperatureStat{
+			SensorKey:   "hot_sensor",
+			Temperature: 65,
+			Critical:    200,
+			High:        200,
+		},
+		Min: 200,
+	}, map[string]int{})
 
-	require.Len(t, data.listData, 1)
+	require.Len(t, data.listData, 2)
 	entry := data.listData[0]
 	assert.Equal(t, "0.000000", entry["min"])
 	assert.Equal(t, "0.000000", entry["crit"])
 	assert.Equal(t, "0.000000", entry["max"])
+
+	// There is no upper limit, so high threshold values stay.
+	entry = data.listData[1]
+	assert.Equal(t, "200.000000", entry["min"])
+	assert.Equal(t, "200.000000", entry["crit"])
+	assert.Equal(t, "200.000000", entry["max"])
 }
 
 func TestMergeExclusiveSensors(t *testing.T) {
