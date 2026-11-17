@@ -125,28 +125,28 @@ func TestTemperatureMocked(t *testing.T) {
 }
 
 func TestTemperatureSanitizeThresholds(t *testing.T) {
-	check := NewCheckTemperature().(*CheckTemperature)
+	check, _ := NewCheckTemperature().(*CheckTemperature)
 	data := check.Build()
 	_, err := data.parseArgs(nil)
 	require.NoError(t, err)
 
 	check.addSensor(data, &temperatureStat{
-		TemperatureStat: sensors.TemperatureStat{
+		sensors.TemperatureStat{
 			SensorKey:   "nvme_composite",
 			Temperature: 65,
 			Critical:    -273.15,
 			High:        65261.85,
 		},
-		Min: -273.15,
+		-273.15,
 	}, map[string]int{})
 	check.addSensor(data, &temperatureStat{
-		TemperatureStat: sensors.TemperatureStat{
+		sensors.TemperatureStat{
 			SensorKey:   "hot_sensor",
 			Temperature: 65,
 			Critical:    200,
 			High:        200,
 		},
-		Min: 200,
+		200,
 	}, map[string]int{})
 
 	require.Len(t, data.listData, 2)
@@ -225,14 +225,14 @@ func mockSysFS(t *testing.T, files map[string]string) {
 	for name, content := range files {
 		path := filepath.Join(sysDir, filepath.FromSlash(name))
 		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
-		require.NoError(t, os.WriteFile(path, []byte(content+"\n"), 0o644))
+		require.NoError(t, os.WriteFile(path, []byte(content+"\n"), 0o600))
 	}
 	t.Setenv("HOST_SYS", sysDir)
 }
 
 func runTemperatureCheck(t *testing.T) *CheckResult {
 	t.Helper()
-	check := NewCheckTemperature().(*CheckTemperature)
+	check, _ := NewCheckTemperature().(*CheckTemperature)
 	data := check.Build()
 	_, err := data.parseArgs(nil)
 	require.NoError(t, err)
