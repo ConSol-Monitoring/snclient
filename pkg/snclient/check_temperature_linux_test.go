@@ -23,7 +23,7 @@ func TestTemperature(t *testing.T) {
 		// no sensors found, cannot test
 		return
 	}
-	assert.Regexpf(t, `^(OK|WARNING|CRITICAL|UNKNOWN) - .*: -?[\d.]+ °C`, out, "output matches")
+	assert.Regexpf(t, `^(OK) - .*: -?[\d.]+ °C`, out, "output matches")
 	require.NotNil(t, res.Raw)
 	assert.NotEqualf(t, CheckExitUnknown, res.State, "valid sensors must not make the check unknown")
 
