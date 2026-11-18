@@ -66,8 +66,8 @@ type icmpEchoReply struct {
 }
 
 // icmpv6EchoReply mirrors ICMPV6_ECHO_REPLY (ipexport.h).
-// Its IPV6_ADDRESS_EX prefix is packed and 26 bytes long, so Status starts at offset 28.
-// Unlike IPv4, the API returns no TTL for IPv6.
+// Its packed IPV6_ADDRESS_EX prefix is 26 bytes long. Status starts at offset 28.
+// The API returns a TTL for IPv4 only.
 type icmpv6EchoReply struct {
 	Address       [26]byte
 	_             [2]byte
@@ -387,7 +387,7 @@ func icmpEcho6(address net.IP, timeout time.Duration) (rtt uint32, ttl uint8, st
 }
 
 // icmpStatusFromError returns the IP_STATUS in a failed echo call.
-// A timeout and an unreachable destination are packet loss, not a broken check.
+// A timeout or an unreachable destination counts as packet loss. Neither means the check failed.
 func icmpStatusFromError(err error) (uint32, bool) {
 	var errno syscall.Errno
 	if !errors.As(err, &errno) {

@@ -32,7 +32,12 @@ jobs:
           build-mode: manual
 
       - name: Download dependencies
-        run: go mod download
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 180
+          command: go mod download
 
       - name: Build test binaries
         run: |

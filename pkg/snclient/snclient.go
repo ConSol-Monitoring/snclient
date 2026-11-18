@@ -171,20 +171,21 @@ func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
 type AgentFlags struct {
-	ConfigFiles     []string
-	Verbose         int
-	Quiet           bool
-	Help            bool
-	Version         bool
-	Mode            MainRunMode
-	LogLevel        string
-	LogFormat       string
-	LogFile         string
-	Pidfile         string
-	ProfilePort     string
-	ProfileCPU      string
-	ProfileMem      string
-	DeadlockTimeout int
+	ConfigFiles         []string
+	Verbose             int
+	Quiet               bool
+	Help                bool
+	Version             bool
+	Mode                MainRunMode
+	SkipBackgroundTasks bool
+	LogLevel            string
+	LogFormat           string
+	LogFile             string
+	Pidfile             string
+	ProfilePort         string
+	ProfileCPU          string
+	ProfileMem          string
+	DeadlockTimeout     int
 }
 
 type Agent struct {
@@ -600,6 +601,9 @@ func (snc *Agent) ReadConfiguration(files []string) (initSet *AgentRunSet, err e
 			break
 		}
 	}
+	if parseError != nil {
+		return initSet, fmt.Errorf("reading settings failed: %s", parseError.Error())
+	}
 
 	// apply defaults
 	for sectionName, defaults := range DefaultConfig {
@@ -630,15 +634,14 @@ func (snc *Agent) ReadConfiguration(files []string) (initSet *AgentRunSet, err e
 
 	// replace other sections
 	for _, section := range config.sections {
-		config.ReplaceMacrosDefault(section, nil)
+		err = config.ReplaceMacrosDefault(section, nil)
+		if err != nil {
+			return initSet, err
+		}
 	}
 
 	for key, val := range pathSection.data {
 		log.Tracef("conf macro: %s -> %s", key, val)
-	}
-
-	if parseError != nil {
-		return initSet, fmt.Errorf("reading settings failed: %s", parseError.Error())
 	}
 
 	return initSet, nil
@@ -648,6 +651,14 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *A
 	conf := runSet.config
 
 	for _, entry := range loadable {
+		// Task initialization can collect metrics. Keep only check registration for run.
+		if snc.Flags.SkipBackgroundTasks && name == "tasks" {
+			switch entry.ModuleKey {
+			case "CheckAlias", "CheckExternalScripts":
+			default:
+				continue
+			}
+		}
 		enabled, ok, err := entry.IsEnabled(conf)
 		switch {
 		case err != nil:

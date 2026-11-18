@@ -30,13 +30,13 @@ Checks the ICMP ping connection.
 
 ## Check Specific Arguments
 
-| Argument | Description                                                 |
-| -------- | ----------------------------------------------------------- |
-| -4       | Force using IPv4.                                           |
-| -6       | Force using IPv6.                                           |
-| -t       | timeout in seconds for each ICMP ECHO packet                |
-| host     | host name or IP address to ping                             |
-| packets  | number of ICMP ECHO packets to send (default: 5, max: 1000) |
+| Argument | Description                                                      |
+| -------- | ---------------------------------------------------------------- |
+| -4       | Force using IPv4.                                                |
+| -6       | Force using IPv6.                                                |
+| -t       | Timeout in seconds for each ICMP ECHO packet.                    |
+| host     | Host name or IP address to ping.                                 |
+| packets  | Number of ICMP ECHO packets to send (default: 5, maximum: 1000). |
 
 ## Attributes
 
@@ -46,12 +46,12 @@ Use these attributes in filters and thresholds, along with the default attribute
 
 | Attribute | Description                              |
 | --------- | ---------------------------------------- |
-| host_name | host name ping was sent to.              |
-| ttl       | time to live.                            |
-| sent      | number of packets sent.                  |
-| received  | number of packets received.              |
-| rta       | average round trip time in milliseconds. |
-| pl        | packet loss in percent.                  |
+| host_name | Host name ping was sent to.              |
+| ttl       | Time to live.                            |
+| sent      | Number of packets sent.                  |
+| received  | Number of packets received.              |
+| rta       | Average round trip time in milliseconds. |
+| pl        | Packet loss in percent.                  |
 
 ## Examples
 

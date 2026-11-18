@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+
+PackageIdentifier: ConSol.SNClient
+PackageVersion: 1.01.0
+PackageLocale: en-US
+Publisher: ConSol Consulting and Solutions Software GmbH
+PublisherUrl: https://www.consol.com/
+PublisherSupportUrl: https://github.com/ConSol-Monitoring/snclient/issues
+Author: Sven Nierlein
+PackageName: SNClient
+PackageUrl: https://github.com/ConSol-Monitoring/snclient
+License: MIT
+LicenseUrl: https://github.com/ConSol-Monitoring/snclient/blob/main/LICENSE
+Copyright: Copyright (c) 2023 Sven Nierlein
+ShortDescription: SNClient is a general-purpose monitoring agent with NRPE and NSCP protocol support.
+Description: |-
+  SNClient (Secure Naemon Client) is a multi-platform monitoring agent that
+  provides system checks and metrics via Prometheus HTTP(S), NRPE (v2/v4), and
+  the NSCP REST API. It ships with built-in checks for CPU, memory, disks,
+  network, processes, and services, and can run external scripts.
+Moniker: snclient
+Tags:
+- monitoring
+- naemon
+- nagios
+- icinga
+- nrpe
+- nscp
+- prometheus
+- agent
+- windows
+InstallationNotes: |-
+  SNClient installs as an automatically started Windows service in
+  C:\Program Files\snclient and adds a Windows Firewall rule named SNClient.
+  The default password "CHANGEME" is rejected at login. Set a password in
+  C:\Program Files\snclient\snclient.ini and restart the snclient service.
+  Use winget or msiexec to update MSI installations; "snclient.exe update"
+  only replaces the binary and does not update the MSI/ARP version.
+ReleaseNotesUrl: https://github.com/ConSol-Monitoring/snclient/releases/tag/v1.01
+Documentations:
+- DocumentLabel: Documentation
+  DocumentUrl: https://omd.consol.de/docs/snclient/
+ManifestType: defaultLocale
+ManifestVersion: 1.12.0

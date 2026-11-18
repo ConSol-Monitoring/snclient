@@ -147,8 +147,12 @@ jobs:
 
       - name: "install Azure Sign Tool"
         if: ${{ env.CERTURL != '' }}
-        run: |
-          dotnet tool install --global --version 6.0.1 AzureSignTool
+        uses: nick-fields/retry@v4
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 180
+          command: dotnet tool install --global --version 6.0.1 AzureSignTool
 
       - name: "Sign snclient.exe"
         if: ${{ env.CERTURL != '' }}

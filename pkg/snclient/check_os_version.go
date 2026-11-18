@@ -32,13 +32,13 @@ func (l *CheckOSVersion) Build() *CheckData {
 		detailSyntax: "%(platform) %(version) (arch: %(arch))",
 		attributes: []CheckAttribute{
 			{name: "platform", description: "Platform of the OS"},
-			{name: "family", description: "OS Family"},
+			{name: "family", description: "OS family"},
 			{name: "version", description: "Full version number"},
-			{name: "arch", description: "OS architecture (go arch, e.g. amd64)"},
+			{name: "arch", description: "OS architecture (Go architecture, e.g. amd64)"},
 			{name: "os", description: "OS name"},
-			{name: "hostname", description: "hostname (probably without FQDN)"},
-			{name: "kernel_arch", description: "kernel architecture, e.g. x86_64"},
-			{name: "kernel_version", description: "kernel version"},
+			{name: "hostname", description: "Hostname (probably without FQDN)"},
+			{name: "kernel_arch", description: "Kernel architecture, e.g. x86_64"},
+			{name: "kernel_version", description: "Kernel version"},
 		},
 		exampleDefault: `
     check_os_version

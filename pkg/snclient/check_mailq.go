@@ -49,12 +49,12 @@ func (l *CheckMailq) Build() *CheckData {
 		emptyState:      CheckExitUnknown,
 		emptySyntax:     "%(status) - could not get any mailq data",
 		attributes: []CheckAttribute{
-			{name: "mta", description: "name of the MTA"},
-			{name: "folder", description: "checked spool folder"},
-			{name: "active", description: "number of active mails"},
-			{name: "active_size", description: "size of active mails in bytes", unit: UByte},
-			{name: "deferred", description: "number of deferred mails"},
-			{name: "deferred_size", description: "size of deferred mails in bytes", unit: UByte},
+			{name: "mta", description: "Name of the MTA"},
+			{name: "folder", description: "Checked spool folder"},
+			{name: "active", description: "Number of active mails"},
+			{name: "active_size", description: "Size of active mails in bytes", unit: UByte},
+			{name: "deferred", description: "Number of deferred mails"},
+			{name: "deferred_size", description: "Size of deferred mails in bytes", unit: UByte},
 		},
 		exampleDefault: `
     check_mailq

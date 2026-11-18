@@ -61,8 +61,8 @@ type commandOpts struct {
 	tlsMinVersion           uint16
 	flags                   struct {
 		Hostname                 string        `short:"H" long:"hostname"                                description:"Host name using Host headers"`
-		IPAddress                string        `short:"I" long:"IP-address"                              description:"IP address or Host name"`
-		Method                   string        `short:"j" long:"method"            default:"GET"         description:"Set HTTP Method"`
+		IPAddress                string        `short:"I" long:"IP-address"                              description:"IP address or host name"`
+		Method                   string        `short:"j" long:"method"            default:"GET"         description:"Set HTTP method"`
 		Post                     *string       `short:"P" long:"post"                                    description:"Data to send in the request body. Uses POST unless --method is set. Set Content-Type with --header (for example --header 'Content-Type: application/json')"`
 		URI                      string        `short:"u" long:"uri"               default:"/"           description:"URI to request"`
 		ExpectStr                string        `short:"e" long:"expect"            default:""            description:"Comma-separated list of expected HTTP response statuses. Defaults: 1XX and 2XX are OK. 3XX depends on --onredirect. 4XX is WARNING. 5XX is CRITICAL"`
@@ -77,7 +77,7 @@ type commandOpts struct {
 		Proxy                    string        `          long:"proxy"                                   description:"Proxy to use"`
 		RegexStr                 string        `short:"r" long:"regex"                                   description:"Search page for case-sensitive regex string"`
 		RegexiStr                string        `short:"R" long:"regexi"                                  description:"Search page for case-insensitive regex string"`
-		Onredirect               string        `short:"f" long:"onredirect"        value-name:"<options>" description:"Redirect strategy: ok, warning, critical, follow, sticky, stickyport. ok/warning/critical returns immediately. follow uses the new URL from Go's HTTP client. sticky keeps the hostname after a redirect. stickyport also keeps the port."`
+		Onredirect               string        `short:"f" long:"onredirect"        value-name:"<options>" description:"Redirect strategy: ok, warning, critical, follow, sticky, stickyport. The ok/warning/critical options return immediately. The follow option uses the new URL from Go's HTTP client. The sticky option keeps the hostname after a redirect. The stickyport option also keeps the port."`
 		MaxBufferSize            string        `          long:"max-buffer-size"   default:"1MB"         description:"Max buffer size to read response body (max.: 100MB)"`
 		TimeoutStr               string        `short:"t" long:"timeout"           default:"10"          description:"Connection timeout. Without a time unit suffix, the value is in seconds"`
 		WarningThresholdStr      string        `short:"w" long:"warning"           default:"30"          description:"If the request and response take longer than this threshold, return a warning. Without a time unit suffix, use seconds. The check truncates the value to milliseconds."`

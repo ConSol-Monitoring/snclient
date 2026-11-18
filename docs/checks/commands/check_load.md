@@ -44,11 +44,11 @@ Use these attributes in filters and thresholds, along with the default attribute
 
 | Attribute | Description                              |
 | --------- | ---------------------------------------- |
-| type      | type will be either 'total' or 'scaled'  |
-| load1     | average load value over 1 minute         |
-| load5     | average load value over 5 minutes        |
-| load15    | average load value over 15 minutes       |
-| load      | maximum value of load1, load5 and load15 |
+| type      | Type will be either 'total' or 'scaled'  |
+| load1     | Average load value over 1 minute         |
+| load5     | Average load value over 5 minutes        |
+| load15    | Average load value over 15 minutes       |
+| load      | Maximum value of load1, load5 and load15 |
 
 ## Examples
 

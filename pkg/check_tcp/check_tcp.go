@@ -85,7 +85,7 @@ type exchange struct {
 	ExpectPattern      string `short:"e" long:"expect-pattern" description:"Regular expression to match in the server response"`
 	Quit               string `short:"q" long:"quit" description:"String to send to the server to close the connection cleanly"`
 	SSL                bool   `short:"S" long:"ssl" description:"Use SSL for the connection."`
-	UnixSock           string `short:"U" long:"unix-sock" description:"Unix Domain Socket"`
+	UnixSock           string `short:"U" long:"unix-sock" description:"Unix domain socket"`
 	NoCheckCertificate bool   `long:"no-check-certificate" description:"Do not check certificate"`
 	expectReg          *regexp.Regexp
 }

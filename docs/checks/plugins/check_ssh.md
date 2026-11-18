@@ -30,7 +30,7 @@ Application Options:
   -e, --expect-pattern=       Regular expression to match in the server response
   -q, --quit=                 String to send to the server to close the connection cleanly
   -S, --ssl                   Use SSL for the connection.
-  -U, --unix-sock=            Unix Domain Socket
+  -U, --unix-sock=            Unix domain socket
       --no-check-certificate  Do not check certificate
   -t, --timeout=              Seconds before connection times out (default: 10)
   -m, --maxbytes=             If the received bytes exceed this number, close the connection

@@ -8,9 +8,10 @@ import (
 func init() {
 	serverCmd := &cobra.Command{
 		Use:   "server",
-		Short: "Start the agent",
+		Short: "Start the agent (default)",
 		Long: `Server mode starts the agent in the foreground, connected to the terminal.
 The agent prints all logs to stdout unless flags specify another destination.
+This is the default mode when you omit the command.
 		`,
 		GroupID: "daemon",
 		Run: func(_ *cobra.Command, _ []string) {

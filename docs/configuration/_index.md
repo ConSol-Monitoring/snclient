@@ -270,3 +270,45 @@ For example, to define a dummy command which prints the hostname in lowercase le
 [/settings/external scripts/alias]
 alias_hostname = check_dummy 0 "host:${hostname:lc}"
 ```
+
+## Environment Variables
+
+Configuration values can reference environment variables with the `$ENV{NAME}` syntax:
+
+```ini
+[/settings/default]
+allowed hosts = 127.0.0.1, $ENV{SNCLIENT_ALLOWED_HOSTS}
+
+[/settings/WEB/server]
+password = $ENV{SNCLIENT_WEB_PASSWORD}
+
+[/paths]
+shared-path = $ENV{SNCLIENT_SHARED_PATH}
+
+[/includes]
+node = $ENV{SNCLIENT_NODE_INI}
+```
+
+SNClient reads the variable from the environment of the running process when it
+loads the configuration. You can distribute the same configuration files and
+only change the environment per node.
+
+- An unset variable is a configuration error. `snclient config check` reports
+  the variable name and config location.
+- A variable that is set but empty expands to an empty string.
+- SNClient expands each value only once. It does not expand `$ENV{...}` inside
+  the value of an environment variable again.
+- Use `$$ENV{NAME}` to write a literal `$ENV{NAME}`.
+- SNClient expands only config values. It does not expand section names and keys.
+- The syntax is only available in configuration files, not in check output
+  templates or runtime macros.
+- SNClient does not re-read environment variables on config reload. Restart the
+  service after you change them. One-shot commands pick up the environment of
+  the new process automatically.
+
+On Linux with systemd, set variables with `Environment=` or `EnvironmentFile=` in
+the service unit. On Windows, set them in the service or system environment and
+restart the service.
+
+The local agent parses HTTP(S) includes, so it resolves environment variables
+in remote config files on the client.
