@@ -171,20 +171,21 @@ func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
 type AgentFlags struct {
-	ConfigFiles     []string
-	Verbose         int
-	Quiet           bool
-	Help            bool
-	Version         bool
-	Mode            MainRunMode
-	LogLevel        string
-	LogFormat       string
-	LogFile         string
-	Pidfile         string
-	ProfilePort     string
-	ProfileCPU      string
-	ProfileMem      string
-	DeadlockTimeout int
+	ConfigFiles         []string
+	Verbose             int
+	Quiet               bool
+	Help                bool
+	Version             bool
+	Mode                MainRunMode
+	SkipBackgroundTasks bool
+	LogLevel            string
+	LogFormat           string
+	LogFile             string
+	Pidfile             string
+	ProfilePort         string
+	ProfileCPU          string
+	ProfileMem          string
+	DeadlockTimeout     int
 }
 
 type Agent struct {
@@ -650,6 +651,14 @@ func (snc *Agent) initModules(name string, loadable []*LoadableModule, runSet *A
 	conf := runSet.config
 
 	for _, entry := range loadable {
+		// Task initialization can collect metrics. Keep only check registration for run.
+		if snc.Flags.SkipBackgroundTasks && name == "tasks" {
+			switch entry.ModuleKey {
+			case "CheckAlias", "CheckExternalScripts":
+			default:
+				continue
+			}
+		}
 		enabled, ok, err := entry.IsEnabled(conf)
 		switch {
 		case err != nil:

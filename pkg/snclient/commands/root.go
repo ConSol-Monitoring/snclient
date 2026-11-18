@@ -20,12 +20,22 @@ func NewRootCmd() *cobra.Command {
 		Use:   "snclient [global flags] [command]",
 		Short: "Multi-platform monitoring agent for Naemon and Prometheus.",
 		Long: `SNClient is a general-purpose monitoring agent for multiple platforms.
-It aims to provide basic fault monitoring and metrics. Add your own scripts and checks to extend it.`,
-		Example: `  * Start the server
+It provides monitoring and metrics. Add your own scripts and checks to extend it.
+
+Without a command, SNClient starts in 'server' mode.
+Use 'snclient test' for a query prompt or a single check with human-readable output.
+Use 'snclient run' for a single check without any background tasks.`,
+		Example: `  * Start the server (default)
     %> snclient server
 
   * Start as a background daemon
     %> snclient daemon
+
+  * Open the test query prompt
+    %> snclient test
+
+  * Run a single check without background tasks
+    %> snclient run check_http -H localhost -p 443 -S
 
   * Show the SNClient version and compiled-in plugins:
     %> snclient -vV
@@ -240,8 +250,9 @@ func injectDoubleSlashAfterRunCmd(rootCmd *cobra.Command) {
 		return
 	}
 
-	// only used in the "test" command
-	if cmd.Name() != "test" {
+	switch cmd.Name() {
+	case "test", "run", "do":
+	default:
 		return
 	}
 
