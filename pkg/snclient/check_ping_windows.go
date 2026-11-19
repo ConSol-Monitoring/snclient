@@ -54,7 +54,7 @@ type ipOptionInformation struct {
 }
 
 // icmpEchoReply mirrors ICMP_ECHO_REPLY (ipexport.h).
-// IcmpSendEcho parses the reply buffer itself and uses the native layout on 64-bit systems too.
+// IcmpSendEcho parses the reply buffer itself, so the native layout is used on 64 bit as well.
 type icmpEchoReply struct {
 	Address       uint32
 	Status        uint32
@@ -179,7 +179,7 @@ func (l *CheckPing) addPingResolveError(check *CheckData) error {
 }
 
 // pingAddress sends one echo per second, like ping.exe.
-// Each packet needs its own goroutine because IcmpSendEcho is synchronous.
+// Every packet runs in its own goroutine because IcmpSendEcho is synchronous.
 func (l *CheckPing) pingAddress(ctx context.Context, address net.IP, perPacket time.Duration) []pingReply {
 	packets := int(l.packets)
 	replies := make(chan indexedPingReply, packets)
@@ -306,7 +306,7 @@ func icmpEcho4(address net.IP, timeout time.Duration) (rtt uint32, ttl uint8, st
 	if handle == 0 || windows.Handle(handle) == windows.InvalidHandle {
 		return 0, 0, 0, fmt.Errorf("IcmpCreateFile: %w", callErr)
 	}
-	defer procIcmpCloseHandle.Call(handle) //nolint:errcheck // cannot recover from a close failure
+	defer procIcmpCloseHandle.Call(handle) //nolint:errcheck // a close failure cannot be handled
 
 	ip4 := address.To4()
 	if ip4 == nil {
@@ -344,7 +344,7 @@ func icmpEcho6(address net.IP, timeout time.Duration) (rtt uint32, ttl uint8, st
 	if handle == 0 || windows.Handle(handle) == windows.InvalidHandle {
 		return 0, 0, 0, fmt.Errorf("Icmp6CreateFile: %w", callErr)
 	}
-	defer procIcmpCloseHandle.Call(handle) //nolint:errcheck // cannot recover from a close failure
+	defer procIcmpCloseHandle.Call(handle) //nolint:errcheck // a close failure cannot be handled
 
 	ip16 := address.To16()
 	if ip16 == nil {
