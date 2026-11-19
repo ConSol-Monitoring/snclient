@@ -24,7 +24,7 @@ const (
 	defaultMaxLinesPerFile = 10000
 
 	// maxLinesPerFileMax sets the upper limit a user can request by args (can be increased from the config)
-	maxLinesPerFileMax = 100000
+	maxLinesPerFileMax = 1000000
 )
 
 var numReg = regexp.MustCompile(`\d+`)

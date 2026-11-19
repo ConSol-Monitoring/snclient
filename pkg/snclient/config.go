@@ -49,7 +49,7 @@ var DefaultConfig = map[string]ConfigData{
 		"CheckSystemUnix":      "enabled",
 		"CheckAlias":           "enabled",
 		"CheckMulti":           "enabled",
-		"CheckExternalScripts": "enabled",
+		"CheckExternalScripts": "disabled",
 		"CheckDisk":            "enabled",
 		"CheckDriveIO":         "enabled",
 		"CheckSwapIO":          "enabled",
@@ -84,7 +84,7 @@ var DefaultConfig = map[string]ConfigData{
 		"ignore perfdata":          "false",
 	},
 	"/settings/external scripts/wrappings": {
-		"bat": `${scripts}\%SCRIPT% %ARGS%`,
+		"bat": `${script root}\%SCRIPT% %ARGS%`,
 		"ps1": `cmd /c echo ` +
 			`If (-Not (Test-Path "${script root}\%SCRIPT%") ) ` +
 			`{ Write-Host "UNKNOWN: Script ` + "`\"%SCRIPT%`\" not found.\"; exit(3) }; " +
