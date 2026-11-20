@@ -26,6 +26,16 @@ type temperatureStat struct {
 	Min float64 // Temperature min value.
 }
 
+const (
+	// Minimum plausible temperature for computer hardware in Celsius.
+	// There is no upper limit. A sensor can theoretically report any higher value.
+	minPlausibleTemperature = -270.0
+)
+
+func isPlausibleTemperature(value float64) bool {
+	return value >= minPlausibleTemperature
+}
+
 func NewCheckTemperature() CheckHandler {
 	return &CheckTemperature{}
 }
@@ -42,7 +52,7 @@ func (l *CheckTemperature) Build() *CheckData {
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
-		defaultFilter:   "temperature != 0 and temperature != 1", // seems like disabled sensors return 1.0000 or 0.0000
+		defaultFilter:   fmt.Sprintf("temperature != 0 and temperature != 1 and temperature >= %g", minPlausibleTemperature), // 0 and 1 mean disabled, below -270 is invalid
 		defaultWarning:  "(min != 0 && temperature < %(min)) || (crit != 0 && temperature > %(crit))",
 		defaultCritical: "(min != 0 && temperature < %(min)) || (crit != 0 && temperature > %(crit))",
 		topSyntax:       "%(status) - %(list)",
@@ -67,6 +77,8 @@ Show all temperature sensors and apply custom thresholds:
 
     check_temperature filter=none warn="temperature > 85" crit="temperature > 90"
     OK - Package id 0: 65.0 °C, Core 0: 62.0 °C, Core 1: 61.0 °C, Core 2: 65.0 °C |...
+
+Sensors with invalid values are filtered out.
 	`,
 	}
 }
@@ -105,7 +117,18 @@ func (l *CheckTemperature) addSensor(check *CheckData, sensor *temperatureStat, 
 		duplicates[label] = 1
 	}
 
-	//nolint:mnd // sanitizing: this value is 0xFFFF kelvin converted to celsius and means the high value is not used
+	// Sanitizing: values below the plausible range are sentinel or disabled thresholds.
+	if !isPlausibleTemperature(sensor.High) {
+		sensor.High = 0
+	}
+	if !isPlausibleTemperature(sensor.Min) {
+		sensor.Min = 0
+	}
+	if !isPlausibleTemperature(sensor.Critical) {
+		sensor.Critical = 0
+	}
+
+	//nolint:mnd // 0xFFFF Kelvin converted to Celsius means the high value is not used
 	if sensor.High >= 65261.850000 {
 		sensor.High = 0
 	}

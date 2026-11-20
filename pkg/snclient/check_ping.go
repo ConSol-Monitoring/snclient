@@ -15,7 +15,7 @@ func init() {
 	AvailableChecks["check_ping"] = CheckEntry{"check_ping", NewCheckPing}
 }
 
-const maxPingPackets = 1000
+const maxPingPackets = 50
 
 type CheckPing struct {
 	snc      *Agent
@@ -43,7 +43,7 @@ func (l *CheckPing) Build() *CheckData {
 		},
 		args: map[string]CheckArgument{
 			"host":    {value: &l.hostname, description: "Host name or IP address to ping."},
-			"packets": {value: &l.packets, description: "Number of ICMP ECHO packets to send (default: 5, maximum: 1000)."},
+			"packets": {value: &l.packets, description: "Number of ICMP ECHO packets to send (default: 5, maximum: 50)."},
 			"-t":      {value: &l.timeout, description: "Timeout in seconds for each ICMP ECHO packet."},
 			"-4":      {value: &l.ipv4, description: "Force using IPv4."},
 			"-6":      {value: &l.ipv6, description: "Force using IPv6."},
