@@ -34,9 +34,13 @@ func init() {
 		NewHandlerExporterExporter,
 		ConfigInit{
 			ConfigData{
-				"port":       "${/settings/WEB/server/port}",
-				"use ssl":    "${/settings/WEB/server/use ssl}",
-				"url prefix": "/",
+				"port":                "${/settings/WEB/server/port}",
+				"use ssl":             "${/settings/WEB/server/use ssl}",
+				"url prefix":          "/",
+				"modules dir":         "${shared-path}/exporter_modules",
+				"modules dir watcher": "false",
+				"default module":      "",
+				"allowed methods":     "",
 			},
 			"/settings/default",
 			DefaultListenHTTPConfig,
