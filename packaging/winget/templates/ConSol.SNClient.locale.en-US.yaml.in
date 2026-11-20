@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
 
 PackageIdentifier: ConSol.SNClient
-PackageVersion: 1.01.0
+PackageVersion: __PACKAGE_VERSION__
 PackageLocale: en-US
 Publisher: ConSol Consulting and Solutions Software GmbH
 PublisherUrl: https://www.consol.com/
@@ -36,7 +36,7 @@ InstallationNotes: |-
   C:\Program Files\snclient\snclient.ini and restart the snclient service.
   Use winget or msiexec to update MSI installations; "snclient.exe update"
   only replaces the binary and does not update the MSI/ARP version.
-ReleaseNotesUrl: https://github.com/ConSol-Monitoring/snclient/releases/tag/v1.01
+ReleaseNotesUrl: https://github.com/ConSol-Monitoring/snclient/releases/tag/v__TAG_VERSION__
 Documentations:
 - DocumentLabel: Documentation
   DocumentUrl: https://omd.consol.de/docs/snclient/

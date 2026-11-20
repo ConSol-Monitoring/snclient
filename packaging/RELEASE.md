@@ -22,3 +22,46 @@ To build a new release:
   The workflow for the git tag also creates a draft release.
   When the workflow finishes, open the [releases page](https://github.com/ConSol-Monitoring/snclient/releases).
   Edit the draft for the latest tag. Scroll down and publish the release.
+
+## Winget
+
+The release workflow generates the WinGet manifests.
+Winget manifests are created after the three release MSIs are created: x86, x64, and arm64.
+It attaches `snclient-<version>-winget-manifests.zip` to the draft release.
+Review the generated manifests before you publish the release.
+
+#### Manual release
+On Linux, run `make winget-manifests` to generate the manifests locally.
+Pass the hash and ProductCode variables from `buildtools/winget_manifests.sh`.
+
+On Windows, run `pwsh buildtools/winget_manifests.ps1` with the three MSI paths.
+The PowerShell script reads the ProductCode and ProductVersion from the MSIs.
+
+The generated files are put in `packaging/winget/<package-version>/` when the winget_manfifests.ps1 / winget_manfifests.sh scripts are run manually.
+Use `winget validate` for validation of the manifests.
+
+Copy the three YAML files to a fork of `microsoft/winget-pkgs`.
+Use the path `manifests/c/ConSol/SNClient/<package-version>/`.
+Open one pull request for one package version.
+For later releases, copy the three YAML files from the release zip.
+
+#### Automation
+
+Create a fork of `microsoft/winget-pkgs` under the fork owner.
+Set the `WINGET_FORK_OWNER` repository variable to the fork owner.
+
+Add a fine-grained PAT as the `WINGET_FORK_TOKEN` secret.
+The fine-grained token needs `Contents: Read and write` on the fork.
+The fine-grained token owner must have write access to the fork.
+
+Add a classic PAT with `public_repo` as the `WINGET_PR_TOKEN` secret.
+The classic token opens the pull request in `microsoft/winget-pkgs`.
+The classic token owner must own the fork.
+
+The workflow uses the GitHub API and does not clone the fork.
+The fork does not need to be current.
+The PR adds only the new version directory.
+
+Keep `WINGET_AUTOPUBLISH` to "false" until the first package is merged.
+Set `WINGET_AUTOPUBLISH` to "true" after the merge.
+The publish workflow creates the next winget-pkgs pull request.

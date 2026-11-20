@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 
 PackageIdentifier: ConSol.SNClient
-PackageVersion: 1.01.0
+PackageVersion: __PACKAGE_VERSION__
 InstallerLocale: en-US
 InstallerType: wix
 Scope: machine
@@ -13,16 +13,16 @@ InstallModes:
 InstallerSwitches:
   InstallLocation: INSTALLDIR="<INSTALLPATH>"
 UpgradeBehavior: install
-ReleaseDate: 2026-10-29
+ReleaseDate: __RELEASE_DATE__
 Installers:
 - Architecture: x64
-  InstallerUrl: https://github.com/ConSol-Monitoring/snclient/releases/download/v1.01/snclient-1.01-windows-x86_64.msi
-  InstallerSha256: D2FD1F79B9FAFE3E20FF623F9F106D456686AEE5C9817E397BCBC785F6186BEF
-  ProductCode: '{E7699464-7A6A-434D-B4BC-9D903A71FC6A}'
+  InstallerUrl: https://github.com/ConSol-Monitoring/snclient/releases/download/v__TAG_VERSION__/snclient-__TAG_VERSION__-windows-x86_64.msi
+  InstallerSha256: __SHA256_X64__
+  ProductCode: '__PRODUCT_CODE_X64__'
   AppsAndFeaturesEntries:
   - DisplayName: SNClient
     Publisher: ConSol Consulting and Solutions Software GmbH
-    ProductCode: '{E7699464-7A6A-434D-B4BC-9D903A71FC6A}'
+    ProductCode: '__PRODUCT_CODE_X64__'
     UpgradeCode: '{F4BF03F6-D3DA-44FF-A444-9B64119DA0CE}'
     InstallerType: wix
   InstallationMetadata:
@@ -32,13 +32,13 @@ Installers:
       FileType: launch
       InvocationParameter: --version
 - Architecture: x86
-  InstallerUrl: https://github.com/ConSol-Monitoring/snclient/releases/download/v1.01/snclient-1.01-windows-i386.msi
-  InstallerSha256: 913CFC95074E5BC028854E8E92EEA4B8507C3312144ACDC176ADD82C69AC150E
-  ProductCode: '{AF073BD8-4769-4184-802C-0BEF3C963880}'
+  InstallerUrl: https://github.com/ConSol-Monitoring/snclient/releases/download/v__TAG_VERSION__/snclient-__TAG_VERSION__-windows-i386.msi
+  InstallerSha256: __SHA256_X86__
+  ProductCode: '__PRODUCT_CODE_X86__'
   AppsAndFeaturesEntries:
   - DisplayName: SNClient
     Publisher: ConSol Consulting and Solutions Software GmbH
-    ProductCode: '{AF073BD8-4769-4184-802C-0BEF3C963880}'
+    ProductCode: '__PRODUCT_CODE_X86__'
     UpgradeCode: '{F4BF03F6-D3DA-44FF-A444-9B64119DA0CE}'
     InstallerType: wix
   InstallationMetadata:
@@ -48,13 +48,13 @@ Installers:
       FileType: launch
       InvocationParameter: --version
 - Architecture: arm64
-  InstallerUrl: https://github.com/ConSol-Monitoring/snclient/releases/download/v1.01/snclient-1.01-windows-aarch64.msi
-  InstallerSha256: 1AB501A4CCFD0BA489A677FDDF1AB4119EA6E1BAB0F23CDFBD628C0633E03814
-  ProductCode: '{EEC19E7A-6A5B-46B8-AAEA-9DD787635766}'
+  InstallerUrl: https://github.com/ConSol-Monitoring/snclient/releases/download/v__TAG_VERSION__/snclient-__TAG_VERSION__-windows-aarch64.msi
+  InstallerSha256: __SHA256_ARM64__
+  ProductCode: '__PRODUCT_CODE_ARM64__'
   AppsAndFeaturesEntries:
   - DisplayName: SNClient
     Publisher: ConSol Consulting and Solutions Software GmbH
-    ProductCode: '{EEC19E7A-6A5B-46B8-AAEA-9DD787635766}'
+    ProductCode: '__PRODUCT_CODE_ARM64__'
     UpgradeCode: '{F4BF03F6-D3DA-44FF-A444-9B64119DA0CE}'
     InstallerType: wix
   InstallationMetadata:
