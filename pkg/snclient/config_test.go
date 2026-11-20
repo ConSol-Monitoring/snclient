@@ -6,25 +6,107 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/convert"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConfigPkgDefaults(t *testing.T) {
-	cfg := NewConfig(true)
-	err := cfg.ParseINIFile("../../packaging/snclient.ini", nil)
+	cfg := NewConfig(false)
+	require.NoError(t, cfg.ParseINIFile("../../packaging/snclient.ini", nil))
 
-	// verify default nasty characters
+	defaults := NewConfig(false)
+	for name, data := range DefaultConfig {
+		defaults.Section(name).MergeData(data)
+	}
+	defaults.ApplyMergeDefaultsAll(moduleConfigDefaults)
+
+	// Resolve shared path macros equally without testing platform-specific installation paths.
+	defaults.Section("/paths").MergeData(cfg.Section("/paths").data)
+
+	exceptions := map[string]string{
+		"/paths/exe-path":                         "Detected from the executable.",
+		"/paths/shared-path":                      "Depends on the installation platform.",
+		"/paths/scripts":                          "Depends on the installation platform.",
+		"/paths/certificate-path":                 "Depends on the installation platform.",
+		"/paths/cache-path":                       "Uses the environment or system temporary folder.",
+		"/settings/log/file name":                 "The package enables file logging.",
+		"/settings/check/logfile/allowed pattern": "The package permits specific log paths.",
+		"/includes/local":                         "The package loads local configuration files.",
+	}
+	for _, name := range cfg.SectionNamesSorted() {
+		section := cfg.Section(name)
+		keys := append([]string(nil), section.Keys()...)
+		for _, key := range defaults.Section(name).Keys() {
+			if section.HasKey(key) {
+				continue
+			}
+			if _, ok := section.GetString(key); ok {
+				keys = append(keys, key)
+			}
+		}
+		for _, key := range keys {
+			t.Run(name+"/"+key, func(t *testing.T) {
+				if reason, ok := exceptions[name+"/"+key]; ok {
+					t.Log(reason)
+
+					return
+				}
+				want := configPkgDefaultValue(t, section, key)
+				candidate := defaults.Section(name)
+				found := candidate.HasKey(key)
+				if key == "password" {
+					found = candidate.HasKey(key)
+				}
+				require.True(t, found, "[%s] %s has no code default or path exception", name, key)
+				actual := configPkgDefaultValue(t, candidate, key)
+				assert.Equal(t, want, actual, "[%s] %s: code default differs from packaging/snclient.ini", name, key)
+			})
+		}
+	}
+
 	nastyChars, _ := cfg.Section("/settings/WEB/server").GetString("nasty characters")
-	assert.Equalf(t, DefaultNastyCharacters, nastyChars, "default nasty characters")
-	assert.Containsf(t, nastyChars, "\\", "nasty characters contains backslash")
-	assert.Containsf(t, nastyChars, ";", "nasty characters contains semicolon")
+	assert.Equal(t, DefaultNastyCharacters, nastyChars)
+	assert.Contains(t, nastyChars, "\\")
+	assert.Contains(t, nastyChars, ";")
+}
 
-	require.NoErrorf(t, err, "config parsed")
+func configPkgDefaultValue(t *testing.T, section *ConfigSection, key string) string {
+	t.Helper()
+
+	value, _ := section.GetString(key)
+	boolean := section.name == "/modules"
+	switch key {
+	case "password":
+		return section.data[key]
+	case "allowed hosts":
+		hosts, _ := section.GetStringList(key)
+		for index, host := range hosts {
+			hosts[index] = strings.Trim(host, "[]")
+		}
+
+		return strings.Join(hosts, ",")
+	case "bat":
+		return strings.ReplaceAll(value, `\\`, `\`)
+	case "cache allowed hosts", "use ssl", "require password", "use hsts header",
+		"insecure", "allow arguments", "allow nasty characters", "allow control characters",
+		"ignore perfdata", "disabled", "modules dir watcher", "kill orphaned",
+		"automatic updates", "automatic restart", "pre release", "ProcessMemoryWatcher":
+		boolean = true
+	}
+	if boolean {
+		boolean, err := convert.BoolE(value)
+		require.NoError(t, err)
+
+		return strconv.FormatBool(boolean)
+	}
+
+	return value
 }
 
 func TestConfigBasic(t *testing.T) {

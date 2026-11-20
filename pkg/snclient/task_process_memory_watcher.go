@@ -20,8 +20,9 @@ func init() {
 		NewProcessMemoryWatcherHandler,
 		ConfigInit{
 			ConfigData{
-				"check interval": "5s",
-				"memory limit":   "512MiB",
+				"check interval":       "5s",
+				"memory limit":         "512MiB",
+				"ProcessMemoryWatcher": "enabled",
 			},
 		},
 	)

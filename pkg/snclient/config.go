@@ -43,25 +43,32 @@ const (
 
 var DefaultConfig = map[string]ConfigData{
 	"/modules": {
-		"Logrotate":            "enabled",
-		"ProcessMemoryWatcher": "enabled",
-		"CheckSystem":          "enabled",
-		"CheckSystemUnix":      "enabled",
-		"CheckAlias":           "enabled",
-		"CheckMulti":           "enabled",
-		"CheckExternalScripts": "disabled",
-		"CheckDisk":            "enabled",
-		"CheckDriveIO":         "enabled",
-		"CheckSwapIO":          "enabled",
-		"CheckWMI":             "disabled",
-		"CheckLogFile":         "disabled",
-		"NRPEServer":           "disabled",
-		"WEBServer":            "enabled",
-		"PrometheusServer":     "disabled",
-		"Updates":              "enabled",
+		"Logrotate":              "enabled",
+		"ProcessMemoryWatcher":   "enabled",
+		"CheckSystem":            "enabled",
+		"CheckSystemUnix":        "enabled",
+		"CheckAlias":             "enabled",
+		"CheckMulti":             "enabled",
+		"CheckExternalScripts":   "disabled",
+		"CheckDisk":              "enabled",
+		"CheckDriveIO":           "enabled",
+		"CheckSwapIO":            "enabled",
+		"CheckWMI":               "disabled",
+		"CheckLogFile":           "disabled",
+		"CheckBuiltinPlugins":    "disabled",
+		"NRPEServer":             "disabled",
+		"WEBServer":              "enabled",
+		"WEBAdminServer":         "disabled",
+		"PrometheusServer":       "disabled",
+		"NodeExporterServer":     "disabled",
+		"WindowsExporterServer":  "disabled",
+		"ExporterExporterServer": "disabled",
+		"ManagedExporterServer":  "disabled",
+		"Updates":                "enabled",
 	},
 	"/settings/default": {
-		"nasty characters": DefaultNastyCharacters,
+		"nasty characters":         DefaultNastyCharacters,
+		"allow control characters": "false",
 	},
 	"/settings/wmi": {
 		// number of WMI queries that may run in parallel; <= 1 uses the default client
@@ -74,6 +81,30 @@ var DefaultConfig = map[string]ConfigData{
 		"stable": "https://api.github.com/repos/ConSol-monitoring/snclient/releases",
 		"dev":    "https://api.github.com/repos/ConSol-monitoring/snclient/actions/artifacts",
 	},
+	"/settings/check/files": {
+		"max files limit": strconv.Itoa(CheckFilesMaxFilesLimit),
+	},
+	"/settings/check/logfile": {
+		"max lines per file limit": strconv.Itoa(maxLinesPerFileMax),
+	},
+	"/settings/check/multi": {
+		"max checks": strconv.Itoa(defaultMaxChecks),
+	},
+	"/settings/builtin plugins/default": {
+		"disabled": "false",
+	},
+	"/settings/external scripts/alias/default": {
+		"ignore perfdata": "false",
+		"command":         "",
+	},
+	"/settings/external scripts/scripts/default": {
+		"ignore perfdata": "false",
+		"command":         "",
+	},
+	"/settings/log": {
+		"level": "info",
+	},
+	"/settings/system/default": {},
 	"/settings/external scripts": {
 		"timeout":                  "60",
 		"script root":              "${scripts}", // root path of all scripts
@@ -122,6 +153,11 @@ var DefaultHTTPClientConfig = ConfigData{
 func init() {
 	// HTTP inherits TCP defaults
 	DefaultListenHTTPConfig.Merge(DefaultListenTCPConfig)
+	defaultSettings := DefaultConfig["/settings/default"]
+	defaultSettings.Merge(DefaultListenHTTPConfig)
+	defaultSettings.Merge(DefaultHTTPClientConfig)
+	systemSettings := DefaultConfig["/settings/system/default"]
+	systemSettings.Merge(DefaultSystemTaskConfig)
 }
 
 type ConfigFiles []string
