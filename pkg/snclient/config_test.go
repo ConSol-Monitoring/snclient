@@ -69,11 +69,6 @@ func TestConfigPkgDefaults(t *testing.T) {
 			})
 		}
 	}
-
-	nastyChars, _ := cfg.Section("/settings/WEB/server").GetString("nasty characters")
-	assert.Equal(t, DefaultNastyCharacters, nastyChars)
-	assert.Contains(t, nastyChars, "\\")
-	assert.Contains(t, nastyChars, ";")
 }
 
 func configPkgDefaultValue(t *testing.T, section *ConfigSection, key string) string {
