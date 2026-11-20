@@ -153,11 +153,6 @@ var DefaultHTTPClientConfig = ConfigData{
 func init() {
 	// HTTP inherits TCP defaults
 	DefaultListenHTTPConfig.Merge(DefaultListenTCPConfig)
-	defaultSettings := DefaultConfig["/settings/default"]
-	defaultSettings.Merge(DefaultListenHTTPConfig)
-	defaultSettings.Merge(DefaultHTTPClientConfig)
-	systemSettings := DefaultConfig["/settings/system/default"]
-	systemSettings.Merge(DefaultSystemTaskConfig)
 }
 
 type ConfigFiles []string

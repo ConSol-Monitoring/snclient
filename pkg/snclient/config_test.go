@@ -23,6 +23,9 @@ func TestConfigPkgDefaults(t *testing.T) {
 	for name, data := range DefaultConfig {
 		defaults.Section(name).MergeData(data)
 	}
+	defaults.Section("/settings/default").MergeData(DefaultListenHTTPConfig)
+	defaults.Section("/settings/default").MergeData(DefaultHTTPClientConfig)
+	defaults.Section("/settings/system/default").MergeData(DefaultSystemTaskConfig)
 	defaults.ApplyMergeDefaultsAll(moduleConfigDefaults)
 
 	// Resolve shared path macros equally without testing platform-specific installation paths.
