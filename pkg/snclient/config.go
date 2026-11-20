@@ -82,13 +82,13 @@ var DefaultConfig = map[string]ConfigData{
 		"dev":    "https://api.github.com/repos/ConSol-monitoring/snclient/actions/artifacts",
 	},
 	"/settings/check/files": {
-		"max files limit": strconv.Itoa(CheckFilesMaxFilesLimit),
+		"max files limit": fmt.Sprintf("%d", CheckFilesMaxFilesLimit),
 	},
 	"/settings/check/logfile": {
-		"max lines per file limit": strconv.Itoa(maxLinesPerFileMax),
+		"max lines per file limit": fmt.Sprintf("%d", maxLinesPerFileMax),
 	},
 	"/settings/check/multi": {
-		"max checks": strconv.Itoa(defaultMaxChecks),
+		"max checks": fmt.Sprintf("%d", defaultMaxChecks),
 	},
 	"/settings/builtin plugins/default": {
 		"disabled": "false",

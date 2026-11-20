@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -98,7 +97,7 @@ func configPkgDefaultValue(t *testing.T, section *ConfigSection, key string) str
 		boolean, err := convert.BoolE(value)
 		require.NoError(t, err)
 
-		return strconv.FormatBool(boolean)
+		return fmt.Sprintf("%t", boolean)
 	}
 
 	return value
