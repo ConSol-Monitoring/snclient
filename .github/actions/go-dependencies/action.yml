@@ -1,0 +1,23 @@
+name: Prepare Go dependencies
+description: Retry Go module downloads and optional build tool installation.
+inputs:
+  tools:
+    description: Install the build tools.
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - uses: nick-fields/retry@v4
+      with:
+        max_attempts: 3
+        timeout_minutes: 10
+        retry_wait_seconds: 10
+        command: go mod download
+    - if: inputs.tools == 'true'
+      uses: nick-fields/retry@v4
+      with:
+        max_attempts: 3
+        timeout_minutes: 15
+        retry_wait_seconds: 10
+        # A failed install can leave a tools directory that Make considers complete.
+        command: make -B tools
