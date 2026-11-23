@@ -20,4 +20,4 @@ runs:
         timeout_minutes: 15
         retry_wait_seconds: 10
         # A failed install can leave a tools directory that Make considers complete.
-        command: make -B tools
+        command: "make --eval='.PHONY: tools' tools"
