@@ -46,6 +46,7 @@ Options:
   -a <api version>         API version of SNClient/NSClient++ (legacy or 1) Default: legacy
   -l <username>            REST webserver login. Default: admin
   -p <password>            REST webserver password
+  -proxy <url>             Proxy URL or "env" (see Go net/http proxy documentation)
   -config <file>           Path to config file
 
 TLS/SSL Options:
@@ -68,6 +69,10 @@ Environment Variables:
                              Optional set timeout state: 0-3 or OK, WARNING, CRITICAL, UNKNOWN
                              (default timeout state is UNKNOWN)
   CHECK_SNCLIENT_TIMEOUT
+  check_snclient_proxy       Proxy URL or "env" (see Go net/http proxy documentation)
+  CHECK_SNCLIENT_PROXY
+  check_snclient_proxy_url
+  CHECK_SNCLIENT_PROXY_URL
 
   The old check_nsc_web_* / CHECK_NSC_WEB_* variables are deprecated
   but still supported for backwards compatibility.
