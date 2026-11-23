@@ -18,6 +18,14 @@ func TestCheckPerfConfigParser(t *testing.T) {
 		{Selector: "*", Unit: "GiB", regex: regexp.MustCompile(".*"), Magic: 1, Raw: `*(unit:GiB)`},
 	}
 	assert.Equalf(t, exp, perf, "NewPerfConfig parsed correctly")
+
+	perf, err = NewPerfConfig("used_bytes(unit:KiB;magic:1/1024)")
+	require.NoError(t, err)
+	assert.InDelta(t, 1.0/1024, perf[0].Magic, 0)
+	for _, factor := range []string{"1/0", "/1024", "1/", "1/2/3"} {
+		_, err = NewPerfConfig("used_bytes(magic:" + factor + ")")
+		require.Errorf(t, err, "factor: %s", factor)
+	}
 }
 
 func TestCheckPerfConfig(t *testing.T) {

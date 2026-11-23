@@ -1,6 +1,8 @@
 package snclient
 
 import (
+	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -8,6 +10,35 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestCheckMemoryUseFree(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("uses Linux meminfo")
+	}
+	snc := StartTestAgent(t, "")
+	defer StopTestAgent(t, snc)
+
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "meminfo"), []byte("MemTotal: 1000 kB\nMemFree: 150 kB\nMemAvailable: 500 kB\nCached: 300 kB\n"), 0o600))
+	t.Setenv("HOST_PROC", dir)
+	args := []string{
+		"type=physical", "detail-syntax=%(used_pct)",
+		"perf-config=size_bytes(unit:KB;magic:0.001;suffix:TOTAL) used_bytes(unit:KB;magic:0.001;suffix:USED) " +
+			"free_bytes(unit:KB;magic:0.001;suffix:FREE) caches_bytes(unit:KB;magic:0.001;suffix:CACHES) *(ignore:yes)",
+	}
+	res := snc.RunCheck("check_memory", args)
+	assert.Equal(t, CheckExitOK, res.State)
+	assert.Contains(t, string(res.BuildPluginOutput()), "'USED'=512KB")
+
+	res = snc.RunCheck("check_memory", append([]string{"--use-free"}, args...))
+	assert.Equal(t, CheckExitWarning, res.State)
+	output := string(res.BuildPluginOutput())
+	assert.Contains(t, output, "WARNING - 85.000")
+	assert.Contains(t, output, "'TOTAL'=1024KB")
+	assert.Contains(t, output, "'USED'=870.4KB")
+	assert.Contains(t, output, "'FREE'=153.6KB")
+	assert.Contains(t, output, "'CACHES'=307.2KB")
+}
 
 func TestCheckMemory(t *testing.T) {
 	snc := StartTestAgent(t, "")
