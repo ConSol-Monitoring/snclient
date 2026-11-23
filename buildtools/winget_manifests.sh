@@ -68,13 +68,10 @@ require_hash() {
 require_product_code() {
     name=$1
     value=$2
-    case "$value" in
-        '{'*'}') ;;
-        *)
-            echo "$name must be a braced MSI ProductCode" >&2
-            exit 1
-            ;;
-    esac
+    if ! printf '%s' "$value" | grep -Eq '^[{][0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}[}]$'; then
+        echo "$name must be a braced MSI ProductCode" >&2
+        exit 1
+    fi
 }
 
 require_value WINGET_SHA256_X64 "$SHA256_X64"
@@ -91,20 +88,14 @@ require_product_code WINGET_PRODUCTCODE_X64 "$PRODUCT_CODE_X64"
 require_product_code WINGET_PRODUCTCODE_X86 "$PRODUCT_CODE_X86"
 require_product_code WINGET_PRODUCTCODE_ARM64 "$PRODUCT_CODE_ARM64"
 
-case "$PACKAGE_VERSION" in
-    [0-9]*.[0-9]*.[0-9]*) ;;
-    *)
-        echo "invalid package version: $PACKAGE_VERSION" >&2
-        exit 1
-        ;;
-esac
-case "$TAG_VERSION" in
-    [0-9]*.[0-9]*) ;;
-    *)
-        echo "invalid tag version: $TAG_VERSION" >&2
-        exit 1
-        ;;
-esac
+if ! printf '%s' "$PACKAGE_VERSION" | grep -Eq '^[0-9]+(\.[0-9]+){2}$'; then
+    echo "invalid package version: $PACKAGE_VERSION" >&2
+    exit 1
+fi
+if ! printf '%s' "$TAG_VERSION" | grep -Eq '^[0-9]+(\.[0-9]+){1,2}$'; then
+    echo "invalid tag version: $TAG_VERSION" >&2
+    exit 1
+fi
 
 mkdir -p "$OUTDIR"
 

@@ -102,6 +102,19 @@ jobs:
               return (($output -join "`n") | ConvertFrom-Json)
           }
 
+          function Test-GhPath {
+              param([string]$Path)
+              $headers = @{
+                  Authorization = "Bearer $env:GH_TOKEN"
+                  Accept = 'application/vnd.github+json'
+                  'User-Agent' = 'snclient-winget'
+              }
+              $response = Invoke-WebRequest -Uri "https://api.github.com/$Path" -Headers $headers -SkipHttpErrorCheck
+              if ($response.StatusCode -eq 200) { return $true }
+              if ($response.StatusCode -eq 404) { return $false }
+              throw "GitHub API returned $($response.StatusCode) for $Path"
+          }
+
           $versionFile = Join-Path $manifestDir 'ConSol.SNClient.yaml'
           if (-not (Test-Path -LiteralPath $versionFile)) { throw 'ConSol.SNClient.yaml is missing.' }
           $versionMatch = Select-String -Path $versionFile -Pattern '^PackageVersion:\s*(.+)$'
@@ -112,17 +125,16 @@ jobs:
           $packageIdentifier = $identifierMatch.Matches[0].Groups[1].Value.Trim()
           if ($packageIdentifier -ne 'ConSol.SNClient') { throw "Unexpected package identifier: $packageIdentifier" }
 
-          & gh api "repos/$repo/contents/manifests/c/ConSol/SNClient/$packageVersion" 2>$null | Out-Null
-          if ($LASTEXITCODE -eq 0) {
+          if (Test-GhPath "repos/$repo/contents/manifests/c/ConSol/SNClient/$packageVersion") {
               Set-Output 'skip' 'true'
               Write-Output "Version $packageVersion already exists in winget-pkgs."
               exit 0
           }
 
-          & gh api "repos/$repo/contents/manifests/c/ConSol/SNClient" 2>$null | Out-Null
-          $isNewPackage = $LASTEXITCODE -ne 0
+          $isNewPackage = -not (Test-GhPath "repos/$repo/contents/manifests/c/ConSol/SNClient")
           $title = if ($isNewPackage) { "New package: $packageIdentifier $packageVersion" } else { "Update $packageIdentifier to $packageVersion" }
           $message = if ($isNewPackage) { "New package: $packageIdentifier $packageVersion" } else { "Update $packageIdentifier to $packageVersion" }
+          $branch = "consol-snclient-$packageVersion"
 
           # The fork master can be behind upstream.
           # The PR adds only the new version directory, so the fork does not need to be current.
@@ -163,11 +175,18 @@ jobs:
           [IO.File]::WriteAllText($commitFile, $commitPayload, $utf8)
           $commit = Invoke-GhJson -Arguments @('api', '--method', 'POST', "repos/$forkRepo/git/commits", '--input', $commitFile)
 
-          $branch = "consol-snclient-$packageVersion-$env:GITHUB_RUN_ID"
-          $refPayload = @{ ref = "refs/heads/$branch"; sha = $commit.sha } | ConvertTo-Json
-          $refFile = Join-Path $tempDir 'ref.json'
-          [IO.File]::WriteAllText($refFile, $refPayload, $utf8)
-          Invoke-GhJson -Arguments @('api', '--method', 'POST', "repos/$forkRepo/git/refs", '--input', $refFile) | Out-Null
+          $branchPath = "repos/$forkRepo/git/ref/heads/$branch"
+          if (Test-GhPath $branchPath) {
+              $refPayload = @{ sha = $commit.sha; force = $true } | ConvertTo-Json
+              $refFile = Join-Path $tempDir 'ref-update.json'
+              [IO.File]::WriteAllText($refFile, $refPayload, $utf8)
+              Invoke-GhJson -Arguments @('api', '--method', 'PATCH', "repos/$forkRepo/git/refs/heads/$branch", '--input', $refFile) | Out-Null
+          } else {
+              $refPayload = @{ ref = "refs/heads/$branch"; sha = $commit.sha } | ConvertTo-Json
+              $refFile = Join-Path $tempDir 'ref-create.json'
+              [IO.File]::WriteAllText($refFile, $refPayload, $utf8)
+              Invoke-GhJson -Arguments @('api', '--method', 'POST', "repos/$forkRepo/git/refs", '--input', $refFile) | Out-Null
+          }
 
           $body = @"
           $title
@@ -201,6 +220,17 @@ jobs:
           $body = Get-Content -LiteralPath $bodyPath -Raw
           $forkOwner = $env:WINGET_FORK_OWNER
           if (-not $forkOwner) { throw 'Set the WINGET_FORK_OWNER repository variable.' }
+
+          $head = [uri]::EscapeDataString("${forkOwner}:$($env:BRANCH)")
+          $prListOutput = & gh api "repos/microsoft/winget-pkgs/pulls?head=$head&state=open"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list the open pull requests.' }
+          $prList = @()
+          if ($prListOutput) { $prList = @(($prListOutput -join "`n") | ConvertFrom-Json) }
+          if ($prList.Count -gt 0) {
+              Write-Output "PR already open: $($prList[0].html_url)"
+              exit 0
+          }
+
           $prPayload = @{
               title = $env:TITLE
               head = "${forkOwner}:$($env:BRANCH)"

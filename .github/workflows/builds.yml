@@ -501,7 +501,6 @@ jobs:
           name: "winget-manifests"
           path: "snclient-${{ needs.get-version.outputs.version }}-winget-manifests.zip"
           if-no-files-found: error
-          archive: false
 
 
   pkg-deb:
@@ -954,6 +953,7 @@ jobs:
     permissions:
       contents: write
     env:
+      GH_REPO: ${{ github.repository }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/download-artifact@main
