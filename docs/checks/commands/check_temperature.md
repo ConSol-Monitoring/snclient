@@ -19,7 +19,7 @@ Check temperature sensors.
 
 | Argument      | Default Value                                                                |
 | ------------- | ---------------------------------------------------------------------------- |
-| filter        | temperature != 0 and temperature != 1                                        |
+| filter        | temperature != 0 and temperature != 1 and temperature >= -270                |
 | warning       | (min != 0 && temperature < %(min)) \|\| (crit != 0 && temperature > %(crit)) |
 | critical      | (min != 0 && temperature < %(min)) \|\| (crit != 0 && temperature > %(crit)) |
 | empty-state   | 3 (UNKNOWN)                                                                  |
@@ -61,6 +61,8 @@ Show all temperature sensors and apply custom thresholds:
 
     check_temperature filter=none warn="temperature > 85" crit="temperature > 90"
     OK - Package id 0: 65.0 °C, Core 0: 62.0 °C, Core 1: 61.0 °C, Core 2: 65.0 °C |...
+
+Sensors with invalid values are filtered out.
 
 ### Example using check_snclient and Naemon
 

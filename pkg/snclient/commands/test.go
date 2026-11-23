@@ -13,23 +13,22 @@ import (
 
 func init() {
 	testCmd := &cobra.Command{
-		Use:     "test [cmd]",
-		Aliases: []string{"run", "do"},
-		Short:   "Start test mode or run a query",
+		Use:   "test [cmd]",
+		Short: "Start test mode or run a query",
 		Long: `Use test mode to test queries manually.
 
 If you provide a query, SNClient prints its result once. Without a command, SNClient starts a query prompt.
 
-The command aliases change the output format and exit code:
+test and run use different startup paths and output formats.
+Both load configuration, aliases, and external scripts. Neither starts listeners.
+test initializes configured tasks and starts the memory watcher if enabled.
+run executes one check without background task initialization or the memory watcher.
 
 # human readable output
 snclient test ...
 
 # naemon/nagios (monitoring-plugins) plugin compatible output and exit code
 snclient run ...
-
-# do is an alias for run
-snclient do ...
 
 Examples:
 
@@ -43,13 +42,19 @@ snclient test check_load filter=none crit=none warn=none
 snclient test -vv check_memory
 
 # run check_files directly as naemon check
-snclient do check_files path=/tmp crit='count > 100'
+snclient run check_files path=/tmp crit='count > 100'
+
+# run an HTTP check without background tasks
+snclient run check_http -H localhost -p 443 -S
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			agentFlags.Mode = snclient.ModeOneShot
+			agentFlags.SkipBackgroundTasks = cmd.CalledAs() != "test"
 			setInteractiveStdoutLogger()
 			snc := snclient.NewAgent(agentFlags)
-			_ = snc.StartTask("ProcessMemoryWatcher")
+			if !agentFlags.SkipBackgroundTasks {
+				_ = snc.StartTask("ProcessMemoryWatcher")
+			}
 
 			if len(args) == 0 {
 				if cmd.CalledAs() != "test" {
@@ -66,6 +71,23 @@ snclient do check_files path=/tmp crit='count > 100'
 		},
 	}
 	rootCmd.AddCommand(testCmd)
+
+	runCmd := &cobra.Command{
+		Use:   "run <cmd> [args]",
+		Short: "Run one check without background tasks",
+		Long: `Run one check and return plugin output and its exit code.
+SNClient loads configuration, aliases, and external scripts.
+It skips background task initialization and the memory watcher. It does not start listeners.`,
+		Example: "  snclient run check_http -H localhost -p 443 -S",
+		Run:     testCmd.Run,
+	}
+	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(&cobra.Command{
+		Use:    "do <cmd> [args]",
+		Hidden: true,
+		Long:   runCmd.Long,
+		Run:    runCmd.Run,
+	})
 }
 
 func testPrompt(cmd *cobra.Command, snc *snclient.Agent) {
