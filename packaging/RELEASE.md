@@ -26,7 +26,7 @@ To build a new release:
 ## Winget
 
 The release workflow generates the WinGet manifests.
-Winget manifests are created after the three release MSIs are created: x86, x64, and arm64.
+The workflow creates the three release MSIs first: i386, x86_64, and aarch64.
 It attaches `snclient-<version>-winget-manifests.zip` to the draft release.
 Review the generated manifests before you publish the release.
 
@@ -34,10 +34,8 @@ Review the generated manifests before you publish the release.
 
 Run `pwsh buildtools/winget_manifests.ps1` with the three MSI paths.
 The PowerShell script reads the ProductCode and ProductVersion from the MSIs.
-
-The generated files are put in `packaging/winget/<package-version>/` when the winget_manfifests.ps1 scripts are run manually.
-Use `winget validate` for validation of the manifests.
-
+The generated files are in `packaging/winget/<package-version>/`.
+Validate them with `winget validate --manifest packaging\winget\<package-version>`.
 Copy the three YAML files to a fork of `microsoft/winget-pkgs`.
 Use the path `manifests/c/ConSol/SNClient/<package-version>/`.
 Open one pull request for one package version.
@@ -60,4 +58,5 @@ The workflow uses the GitHub API and does not clone the fork.
 The fork does not need to be current.
 The PR adds only the new version directory.
 
-Set `WINGET_AUTOPUBLISH` to "true" or "false" to start/stop publish workflow creating the next winget-pkgs pull request.
+Set `WINGET_AUTOPUBLISH` to `true` to start the publish workflow.
+Set it to `false` to stop the publish workflow.
