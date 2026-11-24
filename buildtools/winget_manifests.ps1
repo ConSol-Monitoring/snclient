@@ -109,7 +109,7 @@ foreach ($value in @($ProductCodeX64, $ProductCodeX86, $ProductCodeArm64)) {
     if (-not $value) {
         throw 'All ProductCode values are required.'
     }
-    if ($value -notmatch '^\{[0-9A-Fa-f-]+\}$') {
+    if ($value -notmatch '^\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}$') {
         throw "Invalid ProductCode value: $value"
     }
 }
