@@ -138,7 +138,7 @@ $replacements = [ordered]@{
     '__PRODUCT_CODE_ARM64__' = $ProductCodeArm64
 }
 
-New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+$OutDir = (New-Item -ItemType Directory -Force -Path $OutDir).FullName
 $templates = Get-ChildItem -LiteralPath $TemplateDir -Filter '*.yaml.in'
 if ($templates.Count -eq 0) {
     throw "No templates found in $TemplateDir"
