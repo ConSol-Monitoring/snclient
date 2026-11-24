@@ -29,7 +29,9 @@ The following keys are available:
 | `prefix`  | `string`          | Change the prefix to something else. |
 | `suffix`  | `string`          | Change the suffix to something else. |
 | `unit`    | `string`          | Change the unit to something else. |
-| `magic`   | `number`          | Apply magic factor to performance data. |
+| `magic`   | number or fraction | Multiply the metric by this factor. |
+
+For a raw byte count such as `used_bytes`, use `used_bytes(unit:KiB;magic:1/1024)` for KiB or `used_bytes(unit:KB;magic:1/1000)` for decimal KB.
 
 ## Selector
 

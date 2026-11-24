@@ -109,9 +109,17 @@ func (p *PerfConfig) parseArgs(raw string) error {
 			}
 			p.Ignore = ign
 		case "magic":
-			magic, err := convert.Float64E(rawVal)
+			num, denom, fraction := strings.Cut(rawVal, "/")
+			magic, err := convert.Float64E(strings.TrimSpace(num))
 			if err != nil {
 				return fmt.Errorf("failed to parse magic number in perf-config in '%s': %s", confItem, err.Error())
+			}
+			if fraction {
+				divisor, err := convert.Float64E(strings.TrimSpace(denom))
+				if err != nil || divisor == 0 {
+					return fmt.Errorf("invalid magic denominator in '%s': expected a nonzero number", confItem)
+				}
+				magic /= divisor
 			}
 			p.Magic = magic
 		default:

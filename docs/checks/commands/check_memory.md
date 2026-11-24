@@ -43,6 +43,7 @@ Read more about [Windows virtual address space](https://learn.microsoft.com/en-u
 | n\|procs-to-show | Number of top resource-consuming processes to show                                            |
 | show-args        | Show arguments for the top N processes                                                        |
 | type             | Memory types to check. Default: physical,committed (Windows) or physical,swap (other systems) |
+| use-free         | Calculate used physical memory as total minus free (instead of available) memory              |
 
 ## Attributes
 
@@ -77,6 +78,13 @@ Change the output template to show more information:
 
     check_memory 'top-syntax=%(list)' 'detail-syntax=%(type) free: %(free) used: %(used) size: %(size)'
     physical free: 35.00 B used: 7.01 GiB size: 31.09 GiB, committed free: 27.00 B used: 705.57 MiB size: 977.00 MiB |...
+
+Subtract free memory from total memory. Report the four counters in decimal KB:
+
+    check_memory type=physical --use-free \
+        'detail-syntax=%(used_pct | fmt=%.1f)% (%(used)) used.' \
+        "perf-config=size_bytes(unit:KB;magic:0.001;suffix:TOTAL) used_bytes(unit:KB;magic:0.001;suffix:USED) \
+        free_bytes(unit:KB;magic:0.001;suffix:FREE) caches_bytes(unit:KB;magic:0.001;suffix:CACHES) *(ignore:yes)"
 
 ### Example using check_snclient and Naemon
 

@@ -31,13 +31,9 @@ jobs:
           languages: go
           build-mode: manual
 
-      - name: Download dependencies
-        uses: nick-fields/retry@v4
+      - uses: ./.github/actions/go-dependencies
         with:
-          max_attempts: 3
-          timeout_minutes: 10
-          retry_wait_seconds: 180
-          command: go mod download
+          tools: 'true'
 
       - name: Build test binaries
         run: |

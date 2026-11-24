@@ -20,6 +20,7 @@ type CheckMemory struct {
 	numProcs int64
 	// Show arguments when listing the top N processes
 	showArgs bool
+	useFree  bool
 }
 
 func NewCheckMemory() CheckHandler {
@@ -56,6 +57,7 @@ Read more about [Windows virtual address space](https://learn.microsoft.com/en-u
 		},
 		args: map[string]CheckArgument{
 			"type":            {value: &l.memType, description: "Memory types to check. Default: physical,committed (Windows) or physical,swap (other systems)"},
+			"use-free":        {value: &l.useFree, description: "Calculate used physical memory as total minus free (instead of available) memory"},
 			"n|procs-to-show": {value: &l.numProcs, description: "Number of top resource-consuming processes to show"},
 			"show-args":       {value: &l.showArgs, description: "Show arguments for the top N processes"},
 		},
@@ -92,6 +94,13 @@ Change the output template to show more information:
 
     check_memory 'top-syntax=%(list)' 'detail-syntax=%(type) free: %(free) used: %(used) size: %(size)'
     physical free: 35.00 B used: 7.01 GiB size: 31.09 GiB, committed free: 27.00 B used: 705.57 MiB size: 977.00 MiB |...
+
+Subtract free memory from total memory. Report the four counters in decimal KB:
+
+    check_memory type=physical --use-free \
+        'detail-syntax=%(used_pct | fmt=%.1f)% (%(used)) used.' \
+        "perf-config=size_bytes(unit:KB;magic:0.001;suffix:TOTAL) used_bytes(unit:KB;magic:0.001;suffix:USED) \
+        free_bytes(unit:KB;magic:0.001;suffix:FREE) caches_bytes(unit:KB;magic:0.001;suffix:CACHES) *(ignore:yes)"
 	`,
 		exampleArgs: `'warn=used > 80%' 'crit=used > 90%'`,
 	}
@@ -119,7 +128,11 @@ func (l *CheckMemory) Check(ctx context.Context, _ *Agent, check *CheckData, _ [
 	for _, memType := range l.memType {
 		switch memType {
 		case "physical":
-			l.addMemType(check, "physical", physical.Used, physical.Free, physical.Total, physical.Cached)
+			used := physical.Used
+			if l.useFree {
+				used = physical.Total - physical.Free
+			}
+			l.addMemType(check, "physical", used, physical.Free, physical.Total, physical.Cached)
 		case "swap":
 			swap, err := mem.SwapMemoryWithContext(ctx)
 			if err != nil {

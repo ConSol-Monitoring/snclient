@@ -59,6 +59,7 @@ jobs:
       - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
+      - uses: ./.github/actions/go-dependencies
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
@@ -86,6 +87,7 @@ jobs:
       - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
+      - uses: ./.github/actions/go-dependencies
       - run: |
           echo "Building ${{ env.BIN }}"
           GOOS=${{ matrix.go-os }} GOARCH=${{ matrix.go-arch }} make build
@@ -113,6 +115,9 @@ jobs:
       - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
+      - uses: ./.github/actions/go-dependencies
+        with:
+          tools: 'true'
       - run: |
           echo "Building ${{ env.BIN }}.exe"
           rm -rf winres rsrc_windows_*
