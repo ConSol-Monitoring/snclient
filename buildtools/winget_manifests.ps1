@@ -17,8 +17,6 @@ param(
 )
 
 # Generate WinGet manifests from the templates.
-# This is the PowerShell counterpart of buildtools/winget_manifests.sh.
-# Keep both scripts in sync.
 # TAG_VERSION is the release tag without the leading "v".
 # PACKAGE_VERSION is the MSI ProductVersion and ARP DisplayVersion.
 # WinGet PackageVersion must match the installed MSI version.

@@ -31,13 +31,11 @@ It attaches `snclient-<version>-winget-manifests.zip` to the draft release.
 Review the generated manifests before you publish the release.
 
 #### Manual release
-On Linux, run `make winget-manifests` to generate the manifests locally.
-Pass the hash and ProductCode variables from `buildtools/winget_manifests.sh`.
 
-On Windows, run `pwsh buildtools/winget_manifests.ps1` with the three MSI paths.
+Run `pwsh buildtools/winget_manifests.ps1` with the three MSI paths.
 The PowerShell script reads the ProductCode and ProductVersion from the MSIs.
 
-The generated files are put in `packaging/winget/<package-version>/` when the winget_manfifests.ps1 / winget_manfifests.sh scripts are run manually.
+The generated files are put in `packaging/winget/<package-version>/` when the winget_manfifests.ps1 scripts are run manually.
 Use `winget validate` for validation of the manifests.
 
 Copy the three YAML files to a fork of `microsoft/winget-pkgs`.
@@ -62,6 +60,4 @@ The workflow uses the GitHub API and does not clone the fork.
 The fork does not need to be current.
 The PR adds only the new version directory.
 
-Keep `WINGET_AUTOPUBLISH` to "false" until the first package is merged.
-Set `WINGET_AUTOPUBLISH` to "true" after the merge.
-The publish workflow creates the next winget-pkgs pull request.
+Set `WINGET_AUTOPUBLISH` to "true" or "false" to start/stop publish workflow creating the next winget-pkgs pull request.

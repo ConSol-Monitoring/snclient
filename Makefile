@@ -478,21 +478,6 @@ windist: | dist
 		windist/snclient.ini
 	todos windist/snclient.ini
 
-# Generate the WinGet manifests for the current version.
-winget-manifests:
-	WINGET_PACKAGE_VERSION="$(WINGET_PACKAGE_VERSION)" \
-	WINGET_TAG_VERSION="$(WINGET_TAG_VERSION)" \
-	WINGET_RELEASE_DATE="$(WINGET_RELEASE_DATE)" \
-	WINGET_OUTDIR="$(WINGET_OUTDIR)" \
-	WINGET_SHA256_X64="$(WINGET_SHA256_X64)" \
-	WINGET_SHA256_X86="$(WINGET_SHA256_X86)" \
-	WINGET_SHA256_ARM64="$(WINGET_SHA256_ARM64)" \
-	WINGET_PRODUCTCODE_X64="$(WINGET_PRODUCTCODE_X64)" \
-	WINGET_PRODUCTCODE_X86="$(WINGET_PRODUCTCODE_X86)" \
-	WINGET_PRODUCTCODE_ARM64="$(WINGET_PRODUCTCODE_ARM64)" \
-	./buildtools/winget_manifests.sh
-
-
 snclient: build snclient.ini
 
 snclient.ini:
