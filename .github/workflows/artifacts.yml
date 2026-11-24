@@ -52,10 +52,10 @@ jobs:
     runs-on: ubuntu-26.04
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      VERSION: ${{ needs.get-version.outputs.version }}
+      REVISION: ${{ needs.get-version.outputs.revision }}
     steps:
       - uses: actions/checkout@main
-        with:
-          fetch-depth: 0
       - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
@@ -80,10 +80,10 @@ jobs:
     runs-on: macos-latest
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      VERSION: ${{ needs.get-version.outputs.version }}
+      REVISION: ${{ needs.get-version.outputs.revision }}
     steps:
       - uses: actions/checkout@main
-        with:
-          fetch-depth: 0
       - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'
@@ -108,10 +108,10 @@ jobs:
     runs-on: ubuntu-26.04
     env:
       BIN: "snclient-${{needs.get-version.outputs.version}}-${{ matrix.go-os }}-${{ matrix.go-arch }}"
+      VERSION: ${{ needs.get-version.outputs.version }}
+      REVISION: ${{ needs.get-version.outputs.revision }}
     steps:
       - uses: actions/checkout@main
-        with:
-          fetch-depth: 0
       - uses: actions/setup-go@main
         with:
           go-version-file: './go.mod'

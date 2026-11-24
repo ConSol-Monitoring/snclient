@@ -13,7 +13,7 @@ MINGOVERSION:=00010027
 MINGOVERSIONSTR:=1.27
 BUILD:=$(shell git rev-parse --short HEAD)
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
-REVISION:=$(shell ./buildtools/get_version | awk -F . '{ print $$3 }')
+REVISION ?= $(shell ./buildtools/get_version | awk -F . '{ print $$3 }')
 # see https://github.com/go-modules-by-example/index/blob/master/010_tools/README.md
 # and https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
 TOOLSFOLDER=$(shell pwd)/tools
