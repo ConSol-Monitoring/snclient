@@ -22,10 +22,6 @@ export PATH := $(GOBIN):$(PATH)
 GOLANG_CI_OPTIONS=--show-stats=0 --uniq-by-line=0 --timeout=5m
 
 VERSION ?= $(shell ./buildtools/get_version)
-WINGET_PACKAGE_VERSION ?= $(shell ./buildtools/get_winget_version)
-WINGET_TAG_VERSION ?= $(VERSION)
-WINGET_RELEASE_DATE ?= $(shell git log -1 --format=%cs)
-WINGET_OUTDIR ?= $(if $(WINGET_PACKAGE_VERSION),packaging/winget/$(WINGET_PACKAGE_VERSION),)
 GOARCH  ?= $(shell go env GOARCH)
 GOOS    ?= $(shell go env GOOS)
 
@@ -121,7 +117,7 @@ endif
 
 ENTR=ls cmd/*/*.go pkg/*/*.go pkg/*/*/*.go snclient*.ini | entr -sr
 
-.PHONY=docs winget-manifests
+.PHONY=docs
 
 all: build snclient.ini server.crt server.key
 
