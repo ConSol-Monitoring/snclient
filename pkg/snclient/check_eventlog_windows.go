@@ -388,22 +388,18 @@ func getEventLog(ctx context.Context, channel string, newerThan time.Time, match
 		var returnedEventCount uint32
 		ret, _, err := procEvtNext.Call(
 			uintptr(resultSet),
-			uintptr(len(events)),
-			uintptr(unsafe.Pointer(&events[0])),
-			uintptr(0),
+			uintptr(len(batch)),
+			uintptr(unsafe.Pointer(&batch[0])),
+			0,
 			0,
 			uintptr(unsafe.Pointer(&returnedEventCount)),
 		)
-		if ret == 0 {
-			return nil, fmt.Errorf("EvtNext: %w", err)
-		}
-
 		// Some Windows versions report an exhausted query as ERROR_INVALID_OPERATION with no handles.
 		if errors.Is(err, windows.ERROR_NO_MORE_ITEMS) ||
 			(errors.Is(err, windows.ERROR_INVALID_OPERATION) && returnedEventCount == 0) {
 			return events, nil
 		}
-		if err != nil {
+		if ret == 0 {
 			return nil, fmt.Errorf("EvtNext(%q): %w", channel, err)
 		}
 
