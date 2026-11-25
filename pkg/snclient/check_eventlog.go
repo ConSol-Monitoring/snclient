@@ -26,41 +26,26 @@ func (l *CheckEventlog) Build() *CheckData {
 		name: "check_eventlog",
 		description: `Checks Windows event log entries.
 
-This check wraps the following WMI query:
+This check reads all installed event log channels with the Windows Event Log API
+(wevtapi.dll). Use file or log to read selected channels only.
 
-    SELECT
-        ComputerName,
-        LogFile,
-        Category,
-        EventCode,
-        EventIdentifier,
-        EventType,
-        Message,
-        SourceName,
-        Type,
-        TimeWritten,
-        TimeGenerated
-    FROM
-        Win32_NTLogEvent
-
-See the [field descriptions](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/eventlogprov/win32-ntlogevent).
-
-When possible, SNClient adds filter conditions on id, level and source (or provider) to the WMI query's WHERE clause.
-SNClient still applies the filter to the returned events.`,
+The check reads events newer than scan-range and applies the filter afterwards.
+Channel errors are skipped while all channels are read. If no single channel can
+be read, the check returns an error.`,
 		implemented: Windows,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		hasInventory: NoCallInventory,
 		args: map[string]CheckArgument{
-			"file":             {value: &l.files, description: "File to read. Repeat this option to check multiple files."},
+			"file":             {value: &l.files, description: "Event log channel to read. Repeat this option to check multiple channels."},
 			"log":              {value: &l.files, description: "Alias for file"},
 			"timezone":         {description: "Set the timezone for time metrics (default is local time)"},
 			"scan-range":       {value: &l.scanRange, description: "Time range to search for messages (default is 24h)"},
 			"truncate-message": {value: &l.truncateMessage, description: "Maximum length of each event log message"},
 			"unique-index":     {value: &l.uniqueIndex, description: "Fields that identify unique events. Set to 0 to disable. Default is \"" + DefaultUniqueIndex + "\""},
 			"unique":           {value: &l.uniqueIndex, description: "Alias for unique-index"},
-			"event-codes": {value: &l.eventCodesFilters, isFilter: true, description: "Event codes to query. SNClient combines comma-separated values with OR. " +
+			"event-codes": {value: &l.eventCodesFilters, isFilter: true, description: "Only show events with these event codes. SNClient combines comma-separated values with OR. " +
 				"Valid range: 0-65535. You can repeat this option."},
 		},
 		defaultFilter:   "level in ('warning', 'error', 'critical')",
@@ -72,16 +57,16 @@ SNClient still applies the filter to the returned events.`,
 		emptySyntax:     "%(status) - No entries found",
 		emptyState:      0,
 		attributes: []CheckAttribute{
-			{name: "computer", description: "Which computer generated the message (ComputerName)"},
-			{name: "file", description: "The logfile name"},
+			{name: "computer", description: "Which computer generated the message (Computer)"},
+			{name: "file", description: "The event log channel name"},
 			{name: "log", description: "Alias for file"},
-			{name: "id", description: "Eventlog ID (EventCode)"},
-			{name: "eventidentifier", description: "Event identifier (EventIdentifier)"},
-			{name: "level", description: "Severity level (lowercase Type)"},
+			{name: "id", description: "Event ID"},
+			{name: "eventidentifier", description: "Event identifier (EventID)"},
+			{name: "level", description: "Severity level (error, warning, information, verbose)"},
 			{name: "message", description: "The message as a string"},
-			{name: "source", description: "The source system (SourceName)"},
+			{name: "source", description: "The event provider name"},
 			{name: "provider", description: "Alias for source"},
-			{name: "written", description: "Time of the message being written (TimeWritten)", unit: UDate},
+			{name: "written", description: "Time of the message being written (TimeCreated)", unit: UDate},
 		},
 		exampleDefault: `
     check_eventlog

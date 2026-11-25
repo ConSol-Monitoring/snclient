@@ -1,16 +1,21 @@
 package snclient
 
 import (
+	"context"
+	"math"
 	"testing"
+	"time"
+	"unsafe"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/windows"
 )
 
 func TestCheckEventlog(t *testing.T) {
 	snc := Agent{}
 	// match nothing
-	res := snc.RunCheck("check_eventlog", []string{"filter=id < 0"})
+	res := snc.RunCheck("check_eventlog", []string{"file=System", "filter=id < 0", "scan-range=-1h"})
 	assert.Equalf(t, CheckExitOK, res.State, "state OK")
 	assert.Regexpf(
 		t,
@@ -19,8 +24,9 @@ func TestCheckEventlog(t *testing.T) {
 		"output matches",
 	)
 
-	// event id filter conditions are pushed into the wmi query
+	// match nothing by id and source
 	res = snc.RunCheck("check_eventlog", []string{
+		"file=System",
 		"filter=id in (65535) and source like 'snclient-no-such-source'",
 		"scan-range=-1h",
 	})
@@ -33,169 +39,54 @@ func TestCheckEventlog(t *testing.T) {
 	)
 }
 
-// Tests only the translation of the generic filter into the WHERE clause of the WMI query.
-func TestCheckEventlogFilterQueryWhereLine(t *testing.T) {
-	attrs := NewCheckEventlog().Build().attributes
-
-	tests := []struct {
-		test     string
-		filters  []string
-		expected string
-	}{
-		{test: "no filter", filters: nil, expected: ""},
-		{test: "none filter", filters: []string{"none"}, expected: ""},
-		{test: "none filter combined with id filter", filters: []string{"none", "id = 1"}, expected: "EventCode = 1"},
-		{
-			test:     "none filter combined with id and source",
-			filters:  []string{"none", "id in (823,824) and source like 'Firefox'"},
-			expected: "(EventCode = 823 OR EventCode = 824 OR SourceName LIKE '%Firefox%')",
-		},
-		{test: "single event code", filters: []string{"id = 823"}, expected: "EventCode = 823"},
-		{test: "event code zero", filters: []string{"id = 0"}, expected: "EventCode = 0"},
-		{test: "event code max", filters: []string{"id = 65535"}, expected: "EventCode = 65535"},
-		{
-			test:     "event codes in list",
-			filters:  []string{"id in (823,824,825,5173)"},
-			expected: "(EventCode = 823 OR EventCode = 824 OR EventCode = 825 OR EventCode = 5173)",
-		},
-		{test: "event codes in list with invalid value", filters: []string{"id in (823,'abc')"}, expected: ""},
-		{test: "event code out of range", filters: []string{"id = 65536"}, expected: ""},
-		{test: "event code not numeric", filters: []string{"id = 'abc'"}, expected: ""},
-		{test: "event code lower than", filters: []string{"id < 0"}, expected: ""},
-		{test: "source equal", filters: []string{"source = 'MSSQL'"}, expected: "SourceName = 'MSSQL'"},
-		{test: "provider equal", filters: []string{"provider = 'MSSQL'"}, expected: "SourceName = 'MSSQL'"},
-		{
-			test:     "source in list",
-			filters:  []string{"source in ('MSSQL','SQL17')"},
-			expected: "(SourceName = 'MSSQL' OR SourceName = 'SQL17')",
-		},
-		{test: "source like", filters: []string{"source like 'Firefox'"}, expected: "SourceName LIKE '%Firefox%'"},
-		{test: "source slike", filters: []string{"source slike 'Firefox'"}, expected: "SourceName LIKE '%Firefox%'"},
-		{test: "source with backslash", filters: []string{`source = 'foo\bar'`}, expected: ""},
-		{test: "source unlike", filters: []string{"source unlike 'Firefox'"}, expected: ""},
-		{test: "level equal", filters: []string{"level = 'error'"}, expected: "Type = 'error'"},
-		{
-			test:     "level in list",
-			filters:  []string{"level in ('warning','error','critical')"},
-			expected: "(Type = 'warning' OR Type = 'error' OR Type = 'critical')",
-		},
-		{test: "level like", filters: []string{"level like 'err'"}, expected: "Type LIKE '%err%'"},
-		{test: "level not in", filters: []string{"level not in ('error')"}, expected: ""},
-		{test: "level regex", filters: []string{"level ~ /err/"}, expected: ""},
-		{test: "written greater", filters: []string{"written > 0"}, expected: ""},
-		{
-			test:     "event code and condition not translatable",
-			filters:  []string{"id = 1 and written > 0"},
-			expected: "EventCode = 1",
-		},
-		{
-			test:     "event code or condition not translatable",
-			filters:  []string{"id = 1 or written > 0"},
-			expected: "",
-		},
-		{
-			test:     "event codes combined with or",
-			filters:  []string{"id = 1 or id = 2"},
-			expected: "(EventCode = 1 OR EventCode = 2)",
-		},
-		{
-			test:     "nested group",
-			filters:  []string{"id = 1 and (id = 2 or id = 3)"},
-			expected: "(EventCode = 1 OR EventCode = 2 OR EventCode = 3)",
-		},
-		{
-			test:     "multiple top level filters",
-			filters:  []string{"id = 1", "id = 2"},
-			expected: "(EventCode = 1 OR EventCode = 2)",
-		},
-		{test: "multiple top level filters with one not translatable", filters: []string{"id = 1", "written > 0"}, expected: ""},
-		{
-			test:     "source and level combined with id",
-			filters:  []string{"id = 903 and source like 'MSSQL' and level = 'error'"},
-			expected: "(EventCode = 903 OR SourceName LIKE '%MSSQL%' OR Type = 'error')",
-		},
-		{
-			test:     "message condition is ignored",
-			filters:  []string{"id = 903 and message like 'foo'"},
-			expected: "EventCode = 903",
-		},
-		{
-			test:     "mssql example",
-			filters:  []string{"id IN (823,824,825,5173) AND source like 'MSSQL' AND level IN ('critical','error')"},
-			expected: "(EventCode = 823 OR EventCode = 824 OR EventCode = 825 OR EventCode = 5173 OR SourceName LIKE '%MSSQL%' OR Type = 'critical' OR Type = 'error')",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.test, func(t *testing.T) {
-			filter := ConditionList{}
-			for _, input := range test.filters {
-				cond, err := NewCondition(input, &attrs)
-				require.NoError(t, err)
-				filter = append(filter, cond)
-			}
-
-			check := &CheckEventlog{}
-			assert.Equal(t, test.expected, check.buildFilterQueryWhereLine(filter))
-		})
-	}
+func TestCheckEventlogUnknownChannel(t *testing.T) {
+	snc := Agent{}
+	res := snc.RunCheck("check_eventlog", []string{"file=snclient-no-such-channel"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "state UNKNOWN")
+	assert.Contains(t, string(res.BuildPluginOutput()), "snclient-no-such-channel")
 }
 
-// Tests only the builder function for WHERE clause of the WMI query
-// does not check the produced events
-func TestCheckEventlogQueryWhereLines(t *testing.T) {
+func TestCheckEventlogEventCodes(t *testing.T) {
 	tests := []struct {
-		test     string
-		check    CheckEventlog
-		expected []string
-		errMsg   string
+		test    string
+		filters []string
+		groups  [][]uint64
+		errMsg  string
 	}{
+		{test: "no filters", filters: nil, groups: [][]uint64{}},
+		{test: "single event code", filters: []string{"100"}, groups: [][]uint64{{100}}},
 		{
-			test:     "no filters",
-			check:    CheckEventlog{},
-			expected: []string{},
+			test:    "event codes with spaces",
+			filters: []string{" 100 , 101 ,"},
+			groups:  [][]uint64{{100, 101}},
+		},
+		{test: "event codes max value", filters: []string{"65535"}, groups: [][]uint64{{65535}}},
+		{
+			test:    "multiple event code filters",
+			filters: []string{"100,101", "102"},
+			groups:  [][]uint64{{100, 101}, {102}},
 		},
 		{
-			test:     "single event code",
-			check:    CheckEventlog{eventCodesFilters: []string{"100"}},
-			expected: []string{"EventCode = 100"},
+			test:    "event codes out of range",
+			filters: []string{"65536"},
+			errMsg:  "invalid event code \"65536\": must be an integer between 0 and 65535",
 		},
 		{
-			test:     "event codes with spaces",
-			check:    CheckEventlog{eventCodesFilters: []string{" 100 , 101 ,"}},
-			expected: []string{"(EventCode = 100 OR EventCode = 101)"},
+			test:    "negative event codes",
+			filters: []string{"-1"},
+			errMsg:  "invalid event code \"-1\"",
 		},
 		{
-			test:     "event codes max value",
-			check:    CheckEventlog{eventCodesFilters: []string{"65535"}},
-			expected: []string{"EventCode = 65535"},
-		},
-		{
-			test:   "event codes out of range",
-			check:  CheckEventlog{eventCodesFilters: []string{"65536"}},
-			errMsg: "invalid event code \"65536\": must be an integer between 0 and 65535",
-		},
-		{
-			test:   "negative event codes",
-			check:  CheckEventlog{eventCodesFilters: []string{"-1"}},
-			errMsg: "invalid event code \"-1\"",
-		},
-		{
-			test:   "event codes empty",
-			check:  CheckEventlog{eventCodesFilters: []string{" , "}},
-			errMsg: "no event codes specified",
-		},
-		{
-			test:     "multiple event code filters",
-			check:    CheckEventlog{eventCodesFilters: []string{"100,101", "102"}},
-			expected: []string{"(EventCode = 100 OR EventCode = 101)", "EventCode = 102"},
+			test:    "event codes empty",
+			filters: []string{" , "},
+			errMsg:  "no event codes specified",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.test, func(t *testing.T) {
-			check := test.check
-			whereLines, err := check.buildQueryWhereLines()
+			check := &CheckEventlog{eventCodesFilters: test.filters}
+			groups, err := check.parseEventCodes()
 			if test.errMsg != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), test.errMsg)
@@ -203,7 +94,102 @@ func TestCheckEventlogQueryWhereLines(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, whereLines)
+			assert.Equal(t, test.groups, groups)
 		})
 	}
+}
+
+func TestCheckEventlogMatchesEventCodes(t *testing.T) {
+	assert.True(t, matchesEventCodes(100, [][]uint64{{100, 101}}))
+	assert.False(t, matchesEventCodes(102, [][]uint64{{100, 101}}))
+	assert.False(t, matchesEventCodes(102, [][]uint64{{100, 101}, {102}}))
+	assert.True(t, matchesEventCodes(102, [][]uint64{{100, 101, 102}, {102}}))
+	assert.False(t, matchesEventCodes(100, [][]uint64{{100, 101}, {102}}))
+	assert.True(t, matchesEventCodes(100, nil))
+}
+
+func TestEventlogGetChannels(t *testing.T) {
+	channels, err := getEventLogChannels(context.Background())
+	require.NoError(t, err)
+	assert.Contains(t, channels, "Application")
+	assert.Contains(t, channels, "System")
+}
+
+func TestEventlogGetLog(t *testing.T) {
+	events, err := getEventLog(context.Background(), "System", time.Now().Add(-7*24*time.Hour), nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, events)
+
+	for _, event := range events {
+		assert.Equal(t, "System", event.LogFile)
+		assert.NotEmpty(t, event.SourceName)
+		assert.NotZero(t, event.TimeWritten)
+		assert.NotZero(t, event.EventIdentifier)
+	}
+}
+
+func TestEventlogGetLogUnknownChannel(t *testing.T) {
+	_, err := getEventLog(context.Background(), "snclient-no-such-channel", time.Now().Add(-time.Hour), nil)
+	require.Error(t, err)
+}
+
+func TestEventlogEventType(t *testing.T) {
+	assert.Equal(t, "audit failure", eventLogType(0, keywordAuditFailure))
+	assert.Equal(t, "audit success", eventLogType(0, keywordAuditSuccess))
+	assert.Equal(t, "error", eventLogType(1, 0))
+	assert.Equal(t, "error", eventLogType(2, 0))
+	assert.Equal(t, "warning", eventLogType(3, 0))
+	assert.Equal(t, "information", eventLogType(4, 0))
+	assert.Equal(t, "verbose", eventLogType(5, 0))
+	assert.Equal(t, "information", eventLogType(0, 0))
+}
+
+func TestEvtVariantSize(t *testing.T) {
+	assert.Equal(t, uintptr(16), unsafe.Sizeof(evtVariant{}))
+}
+
+func TestEvtVariantUint64Value(t *testing.T) {
+	tests := []struct {
+		name  string
+		value uint64
+		typ   uint32
+		want  uint64
+	}{
+		{name: "byte", value: math.MaxUint8 | 1<<8, typ: evtVarTypeByte, want: math.MaxUint8},
+		{name: "uint16", value: math.MaxUint16 | 1<<16, typ: evtVarTypeUInt16, want: math.MaxUint16},
+		{name: "uint32", value: math.MaxUint32 | 1<<32, typ: evtVarTypeUInt32, want: math.MaxUint32},
+		{name: "uint64", value: math.MaxUint64, typ: evtVarTypeUInt64, want: math.MaxUint64},
+		{name: "hex int32", value: math.MaxUint32 | 1<<32, typ: evtVarTypeHexInt32, want: math.MaxUint32},
+		{name: "hex int64", value: math.MaxUint64, typ: evtVarTypeHexInt64, want: math.MaxUint64},
+		{name: "null", value: math.MaxUint64, typ: evtVarTypeNull, want: 0},
+		{name: "wrong type", value: math.MaxUint64, typ: evtVarTypeString, want: 0},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			variant := evtVariant{Value: test.value, Type: test.typ}
+			assert.Equal(t, test.want, variant.uint64Value())
+		})
+	}
+}
+
+func TestEvtVariantStringValue(t *testing.T) {
+	ptr := windows.StringToUTF16Ptr("snclient")
+	variant := evtVariant{Type: evtVarTypeString}
+	*(*unsafe.Pointer)(unsafe.Pointer(&variant.Value)) = unsafe.Pointer(ptr)
+
+	assert.Equal(t, "snclient", variant.stringValue())
+	assert.Empty(t, (&evtVariant{Type: evtVarTypeByte, Value: 1}).stringValue())
+}
+
+func TestEvtVariantTimeValue(t *testing.T) {
+	want := time.Now().UTC().Truncate(time.Microsecond)
+	filetime := windows.NsecToFiletime(want.UnixNano())
+	variant := evtVariant{
+		Value: uint64(filetime.HighDateTime)<<32 | uint64(filetime.LowDateTime),
+		Type:  evtVarTypeFileTime,
+	}
+
+	assert.True(t, want.Equal(variant.timeValue()))
+	assert.True(t, (&evtVariant{Type: evtVarTypeByte}).timeValue().IsZero())
 }
