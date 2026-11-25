@@ -126,15 +126,16 @@ func (l *CheckEventlog) eventListData(event *eventLogEvent, message string) map[
 	}
 
 	return map[string]string{
+		"channel":         event.Channel,
+		"provider":        event.Provider,
+		"file":            event.Channel,
+		"log":             event.Channel,
+		"source":          event.Provider,
 		"computer":        event.ComputerName,
-		"file":            event.LogFile,
-		"log":             event.LogFile,
 		"id":              fmt.Sprintf("%d", event.EventCode),
 		"eventidentifier": fmt.Sprintf("%d", event.EventIdentifier),
 		"level":           event.Type,
 		"message":         message,
-		"provider":        event.SourceName,
-		"source":          event.SourceName,
 		"written":         fmt.Sprintf("%d", event.TimeWritten.Unix()),
 	}
 }
@@ -200,9 +201,9 @@ func (l *CheckEventlog) splitFilterValues(filter string) []string {
 // eventLogEvent is a single entry read from a Windows event log channel.
 type eventLogEvent struct {
 	ComputerName    string
-	LogFile         string
+	Channel         string
 	Message         string
-	SourceName      string
+	Provider        string
 	Type            string
 	TimeWritten     time.Time
 	EventCode       uint64
@@ -416,8 +417,8 @@ func getEventLog(ctx context.Context, channel string, newerThan time.Time, match
 
 				continue
 			}
-			if event.SourceName != "" {
-				event.Message = publishers.format(eventHandle, event.SourceName)
+			if event.Provider != "" {
+				event.Message = publishers.format(eventHandle, event.Provider)
 			}
 			evtClose(eventHandle)
 			events = append(events, event)
@@ -478,15 +479,15 @@ func renderEventLogEvent(renderContext, eventHandle windows.Handle, channel stri
 
 	event := eventLogEvent{
 		ComputerName:    values[valueComputer].stringValue(),
-		LogFile:         values[valueChannel].stringValue(),
-		SourceName:      provider,
+		Channel:         values[valueChannel].stringValue(),
+		Provider:        provider,
 		Type:            eventLogType(values[valueLevel].uint64Value(), values[valueKeywords].uint64Value()),
 		TimeWritten:     values[valueTimeCreated].timeValue(),
 		EventCode:       eventID & maskUInt16,
 		EventIdentifier: eventID,
 	}
-	if event.LogFile == "" {
-		event.LogFile = channel
+	if event.Channel == "" {
+		event.Channel = channel
 	}
 
 	return event, nil

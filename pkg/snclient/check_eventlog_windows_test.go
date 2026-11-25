@@ -39,6 +39,34 @@ func TestCheckEventlog(t *testing.T) {
 	)
 }
 
+func TestCheckEventlogChannelAlias(t *testing.T) {
+	snc := Agent{}
+
+	// new channel argument
+	res := snc.RunCheck("check_eventlog", []string{"channel=System", "filter=id < 0", "scan-range=-1h"})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(
+		t,
+		`^OK - No entries found`,
+		string(res.BuildPluginOutput()),
+		"output matches",
+	)
+
+	// new channel attribute with the legacy file argument
+	res = snc.RunCheck("check_eventlog", []string{
+		"file=System",
+		"filter=channel = 'System' and id < 0",
+		"scan-range=-1h",
+	})
+	assert.Equalf(t, CheckExitOK, res.State, "state OK")
+	assert.Regexpf(
+		t,
+		`^OK - No entries found`,
+		string(res.BuildPluginOutput()),
+		"output matches",
+	)
+}
+
 func TestCheckEventlogUnknownChannel(t *testing.T) {
 	snc := Agent{}
 	res := snc.RunCheck("check_eventlog", []string{"file=snclient-no-such-channel"})
@@ -121,8 +149,8 @@ func TestEventlogGetLog(t *testing.T) {
 	require.NotEmpty(t, events)
 
 	for _, event := range events {
-		assert.Equal(t, "System", event.LogFile)
-		assert.NotEmpty(t, event.SourceName)
+		assert.Equal(t, "System", event.Channel)
+		assert.NotEmpty(t, event.Provider)
 		assert.NotZero(t, event.TimeWritten)
 		assert.NotZero(t, event.EventIdentifier)
 	}

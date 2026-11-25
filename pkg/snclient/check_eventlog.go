@@ -4,7 +4,7 @@ func init() {
 	AvailableChecks["check_eventlog"] = CheckEntry{"check_eventlog", NewCheckEventlog}
 }
 
-const DefaultUniqueIndex = "%(log)-%(source)-%(id)"
+const DefaultUniqueIndex = "%(channel)-%(provider)-%(id)"
 
 type CheckEventlog struct {
 	files             []string
@@ -27,19 +27,22 @@ func (l *CheckEventlog) Build() *CheckData {
 		description: `Checks Windows event log entries.
 
 This check reads all installed event log channels with the Windows Event Log API
-(wevtapi.dll). Use file or log to read selected channels only.
+(wevtapi.dll). Use channel to read selected channels only.
 
 The check reads events newer than scan-range and applies the filter afterwards.
 Channel errors are skipped while all channels are read. If no single channel can
-be read, the check returns an error.`,
+be read, the check returns an error.
+
+The file, log, and source names are legacy aliases for channel and provider.`,
 		implemented: Windows,
 		result: &CheckResult{
 			State: CheckExitOK,
 		},
 		hasInventory: NoCallInventory,
 		args: map[string]CheckArgument{
-			"file":             {value: &l.files, description: "Event log channel to read. Repeat this option to check multiple channels."},
-			"log":              {value: &l.files, description: "Alias for file"},
+			"channel":          {value: &l.files, description: "Event log channel to read. Repeat this option to check multiple channels."},
+			"file":             {value: &l.files, description: "Legacy alias for channel."},
+			"log":              {value: &l.files, description: "Legacy alias for channel."},
 			"timezone":         {description: "Set the timezone for time metrics (default is local time)"},
 			"scan-range":       {value: &l.scanRange, description: "Time range to search for messages (default is 24h)"},
 			"truncate-message": {value: &l.truncateMessage, description: "Maximum length of each event log message"},
@@ -51,21 +54,22 @@ be read, the check returns an error.`,
 		defaultFilter:   "level in ('warning', 'error', 'critical')",
 		defaultWarning:  "level = 'warning' or problem_count > 0",
 		defaultCritical: "level in ('error', 'critical')",
-		detailSyntax:    "%(file) %(source) (%(message))",
+		detailSyntax:    "%(channel) %(provider) (%(message))",
 		okSyntax:        "%(status) - Event log seems fine",
 		topSyntax:       "%(status) - %(count) message(s) %(problem_list)",
 		emptySyntax:     "%(status) - No entries found",
 		emptyState:      0,
 		attributes: []CheckAttribute{
+			{name: "channel", description: "The event log channel name"},
+			{name: "provider", description: "The event provider name"},
+			{name: "file", description: "Legacy alias for channel"},
+			{name: "log", description: "Legacy alias for channel"},
+			{name: "source", description: "Legacy alias for provider"},
 			{name: "computer", description: "Which computer generated the message (Computer)"},
-			{name: "file", description: "The event log channel name"},
-			{name: "log", description: "Alias for file"},
 			{name: "id", description: "Event ID"},
 			{name: "eventidentifier", description: "Event identifier (EventID)"},
 			{name: "level", description: "Severity level (error, warning, information, verbose)"},
 			{name: "message", description: "The message as a string"},
-			{name: "source", description: "The event provider name"},
-			{name: "provider", description: "Alias for source"},
 			{name: "written", description: "Time of the message being written (TimeCreated)", unit: UDate},
 		},
 		exampleDefault: `
