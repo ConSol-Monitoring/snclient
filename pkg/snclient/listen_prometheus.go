@@ -17,7 +17,7 @@ func init() {
 		ConfigInit{
 			ConfigData{
 				"port":    "9999",
-				"use ssl": "0",
+				"use ssl": "true",
 			},
 			"/settings/default",
 			DefaultListenHTTPConfig,

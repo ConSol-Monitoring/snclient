@@ -43,25 +43,32 @@ const (
 
 var DefaultConfig = map[string]ConfigData{
 	"/modules": {
-		"Logrotate":            "enabled",
-		"ProcessMemoryWatcher": "enabled",
-		"CheckSystem":          "enabled",
-		"CheckSystemUnix":      "enabled",
-		"CheckAlias":           "enabled",
-		"CheckMulti":           "enabled",
-		"CheckExternalScripts": "enabled",
-		"CheckDisk":            "enabled",
-		"CheckDriveIO":         "enabled",
-		"CheckSwapIO":          "enabled",
-		"CheckWMI":             "disabled",
-		"CheckLogFile":         "disabled",
-		"NRPEServer":           "disabled",
-		"WEBServer":            "enabled",
-		"PrometheusServer":     "disabled",
-		"Updates":              "enabled",
+		"Logrotate":              "enabled",
+		"ProcessMemoryWatcher":   "enabled",
+		"CheckSystem":            "enabled",
+		"CheckSystemUnix":        "enabled",
+		"CheckAlias":             "enabled",
+		"CheckMulti":             "enabled",
+		"CheckExternalScripts":   "disabled",
+		"CheckDisk":              "enabled",
+		"CheckDriveIO":           "enabled",
+		"CheckSwapIO":            "enabled",
+		"CheckWMI":               "disabled",
+		"CheckLogFile":           "disabled",
+		"CheckBuiltinPlugins":    "disabled",
+		"NRPEServer":             "disabled",
+		"WEBServer":              "enabled",
+		"WEBAdminServer":         "disabled",
+		"PrometheusServer":       "disabled",
+		"NodeExporterServer":     "disabled",
+		"WindowsExporterServer":  "disabled",
+		"ExporterExporterServer": "disabled",
+		"ManagedExporterServer":  "disabled",
+		"Updates":                "enabled",
 	},
 	"/settings/default": {
-		"nasty characters": DefaultNastyCharacters,
+		"nasty characters":         DefaultNastyCharacters,
+		"allow control characters": "false",
 	},
 	"/settings/wmi": {
 		// number of WMI queries that may run in parallel; <= 1 uses the default client
@@ -74,6 +81,30 @@ var DefaultConfig = map[string]ConfigData{
 		"stable": "https://api.github.com/repos/ConSol-monitoring/snclient/releases",
 		"dev":    "https://api.github.com/repos/ConSol-monitoring/snclient/actions/artifacts",
 	},
+	"/settings/check/files": {
+		"max files limit": fmt.Sprintf("%d", CheckFilesMaxFilesLimit),
+	},
+	"/settings/check/logfile": {
+		"max lines per file limit": fmt.Sprintf("%d", maxLinesPerFileMax),
+	},
+	"/settings/check/multi": {
+		"max checks": fmt.Sprintf("%d", defaultMaxChecks),
+	},
+	"/settings/builtin plugins/default": {
+		"disabled": "false",
+	},
+	"/settings/external scripts/alias/default": {
+		"ignore perfdata": "false",
+		"command":         "",
+	},
+	"/settings/external scripts/scripts/default": {
+		"ignore perfdata": "false",
+		"command":         "",
+	},
+	"/settings/log": {
+		"level": "info",
+	},
+	"/settings/system/default": {},
 	"/settings/external scripts": {
 		"timeout":                  "60",
 		"script root":              "${scripts}", // root path of all scripts
@@ -84,7 +115,7 @@ var DefaultConfig = map[string]ConfigData{
 		"ignore perfdata":          "false",
 	},
 	"/settings/external scripts/wrappings": {
-		"bat": `${scripts}\%SCRIPT% %ARGS%`,
+		"bat": `${script root}\%SCRIPT% %ARGS%`,
 		"ps1": `cmd /c echo ` +
 			`If (-Not (Test-Path "${script root}\%SCRIPT%") ) ` +
 			`{ Write-Host "UNKNOWN: Script ` + "`\"%SCRIPT%`\" not found.\"; exit(3) }; " +

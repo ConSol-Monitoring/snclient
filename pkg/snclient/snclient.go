@@ -611,6 +611,10 @@ func (snc *Agent) ReadConfiguration(files []string) (initSet *AgentRunSet, err e
 		section.MergeData(defaults)
 	}
 
+	config.Section("/settings/default").MergeData(DefaultListenHTTPConfig)
+	config.Section("/settings/default").MergeData(DefaultHTTPClientConfig)
+	config.Section("/settings/system/default").MergeData(DefaultSystemTaskConfig)
+
 	// apply module defaults
 	config.ApplyMergeDefaultsAll(moduleConfigDefaults)
 
