@@ -1,9 +1,15 @@
 package snclient
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const testLogfileConfig = `
@@ -13,6 +19,16 @@ CheckLogFile = enabled
 [/settings/check/logfile]
 allowed pattern  = **
 `
+
+func testLogfileAllowedPatternConfig(allowedPattern string) string {
+	return fmt.Sprintf(`
+[/modules]
+CheckLogFile = enabled
+
+[/settings/check/logfile]
+allowed pattern = "%s"
+`, allowedPattern)
+}
 
 func TestCheckLogFileDisabled(t *testing.T) {
 	snc := StartTestAgent(t, "")
@@ -242,4 +258,144 @@ func TestCheckLogFileErrorOnEmptySearchPathResults2(t *testing.T) {
 	assert.Contains(t, string(res.BuildPluginOutput()), "OK - 16 line(s) found")
 
 	StopTestAgent(t, snc)
+}
+
+func TestCheckLogFileAllowedPatternTraversal(t *testing.T) {
+	tmpDir := t.TempDir()
+	logsDir := filepath.Join(tmpDir, "logs")
+	require.NoError(t, os.MkdirAll(filepath.Join(logsDir, "sub"), 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(logsDir, "app.log"), []byte("allowed-line\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "secret.txt"), []byte("TOPSECRET-LEAK\n"), 0o600))
+
+	snc := StartTestAgent(t, testLogfileAllowedPatternConfig(filepath.Join(logsDir, "**")))
+	defer StopTestAgent(t, snc)
+
+	// control: a file inside the allowed pattern is readable
+	insideFile := filepath.Join(logsDir, "app.log")
+	res := snc.RunCheck("check_logfile", []string{"files=" + insideFile, "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "inside file is allowed")
+	assert.Contains(t, string(res.BuildPluginOutput()), "allowed-line")
+
+	// control: a plain path outside the allowed pattern is rejected
+	outsideFile := filepath.Join(tmpDir, "secret.txt")
+	res = snc.RunCheck("check_logfile", []string{"files=" + outsideFile, "show-all"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "plain outside path is rejected")
+	assert.Contains(t, string(res.BuildPluginOutput()), "does not match any allowed pattern")
+
+	// a dot-dot path that stays inside the allowed pattern is still allowed
+	insideTraversal := strings.Join([]string{logsDir, "sub", "..", "app.log"}, string(os.PathSeparator))
+	res = snc.RunCheck("check_logfile", []string{"files=" + insideTraversal, "show-all"})
+	assert.Equalf(t, CheckExitOK, res.State, "dot-dot inside the allowed pattern is allowed")
+	assert.Contains(t, string(res.BuildPluginOutput()), "allowed-line")
+
+	// a dot-dot path that resolves outside the allowed pattern must be rejected
+	outsideTraversal := strings.Join([]string{logsDir, "..", "secret.txt"}, string(os.PathSeparator))
+	res = snc.RunCheck("check_logfile", []string{"files=" + outsideTraversal, "show-all"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "dot-dot traversal is rejected")
+	assert.Contains(t, string(res.BuildPluginOutput()), "does not match any allowed pattern")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "TOPSECRET-LEAK")
+}
+
+func TestCheckLogFileAllowedPatternSymlinkedDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink test is unix specific")
+	}
+
+	tmpDir := t.TempDir()
+	realLogsDir := filepath.Join(tmpDir, "real-logs")
+	require.NoError(t, os.MkdirAll(realLogsDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(realLogsDir, "app.log"), []byte("allowed-line\n"), 0o600))
+
+	linkedLogsDir := filepath.Join(tmpDir, "logs")
+	require.NoError(t, os.Symlink(realLogsDir, linkedLogsDir))
+
+	snc := StartTestAgent(t, testLogfileAllowedPatternConfig(filepath.Join(linkedLogsDir, "**")))
+	defer StopTestAgent(t, snc)
+
+	argumentFileName := filepath.Join(linkedLogsDir, "app.log")
+	canonicalFileName, err := resolveCanonicalPath(argumentFileName)
+	require.NoError(t, err)
+	require.NotEqual(t, argumentFileName, canonicalFileName, "test requires a symlinked path")
+
+	res := snc.RunCheck("check_logfile", []string{"files=" + argumentFileName})
+	assert.Equalf(t, CheckExitOK, res.State, "file below the symlinked allowed pattern is allowed")
+
+	// the filename attribute keeps the argument path, no canonical path is added
+	require.NotNil(t, res.Raw)
+	require.NotEmpty(t, res.Raw.listData)
+	for _, entry := range res.Raw.listData {
+		assert.Equal(t, argumentFileName, entry["filename"], "filename attribute keeps the argument path")
+		assert.NotContains(t, entry, "canonical_filename", "no extra canonical attribute is added")
+	}
+
+	// the detail output shows the argument path, not the resolved path
+	res = snc.RunCheck("check_logfile", []string{"files=" + argumentFileName, "offset=0", "show-all", "detail-syntax=$(filename)"})
+	output := string(res.BuildPluginOutput())
+	assert.Contains(t, output, argumentFileName)
+	assert.NotContains(t, output, canonicalFileName)
+}
+
+func TestCheckLogFileAllowedPatternSymlinkEscape(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink test is unix specific")
+	}
+
+	tmpDir := t.TempDir()
+	logsDir := filepath.Join(tmpDir, "logs")
+	require.NoError(t, os.MkdirAll(logsDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "secret.txt"), []byte("TOPSECRET-LEAK\n"), 0o600))
+
+	linkFileName := filepath.Join(logsDir, "leak.log")
+	require.NoError(t, os.Symlink(filepath.Join(tmpDir, "secret.txt"), linkFileName))
+
+	snc := StartTestAgent(t, testLogfileAllowedPatternConfig(filepath.Join(logsDir, "**")))
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_logfile", []string{"files=" + linkFileName, "show-all"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "symlink escaping the allowed pattern is rejected")
+	assert.Contains(t, string(res.BuildPluginOutput()), "does not match any allowed pattern")
+	assert.NotContains(t, string(res.BuildPluginOutput()), "TOPSECRET-LEAK")
+}
+
+func TestCheckLogFileResolveFailureIsRejected(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink test is unix specific")
+	}
+
+	tmpDir := t.TempDir()
+	logsDir := filepath.Join(tmpDir, "logs")
+	require.NoError(t, os.MkdirAll(logsDir, 0o750))
+
+	brokenLink := filepath.Join(logsDir, "broken.log")
+	require.NoError(t, os.Symlink(filepath.Join(tmpDir, "missing.log"), brokenLink))
+
+	snc := StartTestAgent(t, testLogfileAllowedPatternConfig(filepath.Join(logsDir, "**")))
+	defer StopTestAgent(t, snc)
+
+	res := snc.RunCheck("check_logfile", []string{"files=" + brokenLink, "show-all"})
+	assert.Equalf(t, CheckExitUnknown, res.State, "unresolvable file fails closed")
+	assert.Contains(t, string(res.BuildPluginOutput()), "failed to resolve file")
+}
+
+func TestCheckLogFileFilenameAttribute(t *testing.T) {
+	snc := StartTestAgent(t, testLogfileConfig)
+	defer StopTestAgent(t, snc)
+
+	argumentFileName := "./t/test.log"
+	res := snc.RunCheck("check_logfile", []string{"files=" + argumentFileName})
+	require.NotNil(t, res.Raw)
+	require.NotEmpty(t, res.Raw.listData)
+	for _, entry := range res.Raw.listData {
+		assert.Equal(t, argumentFileName, entry["filename"], "filename attribute keeps the argument path")
+		assert.NotContains(t, entry, "canonical_filename", "no extra canonical attribute is added")
+	}
+
+	canonicalFileName, err := resolveCanonicalPath(argumentFileName)
+	require.NoError(t, err)
+	require.NotEqual(t, argumentFileName, canonicalFileName, "test requires a relative argument path")
+
+	res = snc.RunCheck("check_logfile", []string{"files=" + argumentFileName, "offset=0", "show-all", "detail-syntax=$(filename)"})
+	output := string(res.BuildPluginOutput())
+	assert.Contains(t, output, argumentFileName)
+	assert.NotContains(t, output, canonicalFileName)
 }

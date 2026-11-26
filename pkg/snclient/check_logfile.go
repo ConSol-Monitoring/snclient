@@ -165,14 +165,23 @@ func (c *CheckLogFile) Check(ctx context.Context, snc *Agent, check *CheckData, 
 			if ctxErr := ctx.Err(); ctxErr != nil {
 				return nil, fmt.Errorf("log file scan canceled: %w", ctxErr)
 			}
-			if !c.matchPattern(fileName, allowedPattern) {
+
+			canonicalFileName, resolveErr := resolveCanonicalPath(fileName)
+			if resolveErr != nil {
+				return nil, fmt.Errorf("failed to resolve file %s: %w", fileName, resolveErr)
+			}
+			if canonicalFileName != fileName {
+				log.Debugf("file name %s is resolved to %s", fileName, canonicalFileName)
+			}
+
+			if !c.canonicalFileNameMatchesPattern(canonicalFileName, allowedPattern) {
 				log.Tracef("allowed pattern check failed for file: %s (pattern: %#v)", fileName, allowedPattern)
 
 				return nil, fmt.Errorf("file %s does not match any allowed pattern", fileName)
 			}
 
 			log.Debugf("adding file: %s", fileName)
-			entries, lineIndex, err := c.addFile(ctx, fileName, check, patterns)
+			entries, lineIndex, err := c.addFile(ctx, fileName, canonicalFileName, check, patterns)
 			if err != nil {
 				switch {
 				case os.IsPermission(err):
@@ -275,8 +284,8 @@ func (c *CheckLogFile) buildFileCountsDetailString(checkedFilesWithMatchedEntrie
 }
 
 //nolint:wrapcheck // need to preserve the type of error that comes of from os.Open. The caller then checks the type. If we wrapped it, it would be a generic error out of fmt.Errorf
-func (c *CheckLogFile) addFile(ctx context.Context, fileName string, check *CheckData, labels map[string]*regexp.Regexp) (entries []map[string]string, lineIndex int, err error) {
-	file, err := os.Open(fileName)
+func (c *CheckLogFile) addFile(ctx context.Context, fileName, canonicalFileName string, check *CheckData, labels map[string]*regexp.Regexp) (entries []map[string]string, lineIndex int, err error) {
+	file, err := os.Open(canonicalFileName)
 	if err != nil {
 		return entries, 0, err
 	}
@@ -287,7 +296,7 @@ func (c *CheckLogFile) addFile(ctx context.Context, fileName string, check *Chec
 		return entries, 0, fmt.Errorf("getting file stats failed with error: %w", err)
 	}
 
-	currentInode := getInode(fileName)
+	currentInode := getInode(canonicalFileName)
 	currentSize := info.Size()
 
 	startOffset, err := c.getStartOffset(fileName, currentSize, currentInode)
@@ -483,11 +492,36 @@ func (c *CheckLogFile) getAllowedPattern() []string {
 	return allowedPattern
 }
 
-// matchPattern checks if the given fileName matches any of the allowed patterns
-func (c *CheckLogFile) matchPattern(fileName string, allowedPattern []string) bool {
-	for _, pattern := range allowedPattern {
-		matched, err := doublestar.PathMatch(pattern, fileName)
+// canonicalFileNameMatchesPattern checks if the given canonicalFileName matches any of the allowed patterns.
+// The non-glob prefix of every allowed pattern is resolved as well, so patterns below
+// symlinked directories still match canonical file names.
+func (c *CheckLogFile) canonicalFileNameMatchesPattern(canonicalFileName string, allowedPatterns []string) bool {
+	for _, allowedPattern := range allowedPatterns {
+		absPattern, err := filepath.Abs(allowedPattern)
 		if err != nil {
+			log.Debugf("cannot make allowed pattern %s absolute: %s", allowedPattern, err)
+
+			continue
+		}
+
+		nonGlobPrefix := absPattern
+		if metaIndex := strings.IndexAny(nonGlobPrefix, `*?[{`); metaIndex >= 0 {
+			nonGlobPrefix = nonGlobPrefix[:metaIndex]
+		}
+
+		nonGlobDir := filepath.Dir(nonGlobPrefix)
+		resolvedNonGlobDir, err := resolveCanonicalPath(nonGlobDir)
+		if err != nil {
+			log.Debugf("cannot resolve directory of allowed pattern %s: %s", allowedPattern, err)
+
+			continue
+		}
+
+		resolvedPattern := filepath.Join(resolvedNonGlobDir, strings.TrimPrefix(absPattern, nonGlobDir))
+		matched, err := doublestar.PathMatch(resolvedPattern, canonicalFileName)
+		if err != nil {
+			log.Debugf("invalid allowed pattern %s: %s", allowedPattern, err)
+
 			continue
 		}
 		if matched {
@@ -496,4 +530,16 @@ func (c *CheckLogFile) matchPattern(fileName string, allowedPattern []string) bo
 	}
 
 	return false
+}
+
+// resolveCanonicalPath returns the absolute path of fileName with all symlinks resolved.
+//
+//nolint:wrapcheck // the caller adds the file name context
+func resolveCanonicalPath(fileName string) (string, error) {
+	absFileName, err := filepath.Abs(fileName)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.EvalSymlinks(absFileName)
 }
