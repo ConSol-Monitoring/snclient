@@ -1,6 +1,7 @@
 package snclient
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/consol-monitoring/snclient/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -610,6 +612,75 @@ url = http://localhost:%d/tmp/test4.ini
 	assert.Containsf(t, allowed, "192.168.3.4", "reading http config")
 
 	StopTestAgent(t, snc)
+}
+
+func TestConfigHTTPIncludeRedactsPassword(t *testing.T) {
+	const (
+		user     = "svcuser"
+		password = "VERIFY-INCLUDE-PW-9f3c"
+	)
+
+	t.Setenv("CACHE_DIRECTORY", t.TempDir())
+	snc := StartTestAgent(t, "")
+	defer StopTestAgent(t, snc)
+
+	inclURL := fmt.Sprintf("http://%s:%s@127.0.0.1:%d/managed.ini", user, password, getRandomFreeTCPPort(t))
+	configText := fmt.Sprintf("[/includes]\nremote = %s\n", inclURL)
+
+	logBuffer := bytes.Buffer{}
+	disableLogsTemporarilyToBuffer(&logBuffer)
+	defer restoreLogTarget()
+
+	prevLevel, _, err := SetLogLevelOverride("trace", 0)
+	require.NoErrorf(t, err, "set log level")
+	defer func() {
+		_, _, _ = SetLogLevelOverride(prevLevel, 0)
+	}()
+
+	// no cache: the fetch fails and the error is returned
+	cfg := NewConfig(true)
+	err = cfg.ParseINI(configText, "test.ini", snc)
+	require.Errorf(t, err, "include without cache fails")
+	assert.NotContainsf(t, err.Error(), password, "config error does not contain password")
+	assert.Containsf(t, err.Error(), user+":...@", "config error contains redacted url")
+	assert.NotContainsf(t, logBuffer.String(), password, "debug log does not contain password")
+	assert.Containsf(t, logBuffer.String(), user+":...@", "debug log contains redacted url")
+
+	// expired cache: the fetch fails and a warning is logged at the default level
+	sum, err := utils.Sha256Sum(inclURL)
+	require.NoErrorf(t, err, "sha256 sum")
+	cacheFile := filepath.Join(os.Getenv("CACHE_DIRECTORY"), fmt.Sprintf("snclient-%s.ini", sum))
+	require.NoErrorf(t, os.WriteFile(cacheFile, []byte("# cached\n[/settings/default]\n"), 0o600), "cache file written")
+	staleTime := time.Now().Add(-48 * time.Hour)
+	require.NoErrorf(t, os.Chtimes(cacheFile, staleTime, staleTime), "cache file aged")
+
+	_, _, err = SetLogLevelOverride("info", 0)
+	require.NoErrorf(t, err, "set log level")
+	logBuffer.Reset()
+
+	cfg = NewConfig(true)
+	err = cfg.ParseINI(configText, "test.ini", snc)
+	require.NoErrorf(t, err, "cached include is used")
+	assert.Containsf(t, logBuffer.String(), "cannot refresh http include", "warning is logged")
+	assert.NotContainsf(t, logBuffer.String(), password, "warning does not contain password")
+	assert.Containsf(t, logBuffer.String(), user+":...@", "warning contains redacted url")
+}
+
+func TestRedactURLPassword(t *testing.T) {
+	tests := []struct {
+		url      string
+		expected string
+	}{
+		{"https://user:secret@example.com/path", "https://user:...@example.com/path"},
+		{"https://user@example.com/path", "https://user@example.com/path"},
+		{"https://example.com/path", "https://example.com/path"},
+		// malformed url example, cannot be parsed by url.Parse
+		{"https://user:sec%zzret@example.com/path", "https://user:...@example.com/path"},
+	}
+
+	for _, test := range tests {
+		assert.Equalf(t, test.expected, redactURLPassword(test.url), "redact %s", test.url)
+	}
 }
 
 func TestConfigQuotes(t *testing.T) {
