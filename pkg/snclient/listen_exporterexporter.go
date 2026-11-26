@@ -559,7 +559,12 @@ func (cfg *exporterModuleConfig) getReverseProxyRewriteFunc() (func(*httputil.Pr
 				qvs.Add(k, v)
 			}
 		}
-		qvs["module"] = qvs["module"][1:]
+
+		// original query might not have a "module" query values, if default exporter is to be used
+		// only take out the first value of "module" query values, the exporter might use the rest
+		if moduleValues := qvs["module"]; len(moduleValues) > 0 {
+			qvs["module"] = moduleValues[1:]
+		}
 
 		req.URL.RawQuery = qvs.Encode()
 
