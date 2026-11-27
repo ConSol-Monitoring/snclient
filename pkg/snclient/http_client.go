@@ -3,9 +3,11 @@ package snclient
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/consol-monitoring/snclient/pkg/utils"
@@ -36,10 +38,15 @@ func (snc *Agent) httpClient(options *HTTPClientOptions) *http.Client {
 	return client
 }
 
-func (snc *Agent) httpDo(ctx context.Context, options *HTTPClientOptions, method, url string, header map[string]string) (*http.Response, error) {
+func (snc *Agent) httpDo(ctx context.Context, options *HTTPClientOptions, method, rawURL string, header map[string]string) (*http.Response, error) {
 	client := snc.httpClient(options)
-	req, err := http.NewRequestWithContext(ctx, method, url, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, method, rawURL, http.NoBody)
 	if err != nil {
+		// url parse errors contain the raw url, including any password
+		if urlErr, ok := errors.AsType[*url.Error](err); ok {
+			urlErr.URL = redactURLPassword(urlErr.URL)
+		}
+
 		return nil, fmt.Errorf("new request: %s", err.Error())
 	}
 
@@ -53,14 +60,14 @@ func (snc *Agent) httpDo(ctx context.Context, options *HTTPClientOptions, method
 		req.Header.Add(key, val)
 	}
 
-	log.Tracef("http %s %s", method, url)
+	log.Tracef("http %s %s", method, redactURLPassword(rawURL))
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("http fetch failed %s: %s", url, err.Error())
+		return nil, fmt.Errorf("http fetch failed %s: %s", redactURLPassword(rawURL), err.Error())
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("http fetch failed %s: %s", url, resp.Status)
+		return nil, fmt.Errorf("http fetch failed %s: %s", redactURLPassword(rawURL), resp.Status)
 	}
 
 	return resp, nil
