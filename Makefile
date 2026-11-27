@@ -363,6 +363,7 @@ clean:
 	rm -rf $(TOOLSFOLDER)
 	rm -rf dist/
 	rm -rf windist/
+	rm -rf packaging/winget/[0-9]*.[0-9]*.[0-9]*
 	rm -rf build-deb/
 	rm -rf build-rpm/
 	rm -f release_notes.txt
@@ -472,7 +473,6 @@ windist: | dist
 		-e 's/^max size =.*/max size = 10MiB/g' \
 		windist/snclient.ini
 	todos windist/snclient.ini
-
 
 snclient: build snclient.ini
 
