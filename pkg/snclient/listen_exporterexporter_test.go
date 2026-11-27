@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -610,4 +613,33 @@ func TestExporterExporterProxyStripsScrapersCredentials(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExporterExporterProxyDefaultModuleWithoutModuleQuery(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.WriteHeader(http.StatusOK)
+		LogError2(fmt.Fprintf(res, "path=%s query=%s", req.URL.Path, req.URL.RawQuery))
+	}))
+	defer backend.Close()
+
+	backendURL, err := url.Parse(backend.URL)
+	require.NoError(t, err)
+
+	handler := &HandlerExporterExporter{defaultModule: "proxied"}
+	mcfg, err := handler.readModuleConfig("proxied", strings.NewReader(`
+method: http
+http:
+  address: `+backendURL.Hostname()+`
+  port: `+backendURL.Port()+`
+  path: /metrics
+`))
+	require.NoError(t, err)
+	handler.modules = map[string]*exporterModuleConfig{"proxied": mcfg}
+
+	req := httptest.NewRequest(http.MethodGet, "/proxy", http.NoBody)
+	rec := httptest.NewRecorder()
+	handler.doProxy(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "path=/metrics query=", rec.Body.String())
 }

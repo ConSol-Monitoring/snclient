@@ -423,7 +423,7 @@ func (config *Config) parseIncludeSection(section *ConfigSection, srcPath string
 }
 
 func (config *Config) parseInclude(inclPath, srcPath string, section *ConfigSection, snc *Agent) error {
-	log.Tracef("reading config include: %s", inclPath)
+	log.Tracef("reading config include: %s", redactURLPassword(inclPath))
 	if strings.HasPrefix(inclPath, "http://") || strings.HasPrefix(inclPath, "https://") {
 		return config.parseHTTPInclude(inclPath, srcPath, section, snc)
 	}
@@ -451,6 +451,45 @@ func (config *Config) parseInclude(inclPath, srcPath string, section *ConfigSect
 	}
 
 	return nil
+}
+
+// redactURLPassword removes the password from the userinfo part of a url, i.e user:password@host.com
+// It keeps the username so log messages stay usable.
+func redactURLPassword(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err == nil {
+		if parsed.User == nil {
+			return rawURL
+		}
+		if _, hasPassword := parsed.User.Password(); !hasPassword {
+			return rawURL
+		}
+		parsed.User = url.UserPassword(parsed.User.Username(), "...")
+
+		return parsed.String()
+	}
+
+	// url.Parse rejects malformed escapes, so redact the userinfo manually if parsing fails.
+	schemeEnd := strings.Index(rawURL, "://")
+	if schemeEnd < 0 {
+		return rawURL
+	}
+	authorityStart := schemeEnd + len("://")
+	authorityEnd := len(rawURL)
+	if idx := strings.IndexAny(rawURL[authorityStart:], "/?#"); idx >= 0 {
+		authorityEnd = authorityStart + idx
+	}
+	atIndex := strings.LastIndex(rawURL[authorityStart:authorityEnd], "@")
+	if atIndex < 0 {
+		return rawURL
+	}
+	userinfo := rawURL[authorityStart : authorityStart+atIndex]
+	if !strings.Contains(userinfo, ":") {
+		return rawURL
+	}
+	username, _, _ := strings.Cut(userinfo, ":")
+
+	return rawURL[:authorityStart] + username + ":..." + rawURL[authorityStart+atIndex:]
 }
 
 func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigSection, snc *Agent) error {
@@ -493,7 +532,7 @@ func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigS
 				return err
 			}
 			// only log a warning if file already exists and use the old one
-			log.Warnf("cannot refresh http include %s: %s", inclURL, err.Error())
+			log.Warnf("cannot refresh http include %s: %s", redactURLPassword(inclURL), err.Error())
 		}
 	}
 
@@ -506,7 +545,7 @@ func (config *Config) parseHTTPInclude(inclURL, srcPath string, section *ConfigS
 			err = config.ReadINI(cacheFile, snc)
 		}
 		if err != nil {
-			return fmt.Errorf("loading included %s (cached as %s) failed: %s", inclURL, cacheFile, err.Error())
+			return fmt.Errorf("loading included %s (cached as %s) failed: %s", redactURLPassword(inclURL), cacheFile, err.Error())
 		}
 	}
 
@@ -525,7 +564,7 @@ func (config *Config) fetchHTTPInclude(inclURL, cacheFile string, section *Confi
 	if snc == nil || snc.config == nil {
 		log.Fatalf("cannot retrieve http include, got no agent")
 	}
-	log.Debugf("fetching config include from url: %s", inclURL)
+	log.Debugf("fetching config include from url: %s", redactURLPassword(inclURL))
 
 	httpClientSection := section.Clone()
 	if section.name == "/includes" {
@@ -539,12 +578,12 @@ func (config *Config) fetchHTTPInclude(inclURL, cacheFile string, section *Confi
 	}
 	resp, err := snc.httpDo(context.TODO(), httpOptions, "GET", inclURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to fetch include: %s -> %s", inclURL, err.Error())
+		return fmt.Errorf("failed to fetch include: %s -> %s", redactURLPassword(inclURL), err.Error())
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to fetch include: %s -> got status: %d", inclURL, resp.StatusCode)
+		return fmt.Errorf("failed to fetch include: %s -> got status: %d", redactURLPassword(inclURL), resp.StatusCode)
 	}
 
 	// save ini to cache file
@@ -553,12 +592,9 @@ func (config *Config) fetchHTTPInclude(inclURL, cacheFile string, section *Confi
 		return fmt.Errorf("failed to read http response: %s", err.Error())
 	}
 	// remove password before saving url
-	if resp.Request.URL.User != nil {
-		resp.Request.URL.User = url.UserPassword(resp.Request.URL.User.Username(), "...")
-	}
 	contents = append([]byte(
 		fmt.Sprintf("# snclient cached ini file\n# source: %s\n# last updated: %s\n",
-			resp.Request.URL,
+			redactURLPassword(resp.Request.URL.String()),
 			time.Now().String()),
 	),
 		contents...)

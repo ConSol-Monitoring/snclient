@@ -5,7 +5,7 @@ server: .omd-consol-de
 	docker compose up --build
 
 test: .bin/muffet .omd-consol-de
-	docker compose --progress=quiet --ansi=never up -d --build --wait --no-color --no-recreate --quiet-pull
+	docker compose --progress=quiet --ansi=never up -d --build --wait --no-color --no-recreate --quiet-pull || { docker compose logs --no-color site; exit 1; }
 	docker compose exec site chmod -R a+rwX public node_modules
 	./.bin/muffet \
 		http://localhost:1313/docs/snclient/ \
