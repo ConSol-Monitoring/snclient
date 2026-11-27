@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -74,6 +76,7 @@ type commandOpts struct {
 		Certificate              string        `short:"C" long:"certificate"                             description:"Check certificates instead of content. Give the warning threshold in days remaining and an optional critical threshold: warn_days[,<crit_days>]" `
 		TLSMinVersion            string        `          long:"tls-min"                                 description:"Minimum supported TLS version. A plus suffix also sets the maximum to the latest version: 1.3" choice:"1.0" choice:"1.0+" choice:"1.1" choice:"1.1+" choice:"1.2" choice:"1.2+" choice:"1.3"`
 		TLSMaxVersion            string        `          long:"tls-max"                                 description:"Maximum supported TLS version" choice:"1.0" choice:"1.1" choice:"1.2" choice:"1.3"`
+		CACert                   string        `          long:"ca-cert"            value-name:"<file>"   description:"PEM file with CA certificates to verify the target against. Replaces the system roots and enables --verify-cert."`
 		Proxy                    string        `          long:"proxy"                                   description:"Proxy to use"`
 		RegexStr                 string        `short:"r" long:"regex"                                   description:"Search page for case-sensitive regex string"`
 		RegexiStr                string        `short:"R" long:"regexi"                                  description:"Search page for case-insensitive regex string"`
@@ -92,6 +95,7 @@ type commandOpts struct {
 		WaitFor                  bool          `          long:"wait-for"                                description:"Retry until successful when enabled"`
 		SSL                      bool          `short:"S" long:"ssl"                                     description:"Use HTTPS"`
 		SNI                      bool          `          long:"sni"                                     description:"Enable SNI"`
+		VerifyCert               bool          `          long:"verify-cert"                             description:"Verify the target certificate chain and hostname. Disabled by default to match monitoring-plugins check_http."`
 		TCP4                     bool          `short:"4"                                                description:"Use tcp4 only"`
 		TCP6                     bool          `short:"6"                                                description:"Use tcp6 only"`
 		Verbose                  bool          `short:"v" long:"verbose"                                 description:"Show verbose output"`
@@ -129,10 +133,26 @@ func (opts *commandOpts) debugf(format string, args ...any) {
 	}
 }
 
-func makeTLSConfig(opts *commandOpts) (conf *tls.Config) {
-	//nolint:gosec // TLS check is deliberately skipped, certificate checks are done in its separate function
-	conf = &tls.Config{
-		InsecureSkipVerify: true,
+// makeTLSConfig returns the TLS config shared by the HTTP and certificate modes.
+// Target certificates are not verified by default for compatibility with monitoring-plugins check_http.
+// --verify-cert enables chain and hostname verification,
+// --ca-cert sets custom roots and enables verification too.
+// Without --verify-cert, the certificate mode (-C) only inspects expiry, names, and signature.
+func makeTLSConfig(opts *commandOpts) (*tls.Config, error) {
+	verifyCert := opts.flags.VerifyCert || opts.flags.CACert != ""
+
+	conf := &tls.Config{}
+	if !verifyCert {
+		conf.InsecureSkipVerify = true
+	}
+
+	if opts.flags.CACert != "" {
+		rootCAs, err := loadCACertPool(opts.flags.CACert)
+		if err != nil {
+			return nil, err
+		}
+
+		conf.RootCAs = rootCAs
 	}
 
 	if opts.flags.SNI {
@@ -152,7 +172,22 @@ func makeTLSConfig(opts *commandOpts) (conf *tls.Config) {
 		conf.MaxVersion = opts.tlsMaxVersion
 	}
 
-	return conf
+	return conf, nil
+}
+
+// loadCACertPool reads PEM encoded CA certificates from caFile.
+func loadCACertPool(caFile string) (*x509.CertPool, error) {
+	pemData, err := os.ReadFile(caFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read ca-cert file %s: %w", caFile, err)
+	}
+
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pemData) {
+		return nil, fmt.Errorf("no certificates found in ca-cert file %s", caFile)
+	}
+
+	return pool, nil
 }
 
 // net.Dialer is for creating a TCP connection.
@@ -1269,7 +1304,13 @@ func Check(ctx context.Context, output io.Writer, osArgs []string) int {
 	}
 
 	// Build shared TLS config and dialer
-	tlsConfig := makeTLSConfig(&opts)
+	tlsConfig, err := makeTLSConfig(&opts)
+	if err != nil {
+		fmt.Fprintf(output, "Error in TLS configuration: %s\n", err.Error())
+
+		return UNKNOWN
+	}
+
 	dialFunc := makeDialer(&opts)
 
 	// If certificate check is enabled, perform certificate validation and return

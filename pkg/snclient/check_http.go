@@ -10,7 +10,12 @@ func NewCheckHTTP() CheckHandler {
 	return &CheckBuiltin{
 		name: "check_http",
 		description: `Runs check_http to check HTTP(s) connections.
-It wraps the plugin from https://github.com/sni/check_http_go`,
+It wraps the plugin from https://github.com/sni/check_http_go
+
+TLS certificates are not verified by default. This matches monitoring-plugins check_http.
+Use <code>--verify-cert</code> to verify the certificate chain and hostname. Use it when the check sends credentials.
+Use <code>--ca-cert</code> to verify against a custom CA file. It also enables <code>--verify-cert</code>.
+The <code>-C</code> option checks certificate expiry and optional names. By default, it does not verify the chain of trust.`,
 		check:    check_http.Check,
 		docTitle: `check_http`,
 		usage:    `check_http [<options>]`,

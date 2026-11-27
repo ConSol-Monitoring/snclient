@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"log"
@@ -11,6 +12,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -474,6 +477,57 @@ func TestHTTPProxySSLPNonDefaultPort(t *testing.T) {
 	assert.Equalf(t, OK, code, "expected exit code OK (0), got %d, output: %s", code, output.String())
 	assert.Equalf(t, targetURL.Host, connectTarget.Load(), "expected the proxy CONNECT target to use the port from -p, output: %s", output.String())
 	assert.Containsf(t, output.String(), "proxied-target-response", "expected output to contain 'proxied-target-response'")
+}
+
+func TestHTTPSPeerVerification(t *testing.T) {
+	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, "verified-response")
+	}))
+	defer target.Close()
+
+	targetURL, err := url.Parse(target.URL)
+	require.NoError(t, err)
+
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: target.Certificate().Raw})
+	caFile := filepath.Join(t.TempDir(), "ca.pem")
+	require.NoError(t, os.WriteFile(caFile, certPEM, 0o600))
+
+	run := func(args ...string) (int, string) {
+		var output strings.Builder
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		checkArgs := append([]string{"check_http", "-H", targetURL.Host}, args...)
+		code := Check(ctx, &output, checkArgs)
+
+		return code, output.String()
+	}
+
+	// certificates are not verified by default, matching monitoring-plugins check_http
+	code, output := run("-S", "-s", "verified-response")
+	assert.Equal(t, OK, code, output)
+
+	// --verify-cert enables chain and hostname verification
+	code, output = run("-S", "-s", "verified-response", "--verify-cert")
+	assert.Equal(t, CRITICAL, code, output)
+	assert.Contains(t, output, "certificate signed by unknown authority", output)
+
+	// --ca-cert sets the roots and enables verification as well
+	code, output = run("-S", "-s", "verified-response", "--ca-cert", caFile)
+	assert.Equal(t, OK, code, output)
+
+	// the certificate mode uses the same verification settings
+	code, output = run("-C", "30", "--verify-cert")
+	assert.Equal(t, CRITICAL, code, output)
+	assert.Contains(t, output, "certificate signed by unknown authority", output)
+
+	code, output = run("-C", "30", "--ca-cert", caFile)
+	assert.Equal(t, OK, code, output)
+
+	// a missing ca-cert file fails the check instead of silently skipping verification
+	code, output = run("-S", "--ca-cert", filepath.Join(t.TempDir(), "missing.pem"))
+	assert.Equal(t, UNKNOWN, code, output)
+	assert.Contains(t, output, "ca-cert", output)
 }
 
 func TestMakeProxyTLSConfig(t *testing.T) {
