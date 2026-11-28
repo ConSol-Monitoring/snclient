@@ -1,0 +1,32 @@
+name: Publish to Winget
+
+# Auto-submit MSI installers to microsoft/winget-pkgs on each published release.
+# Requires a classic PAT with public_repo scope stored as WINGET_TOKEN secret.
+# Manual rerun via workflow_dispatch for already published tags.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: "Existing release tag to submit (e.g. v1.01)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  winget:
+    name: Open winget-pkgs PR
+    if: ${{ github.event_name != 'release' || !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Submit manifest with winget-releaser
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: ConSolMonitoring.SNClient
+          installers-regex: '\.msi$'
+          release-tag: ${{ github.event.release.tag_name || inputs.release-tag }}
+          token: ${{ secrets.WINGET_TOKEN }}
