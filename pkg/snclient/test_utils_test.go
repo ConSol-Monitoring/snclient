@@ -130,23 +130,15 @@ func MockSystemUtilities(t *testing.T, utils map[string]string) (tmpPath string)
 	return tmpPath
 }
 
-// getRandomFreeTCPPort returns a random free tcp port
-func getRandomFreeTCPPort(t *testing.T) (port int) {
+func testListenerPort(t *testing.T, snc *Agent) int {
 	t.Helper()
 
-	// get a random port by opening a listener on port 0 and then closing it
-	listen, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoErrorf(t, err, "get free listener worked")
+	handler, ok := snc.Listeners.Get(":0").(RequestHandler)
+	require.True(t, ok, "no listener configured on port 0")
+	addr, ok := handler.Listener().listen.Addr().(*net.TCPAddr)
+	require.True(t, ok, "expected a TCP listener")
 
-	addr := listen.Addr()
-	require.IsTypef(t, &net.TCPAddr{}, addr, "listener address is TCP")
-	if addr, ok := listen.Addr().(*net.TCPAddr); ok {
-		port = addr.Port
-	}
-	err = listen.Close()
-	require.NoErrorf(t, err, "close free listener worked")
-
-	return port
+	return addr.Port
 }
 
 // wait for http ok and given text

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -499,17 +500,6 @@ NodeExporterServer = enabled
 
 func TestConfigHTTPInclude(t *testing.T) {
 	snc := StartTestAgent(t, "")
-	testPort := 55557
-
-	// start mock http server
-	server := &http.Server{
-		Addr:              fmt.Sprintf(":%d", testPort),
-		ReadTimeout:       DefaultSocketTimeout,
-		ReadHeaderTimeout: DefaultSocketTimeout,
-		WriteTimeout:      DefaultSocketTimeout,
-		IdleTimeout:       DefaultSocketTimeout,
-		ErrorLog:          NewStandardLog("WARN"),
-	}
 	httpConfig1 := `
 [/settings/default]
 allowed hosts  = 127.0.0.1, ::1, 192.168.1.1`
@@ -524,7 +514,7 @@ allowed hosts  += 192.168.3.3`
 allowed hosts  += 192.168.3.4
 `
 
-	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "text/plain")
 		switch req.URL.Path {
 		case "/tmp/test1.ini":
@@ -550,54 +540,29 @@ allowed hosts  += 192.168.3.4
 				LogError2(res.Write([]byte("not allowed")))
 			}
 		}
-	})
-	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			log.Debugf("mock http server finished with: %s", err.Error())
-		}
-	}()
-	defer func() {
-		LogError(server.Shutdown(t.Context()))
-	}()
-
-	// wait up to 30 seconds for mock server to start
-	testReq, err := http.NewRequestWithContext(t.Context(), http.MethodGet, fmt.Sprintf("http://localhost:%d", testPort), http.NoBody)
-	require.NoErrorf(t, err, "request created")
-	httpClient := snc.httpClient(&HTTPClientOptions{reqTimeout: int64(DefaultSocketTimeout.Seconds())})
-	for range 300 {
-		res, err2 := httpClient.Do(testReq)
-		if err2 != nil {
-			time.Sleep(100 * time.Millisecond)
-
-			continue
-		}
-		res.Body.Close()
-		if res.StatusCode == http.StatusOK {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
+	}))
+	defer server.Close()
 
 	configText := fmt.Sprintf(`
 [/includes]
-remote = http://localhost:%d/tmp/test1.ini
+remote = %[1]s/tmp/test1.ini
 
 [/includes/another]
-url = http://localhost:%d/tmp/test2.ini
+url = %[1]s/tmp/test2.ini
 
 [/includes]
-auth = http://user:pass@localhost:%d/tmp/test3.ini
+auth = http://user:pass@%[2]s/tmp/test3.ini
 
 [/includes/test4]
 user = user
 password = pass4
-url = http://localhost:%d/tmp/test4.ini
-`, testPort, testPort, testPort, testPort)
+url = %[1]s/tmp/test4.ini
+`, server.URL, server.Listener.Addr())
 
 	iniFile, _ := os.CreateTemp(t.TempDir(), "snclient-*.ini")
 	defer os.Remove(iniFile.Name())
 	_, _ = iniFile.WriteString(configText)
-	err = iniFile.Close()
+	err := iniFile.Close()
 	require.NoErrorf(t, err, "config written")
 	cfg := NewConfig(true)
 	err = cfg.ReadINI(iniFile.Name(), snc)
@@ -624,7 +589,11 @@ func TestConfigHTTPIncludeRedactsPassword(t *testing.T) {
 	snc := StartTestAgent(t, "")
 	defer StopTestAgent(t, snc)
 
-	inclURL := fmt.Sprintf("http://%s:%s@127.0.0.1:%d/managed.ini", user, password, getRandomFreeTCPPort(t))
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		panic(http.ErrAbortHandler) // Close the connection without sending a response.
+	}))
+	defer server.Close()
+	inclURL := fmt.Sprintf("http://%s:%s@%s/managed.ini", user, password, server.Listener.Addr())
 	configText := fmt.Sprintf("[/includes]\nremote = %s\n", inclURL)
 
 	logBuffer := bytes.Buffer{}

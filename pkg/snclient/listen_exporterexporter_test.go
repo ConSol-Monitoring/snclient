@@ -81,15 +81,13 @@ file:
 		[]byte(noMethodYAML), 0o600,
 	))
 
-	testPort := getRandomFreeTCPPort(t)
-
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 require password = false
 
@@ -97,11 +95,12 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = `+modulesDir+`
+modules dir = ` + modulesDir + `
 require password = false
-`, testPort)
+`
 
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 	defer StopTestAgent(t, snc)
 
 	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
@@ -145,14 +144,13 @@ http:
 		[]byte(httpModule), 0o600,
 	))
 
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 require password = false
 
@@ -160,12 +158,13 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = `+modulesDir+`
+modules dir = ` + modulesDir + `
 require password = false
 allowed methods = file
-`, testPort)
+`
 
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 	defer StopTestAgent(t, snc)
 
 	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
@@ -214,14 +213,13 @@ exec:
 		[]byte(execModule), 0o600,
 	))
 
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 require password = false
 
@@ -229,12 +227,13 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = `+modulesDir+`
+modules dir = ` + modulesDir + `
 require password = false
 allowed methods = file,http
-`, testPort)
+`
 
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 	defer StopTestAgent(t, snc)
 
 	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
@@ -267,14 +266,13 @@ unknown: invalid
 		[]byte(badYAML), 0o600,
 	))
 
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 require password = false
 
@@ -282,11 +280,12 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = `+modulesDir+`
+modules dir = ` + modulesDir + `
 require password = false
-`, testPort)
+`
 
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 	defer StopTestAgent(t, snc)
 
 	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
@@ -312,14 +311,13 @@ file:
 		[]byte(fileModule), 0o600,
 	))
 
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 require password = false
 
@@ -327,11 +325,12 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /hello
-modules dir = `+modulesDir+`
+modules dir = ` + modulesDir + `
 require password = false
-`, testPort)
+`
 
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 	defer StopTestAgent(t, snc)
 
 	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/hello/list", testPort))
@@ -383,14 +382,13 @@ exec:
 		[]byte(execModule), 0o600,
 	))
 
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 require password = false
 
@@ -398,11 +396,12 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = `+modulesDir+`
+modules dir = ` + modulesDir + `
 require password = false
-`, testPort)
+`
 
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 	defer StopTestAgent(t, snc)
 
 	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet,
@@ -435,14 +434,13 @@ file:
 		[]byte(initialModule), 0o600,
 	))
 
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 require password = false
 
@@ -450,12 +448,13 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = `+modulesDir+`
+modules dir = ` + modulesDir + `
 modules dir watcher = true
 require password = false
-`, testPort)
+`
 
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 	defer StopTestAgent(t, snc)
 
 	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
@@ -478,14 +477,13 @@ file:
 }
 
 func TestExporterExporterDefaults(t *testing.T) {
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 require password = false
 
@@ -493,8 +491,9 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 require password = false
-`, testPort)
+`
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 	defer StopTestAgent(t, snc)
 
 	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))
@@ -514,14 +513,13 @@ file:
 		[]byte(initialModule), 0o600,
 	))
 
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 WEBServer = enabled
 ExporterExporterServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 require password = false
 
@@ -529,12 +527,13 @@ require password = false
 port = ${/settings/WEB/server/port}
 use ssl = ${/settings/WEB/server/use ssl}
 url prefix = /
-modules dir = `+modulesDir+`
+modules dir = ` + modulesDir + `
 modules dir watcher = true
 require password = false
-`, testPort)
+`
 
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 	defer StopTestAgent(t, snc)
 
 	body := waitForStatusOK(t, fmt.Sprintf("http://127.0.0.1:%d/list", testPort))

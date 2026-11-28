@@ -42,29 +42,32 @@ func TestListenerConfig(t *testing.T) {
 }
 
 func TestListenerSharedPort(t *testing.T) {
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 	[/modules]
 	WEBServer = enabled
 	ExporterExporterServer = enabled
 	PrometheusServer = enabled
 
 	[/settings/WEB/server]
-	port = %d
+	port = 0
 	use ssl = false
 
 	[/settings/Prometheus/server]
-	port = %d
+	port = 0
 	use ssl = false
 
 	[/settings/ExporterExporter/server]
 	port = ${/settings/WEB/server/port}
 	use ssl = ${/settings/WEB/server/use ssl}
-	`, testPort, testPort)
+	`
 	snc := StartTestAgent(t, config)
+	defer StopTestAgent(t, snc)
+	testPort := testListenerPort(t, snc)
+	handler, ok := snc.Listeners.Get(":0").(RequestHandler)
+	require.True(t, ok)
+	assert.Len(t, handler.Listener().handler, 3)
 
-	_, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", testPort), 10*time.Second)
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", testPort), 10*time.Second)
 	require.NoErrorf(t, err, "connection established")
-
-	StopTestAgent(t, snc)
+	require.NoError(t, conn.Close())
 }

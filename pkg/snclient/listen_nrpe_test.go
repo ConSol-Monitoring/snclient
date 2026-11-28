@@ -16,8 +16,7 @@ func TestHandlerNRPE(t *testing.T) {
 }
 
 func TestNRPE(t *testing.T) {
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 NRPEServer = enabled
 
@@ -27,12 +26,13 @@ level = error
 
 [/settings/NRPE/server]
 allow nasty characters = false
-port = %d
+port = 0
 allow arguments = false
 use ssl = false
-`, testPort)
+`
 
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 
 	con, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", testPort), 10*time.Second)
 	require.NoErrorf(t, err, "connection established")

@@ -10,18 +10,18 @@ import (
 )
 
 func TestCheckNSCWeb(t *testing.T) {
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 CheckBuiltinPlugins = enabled
 WEBServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 password = test
-	`, testPort)
+	`
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 
 	res := snc.RunCheck("check_snclient", []string{"-u", fmt.Sprintf("http://127.0.0.1:%d", testPort), "-p", "test"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")

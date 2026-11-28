@@ -10,18 +10,18 @@ import (
 )
 
 func TestCheckHTTP(t *testing.T) {
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	config := `
 [/modules]
 CheckBuiltinPlugins = enabled
 WEBServer = enabled
 
 [/settings/WEB/server]
-port = %d
+port = 0
 use ssl = false
 password = test
-	`, testPort)
+	`
 	snc := StartTestAgent(t, config)
+	testPort := testListenerPort(t, snc)
 
 	res := snc.RunCheck("check_http", []string{"-H", "localhost", "-p", fmt.Sprintf("%d", testPort), "-u", "/index.html"})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")

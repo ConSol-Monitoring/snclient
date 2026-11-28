@@ -2,32 +2,32 @@ package snclient
 
 import (
 	"fmt"
+	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckTCP(t *testing.T) {
-	testPort := getRandomFreeTCPPort(t)
-	config := fmt.Sprintf(`
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { LogError(listener.Close()) })
+	host, port, err := net.SplitHostPort(listener.Addr().String())
+	require.NoError(t, err)
+
+	snc := StartTestAgent(t, `
 [/modules]
 CheckBuiltinPlugins = enabled
-WEBServer = enabled
+`)
+	defer StopTestAgent(t, snc)
 
-[/settings/WEB/server]
-port = %d
-use ssl = false
-`, testPort)
-	snc := StartTestAgent(t, config)
-
-	res := snc.RunCheck("check_tcp", []string{"-H", "localhost", "-p", fmt.Sprintf("%d", testPort)})
+	res := snc.RunCheck("check_tcp", []string{"-H", host, "-p", port})
 	assert.Equalf(t, CheckExitOK, res.State, "state ok")
 	assert.Regexpf(
 		t,
-		fmt.Sprintf(`^TCP OK - [\d.]+ seconds response time on localhost port %d`, testPort),
+		fmt.Sprintf(`^TCP OK - [\d.]+ seconds response time on 127\.0\.0\.1 port %s\b`, port),
 		string(res.BuildPluginOutput()),
 		"output matches",
 	)
-
-	StopTestAgent(t, snc)
 }
